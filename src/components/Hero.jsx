@@ -40,9 +40,7 @@ const Hero = () => {
             viewport={{ margin: "-100px", once: false }}
             className="flex flex-col justify-center space-y-6 text-center lg:text-left"
           >
-            <h1 className="text-4xl md:text-4xl lg:text-5xl md:font-semibold font-bold mb-4 text-[#101828] leading-tight">
-              f Ibadan prices, places & trusted vendors.
-            </h1>
+            <h1 className="text-4xl md:text-4xl lg:text-5xl md:font-semibold font-bold mb-4 text-[#101828] leading-tight"></h1>
 
             <p className="text-sm font-medium md:font-normal md:text-lg lg:text-[16px] leading-relaxed text-slate-600 mb-6">
               Real time price insights, a verified vendor directory, and an easy
