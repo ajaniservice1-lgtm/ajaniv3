@@ -1,130 +1,109 @@
 // src/components/Hero.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
-import CountUp from "react-countup";
-import PriceInsights from "./PriceInsights";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck, faChartLine } from "@fortawesome/free-solid-svg-icons";
+import HeroImage from "../assets/Logos/towerr.jpeg";
 
 const Hero = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  // Refs for CountUp re-animation
   const heroRef = useRef(null);
   const isInView = useInView(heroRef, { margin: "-100px", once: false });
   const [hasAnimated, setHasAnimated] = useState(false);
 
-  // Reset animation state when out of view
   useEffect(() => {
-    if (isInView) {
-      setHasAnimated(true);
-    } else {
-      setHasAnimated(false);
-    }
+    if (isInView) setHasAnimated(true);
+    else setHasAnimated(false);
   }, [isInView]);
 
   return (
-    <section
-      id="hero"
-      className="bg-[#eef8fd] py-8 md:py-20 lg:py-16 font-rubik overflow-hidden"
-    >
+    <section id="hero" className="bg-[#F7F7FA] font-rubik overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
-        <div ref={heroRef} className="grid lg:grid-cols-2 gap-16 items-center">
-          {/* Left Side: Text Content */}
+        <div ref={heroRef} className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* ================= LEFT SIDE ================= */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ margin: "-100px", once: false }}
-            className="flex flex-col justify-center space-y-6 text-center lg:text-left"
+            className="flex flex-col justify-start -mt-6 lg:-mt-20 space-y-6 text-center lg:text-left"
           >
-            <h1 className="text-4xl md:text-4xl lg:text-5xl md:font-semibold font-bold mb-4 text-[#101828] leading-tight"></h1>
+            <h1 className="text-3xl md:text-5xl font-bold text-[#101828] leading-tight">
+              Discover Ibadan through AI & Local Stories
+            </h1>
 
-            <p className="text-sm font-medium md:font-normal md:text-lg lg:text-[16px] leading-relaxed text-slate-600 mb-6">
-              Real time price insights, a verified vendor directory, and an easy
-              way for businesses to get discovered
+            <p className="text-slate-600 text-xs md:text-lg leading-relaxed">
+              Your all-in-one local guide for hotels, food, events, vendors, and
+              market prices.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <a
-                href="https://wa.me/2348022662256?text=Hi%20Ajani%20👋"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 mx-8 px-6 py-3 md:mx-auto bg-green-500 hover:bg-green-600 text-white  rounded-lg font-medium text-lg transition"
-              >
-                <i className="fab fa-whatsapp mr-2"></i> Chat on WhatsApp
-              </a>
-              <button
-                onClick={() => {
-                  const el = document.getElementById("directory");
-                  if (el) {
-                    window.scrollTo({
-                      top: el.offsetTop - 80,
-                      behavior: "smooth",
-                    });
-                  }
-                }}
-                className="hidden md:inline-flex items-center justify-center gap-2 mx-8 px-6 py-3 md:mx-auto bg-[rgb(0,6,90)] hover:bg-[rgb(15,19,71)] text-white rounded-lg font-medium text-lg transition"
-              >
-                <i className="fas fa-search mr-2"></i> Browse Directory
+            {/* Search Bar */}
+            <div class="flex items-center bg-gray-200 rounded-full shadow-sm max-w-md">
+              <div class="pl-4 text-gray-500">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="Search locations, Upcoming Events...."
+                className="flex-1 bg-transparent py-2.5 px-2 text-sm text-gray-800 outline-none placeholder:text-gray-600"
+              />
+              <button className="bg-[#06EAFC] hover:bg-[#00b8e6] text-white font-semibold rounded-r-full py-2.5 px-5 text-sm transition-colors duration-200 whitespace-nowrap">
+                Search
               </button>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <button
-                onClick={() => {
-                  const el = document.getElementById("priceinsight");
-                  if (el) {
-                    window.scrollTo({
-                      top: el.offsetTop - 80,
-                      behavior: "smooth",
-                    });
-                  }
-                }}
-                className="inline-flex items-center justify-center gap-2 mx-8 px-6 py-3 md:mx-auto bg-[rgb(0,6,90)] hover:bg-[rgb(15,19,71)] text-white  rounded-lg font-medium text-lg transition"
-              >
-                <FontAwesomeIcon icon={faChartLine} />
-                See Price Insights
-              </button>
-              <button
-                onClick={() => {
-                  const el = document.getElementById("vendors");
-                  if (el) {
-                    window.scrollTo({
-                      top: el.offsetTop - 80,
-                      behavior: "smooth",
-                    });
-                  }
-                }}
-                className="md:flex items-center justify-center gap-2 mx-8 px-6 py-3 md:mx-auto bg-[rgb(0,6,90)] hover:bg-[rgb(15,19,71)] text-white rounded-lg font-medium text-lg transition"
-              >
-                <FontAwesomeIcon icon={faCheck} />
-                List Your Business
-              </button>
-            </div>
+            {/* Dummy Categories */}
+            <div className="flex justify-center lg:justify-start gap-6 mt-6">
+              <div className="w-20 text-center">
+                <div className="bg-gray-300 w-20 h-16 rounded-lg"></div>
+                <p className="mt-2 text-sm font-medium">Hotel</p>
+              </div>
 
-            {/* ✅ Re-animating CountUp */}
-            <span className="text-[13px] flex gap-1 font-medium text-slate-600 justify-center md:justify-start">
-              Trusted by{" "}
-              {hasAnimated && <CountUp end={2000} duration={2} separator="," />}
-              + locals • {hasAnimated && <CountUp end={300} duration={2} />}+
-              vendors onboarded
-            </span>
+              <div className="w-20 text-center">
+                <div className="bg-gray-300 w-20 h-16 rounded-lg"></div>
+                <p className="mt-2 text-sm font-medium">Restaurant</p>
+              </div>
+
+              <div className="w-20 text-center">
+                <div className="bg-gray-300 w-20 h-16 rounded-lg"></div>
+                <p className="mt-2 text-sm font-medium">Events</p>
+              </div>
+
+              <div className="w-20 text-center">
+                <div className="bg-gray-300 w-20 h-16 rounded-lg"></div>
+                <p className="mt-2 text-sm font-medium">Tourism</p>
+              </div>
+            </div>
           </motion.div>
 
-          {/* Right Side Animation */}
+          {/* ================= RIGHT SIDE IMAGE ================= */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, x: 50 }}
+            whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ margin: "-100px", once: false }}
+            className="flex justify-center lg:justify-end w-full"
           >
-            <PriceInsights />
+            <img src={HeroImage} alt="Bower's Tower" className="w-[607px]" />
           </motion.div>
         </div>
       </div>
+
+      <hr className="w-full h-[3px] bg-[#06EAFC] border-0 mt-10" />
     </section>
   );
 };

@@ -10,6 +10,7 @@ import { useAuth } from "../../hook/useAuth";
 import { supabase } from "../../lib/supabase";
 import { useModal } from "../../context/ModalContext";
 
+
 export default function LoginButton({ onAuthToast }) {
   const { user, loading } = useAuth();
   const { openModal, closeModal } = useModal();
@@ -120,16 +121,16 @@ export default function LoginButton({ onAuthToast }) {
       <div className="hidden md:flex gap-1">
         <button
           onClick={() => setIsLoginOpen(true)} // ✅ Local state only
-          className="px-3 py-1.5 text-sm font-medium text-[rgb(0,6,90)]  border  rounded-full  transition-colors shadow-sm"
+          className="py-2.5 px-5 text-sm font-normal bg-[#06EAFC] rounded-full  transition-colors shadow-sm"
         >
-          Sign in
+          Log in
         </button>
         <span className="text-gray-400 self-center">|</span>
         <button
           onClick={() => setIsSignupOpen(true)} // ✅ Local state only
-          className="px-3 py-1.5 text-sm font-medium text-[rgb(0,6,90)]  border rounded-full transition-colors shadow-sm"
+          className="py-2.5 px-4 text-sm font-normal border-3 border-[#06EAFC] rounded-full transition-colors shadow-sm"
         >
-          Registration
+          Register
         </button>
       </div>
 
