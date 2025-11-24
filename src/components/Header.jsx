@@ -29,7 +29,7 @@ const Header = ({ onAuthToast }) => {
       {/* FIXED HEADER WITH BOTTOM BLUE LINE (Image 1 style) */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#F7F7FA] font-rubik border-b-2 border-[#00d1ff]">
         <div className="max-w-7xl mx-auto px-4 py-2">
-          <nav className="flex items-center justify-between px-6 py-3f w-full">
+          <nav className="flex items-center justify-between px-6 py-3 w-full">
             {/* LEFT — LOGO */}
             <div className="flex items-center gap-4">
               <button
