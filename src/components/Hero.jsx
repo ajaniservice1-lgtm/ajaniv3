@@ -42,7 +42,7 @@ const Hero = () => {
             </h1>
 
             {/* Subtitle - kept your style */}
-            <p className="text-slate-600 text-xs sm:text-sm md:text-lg leading-relaxed">
+            <p className="lg:text-lg text-[15px] md:text-xl leading-[1.5] text-slate-600 mb-10">
               Your all-in-one local guide for hotels, food, events, vendors, and
               market prices.
             </p>
