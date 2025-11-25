@@ -1,6 +1,7 @@
-// FULL UPDATED Header.jsx — With Search Modal
+// FULL UPDATED Header.jsx — With Search Modal and Proper Imports
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import Logo from "../assets/Logos/logo5.png";
 import LoginButton from "../components/ui/LoginButton";
 import { IoPerson } from "react-icons/io5";
@@ -12,7 +13,18 @@ import { faStar } from "@fortawesome/free-solid-svg-icons";
 const SearchModal = ({ isOpen, onClose, listings = [] }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
+  const [isVisible, setIsVisible] = useState(false);
   const navigate = useNavigate();
+
+  // Handle animation states
+  useEffect(() => {
+    if (isOpen) {
+      setIsVisible(true);
+    } else {
+      const timer = setTimeout(() => setIsVisible(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
   // Filter suggestions based on search query
   useEffect(() => {
@@ -29,7 +41,7 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
           (item.area &&
             item.area.toLowerCase().includes(searchQuery.toLowerCase()))
       )
-      .slice(0, 8); // Limit to 8 suggestions
+      .slice(0, 8);
 
     setSuggestions(filtered);
   }, [searchQuery, listings]);
@@ -83,17 +95,14 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
   };
 
   const handleSelectSuggestion = (vendor) => {
-    // Navigate to vendor page or perform action
     console.log("Selected vendor:", vendor);
     onClose();
-    // Example: navigate(`/vendor/${vendor.id}`);
   };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       console.log("Searching for:", searchQuery);
-      // Navigate to search results page
       navigate(`/directory?search=${encodeURIComponent(searchQuery)}`);
       onClose();
     }
@@ -105,7 +114,7 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
     }
   };
 
-  // Close modal when clicking outside
+  // Close modal when clicking outside or pressing Escape
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === "Escape") {
@@ -124,28 +133,68 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isVisible) return null;
 
   return (
     <>
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] transition-opacity duration-300"
+      {/* Animated Overlay - Gradually reveals main page content */}
+      <motion.div
+        className="fixed inset-0 z-[60]"
+        initial={{ backgroundColor: "rgba(0, 0, 0, 0)" }}
+        animate={{
+          backgroundColor: isOpen ? "rgba(0, 0, 0, 0.5)" : "rgba(0, 0, 0, 0)",
+        }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         onClick={onClose}
-      />
+      >
+        {/* Backdrop blur that increases gradually */}
+        <motion.div
+          className="absolute inset-0 backdrop-blur-sm"
+          initial={{ backdropFilter: "blur(0px)" }}
+          animate={{
+            backdropFilter: isOpen ? "blur(8px)" : "blur(0px)",
+          }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        />
+      </motion.div>
 
-      {/* Search Modal */}
-      <div className="fixed inset-y-0 left-0 w-full max-w-md bg-white shadow-2xl z-[70] transform transition-transform duration-300 ease-in-out">
+      {/* Animated Search Modal */}
+      <motion.div
+        className="fixed inset-y-0 left-0 w-full max-w-md bg-white shadow-2xl z-[70]"
+        initial={{ x: "-100%", opacity: 0 }}
+        animate={{
+          x: isOpen ? "0%" : "-100%",
+          opacity: isOpen ? 1 : 0,
+        }}
+        transition={{
+          type: "spring",
+          damping: 25,
+          stiffness: 200,
+          duration: 0.4,
+        }}
+      >
         <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-white">
+          {/* Header with staggered animation */}
+          <motion.div
+            className="flex items-center justify-between p-6 border-b border-gray-200 bg-white"
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+          >
             <div className="flex items-center gap-3">
-              <div className="w-2 h-8 bg-[#06EAFC] rounded-full"></div>
+              <motion.div
+                className="w-2 h-8 bg-[#06EAFC] rounded-full"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: "spring" }}
+              />
               <h2 className="text-xl font-bold text-gray-900">Search</h2>
             </div>
-            <button
+            <motion.button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
             >
               <svg
                 className="w-6 h-6 text-gray-500"
@@ -160,42 +209,69 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                   d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
 
-          {/* Search Input */}
-          <div className="p-6 border-b border-gray-100">
+          {/* Search Input with animation */}
+          <motion.div
+            className="p-6 border-b border-gray-100"
+            initial={{ y: -10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.15, duration: 0.3 }}
+          >
             <form onSubmit={handleSearchSubmit} className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <CiSearch className="h-5 w-5 text-gray-400" />
               </div>
-              <input
+              <motion.input
                 type="text"
                 placeholder="Search for hotels, restaurants, events..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={handleKeyPress}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                whileFocus={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300 }}
                 autoFocus
               />
             </form>
-          </div>
+          </motion.div>
 
-          {/* Search Results */}
+          {/* Search Results with staggered animations */}
           <div className="flex-1 overflow-y-auto">
             {searchQuery.trim() === "" ? (
-              // Empty state - similar to your image
-              <div className="p-6 text-center">
+              // Empty state with gentle animations
+              <motion.div
+                className="p-6 text-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
+              >
                 <div className="max-w-sm mx-auto">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <motion.h3
+                    className="text-lg font-semibold text-gray-900 mb-2"
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                  >
                     Search for...
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-6">
-                    <strong>our info description or what we wat user to kow efore typig</strong>
+                  </motion.h3>
+                  <motion.p
+                    className="text-gray-600 text-sm mb-6"
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    <strong>Shopinverse isn't just an</strong>
                     <br />
-                    ................. should feel: calm and effortless
-                  </p>
-                  <div className="bg-gray-50 rounded-lg p-4 text-left">
+                    shopping should feel: calm and effortless
+                  </motion.p>
+                  <motion.div
+                    className="bg-gray-50 rounded-lg p-4 text-left"
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                  >
                     <p className="text-gray-700 text-sm mb-2">
                       <strong>Enjoy effortless navigation</strong> that puts you
                       in control.
@@ -203,16 +279,31 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                     <p className="text-gray-600 text-sm">
                       Say goodbye to clutter and find what you need with ease.
                     </p>
-                    <p className="text-gray-700 text-sm mt-3 font-medium">
-                      Choose aja....... — where .......meets simplicity.
-                    </p>
-                  </div>
+                    <motion.p
+                      className="text-gray-700 text-sm mt-3 font-medium"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.7 }}
+                    >
+                      Choose Shopinverse — where shopping meets simplicity.
+                    </motion.p>
+                  </motion.div>
                 </div>
-              </div>
+              </motion.div>
             ) : suggestions.length === 0 ? (
               // No results state
-              <div className="p-6 text-center">
-                <div className="text-gray-400 mb-3">
+              <motion.div
+                className="p-6 text-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <motion.div
+                  className="text-gray-400 mb-3"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring" }}
+                >
                   <svg
                     className="w-12 h-12 mx-auto"
                     fill="none"
@@ -226,28 +317,47 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                       d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                     />
                   </svg>
-                </div>
-                <p className="text-gray-500 text-sm">
+                </motion.div>
+                <motion.p
+                  className="text-gray-500 text-sm"
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.1 }}
+                >
                   No results found for "{searchQuery}"
-                </p>
-                <p className="text-gray-400 text-xs mt-1">
+                </motion.p>
+                <motion.p
+                  className="text-gray-400 text-xs mt-1"
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
                   Try different keywords
-                </p>
-              </div>
+                </motion.p>
+              </motion.div>
             ) : (
-              // Suggestions list
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-4">
+              // Suggestions list with staggered animations
+              <motion.div
+                className="p-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <motion.div
+                  className="flex items-center justify-between mb-4"
+                  initial={{ y: -10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                >
                   <h4 className="font-medium text-gray-900 text-sm">
                     Search Results
                   </h4>
                   <span className="text-gray-500 text-xs">
                     {suggestions.length} found
                   </span>
-                </div>
+                </motion.div>
 
                 <div className="space-y-3">
-                  {suggestions.map((vendor) => {
+                  {suggestions.map((vendor, index) => {
                     const category = (vendor.category || "").toLowerCase();
                     let priceText = "";
                     if (
@@ -265,19 +375,34 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                     }
 
                     return (
-                      <div
+                      <motion.div
                         key={vendor.id}
                         className="flex items-center p-3 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors duration-150 border border-gray-100"
+                        initial={{ x: -20, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{
+                          delay: 0.1 + index * 0.05,
+                          type: "spring",
+                          stiffness: 100,
+                        }}
+                        whileHover={{
+                          scale: 1.02,
+                          backgroundColor: "rgba(59, 130, 246, 0.05)",
+                        }}
                         onClick={() => handleSelectSuggestion(vendor)}
                       >
                         {/* Vendor Image */}
-                        <div className="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden mr-3">
+                        <motion.div
+                          className="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden mr-3"
+                          whileHover={{ scale: 1.1 }}
+                          transition={{ type: "spring", stiffness: 300 }}
+                        >
                           <img
                             src={getCardImages(vendor)}
                             alt={vendor.name}
                             className="w-full h-full object-cover"
                           />
-                        </div>
+                        </motion.div>
 
                         {/* Vendor Info */}
                         <div className="flex-1 min-w-0">
@@ -291,11 +416,16 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                               </p>
                             </div>
                             {vendor.price_from && (
-                              <div className="text-right ml-2 flex-shrink-0">
+                              <motion.div
+                                className="text-right ml-2 flex-shrink-0"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.2 + index * 0.05 }}
+                              >
                                 <p className="font-semibold text-green-600 text-xs">
                                   {priceText}
                                 </p>
-                              </div>
+                              </motion.div>
                             )}
                           </div>
 
@@ -317,19 +447,29 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                             )}
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     );
                   })}
                 </div>
-              </div>
+              </motion.div>
             )}
           </div>
 
-          {/* Quick Categories */}
-          <div className="p-6 border-t border-gray-100 bg-gray-50">
-            <p className="text-xs text-gray-600 mb-3 font-medium">
+          {/* Quick Categories with animation */}
+          <motion.div
+            className="p-6 border-t border-gray-100 bg-gray-50"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            <motion.p
+              className="text-xs text-gray-600 mb-3 font-medium"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
               Popular Categories:
-            </p>
+            </motion.p>
             <div className="flex flex-wrap gap-2">
               {[
                 "Hotels",
@@ -338,19 +478,28 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                 "Tourism",
                 "Cafes",
                 "Bars",
-              ].map((category) => (
-                <button
+              ].map((category, index) => (
+                <motion.button
                   key={category}
                   onClick={() => setSearchQuery(category)}
                   className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs text-gray-700 hover:bg-gray-100 hover:border-gray-400 transition-colors"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{
+                    delay: 0.5 + index * 0.1,
+                    type: "spring",
+                    stiffness: 200,
+                  }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   {category}
-                </button>
+                </motion.button>
               ))}
             </div>
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     </>
   );
 };
