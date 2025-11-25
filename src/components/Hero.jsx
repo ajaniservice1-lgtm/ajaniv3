@@ -5,6 +5,7 @@ import HeroImage from "../assets/Logos/towerr.jpeg";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
 
+
 // Search Suggestions Component
 const SearchSuggestions = ({
   searchQuery,
