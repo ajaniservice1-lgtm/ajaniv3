@@ -262,9 +262,9 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.4 }}
                   >
-                    <strong>Shopinverse isn't just an</strong>
+                    <strong>our brad..... isn't just an</strong>
                     <br />
-                    shopping should feel: calm and effortless
+                    our brad.........shopping should feel: calm and effortless
                   </motion.p>
                   <motion.div
                     className="bg-gray-50 rounded-lg p-4 text-left"
@@ -285,7 +285,7 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.7 }}
                     >
-                      Choose Shopinverse — where shopping meets simplicity.
+                      Choose our brad......... — where shopping meets simplicity.
                     </motion.p>
                   </motion.div>
                 </div>
