@@ -27,9 +27,9 @@ const Header = ({ onAuthToast }) => {
   return (
     <>
       {/* FIXED HEADER WITH BOTTOM BLUE LINE (Image 1 style) */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#F7F7FA] font-rubik border-b-2 border-[#00d1ff]">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#F7F7FA] border-b-2 border-[#00d1ff] h-20 font-rubik">
         <div className="max-w-7xl mx-auto px-4 py-2">
-          <nav className="flex items-center justify-between px-6 py-3 w-full">
+          <nav className="flex items-center justify-between px-6 py-1 w-full">
             {/* LEFT — LOGO */}
             <div className="flex items-center gap-4">
               <button
@@ -58,6 +58,7 @@ const Header = ({ onAuthToast }) => {
                 { label: "Categories", id: "Categories" },
                 { label: "Price Insights", id: "Price Insights" },
                 { label: "Blog", id: "Blog" },
+                { label: "Vendor", id: "Vendor" },
               ].map((item) => (
                 <button
                   key={item.id}
@@ -161,16 +162,18 @@ const Header = ({ onAuthToast }) => {
           </div>
 
           {/* NAVIGATION LINKS */}
-          <nav className="flex-1 p-5 space-y-4 font-normal font-rubik">
+          <nav className="flex-1 p-5 space-y-1 font-normal font-rubik">
             {[
-              { label: "Home", id: "Home" },
               { label: "Categories", id: "Categories" },
               { label: "Price Insights", id: "Price Insights" },
               { label: "Blog", id: "Blog" },
+              { label: "My Profile", id: "My Profile" },
+              { label: "Log In", id: "Log In" },
+              { label: "Register", id: "Register" },
             ].map((item) => (
               <button
                 key={item.id}
-                className="block w-full text-left py-2 text-gray-900 hover:text-blue-800 font-medium"
+                className="block w-full text-left py-2 text-gray-900 hover:text-[#06EAFC] font-medium"
                 onClick={() => {
                   scrollToSection(item.id);
                   setTimeout(() => closeMenu(), 400);
@@ -180,24 +183,8 @@ const Header = ({ onAuthToast }) => {
               </button>
             ))}
           </nav>
-
-          {/* WHATSAPP BUTTON */}
-          <div className="p-5 border-t border-gray-200">
-            <a
-              href="https://wa.me/2348123456789?text=Hi%20Ajani%20👋"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg font-semibold w-full"
-              onClick={closeMenu}
-            >
-              <i className="fab fa-whatsapp"></i> Chat with Ajani
-            </a>
-          </div>
         </div>
       </div>
-
-      {/* SPACER FOR FIXED HEADER */}
-      <div className="h-20"></div>
     </>
   );
 };
