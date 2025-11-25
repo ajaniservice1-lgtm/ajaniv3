@@ -350,18 +350,18 @@ const Directory = () => {
               {title}
             </h2>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-0">
             <button
               onClick={() => scrollSection(sectionId, "prev")}
               className="w-6 h-6 rounded-full  flex items-center justify-center hover:bg-gray-50 transition-colors"
             >
-              <FaLessThan className="text-gray-600" /> {/* ← Changed to icon */}
+              <FaLessThan className="text-gray-300" /> {/* ← Changed to icon */}
             </button>
             <button
               onClick={() => scrollSection(sectionId, "next")}
               className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors"
             >
-              <PiGreaterThan className="text-gray-600" />{" "}
+              <FaGreaterThan className="text-gray-600" />{" "}
               {/* ← Changed to icon */}
             </button>
           </div>
