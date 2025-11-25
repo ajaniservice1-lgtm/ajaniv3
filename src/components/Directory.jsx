@@ -1,13 +1,414 @@
 // src/components/Directory.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import { Link } from "react-router-dom";
 import { generateSlug } from "../utils/vendorUtils";
 import { FaGreaterThan } from "react-icons/fa";
 import { FaLessThan } from "react-icons/fa";
+import { PiSliders } from "react-icons/pi";
+
+
+// ---------------- Filter Dropdown Component ----------------
+const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
+  const dropdownRef = useRef(null);
+  const [filters, setFilters] = useState({
+    categories: [],
+    priceRange: { min: "", max: "" },
+    reviews: [],
+    badges: [],
+  });
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen, onClose]);
+
+  const handleCategoryChange = (category) => {
+    setFilters((prev) => ({
+      ...prev,
+      categories: prev.categories.includes(category)
+        ? prev.categories.filter((c) => c !== category)
+        : [...prev.categories, category],
+    }));
+  };
+
+  const handleReviewChange = (stars) => {
+    setFilters((prev) => ({
+      ...prev,
+      reviews: prev.reviews.includes(stars)
+        ? prev.reviews.filter((s) => s !== stars)
+        : [...prev.reviews, stars],
+    }));
+  };
+
+  const handleBadgeChange = (badge) => {
+    setFilters((prev) => ({
+      ...prev,
+      badges: prev.badges.includes(badge)
+        ? prev.badges.filter((b) => b !== badge)
+        : [...prev.badges, badge],
+    }));
+  };
+
+  const handlePriceChange = (field, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      priceRange: {
+        ...prev.priceRange,
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleReset = () => {
+    setFilters({
+      categories: [],
+      priceRange: { min: "", max: "" },
+      reviews: [],
+      badges: [],
+    });
+  };
+
+  const handleApply = () => {
+    onFilterChange(filters);
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <motion.div
+      ref={dropdownRef}
+      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 p-6"
+    >
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center border-b pb-3">
+          <h3 className="text-lg font-bold text-gray-900">Filter Options</h3>
+          <button
+            onClick={onClose}
+            className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors"
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Category Section */}
+        <div>
+          <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
+            Category
+          </h4>
+          <div className="space-y-2">
+            {[
+              "Hotels",
+              "Restaurant",
+              "Laundry",
+              "Tourist Centre",
+              "Event Centre",
+            ].map((category) => (
+              <label
+                key={category}
+                className="flex items-center space-x-3 cursor-pointer group"
+              >
+                <input
+                  type="checkbox"
+                  checked={filters.categories.includes(category)}
+                  onChange={() => handleCategoryChange(category)}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+                />
+                <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+                  {category}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Price Range */}
+        <div>
+          <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
+            Price
+          </h4>
+          <div className="flex items-center space-x-3">
+            <div className="flex-1">
+              <input
+                type="number"
+                placeholder="2,500"
+                value={filters.priceRange.min}
+                onChange={(e) => handlePriceChange("min", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              />
+            </div>
+            <span className="text-gray-500 font-medium">-</span>
+            <div className="flex-1">
+              <input
+                type="number"
+                placeholder="5,000"
+                value={filters.priceRange.max}
+                onChange={(e) => handlePriceChange("max", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Review Section */}
+        <div>
+          <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
+            Review
+          </h4>
+          <div className="space-y-2">
+            {[5, 4, 3, 2, 1].map((stars) => (
+              <label
+                key={stars}
+                className="flex items-center space-x-3 cursor-pointer group"
+              >
+                <input
+                  type="checkbox"
+                  checked={filters.reviews.includes(stars)}
+                  onChange={() => handleReviewChange(stars)}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+                />
+                <div className="flex items-center space-x-2">
+                  {[...Array(stars)].map((_, i) => (
+                    <FontAwesomeIcon
+                      key={i}
+                      icon={faStar}
+                      className="text-yellow-400 text-sm"
+                    />
+                  ))}
+                  <span className="text-gray-700 group-hover:text-gray-900 transition-colors text-sm">
+                    {stars} Star{stars !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Badge Section */}
+        <div>
+          <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
+            Badge
+          </h4>
+          <div className="space-y-2">
+            <label className="flex items-center space-x-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={filters.badges.includes("verified")}
+                onChange={() => handleBadgeChange("verified")}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+              />
+              <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+                Verified
+              </span>
+            </label>
+            <label className="flex items-center space-x-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={filters.badges.includes("unverified")}
+                onChange={() => handleBadgeChange("unverified")}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+              />
+              <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+                Unverified
+              </span>
+            </label>
+          </div>
+        </div>
+        {/* Respose Section */}
+        <div>
+          <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
+            Response Time
+          </h4>
+          <div className="space-y-2">
+            <label className="flex items-center space-x-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={filters.badges.includes("verified")}
+                onChange={() => handleBadgeChange("verified")}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+              />
+              <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+                1hr - 4hr
+              </span>
+            </label>
+            <label className="flex items-center space-x-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={filters.badges.includes("unverified")}
+                onChange={() => handleBadgeChange("unverified")}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+              />
+              <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+                5hr - 8hr
+              </span>
+            </label>
+          </div>
+        </div>
+        {/* Language Section */}
+        <div>
+          <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
+            Language
+          </h4>
+          <div className="space-y-2">
+            <label className="flex items-center space-x-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={filters.badges.includes("verified")}
+                onChange={() => handleBadgeChange("verified")}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+              />
+              <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+                Yoruba Only
+              </span>
+            </label>
+            <label className="flex items-center space-x-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={filters.badges.includes("unverified")}
+                onChange={() => handleBadgeChange("unverified")}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+              />
+              <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+                English Only
+              </span>
+            </label>
+            <label className="flex items-center space-x-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={filters.badges.includes("unverified")}
+                onChange={() => handleBadgeChange("unverified")}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+              />
+              <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+                Both
+              </span>
+            </label>
+          </div>
+          {/* Vendor Type Section */}
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
+              Vendor Type
+            </h4>
+            <div className="space-y-2">
+              <label className="flex items-center space-x-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={filters.badges.includes("verified")}
+                  onChange={() => handleBadgeChange("verified")}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+                />
+                <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+                  Individual / Business
+                </span>
+              </label>
+              <label className="flex items-center space-x-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={filters.badges.includes("unverified")}
+                  onChange={() => handleBadgeChange("unverified")}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+                />
+                <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+                  Verified Company
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
+        {/* Action Buttons */}
+        <div className="flex space-x-3 pt-4 border-t">
+          <button
+            onClick={handleReset}
+            className="flex-1 px-4 py-3 text-sm font-medium border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+          >
+            Reset
+          </button>
+          <button
+            onClick={handleApply}
+            className="flex-1 px-4 py-3 text-sm font-medium bg-blue-600 text-white rounded-xl hover:bg-blue-700 transform hover:scale-105 transition-all duration-200"
+          >
+            Apply Filters
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// ---------------- Image Modal Component ----------------
+const ImageModal = ({ images, initialIndex, isOpen, onClose, item }) => {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
+      <div className="relative max-w-4xl max-h-full">
+        <button
+          onClick={onClose}
+          className="absolute -top-12 right-0 text-white text-2xl hover:text-gray-300 z-10"
+        >
+          ×
+        </button>
+
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() =>
+              setCurrentIndex((prev) =>
+                prev > 0 ? prev - 1 : images.length - 1
+              )
+            }
+            className="text-white text-2xl hover:text-gray-300"
+          >
+            ‹
+          </button>
+
+          <img
+            src={images[currentIndex]}
+            alt={`${item?.name || "Business"} image ${currentIndex + 1}`}
+            className="max-w-full max-h-[80vh] object-contain rounded-lg"
+          />
+
+          <button
+            onClick={() =>
+              setCurrentIndex((prev) =>
+                prev < images.length - 1 ? prev + 1 : 0
+              )
+            }
+            className="text-white text-2xl hover:text-gray-300"
+          >
+            ›
+          </button>
+        </div>
+
+        <div className="text-white text-center mt-4">
+          {currentIndex + 1} / {images.length}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ---------------- Helpers ----------------
 const capitalizeFirst = (str) =>
@@ -39,7 +440,8 @@ const FALLBACK_IMAGES = {
     "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=80",
   amala:
     "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80",
-  default: "/mnt/data/4d461a2d-d714-4cb9-a9ce-66785f412bb3.png",
+  default:
+    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
 };
 
 const getCardImages = (item) => {
@@ -126,7 +528,7 @@ const useGoogleSheet = (sheetId, apiKey) => {
   return { data: Array.isArray(data) ? data : [], loading, error };
 };
 
-// ---------------- Image Display ----------------
+// ---------------- Image Display Component ----------------
 const ImageDisplay = ({ card, onImageClick, isMobile = false }) => {
   const images = getCardImages(card);
 
@@ -134,13 +536,13 @@ const ImageDisplay = ({ card, onImageClick, isMobile = false }) => {
     <div
       className={`relative w-full ${
         isMobile ? "h-[144.57px]" : "h-[299px]"
-      } overflow-hidden rounded-lg bg-gray-100 cursor-pointer`}
+      } overflow-hidden rounded-lg bg-gray-100 cursor-pointer group`}
       onClick={() => onImageClick(images, 0)}
     >
       <img
         src={images[0]}
         alt={`${card.name || "Business"} image`}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         onError={(e) => (e.currentTarget.src = FALLBACK_IMAGES.default)}
         loading="lazy"
       />
@@ -154,7 +556,7 @@ const ImageDisplay = ({ card, onImageClick, isMobile = false }) => {
   );
 };
 
-// ---------------- Directory Component ----------------
+// ---------------- Main Directory Component ----------------
 const Directory = () => {
   const [imageModal, setImageModal] = useState({
     isOpen: false,
@@ -167,10 +569,13 @@ const Directory = () => {
     threshold: 0.1,
     triggerOnce: false,
   });
+
   const [search, setSearch] = useState("");
   const [mainCategory, setMainCategory] = useState("");
   const [area, setArea] = useState("");
   const [isMobile, setIsMobile] = useState(false);
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [activeFilters, setActiveFilters] = useState({});
 
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
   const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
@@ -201,6 +606,47 @@ const Directory = () => {
     });
   };
 
+  // Apply advanced filters function - MOVED BEFORE filteredListings
+  const applyAdvancedFilters = (item, filters) => {
+    if (!filters || Object.keys(filters).length === 0) return true;
+
+    // Category filter
+    if (filters.categories && filters.categories.length > 0) {
+      const itemCategory = item.category || "";
+      if (
+        !filters.categories.some((cat) =>
+          itemCategory.toLowerCase().includes(cat.toLowerCase())
+        )
+      ) {
+        return false;
+      }
+    }
+
+    // Price filter
+    if (
+      filters.priceRange &&
+      (filters.priceRange.min || filters.priceRange.max)
+    ) {
+      const itemPrice = Number(item.price_from) || 0;
+      const minPrice = Number(filters.priceRange.min) || 0;
+      const maxPrice = Number(filters.priceRange.max) || Infinity;
+
+      if (itemPrice < minPrice || itemPrice > maxPrice) {
+        return false;
+      }
+    }
+
+    // Review filter
+    if (filters.reviews && filters.reviews.length > 0) {
+      const itemRating = Number(item.rating) || 0;
+      if (!filters.reviews.some((stars) => itemRating >= stars)) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   // Filter listings based on search and filters
   const filteredListings = listings.filter((item) => {
     const matchesSearch =
@@ -214,7 +660,10 @@ const Directory = () => {
 
     const matchesArea = !area || item.area === area;
 
-    return matchesSearch && matchesCategory && matchesArea;
+    // Apply additional filters from filter dropdown
+    const matchesFilters = applyAdvancedFilters(item, activeFilters);
+
+    return matchesSearch && matchesCategory && matchesArea && matchesFilters;
   });
 
   // Extract subcategories from the data (text after the ".")
@@ -253,7 +702,7 @@ const Directory = () => {
     const container = document.getElementById(sectionId);
     if (!container) return;
 
-    const scrollAmount = isMobile ? 176 : 332; // Desktop: 322px + 10px gap = 332px
+    const scrollAmount = isMobile ? 176 : 332;
     const newPosition =
       direction === "next"
         ? container.scrollLeft + scrollAmount
@@ -265,7 +714,21 @@ const Directory = () => {
     });
   };
 
-  // Card component for consistent styling
+  // Toggle filter dropdown
+  const toggleFilterDropdown = () => {
+    setShowFilterDropdown(!showFilterDropdown);
+  };
+
+  // Close filter dropdown
+  const closeFilterDropdown = () => {
+    setShowFilterDropdown(false);
+  };
+
+  // Handle filter changes from dropdown
+  const handleFilterChange = (filters) => {
+    setActiveFilters(filters);
+  };
+
   // Card component for consistent styling
   const BusinessCard = ({ item, category }) => {
     const itemId = `business-${item.id}`;
@@ -285,10 +748,9 @@ const Directory = () => {
     return (
       <div
         className={`bg-white rounded-lg overflow-hidden flex-shrink-0 ${
-          isMobile ? "w-[155.69px] mr-[4.83px]" : "w-[322px]" // ← Keep mobile as is
-        } transition-all duration-300 hover:shadow-lg`}
+          isMobile ? "w-[155.69px] mr-[4.83px]" : "w-[322px]"
+        } transition-all duration-300 hover:shadow-lg border border-gray-100`}
       >
-        {/* Standalone Image with Guest Favorite Badge */}
         <ImageDisplay
           card={item}
           onImageClick={(images, index) =>
@@ -302,21 +764,20 @@ const Directory = () => {
           isMobile={isMobile}
         />
 
-        {/* Text content beneath the image - All black text, no bold */}
         <div className={`${isMobile ? "p-[4.83px]" : "p-[10px]"}`}>
-          {" "}
-          {/* ← Change to p-[10px] for desktop */}
-          {/* Business Name - Black (NO BOLD) */}
           <h3
             className={`text-black ${
-              isMobile ? "text-xs mb-1" : "text-lg mb-2" // ← Keep as is
-            } leading-tight`}
+              isMobile ? "text-xs mb-1" : "text-lg mb-2"
+            } leading-tight font-normal`}
           >
             {item.name}
           </h3>
-          {/* Price and Rating in one line - All Black (NO BOLD) */}
           <div className="flex justify-between items-center">
-            <p className={`text-black ${isMobile ? "text-[10px]" : "text-sm"}`}>
+            <p
+              className={`text-black ${
+                isMobile ? "text-[10px]" : "text-sm"
+              } font-normal`}
+            >
               {priceText}
             </p>
             <div className="flex items-center gap-1">
@@ -325,7 +786,9 @@ const Directory = () => {
                 className={`text-black ${isMobile ? "text-[10px]" : "text-sm"}`}
               />
               <span
-                className={`text-black ${isMobile ? "text-[10px]" : "text-sm"}`}
+                className={`text-black ${
+                  isMobile ? "text-[10px]" : "text-sm"
+                } font-normal`}
               >
                 {item.rating || "4.89"}
               </span>
@@ -345,7 +808,9 @@ const Directory = () => {
         <div className="flex justify-between items-center mb-4">
           <div>
             <h2
-              className={`text-gray-900 ${isMobile ? "text-lg" : "text-2xl"}`}
+              className={`text-gray-900 ${
+                isMobile ? "text-lg" : "text-2xl"
+              } font-semibold`}
             >
               {title}
             </h2>
@@ -353,26 +818,24 @@ const Directory = () => {
           <div className="flex gap-0">
             <button
               onClick={() => scrollSection(sectionId, "prev")}
-              className="w-6 h-6 rounded-full  flex items-center justify-center hover:bg-gray-50 transition-colors"
+              className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200"
             >
-              <FaLessThan className="text-gray-300" /> {/* ← Changed to icon */}
+              <FaLessThan className="text-gray-400 text-sm" />
             </button>
             <button
               onClick={() => scrollSection(sectionId, "next")}
-              className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors"
+              className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200 ml-2"
             >
-              <FaGreaterThan className="text-gray-600" />{" "}
-              {/* ← Changed to icon */}
+              <FaGreaterThan className="text-gray-600 text-sm" />
             </button>
           </div>
         </div>
 
-        {/* Horizontal scroll container */}
         <div className="relative">
           <div
             id={sectionId}
             className={`flex overflow-x-auto pb-4 scrollbar-hide scroll-smooth ${
-              isMobile ? "" : "gap-[10px]" // ← Add gap-[10px] for desktop
+              isMobile ? "" : "gap-[10px]"
             }`}
             style={{
               scrollbarWidth: "none",
@@ -413,7 +876,7 @@ const Directory = () => {
     );
 
   return (
-    <section id="directory" className="bg-white py-8 font-manrope">
+    <section id="directory" className="bg-white py-8 font-manrope relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header with Search */}
         <div className="mb-8">
@@ -424,7 +887,9 @@ const Directory = () => {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="text-center mb-8"
           >
-            <h1 className="text-3xl text-gray-900 mb-2">Explore Categories</h1>
+            <h1 className="text-3xl text-gray-900 mb-2 font-bold">
+              Explore Categories
+            </h1>
             <p className="text-gray-600 text-lg">
               Find the best place and services in Ibadan
             </p>
@@ -438,8 +903,9 @@ const Directory = () => {
                   setSearch("");
                   setMainCategory("");
                   setArea("");
+                  setActiveFilters({});
                 }}
-                className="px-6 py-4 bg-[#06EAFC]  rounded-[10px] text-sm hover:bg-[#08d7e6] transition-colors"
+                className="px-6 py-4 bg-[#06EAFC] font-medium rounded-[10px] text-sm hover:bg-[#08d7e6] transition-colors"
               >
                 Popular destination
               </button>
@@ -447,7 +913,7 @@ const Directory = () => {
               <select
                 value={mainCategory}
                 onChange={(e) => setMainCategory(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-[10px] text-sm bg-gray-300"
+                className="px-4 py-2 border border-gray-300 rounded-[10px] font-medium text-sm bg-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Categories</option>
                 {getSubcategories().map((subcategory) => (
@@ -460,7 +926,7 @@ const Directory = () => {
               <select
                 value={area}
                 onChange={(e) => setArea(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-full text-sm bg-white"
+                className="px-4 py-2 border border-gray-300 font-medium rounded-full text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">District</option>
                 {[...new Set(listings.map((i) => i.area).filter(Boolean))]
@@ -473,18 +939,55 @@ const Directory = () => {
               </select>
             </div>
 
-            <div className="relative w-full lg:w-64">
-              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-              <input
-                type="text"
-                placeholder="Search name, service, or keyword..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+            {/* Search and Filter grouped together on the right */}
+            <div className="flex items-center gap-3 w-full lg:w-auto">
+              <div className="relative flex-1 lg:w-64">
+                <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input
+                  type="text"
+                  placeholder="Search name, service, or keyword..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                />
+              </div>
+
+              {/* Filter Button with Dropdown - Now right next to search */}
+              <div className="relative">
+                <div
+                  className="bg-gray-300 p-4 flex items-center rounded-2xl gap-2 capitalize cursor-pointer hover:bg-gray-400 transition-colors duration-200 font-medium whitespace-nowrap"
+                  onClick={toggleFilterDropdown}
+                >
+                  <p>filter</p>
+                  <PiSliders className="text-lg" />
+                </div>
+
+                <AnimatePresence>
+                  <FilterDropdown
+                    isOpen={showFilterDropdown}
+                    onClose={closeFilterDropdown}
+                    onFilterChange={handleFilterChange}
+                  />
+                </AnimatePresence>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Active Filters Display */}
+        {Object.keys(activeFilters).length > 0 && (
+          <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between">
+              <span className="text-blue-800 font-medium">Active Filters:</span>
+              <button
+                onClick={() => setActiveFilters({})}
+                className="text-blue-600 hover:text-blue-800 text-sm"
+              >
+                Clear All
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Category Sections - Dynamically generated from subcategories */}
         <div className="space-y-8">
@@ -523,15 +1026,17 @@ const Directory = () => {
       </div>
 
       {/* Image Modal */}
-      {imageModal.isOpen && (
-        <ImageModal
-          images={imageModal.images}
-          initialIndex={imageModal.initialIndex}
-          isOpen={imageModal.isOpen}
-          onClose={() => setImageModal({ ...imageModal, isOpen: false })}
-          item={imageModal.item}
-        />
-      )}
+      <AnimatePresence>
+        {imageModal.isOpen && (
+          <ImageModal
+            images={imageModal.images}
+            initialIndex={imageModal.initialIndex}
+            isOpen={imageModal.isOpen}
+            onClose={() => setImageModal({ ...imageModal, isOpen: false })}
+            item={imageModal.item}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Custom scrollbar hiding */}
       <style jsx>{`
