@@ -1,15 +1,13 @@
 // src/components/Directory.jsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faComment, faCopy, faStar } from "@fortawesome/free-solid-svg-icons";
-import { motion, useAnimation } from "framer-motion";
+import { faStar } from "@fortawesome/free-solid-svg-icons";
+import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-import { useAuth } from "../hook/useAuth";
-import AuthModal from "../components/ui/AuthModal";
-import ImageModal from "../components/ImageModal";
-import { useChat } from "../context/ChatContext";
 import { Link } from "react-router-dom";
 import { generateSlug } from "../utils/vendorUtils";
+import { FaGreaterThan } from "react-icons/fa";
+import { FaLessThan } from "react-icons/fa";
 
 // ---------------- Helpers ----------------
 const capitalizeFirst = (str) =>
@@ -18,13 +16,30 @@ const capitalizeFirst = (str) =>
 const FALLBACK_IMAGES = {
   hotel:
     "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
-  transport:
-    "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=600&q=80",
+  restaurant:
+    "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80",
+  cafe: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&q=80",
+  bar: "https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=600&q=80",
+  hostel:
+    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
+  shortlet:
+    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80",
+  services:
+    "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=600&q=80",
   event:
     "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
-  casino:
-    "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600&q=80",
-  default: "https://via.placeholder.com/300x200?text=No+Image",
+  weekend:
+    "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
+  hall: "https://images.unsplash.com-1511795409834-ef04bbd61622?w=600&q=80",
+  attraction:
+    "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=80",
+  garden:
+    "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=80",
+  tower:
+    "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=80",
+  amala:
+    "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80",
+  default: "/mnt/data/4d461a2d-d714-4cb9-a9ce-66785f412bb3.png",
 };
 
 const getCardImages = (item) => {
@@ -38,28 +53,22 @@ const getCardImages = (item) => {
 
   const cat = (item.category || "").toLowerCase();
   if (cat.includes("hotel")) return [FALLBACK_IMAGES.hotel];
-  if (cat.includes("ridehail") || cat.includes("transport"))
-    return [FALLBACK_IMAGES.transport];
-  if (cat.includes("event")) return [FALLBACK_IMAGES.event];
-  if (cat.includes("casino") || cat.includes("slot"))
-    return [FALLBACK_IMAGES.casino];
+  if (cat.includes("restaurant")) return [FALLBACK_IMAGES.restaurant];
+  if (cat.includes("cafe")) return [FALLBACK_IMAGES.cafe];
+  if (cat.includes("bar")) return [FALLBACK_IMAGES.bar];
+  if (cat.includes("hostel")) return [FALLBACK_IMAGES.hostel];
+  if (cat.includes("shortlet")) return [FALLBACK_IMAGES.shortlet];
+  if (cat.includes("services")) return [FALLBACK_IMAGES.services];
+  if (cat.includes("event") || cat.includes("weekend") || cat.includes("hall"))
+    return [FALLBACK_IMAGES.event];
+  if (
+    cat.includes("attraction") ||
+    cat.includes("garden") ||
+    cat.includes("tower")
+  )
+    return [FALLBACK_IMAGES.attraction];
+  if (cat.includes("amala")) return [FALLBACK_IMAGES.amala];
   return [FALLBACK_IMAGES.default];
-};
-
-const formatWhatsapp = (number) => {
-  if (!number) return "";
-  const digits = number.replace(/\D/g, "");
-  if (digits.length === 11 && digits.startsWith("0")) {
-    return `+234 ${digits.slice(1, 4)} ${digits.slice(4, 7)} ${digits.slice(
-      7
-    )}`;
-  }
-  if (digits.length === 13 && digits.startsWith("234")) {
-    return `+234 ${digits.slice(3, 6)} ${digits.slice(6, 9)} ${digits.slice(
-      9
-    )}`;
-  }
-  return `+${digits}`;
 };
 
 // ---------------- Custom Hook ----------------
@@ -117,99 +126,36 @@ const useGoogleSheet = (sheetId, apiKey) => {
   return { data: Array.isArray(data) ? data : [], loading, error };
 };
 
-// ---------------- Card Animation ----------------
-const AppleCardWrapper = ({ children, index }) => {
-  const controls = useAnimation();
-  const { ref, inView } = useInView({
-    threshold: 0.15,
-    triggerOnce: false,
-  });
-
-  useEffect(() => {
-    if (inView) {
-      controls.start({
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        transition: { duration: 0.7, delay: index * 0.08, ease: "easeOut" },
-      });
-    } else {
-      controls.start({ opacity: 0, y: 50, scale: 0.98 });
-    }
-  }, [inView, controls, index]);
-
-  return (
-    <motion.div ref={ref} animate={controls} initial={{ opacity: 0, y: 50 }}>
-      {children}
-    </motion.div>
-  );
-};
-
-// ---------------- Image Carousel ----------------
-const ImageCarousel = ({ card, onImageClick }) => {
+// ---------------- Image Display ----------------
+const ImageDisplay = ({ card, onImageClick, isMobile = false }) => {
   const images = getCardImages(card);
-  const [index, setIndex] = useState(0);
-  const timeoutRef = useRef(null);
-  const [paused, setPaused] = useState(false);
-
-  useEffect(() => {
-    if (paused || images.length <= 1) return;
-    timeoutRef.current = setTimeout(
-      () => setIndex((prev) => (prev + 1) % images.length),
-      4000
-    );
-    return () => clearTimeout(timeoutRef.current);
-  }, [index, paused, images.length]);
 
   return (
     <div
-      className="relative w-full h-44 md:h-52 overflow-hidden rounded-t-xl bg-gray-100 cursor-pointer"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onClick={() => onImageClick(images, index)}
+      className={`relative w-full ${
+        isMobile ? "h-[144.57px]" : "h-[299px]"
+      } overflow-hidden rounded-lg bg-gray-100 cursor-pointer`}
+      onClick={() => onImageClick(images, 0)}
     >
-      <motion.div
-        className="flex h-full"
-        animate={{ x: `-${index * 100}%` }}
-        transition={{ type: "tween", duration: 0.5 }}
-      >
-        {images.map((img, i) => (
-          <img
-            key={i}
-            src={img}
-            alt={`${card.name || "Business"} image ${i + 1}`}
-            className="w-full h-full flex-shrink-0 object-cover"
-            onError={(e) => (e.currentTarget.src = FALLBACK_IMAGES.default)}
-            loading="lazy"
-          />
-        ))}
-      </motion.div>
-
-      {images.length > 1 && (
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
-          {images.map((_, i) => (
-            <button
-              key={i}
-              onClick={(e) => {
-                e.stopPropagation();
-                setIndex(i);
-              }}
-              className={`w-2 h-2 rounded-full transition-all ${
-                i === index ? "bg-white scale-125" : "bg-white/50"
-              }`}
-              aria-label={`Go to slide ${i + 1}`}
-            />
-          ))}
-        </div>
-      )}
+      <img
+        src={images[0]}
+        alt={`${card.name || "Business"} image`}
+        className="w-full h-full object-cover"
+        onError={(e) => (e.currentTarget.src = FALLBACK_IMAGES.default)}
+        loading="lazy"
+      />
+      {/* Guest Favorite Badge */}
+      <div className="absolute top-2 left-2 bg-[#F7F7FA] px-2 py-1 rounded-full flex items-center gap-1">
+        <span className="text-black text-[10px] lg:text-[14px]">
+          Guest Favorite
+        </span>
+      </div>
     </div>
   );
 };
 
 // ---------------- Directory Component ----------------
 const Directory = () => {
-  const { user, loading: authLoading } = useAuth();
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [imageModal, setImageModal] = useState({
     isOpen: false,
     images: [],
@@ -221,101 +167,234 @@ const Directory = () => {
     threshold: 0.1,
     triggerOnce: false,
   });
-  const [copiedId, setCopiedId] = useState(null);
-
-  const [expandedDescriptions, setExpandedDescriptions] = useState({});
   const [search, setSearch] = useState("");
   const [mainCategory, setMainCategory] = useState("");
-  const [subCategory, setSubCategory] = useState("");
   const [area, setArea] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(6);
-  const [showContact, setShowContact] = useState({});
+  const [isMobile, setIsMobile] = useState(false);
 
-  const directoryRef = useRef(null);
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
   const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 
-  const { openChat } = useChat();
   const {
     data: listings = [],
     loading,
     error,
   } = useGoogleSheet(SHEET_ID, API_KEY);
 
+  // Check for mobile view
   useEffect(() => {
-    const update = () =>
-      setItemsPerPage(
-        window.innerWidth >= 1024 ? 6 : window.innerWidth >= 768 ? 4 : 3
-      );
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const handleShowContact = (itemId) => {
-    if (!user) {
-      setIsAuthModalOpen(true);
-      return;
+  const formatPrice = (n) => {
+    if (!n) return "–";
+    const num = Number(n);
+    return num.toLocaleString("en-US", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+  };
+
+  // Filter listings based on search and filters
+  const filteredListings = listings.filter((item) => {
+    const matchesSearch =
+      !search.trim() ||
+      item.name?.toLowerCase().includes(search.toLowerCase()) ||
+      item.category?.toLowerCase().includes(search.toLowerCase());
+
+    const matchesCategory =
+      !mainCategory ||
+      item.category?.toLowerCase().includes(mainCategory.toLowerCase());
+
+    const matchesArea = !area || item.area === area;
+
+    return matchesSearch && matchesCategory && matchesArea;
+  });
+
+  // Extract subcategories from the data (text after the ".")
+  const getSubcategories = () => {
+    const subcategories = new Set();
+
+    listings.forEach((item) => {
+      const category = item.category || "";
+      const parts = category.split(".");
+      if (parts.length > 1) {
+        const subcategory = parts[1].toLowerCase();
+        if (
+          subcategory &&
+          subcategory !== "other" &&
+          subcategory !== "others"
+        ) {
+          subcategories.add(subcategory);
+        }
+      }
+    });
+
+    return Array.from(subcategories);
+  };
+
+  // Group listings by subcategory
+  const categorizedListings = {};
+  getSubcategories().forEach((subcategory) => {
+    categorizedListings[subcategory] = filteredListings.filter((item) => {
+      const category = item.category || "";
+      return category.toLowerCase().includes(`.${subcategory}`);
+    });
+  });
+
+  // Scroll functions for horizontal sections
+  const scrollSection = (sectionId, direction) => {
+    const container = document.getElementById(sectionId);
+    if (!container) return;
+
+    const scrollAmount = isMobile ? 176 : 332; // Desktop: 322px + 10px gap = 332px
+    const newPosition =
+      direction === "next"
+        ? container.scrollLeft + scrollAmount
+        : container.scrollLeft - scrollAmount;
+
+    container.scrollTo({
+      left: newPosition,
+      behavior: "smooth",
+    });
+  };
+
+  // Card component for consistent styling
+  // Card component for consistent styling
+  const BusinessCard = ({ item, category }) => {
+    const itemId = `business-${item.id}`;
+
+    // Determine price text based on category
+    let priceText = "";
+    if (
+      category === "hotel" ||
+      category === "hostel" ||
+      category === "shortlet"
+    ) {
+      priceText = `#${formatPrice(item.price_from)} for 2 night`;
+    } else {
+      priceText = `From #${formatPrice(item.price_from)} per guest`;
     }
-    setShowContact((prev) => ({ ...prev, [itemId]: true }));
-    navigator.clipboard.writeText(
-      formatWhatsapp(
-        listings.find((i) => `business-${i.id}` === itemId)?.whatsapp
-      )
-    );
-    setTimeout(
-      () => setShowContact((prev) => ({ ...prev, [itemId]: false })),
-      20000
+
+    return (
+      <div
+        className={`bg-white rounded-lg overflow-hidden flex-shrink-0 ${
+          isMobile ? "w-[155.69px] mr-[4.83px]" : "w-[322px]" // ← Keep mobile as is
+        } transition-all duration-300 hover:shadow-lg`}
+      >
+        {/* Standalone Image with Guest Favorite Badge */}
+        <ImageDisplay
+          card={item}
+          onImageClick={(images, index) =>
+            setImageModal({
+              isOpen: true,
+              images,
+              initialIndex: index,
+              item,
+            })
+          }
+          isMobile={isMobile}
+        />
+
+        {/* Text content beneath the image - All black text, no bold */}
+        <div className={`${isMobile ? "p-[4.83px]" : "p-[10px]"}`}>
+          {" "}
+          {/* ← Change to p-[10px] for desktop */}
+          {/* Business Name - Black (NO BOLD) */}
+          <h3
+            className={`text-black ${
+              isMobile ? "text-xs mb-1" : "text-lg mb-2" // ← Keep as is
+            } leading-tight`}
+          >
+            {item.name}
+          </h3>
+          {/* Price and Rating in one line - All Black (NO BOLD) */}
+          <div className="flex justify-between items-center">
+            <p className={`text-black ${isMobile ? "text-[10px]" : "text-sm"}`}>
+              {priceText}
+            </p>
+            <div className="flex items-center gap-1">
+              <FontAwesomeIcon
+                icon={faStar}
+                className={`text-black ${isMobile ? "text-[10px]" : "text-sm"}`}
+              />
+              <span
+                className={`text-black ${isMobile ? "text-[10px]" : "text-sm"}`}
+              >
+                {item.rating || "4.89"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   };
 
-  const formatPrice = (n) => (n ? Number(n).toLocaleString() : "–");
+  // Section component for each category
+  const CategorySection = ({ title, items, sectionId }) => {
+    if (items.length === 0) return null;
 
-  const [filtered, setFiltered] = useState([]);
-  useEffect(() => {
-    if (!Array.isArray(listings)) {
-      setFiltered([]);
-      return;
-    }
+    return (
+      <section className="mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2
+              className={`text-gray-900 ${isMobile ? "text-lg" : "text-2xl"}`}
+            >
+              {title}
+            </h2>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => scrollSection(sectionId, "prev")}
+              className="w-6 h-6 rounded-full  flex items-center justify-center hover:bg-gray-50 transition-colors"
+            >
+              <FaLessThan className="text-gray-600" /> {/* ← Changed to icon */}
+            </button>
+            <button
+              onClick={() => scrollSection(sectionId, "next")}
+              className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors"
+            >
+              <PiGreaterThan className="text-gray-600" />{" "}
+              {/* ← Changed to icon */}
+            </button>
+          </div>
+        </div>
 
-    let result = listings.filter((i) => {
-      const q = search.trim().toLowerCase();
-      const matchesSearch =
-        !q ||
-        i.name?.toLowerCase().includes(q) ||
-        i.short_desc?.toLowerCase().includes(q) ||
-        i.tags?.toLowerCase().includes(q);
-
-      const catParts = (i.category || "").split(".");
-      const mainCat = capitalizeFirst(catParts[0] || i.category || "");
-      const subCat = catParts[1] ? capitalizeFirst(catParts[1]) : mainCat;
-
-      const matchesMain = mainCategory ? mainCat === mainCategory : true;
-      const matchesSub = subCategory ? subCat === subCategory : true;
-      const matchesArea = area ? i.area === area : true;
-
-      return matchesSearch && matchesMain && matchesSub && matchesArea;
-    });
-
-    setFiltered(result);
-    setCurrentPage(1);
-  }, [listings, search, mainCategory, subCategory, area]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentItems = filtered.slice(startIndex, startIndex + itemsPerPage);
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-    directoryRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+        {/* Horizontal scroll container */}
+        <div className="relative">
+          <div
+            id={sectionId}
+            className={`flex overflow-x-auto pb-4 scrollbar-hide scroll-smooth ${
+              isMobile ? "" : "gap-[10px]" // ← Add gap-[10px] for desktop
+            }`}
+            style={{
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}
+          >
+            {items.map((item, index) => (
+              <BusinessCard
+                key={item.id || index}
+                item={item}
+                category={sectionId.replace("-section", "")}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
   };
 
   if (loading)
     return (
-      <section id="directory" className="py-16 text-center font-rubik">
+      <section id="directory" className="py-16 text-center font-manrope">
         <div className="inline-block animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
         <p className="text-gray-600">Loading Ibadan Directory...</p>
       </section>
@@ -325,7 +404,7 @@ const Directory = () => {
     return (
       <section
         id="directory"
-        className="max-w-4xl mx-auto px-4 py-12 font-rubik"
+        className="max-w-4xl mx-auto px-4 py-12 font-manrope"
       >
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <p className="text-red-700 font-medium">{error}</p>
@@ -334,349 +413,116 @@ const Directory = () => {
     );
 
   return (
-    <section
-      ref={directoryRef}
-      id="directory"
-      className="bg-[#eef8fd] py-12 font-rubik"
-    >
+    <section id="directory" className="bg-white py-8 font-manrope">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header with Scroll Animation */}
+        {/* Header with Search */}
         <div className="mb-8">
           <motion.div
-            ref={headerRef} // 👈 Add this ref
+            ref={headerRef}
             initial={{ opacity: 0, y: 20 }}
             animate={headerInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+            className="text-center mb-8"
           >
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900">
-                Business Directory
-              </h2>
-              <p className="text-gray-600 text-sm mt-1">
-                Browse all verified businesses in Ibadan
-              </p>
+            <h1 className="text-3xl text-gray-900 mb-2">Explore Categories</h1>
+            <p className="text-gray-600 text-lg">
+              Find the best place and services in Ibadan
+            </p>
+          </motion.div>
+
+          {/* Search and Filters */}
+          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between mb-6">
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => {
+                  setSearch("");
+                  setMainCategory("");
+                  setArea("");
+                }}
+                className="px-6 py-4 bg-[#06EAFC]  rounded-[10px] text-sm hover:bg-[#08d7e6] transition-colors"
+              >
+                Popular destination
+              </button>
+
+              <select
+                value={mainCategory}
+                onChange={(e) => setMainCategory(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-[10px] text-sm bg-gray-300"
+              >
+                <option value="">Categories</option>
+                {getSubcategories().map((subcategory) => (
+                  <option key={subcategory} value={subcategory}>
+                    {capitalizeFirst(subcategory)}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={area}
+                onChange={(e) => setArea(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-full text-sm bg-white"
+              >
+                <option value="">District</option>
+                {[...new Set(listings.map((i) => i.area).filter(Boolean))]
+                  .sort()
+                  .map((a) => (
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
+                  ))}
+              </select>
             </div>
-            <div className="relative w-full md:w-80">
+
+            <div className="relative w-full lg:w-64">
               <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
               <input
                 type="text"
                 placeholder="Search name, service, or keyword..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
-          </motion.div>
+          </div>
         </div>
 
-        {/* Filters + Results */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-5 relative">
-          <div className="p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Filters */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Main Category
-                </label>
-                <select
-                  value={mainCategory}
-                  onChange={(e) => {
-                    setMainCategory(e.target.value);
-                    setSubCategory("");
-                  }}
-                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">All</option>
-                  {[
-                    ...new Set(
-                      listings
-                        .map((i) =>
-                          capitalizeFirst(
-                            (i.category || "").split(".")[0] || i.category
-                          )
-                        )
-                        .filter(Boolean)
-                    ),
-                  ]
-                    .sort()
-                    .map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                </select>
-              </div>
+        {/* Category Sections - Dynamically generated from subcategories */}
+        <div className="space-y-8">
+          {getSubcategories().map((subcategory) => {
+            const items = categorizedListings[subcategory] || [];
+            if (items.length === 0) return null;
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Subcategory
-                </label>
-                <select
-                  value={subCategory}
-                  onChange={(e) => setSubCategory(e.target.value)}
-                  disabled={!mainCategory}
-                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                >
-                  <option value="">All</option>
-                  {[
-                    ...new Set(
-                      listings
-                        .filter(
-                          (i) =>
-                            capitalizeFirst(
-                              (i.category || "").split(".")[0]
-                            ) === mainCategory
-                        )
-                        .map((i) => {
-                          const parts = (i.category || "").split(".");
-                          return parts[1]
-                            ? capitalizeFirst(parts[1])
-                            : mainCategory;
-                        })
-                    ),
-                  ]
-                    .filter(Boolean)
-                    .sort()
-                    .map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                </select>
-              </div>
+            const title = `Popular ${capitalizeFirst(subcategory)} in Ibadan`;
+            const sectionId = `${subcategory}-section`;
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Area
-                </label>
-                <select
-                  value={area}
-                  onChange={(e) => setArea(e.target.value)}
-                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">All Areas</option>
-                  {[...new Set(listings.map((i) => i.area).filter(Boolean))]
-                    .sort()
-                    .map((a) => (
-                      <option key={a} value={a}>
-                        {a}
-                      </option>
-                    ))}
-                </select>
-              </div>
+            return (
+              <CategorySection
+                key={subcategory}
+                title={title}
+                items={items}
+                sectionId={sectionId}
+              />
+            );
+          })}
+        </div>
+
+        {/* Empty State */}
+        {filteredListings.length === 0 && !loading && (
+          <div className="text-center py-12">
+            <div className="bg-gray-50 rounded-2xl p-8 max-w-md mx-auto">
+              <i className="fas fa-search text-4xl text-gray-300 mb-4 block"></i>
+              <h3 className="text-xl text-gray-800 mb-2">
+                No businesses found
+              </h3>
+              <p className="text-gray-600">
+                Try adjusting your search or filters
+              </p>
             </div>
           </div>
-
-          <div className="mb-7 p-6 px-2 lg:px-5">
-            {currentItems.length === 0 ? (
-              <div className="bg-white border-2 border-dashed border-gray-300 rounded-xl p-12 text-center">
-                <i className="fas fa-box-open text-5xl text-gray-300 mb-4 block"></i>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                  No businesses match your filters
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Try adjusting your search or filters.
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* Animated Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-                  {currentItems.map((item, i) => {
-                    const itemId = `business-${item.id}`;
-                    const slug = generateSlug(item.name, item.area);
-                    return (
-                      <AppleCardWrapper key={itemId} index={i}>
-                        <motion.div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col h-full">
-                          <ImageCarousel
-                            card={item}
-                            onImageClick={(images, idx) =>
-                              setImageModal({
-                                isOpen: true,
-                                images,
-                                initialIndex: idx,
-                                item,
-                              })
-                            }
-                          />
-                          <div className="p-5 flex flex-col flex-grow">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                              <Link
-                                to={`/vendor/${generateSlug(
-                                  item.name,
-                                  item.area
-                                )}`}
-                                className="hover:underline text-blue-700"
-                              >
-                                {item.name || "Unnamed"}
-                              </Link>
-                            </h3>
-                            <p className="text-sm text-gray-500 mb-1">
-                              {item.area || "Ibadan"}
-                            </p>
-
-                            {/* Description */}
-                            <p className="text-gray-700 text-sm mb-3 flex-grow">
-                              {expandedDescriptions[itemId]
-                                ? item.short_desc
-                                : item.short_desc?.slice(0, 80)}
-                              {item.short_desc?.length > 80 && (
-                                <button
-                                  onClick={() =>
-                                    setExpandedDescriptions((prev) => ({
-                                      ...prev,
-                                      [itemId]: !prev[itemId],
-                                    }))
-                                  }
-                                  className="text-blue-600 ml-2 text-xs font-medium"
-                                >
-                                  {expandedDescriptions[itemId]
-                                    ? "Show less"
-                                    : "Read more"}
-                                </button>
-                              )}
-                            </p>
-
-                            {/* Rating & Price */}
-                            <div className="flex justify-between items-center mb-3">
-                              <span className="font-bold text-[16px] text-gray-800">
-                                ⭐ {item.rating || "N/A"}
-                              </span>
-                              <span className="font-bold text-[18px] text-gray-800">
-                                ₦ {formatPrice(item.price_from)}
-                              </span>
-                            </div>
-
-                            {/* Tags */}
-                            <div className="flex flex-wrap gap-2 mb-6">
-                              {item.tags?.split(",").map((tag, idx) => (
-                                <span
-                                  key={idx}
-                                  className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold text-sm"
-                                >
-                                  {tag.trim()}
-                                </span>
-                              ))}
-                            </div>
-
-                            {/* Contact / Review Buttons */}
-                            <div className="mt-auto flex flex-wrap justify-between items-center gap-2 ">
-                              {!showContact[itemId] ? (
-                                <button
-                                  onClick={() => handleShowContact(itemId)}
-                                  className="flex items-center gap-2 text-sm bg-[rgb(0,6,90)] flex-1 justify-center disabled:opacity-75 hover:bg-[rgb(15,19,71)] text-white px-3 py-2.5 rounded font-medium"
-                                >
-                                  <FontAwesomeIcon icon={faComment} />
-                                  Show Contact
-                                </button>
-                              ) : (
-                                <div className="flex items-center flex-1 justify-between bg-green-100 text-green-800 px-3 py-2 rounded-lg text-sm font-medium relative">
-                                  <span>
-                                    📞 {formatWhatsapp(item.whatsapp)}
-                                  </span>
-
-                                  {/* Copy button + Tooltip */}
-                                  <div className="relative group">
-                                    <button
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(
-                                          item.whatsapp || ""
-                                        );
-                                        setCopiedId(itemId); // store ID to show tooltip
-                                        setTimeout(
-                                          () => setCopiedId(null),
-                                          1500
-                                        );
-                                      }}
-                                      className="ml-2 bg-green-700 hover:bg-green-800 text-white px-2 py-1 rounded flex items-center gap-1 text-xs"
-                                    >
-                                      <FontAwesomeIcon icon={faCopy} />
-                                      Copy
-                                    </button>
-
-                                    {copiedId === itemId && (
-                                      <span className="absolute -top-7 right-0 bg-black text-white text-xs px-2 py-1 rounded shadow-md animate-fadeIn">
-                                        Copied!
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              <button
-                                onClick={() => openChat(item.name)}
-                                className="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 text-gray-800 hover:bg-blue-50 hover:text-gray-600 transition-colors"
-                                aria-label="Open chat"
-                              >
-                                <FontAwesomeIcon
-                                  icon={faComment}
-                                  className="text-lg"
-                                />
-                              </button>
-                            </div>
-                          </div>
-                        </motion.div>
-                      </AppleCardWrapper>
-                    );
-                  })}
-                </div>
-
-                {/* Pagination - System View: 1 to 6 + Prev/Next when applicable */}
-                {totalPages > 1 && (
-                  <div className="flex justify-center items-center gap-2 flex-wrap">
-                    {/* Prev Button */}
-                    {currentPage > 1 && (
-                      <button
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-[rgb(0,6,90)] hover:bg-[rgb(15,19,71)] text-white transition"
-                      >
-                        Prev ←
-                      </button>
-                    )}
-
-                    {/* Page Numbers: 1 to min(6, totalPages) */}
-                    {Array.from({ length: Math.min(totalPages, 6) }).map(
-                      (_, idx) => {
-                        const pageNum = idx + 1;
-                        return (
-                          <button
-                            key={pageNum}
-                            onClick={() => handlePageChange(pageNum)}
-                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                              currentPage === pageNum
-                                ? "bg-[rgb(0,6,90)] hover:bg-[rgb(15,19,71)] text-white"
-                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                            }`}
-                          >
-                            {pageNum}
-                          </button>
-                        );
-                      }
-                    )}
-
-                    {/* Next Button */}
-                    {currentPage < totalPages && (
-                      <button
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-[rgb(0,6,90)] hover:bg-[rgb(15,19,71)] text-white transition"
-                      >
-                        Next →
-                      </button>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Modals */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-      />
+      {/* Image Modal */}
       {imageModal.isOpen && (
         <ImageModal
           images={imageModal.images}
@@ -686,6 +532,17 @@ const Directory = () => {
           item={imageModal.item}
         />
       )}
+
+      {/* Custom scrollbar hiding */}
+      <style jsx>{`
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </section>
   );
 };
