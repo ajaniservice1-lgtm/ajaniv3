@@ -888,10 +888,10 @@ const Directory = () => {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="text-center mb-8"
           >
-            <h1 className="text-3xl text-gray-900 mb-2 font-bold">
+            <h1 className="text-xl lg:text-2xl text-gray-900 mb-2 font-bold">
               Explore Categories
             </h1>
-            <p className="text-gray-600 text-lg">
+            <p className="text-gray-600 text-sm lg:textxl">
               Find the best place and services in Ibadan
             </p>
           </motion.div>

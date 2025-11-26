@@ -1,357 +1,570 @@
 // src/components/AiTopPicks.jsx
 import React, { useState, useEffect } from "react";
-import { motion, useAnimation } from "framer-motion";
-import { useInView } from "react-intersection-observer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faComment, faCopy } from "@fortawesome/free-solid-svg-icons";
-import { useDirectoryData } from "../hook/useDirectoryData";
-import { useAuth } from "../hook/useAuth";
-import AuthModal from "./ui/AuthModal";
-import ImageModal from "./ImageModal";
-import { useChat } from "../context/ChatContext";
-import { useModal } from "../context/ModalContext";
+import { faStar } from "@fortawesome/free-solid-svg-icons";
+import { motion } from "framer-motion";
+import { useInView } from "react-intersection-observer";
+import { GoVerified } from "react-icons/go";
+import { PiSliders } from "react-icons/pi";
 
-// ---------------- Fallback Images ----------------
-const FALLBACK_IMAGES = {
-  food: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
-  hotel:
-    "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600&q=80",
-  event:
-    "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
-  default: "https://via.placeholder.com/300x200?text=No+Image",
-};
-
-const getCardImages = (item) => {
-  const raw = item["image url"] || "";
-  const urls = raw
-    .split(",")
-    .map((u) => u.trim())
-    .filter((u) => u && u.startsWith("http"));
-
-  if (urls.length > 0) return urls;
-
-  const cat = (item.category || "").toLowerCase();
-  if (cat.includes("food")) return [FALLBACK_IMAGES.food];
-  if (cat.includes("hotel")) return [FALLBACK_IMAGES.hotel];
-  if (cat.includes("event")) return [FALLBACK_IMAGES.event];
-  return [FALLBACK_IMAGES.default];
-};
-
-const formatTags = (tagString) =>
-  tagString
-    ? tagString.split(",").map((tag) => {
-        const [name, price] = tag.trim().split(":");
-        return price ? `${name}: ₦${parseInt(price).toLocaleString()}` : name;
-      })
-    : [];
-
-// ---------------- Animation Wrapper ----------------
-const AppleCardWrapper = ({ children, index }) => {
-  const controls = useAnimation();
-  const { ref, inView } = useInView({
-    threshold: 0.15,
-    triggerOnce: false,
-  });
+// ---------------- Custom Hook ----------------
+const useGoogleSheet = (sheetId, apiKey) => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (inView) {
-      controls.start({
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        transition: { duration: 0.7, delay: index * 0.1, ease: "easeOut" },
-      });
-    } else {
-      controls.start({ opacity: 0, y: 40, scale: 0.98 });
-    }
-  }, [inView, controls, index]);
+    const fetchData = async () => {
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sheet1!A1:K100?key=${apiKey}`;
+        const response = await fetch(url);
 
-  return (
-    <motion.div ref={ref} animate={controls} initial={{ opacity: 0, y: 40 }}>
-      {children}
-    </motion.div>
-  );
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const json = await response.json();
+
+        if (
+          !json.values ||
+          !Array.isArray(json.values) ||
+          json.values.length < 2
+        ) {
+          throw new Error("No data found or sheet is empty.");
+        }
+
+        const headers = json.values[0].map((header) =>
+          header?.toString().trim().toLowerCase()
+        );
+        const rows = json.values.slice(1);
+
+        const result = rows
+          .filter(
+            (row) => row && row.length > 0 && row[0] && row[0].trim() !== ""
+          )
+          .map((row, index) => {
+            const obj = { id: `venue-${index}` };
+            headers.forEach((header, i) => {
+              if (header && row[i] !== undefined) {
+                obj[header] = row[i]?.toString().trim() || "";
+              }
+            });
+            return obj;
+          });
+
+        setData(result);
+      } catch (err) {
+        console.error("Google Sheets error:", err);
+        setError(`Failed to load data: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [sheetId, apiKey]);
+
+  return { data, loading, error };
 };
 
-// ---------------- Image Carousel ----------------
-const ImageCarousel = ({ card, onImageClick }) => {
-  const images = getCardImages(card);
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    if (images.length <= 1) return;
-    const timeout = setTimeout(
-      () => setIndex((prev) => (prev + 1) % images.length),
-      4000
-    );
-    return () => clearTimeout(timeout);
-  }, [index, images.length]);
-
+// ---------------- Toggle Switch Component ----------------
+const ToggleSwitch = ({ enabled, setEnabled, label }) => {
   return (
-    <div
-      className="relative w-full h-44 md:h-52 overflow-hidden rounded-t-xl bg-gray-100 cursor-pointer"
-      onClick={() => onImageClick(images, index)}
-    >
-      <motion.div
-        className="flex h-full"
-        animate={{ x: `-${index * 100}%` }}
-        transition={{ type: "tween", duration: 0.5 }}
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        className={`${
+          enabled ? "bg-blue-600" : "bg-gray-200"
+        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2`}
+        role="switch"
+        aria-checked={enabled}
+        onClick={() => setEnabled(!enabled)}
       >
-        {images.map((img, i) => (
-          <img
-            key={i}
-            src={img}
-            alt={`${card.name || "Business"} image ${i + 1}`}
-            className="w-full h-full object-cover flex-shrink-0"
-            onError={(e) => (e.currentTarget.src = FALLBACK_IMAGES.default)}
-            loading="lazy"
-          />
-        ))}
-      </motion.div>
-
-      {images.length > 1 && (
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
-          {images.map((_, i) => (
-            <button
-              key={i}
-              onClick={(e) => {
-                e.stopPropagation();
-                setIndex(i);
-              }}
-              className={`w-2 h-2 rounded-full transition-all ${
-                i === index ? "bg-white scale-125" : "bg-white/40"
-              }`}
-              aria-label={`Go to slide ${i + 1}`}
-            />
-          ))}
-        </div>
-      )}
+        <span
+          aria-hidden="true"
+          className={`${
+            enabled ? "translate-x-5" : "translate-x-0"
+          } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+        />
+      </button>
+      <span className="text-sm font-medium text-gray-700">{label}</span>
     </div>
   );
 };
 
-// ---------------- Single Card ----------------
-const Card = ({ card, index, onShowContact, onImageClick }) => {
-  const { user, loading: authLoading } = useAuth();
-  const [showContact, setShowContact] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-
-  const formatWhatsapp = (num) => {
-    if (!num) return "";
-    const digits = num.replace(/\D/g, "");
-    if (digits.startsWith("0") && digits.length === 11)
-      return `+234 ${digits.slice(1, 4)} ${digits.slice(4, 7)} ${digits.slice(
-        7
-      )}`;
-    if (digits.startsWith("234") && digits.length === 13)
-      return `+234 ${digits.slice(3, 6)} ${digits.slice(6, 9)} ${digits.slice(
-        9
-      )}`;
-    return digits;
-  };
-
-  const handleShowContact = () => {
-    if (authLoading) return;
-    if (!user) return onShowContact(); // open auth modal if not logged in
-    setShowContact(true);
-    setTimeout(() => setShowContact(false), 20000);
-  };
-
-  const desc = card.short_desc || "";
-  const isLong = desc.length > 110;
-  const displayText = expanded
-    ? desc
-    : `${desc.slice(0, 110)}${isLong ? "..." : ""}`;
-
+// ---------------- Filter Bar Component ----------------
+const FilterBar = ({
+  selectedService,
+  setSelectedService,
+  selectedDistrict,
+  setSelectedDistrict,
+  verifiedOnly,
+  setVerifiedOnly,
+  availableNow,
+  setAvailableNow,
+  services,
+  districts,
+  onFilterClick,
+}) => {
   return (
-    <AppleCardWrapper index={index}>
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
-        <ImageCarousel card={card} onImageClick={onImageClick} />
-        <div className="p-5 flex flex-col flex-grow">
-          <h3 className="font-bold text-lg text-gray-900 mb-1">{card.name}</h3>
-          <p className="text-gray-600 text-sm mb-2">
-            {displayText}
-            {isLong && (
-              <button
-                onClick={() => setExpanded(!expanded)}
-                className="text-blue-700 font-semibold ml-1"
-              >
-                {expanded ? "See less" : "Read more"}
-              </button>
-            )}
-          </p>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {formatTags(card.tags).map((tag, j) => (
-              <span
-                key={j}
-                className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold"
-              >
-                {tag}
-              </span>
+    <div className="flex flex-col lg:flex-row gap-4 items-center justify-between mb-8 p-6 bg-white border-gray-200">
+      {/* Left side filters */}
+      <div className="flex flex-wrap gap-4 items-center">
+        {/* Service/Product Dropdown */}
+        <div className="relative">
+          <select
+            value={selectedService}
+            onChange={(e) => setSelectedService(e.target.value)}
+            className="appearance-none bg-[#D9D9D9]
+             px-4 py-3 pr-10 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer min-w-[180px] font-medium"
+          >
+            <option value="" className="text-gray-500">
+              Service/Product
+            </option>
+            {services.map((service) => (
+              <option key={service} value={service}>
+                {service}
+              </option>
             ))}
-          </div>
-          <div className="mt-auto">
-            {!showContact ? (
-              <button
-                onClick={handleShowContact}
-                className="w-full flex items-center justify-center gap-2 bg-[rgb(0,6,90)] hover:bg-[#0e1f45] text-white py-2.5 rounded-lg font-semibold text-sm"
-              >
-                <FontAwesomeIcon icon={faComment} />
-                Show Contact
-              </button>
-            ) : (
-              <div className="flex items-center justify-between bg-green-100 text-green-800 px-3 py-2 rounded-lg text-sm font-medium">
-                <span>📞 {formatWhatsapp(card.whatsapp) || "No number"}</span>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(card.whatsapp || "");
-                    alert("Copied!");
-                  }}
-                  className="ml-2 bg-green-700 text-white px-2 py-1 rounded flex items-center gap-1 text-xs"
-                >
-                  <FontAwesomeIcon icon={faCopy} /> Copy
-                </button>
-              </div>
-            )}
+          </select>
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+            ▼
           </div>
         </div>
+
+        {/* District Dropdown */}
+        <div className="relative">
+          <select
+            value={selectedDistrict}
+            onChange={(e) => setSelectedDistrict(e.target.value)}
+            className="appearance-none bg-[#D9D9D9] px-4 py-3 pr-10 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer min-w-[140px] font-medium"
+          >
+            <option value="" className="text-gray-500">
+              District
+            </option>
+            {districts.map((district) => (
+              <option key={district} value={district}>
+                {district}
+              </option>
+            ))}
+          </select>
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+            ▼
+          </div>
+        </div>
+
+        {/* Toggle Switches */}
+        <div className="flex items-center gap-6">
+          <ToggleSwitch
+            enabled={verifiedOnly}
+            setEnabled={setVerifiedOnly}
+            label="Verified Only"
+          />
+          <ToggleSwitch
+            enabled={availableNow}
+            setEnabled={setAvailableNow}
+            label="Available Now"
+          />
+        </div>
       </div>
-    </AppleCardWrapper>
+
+      {/* Filter Button */}
+      <button
+        onClick={onFilterClick}
+        className="bg-gray-800 hover:bg-gray-900 px-6 py-3 flex items-center rounded-xl gap-3 capitalize cursor-pointer transition-colors duration-200 font-semibold text-sm text-white"
+      >
+        <span>Filter</span>
+        <PiSliders className="text-lg" />
+      </button>
+    </div>
   );
 };
 
-// ---------------- Main Component ----------------
-const AiTopPicks = ({ onAuthToast }) => {
+// ---------------- Vendor Card Component - EXACT Design ----------------
+const VendorCard = ({ venue, index }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      className="bg-[#D9D9D9] rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 relative"
+    >
+      {/* Verified Badge */}
+      <div className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-md border border-green-200 z-10">
+        <GoVerified className="text-green-500 text-xl" />
+      </div>
+
+      {/* Circular Profile Image */}
+      <div className="flex justify-center pt-10">
+        <div className="w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden shadow-md border border-gray-200">
+          <img
+            src={venue.image_url}
+            alt={venue.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      </div>
+
+      <div className="p-6 text-center">
+        {/* Name */}
+        <h3 className="text-xl md:text-2xl font-semibold text-gray-900 mt-6">
+          {venue.name}
+        </h3>
+
+        {/* Rating + Delivery */}
+        <div className="flex justify-center items-center gap-4 mt-4">
+          <div className="flex items-center gap-1">
+            <FontAwesomeIcon icon={faStar} className="text-yellow-500" />
+            <span className="font-semibold text-gray-900">{venue.rating}</span>
+          </div>
+
+          <span className="text-gray-600">{venue.delivery_count} Delivery</span>
+        </div>
+
+        {/* Service */}
+        <p className="mt-4 text-sm md:text-base text-gray-700 font-medium">
+          Service: <span className="text-gray-600">{venue.service_type}</span>
+        </p>
+
+        {/* Description */}
+        <p className="text-gray-500 text-sm leading-relaxed mt-3">
+          {venue.description}
+        </p>
+
+        {/* Button */}
+        <button className="w-full py-3 mt-6 rounded-xl border border-gray-300 text-gray-800 font-semibold hover:bg-gray-50 transition">
+          View Vendor
+        </button>
+      </div>
+    </motion.div>
+  );
+};
+
+// ---------------- Main AiTopPicks Component ----------------
+const AiTopPicks = () => {
+  const [headerRef, headerInView] = useInView({ threshold: 0.1 });
+  const [selectedService, setSelectedService] = useState("");
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [verifiedOnly, setVerifiedOnly] = useState(true);
+  const [availableNow, setAvailableNow] = useState(true);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(3);
+
+  // Same Google Sheet ID and API Key
+  const SHEET_ID = "1GK10i6VZnZ3I-WVHs1yOrj2WbaByp00UmZ2k3oqb8_8";
+  const API_KEY = "AIzaSyCELfgRKcAaUeLnInsvenpXJRi2kSSwS3E";
+
   const {
-    listings = [],
+    data: venues = [],
     loading,
     error,
-  } = useDirectoryData(
-    import.meta.env.VITE_SHEET_ID,
-    import.meta.env.VITE_GOOGLE_API_KEY
+  } = useGoogleSheet(SHEET_ID, API_KEY);
+
+  // Demo data that matches your exact design
+  const demoVenues = [
+    {
+      id: "1",
+      name: "PrimeTouch Laundry",
+      service_type: "Laundry & Cleaning",
+      description: "Fast, reliable laundry service with pick-up and delivery.",
+      rating: "4.7",
+      delivery_count: "12",
+      image_url:
+        "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=400&q=80",
+      district: "Bodija",
+      is_verified: "TRUE",
+      is_available: "TRUE",
+      category: "Services",
+      price_range: "1500-5000",
+    },
+    {
+      id: "2",
+      name: "RoyalPot Amala Spot",
+      service_type: "Food & Restaurants",
+      description:
+        "Authentic amala, gbegiri, and local dishes loved across Ibadan.",
+      rating: "4.7",
+      delivery_count: "21",
+      image_url:
+        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80",
+      district: "Dugbe",
+      is_verified: "TRUE",
+      is_available: "TRUE",
+      category: "Food",
+      price_range: "800-2500",
+    },
+    {
+      id: "3",
+      name: "Blossom Event Centre",
+      service_type: "Event Venues",
+      description: "Modern event space for weddings, parties, and conferences.",
+      rating: "4.7",
+      delivery_count: "14",
+      image_url:
+        "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&q=80",
+      district: "Sango",
+      is_verified: "TRUE",
+      is_available: "TRUE",
+      category: "Events",
+      price_range: "50000-200000",
+    },
+    {
+      id: "4",
+      name: "QuickClean Laundry",
+      service_type: "Laundry & Cleaning",
+      description: "Express laundry service with 3-hour delivery guarantee.",
+      rating: "4.5",
+      delivery_count: "8",
+      image_url:
+        "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=400&q=80",
+      district: "Iwo Road",
+      is_verified: "TRUE",
+      is_available: "TRUE",
+      category: "Services",
+      price_range: "1200-4000",
+    },
+    {
+      id: "5",
+      name: "Yoruba Kitchen",
+      service_type: "Food & Restaurants",
+      description:
+        "Traditional Yoruba cuisine with authentic flavors and recipes.",
+      rating: "4.8",
+      delivery_count: "35",
+      image_url:
+        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80",
+      district: "Mokola",
+      is_verified: "TRUE",
+      is_available: "TRUE",
+      category: "Food",
+      price_range: "1000-3000",
+    },
+    {
+      id: "6",
+      name: "Grand Hall Events",
+      service_type: "Event Venues",
+      description: "Spacious hall for corporate events and social gatherings.",
+      rating: "4.6",
+      delivery_count: "9",
+      image_url:
+        "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&q=80",
+      district: "UI Area",
+      is_verified: "TRUE",
+      is_available: "TRUE",
+      category: "Events",
+      price_range: "45000-180000",
+    },
+    {
+      id: "7",
+      name: "City View Hotel",
+      service_type: "Hotels",
+      description:
+        "Luxury hotel with panoramic city views and premium amenities.",
+      rating: "4.9",
+      delivery_count: "5",
+      image_url:
+        "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80",
+      district: "GRA",
+      is_verified: "TRUE",
+      is_available: "TRUE",
+      category: "Hotels",
+      price_range: "25000-80000",
+    },
+    {
+      id: "8",
+      name: "Tech Hub Coworking",
+      service_type: "Workspace",
+      description:
+        "Modern coworking space for professionals and entrepreneurs.",
+      rating: "4.7",
+      delivery_count: "3",
+      image_url:
+        "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=400&q=80",
+      district: "Bodija",
+      is_verified: "TRUE",
+      is_available: "TRUE",
+      category: "Workspace",
+      price_range: "5000-15000",
+    },
+    {
+      id: "9",
+      name: "Fresh Mart Groceries",
+      service_type: "Groceries",
+      description: "Fresh produce and grocery items with quick home delivery.",
+      rating: "4.6",
+      delivery_count: "45",
+      image_url:
+        "https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80",
+      district: "Mokola",
+      is_verified: "TRUE",
+      is_available: "TRUE",
+      category: "Groceries",
+      price_range: "500-5000",
+    },
+  ];
+
+  // Use Google Sheets data if available, otherwise use demo data
+  const displayVenues = venues.length > 0 ? venues : demoVenues;
+
+  // Filter logic
+  const filteredVenues = displayVenues.filter((venue) => {
+    const matchesService =
+      !selectedService || venue.service_type === selectedService;
+    const matchesDistrict =
+      !selectedDistrict || venue.district === selectedDistrict;
+    const matchesVerified = !verifiedOnly || venue.is_verified === "TRUE";
+    const matchesAvailable = !availableNow || venue.is_available === "TRUE";
+
+    return (
+      matchesService && matchesDistrict && matchesVerified && matchesAvailable
+    );
+  });
+
+  // Get featured venues (verified ones)
+  const featuredVenues = filteredVenues.filter(
+    (venue) => venue.is_verified === "TRUE"
   );
 
-  const { openChat } = useChat();
-  const { openModal, closeModal } = useModal(); // ✅ modal context
+  // Visible venues based on load more
+  const visibleVenues = featuredVenues.slice(0, visibleCount);
+  const hasMoreVenues = visibleCount < featuredVenues.length;
+  const isExpanded = visibleCount > 3;
 
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [imageModal, setImageModal] = useState({
-    isOpen: false,
-    images: [],
-    initialIndex: 0,
-  });
+  const loadMore = () => {
+    setVisibleCount((prev) => prev + 3);
+  };
 
-  const [headerRef, headerInView] = useInView({
-    threshold: 0.1,
-    triggerOnce: false,
-  });
+  const viewLess = () => {
+    // Go back to the previous 3, not all the way to first 3
+    setVisibleCount((prev) => Math.max(3, prev - 3));
+  };
 
-  const topPicks = listings
-    .filter((i) => i.is_featured?.toLowerCase() === "yes")
-    .slice(0, 3);
+  const services = [
+    ...new Set(displayVenues.map((v) => v.service_type).filter(Boolean)),
+  ];
+  const districts = [
+    ...new Set(displayVenues.map((v) => v.district).filter(Boolean)),
+  ];
 
-  if (loading)
+  if (loading) {
     return (
-      <section className="py-16 text-center font-rubik bg-[#eef8fd]">
+      <section className="py-16 text-center bg-white">
         <div className="inline-block animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
-        <p className="text-gray-600">Loading top picks...</p>
+        <p className="text-gray-600">Loading verified ventures...</p>
       </section>
     );
+  }
 
-  if (error)
+  if (error) {
     return (
-      <section className="py-16 text-center text-red-500 font-rubik">
-        {error}
-      </section>
+      <section className="py-16 text-center text-red-500">{error}</section>
     );
-
-  if (!topPicks.length) return null;
-
-  const handleAuthModalOpen = () => {
-    openModal();
-    setAuthModalOpen(true);
-  };
-
-  const handleAuthModalClose = () => {
-    closeModal();
-    setAuthModalOpen(false);
-  };
-
-  const handleImageModalOpen = (images, idx) => {
-    openModal();
-    setImageModal({ isOpen: true, images, initialIndex: idx });
-  };
-
-  const handleImageModalClose = () => {
-    closeModal();
-    setImageModal({ isOpen: false, images: [], initialIndex: 0 });
-  };
+  }
 
   return (
-    <>
-      <section className="bg-[#eef8fd] py-16 font-rubik" id="toppicks">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div ref={headerRef} className="mb-10">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={
-                headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }
-              }
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              className="text-center"
+    <section className="bg-white py-16 font-manrope" id="toppicks">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div ref={headerRef} className="mb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={
+              headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }
+            }
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="text-center"
+          >
+            <motion.h1
+              initial={{ opacity: 0, x: -50 }}
+              animate={headerInView ? { opacity: 1, x: 0 } : {}}
+              transition={{ delay: 0.1, duration: 0.4 }}
+              className="text-4xl font-bold text-gray-900 mb-4"
             >
-              <motion.h2
-                initial={{ opacity: 0, x: -50 }}
-                animate={headerInView ? { opacity: 1, x: 0 } : {}}
-                transition={{ delay: 0.1, duration: 0.4 }}
-                className="text-3xl font-bold text-gray-900 border-b-4 border-blue-800 inline-block pb-2"
-              >
-                Ajani’s Top Picks for You
-              </motion.h2>
-              <motion.p
-                initial={{ opacity: 0, x: -50 }}
-                animate={headerInView ? { opacity: 1, x: 0 } : {}}
-                transition={{ delay: 0.2, duration: 0.4 }}
-                className="text-gray-600 text-sm mt-2"
-              >
-                Verified recommendations based on popular queries
-              </motion.p>
-            </motion.div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {topPicks.map((card, i) => (
-              <Card
-                key={i}
-                card={card}
-                index={i}
-                onShowContact={handleAuthModalOpen}
-                onImageClick={handleImageModalOpen}
-              />
-            ))}
-          </div>
+              Verified Vendors
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, x: -50 }}
+              animate={headerInView ? { opacity: 1, x: 0 } : {}}
+              transition={{ delay: 0.2, duration: 0.4 }}
+              className="text-gray-600 text-lg max-w-2xl mx-auto leading-relaxed"
+            >
+              Trusted businesses reviewed and approved for quality and
+              reliability.
+            </motion.p>
+          </motion.div>
         </div>
-      </section>
 
-      {/* Modals */}
-      {authModalOpen && (
-        <AuthModal
-          isOpen={authModalOpen}
-          onClose={handleAuthModalClose}
-          onAuthToast={onAuthToast}
+        {/* Filter Bar */}
+        <FilterBar
+          selectedService={selectedService}
+          setSelectedService={setSelectedService}
+          selectedDistrict={selectedDistrict}
+          setSelectedDistrict={setSelectedDistrict}
+          verifiedOnly={verifiedOnly}
+          setVerifiedOnly={setVerifiedOnly}
+          availableNow={availableNow}
+          setAvailableNow={setAvailableNow}
+          services={services}
+          districts={districts}
+          onFilterClick={() => setShowFilterModal(true)}
         />
-      )}
 
-      {imageModal.isOpen && (
-        <ImageModal
-          images={imageModal.images}
-          initialIndex={imageModal.initialIndex}
-          onClose={handleImageModalClose}
-          onAuthToast={() => {}}
-          onOpenChat={openChat}
-        />
-      )}
-    </>
+        {/* Divider */}
+        <div className=" mb-12"></div>
+
+        {/* Venues Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
+          {visibleVenues.map((venue, index) => (
+            <VendorCard key={venue.id} venue={venue} index={index} />
+          ))}
+        </div>
+
+        {/* No Results State */}
+        {featuredVenues.length === 0 && !loading && (
+          <div className="text-center py-16">
+            <div className="bg-gray-50 rounded-2xl p-12 max-w-md mx-auto">
+              <h3 className="text-2xl text-gray-800 mb-4 font-bold">
+                No ventures found
+              </h3>
+              <p className="text-gray-600 text-lg">
+                Try adjusting your filters
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="text-center">
+          {/* Load More Button - Shows when there are more venues to load */}
+          {hasMoreVenues && (
+            <button
+              onClick={loadMore}
+              className="px-12 py-4 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-all duration-200 font-bold text-lg hover:border-gray-400 hover:shadow-lg mx-2"
+            >
+              View More
+            </button>
+          )}
+
+          {/* View Less Button - Shows when expanded beyond initial 3 */}
+          {isExpanded && (
+            <button
+              onClick={viewLess}
+              className="px-12 py-4 border-2 border-blue-600 rounded-xl text-blue-600 hover:bg-blue-50 transition-all duration-200 font-bold text-lg hover:border-blue-700 hover:shadow-lg mx-2"
+            >
+              View Less
+            </button>
+          )}
+
+          {/* Show message when all venues are loaded */}
+          {featuredVenues.length > 0 && !hasMoreVenues && (
+            <p className="text-gray-500 text-lg py-4">
+              Showing {visibleCount} of {featuredVenues.length} ventures
+              {isExpanded && " - All ventures loaded"}
+            </p>
+          )}
+        </div>
+      </div>
+    </section>
   );
 };
 
