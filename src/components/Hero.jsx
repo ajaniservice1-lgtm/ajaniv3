@@ -4,7 +4,10 @@ import { motion, useInView, AnimatePresence } from "framer-motion";
 import HeroImage from "../assets/Logos/towerr.jpeg";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
-
+import HeroImage2 from "../assets/Logos/hotel.jpg";
+import HeroImage3 from "../assets/Logos/tourism.jpg";
+import HeroImage4 from "../assets/Logos/events.jpg";
+import HeroImage5 from "../assets/Logos/restuarant.jpg";
 
 // Search Suggestions Component
 const SearchSuggestions = ({
@@ -390,12 +393,19 @@ const Hero = () => {
     }
   };
 
+  const categoryData = [
+    { name: "Hotel", img: HeroImage2 },
+    { name: "Restaurant", img: HeroImage5 },
+    { name: "Events", img: HeroImage4 },
+    { name: "Tourism", img: HeroImage3 },
+  ];
+
   return (
     <section
       id="hero"
       className="bg-[#F7F7FA] font-rubik overflow-hidden min-h-[calc(100vh-80px)] flex items-start relative"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-16 sm:py-24 w-full">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-16 sm:py-4 w-full">
         <div
           ref={heroRef}
           className="flex flex-col items-center text-center gap-6 sm:gap-8 pt-8 sm:pt-12 pb-8 sm:pb-12"
@@ -405,10 +415,10 @@ const Hero = () => {
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ margin: "-100px", once: false }}
-            className="flex flex-col justify-start space-y-6 sm:space-y-8 max-w-xl sm:max-w-2xl w-full"
+            className="flex flex-col justify-start space-y-6 sm:space-y-5 max-w-xl sm:max-w-2xl w-full"
           >
             {/* Headline */}
-            <h1 className="text-4xl sm:text-3xl md:text-5xl font-bold text-[#101828] leading-tight mt-6">
+            <h1 className="text-4xl sm:text-3xl md:text-5xl font-bold text-[#101828] leading-tight mt-10">
               Discover Ibadan through AI & Local Stories
             </h1>
 
@@ -468,15 +478,19 @@ const Hero = () => {
 
             {/* Categories */}
             <div className="flex justify-center gap-3 sm:gap-6 mt-6 sm:mt-8">
-              {["Hotel", "Restaurant", "Events", "Tourism"].map((item) => (
-                <div key={item} className="w-16 sm:w-20 text-center">
+              {categoryData.map((item) => (
+                <div key={item.name} className="text-center">
                   <img
-                    src={HeroImage}
-                    alt={item}
-                    className="w-16 h-14 sm:w-20 sm:h-16 rounded-lg object-cover"
+                    src={item.img}
+                    alt={item.name}
+                    className="
+          w-[82.47px] h-[82.47px] rounded-[11.25px]
+          md:w-[156.47px] md:h-[156.47px] md:rounded-[21.34px]
+          object-cover
+        "
                   />
-                  <p className="mt-1 sm:mt-2 text-xs sm:text-sm font-medium">
-                    {item}
+                  <p className="mt-2 text-xs sm:text-sm font-medium">
+                    {item.name}
                   </p>
                 </div>
               ))}
