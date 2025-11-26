@@ -1,4 +1,4 @@
-// FULL UPDATED Header.jsx — With Search Modal and Proper Imports
+// FULL UPDATED Header.jsx — With Mobile Search from Bottom
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,7 +14,19 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [isVisible, setIsVisible] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
+
+  // Check if mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Handle animation states
   useEffect(() => {
@@ -137,7 +149,7 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
 
   return (
     <>
-      {/* Animated Overlay - Gradually reveals main page content */}
+      {/* Animated Overlay */}
       <motion.div
         className="fixed inset-0 z-[60]"
         initial={{ backgroundColor: "rgba(0, 0, 0, 0)" }}
@@ -158,14 +170,27 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
         />
       </motion.div>
 
-      {/* Animated Search Modal */}
+      {/* Animated Search Modal - Different animations for mobile vs desktop */}
       <motion.div
-        className="fixed inset-y-0 left-0 w-full max-w-md bg-white shadow-2xl z-[70]"
-        initial={{ x: "-100%", opacity: 0 }}
-        animate={{
-          x: isOpen ? "0%" : "-100%",
-          opacity: isOpen ? 1 : 0,
-        }}
+        className={`fixed z-[70] bg-white shadow-2xl ${
+          isMobile
+            ? "inset-x-0 bottom-0 rounded-t-3xl max-h-[90vh]"
+            : "inset-y-0 left-0 w-full max-w-md"
+        }`}
+        initial={
+          isMobile ? { y: "100%", opacity: 0 } : { x: "-100%", opacity: 0 }
+        }
+        animate={
+          isMobile
+            ? {
+                y: isOpen ? "0%" : "100%",
+                opacity: isOpen ? 1 : 0,
+              }
+            : {
+                x: isOpen ? "0%" : "-100%",
+                opacity: isOpen ? 1 : 0,
+              }
+        }
         transition={{
           type: "spring",
           damping: 25,
@@ -173,10 +198,12 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
           duration: 0.4,
         }}
       >
-        <div className="flex flex-col h-full">
+        <div className={`flex flex-col h-full ${isMobile ? "pb-6" : ""}`}>
           {/* Header with staggered animation */}
           <motion.div
-            className="flex items-center justify-between p-6 border-b border-gray-200 bg-white"
+            className={`flex items-center justify-between p-6 border-b border-gray-200 bg-white ${
+              isMobile ? "rounded-t-3xl" : ""
+            }`}
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.1, duration: 0.3 }}
@@ -285,7 +312,8 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.7 }}
                     >
-                      Choose our brad......... — where shopping meets simplicity.
+                      Choose our brad......... — where shopping meets
+                      simplicity.
                     </motion.p>
                   </motion.div>
                 </div>
@@ -617,7 +645,7 @@ const Header = ({ onAuthToast }) => {
             </div>
 
             {/* CENTER — NAVIGATION (Centered like Image 1) */}
-            <div className="hidden lg:flex flex-1 justify-center items-center gap-10 text-sm">
+            <div className="hidden lg:flex flex-1 justify-center items-center gap-10 text-sm lg:ml-40">
               {[
                 { label: "Home", id: "Home" },
                 { label: "Categories", id: "Categories" },
@@ -742,7 +770,7 @@ const Header = ({ onAuthToast }) => {
           </div>
 
           {/* NAVIGATION LINKS */}
-          <nav className="flex-1 p-5 space-y-1 font-normal font-rubik">
+          <nav className="flex-1 p-5 space-y-1 text-[13.5px] font-normal font-manrope">
             {[
               { label: "Categories", id: "Categories" },
               { label: "Price Insights", id: "Price Insights" },
