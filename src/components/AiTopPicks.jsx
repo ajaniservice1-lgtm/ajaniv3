@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import { GoVerified } from "react-icons/go";
 import { PiSliders } from "react-icons/pi";
-
+import { IoIosArrowDown } from "react-icons/io";
 // ---------------- Custom Hook ----------------
 const useGoogleSheet = (sheetId, apiKey) => {
   const [data, setData] = useState([]);
@@ -74,8 +74,8 @@ const ToggleSwitch = ({ enabled, setEnabled, label }) => {
       <button
         type="button"
         className={`${
-          enabled ? "bg-blue-600" : "bg-gray-200"
-        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2`}
+          enabled ? "bg-[#000000]" : "bg-gray-200"
+        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none`}
         role="switch"
         aria-checked={enabled}
         onClick={() => setEnabled(!enabled)}
@@ -116,7 +116,7 @@ const FilterBar = ({
             value={selectedService}
             onChange={(e) => setSelectedService(e.target.value)}
             className="appearance-none bg-[#D9D9D9]
-             px-4 py-3 pr-10 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer min-w-[180px] font-medium"
+             px-4 py-3 pr-10 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] cursor-pointer min-w-[180px] font-medium"
           >
             <option value="" className="text-gray-500">
               Service/Product
@@ -137,7 +137,7 @@ const FilterBar = ({
           <select
             value={selectedDistrict}
             onChange={(e) => setSelectedDistrict(e.target.value)}
-            className="appearance-none bg-[#D9D9D9] px-4 py-3 pr-10 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer min-w-[140px] font-medium"
+            className="appearance-none bg-[#D9D9D9] px-4 py-3 pr-10 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] cursor-pointer min-w-[140px] font-medium"
           >
             <option value="" className="text-gray-500">
               District
