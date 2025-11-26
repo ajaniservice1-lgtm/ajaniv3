@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import { Link } from "react-router-dom";
 import { generateSlug } from "../utils/vendorUtils";
+import { MdFavoriteBorder } from "react-icons/md";
 import { FaGreaterThan } from "react-icons/fa";
 import { FaLessThan } from "react-icons/fa";
 import { PiSliders } from "react-icons/pi";

@@ -9,6 +9,61 @@ import HeroImage3 from "../assets/Logos/tourism.jpg";
 import HeroImage4 from "../assets/Logos/events.jpg";
 import HeroImage5 from "../assets/Logos/restuarant.jpg";
 
+// Function to normalize words (convert to singular form and handle common plural patterns)
+const normalizeWord = (word) => {
+  if (!word || typeof word !== "string") return "";
+
+  const lowerWord = word.toLowerCase().trim();
+
+  // Common plural to singular conversions
+  const pluralToSingular = {
+    hotels: "hotel",
+    restaurants: "restaurant",
+    events: "event",
+    tourisms: "tourism",
+    cafes: "cafe",
+    cafés: "cafe",
+    bars: "bar",
+    hostels: "hostel",
+    shortlets: "shortlet",
+    services: "service",
+    attractions: "attraction",
+    gardens: "garden",
+    towers: "tower",
+    centers: "center",
+    centres: "centre",
+    vendors: "vendor",
+    markets: "market",
+    prices: "price",
+    results: "result",
+    stories: "story",
+  };
+
+  // Return singular form if found in mapping, otherwise return original word
+  return pluralToSingular[lowerWord] || lowerWord;
+};
+
+// Function to check if search query matches a word in any form
+const matchesWord = (searchWord, targetWord) => {
+  if (!searchWord || !targetWord) return false;
+
+  const normalizedSearch = normalizeWord(searchWord);
+  const normalizedTarget = normalizeWord(targetWord);
+
+  // Direct match
+  if (normalizedSearch === normalizedTarget) return true;
+
+  // Partial match (contains)
+  if (
+    normalizedTarget.includes(normalizedSearch) ||
+    normalizedSearch.includes(normalizedTarget)
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
 // Google-like Search Modal Component
 const SearchModal = ({
   isOpen,
@@ -53,11 +108,13 @@ const SearchModal = ({
     if (isOpen) {
       document.addEventListener("keydown", handleEscape);
       document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
     }
 
     return () => {
       document.removeEventListener("keydown", handleEscape);
       document.body.style.overflow = "unset";
+      document.documentElement.style.overflow = "unset";
     };
   }, [isOpen, onClose]);
 
@@ -115,13 +172,18 @@ const SearchModal = ({
     }
   };
 
+  // Get result count text (singular/plural)
+  const getResultCountText = (count) => {
+    return count === 1 ? `${count} result` : `${count} results`;
+  };
+
   if (!isOpen) return null;
 
   return (
     <>
-      {/* Overlay */}
+      {/* Overlay - Critical for mobile */}
       <motion.div
-        className="fixed inset-0 z-[9998] bg-black/50 backdrop-blur-sm"
+        className="fixed inset-0 z-[9998] bg-black/50 backdrop-blur-sm overflow-hidden"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -129,9 +191,9 @@ const SearchModal = ({
         onClick={onClose}
       />
 
-      {/* Search Modal */}
+      {/* Search Modal - Critical overflow control for mobile */}
       <motion.div
-        className={`fixed z-[9999] bg-white ${
+        className={`fixed z-[9999] bg-white overflow-hidden ${
           isMobile
             ? "inset-x-0 top-0 h-full"
             : "inset-x-4 top-4 mx-auto max-w-4xl rounded-2xl max-h-[90vh]"
@@ -149,10 +211,16 @@ const SearchModal = ({
         }}
       >
         <div
-          className={`flex flex-col h-full ${isMobile ? "" : "max-h-[90vh]"}`}
+          className={`flex flex-col h-full ${
+            isMobile ? "overflow-hidden" : "max-h-[90vh]"
+          }`}
         >
           {/* Header */}
-          <div className="flex items-center gap-3 p-4 border-b border-gray-200">
+          <div
+            className={`flex items-center gap-3 p-4 border-b border-gray-200 ${
+              isMobile ? "overflow-hidden" : ""
+            }`}
+          >
             {isMobile && (
               <button
                 onClick={onClose}
@@ -243,8 +311,12 @@ const SearchModal = ({
             )}
           </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto">
+          {/* Content - Critical overflow for mobile */}
+          <div
+            className={`flex-1 ${
+              isMobile ? "overflow-y-auto overflow-x-hidden" : "overflow-y-auto"
+            }`}
+          >
             {searchQuery.trim() === "" ? (
               // Recent Searches/Empty State
               <div className="p-6">
@@ -307,7 +379,7 @@ const SearchModal = ({
               <div className="p-4">
                 <div className="mb-4">
                   <h4 className="font-medium text-gray-900 text-sm">
-                    Search results for "{searchQuery}"
+                    {getResultCountText(suggestions.length)} for "{searchQuery}"
                   </h4>
                 </div>
 
@@ -338,7 +410,7 @@ const SearchModal = ({
                         transition={{ delay: index * 0.05 }}
                         onClick={() => onSelectSuggestion(vendor)}
                       >
-                        {/* Vendor Image */}
+                        {/* Vendor Image - Critical for mobile */}
                         <div className="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden mr-3">
                           <img
                             src={getCardImages(vendor)}
@@ -393,12 +465,20 @@ const SearchModal = ({
             )}
           </div>
 
-          {/* Quick Categories */}
-          <div className="p-4 border-t border-gray-100 bg-gray-50">
+          {/* Quick Categories - Critical for mobile */}
+          <div
+            className={`p-4 border-t border-gray-100 bg-gray-50 ${
+              isMobile ? "overflow-hidden" : ""
+            }`}
+          >
             <p className="text-xs text-gray-600 mb-3 font-medium">
               Popular Categories
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div
+              className={`flex flex-wrap gap-2 ${
+                isMobile ? "overflow-hidden" : ""
+              }`}
+            >
               {[
                 "Hotels",
                 "Restaurants",
@@ -505,6 +585,40 @@ const Hero = () => {
     else setHasAnimated(false);
   }, [isInView]);
 
+  // Enhanced filter function that handles singular/plural forms
+  const filterVendors = (query, vendors) => {
+    if (!query.trim()) return [];
+
+    const normalizedQuery = normalizeWord(query);
+    const queryWords = normalizedQuery
+      .split(" ")
+      .filter((word) => word.length > 0);
+
+    return vendors.filter((item) => {
+      // Check name
+      const nameMatch = queryWords.some(
+        (word) =>
+          matchesWord(word, item.name) ||
+          (item.name && item.name.toLowerCase().includes(word))
+      );
+
+      // Check category
+      const categoryMatch = queryWords.some(
+        (word) =>
+          matchesWord(word, item.category) ||
+          (item.category && item.category.toLowerCase().includes(word))
+      );
+
+      // Check area
+      const areaMatch = queryWords.some(
+        (word) => item.area && item.area.toLowerCase().includes(word)
+      );
+
+      // Check if any field matches
+      return nameMatch || categoryMatch || areaMatch;
+    });
+  };
+
   // Filter vendors based on search query
   useEffect(() => {
     if (searchQuery.trim() === "") {
@@ -512,16 +626,7 @@ const Hero = () => {
       return;
     }
 
-    const filtered = listings
-      .filter(
-        (item) =>
-          item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (item.area &&
-            item.area.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
-      .slice(0, 8); // Limit to 8 suggestions
-
+    const filtered = filterVendors(searchQuery, listings).slice(0, 8); // Limit to 8 suggestions
     setSuggestions(filtered);
   }, [searchQuery, listings]);
 
@@ -557,6 +662,7 @@ const Hero = () => {
 
   return (
     <>
+      {/* Main section - Critical for mobile */}
       <section
         id="hero"
         className="bg-[#F7F7FA] font-rubik overflow-hidden min-h-[calc(100vh-80px)] flex items-start relative"
@@ -584,8 +690,8 @@ const Hero = () => {
                 and market prices.
               </p>
 
-              {/* Search Bar - Click to open modal */}
-              <div className="relative mx-auto w-full sm:max-w-md">
+              {/* Search Bar - Critical for mobile */}
+              <div className="relative mx-auto w-full sm:max-w-md overflow-hidden">
                 <div
                   className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-10 cursor-text"
                   onClick={handleSearchInputClick}
@@ -627,15 +733,15 @@ const Hero = () => {
                 </div>
               </div>
 
-              {/* Categories */}
-              <div className="flex justify-center gap-3 sm:gap-6 mt-6 sm:mt-8">
+              {/* Categories - Critical for mobile */}
+              <div className="flex justify-center gap-3 sm:gap-6 mt-6 sm:mt-8 overflow-hidden">
                 {categoryData.map((item) => (
                   <div key={item.name} className="text-center">
                     <img
                       src={item.img}
                       alt={item.name}
                       className="
-                        w-[82.47px] h-[82.47px] rounded-[11.25px]
+                        w-[82.47px] h-[82.47px] rounded-[11.25px] overflow-hidden
                         md:w-[156.47px] md:h-[156.47px] md:rounded-[21.34px]
                         object-cover
                       "

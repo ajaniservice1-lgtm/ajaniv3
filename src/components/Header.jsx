@@ -1,4 +1,4 @@
-// FULL UPDATED Header.jsx — With Mobile Search from Bottom
+// FULL UPDATED Header.jsx — With Fixed Plural/Singular Search Filters
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,6 +8,100 @@ import { IoPerson } from "react-icons/io5";
 import { CiSearch } from "react-icons/ci";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
+
+// Function to normalize words (convert to singular form and handle common plural patterns)
+const normalizeWord = (word) => {
+  if (!word || typeof word !== "string") return "";
+
+  const lowerWord = word.toLowerCase().trim();
+
+  // Common plural to singular conversions
+  const pluralToSingular = {
+    hotels: "hotel",
+    restaurants: "restaurant",
+    events: "event",
+    tourisms: "tourism",
+    cafes: "cafe",
+    cafés: "cafe",
+    bars: "bar",
+    hostels: "hostel",
+    shortlets: "shortlet",
+    services: "service",
+    attractions: "attraction",
+    gardens: "garden",
+    towers: "tower",
+    centers: "center",
+    centres: "centre",
+    vendors: "vendor",
+    markets: "market",
+    prices: "price",
+    results: "result",
+    stories: "story",
+    guides: "guide",
+    insights: "insight",
+    blogs: "blog",
+    vendors: "vendor",
+    profiles: "profile",
+  };
+
+  // Return singular form if found in mapping, otherwise return original word
+  return pluralToSingular[lowerWord] || lowerWord;
+};
+
+// Function to check if search query matches a word in any form
+const matchesWord = (searchWord, targetWord) => {
+  if (!searchWord || !targetWord) return false;
+
+  const normalizedSearch = normalizeWord(searchWord);
+  const normalizedTarget = normalizeWord(targetWord);
+
+  // Direct match
+  if (normalizedSearch === normalizedTarget) return true;
+
+  // Partial match (contains)
+  if (
+    normalizedTarget.includes(normalizedSearch) ||
+    normalizedSearch.includes(normalizedTarget)
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
+// Enhanced filter function that handles singular/plural forms
+const filterVendors = (query, vendors) => {
+  if (!query.trim()) return [];
+
+  const normalizedQuery = normalizeWord(query);
+  const queryWords = normalizedQuery
+    .split(" ")
+    .filter((word) => word.length > 0);
+
+  return vendors.filter((item) => {
+    // Check name with plural/singular matching
+    const nameMatch = queryWords.some(
+      (word) =>
+        matchesWord(word, item.name) ||
+        (item.name && item.name.toLowerCase().includes(word))
+    );
+
+    // Check category with plural/singular matching
+    const categoryMatch = queryWords.some(
+      (word) =>
+        matchesWord(word, item.category) ||
+        (item.category && item.category.toLowerCase().includes(word))
+    );
+
+    // Check area
+    const areaMatch = queryWords.some(
+      (word) => item.area && item.area.toLowerCase().includes(word)
+    );
+
+    // Check if any field matches
+    return nameMatch || categoryMatch || areaMatch;
+  });
+};
 
 // Search Modal Component
 const SearchModal = ({ isOpen, onClose, listings = [] }) => {
@@ -38,23 +132,14 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
     }
   }, [isOpen]);
 
-  // Filter suggestions based on search query
+  // Enhanced filter vendors based on search query with plural/singular support
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setSuggestions([]);
       return;
     }
 
-    const filtered = listings
-      .filter(
-        (item) =>
-          item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (item.area &&
-            item.area.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
-      .slice(0, 8);
-
+    const filtered = filterVendors(searchQuery, listings).slice(0, 8);
     setSuggestions(filtered);
   }, [searchQuery, listings]);
 
@@ -126,6 +211,11 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
     }
   };
 
+  // Get result count text (singular/plural)
+  const getResultCountText = (count) => {
+    return count === 1 ? `${count} result` : `${count} results`;
+  };
+
   // Close modal when clicking outside or pressing Escape
   useEffect(() => {
     const handleEscape = (e) => {
@@ -137,11 +227,13 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
     if (isOpen) {
       document.addEventListener("keydown", handleEscape);
       document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
     }
 
     return () => {
       document.removeEventListener("keydown", handleEscape);
       document.body.style.overflow = "unset";
+      document.documentElement.style.overflow = "unset";
     };
   }, [isOpen, onClose]);
 
@@ -151,7 +243,7 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
     <>
       {/* Animated Overlay */}
       <motion.div
-        className="fixed inset-0 z-[60]"
+        className="fixed inset-0 z-[60] overflow-hidden"
         initial={{ backgroundColor: "rgba(0, 0, 0, 0)" }}
         animate={{
           backgroundColor: isOpen ? "rgba(0, 0, 0, 0.5)" : "rgba(0, 0, 0, 0)",
@@ -161,7 +253,7 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
       >
         {/* Backdrop blur that increases gradually */}
         <motion.div
-          className="absolute inset-0 backdrop-blur-sm"
+          className="absolute inset-0 backdrop-blur-sm overflow-hidden"
           initial={{ backdropFilter: "blur(0px)" }}
           animate={{
             backdropFilter: isOpen ? "blur(8px)" : "blur(0px)",
@@ -170,11 +262,11 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
         />
       </motion.div>
 
-      {/* Animated Search Modal - Different animations for mobile vs desktop */}
+      {/* Animated Search Modal - Mobile comes from bottom and fills screen */}
       <motion.div
-        className={`fixed z-[70] bg-white shadow-2xl ${
+        className={`fixed z-[70] bg-white shadow-2xl overflow-hidden ${
           isMobile
-            ? "inset-x-0 bottom-0 rounded-t-3xl max-h-[90vh]"
+            ? "inset-0 rounded-none" // Full screen on mobile
             : "inset-y-0 left-0 w-full max-w-md"
         }`}
         initial={
@@ -198,11 +290,11 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
           duration: 0.4,
         }}
       >
-        <div className={`flex flex-col h-full ${isMobile ? "pb-6" : ""}`}>
+        <div className={`flex flex-col h-full ${isMobile ? "" : ""}`}>
           {/* Header with staggered animation */}
           <motion.div
             className={`flex items-center justify-between p-6 border-b border-gray-200 bg-white ${
-              isMobile ? "rounded-t-3xl" : ""
+              isMobile ? "" : ""
             }`}
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -264,8 +356,12 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
             </form>
           </motion.div>
 
-          {/* Search Results with staggered animations */}
-          <div className="flex-1 overflow-y-auto">
+          {/* Search Results with staggered animations - Critical overflow fix for mobile */}
+          <div
+            className={`flex-1 ${
+              isMobile ? "overflow-y-auto overflow-x-hidden" : "overflow-y-auto"
+            }`}
+          >
             {searchQuery.trim() === "" ? (
               // Empty state with gentle animations
               <motion.div
@@ -366,25 +462,22 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
             ) : (
               // Suggestions list with staggered animations
               <motion.div
-                className="p-4"
+                className="p-4 overflow-hidden"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
               >
                 <motion.div
-                  className="flex items-center justify-between mb-4"
+                  className="flex items-center justify-between mb-4 overflow-hidden"
                   initial={{ y: -10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                 >
                   <h4 className="font-medium text-gray-900 text-sm">
-                    Search Results
+                    {getResultCountText(suggestions.length)} for "{searchQuery}"
                   </h4>
-                  <span className="text-gray-500 text-xs">
-                    {suggestions.length} found
-                  </span>
                 </motion.div>
 
-                <div className="space-y-3">
+                <div className="space-y-3 overflow-hidden">
                   {suggestions.map((vendor, index) => {
                     const category = (vendor.category || "").toLowerCase();
                     let priceText = "";
@@ -405,7 +498,7 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                     return (
                       <motion.div
                         key={vendor.id}
-                        className="flex items-center p-3 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors duration-150 border border-gray-100"
+                        className="flex items-center p-3 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors duration-150 border border-gray-100 overflow-hidden"
                         initial={{ x: -20, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                         transition={{
@@ -433,24 +526,24 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                         </motion.div>
 
                         {/* Vendor Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-900 text-sm line-clamp-1">
+                        <div className="flex-1 min-w-0 overflow-hidden">
+                          <div className="flex items-start justify-between overflow-hidden">
+                            <div className="flex-1 overflow-hidden">
+                              <h4 className="font-medium text-gray-900 text-sm line-clamp-1 overflow-hidden">
                                 {vendor.name}
                               </h4>
-                              <p className="text-gray-600 text-xs mt-1">
+                              <p className="text-gray-600 text-xs mt-1 overflow-hidden">
                                 {vendor.category || "Business"}
                               </p>
                             </div>
                             {vendor.price_from && (
                               <motion.div
-                                className="text-right ml-2 flex-shrink-0"
+                                className="text-right ml-2 flex-shrink-0 overflow-hidden"
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ delay: 0.2 + index * 0.05 }}
                               >
-                                <p className="font-semibold text-green-600 text-xs">
+                                <p className="font-semibold text-green-600 text-xs overflow-hidden">
                                   {priceText}
                                 </p>
                               </motion.div>
@@ -458,18 +551,18 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                           </div>
 
                           {/* Rating and Location */}
-                          <div className="flex items-center justify-between mt-2">
-                            <div className="flex items-center gap-1">
+                          <div className="flex items-center justify-between mt-2 overflow-hidden">
+                            <div className="flex items-center gap-1 overflow-hidden">
                               <FontAwesomeIcon
                                 icon={faStar}
-                                className="text-yellow-400 text-xs"
+                                className="text-yellow-400 text-xs overflow-hidden"
                               />
-                              <span className="text-gray-700 text-xs">
+                              <span className="text-gray-700 text-xs overflow-hidden">
                                 {vendor.rating || "4.89"}
                               </span>
                             </div>
                             {vendor.area && (
-                              <span className="text-gray-500 text-xs">
+                              <span className="text-gray-500 text-xs overflow-hidden">
                                 {vendor.area}
                               </span>
                             )}
@@ -483,22 +576,28 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
             )}
           </div>
 
-          {/* Quick Categories with animation */}
+          {/* Quick Categories with animation - Critical overflow fix for mobile */}
           <motion.div
-            className="p-6 border-t border-gray-100 bg-gray-50"
+            className={`p-6 border-t border-gray-100 bg-gray-50 ${
+              isMobile ? "overflow-hidden" : ""
+            }`}
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
             <motion.p
-              className="text-xs text-gray-600 mb-3 font-medium"
+              className="text-xs text-gray-600 mb-3 font-medium overflow-hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
               Popular Categories:
             </motion.p>
-            <div className="flex flex-wrap gap-2">
+            <div
+              className={`flex flex-wrap gap-2 ${
+                isMobile ? "overflow-hidden" : ""
+              }`}
+            >
               {[
                 "Hotels",
                 "Restaurants",
@@ -510,7 +609,7 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                 <motion.button
                   key={category}
                   onClick={() => setSearchQuery(category)}
-                  className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs text-gray-700 hover:bg-gray-100 hover:border-gray-400 transition-colors"
+                  className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs text-gray-700 hover:bg-gray-100 hover:border-gray-400 transition-colors overflow-hidden"
                   initial={{ scale: 0, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{
@@ -603,9 +702,17 @@ const Header = ({ onAuthToast }) => {
   } = useGoogleSheet(SHEET_ID, API_KEY);
 
   useEffect(() => {
-    if (isMenuOpen) document.body.classList.add("overflow-hidden");
-    else document.body.classList.remove("overflow-hidden");
-    return () => document.body.classList.remove("overflow-hidden");
+    if (isMenuOpen) {
+      document.body.classList.add("overflow-hidden");
+      document.documentElement.classList.add("overflow-hidden");
+    } else {
+      document.body.classList.remove("overflow-hidden");
+      document.documentElement.classList.remove("overflow-hidden");
+    }
+    return () => {
+      document.body.classList.remove("overflow-hidden");
+      document.documentElement.classList.remove("overflow-hidden");
+    };
   }, [isMenuOpen]);
 
   const closeMenu = () => setIsMenuOpen(false);
@@ -620,11 +727,11 @@ const Header = ({ onAuthToast }) => {
   return (
     <>
       {/* FIXED HEADER WITH BOTTOM BLUE LINE (Image 1 style) */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#F7F7FA] border-b-2 border-[#00d1ff] h-20 font-rubik">
-        <div className="max-w-7xl mx-auto px-4 py-2">
-          <nav className="flex items-center justify-between px-6 py-1 w-full">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#F7F7FA] border-b-2 border-[#00d1ff] h-20 font-rubik overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 py-2 overflow-hidden">
+          <nav className="flex items-center justify-between px-6 py-1 w-full overflow-hidden">
             {/* LEFT — LOGO */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 overflow-hidden">
               <button
                 onClick={() => {
                   closeMenu();
@@ -634,18 +741,18 @@ const Header = ({ onAuthToast }) => {
                     150
                   );
                 }}
-                className="flex items-center gap-2 focus:outline-none"
+                className="flex items-center gap-2 focus:outline-none overflow-hidden"
               >
                 <img
                   src={Logo}
                   alt="Ajani Logo"
-                  className="h-8 w-24 object-contain"
+                  className="h-8 w-24 object-contain overflow-hidden"
                 />
               </button>
             </div>
 
             {/* CENTER — NAVIGATION (Centered like Image 1) */}
-            <div className="hidden lg:flex flex-1 justify-center items-center gap-10 text-sm lg:ml-40">
+            <div className="hidden lg:flex flex-1 justify-center items-center gap-10 text-sm lg:ml-40 overflow-hidden">
               {[
                 { label: "Home", id: "Home" },
                 { label: "Categories", id: "Categories" },
@@ -656,7 +763,7 @@ const Header = ({ onAuthToast }) => {
                 <button
                   key={item.id}
                   onClick={() => scrollToSection(item.id)}
-                  className="hover:text-[#00d1ff] transition-all"
+                  className="hover:text-[#00d1ff] transition-all overflow-hidden"
                 >
                   {item.label}
                 </button>
@@ -666,14 +773,14 @@ const Header = ({ onAuthToast }) => {
             {/* SEARCH ICON */}
             <button
               onClick={() => setIsSearchOpen(true)}
-              className="text-2xl mx-2.5 hover:text-[#00d1ff] transition-colors"
+              className="text-2xl mx-2.5 hover:text-[#00d1ff] transition-colors overflow-hidden"
             >
               <CiSearch />
             </button>
 
             {/* RIGHT — Profile + Login + Hamburger */}
-            <div className="flex items-center gap-4 text-sm">
-              <div className="hidden lg:flex items-center gap-2">
+            <div className="flex items-center gap-4 text-sm overflow-hidden">
+              <div className="hidden lg:flex items-center gap-2 overflow-hidden">
                 <IoPerson />
                 <span>My Profile</span>
               </div>
@@ -683,11 +790,11 @@ const Header = ({ onAuthToast }) => {
               {/* MOBILE HAMBURGER */}
               <button
                 onClick={() => setIsMenuOpen(true)}
-                className="lg:hidden text-gray-900 focus:outline-none"
+                className="lg:hidden text-gray-900 focus:outline-none overflow-hidden"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
+                  className="h-6 w-6 overflow-hidden"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -714,13 +821,13 @@ const Header = ({ onAuthToast }) => {
 
       {/* MOBILE MENU */}
       <div
-        className={`fixed inset-0 z-50 md:hidden ${
+        className={`fixed inset-0 z-50 md:hidden overflow-hidden ${
           isMenuOpen ? "" : "pointer-events-none"
         }`}
       >
         {/* OVERLAY */}
         <div
-          className={`fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ${
+          className={`fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300 overflow-hidden ${
             isMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0"
           }`}
           onClick={closeMenu}
@@ -729,32 +836,36 @@ const Header = ({ onAuthToast }) => {
 
         {/* SLIDING PANEL */}
         <div
-          className={`fixed left-0 top-0 w-full h-screen bg-[#e6f2ff] flex flex-col transform transition-transform duration-300 ease-in-out z-50 ${
+          className={`fixed left-0 top-0 w-full h-screen bg-[#e6f2ff] flex flex-col transform transition-transform duration-300 ease-in-out z-50 overflow-hidden ${
             isMenuOpen ? "translate-x-0" : "-translate-x-full"
           }`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* HEADER */}
-          <div className="p-5 border-b border-gray-200 flex justify-between items-center bg-[#f2f9ff] rounded-full shadow-md px-6 py-3 mt-1.5">
+          <div className="p-5 border-b border-gray-200 flex justify-between items-center bg-[#f2f9ff] rounded-full shadow-md px-6 py-3 mt-1.5 overflow-hidden">
             <button
               onClick={closeMenu}
-              className="flex flex-col items-start focus:outline-none"
+              className="flex flex-col items-start focus:outline-none overflow-hidden"
             >
-              <div className="flex items-center gap-2">
-                <img src={Logo} alt="Ajani Logo" className="h-8 w-24" />
-                <div className="w-px h-6 bg-gray-300 mx-2"></div>
-                <span className="md:text-sm text-[12.5px] text-slate-600 hover:text-gray-900">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <img
+                  src={Logo}
+                  alt="Ajani Logo"
+                  className="h-8 w-24 overflow-hidden"
+                />
+                <div className="w-px h-6 bg-gray-300 mx-2 overflow-hidden"></div>
+                <span className="md:text-sm text-[12.5px] text-slate-600 hover:text-gray-900 overflow-hidden">
                   The Ibadan Smart Guide
                 </span>
               </div>
             </button>
             <button
               onClick={closeMenu}
-              className="text-gray-900 hover:text-gray-600"
+              className="text-gray-900 hover:text-gray-600 overflow-hidden"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
+                className="h-6 w-6 overflow-hidden"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -770,7 +881,7 @@ const Header = ({ onAuthToast }) => {
           </div>
 
           {/* NAVIGATION LINKS */}
-          <nav className="flex-1 p-5 space-y-1 text-[13.5px] font-normal font-manrope">
+          <nav className="flex-1 p-5 space-y-1 text-[13.5px] font-normal font-manrope overflow-hidden">
             {[
               { label: "Categories", id: "Categories" },
               { label: "Price Insights", id: "Price Insights" },
@@ -781,7 +892,7 @@ const Header = ({ onAuthToast }) => {
             ].map((item) => (
               <button
                 key={item.id}
-                className="block w-full text-left py-2 text-gray-900 hover:text-[#06EAFC] font-medium"
+                className="block w-full text-left py-2 text-gray-900 hover:text-[#06EAFC] font-medium overflow-hidden"
                 onClick={() => {
                   scrollToSection(item.id);
                   setTimeout(() => closeMenu(), 400);
