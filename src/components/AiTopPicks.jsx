@@ -128,7 +128,7 @@ const FilterBar = ({
             ))}
           </select>
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
-            ▼
+            <IoIosArrowDown />
           </div>
         </div>
 
@@ -149,7 +149,7 @@ const FilterBar = ({
             ))}
           </select>
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
-            ▼
+            <IoIosArrowDown />
           </div>
         </div>
 
@@ -187,16 +187,32 @@ const VendorCard = ({ venue, index }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className="bg-[#D9D9D9] rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 relative"
+      className="
+        bg-[#D9D9D9]
+        border border-gray-100 
+        shadow-sm hover:shadow-md 
+        transition-all duration-300 
+        relative
+
+        w-[175.77px]
+        h-[237.48px]
+        rounded-[14.9px]
+
+        md:w-[413px]
+        md:h-[558px]
+        md:rounded-[35px]
+
+        mx-auto
+      "
     >
       {/* Verified Badge */}
       <div className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-md border border-green-200 z-10">
         <GoVerified className="text-green-500 text-xl" />
       </div>
 
-      {/* Circular Profile Image */}
+      {/* Profile Image */}
       <div className="flex justify-center pt-10">
-        <div className="w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden shadow-md border border-gray-200">
+        <div className="w-20 h-20 md:w-32 md:h-32 rounded-full overflow-hidden shadow-md border border-gray-200">
           <img
             src={venue.image_url}
             alt={venue.name}
@@ -205,40 +221,43 @@ const VendorCard = ({ venue, index }) => {
         </div>
       </div>
 
-      <div className="p-6 text-center">
-        {/* Name */}
-        <h3 className="text-xl md:text-2xl font-semibold text-gray-900 mt-6">
+      <div className="p-4 md:p-6 text-center">
+        <h3 className="text-lg md:text-2xl font-semibold text-gray-900 mt-3 md:mt-6">
           {venue.name}
         </h3>
 
-        {/* Rating + Delivery */}
-        <div className="flex justify-center items-center gap-4 mt-4">
+        <div className="flex justify-center items-center gap-2 md:gap-4 mt-2 md:mt-4">
           <div className="flex items-center gap-1">
-            <FontAwesomeIcon icon={faStar} className="text-yellow-500" />
-            <span className="font-semibold text-gray-900">{venue.rating}</span>
+            <FontAwesomeIcon
+              icon={faStar}
+              className="text-yellow-500 text-sm md:text-base"
+            />
+            <span className="font-semibold text-gray-900 text-sm md:text-base">
+              {venue.rating}
+            </span>
           </div>
 
-          <span className="text-gray-600">{venue.delivery_count} Delivery</span>
+          <span className="text-gray-600 text-xs md:text-base">
+            {venue.delivery_count} Delivery
+          </span>
         </div>
 
-        {/* Service */}
-        <p className="mt-4 text-sm md:text-base text-gray-700 font-medium">
+        <p className="mt-2 md:mt-4 text-xs md:text-base text-gray-700 font-medium">
           Service: <span className="text-gray-600">{venue.service_type}</span>
         </p>
 
-        {/* Description */}
-        <p className="text-gray-500 text-sm leading-relaxed mt-3">
+        <p className="text-gray-500 text-xs md:text-sm leading-relaxed mt-2 md:mt-3 line-clamp-3 md:line-clamp-none">
           {venue.description}
         </p>
 
-        {/* Button */}
-        <button className="w-full py-3 mt-6 rounded-xl border border-gray-300 text-gray-800 font-semibold hover:bg-gray-50 transition">
+        <button className="w-full py-2 md:py-3 mt-4 md:mt-6 rounded-xl border border-gray-300 text-gray-800 font-semibold hover:bg-gray-50 transition">
           View Vendor
         </button>
       </div>
     </motion.div>
   );
 };
+
 
 // ---------------- Main AiTopPicks Component ----------------
 const AiTopPicks = () => {
