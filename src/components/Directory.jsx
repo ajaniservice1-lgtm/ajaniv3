@@ -904,7 +904,7 @@ const Directory = () => {
                   setArea("");
                   setActiveFilters({});
                 }}
-                className="px-2 py-1.5 bg-[#06EAFC] font-medium rounded-lg text-[10px] hover:bg-[#08d7e6] transition-colors whitespace-nowrap flex-1 text-center"
+                className="sm:px-2 sm:py-1.5 p-2 bg-[#06EAFC] font-medium rounded-lg text-[10px] lg:text-[12px] hover:bg-[#08d7e6] transition-colors whitespace-nowrap flex-1 text-center"
               >
                 Popular destination
               </button>
@@ -912,7 +912,7 @@ const Directory = () => {
               <select
                 value={mainCategory}
                 onChange={(e) => setMainCategory(e.target.value)}
-                className="px-2 py-1.5 border border-gray-300 rounded-lg font-medium text-[10px] bg-gray-300 focus:ring-1 focus:ring-[#06EAFC] focus:border-[#06EAFC] flex-1"
+                className="px-2 py-1.5 border border-gray-300 rounded-lg font-medium text-[10px] lg:text-[12px] bg-gray-300 focus:ring-1 focus:ring-[#06EAFC]  p-2 focus:border-[#06EAFC] flex-1"
               >
                 <option value="">Categories</option>
                 {getPopularCategories().map((category) => (
@@ -925,7 +925,7 @@ const Directory = () => {
               {/* Filter Button - Compact */}
               <div className="relative">
                 <div
-                  className="bg-gray-300 p-1.5 flex items-center rounded-lg cursor-pointer hover:bg-gray-400 transition-colors duration-200 font-medium whitespace-nowrap"
+                  className="bg-gray-300 sm:p-1.5 p-2 flex items-center rounded-lg cursor-pointer hover:bg-gray-400 transition-colors duration-200 font-medium whitespace-nowrap"
                   onClick={toggleFilterDropdown}
                 >
                   <PiSliders className="text-sm" />

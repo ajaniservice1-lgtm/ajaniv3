@@ -1,4 +1,4 @@
-// FULL UPDATED Header.jsx — With Fixed Text Overflow
+// FULL UPDATED Header.jsx — With Area and Category Filtering
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,7 +9,6 @@ import { CiSearch } from "react-icons/ci";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
 
-// ... (keep all your existing utility functions and SearchModal component the same) ...
 // Function to normalize words (convert to singular form and handle common plural patterns)
 const normalizeWord = (word) => {
   if (!word || typeof word !== "string") return "";
@@ -70,7 +69,7 @@ const matchesWord = (searchWord, targetWord) => {
   return false;
 };
 
-// Enhanced filter function that handles singular/plural forms
+// Enhanced filter function that handles area and category search
 const filterVendors = (query, vendors) => {
   if (!query.trim()) return [];
 
@@ -80,34 +79,106 @@ const filterVendors = (query, vendors) => {
     .filter((word) => word.length > 0);
 
   return vendors.filter((item) => {
-    // Check name with plural/singular matching
-    const nameMatch = queryWords.some(
+    // Check area first (priority for location-based search)
+    const areaMatch = queryWords.some(
       (word) =>
-        matchesWord(word, item.name) ||
-        (item.name && item.name.toLowerCase().includes(word))
+        item.area && item.area.toLowerCase().includes(word.toLowerCase())
     );
 
     // Check category with plural/singular matching
     const categoryMatch = queryWords.some(
       (word) =>
         matchesWord(word, item.category) ||
-        (item.category && item.category.toLowerCase().includes(word))
+        (item.category &&
+          item.category.toLowerCase().includes(word.toLowerCase()))
     );
 
-    // Check area
-    const areaMatch = queryWords.some(
-      (word) => item.area && item.area.toLowerCase().includes(word)
+    // Check name with plural/singular matching
+    const nameMatch = queryWords.some(
+      (word) =>
+        matchesWord(word, item.name) ||
+        (item.name && item.name.toLowerCase().includes(word.toLowerCase()))
     );
 
     // Check if any field matches
-    return nameMatch || categoryMatch || areaMatch;
+    return areaMatch || categoryMatch || nameMatch;
   });
 };
 
-// Search Modal Component
+// Get unique areas for suggestions
+const getUniqueAreas = (listings) => {
+  const areas = listings
+    .map((item) => item.area)
+    .filter((area) => area && area.trim() !== "");
+  return [...new Set(areas)].sort();
+};
+
+// Format location display
+const formatLocation = (item) => {
+  const area = item.area || "Ibadan";
+  return `${area}, Oyo State`;
+};
+
+// Custom Hook for Google Sheets Data
+const useGoogleSheet = (sheetId, apiKey) => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!sheetId || !apiKey) {
+      setError("⚠️ Missing SHEET_ID or API_KEY");
+      setLoading(false);
+      return;
+    }
+
+    const fetchData = async () => {
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A1:Z1000?key=${apiKey}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        let result = [];
+        if (
+          json.values &&
+          Array.isArray(json.values) &&
+          json.values.length > 1
+        ) {
+          const headers = json.values[0];
+          const rows = json.values.slice(1);
+          result = rows
+            .filter((row) => Array.isArray(row) && row.length > 0)
+            .map((row) => {
+              const obj = {};
+              headers.forEach((h, i) => {
+                obj[h?.toString().trim() || `col_${i}`] = (row[i] || "")
+                  .toString()
+                  .trim();
+              });
+              return obj;
+            });
+        }
+        setData(result);
+      } catch (err) {
+        console.error("Google Sheets fetch error:", err);
+        setError("⚠️ Failed to load directory. Try again later.");
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [sheetId, apiKey]);
+
+  return { data: Array.isArray(data) ? data : [], loading, error };
+};
+
+// Search Modal Component with Area and Category Filtering
 const SearchModal = ({ isOpen, onClose, listings = [] }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
+  const [areaSuggestions, setAreaSuggestions] = useState([]);
   const [isVisible, setIsVisible] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
@@ -133,15 +204,22 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
     }
   }, [isOpen]);
 
-  // Enhanced filter vendors based on search query with plural/singular support
+  // Enhanced filter vendors based on search query with area and category support
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setSuggestions([]);
+      setAreaSuggestions(getUniqueAreas(listings).slice(0, 5)); // Show top 5 areas when empty
       return;
     }
 
     const filtered = filterVendors(searchQuery, listings).slice(0, 8);
     setSuggestions(filtered);
+
+    // Also show area suggestions that match the query
+    const matchingAreas = getUniqueAreas(listings)
+      .filter((area) => area.toLowerCase().includes(searchQuery.toLowerCase()))
+      .slice(0, 3);
+    setAreaSuggestions(matchingAreas);
   }, [searchQuery, listings]);
 
   const formatPrice = (n) => {
@@ -195,6 +273,10 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
   const handleSelectSuggestion = (vendor) => {
     console.log("Selected vendor:", vendor);
     onClose();
+  };
+
+  const handleSelectArea = (area) => {
+    setSearchQuery(area);
   };
 
   const handleSearchSubmit = (e) => {
@@ -345,7 +427,7 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
               </div>
               <motion.input
                 type="text"
-                placeholder="Search for hotels, restaurants, events..."
+                placeholder="Search by area or category..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={handleKeyPress}
@@ -364,55 +446,64 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
             }`}
           >
             {searchQuery.trim() === "" ? (
-              // Empty state with gentle animations
+              // Area suggestions when empty
               <motion.div
-                className="p-6 text-center"
+                className="p-6"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2, duration: 0.4 }}
               >
-                <div className="max-w-sm mx-auto">
-                  <motion.h3
-                    className="text-lg font-semibold text-gray-900 mb-2"
-                    initial={{ y: 10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                  >
-                    Search for...
-                  </motion.h3>
-                  <motion.p
-                    className="text-gray-600 text-sm mb-6"
-                    initial={{ y: 10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                  >
-                    <strong>our brad..... isn't just an</strong>
-                    <br />
-                    our brad.........shopping should feel: calm and effortless
-                  </motion.p>
-                  <motion.div
-                    className="bg-gray-50 rounded-lg p-4 text-left"
-                    initial={{ y: 10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                  >
-                    <p className="text-gray-700 text-sm mb-2">
-                      <strong>Enjoy effortless navigation</strong> that puts you
-                      in control.
-                    </p>
-                    <p className="text-gray-600 text-sm">
-                      Say goodbye to clutter and find what you need with ease.
-                    </p>
-                    <motion.p
-                      className="text-gray-700 text-sm mt-3 font-medium"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.7 }}
+                <motion.h3
+                  className="text-lg font-semibold text-gray-900 mb-4"
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  Popular Areas in Ibadan
+                </motion.h3>
+                <div className="space-y-3">
+                  {areaSuggestions.map((area, index) => (
+                    <motion.button
+                      key={index}
+                      onClick={() => handleSelectArea(area)}
+                      className="flex items-center gap-3 p-3 w-full text-left hover:bg-gray-50 rounded-lg transition-colors border border-gray-100 overflow-hidden"
+                      initial={{ x: -20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{
+                        delay: 0.1 + index * 0.05,
+                        type: "spring",
+                        stiffness: 100,
+                      }}
                     >
-                      Choose our brad......... — where shopping meets
-                      simplicity.
-                    </motion.p>
-                  </motion.div>
+                      <svg
+                        className="w-5 h-5 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                      </svg>
+                      <div className="overflow-hidden">
+                        <span className="text-gray-700 font-medium block overflow-hidden">
+                          {area}
+                        </span>
+                        <p className="text-gray-500 text-sm overflow-hidden">
+                          Ibadan, Oyo State
+                        </p>
+                      </div>
+                    </motion.button>
+                  ))}
                 </div>
               </motion.div>
             ) : suggestions.length === 0 ? (
@@ -457,7 +548,8 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.2 }}
                 >
-                  Try different keywords
+                  Try searching for areas like "Bodija", "Mokola" or categories
+                  like "Hotels", "Restaurants"
                 </motion.p>
               </motion.div>
             ) : (
@@ -468,12 +560,64 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
               >
+                {/* Area Suggestions */}
+                {areaSuggestions.length > 0 && (
+                  <motion.div
+                    className="mb-6 overflow-hidden"
+                    initial={{ y: -10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                  >
+                    <h4 className="font-medium text-gray-900 text-sm mb-3 overflow-hidden">
+                      Areas matching "{searchQuery}"
+                    </h4>
+                    <div className="space-y-2 overflow-hidden">
+                      {areaSuggestions.map((area, index) => (
+                        <motion.button
+                          key={index}
+                          onClick={() => handleSelectArea(area)}
+                          className="flex items-center gap-3 p-3 w-full text-left hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-200 overflow-hidden"
+                          initial={{ x: -20, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{
+                            delay: 0.1 + index * 0.05,
+                            type: "spring",
+                            stiffness: 100,
+                          }}
+                        >
+                          <svg
+                            className="w-4 h-4 text-blue-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                            />
+                          </svg>
+                          <div className="overflow-hidden">
+                            <span className="text-gray-700 font-medium text-sm block overflow-hidden">
+                              {area}
+                            </span>
+                            <p className="text-gray-500 text-xs overflow-hidden">
+                              Ibadan, Oyo State
+                            </p>
+                          </div>
+                        </motion.button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Business Results */}
                 <motion.div
                   className="flex items-center justify-between mb-4 overflow-hidden"
                   initial={{ y: -10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                 >
-                  <h4 className="font-medium text-gray-900 text-sm">
+                  <h4 className="font-medium text-gray-900 text-sm overflow-hidden">
                     {getResultCountText(suggestions.length)} for "{searchQuery}"
                   </h4>
                 </motion.div>
@@ -489,7 +633,7 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                     ) {
                       priceText = `#${formatPrice(
                         vendor.price_from
-                      )} for 2 night`;
+                      )} for 2 nights`;
                     } else {
                       priceText = `From #${formatPrice(
                         vendor.price_from
@@ -534,7 +678,7 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                                 {vendor.name}
                               </h4>
                               <p className="text-gray-600 text-xs mt-1 overflow-hidden">
-                                {vendor.category || "Business"}
+                                {formatLocation(vendor)}
                               </p>
                             </div>
                             {vendor.price_from && (
@@ -551,7 +695,7 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                             )}
                           </div>
 
-                          {/* Rating and Location */}
+                          {/* Rating and Category */}
                           <div className="flex items-center justify-between mt-2 overflow-hidden">
                             <div className="flex items-center gap-1 overflow-hidden">
                               <FontAwesomeIcon
@@ -559,12 +703,12 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                                 className="text-yellow-400 text-xs overflow-hidden"
                               />
                               <span className="text-gray-700 text-xs overflow-hidden">
-                                {vendor.rating || "4.89"}
+                                {vendor.rating || "4.9"}
                               </span>
                             </div>
-                            {vendor.area && (
-                              <span className="text-gray-500 text-xs overflow-hidden">
-                                {vendor.area}
+                            {vendor.category && (
+                              <span className="text-gray-500 text-xs bg-gray-100 px-2 py-1 rounded overflow-hidden">
+                                {vendor.category}
                               </span>
                             )}
                           </div>
@@ -630,61 +774,6 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
       </motion.div>
     </>
   );
-};
-
-// Custom Hook for Google Sheets Data
-const useGoogleSheet = (sheetId, apiKey) => {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (!sheetId || !apiKey) {
-      setError("⚠️ Missing SHEET_ID or API_KEY");
-      setLoading(false);
-      return;
-    }
-
-    const fetchData = async () => {
-      try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A1:Z1000?key=${apiKey}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        let result = [];
-        if (
-          json.values &&
-          Array.isArray(json.values) &&
-          json.values.length > 1
-        ) {
-          const headers = json.values[0];
-          const rows = json.values.slice(1);
-          result = rows
-            .filter((row) => Array.isArray(row) && row.length > 0)
-            .map((row) => {
-              const obj = {};
-              headers.forEach((h, i) => {
-                obj[h?.toString().trim() || `col_${i}`] = (row[i] || "")
-                  .toString()
-                  .trim();
-              });
-              return obj;
-            });
-        }
-        setData(result);
-      } catch (err) {
-        console.error("Google Sheets fetch error:", err);
-        setError("⚠️ Failed to load directory. Try again later.");
-        setData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [sheetId, apiKey]);
-
-  return { data: Array.isArray(data) ? data : [], loading, error };
 };
 
 const Header = ({ onAuthToast }) => {
