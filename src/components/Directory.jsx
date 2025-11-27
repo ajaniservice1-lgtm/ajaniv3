@@ -11,7 +11,6 @@ import { FaGreaterThan } from "react-icons/fa";
 import { FaLessThan } from "react-icons/fa";
 import { PiSliders } from "react-icons/pi";
 
-
 // ---------------- Filter Dropdown Component ----------------
 const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
   const dropdownRef = useRef(null);
@@ -107,7 +106,7 @@ const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
           <h3 className="text-lg font-bold text-gray-900">Filter Options</h3>
           <button
             onClick={onClose}
-            className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors"
+            className="w-6 h-6 rounded-full bg-gray-100  flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors"
           >
             ×
           </button>
@@ -529,34 +528,6 @@ const useGoogleSheet = (sheetId, apiKey) => {
   return { data: Array.isArray(data) ? data : [], loading, error };
 };
 
-// ---------------- Image Display Component ----------------
-const ImageDisplay = ({ card, onImageClick, isMobile = false }) => {
-  const images = getCardImages(card);
-
-  return (
-    <div
-      className={`relative w-full ${
-        isMobile ? "h-[144.57px]" : "h-[299px]"
-      } overflow-hidden rounded-lg bg-gray-100 cursor-pointer group`}
-      onClick={() => onImageClick(images, 0)}
-    >
-      <img
-        src={images[0]}
-        alt={`${card.name || "Business"} image`}
-        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        onError={(e) => (e.currentTarget.src = FALLBACK_IMAGES.default)}
-        loading="lazy"
-      />
-      {/* Guest Favorite Badge */}
-      <div className="absolute top-2 left-2 bg-[#F7F7FA] px-2 py-1 rounded-full flex items-center gap-1">
-        <span className="text-black text-[10px] lg:text-[14px]">
-          Guest Favorite
-        </span>
-      </div>
-    </div>
-  );
-};
-
 // ---------------- Main Directory Component ----------------
 const Directory = () => {
   const [imageModal, setImageModal] = useState({
@@ -607,7 +578,7 @@ const Directory = () => {
     });
   };
 
-  // Apply advanced filters function - MOVED BEFORE filteredListings
+  // Apply advanced filters function
   const applyAdvancedFilters = (item, filters) => {
     if (!filters || Object.keys(filters).length === 0) return true;
 
@@ -698,12 +669,13 @@ const Directory = () => {
     });
   });
 
-  // Scroll functions for horizontal sections
+  // Scroll functions for horizontal sections - Updated for exact 6 cards
   const scrollSection = (sectionId, direction) => {
     const container = document.getElementById(sectionId);
     if (!container) return;
 
-    const scrollAmount = isMobile ? 176 : 332;
+    // Calculate exact scroll amount for 6 cards
+    const scrollAmount = isMobile ? 160 : 304; // Matches card width + gap
     const newPosition =
       direction === "next"
         ? container.scrollLeft + scrollAmount
@@ -730,69 +702,112 @@ const Directory = () => {
     setActiveFilters(filters);
   };
 
-  // Card component for consistent styling
+  // ---------------- BusinessCard Component (Exact Airbnb Style) ----------------
   const BusinessCard = ({ item, category }) => {
-    const itemId = `business-${item.id}`;
+    const images = getCardImages(item);
 
-    // Determine price text based on category
-    let priceText = "";
-    if (
+    const priceText =
       category === "hotel" ||
       category === "hostel" ||
-      category === "shortlet"
-    ) {
-      priceText = `#${formatPrice(item.price_from)} for 2 night`;
-    } else {
-      priceText = `From #${formatPrice(item.price_from)} per guest`;
-    }
+      category === "shortlet" ||
+      category === "apartment" ||
+      category === "cabin" ||
+      category === "condo"
+        ? `#${formatPrice(item.price_from)} for 2 nights`
+        : `From #${formatPrice(item.price_from)} per guest`;
+
+    const location = item.area || "Ibadan";
 
     return (
       <div
-        className={`bg-white rounded-lg overflow-hidden flex-shrink-0 ${
-          isMobile ? "w-[155.69px] mr-[4.83px]" : "w-[322px]"
-        } transition-all duration-300 hover:shadow-lg border border-gray-100`}
+        className={`
+        bg-white rounded-2xl overflow-hidden flex-shrink-0 
+        font-manrope
+        ${isMobile ? "w-[160px]" : "w-[240px]"} 
+        transition-all duration-200 cursor-pointer 
+        hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
+      `}
       >
-        <ImageDisplay
-          card={item}
-          onImageClick={(images, index) =>
+        {/* Image */}
+        <div
+          className={`
+          relative overflow-hidden rounded-2xl 
+          ${isMobile ? "w-full h-[150px]" : "w-[200px] h-[195px]"}
+        `}
+          onClick={() =>
             setImageModal({
               isOpen: true,
               images,
-              initialIndex: index,
+              initialIndex: 0,
               item,
             })
           }
-          isMobile={isMobile}
-        />
+        >
+          <img
+            src={images[0]}
+            alt=""
+            className="w-full h-full object-cover rounded-2xl transition-transform duration-300 group-hover:scale-105"
+            onError={(e) => (e.currentTarget.src = FALLBACK_IMAGES.default)}
+            loading="lazy"
+          />
 
-        <div className={`${isMobile ? "p-[4.83px]" : "p-[10px]"}`}>
+          {/* Guest favorite badge */}
+          <div className="absolute top-3 left-3 bg-white px-2 py-[5px] rounded-lg shadow-sm flex items-center gap-1">
+            <span className="text-[10px] font-semibold text-gray-900">
+              Guest favorite
+            </span>
+          </div>
+
+          {/* Heart icon */}
+          <button className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition">
+            <MdFavoriteBorder className="text-[#00d1ff] text-lg" />
+          </button>
+        </div>
+
+        {/* Text */}
+        <div className={`${isMobile ? "p-2" : "p-3"} flex flex-col gap-1`}>
           <h3
-            className={`text-black ${
-              isMobile ? "text-xs mb-1" : "text-lg mb-2"
-            } leading-tight font-normal`}
+            className={`
+            font-semibold text-gray-900 
+            leading-tight line-clamp-2 
+            ${isMobile ? "text-xs" : "text-[15px]"}
+          `}
           >
             {item.name}
           </h3>
-          <div className="flex justify-between items-center">
+
+          <p
+            className={`
+            text-gray-600 
+            ${isMobile ? "text-[10px]" : "text-[13px]"}
+          `}
+          >
+            {location}
+          </p>
+
+          <div className="flex items-center gap-1 mt-1">
             <p
-              className={`text-black ${
-                isMobile ? "text-[10px]" : "text-sm"
-              } font-normal`}
+              className={`
+              font-normal text-gray-900 
+              ${isMobile ? "text-xs" : "text-xs"}
+            `}
             >
-              {priceText}
+              {priceText} <span>•</span>
             </p>
-            <div className="flex items-center gap-1">
+
+            <div
+              className={`
+              flex items-center gap-1 text-gray-800 
+              ${isMobile ? "text-[10px]" : "text-[13px]"}
+            `}
+            >
               <FontAwesomeIcon
                 icon={faStar}
-                className={`text-black ${isMobile ? "text-[10px]" : "text-sm"}`}
+                className={`${
+                  isMobile ? "text-[10px]" : "text-[13px]"
+                } text-black`}
               />
-              <span
-                className={`text-black ${
-                  isMobile ? "text-[10px]" : "text-sm"
-                } font-normal`}
-              >
-                {item.rating || "4.89"}
-              </span>
+              {item.rating || "4.9"}
             </div>
           </div>
         </div>
@@ -800,32 +815,32 @@ const Directory = () => {
     );
   };
 
-  // Section component for each category
+  // ---------------- CategorySection Component (6 Cards Exactly) ----------------
   const CategorySection = ({ title, items, sectionId }) => {
     if (items.length === 0) return null;
 
     return (
-      <section className="mb-8">
-        <div className="flex justify-between items-center mb-4">
+      <section className="mb-12">
+        <div className="flex justify-between items-center mb-6">
           <div>
             <h2
               className={`text-gray-900 ${
-                isMobile ? "text-lg" : "text-2xl"
-              } font-semibold`}
+                isMobile ? "text-xl" : "text-2xl"
+              } font-bold`}
             >
               {title}
             </h2>
           </div>
-          <div className="flex gap-0">
+          <div className="flex gap-2">
             <button
               onClick={() => scrollSection(sectionId, "prev")}
-              className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200"
+              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors border border-gray-300 shadow-sm"
             >
-              <FaLessThan className="text-gray-400 text-sm" />
+              <FaLessThan className="text-gray-600 text-sm" />
             </button>
             <button
               onClick={() => scrollSection(sectionId, "next")}
-              className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200 ml-2"
+              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors border border-gray-300 shadow-sm"
             >
               <FaGreaterThan className="text-gray-600 text-sm" />
             </button>
@@ -835,8 +850,8 @@ const Directory = () => {
         <div className="relative">
           <div
             id={sectionId}
-            className={`flex overflow-x-auto pb-4 scrollbar-hide scroll-smooth ${
-              isMobile ? "" : "gap-[10px]"
+            className={`flex overflow-x-auto scrollbar-hide scroll-smooth ${
+              isMobile ? "gap-2" : "-space-x-6"
             }`}
             style={{
               scrollbarWidth: "none",
@@ -858,20 +873,21 @@ const Directory = () => {
 
   if (loading)
     return (
-      <section id="directory" className="py-16 text-center font-manrope">
-        <div className="inline-block animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
-        <p className="text-gray-600">Loading Ibadan Directory...</p>
+      <section id="directory" className="bg-white py-8 font-manrope relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="inline-block animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
+          <p className="text-gray-600">Loading Ibadan Directory...</p>
+        </div>
       </section>
     );
 
   if (error)
     return (
-      <section
-        id="directory"
-        className="max-w-4xl mx-auto px-4 py-12 font-manrope"
-      >
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <p className="text-red-700 font-medium">{error}</p>
+      <section id="directory" className="bg-white py-8 font-manrope relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <p className="text-red-700 font-medium">{error}</p>
+          </div>
         </div>
       </section>
     );
@@ -891,7 +907,7 @@ const Directory = () => {
             <h1 className="text-xl lg:text-2xl text-gray-900 mb-2 font-bold">
               Explore Categories
             </h1>
-            <p className="text-gray-600 text-sm lg:textxl">
+            <p className="text-gray-600 text-sm lg:text-base">
               Find the best place and services in Ibadan
             </p>
           </motion.div>
@@ -953,7 +969,7 @@ const Directory = () => {
                 />
               </div>
 
-              {/* Filter Button with Dropdown - Now right next to search */}
+              {/* Filter Button with Dropdown */}
               <div className="relative">
                 <div
                   className="bg-gray-300 p-4 flex items-center rounded-2xl gap-2 capitalize cursor-pointer hover:bg-gray-400 transition-colors duration-200 font-medium whitespace-nowrap"
@@ -996,7 +1012,7 @@ const Directory = () => {
             const items = categorizedListings[subcategory] || [];
             if (items.length === 0) return null;
 
-            const title = `Popular ${capitalizeFirst(subcategory)} in Ibadan`;
+            const title = `Popular ${capitalizeFirst(subcategory)} in Ibadan >`;
             const sectionId = `${subcategory}-section`;
 
             return (
@@ -1047,6 +1063,18 @@ const Directory = () => {
         }
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
+        }
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .line-clamp-1 {
+          display: -webkit-box;
+          -webkit-line-clamp: 1;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
         }
       `}</style>
     </section>
