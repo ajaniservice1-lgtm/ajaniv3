@@ -1,4 +1,4 @@
-// FULL UPDATED Header.jsx — With Fixed Plural/Singular Search Filters
+// FULL UPDATED Header.jsx — With Fixed Text Overflow
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,6 +9,7 @@ import { CiSearch } from "react-icons/ci";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
 
+// ... (keep all your existing utility functions and SearchModal component the same) ...
 // Function to normalize words (convert to singular form and handle common plural patterns)
 const normalizeWord = (word) => {
   if (!word || typeof word !== "string") return "";
@@ -726,12 +727,18 @@ const Header = ({ onAuthToast }) => {
 
   return (
     <>
-      {/* FIXED HEADER WITH BOTTOM BLUE LINE (Image 1 style) */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#F7F7FA] border-b-2 border-[#00d1ff] h-20 font-rubik overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 py-2 overflow-hidden">
-          <nav className="flex items-center justify-between px-6 py-1 w-full overflow-hidden">
+      {/* FIXED HEADER WITH BOTTOM BLUE LINE - FIXED OVERFLOW */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#F7F7FA] border-b-2 border-[#00d1ff] h-16 font-rubik">
+        {" "}
+        {/* Reduced height to h-16 */}
+        <div className="max-w-7xl mx-auto px-4">
+          <nav className="flex items-center justify-between py-2 w-full">
+            {" "}
+            {/* Reduced padding */}
             {/* LEFT — LOGO */}
-            <div className="flex items-center gap-4 overflow-hidden">
+            <div className="flex items-center gap-3">
+              {" "}
+              {/* Reduced gap */}
               <button
                 onClick={() => {
                   closeMenu();
@@ -741,18 +748,19 @@ const Header = ({ onAuthToast }) => {
                     150
                   );
                 }}
-                className="flex items-center gap-2 focus:outline-none overflow-hidden"
+                className="flex items-center gap-2 focus:outline-none"
               >
                 <img
                   src={Logo}
                   alt="Ajani Logo"
-                  className="h-8 w-24 object-contain overflow-hidden"
+                  className="h-7 w-20 object-contain" /* Slightly smaller logo */
                 />
               </button>
             </div>
-
             {/* CENTER — NAVIGATION (Centered like Image 1) */}
-            <div className="hidden lg:flex flex-1 justify-center items-center gap-10 text-sm lg:ml-40 overflow-hidden">
+            <div className="hidden lg:flex flex-1 justify-center items-center gap-8 text-sm lg:ml-32">
+              {" "}
+              {/* Reduced gap and margin */}
               {[
                 { label: "Home", id: "Home" },
                 { label: "Categories", id: "Categories" },
@@ -763,50 +771,55 @@ const Header = ({ onAuthToast }) => {
                 <button
                   key={item.id}
                   onClick={() => scrollToSection(item.id)}
-                  className="hover:text-[#00d1ff] transition-all overflow-hidden"
+                  className="hover:text-[#00d1ff] transition-all whitespace-nowrap" /* Added whitespace-nowrap */
                 >
                   {item.label}
                 </button>
               ))}
             </div>
-
-            {/* SEARCH ICON */}
-            <button
-              onClick={() => setIsSearchOpen(true)}
-              className="text-2xl mx-2.5 hover:text-[#00d1ff] transition-colors overflow-hidden"
-            >
-              <CiSearch />
-            </button>
-
-            {/* RIGHT — Profile + Login + Hamburger */}
-            <div className="flex items-center gap-4 text-sm overflow-hidden">
-              <div className="hidden lg:flex items-center gap-2 overflow-hidden">
-                <IoPerson />
-                <span>My Profile</span>
-              </div>
-
-              <LoginButton onAuthToast={onAuthToast} />
-
-              {/* MOBILE HAMBURGER */}
+            {/* RIGHT SECTION - More compact */}
+            <div className="flex items-center gap-3 text-sm">
+              {" "}
+              {/* Reduced gap */}
+              {/* SEARCH ICON */}
               <button
-                onClick={() => setIsMenuOpen(true)}
-                className="lg:hidden text-gray-900 focus:outline-none overflow-hidden"
+                onClick={() => setIsSearchOpen(true)}
+                className="text-xl hover:text-[#00d1ff] transition-colors" /* Smaller icon */
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 overflow-hidden"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                </svg>
+                <CiSearch />
               </button>
+              {/* Profile + Login + Hamburger */}
+              <div className="flex items-center gap-3">
+                {" "}
+                {/* Reduced gap */}
+                <div className="hidden lg:flex items-center gap-1 whitespace-nowrap">
+                  {" "}
+                  {/* Reduced gap, added whitespace */}
+                  <IoPerson className="text-base" />
+                  <span className="text-sm">My Profile</span>
+                </div>
+                <LoginButton onAuthToast={onAuthToast} />
+                {/* MOBILE HAMBURGER */}
+                <button
+                  onClick={() => setIsMenuOpen(true)}
+                  className="lg:hidden text-gray-900 focus:outline-none"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5" /* Smaller hamburger */
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
           </nav>
         </div>
@@ -819,53 +832,57 @@ const Header = ({ onAuthToast }) => {
         listings={listings}
       />
 
-      {/* MOBILE MENU */}
+      {/* MOBILE MENU - More compact */}
       <div
-        className={`fixed inset-0 z-50 md:hidden overflow-hidden ${
+        className={`fixed inset-0 z-50 md:hidden ${
           isMenuOpen ? "" : "pointer-events-none"
         }`}
       >
         {/* OVERLAY */}
         <div
-          className={`fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300 overflow-hidden ${
+          className={`fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ${
             isMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0"
           }`}
           onClick={closeMenu}
           aria-hidden="true"
         ></div>
 
-        {/* SLIDING PANEL */}
+        {/* SLIDING PANEL - More compact */}
         <div
-          className={`fixed left-0 top-0 w-full h-screen bg-[#e6f2ff] flex flex-col transform transition-transform duration-300 ease-in-out z-50 overflow-hidden ${
+          className={`fixed left-0 top-0 w-full h-screen bg-[#e6f2ff] flex flex-col transform transition-transform duration-300 ease-in-out z-50 ${
             isMenuOpen ? "translate-x-0" : "-translate-x-full"
           }`}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* HEADER */}
-          <div className="p-5 border-b border-gray-200 flex justify-between items-center bg-[#f2f9ff] rounded-full shadow-md px-6 py-3 mt-1.5 overflow-hidden">
+          {/* HEADER - More compact */}
+          <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-[#f2f9ff] rounded-lg shadow-sm mt-1 mx-2">
+            {" "}
+            {/* Reduced padding, smaller margins */}
             <button
               onClick={closeMenu}
-              className="flex flex-col items-start focus:outline-none overflow-hidden"
+              className="flex flex-col items-start focus:outline-none"
             >
-              <div className="flex items-center gap-2 overflow-hidden">
+              <div className="flex items-center gap-2">
                 <img
                   src={Logo}
                   alt="Ajani Logo"
-                  className="h-8 w-24 overflow-hidden"
+                  className="h-6 w-16" /* Smaller logo in mobile menu */
                 />
-                <div className="w-px h-6 bg-gray-300 mx-2 overflow-hidden"></div>
-                <span className="md:text-sm text-[12.5px] text-slate-600 hover:text-gray-900 overflow-hidden">
-                  The Ibadan Smart Guide
+                <div className="w-px h-4 bg-gray-300 mx-1"></div> /* Smaller
+                divider */
+                <span className="text-xs text-slate-600 hover:text-gray-900 whitespace-nowrap">
+                  {" "}
+                  /* Smaller text */ The Ibadan Smart Guide
                 </span>
               </div>
             </button>
             <button
               onClick={closeMenu}
-              className="text-gray-900 hover:text-gray-600 overflow-hidden"
+              className="text-gray-900 hover:text-gray-600"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 overflow-hidden"
+                className="h-5 w-5" /* Smaller close icon */
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -880,8 +897,10 @@ const Header = ({ onAuthToast }) => {
             </button>
           </div>
 
-          {/* NAVIGATION LINKS */}
-          <nav className="flex-1 p-5 space-y-1 text-[13.5px] font-normal font-manrope overflow-hidden">
+          {/* NAVIGATION LINKS - More compact */}
+          <nav className="flex-1 p-4 space-y-0.5 text-xs font-normal font-manrope">
+            {" "}
+            /* Reduced padding and spacing */
             {[
               { label: "Categories", id: "Categories" },
               { label: "Price Insights", id: "Price Insights" },
@@ -892,7 +911,7 @@ const Header = ({ onAuthToast }) => {
             ].map((item) => (
               <button
                 key={item.id}
-                className="block w-full text-left py-2 text-gray-900 hover:text-[#06EAFC] font-medium overflow-hidden"
+                className="block w-full text-left py-1.5 text-gray-900 hover:text-[#06EAFC] font-medium whitespace-nowrap" /* Reduced padding */
                 onClick={() => {
                   scrollToSection(item.id);
                   setTimeout(() => closeMenu(), 400);

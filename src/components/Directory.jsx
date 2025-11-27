@@ -11,7 +11,6 @@ import { FaGreaterThan } from "react-icons/fa";
 import { FaLessThan } from "react-icons/fa";
 import { PiSliders } from "react-icons/pi";
 
-// ---------------- Filter Dropdown Component ----------------
 const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
   const dropdownRef = useRef(null);
   const [filters, setFilters] = useState({
@@ -675,7 +674,7 @@ const Directory = () => {
     if (!container) return;
 
     // Calculate exact scroll amount for 6 cards
-    const scrollAmount = isMobile ? 160 : 304; // Matches card width + gap
+    const scrollAmount = isMobile ? 140 : 280; // Reduced scroll amount
     const newPosition =
       direction === "next"
         ? container.scrollLeft + scrollAmount
@@ -702,7 +701,7 @@ const Directory = () => {
     setActiveFilters(filters);
   };
 
-  // ---------------- BusinessCard Component (Exact Airbnb Style) ----------------
+  // ---------------- BusinessCard Component (More Compact) ----------------
   const BusinessCard = ({ item, category }) => {
     const images = getCardImages(item);
 
@@ -721,9 +720,9 @@ const Directory = () => {
     return (
       <div
         className={`
-        bg-white rounded-2xl overflow-hidden flex-shrink-0 
+        bg-white rounded-xl overflow-hidden flex-shrink-0 
         font-manrope
-        ${isMobile ? "w-[160px]" : "w-[240px]"} 
+        ${isMobile ? "w-[140px]" : "w-[220px]"} 
         transition-all duration-200 cursor-pointer 
         hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
       `}
@@ -731,8 +730,8 @@ const Directory = () => {
         {/* Image */}
         <div
           className={`
-          relative overflow-hidden rounded-2xl 
-          ${isMobile ? "w-full h-[150px]" : "w-[200px] h-[195px]"}
+          relative overflow-hidden rounded-xl 
+          ${isMobile ? "w-full h-[120px]" : "w-full h-[160px]"}
         `}
           onClick={() =>
             setImageModal({
@@ -746,31 +745,33 @@ const Directory = () => {
           <img
             src={images[0]}
             alt=""
-            className="w-full h-full object-cover rounded-2xl transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
             onError={(e) => (e.currentTarget.src = FALLBACK_IMAGES.default)}
             loading="lazy"
           />
 
           {/* Guest favorite badge */}
-          <div className="absolute top-3 left-3 bg-white px-2 py-[5px] rounded-lg shadow-sm flex items-center gap-1">
-            <span className="text-[10px] font-semibold text-gray-900">
+          <div className="absolute top-2 left-2 bg-white px-1.5 py-1 rounded-md shadow-sm flex items-center gap-1">
+            <span className="text-[9px] font-semibold text-gray-900">
               Guest favorite
             </span>
           </div>
 
           {/* Heart icon */}
-          <button className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition">
-            <MdFavoriteBorder className="text-[#00d1ff] text-lg" />
+          <button className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition">
+            <MdFavoriteBorder className="text-[#00d1ff] text-sm" />
           </button>
         </div>
 
         {/* Text */}
-        <div className={`${isMobile ? "p-2" : "p-3"} flex flex-col gap-1`}>
+        <div
+          className={`${isMobile ? "p-1.5" : "p-2.5"} flex flex-col gap-0.5`}
+        >
           <h3
             className={`
             font-semibold text-gray-900 
             leading-tight line-clamp-2 
-            ${isMobile ? "text-xs" : "text-[15px]"}
+            ${isMobile ? "text-xs" : "text-sm"}
           `}
           >
             {item.name}
@@ -779,17 +780,17 @@ const Directory = () => {
           <p
             className={`
             text-gray-600 
-            ${isMobile ? "text-[10px]" : "text-[13px]"}
+            ${isMobile ? "text-[9px]" : "text-xs"}
           `}
           >
             {location}
           </p>
 
-          <div className="flex items-center gap-1 mt-1">
+          <div className="flex items-center gap-1 mt-0.5">
             <p
               className={`
               font-normal text-gray-900 
-              ${isMobile ? "text-xs" : "text-xs"}
+              ${isMobile ? "text-[9px]" : "text-xs"}
             `}
             >
               {priceText} <span>•</span>
@@ -798,14 +799,12 @@ const Directory = () => {
             <div
               className={`
               flex items-center gap-1 text-gray-800 
-              ${isMobile ? "text-[10px]" : "text-[13px]"}
+              ${isMobile ? "text-[9px]" : "text-xs"}
             `}
             >
               <FontAwesomeIcon
                 icon={faStar}
-                className={`${
-                  isMobile ? "text-[10px]" : "text-[13px]"
-                } text-black`}
+                className={`${isMobile ? "text-[9px]" : "text-xs"} text-black`}
               />
               {item.rating || "4.9"}
             </div>
@@ -815,34 +814,34 @@ const Directory = () => {
     );
   };
 
-  // ---------------- CategorySection Component (6 Cards Exactly) ----------------
+  // ---------------- CategorySection Component (More Compact) ----------------
   const CategorySection = ({ title, items, sectionId }) => {
     if (items.length === 0) return null;
 
     return (
-      <section className="mb-12">
-        <div className="flex justify-between items-center mb-6">
+      <section className="mb-8">
+        <div className="flex justify-between items-center mb-4">
           <div>
             <h2
               className={`text-gray-900 ${
-                isMobile ? "text-xl" : "text-2xl"
+                isMobile ? "text-lg" : "text-xl"
               } font-bold`}
             >
               {title}
             </h2>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1">
             <button
               onClick={() => scrollSection(sectionId, "prev")}
-              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors border border-gray-300 shadow-sm"
+              className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors border border-gray-300 shadow-sm"
             >
-              <FaLessThan className="text-gray-600 text-sm" />
+              <FaLessThan className="text-gray-600 text-xs" />
             </button>
             <button
               onClick={() => scrollSection(sectionId, "next")}
-              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors border border-gray-300 shadow-sm"
+              className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors border border-gray-300 shadow-sm"
             >
-              <FaGreaterThan className="text-gray-600 text-sm" />
+              <FaGreaterThan className="text-gray-600 text-xs" />
             </button>
           </div>
         </div>
@@ -851,7 +850,7 @@ const Directory = () => {
           <div
             id={sectionId}
             className={`flex overflow-x-auto scrollbar-hide scroll-smooth ${
-              isMobile ? "gap-2" : "-space-x-6"
+              isMobile ? "gap-2" : "gap-3"
             }`}
             style={{
               scrollbarWidth: "none",
@@ -873,48 +872,48 @@ const Directory = () => {
 
   if (loading)
     return (
-      <section id="directory" className="bg-white py-8 font-manrope relative">
+      <section id="directory" className="bg-white py-6 font-manrope relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-block animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
-          <p className="text-gray-600">Loading Ibadan Directory...</p>
+          <div className="inline-block animate-spin w-6 h-6 border-4 border-blue-600 border-t-transparent rounded-full mb-3"></div>
+          <p className="text-gray-600 text-sm">Loading Ibadan Directory...</p>
         </div>
       </section>
     );
 
   if (error)
     return (
-      <section id="directory" className="bg-white py-8 font-manrope relative">
+      <section id="directory" className="bg-white py-6 font-manrope relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <p className="text-red-700 font-medium">{error}</p>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+            <p className="text-red-700 font-medium text-sm">{error}</p>
           </div>
         </div>
       </section>
     );
 
   return (
-    <section id="directory" className="bg-white py-8 font-manrope relative">
+    <section id="directory" className="bg-white py-6 font-manrope relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header with Search */}
-        <div className="mb-8">
+        {/* Header with Search - More compact */}
+        <div className="mb-6">
           <motion.div
             ref={headerRef}
             initial={{ opacity: 0, y: 20 }}
             animate={headerInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="text-center mb-8"
+            className="text-center mb-6"
           >
-            <h1 className="text-xl lg:text-2xl text-gray-900 mb-2 font-bold">
+            <h1 className="text-lg lg:text-xl text-gray-900 mb-1 font-bold">
               Explore Categories
             </h1>
-            <p className="text-gray-600 text-sm lg:text-base">
+            <p className="text-gray-600 text-xs lg:text-sm">
               Find the best place and services in Ibadan
             </p>
           </motion.div>
 
-          {/* Search and Filters */}
-          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between mb-6">
-            <div className="flex flex-wrap gap-3">
+          {/* Search and Filters - More compact */}
+          <div className="flex flex-col lg:flex-row gap-3 items-center justify-between mb-4">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => {
                   setSearch("");
@@ -922,7 +921,7 @@ const Directory = () => {
                   setArea("");
                   setActiveFilters({});
                 }}
-                className="px-6 py-4 bg-[#06EAFC] font-medium rounded-[10px] text-sm hover:bg-[#08d7e6] transition-colors"
+                className="px-4 py-2.5 bg-[#06EAFC] font-medium rounded-lg text-xs hover:bg-[#08d7e6] transition-colors"
               >
                 Popular destination
               </button>
@@ -930,7 +929,7 @@ const Directory = () => {
               <select
                 value={mainCategory}
                 onChange={(e) => setMainCategory(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-[10px] font-medium text-sm bg-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="px-3 py-2 border border-gray-300 rounded-lg font-medium text-xs bg-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Categories</option>
                 {getSubcategories().map((subcategory) => (
@@ -943,7 +942,7 @@ const Directory = () => {
               <select
                 value={area}
                 onChange={(e) => setArea(e.target.value)}
-                className="px-4 py-2 border border-gray-300 font-medium rounded-full text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="px-3 py-2 border border-gray-300 font-medium rounded-lg text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">District</option>
                 {[...new Set(listings.map((i) => i.area).filter(Boolean))]
@@ -957,26 +956,26 @@ const Directory = () => {
             </div>
 
             {/* Search and Filter grouped together on the right */}
-            <div className="flex items-center gap-3 w-full lg:w-auto">
-              <div className="relative flex-1 lg:w-64">
-                <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            <div className="flex items-center gap-2 w-full lg:w-auto">
+              <div className="relative flex-1 lg:w-56">
+                <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
                 <input
                   type="text"
                   placeholder="Search name, service, or keyword..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
                 />
               </div>
 
               {/* Filter Button with Dropdown */}
               <div className="relative">
                 <div
-                  className="bg-gray-300 p-4 flex items-center rounded-2xl gap-2 capitalize cursor-pointer hover:bg-gray-400 transition-colors duration-200 font-medium whitespace-nowrap"
+                  className="bg-gray-300 p-2.5 flex items-center rounded-lg gap-1.5 capitalize cursor-pointer hover:bg-gray-400 transition-colors duration-200 font-medium whitespace-nowrap text-sm"
                   onClick={toggleFilterDropdown}
                 >
                   <p>filter</p>
-                  <PiSliders className="text-lg" />
+                  <PiSliders className="text-base" />
                 </div>
 
                 <AnimatePresence>
@@ -993,12 +992,14 @@ const Directory = () => {
 
         {/* Active Filters Display */}
         {Object.keys(activeFilters).length > 0 && (
-          <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
             <div className="flex items-center justify-between">
-              <span className="text-blue-800 font-medium">Active Filters:</span>
+              <span className="text-blue-800 font-medium text-sm">
+                Active Filters:
+              </span>
               <button
                 onClick={() => setActiveFilters({})}
-                className="text-blue-600 hover:text-blue-800 text-sm"
+                className="text-blue-600 hover:text-blue-800 text-xs"
               >
                 Clear All
               </button>
@@ -1007,7 +1008,7 @@ const Directory = () => {
         )}
 
         {/* Category Sections - Dynamically generated from subcategories */}
-        <div className="space-y-8">
+        <div className="space-y-6">
           {getSubcategories().map((subcategory) => {
             const items = categorizedListings[subcategory] || [];
             if (items.length === 0) return null;
@@ -1028,13 +1029,13 @@ const Directory = () => {
 
         {/* Empty State */}
         {filteredListings.length === 0 && !loading && (
-          <div className="text-center py-12">
-            <div className="bg-gray-50 rounded-2xl p-8 max-w-md mx-auto">
-              <i className="fas fa-search text-4xl text-gray-300 mb-4 block"></i>
-              <h3 className="text-xl text-gray-800 mb-2">
+          <div className="text-center py-8">
+            <div className="bg-gray-50 rounded-xl p-6 max-w-md mx-auto">
+              <i className="fas fa-search text-3xl text-gray-300 mb-3 block"></i>
+              <h3 className="text-lg text-gray-800 mb-1">
                 No businesses found
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 text-sm">
                 Try adjusting your search or filters
               </p>
             </div>
