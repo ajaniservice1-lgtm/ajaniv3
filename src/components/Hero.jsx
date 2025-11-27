@@ -665,7 +665,7 @@ const Hero = () => {
       {/* Main section - Ultra compact for better directory visibility */}
       <section
         id="hero"
-        className="bg-[#F7F7FA] font-rubik overflow-hidden min-h-[50vh] sm:min-h-[55vh] flex items-start relative mt-16"
+        className="bg-[#F7F7FA] font-rubik overflow-hidden min-h-[30vh] sm:min-h-[30vh] flex items-start relative mt-16"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-4 w-full">
           <div
