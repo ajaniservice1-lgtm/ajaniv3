@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import Logo from "../assets/Logos/logo6.png";
+import Logo from "../assets/Logos/fotterimage.png";
 
 const Footer = () => {
   const year = new Date().getFullYear();
@@ -19,94 +19,191 @@ const Footer = () => {
 
   return (
     <motion.footer
-      className="border-t border-slate-700 text-slate-200 text-sm py-10 font-rubik bg-[rgb(0,6,90)]"
+      className="bg-[#ffffff] text-black py-8 font-rubik border-t border-gray-200"
       initial="hidden"
       whileInView="visible"
       viewport={{ once: false, amount: 0.2 }}
-      variants={staggerContainer} // Apply stagger on the parent
+      variants={staggerContainer}
     >
-      <div className="max-w-7xl mx-auto px-5">
-        {/* Main Content Grid */}
+      <div className="max-w-7xl mx-auto px-5 font-manrope">
+        {/* Main Content Grid - 4 columns to accommodate the large logo */}
         <motion.div
-          className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8"
+          className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-8"
           variants={staggerContainer}
         >
-          {/* Left: Logo, Tagline & Summary */}
-          <motion.div variants={fadeUp}>
-            <div className="flex items-center gap-3 mb-4">
-              <img src={Logo} alt="Ajani Logo" className="h-8 w-auto" />
-            </div>
-
-            <p className="mb-4 leading-relaxed max-w-md">
-              Ajani is your smart digital assistant for discovering local
-              services, prices, and businesses across Ibadan. We help you make
-              informed decisions — whether you’re buying, selling, or just
-              exploring.
-            </p>
-
-            {/* Social Media Icons */}
-            <div className="flex space-x-4 text-lg">
-              <a
-                href="https://www.facebook.com/profile.php?id=61580295532814"
-                className="text-slate-500 hover:text-blue-400 transition"
-                aria-label="Facebook"
-              >
-                <i className="fab fa-facebook-f"></i>
-              </a>
-
-              <a
-                href="#"
-                className="text-slate-500 hover:text-blue-400 transition"
-                aria-label="Instagram"
-              >
-                <i className="fab fa-instagram"></i>
-              </a>
-
-              <a
-                href="mailto:ajaniservice1@gmail.com"
-                className="text-slate-500 hover:text-blue-400 transition"
-                aria-label="Email"
-              >
-                <i className="fas fa-envelope"></i>
-              </a>
-              <a
-                href="https://www.tiktok.com/@ajanismartguide?lang=en-GB"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-slate-500 hover:text-blue-400 transition-colors"
-                aria-label="Follow us on TikTok"
-              >
-                <i className="fab fa-tiktok"></i>
-              </a>
+          {/* Column 1: Large Logo */}
+          <motion.div variants={fadeUp} className="flex flex-col">
+            <div className="flex items-center mb-4">
+              <img
+                src={Logo}
+                alt="Ajani Logo"
+                className="w-48 h-auto" // Made logo larger (h-16 instead of h-8)
+              />
             </div>
           </motion.div>
 
-          {/* Center: Spacer */}
-          <motion.div variants={fadeUp}></motion.div>
+          {/* Column 2: About Section */}
+          <motion.div variants={fadeUp}>
+            <h3 className="font-bold text-black mb-4 text-base">About</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  to="/about-ajani-ai"
+                  className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
+                >
+                  About Ajani ai
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/how-it-works"
+                  className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
+                >
+                  How It Works
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/privacy-policy"
+                  className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
+                >
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/terms-of-service"
+                  className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
+                >
+                  Terms of Service
+                </Link>
+              </li>
+            </ul>
+          </motion.div>
 
-          {/* Right: Links */}
-          <motion.div
-            variants={fadeUp}
-            className="flex flex-col justify-between"
-          >
-            <div className="flex flex-col gap-3">
-              <Link to="/privacypage">Privacy Policy</Link>
-              <Link to="/termspage">Terms</Link>
-              <Link to="/contact" className="hover:text-blue-400 transition">
-                Contact
-              </Link>
-            </div>
+          {/* Column 3: Categories Section */}
+          <motion.div variants={fadeUp}>
+            <h3 className="font-bold text-black mb-4 text-base">Categories</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  to="/hotel"
+                  className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
+                >
+                  Hotel
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/restaurant"
+                  className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
+                >
+                  Restaurant
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/events"
+                  className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
+                >
+                  Events
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/vendor"
+                  className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
+                >
+                  Vendor
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/school"
+                  className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
+                >
+                  School
+                </Link>
+              </li>
+            </ul>
+          </motion.div>
+
+          {/* Column 4: Support Section */}
+          <motion.div variants={fadeUp}>
+            <h3 className="font-bold text-black mb-4 text-base">Support</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  to="/contact-us"
+                  className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
+                >
+                  Contact Us
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/help-centre"
+                  className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
+                >
+                  Help Centre
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/vendor-registration"
+                  className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
+                >
+                  Vendor Registration
+                </Link>
+              </li>
+            </ul>
           </motion.div>
         </motion.div>
 
-        {/* Bottom Copyright Line */}
-        <motion.div
-          variants={fadeUp}
-          className="pt-6 border-t border-slate-700 text-center md:text-left"
-        >
-          <p>
-            © {year} <span className="font-medium text-blue-400">Ajani</span> ••
-            Ibadan Price Insights. All rights reserved.
+        {/* Social Media Icons - Positioned next to logo as in your original design */}
+        <div className="flex space-x-4 text-lg justify-center">
+          <a
+            href="https://www.facebook.com/profile.php?id=61580295532814"
+            className="text-gray-600 hover:text-blue-600 transition-colors"
+            aria-label="Facebook"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <i className="fab fa-facebook-f"></i>
+          </a>
+
+          <a
+            href="#"
+            className="text-gray-600 hover:text-blue-600 transition-colors"
+            aria-label="Instagram"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <i className="fab fa-instagram"></i>
+          </a>
+
+          <a
+            href="mailto:ajaniservice1@gmail.com"
+            className="text-gray-600 hover:text-blue-600 transition-colors"
+            aria-label="Email"
+          >
+            <i className="fas fa-envelope"></i>
+          </a>
+          <a
+            href="https://www.tiktok.com/@ajanismartguide?lang=en-GB"
+            className="text-gray-600 hover:text-blue-600 transition-colors"
+            aria-label="Follow us on TikTok"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <i className="fab fa-tiktok"></i>
+          </a>
+        </div>
+
+        {/* Bottom Copyright Line - Removed border line above copyright */}
+        <motion.div variants={fadeUp} className="pt-6 text-center">
+          <p className="text-gray-600 text-sm">
+            © Copy right is Ajani Smart Guide Services
           </p>
         </motion.div>
       </div>

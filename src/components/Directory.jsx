@@ -11,6 +11,7 @@ import { FaGreaterThan } from "react-icons/fa";
 import { FaLessThan } from "react-icons/fa";
 import { PiSliders } from "react-icons/pi";
 
+// ---------------- FilterDropdown Component ----------------
 const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
   const dropdownRef = useRef(null);
   const [filters, setFilters] = useState({
@@ -105,13 +106,13 @@ const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
           <h3 className="text-lg font-bold text-gray-900">Filter Options</h3>
           <button
             onClick={onClose}
-            className="w-6 h-6 rounded-full bg-gray-100  flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors"
+            className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors"
           >
             ×
           </button>
         </div>
 
-        {/* Category Section - Updated to only show the 4 categories */}
+        {/* Category Section */}
         <div>
           <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
             Category
@@ -129,7 +130,7 @@ const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
                     onChange={() => handleCategoryChange(category)}
                     className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
                   />
-                  <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+                  <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
                     {category}
                   </span>
                 </label>
@@ -191,7 +192,7 @@ const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
                       className="text-yellow-400 text-sm"
                     />
                   ))}
-                  <span className="text-gray-700 group-hover:text-gray-900 transition-colors text-sm">
+                  <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors text-sm">
                     {stars} Star{stars !== 1 ? "s" : ""}
                   </span>
                 </div>
@@ -213,7 +214,7 @@ const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
                 onChange={() => handleBadgeChange("verified")}
                 className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
               />
-              <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+              <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
                 Verified
               </span>
             </label>
@@ -224,12 +225,13 @@ const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
                 onChange={() => handleBadgeChange("unverified")}
                 className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
               />
-              <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+              <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
                 Unverified
               </span>
             </label>
           </div>
         </div>
+
         {/* Response Section */}
         <div>
           <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
@@ -239,27 +241,28 @@ const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
             <label className="flex items-center space-x-3 cursor-pointer group">
               <input
                 type="checkbox"
-                checked={filters.badges.includes("verified")}
-                onChange={() => handleBadgeChange("verified")}
+                checked={filters.badges.includes("1hr-4hr")}
+                onChange={() => handleBadgeChange("1hr-4hr")}
                 className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
               />
-              <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+              <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
                 1hr - 4hr
               </span>
             </label>
             <label className="flex items-center space-x-3 cursor-pointer group">
               <input
                 type="checkbox"
-                checked={filters.badges.includes("unverified")}
-                onChange={() => handleBadgeChange("unverified")}
+                checked={filters.badges.includes("5hr-8hr")}
+                onChange={() => handleBadgeChange("5hr-8hr")}
                 className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
               />
-              <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+              <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
                 5hr - 8hr
               </span>
             </label>
           </div>
         </div>
+
         {/* Language Section */}
         <div>
           <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
@@ -269,68 +272,70 @@ const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
             <label className="flex items-center space-x-3 cursor-pointer group">
               <input
                 type="checkbox"
-                checked={filters.badges.includes("verified")}
-                onChange={() => handleBadgeChange("verified")}
+                checked={filters.badges.includes("yoruba")}
+                onChange={() => handleBadgeChange("yoruba")}
                 className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
               />
-              <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+              <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
                 Yoruba Only
               </span>
             </label>
             <label className="flex items-center space-x-3 cursor-pointer group">
               <input
                 type="checkbox"
-                checked={filters.badges.includes("unverified")}
-                onChange={() => handleBadgeChange("unverified")}
+                checked={filters.badges.includes("english")}
+                onChange={() => handleBadgeChange("english")}
                 className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
               />
-              <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+              <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
                 English Only
               </span>
             </label>
             <label className="flex items-center space-x-3 cursor-pointer group">
               <input
                 type="checkbox"
-                checked={filters.badges.includes("unverified")}
-                onChange={() => handleBadgeChange("unverified")}
+                checked={filters.badges.includes("both")}
+                onChange={() => handleBadgeChange("both")}
                 className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
               />
-              <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+              <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
                 Both
               </span>
             </label>
           </div>
-          {/* Vendor Type Section */}
-          <div>
-            <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
-              Vendor Type
-            </h4>
-            <div className="space-y-2">
-              <label className="flex items-center space-x-3 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={filters.badges.includes("verified")}
-                  onChange={() => handleBadgeChange("verified")}
-                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
-                />
-                <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
-                  Individual / Business
-                </span>
-              </label>
-              <label className="flex items-center space-x-3 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={filters.badges.includes("unverified")}
-                  onChange={() => handleBadgeChange("unverified")}
-                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
-                />
-                <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
-                  Verified Company
-                </span>
-              </label>
-            </div>
+        </div>
+
+        {/* Vendor Type Section */}
+        <div>
+          <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
+            Vendor Type
+          </h4>
+          <div className="space-y-2">
+            <label className="flex items-center space-x-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={filters.badges.includes("individual")}
+                onChange={() => handleBadgeChange("individual")}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+              />
+              <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
+                Individual / Business
+              </span>
+            </label>
+            <label className="flex items-center space-x-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={filters.badges.includes("company")}
+                onChange={() => handleBadgeChange("company")}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+              />
+              <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
+                Verified Company
+              </span>
+            </label>
           </div>
         </div>
+
         {/* Action Buttons */}
         <div className="flex space-x-3 pt-4 border-t">
           <button
@@ -523,15 +528,194 @@ const useGoogleSheet = (sheetId, apiKey) => {
   return { data: Array.isArray(data) ? data : [], loading, error };
 };
 
+// ---------------- BusinessCard Component ----------------
+const BusinessCard = ({ item, category, isMobile }) => {
+  const images = getCardImages(item);
+
+  // Define formatPrice inside BusinessCard component
+  const formatPrice = (n) => {
+    if (!n) return "–";
+    const num = Number(n);
+    return num.toLocaleString("en-US", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+  };
+
+  const priceText =
+    category === "hotel" ||
+    category === "hostel" ||
+    category === "shortlet" ||
+    category === "apartment" ||
+    category === "cabin" ||
+    category === "condo"
+      ? `#${formatPrice(item.price_from)} for 2 nights`
+      : `From #${formatPrice(item.price_from)} per guest`;
+
+  const location = item.area || "Ibadan";
+
+  return (
+    <div
+      className={`
+        bg-white rounded-xl overflow-hidden flex-shrink-0 
+        font-manrope
+        ${isMobile ? "w-[140px]" : "w-[220px]"} 
+        transition-all duration-200 cursor-pointer 
+        hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
+      `}
+    >
+      {/* Image */}
+      <div
+        className={`
+          relative overflow-hidden rounded-xl 
+          ${isMobile ? "w-full h-[120px]" : "w-full h-[160px]"}
+        `}
+      >
+        <img
+          src={images[0]}
+          alt=""
+          className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
+          onError={(e) => (e.currentTarget.src = FALLBACK_IMAGES.default)}
+          loading="lazy"
+        />
+
+        {/* Guest favorite badge */}
+        <div className="absolute top-2 left-2 bg-white px-1.5 py-1 rounded-md shadow-sm flex items-center gap-1">
+          <span className="text-[9px] font-semibold text-gray-900">
+            Guest favorite
+          </span>
+        </div>
+
+        {/* Heart icon */}
+        <button className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition">
+          <MdFavoriteBorder className="text-[#00d1ff] text-sm" />
+        </button>
+      </div>
+
+      {/* Text */}
+      <div className={`${isMobile ? "p-1.5" : "p-2.5"} flex flex-col gap-0.5`}>
+        <h3
+          className={`
+            font-semibold text-gray-900 
+            leading-tight line-clamp-2 
+            ${isMobile ? "text-xs" : "text-sm"}
+          `}
+        >
+          {item.name}
+        </h3>
+
+        <p
+          className={`
+            text-gray-600 
+            ${isMobile ? "text-[9px]" : "text-xs"}
+          `}
+        >
+          {location}
+        </p>
+
+        <div className="flex items-center gap-1 mt-0.5">
+          <p
+            className={`
+              font-normal text-gray-900 
+              ${isMobile ? "text-[9px]" : "text-xs"}
+            `}
+          >
+            {priceText} <span>•</span>
+          </p>
+
+          <div
+            className={`
+              flex items-center gap-1 text-gray-800 
+              ${isMobile ? "text-[9px]" : "text-xs"}
+            `}
+          >
+            <FontAwesomeIcon
+              icon={faStar}
+              className={`${isMobile ? "text-[9px]" : "text-xs"} text-black`}
+            />
+            {item.rating || "4.9"}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ---------------- CategorySection Component ----------------
+const CategorySection = ({ title, items, sectionId, isMobile }) => {
+  if (items.length === 0) return null;
+
+  const scrollSection = (sectionId, direction) => {
+    const container = document.getElementById(sectionId);
+    if (!container) return;
+
+    const scrollAmount = isMobile ? 140 : 280;
+    const newPosition =
+      direction === "next"
+        ? container.scrollLeft + scrollAmount
+        : container.scrollLeft - scrollAmount;
+
+    container.scrollTo({
+      left: newPosition,
+      behavior: "smooth",
+    });
+  };
+
+  return (
+    <section className="mb-4">
+      <div className="flex justify-between items-center mb-2">
+        <div>
+          <h2
+            className={`text-gray-900 ${
+              isMobile ? "text-sm" : "text-base"
+            } font-bold`}
+          >
+            {title}
+          </h2>
+        </div>
+        <div className="flex gap-1">
+          <button
+            onClick={() => scrollSection(sectionId, "prev")}
+            className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors border border-gray-300 shadow-sm"
+          >
+            <FaLessThan className="text-gray-600 text-[10px]" />
+          </button>
+          <button
+            onClick={() => scrollSection(sectionId, "next")}
+            className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors border border-gray-300 shadow-sm"
+          >
+            <FaGreaterThan className="text-gray-600 text-[10px]" />
+          </button>
+        </div>
+      </div>
+
+      <div className="relative">
+        <div
+          id={sectionId}
+          className={`flex overflow-x-auto scrollbar-hide scroll-smooth ${
+            isMobile ? "gap-1" : "gap-2"
+          }`}
+          style={{
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+          }}
+        >
+          {items.map((item, index) => (
+            <BusinessCard
+              key={item.id || index}
+              item={item}
+              category={sectionId.replace("-section", "")}
+              isMobile={isMobile}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 // ---------------- Main Directory Component ----------------
 const Directory = () => {
-  const [imageModal, setImageModal] = useState({
-    isOpen: false,
-    images: [],
-    initialIndex: 0,
-    item: null,
-  });
-
   const [headerRef, headerInView] = useInView({
     threshold: 0.1,
     triggerOnce: false,
@@ -543,6 +727,12 @@ const Directory = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [activeFilters, setActiveFilters] = useState({});
+  const [imageModal, setImageModal] = useState({
+    isOpen: false,
+    images: [],
+    initialIndex: 0,
+    item: null,
+  });
 
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
   const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
@@ -571,6 +761,11 @@ const Directory = () => {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     });
+  };
+
+  // Define the specific categories we want to display
+  const getPopularCategories = () => {
+    return ["hotel", "shortlet", "restaurant", "tourist center"];
   };
 
   // Apply advanced filters function
@@ -633,11 +828,6 @@ const Directory = () => {
     return matchesSearch && matchesCategory && matchesArea && matchesFilters;
   });
 
-  // Define the specific categories we want to display
-  const getPopularCategories = () => {
-    return ["hotel", "shortlet", "restaurant", "tourist center"];
-  };
-
   // Group listings by the specific categories we want
   const categorizedListings = {};
   getPopularCategories().forEach((category) => {
@@ -646,23 +836,6 @@ const Directory = () => {
       return itemCategory.includes(category);
     });
   });
-
-  // Scroll functions for horizontal sections
-  const scrollSection = (sectionId, direction) => {
-    const container = document.getElementById(sectionId);
-    if (!container) return;
-
-    const scrollAmount = isMobile ? 140 : 280;
-    const newPosition =
-      direction === "next"
-        ? container.scrollLeft + scrollAmount
-        : container.scrollLeft - scrollAmount;
-
-    container.scrollTo({
-      left: newPosition,
-      behavior: "smooth",
-    });
-  };
 
   // Toggle filter dropdown
   const toggleFilterDropdown = () => {
@@ -677,175 +850,6 @@ const Directory = () => {
   // Handle filter changes from dropdown
   const handleFilterChange = (filters) => {
     setActiveFilters(filters);
-  };
-
-  // ---------------- BusinessCard Component (More Compact) ----------------
-  const BusinessCard = ({ item, category }) => {
-    const images = getCardImages(item);
-
-    const priceText =
-      category === "hotel" ||
-      category === "hostel" ||
-      category === "shortlet" ||
-      category === "apartment" ||
-      category === "cabin" ||
-      category === "condo"
-        ? `#${formatPrice(item.price_from)} for 2 nights`
-        : `From #${formatPrice(item.price_from)} per guest`;
-
-    const location = item.area || "Ibadan";
-
-    return (
-      <div
-        className={`
-        bg-white rounded-xl overflow-hidden flex-shrink-0 
-        font-manrope
-        ${isMobile ? "w-[140px]" : "w-[220px]"} 
-        transition-all duration-200 cursor-pointer 
-        hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
-      `}
-      >
-        {/* Image */}
-        <div
-          className={`
-          relative overflow-hidden rounded-xl 
-          ${isMobile ? "w-full h-[120px]" : "w-full h-[160px]"}
-        `}
-          onClick={() =>
-            setImageModal({
-              isOpen: true,
-              images,
-              initialIndex: 0,
-              item,
-            })
-          }
-        >
-          <img
-            src={images[0]}
-            alt=""
-            className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
-            onError={(e) => (e.currentTarget.src = FALLBACK_IMAGES.default)}
-            loading="lazy"
-          />
-
-          {/* Guest favorite badge */}
-          <div className="absolute top-2 left-2 bg-white px-1.5 py-1 rounded-md shadow-sm flex items-center gap-1">
-            <span className="text-[9px] font-semibold text-gray-900">
-              Guest favorite
-            </span>
-          </div>
-
-          {/* Heart icon */}
-          <button className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition">
-            <MdFavoriteBorder className="text-[#00d1ff] text-sm" />
-          </button>
-        </div>
-
-        {/* Text */}
-        <div
-          className={`${isMobile ? "p-1.5" : "p-2.5"} flex flex-col gap-0.5`}
-        >
-          <h3
-            className={`
-            font-semibold text-gray-900 
-            leading-tight line-clamp-2 
-            ${isMobile ? "text-xs" : "text-sm"}
-          `}
-          >
-            {item.name}
-          </h3>
-
-          <p
-            className={`
-            text-gray-600 
-            ${isMobile ? "text-[9px]" : "text-xs"}
-          `}
-          >
-            {location}
-          </p>
-
-          <div className="flex items-center gap-1 mt-0.5">
-            <p
-              className={`
-              font-normal text-gray-900 
-              ${isMobile ? "text-[9px]" : "text-xs"}
-            `}
-            >
-              {priceText} <span>•</span>
-            </p>
-
-            <div
-              className={`
-              flex items-center gap-1 text-gray-800 
-              ${isMobile ? "text-[9px]" : "text-xs"}
-            `}
-            >
-              <FontAwesomeIcon
-                icon={faStar}
-                className={`${isMobile ? "text-[9px]" : "text-xs"} text-black`}
-              />
-              {item.rating || "4.9"}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // ---------------- CategorySection Component (More Compact) ----------------
-  const CategorySection = ({ title, items, sectionId }) => {
-    if (items.length === 0) return null;
-
-    return (
-      <section className="mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h2
-              className={`text-gray-900 ${
-                isMobile ? "text-lg" : "text-xl"
-              } font-bold`}
-            >
-              {title}
-            </h2>
-          </div>
-          <div className="flex gap-1">
-            <button
-              onClick={() => scrollSection(sectionId, "prev")}
-              className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors border border-gray-300 shadow-sm"
-            >
-              <FaLessThan className="text-gray-600 text-xs" />
-            </button>
-            <button
-              onClick={() => scrollSection(sectionId, "next")}
-              className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors border border-gray-300 shadow-sm"
-            >
-              <FaGreaterThan className="text-gray-600 text-xs" />
-            </button>
-          </div>
-        </div>
-
-        <div className="relative">
-          <div
-            id={sectionId}
-            className={`flex overflow-x-auto scrollbar-hide scroll-smooth ${
-              isMobile ? "gap-2" : "gap-3"
-            }`}
-            style={{
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-            }}
-          >
-            {items.map((item, index) => (
-              <BusinessCard
-                key={item.id || index}
-                item={item}
-                category={sectionId.replace("-section", "")}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-    );
   };
 
   if (loading)
@@ -870,28 +874,29 @@ const Directory = () => {
     );
 
   return (
-    <section id="directory" className="bg-white py-6 font-manrope relative">
+    <section id="directory" className="bg-white py-4 font-manrope relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header with Search - More compact */}
-        <div className="mb-6">
+        {/* Header - More compact with better mobile spacing */}
+        <div className="mb-4">
           <motion.div
             ref={headerRef}
             initial={{ opacity: 0, y: 20 }}
             animate={headerInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="text-center mb-6"
+            className="text-center mb-4"
           >
-            <h1 className="text-lg lg:text-xl text-gray-900 mb-1 font-bold">
+            <h1 className="text-base lg:text-lg text-gray-900 mb-1 font-bold">
               Explore Categories
             </h1>
-            <p className="text-gray-600 text-xs lg:text-sm">
+            <p className="text-gray-600 text-xs">
               Find the best place and services in Ibadan
             </p>
           </motion.div>
 
-          {/* Search and Filters - More compact */}
-          <div className="flex flex-col lg:flex-row gap-3 items-center justify-between mb-4">
-            <div className="flex flex-wrap gap-2">
+          {/* Filters - Better mobile layout */}
+          <div className="flex flex-col sm:flex-row gap-2 items-center justify-between mb-3">
+            {/* Mobile View - Compact filter row */}
+            <div className="flex w-full sm:w-auto justify-between items-center gap-1">
               <button
                 onClick={() => {
                   setSearch("");
@@ -899,7 +904,7 @@ const Directory = () => {
                   setArea("");
                   setActiveFilters({});
                 }}
-                className="px-4 py-2.5 bg-[#06EAFC] font-medium rounded-lg text-xs hover:bg-[#08d7e6] transition-colors"
+                className="px-2 py-1.5 bg-[#06EAFC] font-medium rounded-lg text-[10px] hover:bg-[#08d7e6] transition-colors whitespace-nowrap flex-1 text-center"
               >
                 Popular destination
               </button>
@@ -907,7 +912,7 @@ const Directory = () => {
               <select
                 value={mainCategory}
                 onChange={(e) => setMainCategory(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg font-medium text-xs bg-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="px-2 py-1.5 border border-gray-300 rounded-lg font-medium text-[10px] bg-gray-300 focus:ring-1 focus:ring-[#06EAFC] focus:border-[#06EAFC] flex-1"
               >
                 <option value="">Categories</option>
                 {getPopularCategories().map((category) => (
@@ -917,43 +922,13 @@ const Directory = () => {
                 ))}
               </select>
 
-              <select
-                value={area}
-                onChange={(e) => setArea(e.target.value)}
-                className="px-3 py-2 border border-gray-300 font-medium rounded-lg text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">District</option>
-                {[...new Set(listings.map((i) => i.area).filter(Boolean))]
-                  .sort()
-                  .map((a) => (
-                    <option key={a} value={a}>
-                      {a}
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-            {/* Search and Filter grouped together on the right */}
-            <div className="flex items-center gap-2 w-full lg:w-auto">
-              <div className="relative flex-1 lg:w-56">
-                <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-                <input
-                  type="text"
-                  placeholder="Search name, service, or keyword..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                />
-              </div>
-
-              {/* Filter Button with Dropdown */}
+              {/* Filter Button - Compact */}
               <div className="relative">
                 <div
-                  className="bg-gray-300 p-2.5 flex items-center rounded-lg gap-1.5 capitalize cursor-pointer hover:bg-gray-400 transition-colors duration-200 font-medium whitespace-nowrap text-sm"
+                  className="bg-gray-300 p-1.5 flex items-center rounded-lg cursor-pointer hover:bg-gray-400 transition-colors duration-200 font-medium whitespace-nowrap"
                   onClick={toggleFilterDropdown}
                 >
-                  <p>filter</p>
-                  <PiSliders className="text-base" />
+                  <PiSliders className="text-sm" />
                 </div>
 
                 <AnimatePresence>
@@ -968,16 +943,16 @@ const Directory = () => {
           </div>
         </div>
 
-        {/* Active Filters Display */}
+        {/* Active Filters Display - Compact */}
         {Object.keys(activeFilters).length > 0 && (
-          <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="mb-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
             <div className="flex items-center justify-between">
-              <span className="text-blue-800 font-medium text-sm">
+              <span className="text-blue-800 font-medium text-xs">
                 Active Filters:
               </span>
               <button
                 onClick={() => setActiveFilters({})}
-                className="text-blue-600 hover:text-blue-800 text-xs"
+                className="text-blue-600 hover:text-blue-800 text-[10px]"
               >
                 Clear All
               </button>
@@ -985,8 +960,8 @@ const Directory = () => {
           </div>
         )}
 
-        {/* Category Sections - Only show the 4 specific categories */}
-        <div className="space-y-6">
+        {/* Category Sections - Tighter spacing */}
+        <div className="space-y-4">
           {getPopularCategories().map((category) => {
             const items = categorizedListings[category] || [];
             if (items.length === 0) return null;
@@ -1000,20 +975,21 @@ const Directory = () => {
                 title={title}
                 items={items}
                 sectionId={sectionId}
+                isMobile={isMobile}
               />
             );
           })}
         </div>
 
-        {/* Empty State */}
+        {/* Empty State - Compact */}
         {filteredListings.length === 0 && !loading && (
-          <div className="text-center py-8">
-            <div className="bg-gray-50 rounded-xl p-6 max-w-md mx-auto">
-              <i className="fas fa-search text-3xl text-gray-300 mb-3 block"></i>
-              <h3 className="text-lg text-gray-800 mb-1">
+          <div className="text-center py-6">
+            <div className="bg-gray-50 rounded-xl p-4 max-w-md mx-auto">
+              <i className="fas fa-search text-2xl text-gray-300 mb-2 block"></i>
+              <h3 className="text-sm text-gray-800 mb-1">
                 No businesses found
               </h3>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 text-xs">
                 Try adjusting your search or filters
               </p>
             </div>

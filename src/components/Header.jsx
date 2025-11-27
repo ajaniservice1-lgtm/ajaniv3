@@ -265,7 +265,7 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
 
       {/* Animated Search Modal - Mobile comes from bottom and fills screen */}
       <motion.div
-        className={`fixed z-[70] bg-white shadow-2xl overflow-hidden ${
+        className={`fixed z-70 bg-white shadow-2xl overflow-hidden ${
           isMobile
             ? "inset-0 rounded-none" // Full screen on mobile
             : "inset-y-0 left-0 w-full max-w-md"
@@ -868,11 +868,10 @@ const Header = ({ onAuthToast }) => {
                   alt="Ajani Logo"
                   className="h-6 w-16" /* Smaller logo in mobile menu */
                 />
-                <div className="w-px h-4 bg-gray-300 mx-1"></div> /* Smaller
-                divider */
+                <div className="w-px h-4 bg-gray-300 mx-1"></div>
                 <span className="text-xs text-slate-600 hover:text-gray-900 whitespace-nowrap">
                   {" "}
-                  /* Smaller text */ The Ibadan Smart Guide
+                  The Ibadan Smart Guide
                 </span>
               </div>
             </button>
@@ -900,7 +899,6 @@ const Header = ({ onAuthToast }) => {
           {/* NAVIGATION LINKS - More compact */}
           <nav className="flex-1 p-4 space-y-0.5 text-xs font-normal font-manrope">
             {" "}
-            /* Reduced padding and spacing */
             {[
               { label: "Categories", id: "Categories" },
               { label: "Price Insights", id: "Price Insights" },
