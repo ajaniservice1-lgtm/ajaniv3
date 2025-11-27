@@ -111,34 +111,30 @@ const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
           </button>
         </div>
 
-        {/* Category Section */}
+        {/* Category Section - Updated to only show the 4 categories */}
         <div>
           <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
             Category
           </h4>
           <div className="space-y-2">
-            {[
-              "Hotels",
-              "Restaurant",
-              "Laundry",
-              "Tourist Centre",
-              "Event Centre",
-            ].map((category) => (
-              <label
-                key={category}
-                className="flex items-center space-x-3 cursor-pointer group"
-              >
-                <input
-                  type="checkbox"
-                  checked={filters.categories.includes(category)}
-                  onChange={() => handleCategoryChange(category)}
-                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
-                />
-                <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
-                  {category}
-                </span>
-              </label>
-            ))}
+            {["Hotel", "Shortlet", "Restaurant", "Tourist Center"].map(
+              (category) => (
+                <label
+                  key={category}
+                  className="flex items-center space-x-3 cursor-pointer group"
+                >
+                  <input
+                    type="checkbox"
+                    checked={filters.categories.includes(category)}
+                    onChange={() => handleCategoryChange(category)}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+                  />
+                  <span className="text-gray-700 group-hover:text-gray-900 transition-colors">
+                    {category}
+                  </span>
+                </label>
+              )
+            )}
           </div>
         </div>
 
@@ -234,7 +230,7 @@ const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
             </label>
           </div>
         </div>
-        {/* Respose Section */}
+        {/* Response Section */}
         <div>
           <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
             Response Time
@@ -637,44 +633,26 @@ const Directory = () => {
     return matchesSearch && matchesCategory && matchesArea && matchesFilters;
   });
 
-  // Extract subcategories from the data (text after the ".")
-  const getSubcategories = () => {
-    const subcategories = new Set();
-
-    listings.forEach((item) => {
-      const category = item.category || "";
-      const parts = category.split(".");
-      if (parts.length > 1) {
-        const subcategory = parts[1].toLowerCase();
-        if (
-          subcategory &&
-          subcategory !== "other" &&
-          subcategory !== "others"
-        ) {
-          subcategories.add(subcategory);
-        }
-      }
-    });
-
-    return Array.from(subcategories);
+  // Define the specific categories we want to display
+  const getPopularCategories = () => {
+    return ["hotel", "shortlet", "restaurant", "tourist center"];
   };
 
-  // Group listings by subcategory
+  // Group listings by the specific categories we want
   const categorizedListings = {};
-  getSubcategories().forEach((subcategory) => {
-    categorizedListings[subcategory] = filteredListings.filter((item) => {
-      const category = item.category || "";
-      return category.toLowerCase().includes(`.${subcategory}`);
+  getPopularCategories().forEach((category) => {
+    categorizedListings[category] = filteredListings.filter((item) => {
+      const itemCategory = (item.category || "").toLowerCase();
+      return itemCategory.includes(category);
     });
   });
 
-  // Scroll functions for horizontal sections - Updated for exact 6 cards
+  // Scroll functions for horizontal sections
   const scrollSection = (sectionId, direction) => {
     const container = document.getElementById(sectionId);
     if (!container) return;
 
-    // Calculate exact scroll amount for 6 cards
-    const scrollAmount = isMobile ? 140 : 280; // Reduced scroll amount
+    const scrollAmount = isMobile ? 140 : 280;
     const newPosition =
       direction === "next"
         ? container.scrollLeft + scrollAmount
@@ -932,9 +910,9 @@ const Directory = () => {
                 className="px-3 py-2 border border-gray-300 rounded-lg font-medium text-xs bg-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Categories</option>
-                {getSubcategories().map((subcategory) => (
-                  <option key={subcategory} value={subcategory}>
-                    {capitalizeFirst(subcategory)}
+                {getPopularCategories().map((category) => (
+                  <option key={category} value={category}>
+                    {capitalizeFirst(category)}
                   </option>
                 ))}
               </select>
@@ -1007,18 +985,18 @@ const Directory = () => {
           </div>
         )}
 
-        {/* Category Sections - Dynamically generated from subcategories */}
+        {/* Category Sections - Only show the 4 specific categories */}
         <div className="space-y-6">
-          {getSubcategories().map((subcategory) => {
-            const items = categorizedListings[subcategory] || [];
+          {getPopularCategories().map((category) => {
+            const items = categorizedListings[category] || [];
             if (items.length === 0) return null;
 
-            const title = `Popular ${capitalizeFirst(subcategory)} in Ibadan >`;
-            const sectionId = `${subcategory}-section`;
+            const title = `Popular ${capitalizeFirst(category)} in Ibadan >`;
+            const sectionId = `${category}-section`;
 
             return (
               <CategorySection
-                key={subcategory}
+                key={category}
                 title={title}
                 items={items}
                 sectionId={sectionId}
