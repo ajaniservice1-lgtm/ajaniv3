@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-import { GoVerified } from "react-icons/go";
+import { VscVerifiedFilled } from "react-icons/vsc";
 import { PiSliders } from "react-icons/pi";
 import { IoIosArrowDown } from "react-icons/io";
 
@@ -35,7 +35,7 @@ const useGoogleSheet = (sheetId, apiKey) => {
         }
 
         const headers = json.values[0].map((header) =>
-          header?.toString().trim().toLowerCase()
+          header?.toString().trim()
         );
         const rows = json.values.slice(1);
 
@@ -47,7 +47,9 @@ const useGoogleSheet = (sheetId, apiKey) => {
             const obj = { id: `venue-${index}` };
             headers.forEach((header, i) => {
               if (header && row[i] !== undefined) {
-                obj[header] = row[i]?.toString().trim() || "";
+                // Convert to lowercase for consistent access, but keep original header names
+                const key = header.toLowerCase();
+                obj[key] = row[i]?.toString().trim() || "";
               }
             });
             return obj;
@@ -67,7 +69,6 @@ const useGoogleSheet = (sheetId, apiKey) => {
 
   return { data, loading, error };
 };
-
 // ---------------- Toggle Switch Component ----------------
 const ToggleSwitch = ({ enabled, setEnabled, label }) => {
   return (
@@ -108,15 +109,36 @@ const FilterBar = ({
   onFilterClick,
 }) => {
   return (
-    <div className="flex flex-col lg:flex-row gap-4 items-center justify-between mb-8 p-6 bg-white">
-      {/* Left side filters */}
-      <div className="flex flex-wrap gap-4 items-center">
+    <div className="flex flex-col gap-4 mb-8 p-4 lg:p-6 bg-white">
+      {/* Mobile: Line 1 - Location, Service/Product, and Sliders icon */}
+      <div className="flex lg:hidden items-center justify-between gap-3">
+        {/* District Dropdown */}
+        <div className="relative flex-1">
+          <select
+            value={selectedDistrict}
+            onChange={(e) => setSelectedDistrict(e.target.value)}
+            className="appearance-none bg-[#D9D9D9] px-4 py-3 pr-10 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] cursor-pointer w-full font-medium"
+          >
+            <option value="" className="text-gray-500">
+              Location
+            </option>
+            {districts.map((district) => (
+              <option key={district} value={district}>
+                {district}
+              </option>
+            ))}
+          </select>
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+            <IoIosArrowDown />
+          </div>
+        </div>
+
         {/* Service/Product Dropdown */}
-        <div className="relative">
+        <div className="relative flex-1">
           <select
             value={selectedService}
             onChange={(e) => setSelectedService(e.target.value)}
-            className="appearance-none bg-[#D9D9D9] px-4 py-3 pr-10 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] cursor-pointer min-w-[180px] font-medium"
+            className="appearance-none bg-[#D9D9D9] px-4 py-3 pr-10 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] cursor-pointer w-full font-medium"
           >
             <option value="" className="text-gray-500">
               Service/Product
@@ -132,54 +154,101 @@ const FilterBar = ({
           </div>
         </div>
 
-        {/* District Dropdown */}
-        <div className="relative">
-          <select
-            value={selectedDistrict}
-            onChange={(e) => setSelectedDistrict(e.target.value)}
-            className="appearance-none bg-[#D9D9D9] px-4 py-3 pr-10 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] cursor-pointer min-w-[140px] font-medium"
-          >
-            <option value="" className="text-gray-500">
-              District
-            </option>
-            {districts.map((district) => (
-              <option key={district} value={district}>
-                {district}
+        {/* Sliders Icon Button */}
+        <button
+          onClick={onFilterClick}
+          className="bg-gray-800 hover:bg-gray-900 p-3 flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-200"
+        >
+          <PiSliders className="text-lg text-white" />
+        </button>
+      </div>
+
+      {/* Mobile: Line 2 - Toggle switches only */}
+      <div className="flex lg:hidden items-center justify-center gap-6">
+        <ToggleSwitch
+          enabled={verifiedOnly}
+          setEnabled={setVerifiedOnly}
+          label="Verified Only"
+        />
+        <ToggleSwitch
+          enabled={availableNow}
+          setEnabled={setAvailableNow}
+          label="Available Now"
+        />
+      </div>
+
+      {/* Desktop: Original single-line layout */}
+      <div className="hidden lg:flex lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:w-full">
+        {/* Left side filters */}
+        <div className="flex flex-wrap gap-4 items-center">
+          {/* District Dropdown */}
+          <div className="relative">
+            <select
+              value={selectedDistrict}
+              onChange={(e) => setSelectedDistrict(e.target.value)}
+              className="appearance-none bg-[#D9D9D9] px-4 py-3 pr-10 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] cursor-pointer min-w-[140px] font-medium"
+            >
+              <option value="" className="text-gray-500">
+                Location
               </option>
-            ))}
-          </select>
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
-            <IoIosArrowDown />
+              {districts.map((district) => (
+                <option key={district} value={district}>
+                  {district}
+                </option>
+              ))}
+            </select>
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+              <IoIosArrowDown />
+            </div>
+          </div>
+
+          {/* Service/Product Dropdown */}
+          <div className="relative">
+            <select
+              value={selectedService}
+              onChange={(e) => setSelectedService(e.target.value)}
+              className="appearance-none bg-[#D9D9D9] px-4 py-3 pr-10 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] cursor-pointer min-w-[180px] font-medium"
+            >
+              <option value="" className="text-gray-500">
+                Service/Product
+              </option>
+              {services.map((service) => (
+                <option key={service} value={service}>
+                  {service}
+                </option>
+              ))}
+            </select>
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+              <IoIosArrowDown />
+            </div>
+          </div>
+
+          {/* Toggle Switches */}
+          <div className="flex items-center gap-6">
+            <ToggleSwitch
+              enabled={verifiedOnly}
+              setEnabled={setVerifiedOnly}
+              label="Verified Only"
+            />
+            <ToggleSwitch
+              enabled={availableNow}
+              setEnabled={setAvailableNow}
+              label="Available Now"
+            />
           </div>
         </div>
 
-        {/* Toggle Switches */}
-        <div className="flex items-center gap-6">
-          <ToggleSwitch
-            enabled={verifiedOnly}
-            setEnabled={setVerifiedOnly}
-            label="Verified Only"
-          />
-          <ToggleSwitch
-            enabled={availableNow}
-            setEnabled={setAvailableNow}
-            label="Available Now"
-          />
-        </div>
+        {/* Filter Button - Icon only */}
+        <button
+          onClick={onFilterClick}
+          className="bg-gray-800 hover:bg-gray-900 p-3 flex items-center rounded-xl cursor-pointer transition-colors duration-200"
+        >
+          <PiSliders className="text-lg text-white" />
+        </button>
       </div>
-
-      {/* Filter Button */}
-      <button
-        onClick={onFilterClick}
-        className="bg-gray-800 hover:bg-gray-900 px-6 py-3 flex items-center rounded-xl gap-3 capitalize cursor-pointer transition-colors duration-200 font-semibold text-sm text-white"
-      >
-        <span>Filter</span>
-        <PiSliders className="text-lg" />
-      </button>
     </div>
   );
 };
-
 // ---------------- Vendor Card Component - EXACT Design ----------------
 const VendorCard = ({ venue, index }) => {
   return (
@@ -195,9 +264,9 @@ const VendorCard = ({ venue, index }) => {
         relative
         overflow-hidden
 
-        /* Mobile */
+        /* Mobile - Increased height */
         w-[175.77px]
-        h-[237.48px]
+        h-[280px]  /* Increased from 237.48px to 280px */
         rounded-[14.9px]
 
         /* Desktop - Adjusted for better spacing */
@@ -211,12 +280,29 @@ const VendorCard = ({ venue, index }) => {
     >
       {/* Verified Badge */}
       <div className="absolute top-3 right-3 lg:top-4 lg:right-4 bg-white rounded-full p-1 lg:p-2 shadow-md border border-green-200 z-10">
-        <GoVerified className="text-green-500 text-sm lg:text-xl" />
+        <VscVerifiedFilled className="text-green-500 text-sm lg:text-xl" />
       </div>
 
-      {/* Profile Image */}
-      <div className="flex justify-center pt-4 lg:pt-8">
-        <div className="w-12 h-12 lg:w-24 lg:h-24 rounded-full overflow-hidden shadow-md border border-gray-200 bg-white">
+      {/* Profile Image - Updated with exact dimensions */}
+      <div
+        className="
+        flex justify-center 
+        pt-[13.62px] lg:pt-[27.7px]  /* top positioning */
+      "
+      >
+        <div
+          className="
+          overflow-hidden shadow-md border border-gray-200 bg-white
+          /* Mobile */
+          w-[92.78px]
+          h-[92.78px]
+          rounded-full
+          /* Desktop */
+          lg:w-[188.70px]
+          lg:h-[188.70px]
+          lg:rounded-full
+        "
+        >
           <img
             src={venue.image_url}
             alt={venue.name}
@@ -258,7 +344,7 @@ const VendorCard = ({ venue, index }) => {
           {venue.description}
         </p>
 
-        <button className="w-full py-1.5 lg:py-3 mt-2 lg:mt-4 rounded-xl border border-gray-300 text-gray-800 font-semibold hover:bg-gray-50 transition text-xs lg:text-base">
+        <button className="w-full py-1.5 lg:py-3 mt-2 lg:mt-4 rounded-xl border border-black text-gray-800 font-semibold hover:bg-gray-200 transition text-xs lg:text-base">
           View Vendor
         </button>
       </div>
@@ -276,9 +362,9 @@ const SkeletonCard = () => (
       overflow-hidden
       animate-pulse
 
-      /* Mobile */
+      /* Mobile - Increased height */
       w-[175.77px]
-      h-[237.48px]
+      h-[280px]  /* Increased from 237.48px to 280px */
       rounded-[14.9px]
 
       /* Desktop - Adjusted for better spacing */
@@ -293,9 +379,26 @@ const SkeletonCard = () => (
     {/* Verified Badge Skeleton */}
     <div className="absolute top-3 right-3 lg:top-4 lg:right-4 bg-gray-300 rounded-full p-1 lg:p-2 z-10"></div>
 
-    {/* Profile Image Skeleton */}
-    <div className="flex justify-center pt-4 lg:pt-8">
-      <div className="w-12 h-12 lg:w-24 lg:h-24 rounded-full bg-gray-300"></div>
+    {/* Profile Image Skeleton - Updated with exact dimensions */}
+    <div
+      className="
+      flex justify-center 
+      pt-[13.62px] lg:pt-[27.7px]  /* top positioning */
+    "
+    >
+      <div
+        className="
+        bg-gray-300
+        /* Mobile */
+        w-[92.78px]
+        h-[92.78px]
+        rounded-full
+        /* Desktop */
+        lg:w-[188.70px]
+        lg:h-[188.70px]
+        lg:rounded-full
+      "
+      ></div>
     </div>
 
     <div className="p-3 lg:p-6 text-center">
@@ -324,14 +427,41 @@ const AiTopPicks = () => {
   const [headerRef, headerInView] = useInView({ threshold: 0.1 });
   const [selectedService, setSelectedService] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("");
-  const [verifiedOnly, setVerifiedOnly] = useState(true);
-  const [availableNow, setAvailableNow] = useState(true);
+  const [verifiedOnly, setVerifiedOnly] = useState(false); // Start OFF
+  const [availableNow, setAvailableNow] = useState(false); // Start OFF
   const [showFilterModal, setShowFilterModal] = useState(false);
 
-  // New state for card management
+  // Set initial state based on screen size immediately
   const [initialMobileCount] = useState(4); // 2x2 grid on mobile
   const [initialDesktopCount] = useState(3); // 3 cards on desktop
-  const [visibleCount, setVisibleCount] = useState(initialMobileCount);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 1024 : false
+  );
+  const [visibleCount, setVisibleCount] = useState(
+    typeof window !== "undefined"
+      ? window.innerWidth < 1024
+        ? initialMobileCount
+        : initialDesktopCount
+      : initialMobileCount
+  );
+
+  // Detect screen size on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+
+      // Adjust visible count based on screen size
+      const targetCount = mobile ? initialMobileCount : initialDesktopCount;
+      if (visibleCount < targetCount) {
+        setVisibleCount(targetCount);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, [visibleCount, initialMobileCount, initialDesktopCount]);
 
   // Same Google Sheet ID and API Key
   const SHEET_ID = "1GK10i6VZnZ3I-WVHs1yOrj2WbaByp00UmZ2k3oqb8_8";
@@ -359,6 +489,7 @@ const AiTopPicks = () => {
       is_available: "TRUE",
       category: "Services",
       price_range: "1500-5000",
+      response_time: "1-4 hours",
     },
     {
       id: "2",
@@ -372,9 +503,10 @@ const AiTopPicks = () => {
         "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80",
       district: "Dugbe",
       is_verified: "TRUE",
-      is_available: "TRUE",
+      is_available: "FALSE", // Example of unavailable vendor
       category: "Food",
       price_range: "800-2500",
+      response_time: "1-4 hours",
     },
     {
       id: "3",
@@ -386,10 +518,11 @@ const AiTopPicks = () => {
       image_url:
         "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&q=80",
       district: "Sango",
-      is_verified: "TRUE",
+      is_verified: "FALSE", // Example of unverified vendor
       is_available: "TRUE",
       category: "Events",
       price_range: "50000-200000",
+      response_time: "5-8 hours",
     },
     {
       id: "4",
@@ -405,6 +538,7 @@ const AiTopPicks = () => {
       is_available: "TRUE",
       category: "Services",
       price_range: "1200-4000",
+      response_time: "1-4 hours",
     },
     {
       id: "5",
@@ -421,6 +555,7 @@ const AiTopPicks = () => {
       is_available: "TRUE",
       category: "Food",
       price_range: "1000-3000",
+      response_time: "1-4 hours",
     },
     {
       id: "6",
@@ -433,76 +568,50 @@ const AiTopPicks = () => {
         "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&q=80",
       district: "UI Area",
       is_verified: "TRUE",
-      is_available: "TRUE",
+      is_available: "FALSE", // Example of unavailable vendor
       category: "Events",
       price_range: "45000-180000",
-    },
-    {
-      id: "7",
-      name: "City View Hotel",
-      service_type: "Hotels",
-      description:
-        "Luxury hotel with panoramic city views and premium amenities.",
-      rating: "4.9",
-      delivery_count: "5",
-      image_url:
-        "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80",
-      district: "GRA",
-      is_verified: "TRUE",
-      is_available: "TRUE",
-      category: "Hotels",
-      price_range: "25000-80000",
-    },
-    {
-      id: "8",
-      name: "Tech Hub Coworking",
-      service_type: "Workspace",
-      description:
-        "Modern coworking space for professionals and entrepreneurs.",
-      rating: "4.7",
-      delivery_count: "3",
-      image_url:
-        "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=400&q=80",
-      district: "Bodija",
-      is_verified: "TRUE",
-      is_available: "TRUE",
-      category: "Workspace",
-      price_range: "5000-15000",
+      response_time: "5-8 hours",
     },
   ];
 
   // Use Google Sheets data if available, otherwise use demo data
   const displayVenues = venues.length > 0 ? venues : demoVenues;
 
-  // Filter logic
+  // In the filter logic, update to use 'location' instead of 'district':
+
   const filteredVenues = displayVenues.filter((venue) => {
     const matchesService =
       !selectedService || venue.service_type === selectedService;
-    const matchesDistrict =
-      !selectedDistrict || venue.district === selectedDistrict;
+    const matchesLocation = // Changed from matchesDistrict to matchesLocation
+      !selectedDistrict || venue.location === selectedDistrict; // Changed from venue.district to venue.location
+
+    // Only apply verified filter when toggle is ON
     const matchesVerified = !verifiedOnly || venue.is_verified === "TRUE";
+
+    // Only apply available filter when toggle is ON
     const matchesAvailable = !availableNow || venue.is_available === "TRUE";
 
     return (
-      matchesService && matchesDistrict && matchesVerified && matchesAvailable
+      matchesService && matchesLocation && matchesVerified && matchesAvailable // Updated variable name
     );
   });
 
-  // Get featured venues (verified ones)
-  const featuredVenues = filteredVenues.filter(
-    (venue) => venue.is_verified === "TRUE"
-  );
+  // Get featured venues (all venues initially, filtered by toggles when ON)
+  const featuredVenues = filteredVenues;
+
+  // Get initial count based on screen size
+  const getInitialCount = () =>
+    isMobile ? initialMobileCount : initialDesktopCount;
 
   // Visible venues based on load more
   const visibleVenues = featuredVenues.slice(0, visibleCount);
 
   // Button logic
   const hasMoreVenues = visibleCount < featuredVenues.length;
-  const canShowLess = visibleCount > initialMobileCount;
+  const canShowLess = visibleCount > getInitialCount();
 
   const loadMore = () => {
-    // Auto-detect screen size and load appropriate number
-    const isMobile = window.innerWidth < 1024;
     const increment = isMobile ? 2 : 3; // 2 cards on mobile, 3 on desktop
     setVisibleCount((prev) =>
       Math.min(prev + increment, featuredVenues.length)
@@ -510,33 +619,30 @@ const AiTopPicks = () => {
   };
 
   const showLess = () => {
-    // Auto-detect screen size and reduce appropriate number
-    const isMobile = window.innerWidth < 1024;
-    const decrement = isMobile ? 2 : 3; // 2 cards on mobile, 3 on desktop
-    const targetCount = Math.max(
-      isMobile ? initialMobileCount : initialDesktopCount,
-      visibleCount - decrement
-    );
+    const targetCount = getInitialCount();
     setVisibleCount(targetCount);
   };
+
+  // In the main AiTopPicks component, update the districts extraction:
 
   const services = [
     ...new Set(displayVenues.map((v) => v.service_type).filter(Boolean)),
   ];
   const districts = [
-    ...new Set(displayVenues.map((v) => v.district).filter(Boolean)),
+    ...new Set(displayVenues.map((v) => v.location).filter(Boolean)), // Changed from 'district' to 'location'
   ];
 
+  // Rest of the component remains the same...
   if (loading) {
     return (
-      <section className="bg-white py-16 font-manrope" id="toppicks">
+      <section className="bg-white font-manrope" id="toppicks">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="mb-12 text-center">
-            <h1 className="text-2xl lg:text-4xl font-bold text-gray-900 mb-4">
+          <div className=" text-center">
+            <h1 className="text-2xl lg:text-4xl font-bold text-gray-900">
               Verified Vendors
             </h1>
-            <p className="text-gray-600 text-lg">
+            <p className="text-gray-600 md:text-xl text-[10px]">
               Trusted businesses reviewed and approved for quality and
               reliability.
             </p>
@@ -555,9 +661,11 @@ const AiTopPicks = () => {
             <div className="bg-gray-800 px-6 py-3 rounded-xl w-32 h-12"></div>
           </div>
 
-          {/* Skeleton Grid */}
+          {/* Skeleton Grid - Show appropriate number based on screen size */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-8 mb-12">
-            {[...Array(initialMobileCount)].map((_, index) => (
+            {[
+              ...Array(isMobile ? initialMobileCount : initialDesktopCount),
+            ].map((_, index) => (
               <SkeletonCard key={index} />
             ))}
           </div>
@@ -573,10 +681,10 @@ const AiTopPicks = () => {
   }
 
   return (
-    <section className="bg-white py-16 font-manrope" id="toppicks">
+    <section className="bg-white py-5 font-manrope" id="toppicks">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div ref={headerRef} className="mb-12">
+        <div ref={headerRef} className="mb-1">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={
@@ -589,7 +697,7 @@ const AiTopPicks = () => {
               initial={{ opacity: 0, x: -50 }}
               animate={headerInView ? { opacity: 1, x: 0 } : {}}
               transition={{ delay: 0.1, duration: 0.4 }}
-              className="text-2xl lg:text-4xl font-bold text-gray-900 mb-4"
+              className="text-start text-xl lg:text-4xl font-bold text-gray-900 mb-1"
             >
               Verified Vendors
             </motion.h1>
@@ -597,7 +705,7 @@ const AiTopPicks = () => {
               initial={{ opacity: 0, x: -50 }}
               animate={headerInView ? { opacity: 1, x: 0 } : {}}
               transition={{ delay: 0.2, duration: 0.4 }}
-              className="text-gray-600 text-lg max-w-2xl mx-auto leading-relaxed"
+              className="text-start lg:text-start text-gray-600 text-[14px] lg:text-lg max-w-2xl leading-relaxed"
             >
               Trusted businesses reviewed and approved for quality and
               reliability.
@@ -609,16 +717,48 @@ const AiTopPicks = () => {
         <FilterBar
           selectedService={selectedService}
           setSelectedService={setSelectedService}
-          selectedDistrict={selectedDistrict}
-          setSelectedDistrict={setSelectedDistrict}
+          selectedDistrict={selectedDistrict} // This can stay the same as it's just the state variable name
+          setSelectedDistrict={setSelectedDistrict} // This can stay the same
           verifiedOnly={verifiedOnly}
           setVerifiedOnly={setVerifiedOnly}
           availableNow={availableNow}
           setAvailableNow={setAvailableNow}
           services={services}
-          districts={districts}
+          districts={districts} // This now contains the actual locations from your Google Sheet
           onFilterClick={() => setShowFilterModal(true)}
         />
+
+        {/* Show active filter status */}
+        {(verifiedOnly || availableNow) && (
+          <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span className=" font-medium text-sm">
+                  Active Filters:
+                </span>
+                {verifiedOnly && (
+                  <span className="bg-blue-100 px-3 py-1 rounded-full text-xs font-medium">
+                    Verified Only
+                  </span>
+                )}
+                {availableNow && (
+                  <span className="bg-blue-100 px-3 py-1 rounded-full text-xs font-medium">
+                    Available Now
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  setVerifiedOnly(false);
+                  setAvailableNow(false);
+                }}
+                className=" text-sm font-medium"
+              >
+                Clear All
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Venues Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-8 mb-12">
@@ -632,37 +772,39 @@ const AiTopPicks = () => {
           <div className="text-center py-16">
             <div className="bg-gray-50 rounded-2xl p-12 max-w-md mx-auto">
               <h3 className="text-2xl text-gray-800 mb-4 font-bold">
-                No ventures found
+                No vendors found
               </h3>
               <p className="text-gray-600 text-lg">
-                Try adjusting your filters
+                Try adjusting your filters or toggles
               </p>
             </div>
           </div>
         )}
 
         {/* Action Buttons */}
-        <div className="text-center space-x-4">
-          {/* View More Button - Shows when there are more venues to load */}
-          {hasMoreVenues && (
-            <button
-              onClick={loadMore}
-              className="px-8 lg:px-12 py-3 lg:py-4 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-all duration-200 font-bold text-base lg:text-lg hover:border-gray-400 hover:shadow-lg"
-            >
-              View More
-            </button>
-          )}
+        {featuredVenues.length > 0 && (
+          <div className="text-center space-x-4">
+            {/* View More Button - Shows when there are more venues to load */}
+            {hasMoreVenues && (
+              <button
+                onClick={loadMore}
+                className="px-8 lg:px-12 py-3 lg:py-4 border-2 border-[#00d1ff] rounded-xl text-gray-700 hover:bg-gray-50 transition-all duration-200 font-bold text-base lg:text-lg hover:border-[#2dd8ff] hover:shadow-lg"
+              >
+                View More
+              </button>
+            )}
 
-          {/* View Less Button - Shows when expanded beyond initial count */}
-          {canShowLess && (
-            <button
-              onClick={showLess}
-              className="px-8 lg:px-12 py-3 lg:py-4 border-2 border-blue-600 rounded-xl text-blue-600 hover:bg-blue-50 transition-all duration-200 font-bold text-base lg:text-lg hover:border-blue-700 hover:shadow-lg"
-            >
-              View Less
-            </button>
-          )}
-        </div>
+            {/* View Less Button - Shows when expanded beyond initial count */}
+            {canShowLess && (
+              <button
+                onClick={showLess}
+                className="px-8 lg:px-12 py-3 lg:py-4 border-2 border-[#00d1ff] rounded-xl text-gray-700  hover:bg-blue-50 transition-all duration-200 font-bold text-base lg:text-lg hover:border-[#1bd5fe] hover:shadow-lg"
+              >
+                View Less
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </section>
   );

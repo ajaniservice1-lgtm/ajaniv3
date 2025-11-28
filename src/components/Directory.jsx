@@ -17,14 +17,14 @@ const SkeletonCard = ({ isMobile }) => (
     className={`
       bg-white rounded-xl overflow-hidden flex-shrink-0 
       font-manrope animate-pulse
-      ${isMobile ? "w-[140px]" : "w-[220px]"} 
+      ${isMobile ? "w-[160px]" : "w-[220px]"} 
     `}
   >
     {/* Image Skeleton */}
     <div
       className={`
         relative overflow-hidden rounded-xl bg-gray-200
-        ${isMobile ? "w-full h-[120px]" : "w-full h-[160px]"}
+        ${isMobile ? "w-full h-[140px]" : "w-full h-[160px]"}
       `}
     ></div>
 
@@ -636,7 +636,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
       className={`
         bg-white rounded-xl overflow-hidden flex-shrink-0 
         font-manrope
-        ${isMobile ? "w-[140px]" : "w-[220px]"} 
+        ${isMobile ? "w-[165px]" : "w-[210px]"} 
         transition-all duration-200 cursor-pointer 
         hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
       `}
@@ -645,7 +645,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
       <div
         className={`
           relative overflow-hidden rounded-xl 
-          ${isMobile ? "w-full h-[120px]" : "w-full h-[160px]"}
+          ${isMobile ? "w-full h-[150px]" : "w-full h-[170px]"}
         `}
       >
         <img
@@ -743,9 +743,11 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
       <div className="flex justify-between items-center mb-2">
         <div>
           <h2
-            className={`text-gray-900 ${
-              isMobile ? "text-sm" : "text-base"
-            } font-bold`}
+            className={`
+              text-[#00065A]
+              ${isMobile ? "text-sm" : "text-base"} 
+              font-bold
+            `}
           >
             {title}
           </h2>
@@ -946,7 +948,7 @@ const Directory = () => {
     );
 
   return (
-    <section id="directory" className="bg-white py-4 font-manrope relative">
+    <section id="directory" className="bg-white py-3 font-manrope relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header - More compact with better mobile spacing */}
         <div className="mb-4">

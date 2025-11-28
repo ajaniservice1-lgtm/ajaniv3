@@ -9,6 +9,90 @@ import { CiSearch } from "react-icons/ci";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
 
+// Location-based filtering utilities
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c;
+  return distance;
+};
+
+// Define area clusters with their central coordinates
+const AREA_CLUSTERS = {
+  Bodija: { lat: 7.4762, lng: 3.9147, radius: 2 },
+  Sango: { lat: 7.4762, lng: 3.9147, radius: 2 },
+  Mokola: { lat: 7.4762, lng: 3.9147, radius: 2 },
+  Jericho: { lat: 7.4762, lng: 3.9147, radius: 2 },
+  "Ring Road": { lat: 7.4762, lng: 3.9147, radius: 2 },
+  Agodi: { lat: 7.4762, lng: 3.9147, radius: 2 },
+  UI: { lat: 7.4762, lng: 3.9147, radius: 2 },
+  Dugbe: { lat: 7.4762, lng: 3.9147, radius: 2 },
+  "Iwo Road": { lat: 7.4762, lng: 3.9147, radius: 2 },
+  Challenge: { lat: 7.4762, lng: 3.9147, radius: 2 },
+  Moniya: { lat: 7.4762, lng: 3.9147, radius: 2 },
+  Akobo: { lat: 7.4762, lng: 3.9147, radius: 2 },
+  Oluyole: { lat: 7.4762, lng: 3.9147, radius: 2 },
+  "New Garage": { lat: 7.4762, lng: 3.9147, radius: 2 },
+  Ojoo: { lat: 7.4762, lng: 3.9147, radius: 2 },
+  Ologuneru: { lat: 7.4762, lng: 3.9147, radius: 2 },
+  "Oke-Are": { lat: 7.4762, lng: 3.9147, radius: 2 },
+  "New Bodija": { lat: 7.4762, lng: 3.9147, radius: 2 },
+  Gate: { lat: 7.4762, lng: 3.9147, radius: 2 },
+};
+
+// Function to find nearby areas based on coordinates
+const findNearbyAreas = (targetArea, allListings, maxDistance = 5) => {
+  const targetCluster = AREA_CLUSTERS[targetArea];
+  if (!targetCluster) return [];
+
+  const nearbyAreas = new Set();
+
+  // Add the target area itself
+  nearbyAreas.add(targetArea);
+
+  // Check all other areas for proximity
+  Object.entries(AREA_CLUSTERS).forEach(([area, cluster]) => {
+    if (area !== targetArea) {
+      const distance = calculateDistance(
+        targetCluster.lat,
+        targetCluster.lng,
+        cluster.lat,
+        cluster.lng
+      );
+
+      if (distance <= maxDistance) {
+        nearbyAreas.add(area);
+      }
+    }
+  });
+
+  return Array.from(nearbyAreas);
+};
+
+// Function to group areas by proximity
+const getAreaGroups = () => {
+  const groups = [];
+  const processedAreas = new Set();
+
+  Object.keys(AREA_CLUSTERS).forEach((area) => {
+    if (!processedAreas.has(area)) {
+      const nearby = findNearbyAreas(area, [], 3); // 3km radius
+      groups.push(nearby);
+      nearby.forEach((a) => processedAreas.add(a));
+    }
+  });
+
+  return groups;
+};
+
 // Function to normalize words (convert to singular form and handle common plural patterns)
 const normalizeWord = (word) => {
   if (!word || typeof word !== "string") return "";
@@ -69,7 +153,7 @@ const matchesWord = (searchWord, targetWord) => {
   return false;
 };
 
-// Enhanced filter function that handles area and category search
+// Enhanced filter function with location-based search
 const filterVendors = (query, vendors) => {
   if (!query.trim()) return [];
 
@@ -84,6 +168,18 @@ const filterVendors = (query, vendors) => {
       (word) =>
         item.area && item.area.toLowerCase().includes(word.toLowerCase())
     );
+
+    // Check for nearby areas
+    const nearbyAreasMatch = queryWords.some((word) => {
+      const targetArea = Object.keys(AREA_CLUSTERS).find((area) =>
+        area.toLowerCase().includes(word.toLowerCase())
+      );
+      if (targetArea && item.area) {
+        const nearbyAreas = findNearbyAreas(targetArea, vendors, 3);
+        return nearbyAreas.includes(item.area);
+      }
+      return false;
+    });
 
     // Check category with plural/singular matching
     const categoryMatch = queryWords.some(
@@ -101,16 +197,38 @@ const filterVendors = (query, vendors) => {
     );
 
     // Check if any field matches
-    return areaMatch || categoryMatch || nameMatch;
+    return areaMatch || nearbyAreasMatch || categoryMatch || nameMatch;
   });
 };
 
-// Get unique areas for suggestions
-const getUniqueAreas = (listings) => {
-  const areas = listings
-    .map((item) => item.area)
-    .filter((area) => area && area.trim() !== "");
-  return [...new Set(areas)].sort();
+// Get unique areas with nearby suggestions
+const getAreaSuggestions = (query = "", listings) => {
+  const allAreas = [
+    ...new Set(listings.map((item) => item.area).filter(Boolean)),
+  ];
+
+  if (!query.trim()) {
+    // Show popular area groups when no query
+    const areaGroups = getAreaGroups();
+    return areaGroups.slice(0, 3).flat();
+  }
+
+  // Find areas matching query and their nearby areas
+  const matchingAreas = allAreas.filter((area) =>
+    area.toLowerCase().includes(query.toLowerCase())
+  );
+
+  const nearbySuggestions = new Set();
+
+  matchingAreas.forEach((area) => {
+    // Add the matching area
+    nearbySuggestions.add(area);
+    // Add nearby areas
+    const nearby = findNearbyAreas(area, listings, 3);
+    nearby.forEach((nearbyArea) => nearbySuggestions.add(nearbyArea));
+  });
+
+  return Array.from(nearbySuggestions).slice(0, 6);
 };
 
 // Format location display
@@ -204,21 +322,19 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
     }
   }, [isOpen]);
 
-  // Enhanced filter vendors based on search query with area and category support
+  // Enhanced filter vendors based on search query with location-based support
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setSuggestions([]);
-      setAreaSuggestions(getUniqueAreas(listings).slice(0, 5)); // Show top 5 areas when empty
+      setAreaSuggestions(getAreaSuggestions("", listings)); // Show area groups when empty
       return;
     }
 
     const filtered = filterVendors(searchQuery, listings).slice(0, 8);
     setSuggestions(filtered);
 
-    // Also show area suggestions that match the query
-    const matchingAreas = getUniqueAreas(listings)
-      .filter((area) => area.toLowerCase().includes(searchQuery.toLowerCase()))
-      .slice(0, 3);
+    // Show area suggestions that match the query and nearby areas
+    const matchingAreas = getAreaSuggestions(searchQuery, listings);
     setAreaSuggestions(matchingAreas);
   }, [searchQuery, listings]);
 
@@ -446,7 +562,7 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
             }`}
           >
             {searchQuery.trim() === "" ? (
-              // Area suggestions when empty
+              // Area suggestions when empty - Updated with location-based groups
               <motion.div
                 className="p-6"
                 initial={{ opacity: 0 }}
@@ -461,49 +577,37 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                 >
                   Popular Areas in Ibadan
                 </motion.h3>
-                <div className="space-y-3">
-                  {areaSuggestions.map((area, index) => (
-                    <motion.button
-                      key={index}
-                      onClick={() => handleSelectArea(area)}
-                      className="flex items-center gap-3 p-3 w-full text-left hover:bg-gray-50 rounded-lg transition-colors border border-gray-100 overflow-hidden"
-                      initial={{ x: -20, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{
-                        delay: 0.1 + index * 0.05,
-                        type: "spring",
-                        stiffness: 100,
-                      }}
-                    >
-                      <svg
-                        className="w-5 h-5 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                <div className="space-y-4">
+                  {getAreaGroups()
+                    .slice(0, 3)
+                    .map((areaGroup, index) => (
+                      <motion.div
+                        key={index}
+                        className="border border-gray-200 rounded-lg p-3"
+                        initial={{ x: -20, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{
+                          delay: 0.1 + index * 0.05,
+                          type: "spring",
+                          stiffness: 100,
+                        }}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                      </svg>
-                      <div className="overflow-hidden">
-                        <span className="text-gray-700 font-medium block overflow-hidden">
-                          {area}
-                        </span>
-                        <p className="text-gray-500 text-sm overflow-hidden">
-                          Ibadan, Oyo State
+                        <p className="text-sm font-medium text-gray-700 mb-2">
+                          {areaGroup[0]} & Nearby
                         </p>
-                      </div>
-                    </motion.button>
-                  ))}
+                        <div className="flex flex-wrap gap-2">
+                          {areaGroup.map((area, areaIndex) => (
+                            <button
+                              key={areaIndex}
+                              onClick={() => handleSelectArea(area)}
+                              className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs hover:bg-blue-100 transition-colors border border-blue-200"
+                            >
+                              {area}
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    ))}
                 </div>
               </motion.div>
             ) : suggestions.length === 0 ? (
@@ -560,7 +664,7 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
               >
-                {/* Area Suggestions */}
+                {/* Area Suggestions with nearby areas */}
                 {areaSuggestions.length > 0 && (
                   <motion.div
                     className="mb-6 overflow-hidden"
@@ -568,45 +672,64 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                     animate={{ y: 0, opacity: 1 }}
                   >
                     <h4 className="font-medium text-gray-900 text-sm mb-3 overflow-hidden">
-                      Areas matching "{searchQuery}"
+                      Areas matching "{searchQuery}" and nearby locations
                     </h4>
                     <div className="space-y-2 overflow-hidden">
-                      {areaSuggestions.map((area, index) => (
-                        <motion.button
-                          key={index}
-                          onClick={() => handleSelectArea(area)}
-                          className="flex items-center gap-3 p-3 w-full text-left hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-200 overflow-hidden"
-                          initial={{ x: -20, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{
-                            delay: 0.1 + index * 0.05,
-                            type: "spring",
-                            stiffness: 100,
-                          }}
-                        >
-                          <svg
-                            className="w-4 h-4 text-blue-500"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                      {areaSuggestions.map((area, index) => {
+                        const isNearby = !area
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase());
+
+                        return (
+                          <motion.button
+                            key={index}
+                            onClick={() => handleSelectArea(area)}
+                            className={`flex items-center gap-3 p-3 w-full text-left rounded-lg transition-colors border overflow-hidden ${
+                              isNearby
+                                ? "bg-orange-50 border-orange-200 hover:bg-orange-100"
+                                : "bg-blue-50 border-blue-200 hover:bg-blue-100"
+                            }`}
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{
+                              delay: 0.1 + index * 0.05,
+                              type: "spring",
+                              stiffness: 100,
+                            }}
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                            />
-                          </svg>
-                          <div className="overflow-hidden">
-                            <span className="text-gray-700 font-medium text-sm block overflow-hidden">
-                              {area}
-                            </span>
-                            <p className="text-gray-500 text-xs overflow-hidden">
-                              Ibadan, Oyo State
-                            </p>
-                          </div>
-                        </motion.button>
-                      ))}
+                            <svg
+                              className={`w-4 h-4 ${
+                                isNearby ? "text-orange-500" : "text-blue-500"
+                              }`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                              />
+                            </svg>
+                            <div className="flex-1 overflow-hidden">
+                              <div className="flex items-center justify-between overflow-hidden">
+                                <span className="text-gray-700 font-medium text-sm block overflow-hidden">
+                                  {area}
+                                </span>
+                                {isNearby && (
+                                  <span className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded-full overflow-hidden">
+                                    Nearby
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-gray-500 text-xs overflow-hidden">
+                                Ibadan, Oyo State
+                              </p>
+                            </div>
+                          </motion.button>
+                        );
+                      })}
                     </div>
                   </motion.div>
                 )}
@@ -708,7 +831,8 @@ const SearchModal = ({ isOpen, onClose, listings = [] }) => {
                             </div>
                             {vendor.category && (
                               <span className="text-gray-500 text-xs bg-gray-100 px-2 py-1 rounded overflow-hidden">
-                                {vendor.category}
+                                {vendor.category.split(".")[1] ||
+                                  vendor.category}
                               </span>
                             )}
                           </div>
