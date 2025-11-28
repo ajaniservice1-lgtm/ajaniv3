@@ -697,7 +697,7 @@ const AiTopPicks = () => {
               initial={{ opacity: 0, x: -50 }}
               animate={headerInView ? { opacity: 1, x: 0 } : {}}
               transition={{ delay: 0.1, duration: 0.4 }}
-              className="text-start text-xl lg:text-4xl font-bold text-gray-900 mb-1"
+              className="text-start text-xl lg:text-3xl font-bold text-gray-900 mb-1"
             >
               Verified Vendors
             </motion.h1>
@@ -705,7 +705,7 @@ const AiTopPicks = () => {
               initial={{ opacity: 0, x: -50 }}
               animate={headerInView ? { opacity: 1, x: 0 } : {}}
               transition={{ delay: 0.2, duration: 0.4 }}
-              className="text-start lg:text-start text-gray-600 text-[14px] lg:text-lg max-w-2xl leading-relaxed"
+              className="text-start lg:text-start text-gray-600 text-[14px] lg:text-[15px] max-w-2xl leading-relaxed"
             >
               Trusted businesses reviewed and approved for quality and
               reliability.
