@@ -11,6 +11,83 @@ import { FaGreaterThan } from "react-icons/fa";
 import { FaLessThan } from "react-icons/fa";
 import { PiSliders } from "react-icons/pi";
 
+// ---------------- Skeleton Loading Components ----------------
+const SkeletonCard = ({ isMobile }) => (
+  <div
+    className={`
+      bg-white rounded-xl overflow-hidden flex-shrink-0 
+      font-manrope animate-pulse
+      ${isMobile ? "w-[140px]" : "w-[220px]"} 
+    `}
+  >
+    {/* Image Skeleton */}
+    <div
+      className={`
+        relative overflow-hidden rounded-xl bg-gray-200
+        ${isMobile ? "w-full h-[120px]" : "w-full h-[160px]"}
+      `}
+    ></div>
+
+    {/* Text Skeleton */}
+    <div className={`${isMobile ? "p-1.5" : "p-2.5"} flex flex-col gap-2`}>
+      <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+      <div className="h-2 bg-gray-200 rounded w-1/2"></div>
+      <div className="flex items-center gap-1 mt-1">
+        <div className="h-2 bg-gray-200 rounded w-1/3"></div>
+        <div className="h-2 bg-gray-200 rounded w-1/4"></div>
+      </div>
+    </div>
+  </div>
+);
+
+const SkeletonCategorySection = ({ isMobile }) => (
+  <section className="mb-4">
+    <div className="flex justify-between items-center mb-2">
+      <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+      <div className="flex gap-1">
+        <div className="w-6 h-6 rounded-full bg-gray-200"></div>
+        <div className="w-6 h-6 rounded-full bg-gray-200"></div>
+      </div>
+    </div>
+
+    <div className="flex overflow-x-auto scrollbar-hide gap-2">
+      {[...Array(6)].map((_, index) => (
+        <SkeletonCard key={index} isMobile={isMobile} />
+      ))}
+    </div>
+  </section>
+);
+
+const SkeletonDirectory = ({ isMobile }) => (
+  <section id="directory" className="bg-white py-4 font-manrope relative">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Header Skeleton */}
+      <div className="mb-4">
+        <div className="text-center mb-4">
+          <div className="h-5 bg-gray-200 rounded w-1/4 mx-auto mb-2"></div>
+          <div className="h-3 bg-gray-200 rounded w-1/3 mx-auto"></div>
+        </div>
+
+        {/* Filters Skeleton */}
+        <div className="flex flex-col sm:flex-row gap-2 items-center justify-between mb-3">
+          <div className="flex w-full sm:w-auto justify-between items-center gap-1">
+            <div className="h-8 bg-gray-200 rounded-lg flex-1"></div>
+            <div className="h-8 bg-gray-200 rounded-lg flex-1"></div>
+            <div className="h-8 bg-gray-200 rounded-lg w-8"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Category Sections Skeleton */}
+      <div className="space-y-4">
+        {[...Array(4)].map((_, index) => (
+          <SkeletonCategorySection key={index} isMobile={isMobile} />
+        ))}
+      </div>
+    </div>
+  </section>
+);
+
 // ---------------- FilterDropdown Component ----------------
 const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
   const dropdownRef = useRef(null);
@@ -754,6 +831,11 @@ const Directory = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // Show skeleton loading while data is being fetched
+  if (loading) {
+    return <SkeletonDirectory isMobile={isMobile} />;
+  }
+
   const formatPrice = (n) => {
     if (!n) return "–";
     const num = Number(n);
@@ -851,16 +933,6 @@ const Directory = () => {
   const handleFilterChange = (filters) => {
     setActiveFilters(filters);
   };
-
-  if (loading)
-    return (
-      <section id="directory" className="bg-white py-6 font-manrope relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-block animate-spin w-6 h-6 border-4 border-blue-600 border-t-transparent rounded-full mb-3"></div>
-          <p className="text-gray-600 text-sm">Loading Ibadan Directory...</p>
-        </div>
-      </section>
-    );
 
   if (error)
     return (
