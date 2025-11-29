@@ -1,3 +1,4 @@
+// src/pages/HomePage.jsx
 import LocalBusinessSchema from "../components/LocalBusinessSchema";
 import Header from "../components/Header";
 import Hero from "../components/Hero";
@@ -5,7 +6,6 @@ import AiTopPicks from "../components/AiTopPicks";
 import FeaturedBanner from "../components/FeaturedBanner";
 import Directory from "../components/Directory";
 import VendorForm from "../components/VendorForm";
-// import FAQ from "../components/FAQ";
 import Footer from "../components/Footer";
 import ChatWidget from "../components/ChatWidget";
 import Toast from "../components/Toast";
@@ -33,10 +33,10 @@ export default function HomePage() {
   const closeToast = () => {
     setToastMessage("");
   };
+
   return (
     <section className="relative">
       <div>
-        {" "}
         <Meta
           title=" Home | Ajani Directory | Ajani.ai | Find Hotels | Vendors | Events & Prices in Ibadan"
           description="Discover top-rated local businesses near you."
@@ -53,7 +53,6 @@ export default function HomePage() {
       <AiTopPicks onAuthToast={showAuthToast} />
       <FeaturedBanner />
       <VendorForm />
-      {/* <FAQ /> */}
       <Footer />
     </section>
   );

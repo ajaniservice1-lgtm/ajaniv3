@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { generateSlug } from "../utils/vendorUtils";
 import { MdFavoriteBorder } from "react-icons/md";
 import { FaGreaterThan } from "react-icons/fa";
@@ -608,8 +608,8 @@ const useGoogleSheet = (sheetId, apiKey) => {
 // ---------------- BusinessCard Component ----------------
 const BusinessCard = ({ item, category, isMobile }) => {
   const images = getCardImages(item);
+  const navigate = useNavigate();
 
-  // Define formatPrice inside BusinessCard component
   const formatPrice = (n) => {
     if (!n) return "–";
     const num = Number(n);
@@ -631,6 +631,15 @@ const BusinessCard = ({ item, category, isMobile }) => {
 
   const location = item.area || "Ibadan";
 
+  const handleCardClick = () => {
+    // Navigate to vendor detail page or category page
+    if (item.id) {
+      navigate(`/vendor/${item.id}`);
+    } else {
+      navigate(`/category/${category}`);
+    }
+  };
+
   return (
     <div
       className={`
@@ -640,6 +649,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
         transition-all duration-200 cursor-pointer 
         hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
       `}
+      onClick={handleCardClick}
     >
       {/* Image */}
       <div
@@ -664,7 +674,13 @@ const BusinessCard = ({ item, category, isMobile }) => {
         </div>
 
         {/* Heart icon */}
-        <button className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition">
+        <button
+          className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition"
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent card click when clicking heart
+            // Add to favorites logic here
+          }}
+        >
           <MdFavoriteBorder className="text-[#00d1ff] text-sm" />
         </button>
       </div>
@@ -720,7 +736,21 @@ const BusinessCard = ({ item, category, isMobile }) => {
 
 // ---------------- CategorySection Component ----------------
 const CategorySection = ({ title, items, sectionId, isMobile }) => {
+  const navigate = useNavigate();
+
   if (items.length === 0) return null;
+
+  // In your Directory.jsx - update the getCategoryFromTitle function:
+  const getCategoryFromTitle = (title) => {
+    const words = title.toLowerCase().split(" ");
+    if (words.includes("hotel")) return "hotel";
+    if (words.includes("shortlet")) return "shortlet";
+    if (words.includes("restaurant")) return "restaurant";
+    if (words.includes("tourist")) return "tourist-center"; // This should match your data
+    return words[1] || "all";
+  };
+
+  const category = getCategoryFromTitle(title);
 
   const scrollSection = (sectionId, direction) => {
     const container = document.getElementById(sectionId);
@@ -738,19 +768,37 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
     });
   };
 
+  const handleCategoryClick = () => {
+    navigate(`/category/${category}`);
+  };
+
   return (
     <section className="mb-4">
       <div className="flex justify-between items-center mb-2">
         <div>
-          <h2
+          <button
+            onClick={handleCategoryClick}
             className={`
-              text-[#00065A]
+              text-[#00065A] hover:text-[#06EAFC] transition-colors text-left
               ${isMobile ? "text-sm" : "text-base"} 
-              font-bold
+              font-bold cursor-pointer flex items-center gap-1
             `}
           >
             {title}
-          </h2>
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </button>
         </div>
         <div className="flex gap-1">
           <button
@@ -812,6 +860,8 @@ const Directory = () => {
     initialIndex: 0,
     item: null,
   });
+
+  const navigate = useNavigate();
 
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
   const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
@@ -936,6 +986,11 @@ const Directory = () => {
     setActiveFilters(filters);
   };
 
+  // Handle category button click
+  const handleCategoryButtonClick = (category) => {
+    navigate(`/category/${category}`);
+  };
+
   if (error)
     return (
       <section id="directory" className="bg-white py-6 font-manrope relative">
@@ -972,12 +1027,7 @@ const Directory = () => {
             {/* Mobile View - Compact filter row */}
             <div className="flex w-full sm:w-auto justify-between items-center gap-1">
               <button
-                onClick={() => {
-                  setSearch("");
-                  setMainCategory("");
-                  setArea("");
-                  setActiveFilters({});
-                }}
+                onClick={() => handleCategoryButtonClick("all")}
                 className="sm:px-2 sm:py-1.5 p-2 bg-[#06EAFC] font-medium rounded-lg text-[10px] lg:text-[12px] hover:bg-[#08d7e6] transition-colors whitespace-nowrap flex-1 text-center"
               >
                 Popular destination
@@ -985,7 +1035,12 @@ const Directory = () => {
 
               <select
                 value={mainCategory}
-                onChange={(e) => setMainCategory(e.target.value)}
+                onChange={(e) => {
+                  setMainCategory(e.target.value);
+                  if (e.target.value) {
+                    handleCategoryButtonClick(e.target.value);
+                  }
+                }}
                 className="px-2 py-1.5 border border-gray-300 rounded-lg font-medium text-[10px] lg:text-[12px] bg-gray-300 focus:ring-1 focus:ring-[#06EAFC]  p-2 focus:border-[#06EAFC] flex-1"
               >
                 <option value="">Categories</option>
@@ -1040,7 +1095,7 @@ const Directory = () => {
             const items = categorizedListings[category] || [];
             if (items.length === 0) return null;
 
-            const title = `Popular ${capitalizeFirst(category)} in Ibadan >`;
+            const title = `Popular ${capitalizeFirst(category)} in Ibadan`;
             const sectionId = `${category}-section`;
 
             return (

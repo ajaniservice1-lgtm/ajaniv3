@@ -12,6 +12,7 @@ const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
 const VendorPage = lazy(() => import("./pages/VendorPage"));
+const CategoryResults = lazy(() => import("./pages/CategoryResults")); // Add this line
 
 // Loading component with animated dots
 const LoadingDots = () => {
@@ -19,8 +20,14 @@ const LoadingDots = () => {
     <div className="flex items-center justify-center min-h-screen bg-white">
       <div className="flex space-x-1">
         <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"></div>
-        <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-        <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+        <div
+          className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"
+          style={{ animationDelay: "0.1s" }}
+        ></div>
+        <div
+          className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"
+          style={{ animationDelay: "0.2s" }}
+        ></div>
       </div>
     </div>
   );
@@ -46,6 +53,12 @@ function App() {
 
                   {/* Dynamic vendor page */}
                   <Route path="/vendor/:slug" element={<VendorPage />} />
+
+                  {/* ADD THIS ROUTE FOR CATEGORY PAGES */}
+                  <Route
+                    path="/category/:category"
+                    element={<CategoryResults />}
+                  />
                 </Routes>
               </Suspense>
             </TrackingWrapper>
