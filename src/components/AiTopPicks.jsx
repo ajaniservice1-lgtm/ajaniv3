@@ -728,37 +728,7 @@ const AiTopPicks = () => {
           onFilterClick={() => setShowFilterModal(true)}
         />
 
-        {/* Show active filter status */}
-        {(verifiedOnly || availableNow) && (
-          <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <span className=" font-medium text-sm">
-                  Active Filters:
-                </span>
-                {verifiedOnly && (
-                  <span className="bg-blue-100 px-3 py-1 rounded-full text-xs font-medium">
-                    Verified Only
-                  </span>
-                )}
-                {availableNow && (
-                  <span className="bg-blue-100 px-3 py-1 rounded-full text-xs font-medium">
-                    Available Now
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={() => {
-                  setVerifiedOnly(false);
-                  setAvailableNow(false);
-                }}
-                className=" text-sm font-medium"
-              >
-                Clear All
-              </button>
-            </div>
-          </div>
-        )}
+       
 
         {/* Venues Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-8 mb-12">

@@ -5,7 +5,7 @@ import AiTopPicks from "../components/AiTopPicks";
 import FeaturedBanner from "../components/FeaturedBanner";
 import Directory from "../components/Directory";
 import VendorForm from "../components/VendorForm";
-import FAQ from "../components/FAQ";
+// import FAQ from "../components/FAQ";
 import Footer from "../components/Footer";
 import ChatWidget from "../components/ChatWidget";
 import Toast from "../components/Toast";
@@ -53,7 +53,7 @@ export default function HomePage() {
       <AiTopPicks onAuthToast={showAuthToast} />
       <FeaturedBanner />
       <VendorForm />
-      <FAQ />
+      {/* <FAQ /> */}
       <Footer />
     </section>
   );

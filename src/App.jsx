@@ -11,7 +11,20 @@ const HomePage = lazy(() => import("./pages/HomePage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
-const VendorPage = lazy(() => import("./pages/VendorPage")); // ✅ add this
+const VendorPage = lazy(() => import("./pages/VendorPage"));
+
+// Loading component with animated dots
+const LoadingDots = () => {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-white">
+      <div className="flex space-x-1">
+        <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"></div>
+        <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+        <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+      </div>
+    </div>
+  );
+};
 
 function App() {
   return (
@@ -24,13 +37,7 @@ function App() {
         <ChatProvider>
           <BrowserRouter>
             <TrackingWrapper>
-              <Suspense
-                fallback={
-                  <div className="flex items-center justify-center min-h-screen text-gray-600">
-                    Loading...
-                  </div>
-                }
-              >
+              <Suspense fallback={<LoadingDots />}>
                 <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/privacypage" element={<PrivacyPage />} />

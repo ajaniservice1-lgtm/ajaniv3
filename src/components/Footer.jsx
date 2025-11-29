@@ -37,7 +37,7 @@ const Footer = () => {
               <img
                 src={Logo}
                 alt="Ajani Logo"
-                className="w-48 h-auto" // Made logo larger (h-16 instead of h-8)
+                className="md:w-48 w-24 h-auto" // Made logo larger (h-16 instead of h-8)
               />
             </div>
           </motion.div>
