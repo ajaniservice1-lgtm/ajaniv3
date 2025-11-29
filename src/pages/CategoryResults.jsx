@@ -6,6 +6,7 @@ import { faStar, faFilter } from "@fortawesome/free-solid-svg-icons";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Meta from "../components/Meta";
+import { MdFavoriteBorder } from "react-icons/md";
 
 // Import your Google Sheets hook
 const useGoogleSheet = (sheetId, apiKey) => {
@@ -230,64 +231,134 @@ const CategoryResults = () => {
     return `From #${formatPrice(item.price_from)} per guest`;
   };
 
-  const ListingCard = ({ listing }) => {
-    const images = listing["image url"]
-      ? listing["image url"]
-          .split(",")
-          .map((url) => url.trim())
-          .filter((url) => url.startsWith("http"))
-      : [
-          "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
-        ];
+  const getCardImages = (item) => {
+    const raw = item["image url"] || "";
+    const urls = raw
+      .split(",")
+      .map((u) => u.trim())
+      .filter((u) => u && u.startsWith("http"));
+
+    if (urls.length > 0) return urls;
+
+    const cat = (item.category || "").toLowerCase();
+    if (cat.includes("hotel"))
+      return [
+        "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
+      ];
+    if (cat.includes("restaurant"))
+      return [
+        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80",
+      ];
+    if (cat.includes("shortlet"))
+      return [
+        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80",
+      ];
+    if (cat.includes("tourist"))
+      return [
+        "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=80",
+      ];
+    return [
+      "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
+    ];
+  };
+
+  // Business Card Component matching Directory design
+  const BusinessCard = ({ item }) => {
+    const images = getCardImages(item);
+    const location = item.area || "Ibadan";
+    const priceText = getPriceText(item, category);
 
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-        <div className="flex flex-col md:flex-row">
-          {/* Image */}
-          <div className="md:w-1/3">
-            <img
-              src={images[0]}
-              alt={listing.name}
-              className="w-full h-48 md:h-full object-cover"
-              onError={(e) => {
-                e.target.src =
-                  "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80";
-              }}
-            />
+      <div
+        className={`
+          bg-white rounded-xl overflow-hidden flex-shrink-0 
+          font-manrope
+          ${isMobile ? "w-[165px]" : "w-[210px]"} 
+          transition-all duration-200 cursor-pointer 
+          hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
+        `}
+      >
+        {/* Image */}
+        <div
+          className={`
+            relative overflow-hidden rounded-xl 
+            ${isMobile ? "w-full h-[150px]" : "w-full h-[170px]"}
+          `}
+        >
+          <img
+            src={images[0]}
+            alt=""
+            className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
+            onError={(e) => {
+              e.target.src =
+                "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80";
+            }}
+            loading="lazy"
+          />
+
+          {/* Guest favorite badge */}
+          <div className="absolute top-2 left-2 bg-white px-1.5 py-1 rounded-md shadow-sm flex items-center gap-1">
+            <span className="text-[9px] font-semibold text-gray-900">
+              Guest favorite
+            </span>
           </div>
 
-          {/* Content */}
-          <div className="p-4 md:w-2/3">
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="font-bold text-lg text-gray-900">
-                {listing.name}
-              </h3>
-              <div className="flex items-center space-x-1">
-                <FontAwesomeIcon
-                  icon={faStar}
-                  className="text-yellow-400 text-sm"
-                />
-                <span className="text-gray-700 font-medium">
-                  {listing.rating || "4.9"}
-                </span>
-              </div>
-            </div>
+          {/* Heart icon */}
+          <button
+            className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition"
+            onClick={(e) => {
+              e.stopPropagation();
+              // Add to favorites logic here
+            }}
+          >
+            <MdFavoriteBorder className="text-[#00d1ff] text-sm" />
+          </button>
+        </div>
 
-            <p className="text-gray-600 mb-3">
-              {getPriceText(listing, category)}
+        {/* Text */}
+        <div
+          className={`${isMobile ? "p-1.5" : "p-2.5"} flex flex-col gap-0.5`}
+        >
+          <h3
+            className={`
+              font-semibold text-gray-900 
+              leading-tight line-clamp-2 
+              ${isMobile ? "text-xs" : "text-sm"}
+            `}
+          >
+            {item.name}
+          </h3>
+
+          <p
+            className={`
+              text-gray-600 
+              ${isMobile ? "text-[9px]" : "text-xs"}
+            `}
+          >
+            {location}
+          </p>
+
+          <div className="flex items-center gap-1 mt-0.5">
+            <p
+              className={`
+                font-normal text-gray-900 
+                ${isMobile ? "text-[9px]" : "text-xs"}
+              `}
+            >
+              {priceText} <span>•</span>
             </p>
 
-            <p className="text-gray-500 text-sm mb-3">
-              {listing.area || "Ibadan"}
-            </p>
-
-            <div className="flex justify-between items-center">
-              <span className="text-2xl font-bold text-gray-900">
-                #{formatPrice(listing.price_from)}
-              </span>
-              <button className="bg-[#06EAFC] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#05d9e8] transition-colors">
-                Book Now
-              </button>
+            <div
+              className={`
+                flex items-center gap-1 text-gray-800 
+                ${isMobile ? "text-[9px]" : "text-xs"}
+              `}
+            >
+              <FontAwesomeIcon
+                icon={faStar}
+                className={`${isMobile ? "text-[9px]" : "text-xs"} text-black`}
+              />
+              {item.rating || "4.9"}
             </div>
           </div>
         </div>
@@ -439,35 +510,72 @@ const CategoryResults = () => {
             </div>
           )}
 
-          {/* Listings */}
+          {/* Listings Grid - Matching Directory Layout */}
           <div className="flex-1">
-            <div className="space-y-6">
-              {filteredListings.length > 0 ? (
-                filteredListings.map((listing) => (
-                  <ListingCard
-                    key={listing.id || listing.name}
-                    listing={listing}
-                  />
-                ))
-              ) : (
-                <div className="text-center py-12">
-                  <div className="bg-gray-50 rounded-xl p-8 max-w-md mx-auto">
-                    <i className="fas fa-search text-3xl text-gray-300 mb-4 block"></i>
-                    <h3 className="text-lg text-gray-800 mb-2">
-                      No {categoryTitle} found
-                    </h3>
-                    <p className="text-gray-600">
-                      Try adjusting your search or filters
-                    </p>
+            {/* Grid Layout - 4 cards per row on desktop, horizontal scroll on mobile */}
+            {isMobile ? (
+              <div className="flex overflow-x-auto scrollbar-hide gap-2 pb-4">
+                {filteredListings.length > 0 ? (
+                  filteredListings.map((listing, index) => (
+                    <BusinessCard key={listing.id || index} item={listing} />
+                  ))
+                ) : (
+                  <div className="text-center py-12 w-full">
+                    <div className="bg-gray-50 rounded-xl p-8 max-w-md mx-auto">
+                      <i className="fas fa-search text-3xl text-gray-300 mb-4 block"></i>
+                      <h3 className="text-lg text-gray-800 mb-2">
+                        No {categoryTitle} found
+                      </h3>
+                      <p className="text-gray-600">
+                        Try adjusting your search or filters
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredListings.length > 0 ? (
+                  filteredListings.map((listing, index) => (
+                    <BusinessCard key={listing.id || index} item={listing} />
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-12">
+                    <div className="bg-gray-50 rounded-xl p-8 max-w-md mx-auto">
+                      <i className="fas fa-search text-3xl text-gray-300 mb-4 block"></i>
+                      <h3 className="text-lg text-gray-800 mb-2">
+                        No {categoryTitle} found
+                      </h3>
+                      <p className="text-gray-600">
+                        Try adjusting your search or filters
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </main>
 
       <Footer />
+
+      {/* Custom scrollbar hiding */}
+      <style jsx>{`
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+      `}</style>
     </div>
   );
 };
