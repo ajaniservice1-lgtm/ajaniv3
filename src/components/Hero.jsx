@@ -8,6 +8,7 @@ import HeroImage2 from "../assets/Logos/hotel.jpg";
 import HeroImage3 from "../assets/Logos/tourism.jpg";
 import HeroImage4 from "../assets/Logos/events.jpg";
 import HeroImage5 from "../assets/Logos/restuarant.jpg";
+import { useNavigate } from "react-router-dom"; // Add this import
 
 // Utility functions
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -708,8 +709,11 @@ const SearchModal = ({
   );
 };
 
+
 // Main Hero Component
 const Hero = () => {
+  const navigate = useNavigate(); // Add navigate hook
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -737,98 +741,7 @@ const Hero = () => {
     else setHasAnimated(false);
   }, [isInView]);
 
-  // Enhanced filter function with location-based search
-  const filterVendors = (query, vendors) => {
-    if (!query.trim()) return [];
-
-    const normalizedQuery = normalizeWord(query);
-    const queryWords = normalizedQuery
-      .split(" ")
-      .filter((word) => word.length > 0);
-
-    return vendors.filter((item) => {
-      // Check area first (priority for location-based search)
-      const areaMatch = queryWords.some(
-        (word) =>
-          item.area && item.area.toLowerCase().includes(word.toLowerCase())
-      );
-
-      // Check for nearby areas
-      const nearbyAreasMatch = queryWords.some((word) => {
-        const targetArea = Object.keys(AREA_CLUSTERS).find((area) =>
-          area.toLowerCase().includes(word.toLowerCase())
-        );
-        if (targetArea && item.area) {
-          const nearbyAreas = findNearbyAreas(targetArea, vendors, 3);
-          return nearbyAreas.includes(item.area);
-        }
-        return false;
-      });
-
-      // Check category
-      const categoryMatch = queryWords.some(
-        (word) =>
-          matchesWord(word, item.category) ||
-          (item.category &&
-            item.category.toLowerCase().includes(word.toLowerCase()))
-      );
-
-      // Check name
-      const nameMatch = queryWords.some(
-        (word) =>
-          item.name && item.name.toLowerCase().includes(word.toLowerCase())
-      );
-
-      // Return true if any field matches
-      return areaMatch || nearbyAreasMatch || categoryMatch || nameMatch;
-    });
-  };
-
-  // Get unique areas with nearby suggestions
-  const getAreaSuggestions = (query = "") => {
-    const allAreas = [
-      ...new Set(listings.map((item) => item.area).filter(Boolean)),
-    ];
-
-    if (!query.trim()) {
-      // Show popular area groups when no query
-      const areaGroups = getAreaGroups();
-      return areaGroups.slice(0, 3).flat();
-    }
-
-    // Find areas matching query and their nearby areas
-    const matchingAreas = allAreas.filter((area) =>
-      area.toLowerCase().includes(query.toLowerCase())
-    );
-
-    const nearbySuggestions = new Set();
-
-    matchingAreas.forEach((area) => {
-      // Add the matching area
-      nearbySuggestions.add(area);
-      // Add nearby areas
-      const nearby = findNearbyAreas(area, listings, 3);
-      nearby.forEach((nearbyArea) => nearbySuggestions.add(nearbyArea));
-    });
-
-    return Array.from(nearbySuggestions).slice(0, 6);
-  };
-
-  // Filter vendors based on search query
-  useEffect(() => {
-    if (searchQuery.trim() === "") {
-      setSuggestions([]);
-      setAreaSuggestions(getAreaSuggestions()); // Show area groups when empty
-      return;
-    }
-
-    const filtered = filterVendors(searchQuery, listings).slice(0, 8);
-    setSuggestions(filtered);
-
-    // Show area suggestions that match the query and nearby areas
-    const matchingAreas = getAreaSuggestions(searchQuery);
-    setAreaSuggestions(matchingAreas);
-  }, [searchQuery, listings]);
+  // ... (keep all the existing filter functions)
 
   const handleSearchChange = (query) => {
     setSearchQuery(query);
@@ -857,12 +770,94 @@ const Hero = () => {
     setIsSearchModalOpen(true);
   };
 
+  // Handle category card click - navigate to respective category page
+  const handleCategoryClick = (category) => {
+    // Map category names to URL slugs
+    const categoryMap = {
+      Hotel: "hotel",
+      Restaurant: "restaurant",
+      Shortlet: "shortlet",
+      Tourism: "tourist-center",
+    };
+
+    const categorySlug = categoryMap[category];
+    if (categorySlug) {
+      navigate(`/category/${categorySlug}`);
+    }
+  };
+
+
+  // Updated category data with proper navigation and reliable images
   const categoryData = [
-    { name: "Hotel", img: HeroImage2 },
-    { name: "Restaurant", img: HeroImage5 },
-    { name: "Events", img: HeroImage4 },
-    { name: "Tourism", img: HeroImage3 },
+    {
+      name: "Hotel",
+      img: HeroImage2,
+      description: "Popular Hotels",
+      fallback:
+        "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop&q=80",
+    },
+    {
+      name: "Restaurant",
+      img: HeroImage5,
+      description: "Popular Restaurants",
+      fallback:
+        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop&q=80",
+    },
+    {
+      name: "Shortlet",
+      img: HeroImage4,
+      description: "Popular Shortlets",
+      fallback:
+        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop&q=80",
+    },
+    {
+      name: "Tourism",
+      img: HeroImage3,
+      description: "Tourist Centers",
+      fallback:
+        "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=300&fit=crop&q=80",
+    },
   ];
+
+  // Then update the image rendering part in the return statement:
+  <div className="flex justify-center gap-1 sm:gap-2 mt-2 sm:mt-3 overflow-hidden px-2">
+    {categoryData.map((item) => (
+      <motion.div
+        key={item.name}
+        className="text-center cursor-pointer group"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => handleCategoryClick(item.name)}
+      >
+        <div className="relative">
+          <img
+            src={item.img}
+            alt={item.name}
+            className="
+            w-10 h-10 rounded-lg overflow-hidden
+            sm:w-12 sm:h-12
+            md:w-14 md:h-14
+            object-cover
+            group-hover:brightness-110
+            group-hover:shadow-md
+            transition-all duration-200
+          "
+            onError={(e) => {
+              e.target.src = item.fallback;
+            }}
+          />
+          {/* Hover overlay effect */}
+          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200"></div>
+        </div>
+        <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200">
+          {item.name}
+        </p>
+        <p className="text-[8px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          {item.description}
+        </p>
+      </motion.div>
+    ))}
+  </div>;
 
   return (
     <>
@@ -936,24 +931,40 @@ const Hero = () => {
                 </div>
               </div>
 
-              {/* Categories - Ultra compact with reduced spacing */}
+              {/* Categories - Ultra compact with reduced spacing - NOW CLICKABLE */}
               <div className="flex justify-center gap-1 sm:gap-2 mt-2 sm:mt-3 overflow-hidden px-2">
                 {categoryData.map((item) => (
-                  <div key={item.name} className="text-center">
-                    <img
-                      src={item.img}
-                      alt={item.name}
-                      className="
-                        w-10 h-10 rounded-lg overflow-hidden
-                        sm:w-12 sm:h-12
-                        md:w-14 md:h-14
-                        object-cover
-                      "
-                    />
-                    <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700">
+                  <motion.div
+                    key={item.name}
+                    className="text-center cursor-pointer group"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleCategoryClick(item.name)}
+                  >
+                    <div className="relative">
+                      <img
+                        src={item.img}
+                        alt={item.name}
+                        className="
+                          w-10 h-10 rounded-lg overflow-hidden
+                          sm:w-12 sm:h-12
+                          md:w-14 md:h-14
+                          object-cover
+                          group-hover:brightness-110
+                          group-hover:shadow-md
+                          transition-all duration-200
+                        "
+                      />
+                      {/* Hover overlay effect */}
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200"></div>
+                    </div>
+                    <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200">
                       {item.name}
                     </p>
-                  </div>
+                    <p className="text-[8px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      {item.description}
+                    </p>
+                  </motion.div>
                 ))}
               </div>
             </motion.div>

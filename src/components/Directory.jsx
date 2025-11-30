@@ -5,10 +5,8 @@ import { faStar } from "@fortawesome/free-solid-svg-icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import { Link, useNavigate } from "react-router-dom";
-import { generateSlug } from "../utils/vendorUtils";
 import { MdFavoriteBorder } from "react-icons/md";
-import { FaGreaterThan } from "react-icons/fa";
-import { FaLessThan } from "react-icons/fa";
+import { FaGreaterThan, FaLessThan } from "react-icons/fa";
 import { PiSliders } from "react-icons/pi";
 
 // ---------------- Skeleton Loading Components ----------------
@@ -278,141 +276,6 @@ const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
           </div>
         </div>
 
-        {/* Badge Section */}
-        <div>
-          <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
-            Badge
-          </h4>
-          <div className="space-y-2">
-            <label className="flex items-center space-x-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={filters.badges.includes("verified")}
-                onChange={() => handleBadgeChange("verified")}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
-              />
-              <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
-                Verified
-              </span>
-            </label>
-            <label className="flex items-center space-x-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={filters.badges.includes("unverified")}
-                onChange={() => handleBadgeChange("unverified")}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
-              />
-              <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
-                Unverified
-              </span>
-            </label>
-          </div>
-        </div>
-
-        {/* Response Section */}
-        <div>
-          <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
-            Response Time
-          </h4>
-          <div className="space-y-2">
-            <label className="flex items-center space-x-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={filters.badges.includes("1hr-4hr")}
-                onChange={() => handleBadgeChange("1hr-4hr")}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
-              />
-              <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
-                1hr - 4hr
-              </span>
-            </label>
-            <label className="flex items-center space-x-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={filters.badges.includes("5hr-8hr")}
-                onChange={() => handleBadgeChange("5hr-8hr")}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
-              />
-              <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
-                5hr - 8hr
-              </span>
-            </label>
-          </div>
-        </div>
-
-        {/* Language Section */}
-        <div>
-          <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
-            Language
-          </h4>
-          <div className="space-y-2">
-            <label className="flex items-center space-x-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={filters.badges.includes("yoruba")}
-                onChange={() => handleBadgeChange("yoruba")}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
-              />
-              <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
-                Yoruba Only
-              </span>
-            </label>
-            <label className="flex items-center space-x-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={filters.badges.includes("english")}
-                onChange={() => handleBadgeChange("english")}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
-              />
-              <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
-                English Only
-              </span>
-            </label>
-            <label className="flex items-center space-x-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={filters.badges.includes("both")}
-                onChange={() => handleBadgeChange("both")}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
-              />
-              <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
-                Both
-              </span>
-            </label>
-          </div>
-        </div>
-
-        {/* Vendor Type Section */}
-        <div>
-          <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
-            Vendor Type
-          </h4>
-          <div className="space-y-2">
-            <label className="flex items-center space-x-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={filters.badges.includes("individual")}
-                onChange={() => handleBadgeChange("individual")}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
-              />
-              <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
-                Individual / Business
-              </span>
-            </label>
-            <label className="flex items-center space-x-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={filters.badges.includes("company")}
-                onChange={() => handleBadgeChange("company")}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
-              />
-              <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
-                Verified Company
-              </span>
-            </label>
-          </div>
-        </div>
-
         {/* Action Buttons */}
         <div className="flex space-x-3 pt-4 border-t">
           <button
@@ -430,60 +293,6 @@ const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
         </div>
       </div>
     </motion.div>
-  );
-};
-
-// ---------------- Image Modal Component ----------------
-const ImageModal = ({ images, initialIndex, isOpen, onClose, item }) => {
-  const [currentIndex, setCurrentIndex] = useState(initialIndex);
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
-      <div className="relative max-w-4xl max-h-full">
-        <button
-          onClick={onClose}
-          className="absolute -top-12 right-0 text-white text-2xl hover:text-gray-300 z-10"
-        >
-          ×
-        </button>
-
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() =>
-              setCurrentIndex((prev) =>
-                prev > 0 ? prev - 1 : images.length - 1
-              )
-            }
-            className="text-white text-2xl hover:text-gray-300"
-          >
-            ‹
-          </button>
-
-          <img
-            src={images[currentIndex]}
-            alt={`${item?.name || "Business"} image ${currentIndex + 1}`}
-            className="max-w-full max-h-[80vh] object-contain rounded-lg"
-          />
-
-          <button
-            onClick={() =>
-              setCurrentIndex((prev) =>
-                prev < images.length - 1 ? prev + 1 : 0
-              )
-            }
-            className="text-white text-2xl hover:text-gray-300"
-          >
-            ›
-          </button>
-        </div>
-
-        <div className="text-white text-center mt-4">
-          {currentIndex + 1} / {images.length}
-        </div>
-      </div>
-    </div>
   );
 };
 
@@ -632,10 +441,11 @@ const BusinessCard = ({ item, category, isMobile }) => {
   const location = item.area || "Ibadan";
 
   const handleCardClick = () => {
-    // Navigate to vendor detail page or category page
+    // Navigate to vendor detail page using the item's ID
     if (item.id) {
-      navigate(`/vendor/${item.id}`);
+      navigate(`/vendor-detail/${item.id}`);
     } else {
+      // Fallback to category page if no ID
       navigate(`/category/${category}`);
     }
   };
@@ -740,13 +550,12 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
 
   if (items.length === 0) return null;
 
-  // In your Directory.jsx - update the getCategoryFromTitle function:
   const getCategoryFromTitle = (title) => {
     const words = title.toLowerCase().split(" ");
     if (words.includes("hotel")) return "hotel";
     if (words.includes("shortlet")) return "shortlet";
     if (words.includes("restaurant")) return "restaurant";
-    if (words.includes("tourist")) return "tourist-center"; // This should match your data
+    if (words.includes("tourist")) return "tourist-center";
     return words[1] || "all";
   };
 
@@ -854,12 +663,6 @@ const Directory = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [activeFilters, setActiveFilters] = useState({});
-  const [imageModal, setImageModal] = useState({
-    isOpen: false,
-    images: [],
-    initialIndex: 0,
-    item: null,
-  });
 
   const navigate = useNavigate();
 
@@ -887,15 +690,6 @@ const Directory = () => {
   if (loading) {
     return <SkeletonDirectory isMobile={isMobile} />;
   }
-
-  const formatPrice = (n) => {
-    if (!n) return "–";
-    const num = Number(n);
-    return num.toLocaleString("en-US", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    });
-  };
 
   // Define the specific categories we want to display
   const getPopularCategories = () => {
@@ -1125,19 +919,6 @@ const Directory = () => {
           </div>
         )}
       </div>
-
-      {/* Image Modal */}
-      <AnimatePresence>
-        {imageModal.isOpen && (
-          <ImageModal
-            images={imageModal.images}
-            initialIndex={imageModal.initialIndex}
-            isOpen={imageModal.isOpen}
-            onClose={() => setImageModal({ ...imageModal, isOpen: false })}
-            item={imageModal.item}
-          />
-        )}
-      </AnimatePresence>
 
       {/* Custom scrollbar hiding */}
       <style jsx>{`

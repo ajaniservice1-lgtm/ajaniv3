@@ -5,6 +5,7 @@ import { ChatProvider } from "./context/ChatContext";
 import TrackingWrapper from "./components/TrackingWrapper";
 import LocalBusinessSchema from "./components/LocalBusinessSchema";
 import { ModalProvider } from "./context/ModalContext";
+import VendorDetail from "./pages/VendorDetail"; // Add this import
 
 // Lazy-load pages for performance
 const HomePage = lazy(() => import("./pages/HomePage"));
@@ -12,7 +13,7 @@ const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
 const VendorPage = lazy(() => import("./pages/VendorPage"));
-const CategoryResults = lazy(() => import("./pages/CategoryResults")); // Add this line
+const CategoryResults = lazy(() => import("./pages/CategoryResults"));
 
 // Loading component with animated dots
 const LoadingDots = () => {
@@ -50,11 +51,14 @@ function App() {
                   <Route path="/privacypage" element={<PrivacyPage />} />
                   <Route path="/termspage" element={<TermsPage />} />
                   <Route path="/contact" element={<ContactPage />} />
-
-                  {/* Dynamic vendor page */}
+                  {/* Dynamic vendor pages */}
                   <Route path="/vendor/:slug" element={<VendorPage />} />
-
-                  {/* ADD THIS ROUTE FOR CATEGORY PAGES */}
+                  <Route
+                    path="/vendor-detail/:id"
+                    element={<VendorDetail />}
+                  />{" "}
+                  {/* Add this line */}
+                  {/* Category pages */}
                   <Route
                     path="/category/:category"
                     element={<CategoryResults />}
