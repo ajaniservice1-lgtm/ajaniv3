@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { RiShare2Line } from "react-icons/ri";
@@ -88,6 +88,9 @@ const VendorDetail = () => {
   const navigate = useNavigate();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const imageRef = useRef(null);
 
   // Use your actual Google Sheets data
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
@@ -320,6 +323,32 @@ const VendorDetail = () => {
     setActiveImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
+  // Touch swipe handlers for mobile
+  const handleTouchStart = (e) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe) {
+      nextImage();
+    }
+    if (isRightSwipe) {
+      prevImage();
+    }
+
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center font-manrope">
@@ -385,17 +414,17 @@ const VendorDetail = () => {
     "Laundry & Concierge Services",
   ];
 
-  // Default features if none in Google Sheets
+  // Default features if none in Google Sheets - REMOVED color classes
   const defaultFeatures = [
-    { icon: faWifi, name: "WiFi", color: "text-blue-600" },
-    { icon: faSwimmingPool, name: "Swimming Pool", color: "text-blue-500" },
-    { icon: faCar, name: "Parking", color: "text-green-600" },
-    { icon: faUtensils, name: "Restaurant", color: "text-orange-600" },
-    { icon: faShieldAlt, name: "24/7 Security", color: "text-red-600" },
+    { icon: faWifi, name: "WiFi" },
+    { icon: faSwimmingPool, name: "Swimming Pool" },
+    { icon: faCar, name: "Parking" },
+    { icon: faUtensils, name: "Restaurant" },
+    { icon: faShieldAlt, name: "24/7 Security" },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 font-manrope">
+    <div className="min-h-screen font-manrope">
       <Meta
         title={`${vendor.name} | ${categoryDisplay} in ${area}`}
         description={
@@ -409,9 +438,9 @@ const VendorDetail = () => {
 
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="lg:max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6">
         {/* Breadcrumb - Reduced font by 3px */}
-        <nav className="flex items-center space-x-2 text-xs text-gray-600 mb-6 font-manrope">
+        <nav className="flex items-center space-x-2 text-xs text-gray-600 mb-4 md:mb-6 px-2 font-manrope">
           <Link to="/" className="hover:text-[#06EAFC] transition-colors">
             Home
           </Link>
@@ -425,28 +454,30 @@ const VendorDetail = () => {
             {categoryDisplay}
           </Link>
           <span>/</span>
-          <span className="text-gray-900 truncate max-w-xs">{vendor.name}</span>
+          <span className="text-gray-900 truncate max-w-[120px] md:max-w-xs">
+            {vendor.name}
+          </span>
         </nav>
 
         {/* Single Column Layout */}
-        <div className="space-y-8">
+        <div className="space-y-4 md:space-y-8">
           {/* Header Info - Updated layout */}
-          <div className="p-8">
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+          <div className="px-2 md:px-4 lg:px-8 py-4 md:py-8 bg-white rounded-xl md:rounded-2xl mx-2 md:mx-0">
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6">
               {/* Left: Name and Info */}
               <div className="flex-1">
-                {/* Vendor name - Reduced from text-3xl to text-2xl */}
-                <div className="flex items-center gap-3 mb-6">
-                  <h1 className="text-2xl font-bold text-gray-900 font-manrope">
+                {/* Vendor name */}
+                <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-3">
+                  <h1 className="text-lg md:text-xl lg:text-3xl font-bold text-gray-900 font-manrope line-clamp-2">
                     {vendor.name}
                   </h1>
-                  <VscVerifiedFilled className="text-green-500 text-xl" />
+                  <VscVerifiedFilled className="text-green-500 text-base md:text-xl" />
                 </div>
 
-                <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 mb-6">
-                  {/* Category - First letter capital only */}
+                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 lg:gap-8">
+                  {/* Category */}
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-700 font-medium bg-gray-100 px-3 py-1 rounded-full font-manrope text-sm">
+                    <span className="text-gray-700 font-medium py-1 font-manrope text-xs md:text-sm">
                       {categoryDisplay}
                     </span>
                   </div>
@@ -456,55 +487,144 @@ const VendorDetail = () => {
                     <div className="flex items-center gap-1">
                       <FontAwesomeIcon
                         icon={faStar}
-                        className="text-yellow-400"
+                        className="text-yellow-400 text-xs md:text-sm"
                       />
                     </div>
-                    <span className="font-bold text-gray-900 font-manrope text-sm">
+                    <span className="font-bold text-gray-900 font-manrope text-xs md:text-sm">
                       {formattedRating}
                     </span>
-                    <span className="text-gray-600 font-manrope text-sm">
+                    <span className="text-gray-600 font-manrope text-xs md:text-sm">
                       ({reviewCount} Reviews)
                     </span>
                   </div>
 
                   {/* Area with location icon */}
-                  <div className="flex items-center gap-2 text-gray-700 font-manrope text-sm">
+                  <div className="flex items-center gap-2 text-gray-700 font-manrope text-xs md:text-sm">
                     <FontAwesomeIcon
                       icon={faMapMarkerAlt}
-                      className="text-gray-500 text-sm"
+                      className="text-gray-500 text-xs md:text-sm"
                     />
-                    <span>{area}</span>
+                    <span className="truncate max-w-[150px] md:max-w-none">
+                      {area}
+                    </span>
                   </div>
                 </div>
               </div>
 
               {/* Right: Save/Share buttons with new icons */}
-              <div className="flex flex-col items-end gap-4">
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setIsSaved(!isSaved)}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                      isSaved
-                        ? "bg-blue-50 border-2 border-blue-200"
-                        : "bg-white border-2 border-gray-200 hover:bg-gray-50"
-                    }`}
-                  >
-                    <CiBookmark
-                      className={`text-xl ${
-                        isSaved ? "text-blue-500" : "text-gray-600"
+              <div className="flex flex-col items-end gap-2 md:gap-4 mt-2 md:mt-0">
+                <div className="flex gap-4 md:gap-6 items-center">
+                  {/* Share button first */}
+                  <div className="flex items-center gap-1 md:gap-2">
+                    <button className="w-8 h-8 md:w-10 md:h-10 bg-white border border-gray-200 md:border-2 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors">
+                      <RiShare2Line className="text-gray-600 text-base md:text-xl" />
+                    </button>
+                    <span className="text-gray-600 text-xs md:text-sm font-manrope hidden md:inline">
+                      Share
+                    </span>
+                  </div>
+
+                  {/* Save button second */}
+                  <div className="flex items-center gap-1 md:gap-2">
+                    <button
+                      onClick={() => setIsSaved(!isSaved)}
+                      className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors border md:border-2 ${
+                        isSaved
+                          ? "bg-blue-50 border-blue-200"
+                          : "bg-white border-gray-200 hover:bg-gray-50"
                       }`}
-                    />
-                  </button>
-                  <button className="w-10 h-10 bg-white border-2 border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors">
-                    <RiShare2Line className="text-gray-600 text-xl" />
-                  </button>
+                    >
+                      <CiBookmark
+                        className={`text-base md:text-xl ${
+                          isSaved ? "text-blue-500" : "text-gray-600"
+                        }`}
+                      />
+                    </button>
+                    <span className="text-gray-600 text-xs md:text-sm font-manrope hidden md:inline">
+                      Save
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Image Gallery (Exact Pixel Layout + Click to Swap) */}
-          <div className="bg-white rounded-2xl shadow-lg p-4 flex justify-center">
+          {/* MOBILE: Swipeable Image Gallery */}
+          <div className="block md:hidden px-2">
+            <div className="relative w-full">
+              <div
+                className="relative w-full h-[300px] rounded-2xl overflow-hidden"
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                ref={imageRef}
+              >
+                <img
+                  src={images[activeImageIndex]}
+                  alt={`${vendor.name} - Image ${activeImageIndex + 1}`}
+                  className="w-full h-full object-cover"
+                />
+
+                {/* Prev Button */}
+                <button
+                  onClick={prevImage}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md"
+                >
+                  <IoIosArrowBack className="text-gray-800 text-lg" />
+                </button>
+
+                {/* Next Button */}
+                <button
+                  onClick={nextImage}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md"
+                >
+                  <IoIosArrowForward className="text-gray-800 text-lg" />
+                </button>
+
+                {/* Counter */}
+                <div className="absolute bottom-3 right-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs font-manrope">
+                  {activeImageIndex + 1}/{images.length}
+                </div>
+
+                {/* Image Dots */}
+                <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex gap-2">
+                  {images.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setActiveImageIndex(index)}
+                      className={`w-2 h-2 rounded-full transition-all ${
+                        index === activeImageIndex ? "bg-white" : "bg-white/50"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Thumbnail Strip */}
+              <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
+                {images.map((img, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setActiveImageIndex(index)}
+                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${
+                      index === activeImageIndex
+                        ? "border-blue-500"
+                        : "border-transparent"
+                    }`}
+                  >
+                    <img
+                      src={img}
+                      alt={`Thumbnail ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* DESKTOP: Original Image Gallery */}
+          <div className="hidden md:block p-4">
             <div className="flex gap-4">
               {/* LEFT COLUMN */}
               <div className="flex flex-col gap-4">
@@ -551,7 +671,7 @@ const VendorDetail = () => {
                   <IoIosArrowForward className="text-gray-800 text-xl" />
                 </button>
 
-                {/* Counter - Reduced font */}
+                {/* Counter */}
                 <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-manrope">
                   {activeImageIndex + 1}/{images.length}
                 </div>
@@ -577,142 +697,152 @@ const VendorDetail = () => {
           </div>
 
           {/* Price Range Section */}
-          <div className="flex  mb-4">
-            <div className="">
-              <p className="text-gray-600 font-manrope text-sm mb-2">
+          <div className="px-2 md:px-0">
+            <div className="text-center bg-white rounded-xl md:rounded-2xl p-4 md:p-6 mx-2 md:mx-0">
+              <p className="text-[#00065A] font-manrope text-base md:text-xl font-bold mb-2">
                 Price Range
               </p>
-              <div className="flex items-center justify-center gap-3">
-                <span className="text-xl font-bold text-gray-900 font-manrope">
-                  ₦{formatPrice(priceRange.from)}
+              <div className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-3">
+                <div className="flex items-center gap-1 md:gap-2">
+                  <span className="text-xl md:text-2xl text-gray-900 font-manrope font-bold">
+                    ₦{formatPrice(priceRange.from)}
+                  </span>
+                  <span className="text-gray-500 text-xl">-</span>
+                  <span className="text-xl md:text-2xl text-gray-900 font-manrope font-bold">
+                    ₦{formatPrice(priceRange.to)}
+                  </span>
+                </div>
+                <span className="text-gray-600 text-sm md:text-base mt-1 md:mt-0 md:ml-3">
+                  per night
                 </span>
-                <span className="text-gray-500 text-xl">-</span>
-                <span className="text-xl font-bold text-gray-900 font-manrope">
-                  ₦{formatPrice(priceRange.to)}
-                </span>
-                <span className="text-gray-600 text-base ml-3">per night</span>
               </div>
             </div>
           </div>
 
           {/* Action Icons Bar - Centered */}
-          <div className="flex justify-center mb-8">
-            <div
-              style={{
-                width: "600.1866455078125px",
-                height: "60px",
-                background: "#D9D9D9",
-                borderRadius: "27.77px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-around",
-                opacity: 1,
-              }}
-            >
-              <FaPhone size={30} color="#000" />
-              <IoChatbubbleEllipsesOutline size={30} color="#000" />
-              <FaBookOpen size={30} color="#000" />
-              <HiLocationMarker size={30} color="#000" />
+          <div className="flex justify-center px-2 md:px-0">
+            <div className="w-full md:w-[600px] h-14 md:h-16 bg-gray-200 rounded-2xl md:rounded-3xl flex items-center justify-between px-6 md:px-12 mx-2 md:mx-0">
+              <button className="flex flex-col items-center hover:opacity-80 transition-opacity">
+                <FaPhone size={24} color="#000" />
+                <span className="text-xs mt-1 font-manrope">Call</span>
+              </button>
+              <button className="flex flex-col items-center hover:opacity-80 transition-opacity">
+                <IoChatbubbleEllipsesOutline size={24} color="#000" />
+                <span className="text-xs mt-1 font-manrope">Chat</span>
+              </button>
+              <button className="flex flex-col items-center hover:opacity-80 transition-opacity">
+                <FaBookOpen size={24} color="#000" />
+                <span className="text-xs mt-1 font-manrope">Book</span>
+              </button>
+              <button className="flex flex-col items-center hover:opacity-80 transition-opacity">
+                <HiLocationMarker size={24} color="#000" />
+                <span className="text-xs mt-1 font-manrope">Map</span>
+              </button>
             </div>
           </div>
 
-          {/* About Section - Full Width - Reduced font */}
-          <section className="p-8">
-            {/* Reduced from text-2xl to text-xl */}
-            <h2 className="text-xl font-bold text-[#06F49F] mb-4 font-manrope">
-              About
-            </h2>
-            {/* Reduced from text-lg to text-base */}
-            <p className="text-gray-700 leading-relaxed text-base mb-6 font-manrope">
-              {vendor.description ||
-                vendor.short_desc ||
-                "Sunrise Premium Hotel offers a blend of comfort, modern amenities, and warm hospitality in the heart of Ibadan. Designed for both business and leisure travelers, the hotel provides a peaceful stay with quick access to major city landmarks."}
-            </p>
+          {/* About and Features Section with full width background */}
+          <section className="w-full bg-[#F7F7FA] rounded-2xl md:rounded-3xl">
+            <div className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
+              {/* About Section */}
+              <div className="mb-8 md:mb-12 px-2 md:px-0">
+                <h2 className="text-lg md:text-xl font-bold text-[#06F49F] mb-3 md:mb-4 font-manrope">
+                  About
+                </h2>
+                <p className="text-gray-700 leading-relaxed text-sm md:text-base font-manrope">
+                  {vendor.description ||
+                    vendor.short_desc ||
+                    "Sunrise Premium Hotel offers a blend of comfort, modern amenities, and warm hospitality in the heart of Ibadan. Designed for both business and leisure travelers, the hotel provides a peaceful stay with quick access to major city landmarks."}
+                </p>
+              </div>
+
+              {/* What They Do & Features Side by Side - Full width */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 md:px-0">
+                {/* What They Do Section */}
+                <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6">
+                  <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-4 md:mb-6 font-manrope">
+                    What They Do
+                  </h3>
+                  <div className="space-y-3 md:space-y-4">
+                    {(services.length > 0 ? services : defaultServices).map(
+                      (service, index) => (
+                        <div
+                          key={index}
+                          className="flex items-start gap-3 md:gap-4"
+                        >
+                          <div className="flex-shrink-0 mt-0.5 md:mt-1">
+                            <FaRegCircleCheck
+                              size={18}
+                              className="text-[#06EAFC]"
+                            />
+                          </div>
+                          <span className="text-gray-700 font-manrope leading-relaxed text-sm md:text-sm">
+                            {service}
+                          </span>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+
+                {/* Key Features Section */}
+                <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6">
+                  <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-4 md:mb-6 font-manrope">
+                    Key Features
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+                    {(features.length > 0
+                      ? features.slice(0, 6).map((feature, index) => ({
+                          icon: defaultFeatures[index % defaultFeatures.length]
+                            .icon,
+                          name: feature,
+                        }))
+                      : defaultFeatures
+                    ).map((feature, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 md:gap-3"
+                      >
+                        <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center">
+                          <FontAwesomeIcon
+                            icon={feature.icon}
+                            className="text-sm md:text-base text-gray-900"
+                          />
+                        </div>
+                        <span className="font-medium text-gray-900 font-manrope text-xs md:text-sm">
+                          {feature.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </section>
 
-          {/* What They Do & Features Side by Side */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* What They Do Section - Reduced font */}
-            <section className="p-8">
-              {/* Reduced from text-xl to text-lg */}
-              <h3 className="text-lg font-bold text-gray-900 mb-4 font-manrope">
-                What They Do
-              </h3>
-              <div className="space-y-4">
-                {(services.length > 0 ? services : defaultServices).map(
-                  (service, index) => (
-                    <div key={index} className="flex items-start gap-4">
-                      <div className="flex-shrink-0 mt-1">
-                        <FaRegCircleCheck className="" size={20} />
-                      </div>
-                      <span className="text-gray-700 font-manrope leading-relaxed text-sm">
-                        {service}
-                      </span>
-                    </div>
-                  )
-                )}
-              </div>
-            </section>
-
-            {/* Key Features Section - Reduced font */}
-            <section className="p-8">
-              {/* Reduced from text-xl to text-lg */}
-              <h3 className="text-lg font-bold text-gray-900 mb-4 font-manrope">
-                Key Features
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {(features.length > 0
-                  ? features.slice(0, 6).map((feature, index) => ({
-                      icon: defaultFeatures[index % defaultFeatures.length]
-                        .icon,
-                      name: feature,
-                      color:
-                        defaultFeatures[index % defaultFeatures.length].color,
-                    }))
-                  : defaultFeatures
-                ).map((feature, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div
-                      className={`w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center`}
-                    >
-                      <FontAwesomeIcon
-                        icon={feature.icon}
-                        className="text-base"
-                      />
-                    </div>
-                    <span className="font-medium text-gray-900 font-manrope text-sm">
-                      {feature.name}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
-
-          {/* Reviews Section - Reduced font */}
-          <section className="bg-white rounded-2xl shadow-lg p-8">
-            <div className="flex items-center justify-between mb-6">
-              {/* Reduced from text-2xl to text-xl */}
-              <h2 className="text-xl font-bold text-[#06F49F] font-manrope">
+          {/* Reviews Section */}
+          <section className="bg-[#F7F7FA] rounded-2xl md:rounded-3xl shadow-sm md:shadow-lg p-4 md:p-8 mx-2 md:mx-0">
+            <div className="flex items-center justify-between mb-4 md:mb-6">
+              <h2 className="text-lg md:text-xl font-bold text-[#06F49F] font-manrope">
                 Reviews
               </h2>
-              <span className="text-gray-600 font-manrope text-sm">
+              <span className="text-gray-600 font-manrope text-xs md:text-sm">
                 {reviewCount} reviews
               </span>
             </div>
 
             {/* Review Cards Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               {reviews.map((review) => (
                 <div
                   key={review.id}
-                  className="bg-gray-50 rounded-xl p-5 border border-gray-200 hover:border-gray-300 transition-colors"
+                  className="bg-white rounded-xl p-4 border border-gray-200 hover:border-gray-300 transition-colors"
                 >
                   {/* Review Header with Profile */}
-                  <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-start justify-between mb-3 md:mb-4">
                     <div className="flex items-center gap-3">
                       {/* Profile Image */}
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center overflow-hidden">
+                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center overflow-hidden">
                         {review.profileImage ? (
                           <img
                             src={review.profileImage}
@@ -720,7 +850,7 @@ const VendorDetail = () => {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <span className="text-lg font-bold text-blue-600">
+                          <span className="text-base md:text-lg font-bold text-blue-600">
                             {review.name.charAt(0)}
                           </span>
                         )}
@@ -728,17 +858,17 @@ const VendorDetail = () => {
 
                       {/* Name and Rating */}
                       <div>
-                        <h4 className="font-bold text-gray-900 text-base font-manrope">
+                        <h4 className="font-bold text-gray-900 text-sm md:text-base font-manrope">
                           {review.name}
                         </h4>
-                        <div className="flex items-center gap-1 mt-1">
+                        <div className="flex items-center gap-1 mt-0.5 md:mt-1">
                           {/* Star rating */}
                           <div className="flex">
                             {[...Array(5)].map((_, i) => (
                               <FontAwesomeIcon
                                 key={i}
                                 icon={faStar}
-                                className={`text-sm ${
+                                className={`text-xs md:text-sm ${
                                   i < Math.floor(review.rating)
                                     ? "text-yellow-400"
                                     : "text-gray-300"
@@ -746,7 +876,7 @@ const VendorDetail = () => {
                               />
                             ))}
                           </div>
-                          <span className="text-gray-700 font-medium ml-1 text-sm">
+                          <span className="text-gray-700 font-medium ml-1 text-xs md:text-sm">
                             {review.rating}.0
                           </span>
                         </div>
@@ -755,7 +885,7 @@ const VendorDetail = () => {
                   </div>
 
                   {/* Review Text */}
-                  <p className="text-gray-700 leading-relaxed font-manrope text-sm">
+                  <p className="text-gray-700 leading-relaxed font-manrope text-xs md:text-sm line-clamp-3 md:line-clamp-none">
                     {review.comment}
                   </p>
                 </div>
@@ -764,52 +894,99 @@ const VendorDetail = () => {
 
             {/* Load More Reviews Button */}
             {reviewCount > 4 && (
-              <div className="text-center mt-8">
-                <button className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors font-manrope text-sm">
+              <div className="text-center mt-6 md:mt-8">
+                <button className="px-4 py-2 md:px-6 md:py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors font-manrope text-sm">
                   Load More Reviews
                 </button>
               </div>
             )}
           </section>
 
-          {/* Location Map - Reduced font */}
-          <div className="p-8">
-            {/* Reduced from text-xl to text-lg */}
-            <h3 className="text-lg font-bold text-gray-900 mb-4 font-manrope">
+          {/* Location Map with OpenStreetMap Iframe */}
+          <div className="p-4 md:p-8 mx-2 md:mx-0">
+            <h3 className="text-lg font-bold text-gray-900 mb-3 md:mb-4 font-manrope">
               Location
             </h3>
-            <div className="relative">
-              <div className="bg-gradient-to-br from-blue-50 to-gray-100 rounded-2xl h-64 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+
+            <div className="relative rounded-2xl overflow-hidden h-64 md:h-96">
+              {vendor.lat && vendor.long ? (
+                <iframe
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${
+                    parseFloat(vendor.long) - 0.01
+                  }%2C${parseFloat(vendor.lat) - 0.01}%2C${
+                    parseFloat(vendor.long) + 0.01
+                  }%2C${parseFloat(vendor.lat) + 0.01}&layer=mapnik&marker=${
+                    vendor.lat
+                  }%2C${vendor.long}`}
+                  className="w-full h-full border-0"
+                  title="Location Map"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-blue-50 to-gray-100 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                      <FontAwesomeIcon
+                        icon={faMapMarkerAlt}
+                        className="text-blue-600 text-lg md:text-xl"
+                      />
+                    </div>
+                    <p className="text-gray-700 font-medium font-manrope text-sm">
+                      {area}
+                    </p>
+                    <p className="text-gray-500 text-xs mt-2 font-manrope">
+                      No coordinates available
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Location Info Card */}
+              <div className="absolute top-3 left-3 md:top-4 md:left-4 bg-white/90 backdrop-blur-sm rounded-xl p-3 md:p-4 shadow-lg max-w-[180px] md:max-w-xs">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-full flex items-center justify-center">
                     <FontAwesomeIcon
                       icon={faMapMarkerAlt}
-                      className="text-blue-600 text-xl"
+                      className="text-blue-600 text-sm md:text-base"
                     />
                   </div>
-                  <p className="text-gray-700 font-medium font-manrope text-sm">
-                    {area}
-                  </p>
-                  <p className="text-gray-500 text-xs mt-2 font-manrope">
-                    View on map
-                  </p>
+                  <div>
+                    <h4 className="font-bold text-gray-900 font-manrope text-xs md:text-sm line-clamp-1">
+                      {vendor.name}
+                    </h4>
+                    <p className="text-gray-600 text-xs font-manrope line-clamp-1">
+                      {area}
+                    </p>
+                  </div>
                 </div>
               </div>
+            </div>
 
-              <div className="absolute bottom-4 right-4 flex gap-2">
-                <button className="w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors">
-                  <FontAwesomeIcon
-                    icon={faChevronLeft}
-                    className="text-gray-700"
-                  />
-                </button>
-                <button className="w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors">
-                  <FontAwesomeIcon
-                    icon={faChevronRight}
-                    className="text-gray-700"
-                  />
-                </button>
-              </div>
+            {/* Map Action Buttons */}
+            <div className="mt-4 md:mt-6 flex flex-col md:flex-row gap-3">
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                  `${vendor.name} ${area}`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 bg-gray-900 text-white py-3 rounded-xl font-semibold hover:bg-gray-800 transition-colors font-manrope text-sm flex items-center justify-center gap-2"
+              >
+                <FontAwesomeIcon icon={faMapMarkerAlt} />
+                Open in Google Maps
+              </a>
+              {vendor.lat && vendor.long && (
+                <a
+                  href={`https://www.openstreetmap.org/#map=15/${vendor.lat}/${vendor.long}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors font-manrope text-sm flex items-center justify-center gap-2"
+                >
+                  <FontAwesomeIcon icon={faMapMarkerAlt} />
+                  Open in OSM
+                </a>
+              )}
             </div>
           </div>
         </div>
