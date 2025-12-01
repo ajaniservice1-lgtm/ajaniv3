@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { RiShare2Line } from "react-icons/ri";
+import { CiBookmark } from "react-icons/ci";
+import { FaPhone } from "react-icons/fa6";
+import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
+import { FaBookOpen } from "react-icons/fa";
+import { HiLocationMarker } from "react-icons/hi";
 import {
   faStar,
   faMapMarkerAlt,
@@ -19,7 +25,6 @@ import {
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Meta from "../components/Meta";
-import { MdFavoriteBorder, MdShare } from "react-icons/md";
 import { VscVerifiedFilled } from "react-icons/vsc";
 import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 
@@ -238,16 +243,26 @@ const VendorDetail = () => {
     return "Hotel & Event Centre";
   };
 
-  // Get rating from vendor data
+  // Get rating from vendor data - ensure it's a proper decimal
   const getRating = (vendor) => {
-    if (vendor?.rating) return parseFloat(vendor.rating);
+    if (vendor?.rating) {
+      // Handle string values like "4.8", "2.3", etc.
+      const ratingValue = parseFloat(vendor.rating);
+      return isNaN(ratingValue) ? 4.7 : ratingValue;
+    }
     return 4.7; // Default
   };
 
   // Get review count from vendor data
   const getReviewCount = (vendor) => {
-    if (vendor?.review_count) return parseInt(vendor.review_count);
-    if (vendor?.reviews_count) return parseInt(vendor.reviews_count);
+    if (vendor?.review_count) {
+      const count = parseInt(vendor.review_count);
+      return isNaN(count) ? 9 : count;
+    }
+    if (vendor?.reviews_count) {
+      const count = parseInt(vendor.reviews_count);
+      return isNaN(count) ? 9 : count;
+    }
     return 9; // Default
   };
 
@@ -256,6 +271,53 @@ const VendorDetail = () => {
     if (vendor?.area) return vendor.area;
     if (vendor?.location) return vendor.location;
     return "Jericho, Ibadan";
+  };
+
+  // Format rating to one decimal place
+  const formatRating = (rating) => {
+    return rating.toFixed(1); // Shows 4.8, 2.3, etc.
+  };
+
+  // Function to render stars based on rating
+  const renderStars = (rating) => {
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+
+    return (
+      <div className="flex items-center">
+        {/* Full stars */}
+        {[...Array(fullStars)].map((_, i) => (
+          <FontAwesomeIcon
+            key={`full-${i}`}
+            icon={faStar}
+            className="text-yellow-400"
+          />
+        ))}
+
+        {/* Half star if needed */}
+        {hasHalfStar && (
+          <div className="relative">
+            <FontAwesomeIcon icon={faStar} className="text-gray-300" />
+            <div
+              className="absolute top-0 left-0 overflow-hidden"
+              style={{ width: "50%" }}
+            >
+              <FontAwesomeIcon icon={faStar} className="text-yellow-400" />
+            </div>
+          </div>
+        )}
+
+        {/* Empty stars */}
+        {[...Array(emptyStars)].map((_, i) => (
+          <FontAwesomeIcon
+            key={`empty-${i}`}
+            icon={faStar}
+            className="text-gray-300"
+          />
+        ))}
+      </div>
+    );
   };
 
   // Next/Prev image navigation
@@ -269,7 +331,7 @@ const VendorDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center font-manrope">
         <div className="flex space-x-1">
           <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"></div>
           <div
@@ -287,7 +349,7 @@ const VendorDetail = () => {
 
   if (error || !vendor) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 font-manrope">
         <Header />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center py-12">
@@ -299,7 +361,7 @@ const VendorDetail = () => {
               </p>
               <button
                 onClick={() => navigate(-1)}
-                className="bg-[#06EAFC] text-white px-6 py-2 rounded-lg hover:bg-[#05d9eb] transition-colors"
+                className="bg-[#06EAFC] text-white px-6 py-2 rounded-lg hover:bg-[#05d9eb] transition-colors font-manrope"
               >
                 Go Back
               </button>
@@ -319,6 +381,7 @@ const VendorDetail = () => {
   const priceRange = getPriceRange(vendor);
   const categoryDisplay = getCategoryDisplay(vendor);
   const rating = getRating(vendor);
+  const formattedRating = formatRating(rating);
   const reviewCount = getReviewCount(vendor);
   const area = getArea(vendor);
 
@@ -341,7 +404,7 @@ const VendorDetail = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 font-manrope">
       <Meta
         title={`${vendor.name} | ${categoryDisplay} in ${area}`}
         description={
@@ -357,7 +420,7 @@ const VendorDetail = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Breadcrumb */}
-        <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-6">
+        <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-6 font-manrope">
           <Link to="/" className="hover:text-[#06EAFC] transition-colors">
             Home
           </Link>
@@ -376,81 +439,76 @@ const VendorDetail = () => {
 
         {/* Single Column Layout */}
         <div className="space-y-8">
-          {/* Header Info - Updated to match first image */}
+          {/* Header Info - Updated layout */}
           <div className="p-8">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
               {/* Left: Name and Info */}
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-4">
-                  <h1 className="text-3xl font-bold text-gray-900">
+                <div className="flex items-center gap-3 mb-6">
+                  <h1 className="text-3xl font-bold text-gray-900 font-manrope">
                     {vendor.name}
                   </h1>
                   <VscVerifiedFilled className="text-green-500 text-2xl" />
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-gray-700">
+                <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 mb-6">
+                  {/* Category - No icon in front */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-700 font-medium bg-gray-100 px-3 py-1 rounded-full font-manrope">
+                      {categoryDisplay}
+                    </span>
+                  </div>
+
+                  {/* Rating with proper star rendering */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      {renderStars(rating)}
+                    </div>
+                    <span className="font-bold text-gray-900 font-manrope">
+                      {formattedRating}
+                    </span>
+                    <span className="text-gray-600 font-manrope">
+                      ({reviewCount} Reviews)
+                    </span>
+                  </div>
+
+                  {/* Area with location icon */}
+                  <div className="flex items-center gap-2 text-gray-700 font-manrope">
                     <FontAwesomeIcon
                       icon={faMapMarkerAlt}
                       className="text-gray-500"
                     />
-                    <span>
-                      {categoryDisplay} • {area}
-                    </span>
+                    <span>{area}</span>
                   </div>
-
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <FontAwesomeIcon
-                            key={i}
-                            icon={faStar}
-                            className={`${
-                              i < Math.floor(rating)
-                                ? "text-yellow-400"
-                                : "text-gray-300"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="font-bold text-gray-900">{rating}</span>
-                      <span className="text-gray-600">
-                        ({reviewCount} Reviews)
-                      </span>
-                    </div>
-                  </div>
-
-                
                 </div>
               </div>
 
-              {/* Right: Save/Share and Price - Updated styling */}
+              {/* Right: Save/Share buttons with new icons */}
               <div className="flex flex-col items-end gap-4">
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <button
                     onClick={() => setIsSaved(!isSaved)}
                     className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
                       isSaved
-                        ? "bg-red-50 border-2 border-red-200"
+                        ? "bg-blue-50 border-2 border-blue-200"
                         : "bg-white border-2 border-gray-200 hover:bg-gray-50"
                     }`}
                   >
-                    <MdFavoriteBorder
-                      className={`text-xl ${
-                        isSaved ? "text-red-500" : "text-gray-600"
+                    <CiBookmark
+                      className={`text-2xl ${
+                        isSaved ? "text-blue-500" : "text-gray-600"
                       }`}
                     />
                   </button>
                   <button className="w-12 h-12 bg-white border-2 border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors">
-                    <MdShare className="text-gray-600 text-xl" />
+                    <RiShare2Line className="text-gray-600 text-2xl" />
                   </button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Image Gallery - Updated to match second image */}
+          {/* Image Gallery */}
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
             <div className="relative h-[500px]">
               <img
@@ -474,12 +532,12 @@ const VendorDetail = () => {
               </button>
 
               {/* Image counter */}
-              <div className="absolute bottom-6 right-6 bg-black/80 text-white px-4 py-2 rounded-full text-lg font-medium">
+              <div className="absolute bottom-6 right-6 bg-black/80 text-white px-4 py-2 rounded-full text-lg font-medium font-manrope">
                 {activeImageIndex + 1}/{images.length}
               </div>
             </div>
 
-            {/* Thumbnail strip - Updated styling */}
+            {/* Thumbnail strip */}
             <div className="p-6 border-t border-gray-200">
               <div className="flex gap-4 overflow-x-auto pb-2">
                 {images.map((img, index) => (
@@ -497,37 +555,78 @@ const VendorDetail = () => {
                       alt={`Thumbnail ${index + 1}`}
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                     />
-                    {activeImageIndex === index && (
-                      <div className=""></div>
-                    )}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Price Range - Positioned like in the second image */}
+            {/* Price Range */}
             <div className="px-8 pb-8">
-              
-                <h3 className="text-xl font-bold text-gray-900 mb-4">
-                  Price Range
-                </h3>
-                <div className="flex items-baseline gap-3">
-                  <span className="text-xl font-bold text-gray-900">
-                    ₦{formatPrice(priceRange.from)}
+              <h3 className="text-xl font-bold text-gray-900 mb-4 font-manrope">
+                Price Range
+              </h3>
+              <div className="flex items-baseline gap-3">
+                <span className="text-xl font-bold text-gray-900 font-manrope">
+                  ₦{formatPrice(priceRange.from)}
+                </span>
+                <span className="text-xl text-gray-600 font-manrope">-</span>
+                <span className="text-xl font-bold text-gray-900 font-manrope">
+                  ₦{formatPrice(priceRange.to)}
+                </span>
+                <span className="text-lg text-gray-600 ml-3 font-manrope">
+                  per night
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="w-full p-6">
+              <div className="bg-gray-100 rounded-3xl flex items-center justify-around p-4 max-w-4xl mx-auto">
+                <button className="flex flex-col items-center justify-center gap-2 hover:opacity-80 transition-opacity">
+                  <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm">
+                    <FaPhone size={28} color="#000" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 font-manrope">
+                    Call
                   </span>
-                  <span className="text-xl text-gray-600">-</span>
-                  <span className="text-xl font-bold text-gray-900">
-                    ₦{formatPrice(priceRange.to)}
+                </button>
+
+                <button className="flex flex-col items-center justify-center gap-2 hover:opacity-80 transition-opacity">
+                  <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm">
+                    <IoChatbubbleEllipsesOutline size={28} color="#000" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 font-manrope">
+                    Chat
                   </span>
-                  <span className="text-lg text-gray-600 ml-3">per night</span>
-                </div>
+                </button>
+
+                <button className="flex flex-col items-center justify-center gap-2 hover:opacity-80 transition-opacity">
+                  <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm">
+                    <FaBookOpen size={28} color="#000" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 font-manrope">
+                    Book
+                  </span>
+                </button>
+
+                <button className="flex flex-col items-center justify-center gap-2 hover:opacity-80 transition-opacity">
+                  <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm">
+                    <HiLocationMarker size={28} color="#000" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 font-manrope">
+                    Location
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
 
           {/* About Section - Full Width */}
           <section className="bg-white rounded-2xl shadow-lg p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">About</h2>
-            <p className="text-gray-700 leading-relaxed text-lg mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 font-manrope">
+              About
+            </h2>
+            <p className="text-gray-700 leading-relaxed text-lg mb-8 font-manrope">
               {vendor.description ||
                 vendor.short_desc ||
                 "Sunrise Premium Hotel offers a blend of comfort, modern amenities, and warm hospitality in the heart of Ibadan. Designed for both business and leisure travelers, the hotel provides a peaceful stay with quick access to major city landmarks."}
@@ -538,7 +637,7 @@ const VendorDetail = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* What They Do Section */}
             <section className="bg-white rounded-2xl shadow-lg p-8">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">
+              <h3 className="text-xl font-bold text-gray-900 mb-4 font-manrope">
                 What They Do
               </h3>
               <div className="space-y-3">
@@ -546,7 +645,9 @@ const VendorDetail = () => {
                   (service, index) => (
                     <div key={index} className="flex items-start gap-3">
                       <div className="w-2 h-2 bg-[#06EAFC] rounded-full mt-2"></div>
-                      <span className="text-gray-700">{service}</span>
+                      <span className="text-gray-700 font-manrope">
+                        {service}
+                      </span>
                     </div>
                   )
                 )}
@@ -555,7 +656,7 @@ const VendorDetail = () => {
 
             {/* Key Features Section */}
             <section className="bg-white rounded-2xl shadow-lg p-8">
-              <h3 className="text-xl font-bold text-gray-900 mb-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-6 font-manrope">
                 Key Features
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -578,7 +679,7 @@ const VendorDetail = () => {
                         className="text-lg"
                       />
                     </div>
-                    <span className="font-medium text-gray-900">
+                    <span className="font-medium text-gray-900 font-manrope">
                       {feature.name}
                     </span>
                   </div>
@@ -587,11 +688,15 @@ const VendorDetail = () => {
             </section>
           </div>
 
-          {/* Reviews Section */}
+          {/* Reviews Section - Updated to use proper star rendering */}
           <section className="bg-white rounded-2xl shadow-lg p-8">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Reviews</h2>
-              <span className="text-gray-600">{reviewCount} reviews</span>
+              <h2 className="text-2xl font-bold text-gray-900 font-manrope">
+                Reviews
+              </h2>
+              <span className="text-gray-600 font-manrope">
+                {reviewCount} reviews
+              </span>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {reviews.map((review) => (
@@ -600,31 +705,21 @@ const VendorDetail = () => {
                   className="pb-6 border-b border-gray-200 last:border-b-0"
                 >
                   <div className="mb-4">
-                    <h4 className="font-bold text-gray-900 text-lg">
+                    <h4 className="font-bold text-gray-900 text-lg font-manrope">
                       {review.name}
                     </h4>
                     <div className="flex items-center gap-2 mt-2">
                       <div className="flex items-center gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <FontAwesomeIcon
-                            key={i}
-                            icon={faStar}
-                            className={`${
-                              i < review.rating
-                                ? "text-yellow-400"
-                                : "text-gray-300"
-                            }`}
-                          />
-                        ))}
+                        {renderStars(review.rating)}
                       </div>
                       {review.date && (
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-gray-500 font-manrope">
                           {review.date}
                         </span>
                       )}
                     </div>
                   </div>
-                  <p className="text-gray-700 leading-relaxed">
+                  <p className="text-gray-700 leading-relaxed font-manrope">
                     {review.comment}
                   </p>
                 </div>
@@ -634,7 +729,9 @@ const VendorDetail = () => {
 
           {/* Location Map */}
           <div className="bg-white rounded-2xl shadow-lg p-8">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">Location</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-6 font-manrope">
+              Location
+            </h3>
             <div className="relative">
               <div className="bg-gradient-to-br from-blue-50 to-gray-100 rounded-2xl h-64 flex items-center justify-center">
                 <div className="text-center">
@@ -644,8 +741,12 @@ const VendorDetail = () => {
                       className="text-blue-600 text-2xl"
                     />
                   </div>
-                  <p className="text-gray-700 font-medium">{area}</p>
-                  <p className="text-gray-500 text-sm mt-2">View on map</p>
+                  <p className="text-gray-700 font-medium font-manrope">
+                    {area}
+                  </p>
+                  <p className="text-gray-500 text-sm mt-2 font-manrope">
+                    View on map
+                  </p>
                 </div>
               </div>
 
@@ -665,7 +766,7 @@ const VendorDetail = () => {
               </div>
             </div>
 
-            <button className="w-full mt-6 bg-gray-900 text-white py-3 rounded-xl font-semibold hover:bg-gray-800 transition-colors">
+            <button className="w-full mt-6 bg-gray-900 text-white py-3 rounded-xl font-semibold hover:bg-gray-800 transition-colors font-manrope">
               Open in Google Maps
             </button>
           </div>
