@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { RiShare2Line } from "react-icons/ri";
 import { CiBookmark } from "react-icons/ci";
-import { FaPhone } from "react-icons/fa6";
+import { FaPhone, FaRegCircleCheck } from "react-icons/fa6";
 import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
 import { FaBookOpen } from "react-icons/fa";
 import { HiLocationMarker } from "react-icons/hi";
@@ -508,61 +508,67 @@ const VendorDetail = () => {
             </div>
           </div>
 
-          {/* Image Gallery */}
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="relative h-[500px]">
-              <img
-                src={images[activeImageIndex]}
-                alt={`${vendor.name} - Image ${activeImageIndex + 1}`}
-                className="w-full h-full object-cover"
-              />
+          {/* Image Gallery (Screenshot Layout) */}
+          <div className="bg-white rounded-2xl shadow-lg p-4">
+            <div className="grid grid-cols-3 gap-4">
+              {/* LEFT COLUMN */}
+              <div className="flex flex-col gap-4">
+                <img
+                  src={images[1]}
+                  className="h-48 w-full object-cover rounded-3xl"
+                />
+                <img
+                  src={images[2]}
+                  className="h-48 w-full object-cover rounded-3xl"
+                />
+              </div>
 
-              {/* Navigation buttons */}
-              <button
-                onClick={prevImage}
-                className="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-lg"
-              >
-                <IoIosArrowBack className="text-gray-800 text-2xl" />
-              </button>
-              <button
-                onClick={nextImage}
-                className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-lg"
-              >
-                <IoIosArrowForward className="text-gray-800 text-2xl" />
-              </button>
+              {/* CENTER LARGE IMAGE */}
+              <div className="relative col-span-1 h-[500px] rounded-3xl overflow-hidden">
+                <img
+                  src={images[activeImageIndex]}
+                  alt="Main"
+                  className="w-full h-full object-cover"
+                />
 
-              {/* Image counter */}
-              <div className="absolute bottom-6 right-6 bg-black/80 text-white px-4 py-2 rounded-full text-lg font-medium font-manrope">
-                {activeImageIndex + 1}/{images.length}
+                {/* Prev Button */}
+                <button
+                  onClick={prevImage}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-md"
+                >
+                  <IoIosArrowBack className="text-gray-800 text-xl" />
+                </button>
+
+                {/* Next Button */}
+                <button
+                  onClick={nextImage}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-md"
+                >
+                  <IoIosArrowForward className="text-gray-800 text-xl" />
+                </button>
+
+                {/* Counter */}
+                <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-manrope">
+                  {activeImageIndex + 1}/{images.length}
+                </div>
+              </div>
+
+              {/* RIGHT COLUMN */}
+              <div className="flex flex-col gap-4">
+                <img
+                  src={images[3]}
+                  className="h-48 w-full object-cover rounded-3xl"
+                />
+                <img
+                  src={images[4]}
+                  className="h-48 w-full object-cover rounded-3xl"
+                />
               </div>
             </div>
 
-            {/* Thumbnail strip */}
-            <div className="p-6 border-t border-gray-200">
-              <div className="flex gap-4 overflow-x-auto pb-2">
-                {images.map((img, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setActiveImageIndex(index)}
-                    className={`flex-shrink-0 w-32 h-24 rounded-xl overflow-hidden border-3 transition-all duration-200 ${
-                      activeImageIndex === index
-                        ? "border-[#06EAFC] ring-4 ring-[#06EAFC]/30"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <img
-                      src={img}
-                      alt={`Thumbnail ${index + 1}`}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Price Range */}
-            <div className="px-8 pb-8">
-              <h3 className="text-xl font-bold text-gray-900 mb-4 font-manrope">
+            {/* PRICE RANGE (unchanged) */}
+            <div className="px-4 pt-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-3 font-manrope">
                 Price Range
               </h3>
               <div className="flex items-baseline gap-3">
@@ -573,56 +579,48 @@ const VendorDetail = () => {
                 <span className="text-xl font-bold text-gray-900 font-manrope">
                   ₦{formatPrice(priceRange.to)}
                 </span>
-                <span className="text-lg text-gray-600 ml-3 font-manrope">
+                <span className="text-lg text-gray-600 ml-2 font-manrope">
                   per night
                 </span>
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* ACTION BUTTONS (unchanged) */}
             <div className="w-full p-6">
               <div className="bg-gray-100 rounded-3xl flex items-center justify-around p-4 max-w-4xl mx-auto">
-                <button className="flex flex-col items-center justify-center gap-2 hover:opacity-80 transition-opacity">
+                <button className="flex flex-col items-center gap-2">
                   <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm">
-                    <FaPhone size={28} color="#000" />
+                    <FaPhone size={28} />
                   </div>
-                  <span className="text-sm font-medium text-gray-700 font-manrope">
-                    Call
-                  </span>
+                  <span className="text-sm">Call</span>
                 </button>
 
-                <button className="flex flex-col items-center justify-center gap-2 hover:opacity-80 transition-opacity">
+                <button className="flex flex-col items-center gap-2">
                   <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm">
-                    <IoChatbubbleEllipsesOutline size={28} color="#000" />
+                    <IoChatbubbleEllipsesOutline size={28} />
                   </div>
-                  <span className="text-sm font-medium text-gray-700 font-manrope">
-                    Chat
-                  </span>
+                  <span className="text-sm">Chat</span>
                 </button>
 
-                <button className="flex flex-col items-center justify-center gap-2 hover:opacity-80 transition-opacity">
+                <button className="flex flex-col items-center gap-2">
                   <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm">
-                    <FaBookOpen size={28} color="#000" />
+                    <FaBookOpen size={28} />
                   </div>
-                  <span className="text-sm font-medium text-gray-700 font-manrope">
-                    Book
-                  </span>
+                  <span className="text-sm">Book</span>
                 </button>
 
-                <button className="flex flex-col items-center justify-center gap-2 hover:opacity-80 transition-opacity">
+                <button className="flex flex-col items-center gap-2">
                   <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm">
-                    <HiLocationMarker size={28} color="#000" />
+                    <HiLocationMarker size={28} />
                   </div>
-                  <span className="text-sm font-medium text-gray-700 font-manrope">
-                    Location
-                  </span>
+                  <span className="text-sm">Location</span>
                 </button>
               </div>
             </div>
           </div>
 
           {/* About Section - Full Width */}
-          <section className="bg-white rounded-2xl shadow-lg p-8">
+          <section className=" p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6 font-manrope">
               About
             </h2>
@@ -636,16 +634,21 @@ const VendorDetail = () => {
           {/* What They Do & Features Side by Side */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* What They Do Section */}
-            <section className="bg-white rounded-2xl shadow-lg p-8">
-              <h3 className="text-xl font-bold text-gray-900 mb-4 font-manrope">
+            <section className="p-8">
+              <h3 className="text-xl font-bold text-gray-900 mb-6 font-manrope">
                 What They Do
               </h3>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {(services.length > 0 ? services : defaultServices).map(
                   (service, index) => (
-                    <div key={index} className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-[#06EAFC] rounded-full mt-2"></div>
-                      <span className="text-gray-700 font-manrope">
+                    <div key={index} className="flex items-start gap-4">
+                      <div className="flex-shrink-0 mt-1">
+                        <FaRegCircleCheck
+                          className="text-[#06EAFC]"
+                          size={22}
+                        />
+                      </div>
+                      <span className="text-gray-700 font-manrope leading-relaxed">
                         {service}
                       </span>
                     </div>
@@ -655,7 +658,7 @@ const VendorDetail = () => {
             </section>
 
             {/* Key Features Section */}
-            <section className="bg-white rounded-2xl shadow-lg p-8">
+            <section className="p-8">
               <h3 className="text-xl font-bold text-gray-900 mb-6 font-manrope">
                 Key Features
               </h3>
@@ -728,7 +731,7 @@ const VendorDetail = () => {
           </section>
 
           {/* Location Map */}
-          <div className="bg-white rounded-2xl shadow-lg p-8">
+          <div className=" p-8">
             <h3 className="text-xl font-bold text-gray-900 mb-6 font-manrope">
               Location
             </h3>
