@@ -1,18 +1,73 @@
-// src/components/Hero.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
-import HeroImage from "../assets/Logos/towerr.jpeg";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
-import HeroImage2 from "../assets/Logos/hotel.jpg";
-import HeroImage3 from "../assets/Logos/tourism.jpg";
-import HeroImage4 from "../assets/Logos/events.jpg";
-import HeroImage5 from "../assets/Logos/restuarant.jpg";
-import { useNavigate } from "react-router-dom"; // Add this import
+import { useNavigate } from "react-router-dom";
 
-// Utility functions
+// FALLBACK IMAGES - Use these if local images don't load
+const FALLBACK_IMAGES = {
+  Hotel:
+    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop&q=80",
+  Restaurant:
+    "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop&q=80",
+  Shortlet:
+    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop&q=80",
+  Tourism:
+    "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=300&fit=crop&q=80",
+};
+
+// Helper function to safely get image source
+const getCategoryImage = (category, fallback) => {
+  try {
+    switch (category) {
+      case "Hotel":
+        // Try to import hotel image, fallback if fails
+        try {
+          const hotelImg = require("../assets/Logos/hotel.jpg");
+          return hotelImg.default || hotelImg;
+        } catch {
+          return fallback;
+        }
+      case "Tourism":
+        try {
+          const tourismImg = require("../assets/Logos/tourism.jpg");
+          return tourismImg.default || tourismImg;
+        } catch {
+          return fallback;
+        }
+      case "Shortlet":
+        // Note: Using EventsImage for Shortlet
+        try {
+          const shortletImg = require("../assets/Logos/events.jpg");
+          return shortletImg.default || shortletImg;
+        } catch {
+          return fallback;
+        }
+      case "Restaurant":
+        // Try both spellings: restaurant.jpg and restuarant.jpg
+        try {
+          const restaurantImg = require("../assets/Logos/restaurant.jpg");
+          return restaurantImg.default || restaurantImg;
+        } catch {
+          try {
+            const restaurantImgAlt = require("../assets/Logos/restuarant.jpg");
+            return restaurantImgAlt.default || restaurantImgAlt;
+          } catch {
+            return fallback;
+          }
+        }
+      default:
+        return fallback;
+    }
+  } catch (error) {
+    console.log(`Error loading ${category} image:`, error);
+    return fallback;
+  }
+};
+
+// Rest of your utility functions remain the same...
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371; // Earth's radius in kilometers
+  const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
   const a =
@@ -22,11 +77,9 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c;
-  return distance;
+  return R * c;
 };
 
-// Define area clusters with their central coordinates
 const AREA_CLUSTERS = {
   Bodija: { lat: 7.4762, lng: 3.9147, radius: 2 },
   Sango: { lat: 7.4762, lng: 3.9147, radius: 2 },
@@ -49,17 +102,11 @@ const AREA_CLUSTERS = {
   Gate: { lat: 7.4762, lng: 3.9147, radius: 2 },
 };
 
-// Function to find nearby areas based on coordinates
 const findNearbyAreas = (targetArea, allListings, maxDistance = 5) => {
   const targetCluster = AREA_CLUSTERS[targetArea];
   if (!targetCluster) return [];
-
   const nearbyAreas = new Set();
-
-  // Add the target area itself
   nearbyAreas.add(targetArea);
-
-  // Check all other areas for proximity
   Object.entries(AREA_CLUSTERS).forEach(([area, cluster]) => {
     if (area !== targetArea) {
       const distance = calculateDistance(
@@ -68,38 +115,30 @@ const findNearbyAreas = (targetArea, allListings, maxDistance = 5) => {
         cluster.lat,
         cluster.lng
       );
-
       if (distance <= maxDistance) {
         nearbyAreas.add(area);
       }
     }
   });
-
   return Array.from(nearbyAreas);
 };
 
-// Function to group areas by proximity
 const getAreaGroups = () => {
   const groups = [];
   const processedAreas = new Set();
-
   Object.keys(AREA_CLUSTERS).forEach((area) => {
     if (!processedAreas.has(area)) {
-      const nearby = findNearbyAreas(area, [], 3); // 3km radius
+      const nearby = findNearbyAreas(area, [], 3);
       groups.push(nearby);
       nearby.forEach((a) => processedAreas.add(a));
     }
   });
-
   return groups;
 };
 
 const normalizeWord = (word) => {
   if (!word || typeof word !== "string") return "";
-
   const lowerWord = word.toLowerCase().trim();
-
-  // Common plural to singular conversions
   const pluralToSingular = {
     hotels: "hotel",
     restaurants: "restaurant",
@@ -122,33 +161,23 @@ const normalizeWord = (word) => {
     results: "result",
     stories: "story",
   };
-
-  // Return singular form if found in mapping, otherwise return original word
   return pluralToSingular[lowerWord] || lowerWord;
 };
 
-// Function to check if search query matches a word in any form
 const matchesWord = (searchWord, targetWord) => {
   if (!searchWord || !targetWord) return false;
-
   const normalizedSearch = normalizeWord(searchWord);
   const normalizedTarget = normalizeWord(targetWord);
-
-  // Direct match
   if (normalizedSearch === normalizedTarget) return true;
-
-  // Partial match (contains)
   if (
     normalizedTarget.includes(normalizedSearch) ||
     normalizedSearch.includes(normalizedTarget)
   ) {
     return true;
   }
-
   return false;
 };
 
-// Custom Hook for Google Sheets Data
 const useGoogleSheet = (sheetId, apiKey) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -203,7 +232,24 @@ const useGoogleSheet = (sheetId, apiKey) => {
   return { data: Array.isArray(data) ? data : [], loading, error };
 };
 
-// Search Modal Component
+const getCardImages = (item) => {
+  const raw = item["image url"] || "";
+  const urls = raw
+    .split(",")
+    .map((u) => u.trim())
+    .filter((u) => u && u.startsWith("http"));
+  if (urls.length > 0) return urls[0];
+  const cat = (item.category || "").toLowerCase();
+  if (cat.includes("hotel"))
+    return "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80";
+  if (cat.includes("restaurant"))
+    return "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80";
+  if (cat.includes("shortlet"))
+    return "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80";
+  return "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80";
+};
+
+// SearchModal component remains the same...
 const SearchModal = ({
   isOpen,
   onClose,
@@ -219,18 +265,15 @@ const SearchModal = ({
   const [isMobile, setIsMobile] = useState(false);
   const inputRef = useRef(null);
 
-  // Check if mobile
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Focus input when modal opens
   useEffect(() => {
     if (isOpen && inputRef.current) {
       setTimeout(() => {
@@ -239,20 +282,17 @@ const SearchModal = ({
     }
   }, [isOpen]);
 
-  // Close modal when clicking outside or pressing Escape
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === "Escape") {
         onClose();
       }
     };
-
     if (isOpen) {
       document.addEventListener("keydown", handleEscape);
       document.body.style.overflow = "hidden";
       document.documentElement.style.overflow = "hidden";
     }
-
     return () => {
       document.removeEventListener("keydown", handleEscape);
       document.body.style.overflow = "unset";
@@ -269,57 +309,16 @@ const SearchModal = ({
     });
   };
 
-  const getCardImages = (item) => {
-    const raw = item["image url"] || "";
-    const urls = raw
-      .split(",")
-      .map((u) => u.trim())
-      .filter((u) => u && u.startsWith("http"));
-
-    if (urls.length > 0) return urls[0];
-
-    const cat = (item.category || "").toLowerCase();
-    if (cat.includes("hotel"))
-      return "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80";
-    if (cat.includes("restaurant"))
-      return "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80";
-    if (cat.includes("cafe"))
-      return "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&q=80";
-    if (cat.includes("bar"))
-      return "https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=600&q=80";
-    if (cat.includes("hostel"))
-      return "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80";
-    if (cat.includes("shortlet"))
-      return "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80";
-    if (cat.includes("services"))
-      return "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=600&q=80";
-    if (
-      cat.includes("event") ||
-      cat.includes("weekend") ||
-      cat.includes("hall")
-    )
-      return "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80";
-    if (
-      cat.includes("attraction") ||
-      cat.includes("garden") ||
-      cat.includes("tower")
-    )
-      return "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=80";
-    return "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80";
-  };
-
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
       onSearchSubmit();
     }
   };
 
-  // Get result count text (singular/plural)
   const getResultCountText = (count) => {
     return count === 1 ? `${count} result` : `${count} results`;
   };
 
-  // Format location display
   const formatLocation = (item) => {
     const area = item.area || "Ibadan";
     return `${area}, Oyo State`;
@@ -329,7 +328,6 @@ const SearchModal = ({
 
   return (
     <>
-      {/* Overlay - Critical for mobile */}
       <motion.div
         className="fixed inset-0 z-[9998] bg-black/50 backdrop-blur-sm overflow-hidden"
         initial={{ opacity: 0 }}
@@ -338,8 +336,6 @@ const SearchModal = ({
         transition={{ duration: 0.2 }}
         onClick={onClose}
       />
-
-      {/* Search Modal - Critical overflow control for mobile */}
       <motion.div
         className={`fixed z-[9999] bg-white overflow-hidden ${
           isMobile
@@ -363,7 +359,6 @@ const SearchModal = ({
             isMobile ? "overflow-hidden" : "max-h-[90vh]"
           }`}
         >
-          {/* Header */}
           <div
             className={`flex items-center gap-3 p-4 border-b border-gray-200 ${
               isMobile ? "overflow-hidden" : ""
@@ -389,8 +384,6 @@ const SearchModal = ({
                 </svg>
               </button>
             )}
-
-            {/* Search Input */}
             <div className="flex-1 flex items-center bg-gray-100 rounded-full px-4 py-3">
               <svg
                 className="w-5 h-5 text-gray-500 mr-3 flex-shrink-0"
@@ -436,7 +429,6 @@ const SearchModal = ({
                 </button>
               )}
             </div>
-
             {!isMobile && (
               <button
                 onClick={onClose}
@@ -458,15 +450,12 @@ const SearchModal = ({
               </button>
             )}
           </div>
-
-          {/* Content - Critical overflow for mobile */}
           <div
             className={`flex-1 ${
               isMobile ? "overflow-y-auto overflow-x-hidden" : "overflow-y-auto"
             }`}
           >
             {searchQuery.trim() === "" ? (
-              // Recent Searches/Area Suggestions when empty
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Popular Areas in Ibadan
@@ -498,7 +487,6 @@ const SearchModal = ({
                 </div>
               </div>
             ) : suggestions.length === 0 ? (
-              // No Results
               <div className="p-8 text-center">
                 <svg
                   className="w-16 h-16 text-gray-300 mx-auto mb-4"
@@ -520,9 +508,7 @@ const SearchModal = ({
                 </p>
               </div>
             ) : (
-              // Search Results with Area and Business listings
               <div className="p-4">
-                {/* Area Suggestions with nearby areas */}
                 {areaSuggestions.length > 0 && (
                   <div className="mb-6">
                     <h4 className="font-medium text-gray-900 text-sm mb-3">
@@ -533,7 +519,6 @@ const SearchModal = ({
                         const isNearby = !area
                           .toLowerCase()
                           .includes(searchQuery.toLowerCase());
-
                         return (
                           <button
                             key={index}
@@ -580,14 +565,11 @@ const SearchModal = ({
                     </div>
                   </div>
                 )}
-
-                {/* Business Results */}
                 <div className="mb-4">
                   <h4 className="font-medium text-gray-900 text-sm">
                     {getResultCountText(suggestions.length)} for "{searchQuery}"
                   </h4>
                 </div>
-
                 <div className="space-y-3">
                   {suggestions.map((vendor, index) => {
                     const category = (vendor.category || "").toLowerCase();
@@ -605,7 +587,6 @@ const SearchModal = ({
                         vendor.price_from
                       )} per guest`;
                     }
-
                     return (
                       <motion.div
                         key={vendor.id || index}
@@ -615,7 +596,6 @@ const SearchModal = ({
                         transition={{ delay: index * 0.05 }}
                         onClick={() => onSelectSuggestion(vendor)}
                       >
-                        {/* Vendor Image - Critical for mobile */}
                         <div className="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden mr-3">
                           <img
                             src={getCardImages(vendor)}
@@ -623,8 +603,6 @@ const SearchModal = ({
                             className="w-full h-full object-cover"
                           />
                         </div>
-
-                        {/* Vendor Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -643,8 +621,6 @@ const SearchModal = ({
                               </div>
                             )}
                           </div>
-
-                          {/* Rating and Category */}
                           <div className="flex items-center justify-between mt-2">
                             <div className="flex items-center gap-1">
                               <FontAwesomeIcon
@@ -670,8 +646,6 @@ const SearchModal = ({
               </div>
             )}
           </div>
-
-          {/* Quick Categories - Critical for mobile */}
           <div
             className={`p-4 border-t border-gray-100 bg-gray-50 ${
               isMobile ? "overflow-hidden" : ""
@@ -685,22 +659,17 @@ const SearchModal = ({
                 isMobile ? "overflow-hidden" : ""
               }`}
             >
-              {[
-                "Hotels",
-                "Restaurants",
-                "Events",
-                "Tourism",
-                "Cafes",
-                "Bars",
-              ].map((category, index) => (
-                <button
-                  key={category}
-                  onClick={() => onSearchChange(category)}
-                  className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs text-gray-700 hover:bg-gray-100 hover:border-gray-400 transition-colors"
-                >
-                  {category}
-                </button>
-              ))}
+              {["Hotels", "Restaurants", "Shortlets", "Tourism"].map(
+                (category) => (
+                  <button
+                    key={category}
+                    onClick={() => onSearchChange(category)}
+                    className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs text-gray-700 hover:bg-gray-100 hover:border-gray-400 transition-colors"
+                  >
+                    {category}
+                  </button>
+                )
+              )}
             </div>
           </div>
         </div>
@@ -709,159 +678,108 @@ const SearchModal = ({
   );
 };
 
-
-// Main Hero Component
 const Hero = () => {
-  const navigate = useNavigate(); // Add navigate hook
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
+  const navigate = useNavigate();
   const heroRef = useRef(null);
   const isInView = useInView(heroRef, { margin: "-100px", once: false });
-  const [hasAnimated, setHasAnimated] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [areaSuggestions, setAreaSuggestions] = useState([]);
 
-  // Use the same Google Sheets data as Directory
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
   const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
+  const { data: listings = [] } = useGoogleSheet(SHEET_ID, API_KEY);
 
-  const {
-    data: listings = [],
-    loading,
-    error,
-  } = useGoogleSheet(SHEET_ID, API_KEY);
+  const filterVendors = (query, vendors) => {
+    if (!query.trim()) return [];
+    const normalizedQuery = normalizeWord(query);
+    const queryWords = normalizedQuery
+      .split(" ")
+      .filter((word) => word.length > 0);
+    return vendors.filter((item) => {
+      const areaMatch = queryWords.some(
+        (word) =>
+          item.area && item.area.toLowerCase().includes(word.toLowerCase())
+      );
+      const nearbyAreasMatch = queryWords.some((word) => {
+        const targetArea = Object.keys(AREA_CLUSTERS).find((area) =>
+          area.toLowerCase().includes(word.toLowerCase())
+        );
+        if (targetArea && item.area) {
+          const nearbyAreas = findNearbyAreas(targetArea, vendors, 3);
+          return nearbyAreas.includes(item.area);
+        }
+        return false;
+      });
+      const categoryMatch = queryWords.some(
+        (word) =>
+          matchesWord(word, item.category) ||
+          (item.category &&
+            item.category.toLowerCase().includes(word.toLowerCase()))
+      );
+      const nameMatch = queryWords.some(
+        (word) =>
+          item.name && item.name.toLowerCase().includes(word.toLowerCase())
+      );
+      return areaMatch || nearbyAreasMatch || categoryMatch || nameMatch;
+    });
+  };
+
+  const getAreaSuggestions = (query = "") => {
+    const allAreas = [
+      ...new Set(listings.map((item) => item.area).filter(Boolean)),
+    ];
+    if (!query.trim()) {
+      const areaGroups = getAreaGroups();
+      return areaGroups.slice(0, 3).flat();
+    }
+    const matchingAreas = allAreas.filter((area) =>
+      area.toLowerCase().includes(query.toLowerCase())
+    );
+    const nearbySuggestions = new Set();
+    matchingAreas.forEach((area) => {
+      nearbySuggestions.add(area);
+      const nearby = findNearbyAreas(area, listings, 3);
+      nearby.forEach((nearbyArea) => nearbySuggestions.add(nearbyArea));
+    });
+    return Array.from(nearbySuggestions).slice(0, 6);
+  };
 
   useEffect(() => {
-    if (isInView) setHasAnimated(true);
-    else setHasAnimated(false);
-  }, [isInView]);
-
-  // ... (keep all the existing filter functions)
-
-  const handleSearchChange = (query) => {
-    setSearchQuery(query);
-  };
-
-  const handleSelectSuggestion = (vendor) => {
-    setSearchQuery(vendor.name);
-    setIsSearchModalOpen(false);
-    console.log("Selected vendor:", vendor);
-  };
-
-  const handleSelectArea = (area) => {
-    setSearchQuery(area);
-    setIsSearchModalOpen(false);
-  };
-
-  const handleSearchSubmit = () => {
-    if (searchQuery.trim()) {
-      console.log("Searching for:", searchQuery);
-      setIsSearchModalOpen(false);
-      // You can navigate to search results page here
+    if (searchQuery.trim() === "") {
+      setSuggestions([]);
+      setAreaSuggestions(getAreaSuggestions());
+      return;
     }
-  };
+    const filtered = filterVendors(searchQuery, listings).slice(0, 8);
+    setSuggestions(filtered);
+    const matchingAreas = getAreaSuggestions(searchQuery);
+    setAreaSuggestions(matchingAreas);
+  }, [searchQuery, listings]);
 
-  const handleSearchInputClick = () => {
-    setIsSearchModalOpen(true);
-  };
-
-  // Handle category card click - navigate to respective category page
   const handleCategoryClick = (category) => {
-    // Map category names to URL slugs
     const categoryMap = {
       Hotel: "hotel",
       Restaurant: "restaurant",
       Shortlet: "shortlet",
       Tourism: "tourist-center",
     };
-
     const categorySlug = categoryMap[category];
     if (categorySlug) {
       navigate(`/category/${categorySlug}`);
     }
   };
 
-
-  // Updated category data with proper navigation and reliable images
-  const categoryData = [
-    {
-      name: "Hotel",
-      img: HeroImage2,
-      description: "Popular Hotels",
-      fallback:
-        "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop&q=80",
-    },
-    {
-      name: "Restaurant",
-      img: HeroImage5,
-      description: "Popular Restaurants",
-      fallback:
-        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop&q=80",
-    },
-    {
-      name: "Shortlet",
-      img: HeroImage4,
-      description: "Popular Shortlets",
-      fallback:
-        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop&q=80",
-    },
-    {
-      name: "Tourism",
-      img: HeroImage3,
-      description: "Tourist Centers",
-      fallback:
-        "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=300&fit=crop&q=80",
-    },
-  ];
-
-  // Then update the image rendering part in the return statement:
-  <div className="flex justify-center gap-1 sm:gap-2 mt-2 sm:mt-3 overflow-hidden px-2">
-    {categoryData.map((item) => (
-      <motion.div
-        key={item.name}
-        className="text-center cursor-pointer group"
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => handleCategoryClick(item.name)}
-      >
-        <div className="relative">
-          <img
-            src={item.img}
-            alt={item.name}
-            className="
-            w-10 h-10 rounded-lg overflow-hidden
-            sm:w-12 sm:h-12
-            md:w-14 md:h-14
-            object-cover
-            group-hover:brightness-110
-            group-hover:shadow-md
-            transition-all duration-200
-          "
-            onError={(e) => {
-              e.target.src = item.fallback;
-            }}
-          />
-          {/* Hover overlay effect */}
-          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200"></div>
-        </div>
-        <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200">
-          {item.name}
-        </p>
-        <p className="text-[8px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          {item.description}
-        </p>
-      </motion.div>
-    ))}
-  </div>;
+  const handleSearchSubmit = () => {
+    if (searchQuery.trim()) {
+      console.log("Searching for:", searchQuery);
+      setIsSearchModalOpen(false);
+    }
+  };
 
   return (
     <>
-      {/* Main section - Ultra compact for better directory visibility */}
       <section
         id="hero"
         className="bg-[#F7F7FA] font-rubik overflow-hidden min-h-[30vh] sm:min-h-[30vh] flex items-start relative mt-16"
@@ -878,22 +796,17 @@ const Hero = () => {
               viewport={{ margin: "-100px", once: false }}
               className="flex flex-col justify-start space-y-2 sm:space-y-3 max-w-xl sm:max-w-2xl w-full"
             >
-              {/* Headline - Ultra compact */}
               <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-manrope font-bold text-[#101828] leading-tight mt-1 sm:mt-2 px-2">
                 Discover Ibadan through AI & Local Stories
               </h1>
-
-              {/* Subtitle - Ultra compact */}
               <p className="text-xs sm:text-sm leading-[1.3] text-slate-600 mb-2 sm:mb-4 font-manrope max-w-lg mx-auto px-4">
                 Your all-in-one local guide for hotels, food, events, vendors,
                 and market prices.
               </p>
-
-              {/* Search Bar - More compact */}
               <div className="relative mx-auto w-full sm:max-w-md overflow-hidden px-2">
                 <div
                   className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-10 cursor-text"
-                  onClick={handleSearchInputClick}
+                  onClick={() => setIsSearchModalOpen(true)}
                 >
                   <div className="pl-3 sm:pl-4 text-gray-500">
                     <svg
@@ -916,7 +829,7 @@ const Hero = () => {
                     placeholder="Search by area or category..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    onFocus={handleSearchInputClick}
+                    onFocus={() => setIsSearchModalOpen(true)}
                     className="flex-1 bg-transparent py-1.5 sm:py-2 px-2 text-xs text-gray-800 outline-none placeholder:text-gray-600 cursor-text"
                   />
                   <button
@@ -930,60 +843,136 @@ const Hero = () => {
                   </button>
                 </div>
               </div>
-
-              {/* Categories - Ultra compact with reduced spacing - NOW CLICKABLE */}
               <div className="flex justify-center gap-1 sm:gap-2 mt-2 sm:mt-3 overflow-hidden px-2">
-                {categoryData.map((item) => (
-                  <motion.div
-                    key={item.name}
-                    className="text-center cursor-pointer group"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleCategoryClick(item.name)}
-                  >
-                    <div className="relative">
-                      <img
-                        src={item.img}
-                        alt={item.name}
-                        className="
-                          w-10 h-10 rounded-lg overflow-hidden
-                          sm:w-12 sm:h-12
-                          md:w-14 md:h-14
-                          object-cover
-                          group-hover:brightness-110
-                          group-hover:shadow-md
-                          transition-all duration-200
-                        "
-                      />
-                      {/* Hover overlay effect */}
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200"></div>
-                    </div>
-                    <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200">
-                      {item.name}
-                    </p>
-                    <p className="text-[8px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      {item.description}
-                    </p>
-                  </motion.div>
-                ))}
+                {/* Hotel Category */}
+                <motion.div
+                  className="text-center cursor-pointer group"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleCategoryClick("Hotel")}
+                >
+                  <div className="relative">
+                    <img
+                      src={getCategoryImage("Hotel", FALLBACK_IMAGES.Hotel)}
+                      alt="Hotel"
+                      className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200"
+                      onError={(e) => {
+                        console.log("Hotel image failed to load");
+                        e.target.src = FALLBACK_IMAGES.Hotel;
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200"></div>
+                  </div>
+                  <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200">
+                    Hotel
+                  </p>
+                  <p className="text-[8px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    Popular Hotels
+                  </p>
+                </motion.div>
+
+                {/* Tourism Category */}
+                <motion.div
+                  className="text-center cursor-pointer group"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleCategoryClick("Tourism")}
+                >
+                  <div className="relative">
+                    <img
+                      src={getCategoryImage("Tourism", FALLBACK_IMAGES.Tourism)}
+                      alt="Tourism"
+                      className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200"
+                      onError={(e) => {
+                        console.log("Tourism image failed to load");
+                        e.target.src = FALLBACK_IMAGES.Tourism;
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200"></div>
+                  </div>
+                  <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200">
+                    Tourism
+                  </p>
+                  <p className="text-[8px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    Tourist Centers
+                  </p>
+                </motion.div>
+
+                {/* Shortlet Category */}
+                <motion.div
+                  className="text-center cursor-pointer group"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleCategoryClick("Shortlet")}
+                >
+                  <div className="relative">
+                    <img
+                      src={getCategoryImage(
+                        "Shortlet",
+                        FALLBACK_IMAGES.Shortlet
+                      )}
+                      alt="Shortlet"
+                      className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200"
+                      onError={(e) => {
+                        console.log("Shortlet image failed to load");
+                        e.target.src = FALLBACK_IMAGES.Shortlet;
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200"></div>
+                  </div>
+                  <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200">
+                    Shortlet
+                  </p>
+                  <p className="text-[8px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    Popular Shortlets
+                  </p>
+                </motion.div>
+
+                {/* Restaurant Category */}
+                <motion.div
+                  className="text-center cursor-pointer group"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleCategoryClick("Restaurant")}
+                >
+                  <div className="relative">
+                    <img
+                      src={getCategoryImage(
+                        "Restaurant",
+                        FALLBACK_IMAGES.Restaurant
+                      )}
+                      alt="Restaurant"
+                      className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200"
+                      onError={(e) => {
+                        console.log("Restaurant image failed to load");
+                        e.target.src = FALLBACK_IMAGES.Restaurant;
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200"></div>
+                  </div>
+                  <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200">
+                    Restaurant
+                  </p>
+                  <p className="text-[8px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    Popular Restaurants
+                  </p>
+                </motion.div>
               </div>
             </motion.div>
           </div>
         </div>
       </section>
-
-      {/* Enhanced Search Modal with Area and Category Filtering */}
       <AnimatePresence>
         <SearchModal
           isOpen={isSearchModalOpen}
           onClose={() => setIsSearchModalOpen(false)}
           searchQuery={searchQuery}
-          onSearchChange={handleSearchChange}
+          onSearchChange={setSearchQuery}
           onSearchSubmit={handleSearchSubmit}
           suggestions={suggestions}
           areaSuggestions={areaSuggestions}
-          onSelectSuggestion={handleSelectSuggestion}
-          onSelectArea={handleSelectArea}
+          onSelectSuggestion={() => {}}
+          onSelectArea={(area) => setSearchQuery(area)}
           listings={listings}
         />
       </AnimatePresence>
