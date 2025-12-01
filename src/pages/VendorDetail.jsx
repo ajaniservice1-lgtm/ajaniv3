@@ -23,7 +23,7 @@ import { MdFavoriteBorder, MdShare } from "react-icons/md";
 import { VscVerifiedFilled } from "react-icons/vsc";
 import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 
-// Google Sheets hook
+// Google Sheets hook (keep as is)
 const useGoogleSheet = (sheetId, apiKey) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -376,7 +376,7 @@ const VendorDetail = () => {
 
         {/* Single Column Layout */}
         <div className="space-y-8">
-          {/* Header Info - Single Column */}
+          {/* Header Info - Updated to match first image */}
           <div className="p-8">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
               {/* Left: Name and Info */}
@@ -388,7 +388,7 @@ const VendorDetail = () => {
                   <VscVerifiedFilled className="text-green-500 text-2xl" />
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div className="flex items-center gap-2 text-gray-700">
                     <FontAwesomeIcon
                       icon={faMapMarkerAlt}
@@ -421,127 +421,106 @@ const VendorDetail = () => {
                     </div>
                   </div>
 
-                  {/* Facility Icons */}
-                  <div className="flex items-center gap-6 pt-4 border-t border-gray-200">
-                    <div className="flex items-center gap-2">
-                      <FontAwesomeIcon icon={faBed} className="text-blue-600" />
-                      <span className="text-gray-700 font-medium">2</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <FontAwesomeIcon
-                        icon={faUsers}
-                        className="text-green-600"
-                      />
-                      <span className="text-gray-700 font-medium">4</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <FontAwesomeIcon
-                        icon={faCalendarAlt}
-                        className="text-purple-600"
-                      />
-                      <span className="text-gray-700 font-medium">Jan 20</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <FontAwesomeIcon
-                        icon={faCheckCircle}
-                        className="text-green-500"
-                      />
-                      <span className="text-gray-700 font-medium">
-                        Verified
-                      </span>
-                    </div>
-                  </div>
+                
                 </div>
               </div>
 
-              {/* Right: Save/Share and Price */}
+              {/* Right: Save/Share and Price - Updated styling */}
               <div className="flex flex-col items-end gap-4">
                 <div className="flex gap-2">
                   <button
                     onClick={() => setIsSaved(!isSaved)}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
                       isSaved
-                        ? "bg-red-50 border border-red-200"
-                        : "bg-white border border-gray-300 hover:bg-gray-50"
+                        ? "bg-red-50 border-2 border-red-200"
+                        : "bg-white border-2 border-gray-200 hover:bg-gray-50"
                     }`}
                   >
                     <MdFavoriteBorder
-                      className={`text-lg ${
+                      className={`text-xl ${
                         isSaved ? "text-red-500" : "text-gray-600"
                       }`}
                     />
                   </button>
-                  <button className="w-10 h-10 bg-white border border-gray-300 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors">
-                    <MdShare className="text-gray-600 text-lg" />
+                  <button className="w-12 h-12 bg-white border-2 border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors">
+                    <MdShare className="text-gray-600 text-xl" />
                   </button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Image Gallery */}
+          {/* Image Gallery - Updated to match second image */}
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="relative h-96">
+            <div className="relative h-[500px]">
               <img
                 src={images[activeImageIndex]}
                 alt={`${vendor.name} - Image ${activeImageIndex + 1}`}
                 className="w-full h-full object-cover"
               />
 
+              {/* Navigation buttons */}
               <button
                 onClick={prevImage}
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors"
+                className="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-lg"
               >
-                <IoIosArrowBack className="text-gray-800" />
+                <IoIosArrowBack className="text-gray-800 text-2xl" />
               </button>
               <button
                 onClick={nextImage}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors"
+                className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-lg"
               >
-                <IoIosArrowForward className="text-gray-800" />
+                <IoIosArrowForward className="text-gray-800 text-2xl" />
               </button>
 
-              <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm">
+              {/* Image counter */}
+              <div className="absolute bottom-6 right-6 bg-black/80 text-white px-4 py-2 rounded-full text-lg font-medium">
                 {activeImageIndex + 1}/{images.length}
               </div>
             </div>
 
-            <div className="p-4 border-t border-gray-200">
-              <div className="flex gap-3 overflow-x-auto">
+            {/* Thumbnail strip - Updated styling */}
+            <div className="p-6 border-t border-gray-200">
+              <div className="flex gap-4 overflow-x-auto pb-2">
                 {images.map((img, index) => (
                   <button
                     key={index}
                     onClick={() => setActiveImageIndex(index)}
-                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                    className={`flex-shrink-0 w-32 h-24 rounded-xl overflow-hidden border-3 transition-all duration-200 ${
                       activeImageIndex === index
-                        ? "border-[#06EAFC] ring-2 ring-[#06EAFC]/20"
+                        ? "border-[#06EAFC] ring-4 ring-[#06EAFC]/30"
                         : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
                     <img
                       src={img}
                       alt={`Thumbnail ${index + 1}`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                     />
+                    {activeImageIndex === index && (
+                      <div className=""></div>
+                    )}
                   </button>
                 ))}
               </div>
-              {/* Price Range */}
-              <div className="text-start">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">
+            </div>
+
+            {/* Price Range - Positioned like in the second image */}
+            <div className="px-8 pb-8">
+              
+                <h3 className="text-xl font-bold text-gray-900 mb-4">
                   Price Range
                 </h3>
-                <div className="text-3xl font-bold text-gray-900">
-                  ₦{formatPrice(priceRange.from)} - ₦
-                  {formatPrice(priceRange.to)}
-                  <span className="text-base font-normal text-gray-600 block">
-                    per night
+                <div className="flex items-baseline gap-3">
+                  <span className="text-xl font-bold text-gray-900">
+                    ₦{formatPrice(priceRange.from)}
                   </span>
+                  <span className="text-xl text-gray-600">-</span>
+                  <span className="text-xl font-bold text-gray-900">
+                    ₦{formatPrice(priceRange.to)}
+                  </span>
+                  <span className="text-lg text-gray-600 ml-3">per night</span>
                 </div>
-                {/* <button className="mt-4 bg-[#06EAFC] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#05d9eb] transition-colors shadow-lg">
-                  Book Now
-                </button> */}
-              </div>
             </div>
           </div>
 
@@ -608,7 +587,7 @@ const VendorDetail = () => {
             </section>
           </div>
 
-          {/* Reviews Section - 2 columns on lg, 1 column on mobile */}
+          {/* Reviews Section */}
           <section className="bg-white rounded-2xl shadow-lg p-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Reviews</h2>
@@ -653,48 +632,42 @@ const VendorDetail = () => {
             </div>
           </section>
 
-          {/* Contact, Map, and Quick Actions - Single Column */}
-          <div className="space-y-8">
-
-            {/* Location Map */}
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h3 className="text-xl font-bold text-gray-900 mb-6">Location</h3>
-              <div className="relative">
-                <div className="bg-gradient-to-br from-blue-50 to-gray-100 rounded-2xl h-64 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <FontAwesomeIcon
-                        icon={faMapMarkerAlt}
-                        className="text-blue-600 text-2xl"
-                      />
-                    </div>
-                    <p className="text-gray-700 font-medium">{area}</p>
-                    <p className="text-gray-500 text-sm mt-2">View on map</p>
+          {/* Location Map */}
+          <div className="bg-white rounded-2xl shadow-lg p-8">
+            <h3 className="text-xl font-bold text-gray-900 mb-6">Location</h3>
+            <div className="relative">
+              <div className="bg-gradient-to-br from-blue-50 to-gray-100 rounded-2xl h-64 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FontAwesomeIcon
+                      icon={faMapMarkerAlt}
+                      className="text-blue-600 text-2xl"
+                    />
                   </div>
-                </div>
-
-                <div className="absolute bottom-4 right-4 flex gap-2">
-                  <button className="w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors">
-                    <FontAwesomeIcon
-                      icon={faChevronLeft}
-                      className="text-gray-700"
-                    />
-                  </button>
-                  <button className="w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors">
-                    <FontAwesomeIcon
-                      icon={faChevronRight}
-                      className="text-gray-700"
-                    />
-                  </button>
+                  <p className="text-gray-700 font-medium">{area}</p>
+                  <p className="text-gray-500 text-sm mt-2">View on map</p>
                 </div>
               </div>
 
-              <button className="w-full mt-6 bg-gray-900 text-white py-3 rounded-xl font-semibold hover:bg-gray-800 transition-colors">
-                Open in Google Maps
-              </button>
+              <div className="absolute bottom-4 right-4 flex gap-2">
+                <button className="w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors">
+                  <FontAwesomeIcon
+                    icon={faChevronLeft}
+                    className="text-gray-700"
+                  />
+                </button>
+                <button className="w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors">
+                  <FontAwesomeIcon
+                    icon={faChevronRight}
+                    className="text-gray-700"
+                  />
+                </button>
+              </div>
             </div>
 
-          
+            <button className="w-full mt-6 bg-gray-900 text-white py-3 rounded-xl font-semibold hover:bg-gray-800 transition-colors">
+              Open in Google Maps
+            </button>
           </div>
         </div>
       </main>
