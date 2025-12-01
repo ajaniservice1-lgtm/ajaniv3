@@ -508,33 +508,42 @@ const VendorDetail = () => {
             </div>
           </div>
 
-          {/* Image Gallery (Screenshot Layout) */}
-          <div className="bg-white rounded-2xl shadow-lg p-4">
-            <div className="grid grid-cols-3 gap-4">
+          {/* Image Gallery (Exact Pixel Layout + Click to Swap) */}
+          <div className="bg-white rounded-2xl shadow-lg p-4 flex justify-center">
+            <div className="flex gap-4">
               {/* LEFT COLUMN */}
               <div className="flex flex-col gap-4">
-                <img
-                  src={images[1]}
-                  className="h-48 w-full object-cover rounded-3xl"
-                />
-                <img
-                  src={images[2]}
-                  className="h-48 w-full object-cover rounded-3xl"
-                />
+                {images.slice(1, 3).map((img, i) => (
+                  <button key={i} onClick={() => setActiveImageIndex(i + 1)}>
+                    <img
+                      src={img}
+                      style={{
+                        width: "305px",
+                        height: "251px",
+                        borderRadius: "20px",
+                        objectFit: "cover",
+                      }}
+                    />
+                  </button>
+                ))}
               </div>
 
               {/* CENTER LARGE IMAGE */}
-              <div className="relative col-span-1 h-[500px] rounded-3xl overflow-hidden">
+              <div className="relative">
                 <img
                   src={images[activeImageIndex]}
-                  alt="Main"
-                  className="w-full h-full object-cover"
+                  style={{
+                    width: "630px",
+                    height: "517px",
+                    borderRadius: "20px",
+                    objectFit: "cover",
+                  }}
                 />
 
                 {/* Prev Button */}
                 <button
                   onClick={prevImage}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-md"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-md"
                 >
                   <IoIosArrowBack className="text-gray-800 text-xl" />
                 </button>
@@ -542,7 +551,7 @@ const VendorDetail = () => {
                 {/* Next Button */}
                 <button
                   onClick={nextImage}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-md"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-md"
                 >
                   <IoIosArrowForward className="text-gray-800 text-xl" />
                 </button>
@@ -555,66 +564,19 @@ const VendorDetail = () => {
 
               {/* RIGHT COLUMN */}
               <div className="flex flex-col gap-4">
-                <img
-                  src={images[3]}
-                  className="h-48 w-full object-cover rounded-3xl"
-                />
-                <img
-                  src={images[4]}
-                  className="h-48 w-full object-cover rounded-3xl"
-                />
-              </div>
-            </div>
-
-            {/* PRICE RANGE (unchanged) */}
-            <div className="px-4 pt-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-3 font-manrope">
-                Price Range
-              </h3>
-              <div className="flex items-baseline gap-3">
-                <span className="text-xl font-bold text-gray-900 font-manrope">
-                  ₦{formatPrice(priceRange.from)}
-                </span>
-                <span className="text-xl text-gray-600 font-manrope">-</span>
-                <span className="text-xl font-bold text-gray-900 font-manrope">
-                  ₦{formatPrice(priceRange.to)}
-                </span>
-                <span className="text-lg text-gray-600 ml-2 font-manrope">
-                  per night
-                </span>
-              </div>
-            </div>
-
-            {/* ACTION BUTTONS (unchanged) */}
-            <div className="w-full p-6">
-              <div className="bg-gray-100 rounded-3xl flex items-center justify-around p-4 max-w-4xl mx-auto">
-                <button className="flex flex-col items-center gap-2">
-                  <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm">
-                    <FaPhone size={28} />
-                  </div>
-                  <span className="text-sm">Call</span>
-                </button>
-
-                <button className="flex flex-col items-center gap-2">
-                  <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm">
-                    <IoChatbubbleEllipsesOutline size={28} />
-                  </div>
-                  <span className="text-sm">Chat</span>
-                </button>
-
-                <button className="flex flex-col items-center gap-2">
-                  <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm">
-                    <FaBookOpen size={28} />
-                  </div>
-                  <span className="text-sm">Book</span>
-                </button>
-
-                <button className="flex flex-col items-center gap-2">
-                  <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm">
-                    <HiLocationMarker size={28} />
-                  </div>
-                  <span className="text-sm">Location</span>
-                </button>
+                {images.slice(3, 5).map((img, i) => (
+                  <button key={i} onClick={() => setActiveImageIndex(i + 3)}>
+                    <img
+                      src={img}
+                      style={{
+                        width: "305px",
+                        height: "251px",
+                        borderRadius: "20px",
+                        objectFit: "cover",
+                      }}
+                    />
+                  </button>
+                ))}
               </div>
             </div>
           </div>
