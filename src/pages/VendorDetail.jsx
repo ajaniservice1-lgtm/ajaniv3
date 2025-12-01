@@ -235,14 +235,44 @@ const VendorDetail = () => {
   // Get category display name from Google Sheets
   const getCategoryDisplay = (vendor) => {
     if (vendor?.category) {
-      // Format to first letter capital only
-      const category = vendor.category;
-      return category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
+      const category = vendor.category.toString().trim();
+
+      // Remove numbers and dots at the beginning (like "1. ", "2. ", etc.)
+      let cleanedCategory = category.replace(/^\d+\.\s*/, "");
+
+      // If there's still a dot, take text after the last dot
+      if (cleanedCategory.includes(".")) {
+        const parts = cleanedCategory.split(".");
+        cleanedCategory = parts[parts.length - 1].trim();
+      }
+
+      // Remove any quotes or extra spaces
+      cleanedCategory = cleanedCategory.replace(/['"]/g, "").trim();
+
+      // If empty after cleaning, use fallback
+      if (!cleanedCategory) {
+        return getFallbackCategory(vendor);
+      }
+
+      // Capitalize only first letter
+      return (
+        cleanedCategory.charAt(0).toUpperCase() +
+        cleanedCategory.slice(1).toLowerCase()
+      );
     }
-    // Fallback to determine from name or type
+
+    return getFallbackCategory(vendor);
+  };
+
+  // Helper function for fallback category
+  const getFallbackCategory = (vendor) => {
     if (vendor?.name?.toLowerCase().includes("hotel")) return "Hotel";
     if (vendor?.name?.toLowerCase().includes("restaurant")) return "Restaurant";
     if (vendor?.name?.toLowerCase().includes("shortlet")) return "Shortlet";
+    if (vendor?.name?.toLowerCase().includes("event")) return "Event Center";
+    if (vendor?.name?.toLowerCase().includes("spa")) return "Spa";
+    if (vendor?.name?.toLowerCase().includes("gym")) return "Gym";
+
     return "Hotel";
   };
 
@@ -546,6 +576,46 @@ const VendorDetail = () => {
             </div>
           </div>
 
+          {/* Price Range Section */}
+          <div className="flex  mb-4">
+            <div className="">
+              <p className="text-gray-600 font-manrope text-sm mb-2">
+                Price Range
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-xl font-bold text-gray-900 font-manrope">
+                  ₦{formatPrice(priceRange.from)}
+                </span>
+                <span className="text-gray-500 text-xl">-</span>
+                <span className="text-xl font-bold text-gray-900 font-manrope">
+                  ₦{formatPrice(priceRange.to)}
+                </span>
+                <span className="text-gray-600 text-base ml-3">per night</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Icons Bar - Centered */}
+          <div className="flex justify-center mb-8">
+            <div
+              style={{
+                width: "600.1866455078125px",
+                height: "60px",
+                background: "#D9D9D9",
+                borderRadius: "27.77px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-around",
+                opacity: 1,
+              }}
+            >
+              <FaPhone size={30} color="#000" />
+              <IoChatbubbleEllipsesOutline size={30} color="#000" />
+              <FaBookOpen size={30} color="#000" />
+              <HiLocationMarker size={30} color="#000" />
+            </div>
+          </div>
+
           {/* About Section - Full Width - Reduced font */}
           <section className="p-8">
             {/* Reduced from text-2xl to text-xl */}
@@ -573,10 +643,7 @@ const VendorDetail = () => {
                   (service, index) => (
                     <div key={index} className="flex items-start gap-4">
                       <div className="flex-shrink-0 mt-1">
-                        <FaRegCircleCheck
-                          className="text-[#06EAFC]"
-                          size={20}
-                        />
+                        <FaRegCircleCheck className="" size={20} />
                       </div>
                       <span className="text-gray-700 font-manrope leading-relaxed text-sm">
                         {service}
@@ -606,7 +673,7 @@ const VendorDetail = () => {
                 ).map((feature, index) => (
                   <div key={index} className="flex items-center gap-3">
                     <div
-                      className={`w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center ${feature.color}`}
+                      className={`w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center`}
                     >
                       <FontAwesomeIcon
                         icon={feature.icon}
@@ -626,7 +693,7 @@ const VendorDetail = () => {
           <section className="bg-white rounded-2xl shadow-lg p-8">
             <div className="flex items-center justify-between mb-6">
               {/* Reduced from text-2xl to text-xl */}
-              <h2 className="text-xl font-bold text-gray-900 font-manrope">
+              <h2 className="text-xl font-bold text-[#06F49F] font-manrope">
                 Reviews
               </h2>
               <span className="text-gray-600 font-manrope text-sm">
@@ -744,10 +811,6 @@ const VendorDetail = () => {
                 </button>
               </div>
             </div>
-
-            <button className="w-full mt-6 bg-gray-900 text-white py-3 rounded-xl font-semibold hover:bg-gray-800 transition-colors font-manrope text-sm">
-              Open in Google Maps
-            </button>
           </div>
         </div>
       </main>

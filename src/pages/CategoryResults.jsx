@@ -200,7 +200,7 @@ const CategoryResults = () => {
         </div>
       </div>
 
-      {/* Price Range */}
+      Price Range
       <div className="mb-6">
         <h4 className="font-semibold text-gray-900 mb-3">Price</h4>
         <div className="space-y-3">
