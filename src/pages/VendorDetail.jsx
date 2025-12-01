@@ -177,39 +177,43 @@ const VendorDetail = () => {
       }
     }
 
-    // Default dummy reviews
+    // Default dummy reviews with profile data
     return [
       {
         id: 1,
         name: "Angela Bassey",
-        rating: 5,
+        rating: 4,
         comment:
           "Beautiful place. The rooms were clean, the staff were very polite, and check-in was smooth. I loved the breakfast and the calm environment. Definitely coming back.",
         date: "2 weeks ago",
+        profileImage: "", // Empty string will show initial
       },
       {
         id: 2,
         name: "Ibrahim O",
-        rating: 5,
+        rating: 4,
         comment:
           "The hotel is well maintained and the service quality is very good. WiFi was fast, and the location is perfect for moving around Ibadan. The only issue was slight noise from the hallway at night.",
         date: "1 month ago",
+        profileImage: "",
       },
       {
         id: 3,
         name: "Tola & Fola",
-        rating: 5,
+        rating: 4,
         comment:
           "The hosted a small event here and everything went perfectly. The hall was clean, the AC worked well, and the staff were helpful throughout. Highly recommended.",
         date: "3 weeks ago",
+        profileImage: "",
       },
       {
         id: 4,
         name: "Popoola Basit",
-        rating: 5,
+        rating: 4,
         comment:
           "I really enjoyed their service, they are very professional, arrived on time, their decoration beautiful and made my event colourful as well, I absolutely love them.",
         date: "2 days ago",
+        profileImage: "",
       },
     ];
   };
@@ -231,16 +235,15 @@ const VendorDetail = () => {
   // Get category display name from Google Sheets
   const getCategoryDisplay = (vendor) => {
     if (vendor?.category) {
-      return vendor.category;
+      // Format to first letter capital only
+      const category = vendor.category;
+      return category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
     }
     // Fallback to determine from name or type
-    if (vendor?.name?.toLowerCase().includes("hotel"))
-      return "Hotel & Event Centre";
-    if (vendor?.name?.toLowerCase().includes("restaurant"))
-      return "Restaurant & Bar";
-    if (vendor?.name?.toLowerCase().includes("shortlet"))
-      return "Shortlet & Apartment";
-    return "Hotel & Event Centre";
+    if (vendor?.name?.toLowerCase().includes("hotel")) return "Hotel";
+    if (vendor?.name?.toLowerCase().includes("restaurant")) return "Restaurant";
+    if (vendor?.name?.toLowerCase().includes("shortlet")) return "Shortlet";
+    return "Hotel";
   };
 
   // Get rating from vendor data - ensure it's a proper decimal
@@ -276,48 +279,6 @@ const VendorDetail = () => {
   // Format rating to one decimal place
   const formatRating = (rating) => {
     return rating.toFixed(1); // Shows 4.8, 2.3, etc.
-  };
-
-  // Function to render stars based on rating
-  const renderStars = (rating) => {
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 >= 0.5;
-    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-
-    return (
-      <div className="flex items-center">
-        {/* Full stars */}
-        {[...Array(fullStars)].map((_, i) => (
-          <FontAwesomeIcon
-            key={`full-${i}`}
-            icon={faStar}
-            className="text-yellow-400"
-          />
-        ))}
-
-        {/* Half star if needed */}
-        {hasHalfStar && (
-          <div className="relative">
-            <FontAwesomeIcon icon={faStar} className="text-gray-300" />
-            <div
-              className="absolute top-0 left-0 overflow-hidden"
-              style={{ width: "50%" }}
-            >
-              <FontAwesomeIcon icon={faStar} className="text-yellow-400" />
-            </div>
-          </div>
-        )}
-
-        {/* Empty stars */}
-        {[...Array(emptyStars)].map((_, i) => (
-          <FontAwesomeIcon
-            key={`empty-${i}`}
-            icon={faStar}
-            className="text-gray-300"
-          />
-        ))}
-      </div>
-    );
   };
 
   // Next/Prev image navigation
@@ -419,8 +380,8 @@ const VendorDetail = () => {
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Breadcrumb */}
-        <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-6 font-manrope">
+        {/* Breadcrumb - Reduced font by 3px */}
+        <nav className="flex items-center space-x-2 text-xs text-gray-600 mb-6 font-manrope">
           <Link to="/" className="hover:text-[#06EAFC] transition-colors">
             Home
           </Link>
@@ -444,39 +405,43 @@ const VendorDetail = () => {
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
               {/* Left: Name and Info */}
               <div className="flex-1">
+                {/* Vendor name - Reduced from text-3xl to text-2xl */}
                 <div className="flex items-center gap-3 mb-6">
-                  <h1 className="text-3xl font-bold text-gray-900 font-manrope">
+                  <h1 className="text-2xl font-bold text-gray-900 font-manrope">
                     {vendor.name}
                   </h1>
-                  <VscVerifiedFilled className="text-green-500 text-2xl" />
+                  <VscVerifiedFilled className="text-green-500 text-xl" />
                 </div>
 
                 <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 mb-6">
-                  {/* Category - No icon in front */}
+                  {/* Category - First letter capital only */}
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-700 font-medium bg-gray-100 px-3 py-1 rounded-full font-manrope">
+                    <span className="text-gray-700 font-medium bg-gray-100 px-3 py-1 rounded-full font-manrope text-sm">
                       {categoryDisplay}
                     </span>
                   </div>
 
-                  {/* Rating with proper star rendering */}
+                  {/* Rating with SINGLE star */}
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1">
-                      {renderStars(rating)}
+                      <FontAwesomeIcon
+                        icon={faStar}
+                        className="text-yellow-400"
+                      />
                     </div>
-                    <span className="font-bold text-gray-900 font-manrope">
+                    <span className="font-bold text-gray-900 font-manrope text-sm">
                       {formattedRating}
                     </span>
-                    <span className="text-gray-600 font-manrope">
+                    <span className="text-gray-600 font-manrope text-sm">
                       ({reviewCount} Reviews)
                     </span>
                   </div>
 
                   {/* Area with location icon */}
-                  <div className="flex items-center gap-2 text-gray-700 font-manrope">
+                  <div className="flex items-center gap-2 text-gray-700 font-manrope text-sm">
                     <FontAwesomeIcon
                       icon={faMapMarkerAlt}
-                      className="text-gray-500"
+                      className="text-gray-500 text-sm"
                     />
                     <span>{area}</span>
                   </div>
@@ -488,20 +453,20 @@ const VendorDetail = () => {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setIsSaved(!isSaved)}
-                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                       isSaved
                         ? "bg-blue-50 border-2 border-blue-200"
                         : "bg-white border-2 border-gray-200 hover:bg-gray-50"
                     }`}
                   >
                     <CiBookmark
-                      className={`text-2xl ${
+                      className={`text-xl ${
                         isSaved ? "text-blue-500" : "text-gray-600"
                       }`}
                     />
                   </button>
-                  <button className="w-12 h-12 bg-white border-2 border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors">
-                    <RiShare2Line className="text-gray-600 text-2xl" />
+                  <button className="w-10 h-10 bg-white border-2 border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors">
+                    <RiShare2Line className="text-gray-600 text-xl" />
                   </button>
                 </div>
               </div>
@@ -556,8 +521,8 @@ const VendorDetail = () => {
                   <IoIosArrowForward className="text-gray-800 text-xl" />
                 </button>
 
-                {/* Counter */}
-                <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-manrope">
+                {/* Counter - Reduced font */}
+                <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-manrope">
                   {activeImageIndex + 1}/{images.length}
                 </div>
               </div>
@@ -581,12 +546,14 @@ const VendorDetail = () => {
             </div>
           </div>
 
-          {/* About Section - Full Width */}
-          <section className=" p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 font-manrope">
+          {/* About Section - Full Width - Reduced font */}
+          <section className="p-8">
+            {/* Reduced from text-2xl to text-xl */}
+            <h2 className="text-xl font-bold text-[#06F49F] mb-4 font-manrope">
               About
             </h2>
-            <p className="text-gray-700 leading-relaxed text-lg mb-8 font-manrope">
+            {/* Reduced from text-lg to text-base */}
+            <p className="text-gray-700 leading-relaxed text-base mb-6 font-manrope">
               {vendor.description ||
                 vendor.short_desc ||
                 "Sunrise Premium Hotel offers a blend of comfort, modern amenities, and warm hospitality in the heart of Ibadan. Designed for both business and leisure travelers, the hotel provides a peaceful stay with quick access to major city landmarks."}
@@ -595,9 +562,10 @@ const VendorDetail = () => {
 
           {/* What They Do & Features Side by Side */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* What They Do Section */}
+            {/* What They Do Section - Reduced font */}
             <section className="p-8">
-              <h3 className="text-xl font-bold text-gray-900 mb-6 font-manrope">
+              {/* Reduced from text-xl to text-lg */}
+              <h3 className="text-lg font-bold text-gray-900 mb-4 font-manrope">
                 What They Do
               </h3>
               <div className="space-y-4">
@@ -607,10 +575,10 @@ const VendorDetail = () => {
                       <div className="flex-shrink-0 mt-1">
                         <FaRegCircleCheck
                           className="text-[#06EAFC]"
-                          size={22}
+                          size={20}
                         />
                       </div>
-                      <span className="text-gray-700 font-manrope leading-relaxed">
+                      <span className="text-gray-700 font-manrope leading-relaxed text-sm">
                         {service}
                       </span>
                     </div>
@@ -619,9 +587,10 @@ const VendorDetail = () => {
               </div>
             </section>
 
-            {/* Key Features Section */}
+            {/* Key Features Section - Reduced font */}
             <section className="p-8">
-              <h3 className="text-xl font-bold text-gray-900 mb-6 font-manrope">
+              {/* Reduced from text-xl to text-lg */}
+              <h3 className="text-lg font-bold text-gray-900 mb-4 font-manrope">
                 Key Features
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -637,14 +606,14 @@ const VendorDetail = () => {
                 ).map((feature, index) => (
                   <div key={index} className="flex items-center gap-3">
                     <div
-                      className={`w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center ${feature.color}`}
+                      className={`w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center ${feature.color}`}
                     >
                       <FontAwesomeIcon
                         icon={feature.icon}
-                        className="text-lg"
+                        className="text-base"
                       />
                     </div>
-                    <span className="font-medium text-gray-900 font-manrope">
+                    <span className="font-medium text-gray-900 font-manrope text-sm">
                       {feature.name}
                     </span>
                   </div>
@@ -653,48 +622,93 @@ const VendorDetail = () => {
             </section>
           </div>
 
-          {/* Reviews Section - Updated to use proper star rendering */}
+          {/* Reviews Section - Reduced font */}
           <section className="bg-white rounded-2xl shadow-lg p-8">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 font-manrope">
+              {/* Reduced from text-2xl to text-xl */}
+              <h2 className="text-xl font-bold text-gray-900 font-manrope">
                 Reviews
               </h2>
-              <span className="text-gray-600 font-manrope">
+              <span className="text-gray-600 font-manrope text-sm">
                 {reviewCount} reviews
               </span>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+            {/* Review Cards Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {reviews.map((review) => (
                 <div
                   key={review.id}
-                  className="pb-6 border-b border-gray-200 last:border-b-0"
+                  className="bg-gray-50 rounded-xl p-5 border border-gray-200 hover:border-gray-300 transition-colors"
                 >
-                  <div className="mb-4">
-                    <h4 className="font-bold text-gray-900 text-lg font-manrope">
-                      {review.name}
-                    </h4>
-                    <div className="flex items-center gap-2 mt-2">
-                      <div className="flex items-center gap-1">
-                        {renderStars(review.rating)}
+                  {/* Review Header with Profile */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      {/* Profile Image */}
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center overflow-hidden">
+                        {review.profileImage ? (
+                          <img
+                            src={review.profileImage}
+                            alt={review.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-lg font-bold text-blue-600">
+                            {review.name.charAt(0)}
+                          </span>
+                        )}
                       </div>
-                      {review.date && (
-                        <span className="text-sm text-gray-500 font-manrope">
-                          {review.date}
-                        </span>
-                      )}
+
+                      {/* Name and Rating */}
+                      <div>
+                        <h4 className="font-bold text-gray-900 text-base font-manrope">
+                          {review.name}
+                        </h4>
+                        <div className="flex items-center gap-1 mt-1">
+                          {/* Star rating */}
+                          <div className="flex">
+                            {[...Array(5)].map((_, i) => (
+                              <FontAwesomeIcon
+                                key={i}
+                                icon={faStar}
+                                className={`text-sm ${
+                                  i < Math.floor(review.rating)
+                                    ? "text-yellow-400"
+                                    : "text-gray-300"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-gray-700 font-medium ml-1 text-sm">
+                            {review.rating}.0
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <p className="text-gray-700 leading-relaxed font-manrope">
+
+                  {/* Review Text */}
+                  <p className="text-gray-700 leading-relaxed font-manrope text-sm">
                     {review.comment}
                   </p>
                 </div>
               ))}
             </div>
+
+            {/* Load More Reviews Button */}
+            {reviewCount > 4 && (
+              <div className="text-center mt-8">
+                <button className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors font-manrope text-sm">
+                  Load More Reviews
+                </button>
+              </div>
+            )}
           </section>
 
-          {/* Location Map */}
-          <div className=" p-8">
-            <h3 className="text-xl font-bold text-gray-900 mb-6 font-manrope">
+          {/* Location Map - Reduced font */}
+          <div className="p-8">
+            {/* Reduced from text-xl to text-lg */}
+            <h3 className="text-lg font-bold text-gray-900 mb-4 font-manrope">
               Location
             </h3>
             <div className="relative">
@@ -703,13 +717,13 @@ const VendorDetail = () => {
                   <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <FontAwesomeIcon
                       icon={faMapMarkerAlt}
-                      className="text-blue-600 text-2xl"
+                      className="text-blue-600 text-xl"
                     />
                   </div>
-                  <p className="text-gray-700 font-medium font-manrope">
+                  <p className="text-gray-700 font-medium font-manrope text-sm">
                     {area}
                   </p>
-                  <p className="text-gray-500 text-sm mt-2 font-manrope">
+                  <p className="text-gray-500 text-xs mt-2 font-manrope">
                     View on map
                   </p>
                 </div>
@@ -731,7 +745,7 @@ const VendorDetail = () => {
               </div>
             </div>
 
-            <button className="w-full mt-6 bg-gray-900 text-white py-3 rounded-xl font-semibold hover:bg-gray-800 transition-colors font-manrope">
+            <button className="w-full mt-6 bg-gray-900 text-white py-3 rounded-xl font-semibold hover:bg-gray-800 transition-colors font-manrope text-sm">
               Open in Google Maps
             </button>
           </div>
