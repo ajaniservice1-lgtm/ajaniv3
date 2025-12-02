@@ -1,10 +1,11 @@
+// Hero.jsx - Complete Component with Search Integration
 import React, { useEffect, useRef, useState } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 
-// FALLBACK IMAGES - Use these if local images don't load
+// FALLBACK IMAGES
 const FALLBACK_IMAGES = {
   Hotel:
     "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop&q=80",
@@ -21,7 +22,6 @@ const getCategoryImage = (category, fallback) => {
   try {
     switch (category) {
       case "Hotel":
-        // Try to import hotel image, fallback if fails
         try {
           const hotelImg = require("../assets/Logos/hotel.jpg");
           return hotelImg.default || hotelImg;
@@ -36,7 +36,6 @@ const getCategoryImage = (category, fallback) => {
           return fallback;
         }
       case "Shortlet":
-        // Note: Using EventsImage for Shortlet
         try {
           const shortletImg = require("../assets/Logos/events.jpg");
           return shortletImg.default || shortletImg;
@@ -44,7 +43,6 @@ const getCategoryImage = (category, fallback) => {
           return fallback;
         }
       case "Restaurant":
-        // Try both spellings: restaurant.jpg and restuarant.jpg
         try {
           const restaurantImg = require("../assets/Logos/restaurant.jpg");
           return restaurantImg.default || restaurantImg;
@@ -65,7 +63,7 @@ const getCategoryImage = (category, fallback) => {
   }
 };
 
-// Rest of your utility functions remain the same...
+// Utility functions (same as before)
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -249,7 +247,7 @@ const getCardImages = (item) => {
   return "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80";
 };
 
-// SearchModal component remains the same...
+// SearchModal Component
 const SearchModal = ({
   isOpen,
   onClose,
@@ -678,6 +676,7 @@ const SearchModal = ({
   );
 };
 
+// Main Hero Component
 const Hero = () => {
   const navigate = useNavigate();
   const heroRef = useRef(null);
@@ -771,9 +770,15 @@ const Hero = () => {
     }
   };
 
+  const handleSelectSuggestion = (vendor) => {
+    if (vendor && vendor.id) {
+      setIsSearchModalOpen(false);
+      navigate(`/vendor-detail/${vendor.id}`);
+    }
+  };
+
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
-      console.log("Searching for:", searchQuery);
       setIsSearchModalOpen(false);
     }
   };
@@ -844,7 +849,6 @@ const Hero = () => {
                 </div>
               </div>
               <div className="flex justify-center gap-1 sm:gap-2 mt-2 sm:mt-3 overflow-hidden px-2">
-                {/* Hotel Category */}
                 <motion.div
                   className="text-center cursor-pointer group"
                   whileHover={{ scale: 1.05 }}
@@ -857,7 +861,6 @@ const Hero = () => {
                       alt="Hotel"
                       className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200"
                       onError={(e) => {
-                        console.log("Hotel image failed to load");
                         e.target.src = FALLBACK_IMAGES.Hotel;
                       }}
                     />
@@ -871,7 +874,6 @@ const Hero = () => {
                   </p>
                 </motion.div>
 
-                {/* Tourism Category */}
                 <motion.div
                   className="text-center cursor-pointer group"
                   whileHover={{ scale: 1.05 }}
@@ -884,7 +886,6 @@ const Hero = () => {
                       alt="Tourism"
                       className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200"
                       onError={(e) => {
-                        console.log("Tourism image failed to load");
                         e.target.src = FALLBACK_IMAGES.Tourism;
                       }}
                     />
@@ -898,7 +899,6 @@ const Hero = () => {
                   </p>
                 </motion.div>
 
-                {/* Shortlet Category */}
                 <motion.div
                   className="text-center cursor-pointer group"
                   whileHover={{ scale: 1.05 }}
@@ -914,7 +914,6 @@ const Hero = () => {
                       alt="Shortlet"
                       className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200"
                       onError={(e) => {
-                        console.log("Shortlet image failed to load");
                         e.target.src = FALLBACK_IMAGES.Shortlet;
                       }}
                     />
@@ -928,7 +927,6 @@ const Hero = () => {
                   </p>
                 </motion.div>
 
-                {/* Restaurant Category */}
                 <motion.div
                   className="text-center cursor-pointer group"
                   whileHover={{ scale: 1.05 }}
@@ -944,7 +942,6 @@ const Hero = () => {
                       alt="Restaurant"
                       className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200"
                       onError={(e) => {
-                        console.log("Restaurant image failed to load");
                         e.target.src = FALLBACK_IMAGES.Restaurant;
                       }}
                     />
@@ -971,7 +968,7 @@ const Hero = () => {
           onSearchSubmit={handleSearchSubmit}
           suggestions={suggestions}
           areaSuggestions={areaSuggestions}
-          onSelectSuggestion={() => {}}
+          onSelectSuggestion={handleSelectSuggestion}
           onSelectArea={(area) => setSearchQuery(area)}
           listings={listings}
         />

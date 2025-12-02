@@ -1,8 +1,13 @@
 // src/pages/CategoryResults.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faStar, faFilter } from "@fortawesome/free-solid-svg-icons";
+import {
+  faStar,
+  faFilter,
+  faSearch,
+  faTimes,
+} from "@fortawesome/free-solid-svg-icons";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Meta from "../components/Meta";
@@ -78,6 +83,49 @@ const FALLBACK_IMAGES = {
     "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
 };
 
+// Helper functions
+const normalizeWord = (word) => {
+  if (!word || typeof word !== "string") return "";
+  const lowerWord = word.toLowerCase().trim();
+  const pluralToSingular = {
+    hotels: "hotel",
+    restaurants: "restaurant",
+    events: "event",
+    tourisms: "tourism",
+    cafes: "cafe",
+    cafés: "cafe",
+    bars: "bar",
+    hostels: "hostel",
+    shortlets: "shortlet",
+    services: "service",
+    attractions: "attraction",
+    gardens: "garden",
+    towers: "tower",
+    centers: "center",
+    centres: "centre",
+    vendors: "vendor",
+    markets: "market",
+    prices: "price",
+    results: "result",
+    stories: "story",
+  };
+  return pluralToSingular[lowerWord] || lowerWord;
+};
+
+const matchesWord = (searchWord, targetWord) => {
+  if (!searchWord || !targetWord) return false;
+  const normalizedSearch = normalizeWord(searchWord);
+  const normalizedTarget = normalizeWord(targetWord);
+  if (normalizedSearch === normalizedTarget) return true;
+  if (
+    normalizedTarget.includes(normalizedSearch) ||
+    normalizedSearch.includes(normalizedTarget)
+  ) {
+    return true;
+  }
+  return false;
+};
+
 const CategoryResults = () => {
   const { category } = useParams();
   const navigate = useNavigate();
@@ -92,6 +140,10 @@ const CategoryResults = () => {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [filteredListings, setFilteredListings] = useState([]);
+  const [originalListings, setOriginalListings] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchInputRef = useRef(null);
 
   // Use your actual Google Sheets data
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
@@ -103,6 +155,64 @@ const CategoryResults = () => {
     error,
   } = useGoogleSheet(SHEET_ID, API_KEY);
 
+  // Initialize listings and filter by category
+  useEffect(() => {
+    const filtered = listings.filter((item) => {
+      const itemCategory = (item.category || "").toLowerCase();
+      const targetCategory = (category || "").toLowerCase();
+
+      // Handle different category mappings
+      if (targetCategory === "tourist-center") {
+        return (
+          itemCategory.includes("tourist") ||
+          itemCategory.includes("attraction")
+        );
+      }
+
+      return itemCategory.includes(targetCategory);
+    });
+
+    setOriginalListings(filtered);
+    setFilteredListings(filtered);
+  }, [listings, category]);
+
+  // Search functionality
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      // If search is empty, show all listings for this category
+      setFilteredListings(originalListings);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    const searchLower = searchQuery.toLowerCase().trim();
+
+    const filtered = originalListings.filter((item) => {
+      // Search in name
+      const nameMatch = item.name?.toLowerCase().includes(searchLower);
+
+      // Search in area
+      const areaMatch = item.area?.toLowerCase().includes(searchLower);
+
+      // Search in description
+      const descMatch = item.short_desc?.toLowerCase().includes(searchLower);
+
+      // Search in address
+      const addressMatch = item.address?.toLowerCase().includes(searchLower);
+
+      // Search in features
+      const featuresMatch = item.features?.toLowerCase().includes(searchLower);
+
+      return (
+        nameMatch || areaMatch || descMatch || addressMatch || featuresMatch
+      );
+    });
+
+    setFilteredListings(filtered);
+    setCurrentPage(1); // Reset to first page when searching
+  }, [searchQuery, originalListings]);
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -113,12 +223,27 @@ const CategoryResults = () => {
   }, []);
 
   const handleSearchInputClick = () => {
-    // Focus logic if needed
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
   };
 
-  const handleSearchSubmit = () => {
-    // Search submission logic
+  const handleSearchSubmit = (e) => {
+    if (e) e.preventDefault();
     console.log("Search submitted:", searchQuery);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      handleSearchSubmit(e);
+    }
   };
 
   // Get card images function
@@ -139,23 +264,8 @@ const CategoryResults = () => {
     return [FALLBACK_IMAGES.default];
   };
 
-  // Filter listings based on the category parameter
-  const filteredListings = listings.filter((item) => {
-    const itemCategory = (item.category || "").toLowerCase();
-    const targetCategory = (category || "").toLowerCase();
-
-    // Handle different category mappings
-    if (targetCategory === "tourist-center") {
-      return (
-        itemCategory.includes("tourist") || itemCategory.includes("attraction")
-      );
-    }
-
-    return itemCategory.includes(targetCategory);
-  });
-
   // Pagination logic
-  const cardsPerPage = isMobile ? 15 : 16; // 5 cards x 3 rows on mobile, 16 cards on desktop
+  const cardsPerPage = isMobile ? 15 : 16;
   const totalPages = Math.ceil(filteredListings.length / cardsPerPage);
   const startIndex = (currentPage - 1) * cardsPerPage;
   const currentListings = filteredListings.slice(
@@ -166,7 +276,6 @@ const CategoryResults = () => {
   // Handle page change
   const handlePageChange = (page) => {
     setCurrentPage(page);
-    // Scroll to top when page changes
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -200,7 +309,7 @@ const CategoryResults = () => {
         </div>
       </div>
 
-      Price Range
+      {/* Price Range */}
       <div className="mb-6">
         <h4 className="font-semibold text-gray-900 mb-3">Price</h4>
         <div className="space-y-3">
@@ -297,16 +406,13 @@ const CategoryResults = () => {
   // Business Card Component
   const BusinessCard = ({ item }) => {
     const images = getCardImages(item);
-
     const priceText = getPriceText(item);
     const location = item.area || "Ibadan";
 
     const handleCardClick = () => {
-      // Navigate to vendor detail page using the item's ID
       if (item.id) {
         navigate(`/vendor-detail/${item.id}`);
       } else {
-        // Fallback to category page if no ID
         navigate(`/category/${category}`);
       }
     };
@@ -348,8 +454,7 @@ const CategoryResults = () => {
           <button
             className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition"
             onClick={(e) => {
-              e.stopPropagation(); // Prevent card click when clicking heart
-              // Add to favorites logic here
+              e.stopPropagation();
             }}
           >
             <MdFavoriteBorder className="text-[#00d1ff] text-sm" />
@@ -458,44 +563,40 @@ const CategoryResults = () => {
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        {/* Centered Search Bar */}
+        {/* Search Bar - Functional with real-time filtering */}
         <div className="flex justify-center mb-8">
           <div className="w-full max-w-2xl">
-            {/* Search Bar - Exact design specifications */}
-            <div className="relative mx-auto w-full overflow-hidden">
+            <form
+              onSubmit={handleSearchSubmit}
+              className="relative mx-auto w-full"
+            >
               <div
                 className="flex items-center bg-gray-200 rounded-[33.35px] shadow-sm w-full relative z-10 cursor-text"
                 onClick={handleSearchInputClick}
               >
                 <div className="pl-4 text-gray-500">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
+                  <FontAwesomeIcon icon={faSearch} className="h-4 w-4" />
                 </div>
                 <input
+                  ref={searchInputRef}
                   type="text"
-                  placeholder={`Popular ${categoryTitle} in Ibadan...`}
+                  placeholder={`Search ${categoryTitle} in Ibadan...`}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={handleSearchInputClick}
+                  onKeyPress={handleKeyPress}
                   className="flex-1 bg-transparent py-4 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 cursor-text"
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={handleClearSearch}
+                    className="p-2 text-gray-500 hover:text-gray-700"
+                  >
+                    <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
+                  </button>
+                )}
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSearchSubmit();
-                  }}
+                  type="submit"
                   className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-[33.35px] border border-[#06EAFC] py-4 px-6 text-sm transition-colors duration-200 whitespace-nowrap mx-2"
                   style={{
                     width: "152.81px",
@@ -503,72 +604,54 @@ const CategoryResults = () => {
                     borderWidth: "1.11px",
                   }}
                 >
-                  Search
+                  {isSearching ? "Searching..." : "Search"}
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Mobile Search Bar - Hidden on larger screens */}
-        <div className="flex justify-center mb-6 lg:hidden">
-          <div className="w-full max-w-sm">
-            <div className="relative mx-auto w-full overflow-hidden">
-              <div
-                className="flex items-center bg-gray-200 rounded-[19.02px] shadow-sm w-full relative z-10 cursor-text"
-                onClick={handleSearchInputClick}
-              >
-                <div className="pl-3 text-gray-500">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-3 w-3"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
+              {/* Search status indicator */}
+              {isSearching && (
+                <div className="absolute -bottom-6 left-0 text-xs text-gray-600">
+                  Found {filteredListings.length} results for "{searchQuery}" in{" "}
+                  {categoryTitle}
                 </div>
-                <input
-                  type="text"
-                  placeholder={`Popular ${categoryTitle}...`}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={handleSearchInputClick}
-                  className="flex-1 bg-transparent py-2.5 px-2 text-xs text-gray-800 outline-none placeholder:text-gray-600 cursor-text"
-                />
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSearchSubmit();
-                  }}
-                  className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-[19.02px] border border-[#06EAFC] py-2.5 px-4 text-xs transition-colors duration-200 whitespace-nowrap mx-1"
-                  style={{
-                    width: "87.16px",
-                    height: "38.04px",
-                    borderWidth: "0.63px",
-                  }}
-                >
-                  Search
-                </button>
-              </div>
-            </div>
+              )}
+            </form>
           </div>
         </div>
 
-        {/* Page Header */}
+        {/* Page Header with dynamic count */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[#00065A] mb-2">
-            Popular {categoryTitle} in Ibadan
-          </h1>
-          <p className="text-gray-600">
-            {filteredListings.length} places found in Ibadan
-          </p>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-[#00065A] mb-2">
+                {searchQuery
+                  ? `Search results for "${searchQuery}"`
+                  : `Popular ${categoryTitle} in Ibadan`}
+              </h1>
+              <p className="text-gray-600">
+                {isSearching ? (
+                  <span className="flex items-center gap-2">
+                    <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    Showing {filteredListings.length} of{" "}
+                    {originalListings.length} {categoryTitle}
+                  </span>
+                ) : (
+                  `${filteredListings.length} places found in Ibadan`
+                )}
+              </p>
+            </div>
+
+            {/* Clear search button */}
+            {searchQuery && (
+              <button
+                onClick={handleClearSearch}
+                className="px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+              >
+                <FontAwesomeIcon icon={faTimes} className="h-3 w-3" />
+                Clear Search
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Filter Controls */}
@@ -656,7 +739,7 @@ const CategoryResults = () => {
               <option value="rating">Highest Rated</option>
             </select>
 
-            {/* Mobile Filter Button - Only Icon */}
+            {/* Mobile Filter Button */}
             {isMobile && (
               <button
                 onClick={() => setShowMobileFilters(true)}
@@ -703,8 +786,38 @@ const CategoryResults = () => {
 
           {/* Listings Grid */}
           <div className="flex-1">
+            {/* No results message */}
+            {filteredListings.length === 0 && (
+              <div className="col-span-full text-center py-12">
+                <div className="bg-gray-50 rounded-xl p-8 max-w-md mx-auto">
+                  <FontAwesomeIcon
+                    icon={faSearch}
+                    className="text-3xl text-gray-300 mb-4 block"
+                  />
+                  <h3 className="text-lg text-gray-800 mb-2">
+                    {searchQuery
+                      ? `No ${categoryTitle} found for "${searchQuery}"`
+                      : `No ${categoryTitle} found`}
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    {searchQuery
+                      ? "Try a different search term or clear your search"
+                      : "Try adjusting your filters"}
+                  </p>
+                  {searchQuery && (
+                    <button
+                      onClick={handleClearSearch}
+                      className="bg-[#06EAFC] text-white px-6 py-2 rounded-lg hover:bg-[#05d9eb] transition-colors"
+                    >
+                      Clear Search
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Mobile View - Horizontal scrolling with 5 cards per row */}
-            {isMobile ? (
+            {isMobile && filteredListings.length > 0 ? (
               <div className="space-y-4">
                 {/* Create rows with 5 cards each */}
                 {Array.from({
@@ -727,29 +840,17 @@ const CategoryResults = () => {
               </div>
             ) : (
               /* Desktop View - 4 cards per row grid */
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {currentListings.length > 0 ? (
-                  currentListings.map((listing, index) => (
+              filteredListings.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {currentListings.map((listing, index) => (
                     <BusinessCard key={listing.id || index} item={listing} />
-                  ))
-                ) : (
-                  <div className="col-span-full text-center py-12">
-                    <div className="bg-gray-50 rounded-xl p-8 max-w-md mx-auto">
-                      <i className="fas fa-search text-3xl text-gray-300 mb-4 block"></i>
-                      <h3 className="text-lg text-gray-800 mb-2">
-                        No {categoryTitle} found
-                      </h3>
-                      <p className="text-gray-600">
-                        Try adjusting your search or filters
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
+                  ))}
+                </div>
+              )
             )}
 
-            {/* Pagination */}
-            {totalPages > 1 && (
+            {/* Pagination - Only show if we have results */}
+            {filteredListings.length > 0 && totalPages > 1 && (
               <div className="flex justify-center items-center space-x-2 mt-8">
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
