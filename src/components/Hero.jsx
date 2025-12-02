@@ -1,4 +1,4 @@
-// Hero.jsx - Complete Component with Search Integration
+// Hero.jsx - Updated with proper search navigation
 import React, { useEffect, useRef, useState } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -63,7 +63,7 @@ const getCategoryImage = (category, fallback) => {
   }
 };
 
-// Utility functions (same as before)
+// Utility functions
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -247,6 +247,153 @@ const getCardImages = (item) => {
   return "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80";
 };
 
+// Animated Not Found Modal Component
+const NotFoundModal = ({ isOpen, onClose, searchQuery }) => {
+  const navigate = useNavigate();
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      <motion.div
+        className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-md"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+        onClick={onClose}
+      />
+      <motion.div
+        className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+      >
+        <div className="bg-white rounded-2xl max-w-md w-full p-6 md:p-8 shadow-2xl">
+          <motion.div
+            className="text-center"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+          >
+            {/* Animated Icon */}
+            <motion.div
+              className="w-20 h-20 mx-auto mb-6 relative"
+              animate={{
+                scale: [1, 1.1, 1],
+                rotate: [0, 5, -5, 0],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                repeatType: "reverse",
+              }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full" />
+              <svg
+                className="w-12 h-12 text-gray-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.5"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </motion.div>
+
+            {/* Title */}
+            <motion.h3
+              className="text-2xl font-bold text-gray-900 mb-2 font-manrope"
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              No Results Found
+            </motion.h3>
+
+            {/* Message */}
+            <motion.p
+              className="text-gray-600 mb-6 font-manrope"
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              We couldn't find any results for{" "}
+              <span className="font-semibold text-blue-600">
+                "{searchQuery}"
+              </span>
+            </motion.p>
+
+            {/* Suggestions */}
+            <motion.div
+              className="mb-8"
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              <p className="text-sm text-gray-500 mb-3 font-manrope">
+                Try searching for:
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {["Hotels", "Restaurants", "Bodija", "Mokola", "Shortlets"].map(
+                  (suggestion, index) => (
+                    <motion.button
+                      key={suggestion}
+                      className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm hover:bg-blue-100 transition-colors border border-blue-200"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        onClose();
+                        // You can trigger a new search here if needed
+                      }}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.5 + index * 0.1 }}
+                    >
+                      {suggestion}
+                    </motion.button>
+                  )
+                )}
+              </div>
+            </motion.div>
+
+            {/* Buttons */}
+            <motion.div
+              className="flex flex-col sm:flex-row gap-3"
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              <button
+                onClick={onClose}
+                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-manrope font-medium"
+              >
+                Try Another Search
+              </button>
+              
+            </motion.div>
+
+            {/* Additional Help */}
+            <motion.p
+              className="text-xs text-gray-400 mt-6 font-manrope"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+            >
+              Need help? Check our categories or contact support
+            </motion.p>
+          </motion.div>
+        </div>
+      </motion.div>
+    </>
+  );
+};
+
 // SearchModal Component
 const SearchModal = ({
   isOpen,
@@ -259,9 +406,11 @@ const SearchModal = ({
   onSelectSuggestion,
   onSelectArea,
   listings = [],
+  onNotFound,
 }) => {
   const [isMobile, setIsMobile] = useState(false);
   const inputRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -309,7 +458,20 @@ const SearchModal = ({
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
-      onSearchSubmit();
+      handleSearchSubmit();
+    }
+  };
+
+  const handleSearchSubmit = () => {
+    if (searchQuery.trim()) {
+      const filtered = filterVendors(searchQuery, listings);
+      if (filtered.length > 0) {
+        // If we have results, close modal
+        onSearchSubmit();
+      } else {
+        // If no results, trigger not found
+        onNotFound();
+      }
     }
   };
 
@@ -320,6 +482,41 @@ const SearchModal = ({
   const formatLocation = (item) => {
     const area = item.area || "Ibadan";
     return `${area}, Oyo State`;
+  };
+
+  const filterVendors = (query, vendors) => {
+    if (!query.trim()) return [];
+    const normalizedQuery = normalizeWord(query);
+    const queryWords = normalizedQuery
+      .split(" ")
+      .filter((word) => word.length > 0);
+    return vendors.filter((item) => {
+      const areaMatch = queryWords.some(
+        (word) =>
+          item.area && item.area.toLowerCase().includes(word.toLowerCase())
+      );
+      const nearbyAreasMatch = queryWords.some((word) => {
+        const targetArea = Object.keys(AREA_CLUSTERS).find((area) =>
+          area.toLowerCase().includes(word.toLowerCase())
+        );
+        if (targetArea && item.area) {
+          const nearbyAreas = findNearbyAreas(targetArea, vendors, 3);
+          return nearbyAreas.includes(item.area);
+        }
+        return false;
+      });
+      const categoryMatch = queryWords.some(
+        (word) =>
+          matchesWord(word, item.category) ||
+          (item.category &&
+            item.category.toLowerCase().includes(word.toLowerCase()))
+      );
+      const nameMatch = queryWords.some(
+        (word) =>
+          item.name && item.name.toLowerCase().includes(word.toLowerCase())
+      );
+      return areaMatch || nearbyAreasMatch || categoryMatch || nameMatch;
+    });
   };
 
   if (!isOpen) return null;
@@ -473,7 +670,10 @@ const SearchModal = ({
                           {areaGroup.map((area, areaIndex) => (
                             <button
                               key={areaIndex}
-                              onClick={() => onSelectArea(area)}
+                              onClick={() => {
+                                onSelectArea(area);
+                                handleSearchSubmit();
+                              }}
                               className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs hover:bg-blue-100 transition-colors border border-blue-200"
                             >
                               {area}
@@ -486,24 +686,37 @@ const SearchModal = ({
               </div>
             ) : suggestions.length === 0 ? (
               <div className="p-8 text-center">
-                <svg
-                  className="w-16 h-16 text-gray-300 mx-auto mb-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                <motion.div
+                  className="text-gray-400 mb-4"
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring" }}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="1"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
+                  <svg
+                    className="w-16 h-16 mx-auto"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </motion.div>
                 <p className="text-gray-500 text-lg mb-2">No results found</p>
                 <p className="text-gray-400 text-sm">
                   Try searching for areas like "Bodija", "Mokola", or categories
                   like "Hotels", "Restaurants"
                 </p>
+                <button
+                  onClick={() => onNotFound()}
+                  className="mt-4 px-4 py-2 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors"
+                >
+                  See Search Details
+                </button>
               </div>
             ) : (
               <div className="p-4">
@@ -520,7 +733,10 @@ const SearchModal = ({
                         return (
                           <button
                             key={index}
-                            onClick={() => onSelectArea(area)}
+                            onClick={() => {
+                              onSelectArea(area);
+                              handleSearchSubmit();
+                            }}
                             className={`flex items-center gap-3 p-3 w-full text-left rounded-lg transition-colors border ${
                               isNearby
                                 ? "bg-orange-50 border-orange-200 hover:bg-orange-100"
@@ -661,7 +877,10 @@ const SearchModal = ({
                 (category) => (
                   <button
                     key={category}
-                    onClick={() => onSearchChange(category)}
+                    onClick={() => {
+                      onSearchChange(category);
+                      handleSearchSubmit();
+                    }}
                     className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs text-gray-700 hover:bg-gray-100 hover:border-gray-400 transition-colors"
                   >
                     {category}
@@ -683,6 +902,7 @@ const Hero = () => {
   const isInView = useInView(heroRef, { margin: "-100px", once: false });
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isNotFoundModalOpen, setIsNotFoundModalOpen] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [areaSuggestions, setAreaSuggestions] = useState([]);
 
@@ -779,7 +999,25 @@ const Hero = () => {
 
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
-      setIsSearchModalOpen(false);
+      const filtered = filterVendors(searchQuery, listings);
+      if (filtered.length > 0) {
+        // If we have results, navigate to the first one
+        setIsSearchModalOpen(false);
+        navigate(`/vendor-detail/${filtered[0].id}`);
+      } else {
+        // If no results, show not found modal
+        setIsSearchModalOpen(false);
+        setIsNotFoundModalOpen(true);
+      }
+    }
+  };
+
+  const handleSearchClick = (e) => {
+    e.stopPropagation();
+    if (searchQuery.trim()) {
+      handleSearchSubmit();
+    } else {
+      setIsSearchModalOpen(true);
     }
   };
 
@@ -838,15 +1076,25 @@ const Hero = () => {
                     className="flex-1 bg-transparent py-1.5 sm:py-2 px-2 text-xs text-gray-800 outline-none placeholder:text-gray-600 cursor-text"
                   />
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSearchSubmit();
-                    }}
+                    onClick={handleSearchClick}
                     className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-1.5 sm:py-2 px-3 text-xs transition-colors duration-200 whitespace-nowrap mx-1"
                   >
                     Search
                   </button>
                 </div>
+                <motion.div
+                  className="absolute -bottom-6 left-0 right-0 text-center"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{
+                    opacity: searchQuery ? 1 : 0,
+                    y: searchQuery ? 0 : 10,
+                  }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <p className="text-[10px] text-gray-500 font-manrope">
+                    Press Enter or click Search to find results
+                  </p>
+                </motion.div>
               </div>
               <div className="flex justify-center gap-1 sm:gap-2 mt-2 sm:mt-3 overflow-hidden px-2">
                 <motion.div
@@ -971,6 +1219,15 @@ const Hero = () => {
           onSelectSuggestion={handleSelectSuggestion}
           onSelectArea={(area) => setSearchQuery(area)}
           listings={listings}
+          onNotFound={() => {
+            setIsSearchModalOpen(false);
+            setIsNotFoundModalOpen(true);
+          }}
+        />
+        <NotFoundModal
+          isOpen={isNotFoundModalOpen}
+          onClose={() => setIsNotFoundModalOpen(false)}
+          searchQuery={searchQuery}
         />
       </AnimatePresence>
     </>

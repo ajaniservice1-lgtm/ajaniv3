@@ -57,8 +57,6 @@ function App() {
                     path="/vendor-detail/:id"
                     element={<VendorDetail />}
                   />{" "}
-                  {/* Add this line */}
-                  {/* Category pages */}
                   <Route
                     path="/category/:category"
                     element={<CategoryResults />}
