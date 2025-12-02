@@ -17,6 +17,14 @@ const Footer = () => {
     visible: { transition: { staggerChildren: 0.2 } },
   };
 
+  // Categories that match your Directory component
+  const directoryCategories = [
+    { name: "Hotels", path: "/category/hotel" },
+    { name: "Restaurants", path: "/category/restaurant" },
+    { name: "Shortlets", path: "/category/shortlet" },
+    { name: "Tourist Centers", path: "/category/tourist-center" },
+  ];
+
   return (
     <motion.footer
       className="bg-[#ffffff] text-black py-8 font-rubik border-t border-gray-200"
@@ -37,7 +45,7 @@ const Footer = () => {
               <img
                 src={Logo}
                 alt="Ajani Logo"
-                className="md:w-48 w-24 h-auto" // Made logo larger (h-16 instead of h-8)
+                className="md:w-48 w-24 h-auto"
               />
             </div>
           </motion.div>
@@ -81,50 +89,20 @@ const Footer = () => {
             </ul>
           </motion.div>
 
-          {/* Column 3: Categories Section */}
+          {/* Column 3: Categories Section - Updated to match Directory */}
           <motion.div variants={fadeUp}>
             <h3 className="font-bold text-black mb-4 text-base">Categories</h3>
             <ul className="space-y-2">
-              <li>
-                <Link
-                  to="/hotel"
-                  className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
-                >
-                  Hotel
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/restaurant"
-                  className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
-                >
-                  Restaurant
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/events"
-                  className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
-                >
-                  Events
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/vendor"
-                  className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
-                >
-                  Vendor
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/school"
-                  className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
-                >
-                  School
-                </Link>
-              </li>
+              {directoryCategories.map((category) => (
+                <li key={category.name}>
+                  <Link
+                    to={category.path}
+                    className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
+                  >
+                    {category.name}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </motion.div>
 
@@ -160,7 +138,7 @@ const Footer = () => {
           </motion.div>
         </motion.div>
 
-        {/* Social Media Icons - Positioned next to logo as in your original design */}
+        {/* Social Media Icons */}
         <div className="flex space-x-4 text-lg justify-center">
           <a
             href="https://www.facebook.com/profile.php?id=61580295532814"
@@ -200,7 +178,7 @@ const Footer = () => {
           </a>
         </div>
 
-        {/* Bottom Copyright Line - Removed border line above copyright */}
+        {/* Bottom Copyright Line */}
         <motion.div variants={fadeUp} className="pt-6 text-center">
           <p className="text-gray-600 text-sm">
             © Copy right is Ajani Smart Guide Services
