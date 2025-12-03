@@ -1,9 +1,8 @@
-// Hero.jsx - Updated with proper search navigation
+// Hero.jsx - Updated with new SearchModal
 import React, { useEffect, useRef, useState } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faStar } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
+import SearchModal from "./SearchModal"; // Import the updated SearchModal
 
 // FALLBACK IMAGES
 const FALLBACK_IMAGES = {
@@ -375,7 +374,6 @@ const NotFoundModal = ({ isOpen, onClose, searchQuery }) => {
               >
                 Try Another Search
               </button>
-              
             </motion.div>
 
             {/* Additional Help */}
@@ -388,507 +386,6 @@ const NotFoundModal = ({ isOpen, onClose, searchQuery }) => {
               Need help? Check our categories or contact support
             </motion.p>
           </motion.div>
-        </div>
-      </motion.div>
-    </>
-  );
-};
-
-// SearchModal Component
-const SearchModal = ({
-  isOpen,
-  onClose,
-  searchQuery,
-  onSearchChange,
-  onSearchSubmit,
-  suggestions = [],
-  areaSuggestions = [],
-  onSelectSuggestion,
-  onSelectArea,
-  listings = [],
-  onNotFound,
-}) => {
-  const [isMobile, setIsMobile] = useState(false);
-  const inputRef = useRef(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscape);
-      document.body.style.overflow = "hidden";
-      document.documentElement.style.overflow = "hidden";
-    }
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-      document.body.style.overflow = "unset";
-      document.documentElement.style.overflow = "unset";
-    };
-  }, [isOpen, onClose]);
-
-  const formatPrice = (n) => {
-    if (!n) return "–";
-    const num = Number(n);
-    return num.toLocaleString("en-US", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    });
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      handleSearchSubmit();
-    }
-  };
-
-  const handleSearchSubmit = () => {
-    if (searchQuery.trim()) {
-      const filtered = filterVendors(searchQuery, listings);
-      if (filtered.length > 0) {
-        // If we have results, close modal
-        onSearchSubmit();
-      } else {
-        // If no results, trigger not found
-        onNotFound();
-      }
-    }
-  };
-
-  const getResultCountText = (count) => {
-    return count === 1 ? `${count} result` : `${count} results`;
-  };
-
-  const formatLocation = (item) => {
-    const area = item.area || "Ibadan";
-    return `${area}, Oyo State`;
-  };
-
-  const filterVendors = (query, vendors) => {
-    if (!query.trim()) return [];
-    const normalizedQuery = normalizeWord(query);
-    const queryWords = normalizedQuery
-      .split(" ")
-      .filter((word) => word.length > 0);
-    return vendors.filter((item) => {
-      const areaMatch = queryWords.some(
-        (word) =>
-          item.area && item.area.toLowerCase().includes(word.toLowerCase())
-      );
-      const nearbyAreasMatch = queryWords.some((word) => {
-        const targetArea = Object.keys(AREA_CLUSTERS).find((area) =>
-          area.toLowerCase().includes(word.toLowerCase())
-        );
-        if (targetArea && item.area) {
-          const nearbyAreas = findNearbyAreas(targetArea, vendors, 3);
-          return nearbyAreas.includes(item.area);
-        }
-        return false;
-      });
-      const categoryMatch = queryWords.some(
-        (word) =>
-          matchesWord(word, item.category) ||
-          (item.category &&
-            item.category.toLowerCase().includes(word.toLowerCase()))
-      );
-      const nameMatch = queryWords.some(
-        (word) =>
-          item.name && item.name.toLowerCase().includes(word.toLowerCase())
-      );
-      return areaMatch || nearbyAreasMatch || categoryMatch || nameMatch;
-    });
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <>
-      <motion.div
-        className="fixed inset-0 z-[9998] bg-black/50 backdrop-blur-sm overflow-hidden"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        onClick={onClose}
-      />
-      <motion.div
-        className={`fixed z-[9999] bg-white overflow-hidden ${
-          isMobile
-            ? "inset-x-0 top-0 h-full"
-            : "inset-x-4 top-4 mx-auto max-w-4xl rounded-2xl max-h-[90vh]"
-        }`}
-        initial={
-          isMobile ? { y: "100%", opacity: 0 } : { scale: 0.9, opacity: 0 }
-        }
-        animate={isMobile ? { y: 0, opacity: 1 } : { scale: 1, opacity: 1 }}
-        exit={isMobile ? { y: "100%", opacity: 0 } : { scale: 0.9, opacity: 0 }}
-        transition={{
-          type: "spring",
-          damping: 25,
-          stiffness: 300,
-          duration: 0.3,
-        }}
-      >
-        <div
-          className={`flex flex-col h-full ${
-            isMobile ? "overflow-hidden" : "max-h-[90vh]"
-          }`}
-        >
-          <div
-            className={`flex items-center gap-3 p-4 border-b border-gray-200 ${
-              isMobile ? "overflow-hidden" : ""
-            }`}
-          >
-            {isMobile && (
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <svg
-                  className="w-5 h-5 text-gray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-              </button>
-            )}
-            <div className="flex-1 flex items-center bg-gray-100 rounded-full px-4 py-3">
-              <svg
-                className="w-5 h-5 text-gray-500 mr-3 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder="Search by area or category..."
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="flex-1 bg-transparent outline-none text-gray-800 placeholder-gray-500 text-base"
-                autoFocus
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => onSearchChange("")}
-                  className="ml-2 p-1 hover:bg-gray-200 rounded-full transition-colors"
-                >
-                  <svg
-                    className="w-4 h-4 text-gray-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              )}
-            </div>
-            {!isMobile && (
-              <button
-                onClick={onClose}
-                className="ml-2 p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <svg
-                  className="w-5 h-5 text-gray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            )}
-          </div>
-          <div
-            className={`flex-1 ${
-              isMobile ? "overflow-y-auto overflow-x-hidden" : "overflow-y-auto"
-            }`}
-          >
-            {searchQuery.trim() === "" ? (
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Popular Areas in Ibadan
-                </h3>
-                <div className="space-y-4">
-                  {getAreaGroups()
-                    .slice(0, 3)
-                    .map((areaGroup, index) => (
-                      <div
-                        key={index}
-                        className="border border-gray-200 rounded-lg p-3"
-                      >
-                        <p className="text-sm font-medium text-gray-700 mb-2">
-                          {areaGroup[0]} & Nearby
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {areaGroup.map((area, areaIndex) => (
-                            <button
-                              key={areaIndex}
-                              onClick={() => {
-                                onSelectArea(area);
-                                handleSearchSubmit();
-                              }}
-                              className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs hover:bg-blue-100 transition-colors border border-blue-200"
-                            >
-                              {area}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            ) : suggestions.length === 0 ? (
-              <div className="p-8 text-center">
-                <motion.div
-                  className="text-gray-400 mb-4"
-                  initial={{ scale: 0.8 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring" }}
-                >
-                  <svg
-                    className="w-16 h-16 mx-auto"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="1"
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                </motion.div>
-                <p className="text-gray-500 text-lg mb-2">No results found</p>
-                <p className="text-gray-400 text-sm">
-                  Try searching for areas like "Bodija", "Mokola", or categories
-                  like "Hotels", "Restaurants"
-                </p>
-                <button
-                  onClick={() => onNotFound()}
-                  className="mt-4 px-4 py-2 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors"
-                >
-                  See Search Details
-                </button>
-              </div>
-            ) : (
-              <div className="p-4">
-                {areaSuggestions.length > 0 && (
-                  <div className="mb-6">
-                    <h4 className="font-medium text-gray-900 text-sm mb-3">
-                      Areas matching "{searchQuery}" and nearby locations
-                    </h4>
-                    <div className="space-y-2">
-                      {areaSuggestions.map((area, index) => {
-                        const isNearby = !area
-                          .toLowerCase()
-                          .includes(searchQuery.toLowerCase());
-                        return (
-                          <button
-                            key={index}
-                            onClick={() => {
-                              onSelectArea(area);
-                              handleSearchSubmit();
-                            }}
-                            className={`flex items-center gap-3 p-3 w-full text-left rounded-lg transition-colors border ${
-                              isNearby
-                                ? "bg-orange-50 border-orange-200 hover:bg-orange-100"
-                                : "bg-blue-50 border-blue-200 hover:bg-blue-100"
-                            }`}
-                          >
-                            <svg
-                              className={`w-4 h-4 ${
-                                isNearby ? "text-orange-500" : "text-blue-500"
-                              }`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                              />
-                            </svg>
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <span className="text-gray-700 font-medium text-sm">
-                                  {area}
-                                </span>
-                                {isNearby && (
-                                  <span className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
-                                    Nearby
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-gray-500 text-xs">
-                                Ibadan, Oyo State
-                              </p>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-                <div className="mb-4">
-                  <h4 className="font-medium text-gray-900 text-sm">
-                    {getResultCountText(suggestions.length)} for "{searchQuery}"
-                  </h4>
-                </div>
-                <div className="space-y-3">
-                  {suggestions.map((vendor, index) => {
-                    const category = (vendor.category || "").toLowerCase();
-                    let priceText = "";
-                    if (
-                      category.includes("hotel") ||
-                      category.includes("hostel") ||
-                      category.includes("shortlet")
-                    ) {
-                      priceText = `#${formatPrice(
-                        vendor.price_from
-                      )} for 2 nights`;
-                    } else {
-                      priceText = `From #${formatPrice(
-                        vendor.price_from
-                      )} per guest`;
-                    }
-                    return (
-                      <motion.div
-                        key={vendor.id || index}
-                        className="flex items-center p-3 hover:bg-blue-50 rounded-xl cursor-pointer transition-all duration-200 border border-transparent hover:border-blue-200"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        onClick={() => onSelectSuggestion(vendor)}
-                      >
-                        <div className="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden mr-3">
-                          <img
-                            src={getCardImages(vendor)}
-                            alt={vendor.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-900 text-sm line-clamp-1">
-                                {vendor.name}
-                              </h4>
-                              <p className="text-gray-600 text-xs mt-1">
-                                {formatLocation(vendor)}
-                              </p>
-                            </div>
-                            {vendor.price_from && (
-                              <div className="text-right ml-2 flex-shrink-0">
-                                <p className="font-semibold text-green-600 text-xs">
-                                  {priceText}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center justify-between mt-2">
-                            <div className="flex items-center gap-1">
-                              <FontAwesomeIcon
-                                icon={faStar}
-                                className="text-yellow-400 text-xs"
-                              />
-                              <span className="text-gray-700 text-xs">
-                                {vendor.rating || "4.9"}
-                              </span>
-                            </div>
-                            {vendor.category && (
-                              <span className="text-gray-500 text-xs bg-gray-100 px-2 py-1 rounded">
-                                {vendor.category.split(".")[1] ||
-                                  vendor.category}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-          <div
-            className={`p-4 border-t border-gray-100 bg-gray-50 ${
-              isMobile ? "overflow-hidden" : ""
-            }`}
-          >
-            <p className="text-xs text-gray-600 mb-3 font-medium">
-              Popular Categories
-            </p>
-            <div
-              className={`flex flex-wrap gap-2 ${
-                isMobile ? "overflow-hidden" : ""
-              }`}
-            >
-              {["Hotels", "Restaurants", "Shortlets", "Tourism"].map(
-                (category) => (
-                  <button
-                    key={category}
-                    onClick={() => {
-                      onSearchChange(category);
-                      handleSearchSubmit();
-                    }}
-                    className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs text-gray-700 hover:bg-gray-100 hover:border-gray-400 transition-colors"
-                  >
-                    {category}
-                  </button>
-                )
-              )}
-            </div>
-          </div>
         </div>
       </motion.div>
     </>
@@ -1021,6 +518,14 @@ const Hero = () => {
     }
   };
 
+  // Updated handleSelectArea function
+  const handleSelectArea = (area) => {
+    setSearchQuery(area);
+    setIsSearchModalOpen(false);
+    // Navigate to search results page or show filtered results
+    navigate(`/search?query=${encodeURIComponent(area)}`);
+  };
+
   return (
     <>
       <section
@@ -1117,9 +622,6 @@ const Hero = () => {
                   <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200">
                     Hotel
                   </p>
-                  <p className="text-[8px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    Popular Hotels
-                  </p>
                 </motion.div>
 
                 <motion.div
@@ -1141,9 +643,6 @@ const Hero = () => {
                   </div>
                   <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200">
                     Tourism
-                  </p>
-                  <p className="text-[8px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    Tourist Centers
                   </p>
                 </motion.div>
 
@@ -1170,9 +669,6 @@ const Hero = () => {
                   <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200">
                     Shortlet
                   </p>
-                  <p className="text-[8px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    Popular Shortlets
-                  </p>
                 </motion.div>
 
                 <motion.div
@@ -1198,9 +694,6 @@ const Hero = () => {
                   <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200">
                     Restaurant
                   </p>
-                  <p className="text-[8px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    Popular Restaurants
-                  </p>
                 </motion.div>
               </div>
             </motion.div>
@@ -1214,15 +707,7 @@ const Hero = () => {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onSearchSubmit={handleSearchSubmit}
-          suggestions={suggestions}
-          areaSuggestions={areaSuggestions}
           onSelectSuggestion={handleSelectSuggestion}
-          onSelectArea={(area) => setSearchQuery(area)}
-          listings={listings}
-          onNotFound={() => {
-            setIsSearchModalOpen(false);
-            setIsNotFoundModalOpen(true);
-          }}
         />
         <NotFoundModal
           isOpen={isNotFoundModalOpen}

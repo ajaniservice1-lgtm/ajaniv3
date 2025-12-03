@@ -76,7 +76,7 @@ export default function LoginButton({ onAuthToast }) {
               referrerPolicy="no-referrer"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+            <div className="w-full h-full flex items-center justify-center">
               <FiUser className="text-white text-lg" />
             </div>
           )}

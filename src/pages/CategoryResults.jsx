@@ -626,7 +626,7 @@ const CategoryResults = () => {
               <h1 className="text-3xl font-bold text-[#00065A] mb-2">
                 {searchQuery
                   ? `Search results for "${searchQuery}"`
-                  : `Popular ${categoryTitle} in Ibadan`}
+                  : ` ${categoryTitle}s in Ibadan`}
               </h1>
               <p className="text-gray-600">
                 {isSearching ? (

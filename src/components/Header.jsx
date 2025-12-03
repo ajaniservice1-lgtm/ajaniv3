@@ -631,13 +631,13 @@ const Header = ({ onAuthToast }) => {
 
             {/* Right section with icons - Increased gap for desktop, reduced for mobile */}
             <div className="flex items-center gap-2 lg:gap-6 h-full">
-              <button
+              {/* <button
                 onClick={() => setIsSearchOpen(true)}
                 className="text-2xl hover:text-[#00d1ff] transition-colors p-1"
                 title="Search"
               >
                 <CiSearch />
-              </button>
+              </button> */}
 
               {/* Right section: Chat icon (only when logged in), Notification, and Profile dropdown */}
               {user && (

@@ -165,11 +165,7 @@ const FilterBar = ({
 
       {/* Mobile: Line 2 - Toggle switches only */}
       <div className="flex lg:hidden items-center justify-center gap-6">
-        <ToggleSwitch
-          enabled={verifiedOnly}
-          setEnabled={setVerifiedOnly}
-          label="Verified Only"
-        />
+        
         <ToggleSwitch
           enabled={availableNow}
           setEnabled={setAvailableNow}
@@ -225,11 +221,7 @@ const FilterBar = ({
 
           {/* Toggle Switches */}
           <div className="flex items-center gap-6">
-            <ToggleSwitch
-              enabled={verifiedOnly}
-              setEnabled={setVerifiedOnly}
-              label="Verified Only"
-            />
+           
             <ToggleSwitch
               enabled={availableNow}
               setEnabled={setAvailableNow}
