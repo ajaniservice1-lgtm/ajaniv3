@@ -1,4 +1,4 @@
-// Header.jsx - Updated with proper vendor navigation
+// Header.jsx - Updated with sign out on profile click
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -6,8 +6,12 @@ import Logo from "../assets/Logos/logo5.png";
 import LoginButton from "../components/ui/LoginButton";
 import { IoPerson } from "react-icons/io5";
 import { CiSearch } from "react-icons/ci";
+import { MdOutlineChat, MdNotifications } from "react-icons/md";
+import { CgProfile } from "react-icons/cg";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
+import { useAuth } from "../hook/useAuth"; // Import auth hook
+import { supabase } from "../lib/supabase"; // Import supabase for sign out
 
 // Location-based filtering utilities (same as before)
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -176,7 +180,7 @@ const useGoogleSheet = (sheetId, apiKey) => {
   return { data: Array.isArray(data) ? data : [], loading, error };
 };
 
-// Search Modal Component for Header
+// Search Modal Component for Header (same as before)
 const HeaderSearchModal = ({ isOpen, onClose, listings = [] }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -519,6 +523,7 @@ const Header = ({ onAuthToast }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth(); // Get auth state
 
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
   const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
@@ -529,6 +534,29 @@ const Header = ({ onAuthToast }) => {
     if (element) {
       window.scrollTo({ top: element.offsetTop - 80, behavior: "smooth" });
     }
+  };
+
+  // Handle sign out
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      onAuthToast?.("Successfully signed out");
+      // You can also add any additional cleanup here
+    } catch (error) {
+      console.error("Sign out error:", error);
+      onAuthToast?.("Error signing out", "error");
+    }
+  };
+
+  // Handle profile/sign out click
+  const handleProfileSignOut = () => {
+    handleSignOut();
+  };
+
+  // Handle mobile menu sign out
+  const handleMobileSignOut = () => {
+    handleSignOut();
+    setIsMenuOpen(false);
   };
 
   return (
@@ -575,32 +603,82 @@ const Header = ({ onAuthToast }) => {
               >
                 <CiSearch />
               </button>
-              <div className="flex items-center gap-3">
-                <div className="hidden lg:flex items-center gap-1 whitespace-nowrap">
-                  <IoPerson className="text-base" />
-                  <span className="text-sm">My Profile</span>
-                </div>
-                <LoginButton onAuthToast={onAuthToast} />
-                <button
-                  onClick={() => setIsMenuOpen(true)}
-                  className="lg:hidden text-gray-900"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+
+              {/* Conditional rendering based on auth state */}
+              {user ? (
+                // Logged in state: Show icons with profile triggering sign out
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => navigate("/chat")}
+                    className="text-xl hover:text-[#00d1ff] transition-colors"
+                    title="Chat Assistant"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
-                  </svg>
-                </button>
-              </div>
+                    <MdOutlineChat />
+                  </button>
+                  <button
+                    onClick={() => navigate("/add-business")}
+                    className="text-xl hover:text-[#00d1ff] transition-colors"
+                    title="List My Business"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => navigate("/notifications")}
+                    className="text-xl hover:text-[#00d1ff] transition-colors relative"
+                    title="Notifications"
+                  >
+                    <MdNotifications />
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                      3
+                    </span>
+                  </button>
+                  <button
+                    onClick={handleProfileSignOut}
+                    className="text-xl hover:text-[#00d1ff] transition-colors flex items-center gap-2"
+                    title="Sign Out"
+                  >
+                    <CgProfile />
+                    <span className="text-xs hidden sm:inline">Sign Out</span>
+                  </button>
+                </div>
+              ) : (
+                // Logged out state: Show login/register buttons only
+                <div className="flex items-center gap-3">
+                  <LoginButton onAuthToast={onAuthToast} />
+                </div>
+              )}
+
+              <button
+                onClick={() => setIsMenuOpen(true)}
+                className="lg:hidden text-gray-900"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              </button>
             </div>
           </nav>
         </div>
@@ -612,7 +690,7 @@ const Header = ({ onAuthToast }) => {
         listings={listings}
       />
 
-      {/* Mobile Menu (same as before) */}
+      {/* Mobile Menu - Updated with auth-aware items */}
       <div
         className={`fixed inset-0 z-50 md:hidden ${
           isMenuOpen ? "" : "pointer-events-none"
@@ -667,9 +745,7 @@ const Header = ({ onAuthToast }) => {
               { label: "Categories", id: "Categories" },
               { label: "Price Insights", id: "Price Insights" },
               { label: "Blog", id: "Blog" },
-              { label: "My Profile", id: "My Profile" },
-              { label: "Log In", id: "Log In" },
-              { label: "Register", id: "Register" },
+              { label: "Vendor", id: "Vendor" },
             ].map((item) => (
               <button
                 key={item.id}
@@ -682,6 +758,86 @@ const Header = ({ onAuthToast }) => {
                 {item.label}
               </button>
             ))}
+
+            {/* Auth-aware mobile menu items */}
+            {user ? (
+              <>
+                <button
+                  onClick={() => {
+                    navigate("/chat");
+                    setIsMenuOpen(false);
+                  }}
+                  className="block w-full text-left py-1.5 text-gray-900 hover:text-[#06EAFC] font-medium whitespace-nowrap flex items-center gap-2"
+                >
+                  <MdOutlineChat className="text-base" />
+                  Chat Assistant
+                </button>
+                <button
+                  onClick={() => {
+                    navigate("/add-business");
+                    setIsMenuOpen(false);
+                  }}
+                  className="block w-full text-left py-1.5 text-gray-900 hover:text-[#06EAFC] font-medium whitespace-nowrap flex items-center gap-2"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                  List My Business
+                </button>
+                <button
+                  onClick={() => {
+                    navigate("/notifications");
+                    setIsMenuOpen(false);
+                  }}
+                  className="block w-full text-left py-1.5 text-gray-900 hover:text-[#06EAFC] font-medium whitespace-nowrap flex items-center gap-2"
+                >
+                  <MdNotifications className="text-base" />
+                  Notifications
+                </button>
+                <button
+                  onClick={handleMobileSignOut}
+                  className="block w-full text-left py-1.5 text-red-600 hover:text-red-800 font-medium whitespace-nowrap flex items-center gap-2"
+                >
+                  <CgProfile className="text-base" />
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => {
+                    // Trigger login modal via LoginButton component
+                    setIsMenuOpen(false);
+                    // You might want to trigger the login modal here
+                    // This would require passing a function from parent or using context
+                  }}
+                  className="block w-full text-left py-1.5 text-gray-900 hover:text-[#06EAFC] font-medium whitespace-nowrap"
+                >
+                  Log In
+                </button>
+                <button
+                  onClick={() => {
+                    // Trigger signup modal via LoginButton component
+                    setIsMenuOpen(false);
+                    // You might want to trigger the signup modal here
+                    // This would require passing a function from parent or using context
+                  }}
+                  className="block w-full text-left py-1.5 text-gray-900 hover:text-[#06EAFC] font-medium whitespace-nowrap"
+                >
+                  Register
+                </button>
+              </>
+            )}
           </nav>
         </div>
       </div>
