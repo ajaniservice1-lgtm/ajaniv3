@@ -1,4 +1,4 @@
-// Hero.jsx - Updated with new SearchModal
+// Hero.jsx - Updated with same search bar design as SearchModal
 import React, { useEffect, useRef, useState } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -518,11 +518,15 @@ const Hero = () => {
     }
   };
 
-  // Updated handleSelectArea function
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      handleSearchSubmit();
+    }
+  };
+
   const handleSelectArea = (area) => {
     setSearchQuery(area);
     setIsSearchModalOpen(false);
-    // Navigate to search results page or show filtered results
     navigate(`/search?query=${encodeURIComponent(area)}`);
   };
 
@@ -551,44 +555,77 @@ const Hero = () => {
                 Your all-in-one local guide for hotels, food, events, vendors,
                 and market prices.
               </p>
-              <div className="relative mx-auto w-full sm:max-w-md overflow-hidden px-2">
-                <div
-                  className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-10 cursor-text"
-                  onClick={() => setIsSearchModalOpen(true)}
-                >
-                  <div className="pl-3 sm:pl-4 text-gray-500">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-3 w-3 sm:h-4 sm:w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
-                    </svg>
+
+              {/* Updated Search Bar - Same design as SearchModal */}
+              <div className="relative mx-auto w-full max-w-md px-2">
+                <div className="flex items-center">
+                  <div className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-10">
+                    <div className="pl-3 sm:pl-4 text-gray-500">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4 sm:h-5 sm:w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search by area or category..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onFocus={() => setIsSearchModalOpen(true)}
+                      onKeyPress={handleKeyPress}
+                      className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope"
+                      autoFocus={false}
+                      aria-label="Search input"
+                      role="searchbox"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="p-1 mr-2 text-gray-500 hover:text-gray-700"
+                        aria-label="Clear search"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    )}
                   </div>
-                  <input
-                    type="text"
-                    placeholder="Search by area or category..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onFocus={() => setIsSearchModalOpen(true)}
-                    className="flex-1 bg-transparent py-1.5 sm:py-2 px-2 text-xs text-gray-800 outline-none placeholder:text-gray-600 cursor-text"
-                  />
-                  <button
-                    onClick={handleSearchClick}
-                    className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-1.5 sm:py-2 px-3 text-xs transition-colors duration-200 whitespace-nowrap mx-1"
-                  >
-                    Search
-                  </button>
+
+                  {/* Separate Search Button with gap - Same as SearchModal */}
+                  <div className="ml-2">
+                    <button
+                      onClick={handleSearchSubmit}
+                      className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope"
+                      aria-label="Perform search"
+                    >
+                      Search
+                    </button>
+                  </div>
                 </div>
+
+                {/* Search hint text - Same as SearchModal */}
                 <motion.div
-                  className="absolute -bottom-6 left-0 right-0 text-center"
+                  className="text-center mt-1"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{
                     opacity: searchQuery ? 1 : 0,
@@ -596,11 +633,13 @@ const Hero = () => {
                   }}
                   transition={{ duration: 0.3 }}
                 >
-                  <p className="text-[10px] text-gray-500 font-manrope">
+                  <p className="text-xs text-gray-500 font-manrope">
                     Press Enter or click Search to find results
                   </p>
                 </motion.div>
               </div>
+
+              {/* Category Icons */}
               <div className="flex justify-center gap-1 sm:gap-2 mt-2 sm:mt-3 overflow-hidden px-2">
                 <motion.div
                   className="text-center cursor-pointer group"

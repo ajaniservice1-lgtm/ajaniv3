@@ -884,7 +884,7 @@ const Directory = () => {
         )}
 
         {/* Category Sections - Tighter spacing */}
-        <div className="space-y-4">
+        <div className="space-y-4 ">
           {getPopularCategories().map((category) => {
             const items = categorizedListings[category] || [];
             if (items.length === 0) return null;
