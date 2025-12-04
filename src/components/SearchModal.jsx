@@ -1,5 +1,11 @@
-// SearchModal.jsx - Full screen modal
-import React, { useEffect, useRef, useState } from "react";
+// SearchModal.jsx - Full screen modal (Optimized Version)
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -8,8 +14,21 @@ import {
   faChevronRight,
   faChevronDown,
 } from "@fortawesome/free-solid-svg-icons";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { PiSliders } from "react-icons/pi";
+
+// Custom debounce function
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
 
 // Helper function to fetch Google Sheet data
 const useGoogleSheet = (sheetId, apiKey) => {
@@ -113,7 +132,7 @@ const getCardImages = (item) => {
   return [FALLBACK_IMAGES.default];
 };
 
-// Helper function to extract category display name
+// Regular helper functions (not hooks)
 const getCategoryDisplayName = (category) => {
   if (!category) return "Other";
 
@@ -138,7 +157,6 @@ const getCategoryDisplayName = (category) => {
   return category.charAt(0).toUpperCase() + category.slice(1);
 };
 
-// Helper function to get category slug for routing
 const getCategorySlug = (category) => {
   if (!category) return "other";
 
@@ -150,16 +168,50 @@ const getCategorySlug = (category) => {
   return category.toLowerCase().replace(/\s+/g, "-");
 };
 
-// Dropdown Component
+// Dropdown Component with keyboard navigation
 const Dropdown = ({
   isOpen,
   items,
   onSelect,
   selectedItem,
-  placeholder,
   type = "category",
+  isMobile,
 }) => {
   const dropdownRef = useRef(null);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setFocusedIndex(-1);
+      return;
+    }
+
+    const handleKeyDown = (e) => {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setFocusedIndex((prev) => (prev < items.length - 1 ? prev + 1 : 0));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setFocusedIndex((prev) => (prev > 0 ? prev - 1 : items.length - 1));
+      } else if (e.key === "Enter" && focusedIndex >= 0) {
+        e.preventDefault();
+        onSelect(items[focusedIndex]);
+      } else if (e.key === "Escape") {
+        onSelect(null);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, items, focusedIndex, onSelect]);
+
+  useEffect(() => {
+    if (focusedIndex >= 0 && dropdownRef.current) {
+      const focusedElement =
+        dropdownRef.current.children[0]?.children[focusedIndex];
+      focusedElement?.scrollIntoView({ block: "nearest" });
+    }
+  }, [focusedIndex]);
 
   if (!isOpen) return null;
 
@@ -170,9 +222,13 @@ const Dropdown = ({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -10, scale: 0.95 }}
       transition={{ duration: 0.2 }}
-      className="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 max-h-60 overflow-y-auto"
+      className={`absolute top-full left-0 mt-1 ${
+        isMobile ? "w-full" : "w-48"
+      } bg-white rounded-xl shadow-2xl border border-gray-200 z-50 max-h-60 overflow-y-auto`}
+      role="listbox"
+      aria-label={`${type} dropdown`}
     >
-      <div className="py-2">
+      <div className="py-1">
         {items.length > 0 ? (
           items.map((item, index) => {
             const displayName =
@@ -182,24 +238,43 @@ const Dropdown = ({
               <button
                 key={index}
                 onClick={() => onSelect(item)}
-                className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center justify-between ${
+                className={`w-full text-left px-3 ${
+                  isMobile ? "py-2" : "py-3"
+                } hover:bg-gray-50 transition-colors flex items-center justify-between ${
                   selectedItem === item
                     ? "bg-blue-50 text-blue-600"
                     : "text-gray-700"
-                }`}
+                } ${focusedIndex === index ? "ring-2 ring-blue-300" : ""}`}
+                role="option"
+                aria-selected={selectedItem === item}
+                tabIndex={-1}
               >
-                <span className="font-medium">{displayName}</span>
+                <span
+                  className={`${
+                    isMobile ? "text-xs" : "text-sm"
+                  } font-manrope font-medium`}
+                >
+                  {displayName}
+                </span>
                 {selectedItem === item && (
                   <FontAwesomeIcon
                     icon={faChevronRight}
-                    className="text-xs text-blue-600"
+                    className={`${
+                      isMobile ? "text-[10px]" : "text-xs"
+                    } text-blue-600`}
                   />
                 )}
               </button>
             );
           })
         ) : (
-          <div className="px-4 py-3 text-gray-500 text-center">
+          <div
+            className={`px-3 ${
+              isMobile ? "py-2" : "py-3"
+            } text-gray-500 text-center ${
+              isMobile ? "text-xs" : "text-sm"
+            } font-manrope`}
+          >
             No items found
           </div>
         )}
@@ -208,10 +283,22 @@ const Dropdown = ({
   );
 };
 
-// BusinessCard Component - Matching image design
-const BusinessCard = ({ item, category, isMobile }) => {
+// BusinessCard Component with lazy loading
+const BusinessCard = React.memo(({ item, category, isMobile }) => {
   const images = getCardImages(item);
   const navigate = useNavigate();
+  const [isVisible, setIsVisible] = useState(false);
+  const cardRef = useRef();
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsVisible(entry.isIntersecting),
+      { threshold: 0.1, rootMargin: "50px" }
+    );
+
+    if (cardRef.current) observer.observe(cardRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   const formatPrice = (n) => {
     if (!n) return "–";
@@ -236,8 +323,15 @@ const BusinessCard = ({ item, category, isMobile }) => {
     }
   };
 
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      handleCardClick();
+    }
+  };
+
   return (
     <div
+      ref={cardRef}
       className={`
         bg-white rounded-xl overflow-hidden flex-shrink-0 
         font-manrope
@@ -246,16 +340,22 @@ const BusinessCard = ({ item, category, isMobile }) => {
         hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
       `}
       onClick={handleCardClick}
+      role="button"
+      tabIndex={0}
+      onKeyPress={handleKeyPress}
+      aria-label={`View details for ${item.name} in ${location}`}
     >
       {/* Image with Guest Favorite Badge */}
       <div className="relative w-full lg:h-[170px] h-[150px]">
-        <img
-          src={images[0]}
-          alt={item.name}
-          className="w-full h-full object-cover"
-          onError={(e) => (e.currentTarget.src = FALLBACK_IMAGES.default)}
-          loading="lazy"
-        />
+        {isVisible && (
+          <img
+            src={images[0]}
+            alt={item.name}
+            className="w-full h-full object-cover"
+            onError={(e) => (e.currentTarget.src = FALLBACK_IMAGES.default)}
+            loading="lazy"
+          />
+        )}
 
         {/* Guest Favorite Badge - Top Left */}
         <div className="absolute top-2 left-2 bg-white px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
@@ -318,10 +418,12 @@ const BusinessCard = ({ item, category, isMobile }) => {
       </div>
     </div>
   );
-};
+});
+
+BusinessCard.displayName = "BusinessCard";
 
 // Category Section Component - Horizontal scrolling
-const CategorySection = ({ title, items, isMobile }) => {
+const CategorySection = React.memo(({ title, items, isMobile }) => {
   const scrollContainerRef = useRef(null);
   const navigate = useNavigate();
 
@@ -387,11 +489,12 @@ const CategorySection = ({ title, items, isMobile }) => {
         <button
           onClick={() => scrollSection("prev")}
           className={`absolute left-0 top-1/2 transform -translate-y-1/2 ${
-            isMobile ? "w-7 h-7 -ml-3" : "w-8 h-8 -ml-4"
+            isMobile ? "w-6 h-6 -ml-2" : "w-8 h-8 -ml-4"
           } bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200`}
+          aria-label="Scroll left"
         >
           <svg
-            className={`${isMobile ? "w-3 h-3" : "w-4 h-4"} text-gray-600`}
+            className={`${isMobile ? "w-2 h-2" : "w-3 h-3"} text-gray-600`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -408,11 +511,12 @@ const CategorySection = ({ title, items, isMobile }) => {
         <button
           onClick={() => scrollSection("next")}
           className={`absolute right-0 top-1/2 transform -translate-y-1/2 ${
-            isMobile ? "w-7 h-7 -mr-3" : "w-8 h-8 -mr-4"
+            isMobile ? "w-6 h-6 -mr-2" : "w-8 h-8 -mr-4"
           } bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200`}
+          aria-label="Scroll right"
         >
           <svg
-            className={`${isMobile ? "w-3 h-3" : "w-4 h-4"} text-gray-600`}
+            className={`${isMobile ? "w-2 h-2" : "w-3 h-3"} text-gray-600`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -432,6 +536,7 @@ const CategorySection = ({ title, items, isMobile }) => {
         <button
           onClick={handleViewAll}
           className="text-[#06EAFC] hover:text-[#05d9eb] text-sm font-medium flex items-center gap-1 px-6 py-2 rounded-lg hover:bg-blue-50 transition-colors font-manrope"
+          aria-label={`View all ${getCategoryDisplayName(title)}`}
         >
           View All
           <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
@@ -439,9 +544,75 @@ const CategorySection = ({ title, items, isMobile }) => {
       </div>
     </div>
   );
-};
+});
 
-// Main SearchModal Component - Full screen
+CategorySection.displayName = "CategorySection";
+
+// Error Boundary Component
+class SearchModalErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("SearchModal Error:", error, errorInfo);
+  }
+
+  handleRetry = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="fixed inset-0 z-[9999] bg-white p-6 flex flex-col items-center justify-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+            <svg
+              className="w-8 h-8 text-red-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">
+            Something went wrong
+          </h3>
+          <p className="text-gray-600 text-center mb-6 max-w-sm">
+            We encountered an error while loading the search. Please try again.
+          </p>
+          <button
+            onClick={this.handleRetry}
+            className="bg-[#06EAFC] hover:bg-[#05d9eb] text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+          >
+            Try Again
+          </button>
+          <button
+            onClick={this.props.onClose}
+            className="mt-3 text-gray-600 hover:text-gray-800 text-sm"
+          >
+            Close Search
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Main SearchModal Component
 const SearchModal = ({
   isOpen,
   onClose,
@@ -458,6 +629,7 @@ const SearchModal = ({
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [allLocations, setAllLocations] = useState([]);
   const [allCategories, setAllCategories] = useState([]);
+  const [searchHistory, setSearchHistory] = useState([]);
   const inputRef = useRef(null);
   const categoryDropdownRef = useRef(null);
   const locationDropdownRef = useRef(null);
@@ -467,6 +639,39 @@ const SearchModal = ({
 
   // Fetch data from Google Sheet
   const { data: listings = [] } = useGoogleSheet(SHEET_ID, API_KEY);
+
+  // Debounced search
+  const debouncedSearch = useRef(
+    debounce((query) => {
+      // Perform any additional search logic here
+      console.log("Searching for:", query);
+    }, 300)
+  ).current;
+
+  useEffect(() => {
+    return () => {
+      if (debouncedSearch.cancel) {
+        debouncedSearch.cancel();
+      }
+    };
+  }, []);
+
+  const handleSearchChange = useCallback(
+    (query) => {
+      onSearchChange(query);
+      debouncedSearch(query);
+    },
+    [onSearchChange, debouncedSearch]
+  );
+
+  const handleSearchSubmit = useCallback(() => {
+    if (searchQuery.trim()) {
+      setSearchHistory((prev) =>
+        [searchQuery, ...prev.filter((q) => q !== searchQuery)].slice(0, 5)
+      );
+      onSearchSubmit();
+    }
+  }, [searchQuery, onSearchSubmit]);
 
   // Check for mobile view
   useEffect(() => {
@@ -555,11 +760,13 @@ const SearchModal = ({
         onClose();
       }
     };
+
     if (isOpen) {
       document.addEventListener("keydown", handleEscape);
       document.body.style.overflow = "hidden";
       document.documentElement.style.overflow = "hidden";
     }
+
     return () => {
       document.removeEventListener("keydown", handleEscape);
       document.body.style.overflow = "unset";
@@ -567,84 +774,93 @@ const SearchModal = ({
     };
   }, [isOpen, onClose]);
 
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      onSearchSubmit();
-    }
-  };
+  const handleKeyPress = useCallback(
+    (e) => {
+      if (e.key === "Enter") {
+        handleSearchSubmit();
+      }
+    },
+    [handleSearchSubmit]
+  );
 
-  const handleClearSearch = () => {
+  const handleClearSearch = useCallback(() => {
     onSearchChange("");
     setSelectedCategory(null);
     setSelectedLocation(null);
-  };
+  }, [onSearchChange]);
 
-  const handleCategorySelect = (category) => {
-    setSelectedCategory(category);
-    setShowCategoryDropdown(false);
-    // Update search query to show category
-    onSearchChange(getCategoryDisplayName(category));
-  };
+  const handleCategorySelect = useCallback(
+    (category) => {
+      setSelectedCategory(category);
+      setShowCategoryDropdown(false);
+      onSearchChange(getCategoryDisplayName(category));
+    },
+    [onSearchChange]
+  );
 
-  const handleLocationSelect = (location) => {
-    setSelectedLocation(location);
-    setShowLocationDropdown(false);
-    // Update search query to show location
-    onSearchChange(location);
-  };
+  const handleLocationSelect = useCallback(
+    (location) => {
+      setSelectedLocation(location);
+      setShowLocationDropdown(false);
+      onSearchChange(location);
+    },
+    [onSearchChange]
+  );
 
-  const handleAllCategoriesClick = () => {
+  const handleAllCategoriesClick = useCallback(() => {
     setSelectedCategory(null);
     setSelectedLocation(null);
     onSearchChange("");
-  };
+  }, [onSearchChange]);
 
   // Filter categories based on search query and selected filters
-  const filteredCategories = categoriesData
-    .filter((category) => {
-      // Filter by search query
-      if (searchQuery.trim() === "") return true;
+  const filteredCategories = useMemo(() => {
+    return categoriesData
+      .filter((category) => {
+        // Filter by search query
+        if (searchQuery.trim() === "") return true;
 
-      const matchesSearch =
-        category.displayName
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        category.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        category.items.some(
-          (item) =>
-            item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.area?.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-
-      // Filter by selected category
-      const matchesCategory =
-        !selectedCategory || category.title === selectedCategory;
-
-      // Filter by selected location
-      const matchesLocation =
-        !selectedLocation ||
-        category.items.some((item) => item.area === selectedLocation);
-
-      return matchesSearch && matchesCategory && matchesLocation;
-    })
-    .map((category) => ({
-      ...category,
-      items: category.items.filter((item) => {
         const matchesSearch =
-          searchQuery.trim() === "" ||
-          item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.area?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.category?.toLowerCase().includes(searchQuery.toLowerCase());
+          category.displayName
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          category.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          category.items.some(
+            (item) =>
+              item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              item.area?.toLowerCase().includes(searchQuery.toLowerCase())
+          );
 
+        // Filter by selected category
         const matchesCategory =
-          !selectedCategory || item.category === selectedCategory;
+          !selectedCategory || category.title === selectedCategory;
+
+        // Filter by selected location
         const matchesLocation =
-          !selectedLocation || item.area === selectedLocation;
+          !selectedLocation ||
+          category.items.some((item) => item.area === selectedLocation);
 
         return matchesSearch && matchesCategory && matchesLocation;
-      }),
-    }))
-    .filter((category) => category.items.length > 0);
+      })
+      .map((category) => ({
+        ...category,
+        items: category.items.filter((item) => {
+          const matchesSearch =
+            searchQuery.trim() === "" ||
+            item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.area?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.category?.toLowerCase().includes(searchQuery.toLowerCase());
+
+          const matchesCategory =
+            !selectedCategory || item.category === selectedCategory;
+          const matchesLocation =
+            !selectedLocation || item.area === selectedLocation;
+
+          return matchesSearch && matchesCategory && matchesLocation;
+        }),
+      }))
+      .filter((category) => category.items.length > 0);
+  }, [categoriesData, searchQuery, selectedCategory, selectedLocation]);
 
   if (!isOpen) return null;
 
@@ -674,135 +890,200 @@ const SearchModal = ({
         }}
       >
         <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
+          {/* Header - Search Section */}
+          <div className="p-4 sm:p-6">
+            {/* Top Row: Close button aligned with search bar */}
+            <div className="flex items-center mb-4">
               <button
                 onClick={onClose}
-                className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
+                className={`${
+                  isMobile ? "w-8 h-8" : "w-10 h-10"
+                } rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors`}
+                aria-label="Close search modal"
               >
                 <FontAwesomeIcon
                   icon={faXmark}
-                  className="text-gray-600 text-xl"
+                  className={`${
+                    isMobile ? "text-lg" : "text-xl"
+                  } text-gray-600`}
                 />
               </button>
-              <h1 className="text-xl font-bold text-gray-900 font-manrope">
-                Search in Ibadan
-              </h1>
-              <div className="w-10"></div> {/* Spacer for alignment */}
-            </div>
 
-            {/* Centered Search Bar Design */}
-            <div className="relative mx-auto w-full max-w-2xl overflow-hidden mb-6">
-              <div className="flex items-center justify-center">
-                <div className="flex items-center bg-gray-200 rounded-full shadow-sm w-full max-w-md relative z-10">
-                  <div className="pl-4 text-gray-500">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 sm:h-5 sm:w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
-                    </svg>
-                  </div>
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    placeholder="Search by area or category..."
-                    value={searchQuery}
-                    onChange={(e) => onSearchChange(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    className="flex-1 bg-transparent py-3 px-3 text-sm sm:text-base text-gray-800 outline-none placeholder:text-gray-600 font-manrope"
-                    autoFocus
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={handleClearSearch}
-                      className="p-1 mr-2 text-gray-500 hover:text-gray-700"
+              {/* Centered Search Bar Design */}
+              <div className="flex-1 ml-3">
+                <div className="flex items-center">
+                  <div
+                    className={`flex items-center bg-gray-200 rounded-full shadow-sm w-full ${
+                      isMobile ? "max-w-full" : "max-w-md"
+                    } relative z-10`}
+                  >
+                    <div
+                      className={`${isMobile ? "pl-3" : "pl-4"} text-gray-500`}
                     >
                       <svg
-                        className="w-4 h-4"
+                        xmlns="http://www.w3.org/2000/svg"
+                        className={`${
+                          isMobile ? "h-3 w-3" : "h-4 w-4 sm:h-5 sm:w-5"
+                        }`}
                         fill="none"
-                        stroke="currentColor"
                         viewBox="0 0 24 24"
+                        stroke="currentColor"
                       >
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth="2"
-                          d="M6 18L18 6M6 6l12 12"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                         />
                       </svg>
-                    </button>
-                  )}
-                </div>
+                    </div>
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      placeholder="Search by area or category..."
+                      value={searchQuery}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      className={`flex-1 bg-transparent ${
+                        isMobile
+                          ? "py-2 px-2 text-xs"
+                          : "py-3 px-3 text-sm sm:text-base"
+                      } text-gray-800 outline-none placeholder:text-gray-600 font-manrope`}
+                      autoFocus
+                      aria-label="Search input"
+                      role="searchbox"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={handleClearSearch}
+                        className={`${
+                          isMobile ? "p-1 mr-1" : "p-1 mr-2"
+                        } text-gray-500 hover:text-gray-700`}
+                        aria-label="Clear search"
+                      >
+                        <svg
+                          className={`${isMobile ? "w-3 h-3" : "w-4 h-4"}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
 
-                {/* Separate Search Button with gap */}
-                <div className="ml-2">
-                  <button
-                    onClick={onSearchSubmit}
-                    className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-3 px-6 text-sm sm:text-base transition-colors duration-200 whitespace-nowrap font-manrope"
-                  >
-                    Search
-                  </button>
+                  {/* Separate Search Button with gap */}
+                  <div className={`${isMobile ? "ml-1" : "ml-2"}`}>
+                    <button
+                      onClick={handleSearchSubmit}
+                      className={`bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full ${
+                        isMobile
+                          ? "py-2 px-3 text-xs"
+                          : "py-3 px-6 text-sm sm:text-base"
+                      } transition-colors duration-200 whitespace-nowrap font-manrope`}
+                      aria-label="Perform search"
+                    >
+                      Search
+                    </button>
+                  </div>
                 </div>
               </div>
-
-              <motion.div
-                className="absolute -bottom-7 left-0 right-0 text-center"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{
-                  opacity: searchQuery ? 1 : 0,
-                  y: searchQuery ? 0 : 10,
-                }}
-                transition={{ duration: 0.3 }}
-              >
-                <p className="text-xs text-gray-500 font-manrope">
-                  Press Enter or click Search to find results
-                </p>
-              </motion.div>
             </div>
 
-            {/* Filter Buttons Row */}
+            {/* Search hint text */}
+            <motion.div
+              className={`text-center mt-1 ${isMobile ? "mb-3" : "mb-4"}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{
+                opacity: searchQuery ? 1 : 0,
+                y: searchQuery ? 0 : 10,
+              }}
+              transition={{ duration: 0.3 }}
+            >
+              <p
+                className={`${
+                  isMobile ? "text-[10px]" : "text-xs"
+                } text-gray-500 font-manrope`}
+              >
+                Press Enter or click Search to find results
+              </p>
+            </motion.div>
+
+            {/* Search History */}
+            {searchHistory.length > 0 && !searchQuery && (
+              <div className="mb-4">
+                <p
+                  className={`${
+                    isMobile ? "text-xs" : "text-sm"
+                  } text-gray-500 mb-2 font-manrope`}
+                >
+                  Recent searches
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {searchHistory.map((term, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => onSearchChange(term)}
+                      className={`${
+                        isMobile ? "px-3 py-1 text-xs" : "px-4 py-1.5 text-sm"
+                      } bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors font-manrope`}
+                    >
+                      {term}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Filter Buttons Row - Mobile responsive */}
             <div className="flex items-center justify-between">
-              {/* Left side buttons */}
-              <div className="flex items-center gap-3">
+              {/* Left side buttons - Mobile responsive layout */}
+              <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto scrollbar-hide pb-1">
                 <button
                   onClick={handleAllCategoriesClick}
-                  className={`px-4 py-2 rounded-lg font-medium hover:bg-[#05d9eb] transition-colors flex items-center gap-2 font-manrope ${
+                  className={`${
+                    isMobile ? "px-3 py-1.5 text-xs" : "px-4 py-2"
+                  } rounded-lg font-medium hover:bg-[#05d9eb] transition-colors flex items-center gap-1 flex-shrink-0 font-manrope ${
                     !selectedCategory && !selectedLocation
                       ? "bg-[#06EAFC] text-white"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
+                  aria-label="Show all categories"
                 >
                   All Categories
                 </button>
 
-                <div className="relative" ref={categoryDropdownRef}>
+                <div
+                  className="relative flex-shrink-0"
+                  ref={categoryDropdownRef}
+                >
                   <button
                     onClick={() => {
                       setShowCategoryDropdown(!showCategoryDropdown);
                       setShowLocationDropdown(false);
                     }}
-                    className={`px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 font-manrope ${
+                    className={`${
+                      isMobile ? "px-3 py-1.5 text-xs" : "px-4 py-2"
+                    } border rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-1 font-manrope ${
                       selectedCategory
                         ? "border-[#06EAFC] text-[#06EAFC] bg-blue-50"
                         : "border-gray-300 text-gray-700"
                     }`}
+                    aria-label="Select category"
+                    aria-expanded={showCategoryDropdown}
                   >
                     Categories
                     <FontAwesomeIcon
-                      icon={
-                        showCategoryDropdown ? faChevronDown : faChevronDown
-                      }
-                      className={`text-xs transition-transform ${
+                      icon={faChevronDown}
+                      className={`${
+                        isMobile ? "text-[10px]" : "text-xs"
+                      } transition-transform ${
                         showCategoryDropdown ? "rotate-180" : ""
                       }`}
                     />
@@ -814,30 +1095,37 @@ const SearchModal = ({
                       items={allCategories}
                       onSelect={handleCategorySelect}
                       selectedItem={selectedCategory}
-                      placeholder="Select category"
                       type="category"
+                      isMobile={isMobile}
                     />
                   </AnimatePresence>
                 </div>
 
-                <div className="relative" ref={locationDropdownRef}>
+                <div
+                  className="relative flex-shrink-0"
+                  ref={locationDropdownRef}
+                >
                   <button
                     onClick={() => {
                       setShowLocationDropdown(!showLocationDropdown);
                       setShowCategoryDropdown(false);
                     }}
-                    className={`px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 font-manrope ${
+                    className={`${
+                      isMobile ? "px-3 py-1.5 text-xs" : "px-4 py-2"
+                    } border rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-1 font-manrope ${
                       selectedLocation
                         ? "border-[#06EAFC] text-[#06EAFC] bg-blue-50"
                         : "border-gray-300 text-gray-700"
                     }`}
+                    aria-label="Select location"
+                    aria-expanded={showLocationDropdown}
                   >
                     Location
                     <FontAwesomeIcon
-                      icon={
-                        showLocationDropdown ? faChevronDown : faChevronDown
-                      }
-                      className={`text-xs transition-transform ${
+                      icon={faChevronDown}
+                      className={`${
+                        isMobile ? "text-[10px]" : "text-xs"
+                      } transition-transform ${
                         showLocationDropdown ? "rotate-180" : ""
                       }`}
                     />
@@ -849,65 +1137,106 @@ const SearchModal = ({
                       items={allLocations}
                       onSelect={handleLocationSelect}
                       selectedItem={selectedLocation}
-                      placeholder="Select location"
                       type="location"
+                      isMobile={isMobile}
                     />
                   </AnimatePresence>
                 </div>
               </div>
 
-              {/* Right side filter button */}
-              <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 font-manrope">
-                <PiSliders className="text-lg" />
-                Filter
+              {/* Right side filter button - Mobile responsive */}
+              <button
+                className={`${
+                  isMobile ? "px-3 py-1.5 text-xs" : "px-4 py-2"
+                } border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-1 flex-shrink-0 font-manrope`}
+                aria-label="Open filters"
+              >
+                <PiSliders
+                  className={`${isMobile ? "text-base" : "text-lg"}`}
+                />
+                <span className={isMobile ? "hidden sm:inline" : "inline"}>
+                  Filter
+                </span>
               </button>
             </div>
           </div>
 
           {/* Content Area */}
           <div className="flex-1 overflow-y-auto">
-            {/* Search Results Summary */}
+            {/* Search Results Summary - Mobile responsive */}
             {(searchQuery || selectedCategory || selectedLocation) && (
-              <div className="px-6 mb-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-gray-700 font-medium font-manrope">
+              <div
+                className={`${isMobile ? "px-4 py-3" : "px-6 py-4"} ${
+                  isMobile ? "mb-4" : "mb-6"
+                }`}
+              >
+                <div
+                  className={`flex flex-col ${isMobile ? "gap-2" : "gap-3"}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`${
+                        isMobile ? "text-sm" : "text-base"
+                      } text-gray-700 font-medium font-manrope`}
+                    >
                       {searchQuery
                         ? `Results for "${searchQuery}"`
                         : "All Results"}
                     </span>
-                    {(selectedCategory || selectedLocation) && (
-                      <div className="flex items-center gap-2">
-                        {selectedCategory && (
-                          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium font-manrope">
-                            {getCategoryDisplayName(selectedCategory)}
-                          </span>
-                        )}
-                        {selectedLocation && (
-                          <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium font-manrope">
-                            {selectedLocation}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                    <span
+                      className={`${
+                        isMobile ? "text-xs" : "text-sm"
+                      } text-gray-500 font-manrope`}
+                    >
+                      {filteredCategories.reduce(
+                        (total, cat) => total + cat.items.length,
+                        0
+                      )}{" "}
+                      places
+                    </span>
                   </div>
-                  <span className="text-sm text-gray-500 font-manrope">
-                    {filteredCategories.reduce(
-                      (total, cat) => total + cat.items.length,
-                      0
-                    )}{" "}
-                    places
-                  </span>
+                  {(selectedCategory || selectedLocation) && (
+                    <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+                      {selectedCategory && (
+                        <span
+                          className={`${
+                            isMobile
+                              ? "px-2 py-1 text-[10px]"
+                              : "px-3 py-1 text-xs"
+                          } bg-blue-100 text-blue-700 rounded-full font-medium font-manrope flex-shrink-0`}
+                        >
+                          {getCategoryDisplayName(selectedCategory)}
+                        </span>
+                      )}
+                      {selectedLocation && (
+                        <span
+                          className={`${
+                            isMobile
+                              ? "px-2 py-1 text-[10px]"
+                              : "px-3 py-1 text-xs"
+                          } bg-green-100 text-green-700 rounded-full font-medium font-manrope flex-shrink-0`}
+                        >
+                          {selectedLocation}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Loading State */}
+            {/* Loading State - Mobile responsive */}
             {loading ? (
-              <div className="px-6 space-y-6">
+              <div className={`${isMobile ? "px-4" : "px-6"} space-y-6`}>
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="animate-pulse">
-                    <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
+                    <div
+                      className={`h-${
+                        isMobile ? "4" : "6"
+                      } bg-gray-200 rounded ${
+                        isMobile ? "w-1/2" : "w-1/3"
+                      } mb-4`}
+                    ></div>
                     <div className="flex overflow-x-auto gap-4">
                       {[...Array(4)].map((_, j) => (
                         <div
@@ -926,8 +1255,8 @@ const SearchModal = ({
                 ))}
               </div>
             ) : (
-              /* Categories List */
-              <div className="px-6">
+              /* Categories List - Mobile responsive */
+              <div className={`${isMobile ? "px-4" : "px-6"}`}>
                 {filteredCategories.map((category, index) => (
                   <CategorySection
                     key={index}
@@ -939,12 +1268,20 @@ const SearchModal = ({
               </div>
             )}
 
-            {/* No Results State */}
+            {/* No Results State - Mobile responsive */}
             {!loading && filteredCategories.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full px-4">
-                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                <div
+                  className={`${
+                    isMobile ? "w-16 h-16" : "w-20 h-20"
+                  } bg-gray-100 rounded-full flex items-center justify-center mb-4 ${
+                    isMobile ? "mb-4" : "mb-6"
+                  }`}
+                >
                   <svg
-                    className="w-10 h-10 text-gray-400"
+                    className={`${
+                      isMobile ? "w-8 h-8" : "w-10 h-10"
+                    } text-gray-400`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -957,10 +1294,18 @@ const SearchModal = ({
                     />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2 font-manrope">
+                <h3
+                  className={`${
+                    isMobile ? "text-lg" : "text-xl"
+                  } font-bold text-gray-900 mb-2 font-manrope`}
+                >
                   No results found
                 </h3>
-                <p className="text-gray-600 text-center mb-8 font-manrope max-w-md">
+                <p
+                  className={`text-gray-600 text-center ${
+                    isMobile ? "mb-6 text-sm" : "mb-8"
+                  } font-manrope ${isMobile ? "max-w-sm" : "max-w-md"}`}
+                >
                   We couldn't find any results for "
                   {searchQuery ||
                     selectedCategory ||
@@ -983,7 +1328,9 @@ const SearchModal = ({
                     <button
                       key={term}
                       onClick={() => onSearchChange(term)}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-manrope"
+                      className={`${
+                        isMobile ? "px-3 py-1.5 text-xs" : "px-4 py-2 text-sm"
+                      } bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-manrope`}
                     >
                       {term}
                     </button>
@@ -1015,4 +1362,11 @@ const SearchModal = ({
   );
 };
 
-export default SearchModal;
+// Wrap with Error Boundary
+const SearchModalWithErrorBoundary = (props) => (
+  <SearchModalErrorBoundary {...props}>
+    <SearchModal {...props} />
+  </SearchModalErrorBoundary>
+);
+
+export default SearchModalWithErrorBoundary;
