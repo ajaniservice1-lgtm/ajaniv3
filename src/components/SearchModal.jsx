@@ -1,4 +1,4 @@
-// SearchModal.jsx - Updated with improved filtering logic
+// SearchModal.jsx - Updated with detailed category breakdowns (no icons)
 import React, {
   useEffect,
   useRef,
@@ -15,6 +15,7 @@ import {
   faChevronDown,
   faSearch,
   faFilter,
+  faMapMarkerAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 import { PiSliders } from "react-icons/pi";
@@ -62,13 +63,14 @@ const useGoogleSheet = (sheetId, apiKey) => {
           const rows = json.values.slice(1);
           result = rows
             .filter((row) => Array.isArray(row) && row.length > 0)
-            .map((row) => {
+            .map((row, index) => {
               const obj = {};
               headers.forEach((h, i) => {
                 obj[h?.toString().trim() || `col_${i}`] = (row[i] || "")
                   .toString()
                   .trim();
               });
+              obj.id = obj.id || `item-${index}`;
               return obj;
             });
         }
@@ -137,7 +139,7 @@ const getCardImages = (item) => {
 
 // Helper function to extract words after dots for categories
 const getCategoryDisplayName = (category) => {
-  if (!category) return "Other";
+  if (!category || category === "All Categories") return "All Categories";
 
   // Split by dot and get the part after the first dot
   const parts = category.split(".");
@@ -159,7 +161,7 @@ const getCategoryDisplayName = (category) => {
 
 // Helper function to extract words after dots for locations
 const getLocationDisplayName = (location) => {
-  if (!location) return "Unknown";
+  if (!location) return "All Locations";
 
   // Split by dot and get the part after the first dot
   const parts = location.split(".");
@@ -181,13 +183,13 @@ const getLocationDisplayName = (location) => {
 
 // Helper function to get clean category value (with dots) for filtering
 const getCategoryValueForFilter = (category) => {
-  if (!category) return "";
+  if (!category || category === "All Categories") return "";
   return category;
 };
 
 // Helper function to get clean location value (with dots) for filtering
 const getLocationValueForFilter = (location) => {
-  if (!location) return "";
+  if (!location || location === "All Locations") return "";
   return location;
 };
 
@@ -228,11 +230,64 @@ const getLocationFromDisplayName = (displayName, allLocations) => {
   return found || "";
 };
 
+// Function to get category breakdown for a location
+const getCategoryBreakdownByLocation = (listings, location) => {
+  if (!listings.length) return [];
+
+  const locationValue = getLocationFromDisplayName(location, [
+    ...new Set(listings.map((item) => item.area).filter(Boolean)),
+  ]);
+
+  const filteredListings = listings.filter(
+    (item) => !locationValue || item.area === locationValue
+  );
+
+  const categoryCounts = {};
+
+  filteredListings.forEach((item) => {
+    const category = getCategoryDisplayName(item.category || "other.other");
+    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+  });
+
+  return Object.entries(categoryCounts)
+    .map(([category, count]) => ({
+      category,
+      count,
+    }))
+    .sort((a, b) => b.count - a.count);
+};
+
+// Function to get location breakdown for a category
+const getLocationBreakdownByCategory = (listings, category) => {
+  if (!listings.length) return [];
+
+  const categoryValue = getCategoryFromDisplayName(category, [
+    ...new Set(listings.map((item) => item.category).filter(Boolean)),
+  ]);
+
+  const filteredListings = listings.filter(
+    (item) => !categoryValue || item.category === categoryValue
+  );
+
+  const locationCounts = {};
+
+  filteredListings.forEach((item) => {
+    const location = getLocationDisplayName(item.area || "Unknown");
+    locationCounts[location] = (locationCounts[location] || 0) + 1;
+  });
+
+  return Object.entries(locationCounts)
+    .map(([location, count]) => ({
+      location,
+      count,
+    }))
+    .sort((a, b) => b.count - a.count);
+};
+
 // Autocomplete Suggestions Component
 const AutocompleteSuggestions = ({
   suggestions,
   searchQuery,
-  onSuggestionClick,
   inputRef,
   onCategorySelect,
   onLocationSelect,
@@ -285,7 +340,9 @@ const AutocompleteSuggestions = ({
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
                   <FontAwesomeIcon
-                    icon={suggestion.type === "category" ? faSearch : faFilter}
+                    icon={
+                      suggestion.type === "category" ? faFilter : faMapMarkerAlt
+                    }
                     className={`text-sm ${
                       suggestion.type === "category"
                         ? "text-blue-500"
@@ -298,13 +355,8 @@ const AutocompleteSuggestions = ({
                     {suggestion.display}
                   </p>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {suggestion.type === "category"
-                      ? `${suggestion.count} ${
-                          suggestion.count === 1 ? "result" : "results"
-                        } in Ibadan`
-                      : `${suggestion.count} ${
-                          suggestion.count === 1 ? "place" : "places"
-                        } in ${suggestion.display}`}
+                    {suggestion.count}{" "}
+                    {suggestion.count === 1 ? "place" : "places"}
                   </p>
                 </div>
               </div>
@@ -313,21 +365,28 @@ const AutocompleteSuggestions = ({
               </div>
             </div>
 
-            {/* Show sub-categories for area searches */}
+            {/* Show category breakdown for location suggestions */}
             {suggestion.type === "area" &&
-              suggestion.subcategories &&
-              suggestion.subcategories.length > 0 && (
-                <div className="mt-2 ml-11 pl-4 border-l border-gray-200">
+              suggestion.categoryBreakdown &&
+              suggestion.categoryBreakdown.length > 0 && (
+                <div className="mt-2 ml-11">
                   <p className="text-xs text-gray-500 mb-1">Includes:</p>
                   <div className="flex flex-wrap gap-1">
-                    {suggestion.subcategories.map((subcat, subIndex) => (
-                      <span
-                        key={subIndex}
-                        className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-50 text-gray-600 border border-gray-200"
-                      >
-                        {subcat.name} ({subcat.count})
+                    {suggestion.categoryBreakdown
+                      .slice(0, 3)
+                      .map((cat, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-50 text-gray-600 border border-gray-200"
+                        >
+                          {cat.category} ({cat.count})
+                        </span>
+                      ))}
+                    {suggestion.categoryBreakdown.length > 3 && (
+                      <span className="text-xs text-gray-500">
+                        +{suggestion.categoryBreakdown.length - 3} more
                       </span>
-                    ))}
+                    )}
                   </div>
                 </div>
               )}
@@ -632,123 +691,287 @@ const BusinessCard = React.memo(({ item, category, isMobile }) => {
 
 BusinessCard.displayName = "BusinessCard";
 
-// Category Section Component - Horizontal scrolling
-const CategorySection = React.memo(({ title, items, isMobile }) => {
-  const scrollContainerRef = useRef(null);
+// Category Section Component - Horizontal scrolling WITH BREAKDOWN
+const CategorySection = React.memo(
+  ({ title, items, isMobile, location, categoryBreakdown }) => {
+    const scrollContainerRef = useRef(null);
+    const navigate = useNavigate();
+
+    const scrollSection = (direction) => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+
+      const scrollAmount = isMobile ? 170 : 220;
+      const newPosition =
+        direction === "next"
+          ? container.scrollLeft + scrollAmount
+          : container.scrollLeft - scrollAmount;
+
+      container.scrollTo({
+        left: newPosition,
+        behavior: "smooth",
+      });
+    };
+
+    const handleViewAll = () => {
+      const categorySlug = getCategorySlug(title);
+      navigate(`/category/${categorySlug}`);
+    };
+
+    if (items.length === 0) return null;
+
+    return (
+      <div className={`${isMobile ? "mb-6" : "mb-10"} font-manrope`}>
+        {/* Header with category breakdown */}
+        <div className="mb-4 px-1">
+          <div className="flex justify-between items-center mb-3">
+            <h2
+              className={`${
+                isMobile ? "text-base" : "text-xl"
+              } font-bold text-gray-900 font-manrope`}
+            >
+              {getCategoryDisplayName(title)}
+            </h2>
+            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+              {items.length} {items.length === 1 ? "place" : "places"}
+            </span>
+          </div>
+
+          {/* Category Breakdown */}
+          {categoryBreakdown && categoryBreakdown.length > 0 && (
+            <div className="mb-3">
+              <p className="text-sm text-gray-600 mb-2">
+                {location ? `Places in ${location} include:` : "Includes:"}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {categoryBreakdown.map((cat, index) => (
+                  <div
+                    key={index}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
+                  >
+                    <span>
+                      {cat.category} ({cat.count})
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Horizontal Scroll Container */}
+        <div className={`relative ${isMobile ? "px-0" : "px-4"}`}>
+          <div
+            ref={scrollContainerRef}
+            className={`flex overflow-x-auto scrollbar-hide scroll-smooth ${
+              isMobile ? "gap-1 pl-1" : "gap-4"
+            } pb-3`}
+            style={{
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}
+          >
+            {items.map((item, index) => (
+              <BusinessCard
+                key={item.id || index}
+                item={item}
+                category={title}
+                isMobile={isMobile}
+              />
+            ))}
+          </div>
+
+          {/* Scroll Buttons - Only show on desktop */}
+          {!isMobile && (
+            <>
+              <button
+                onClick={() => scrollSection("prev")}
+                className={`absolute left-0 top-1/2 transform -translate-y-1/2 w-8 h-8 -ml-4 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200 cursor-pointer`}
+                aria-label="Scroll left"
+              >
+                <svg
+                  className="w-3 h-3 text-gray-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+
+              <button
+                onClick={() => scrollSection("next")}
+                className={`absolute right-0 top-1/2 transform -translate-y-1/2 w-8 h-8 -mr-4 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200 cursor-pointer`}
+                aria-label="Scroll right"
+              >
+                <svg
+                  className="w-3 h-3 text-gray-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* View All Button */}
+        <div className="flex justify-center mt-3">
+          <button
+            onClick={handleViewAll}
+            className="text-[#06EAFC] hover:text-[#05d9eb] text-sm font-medium flex items-center gap-1 px-6 py-2 rounded-lg hover:bg-blue-50 transition-colors font-manrope cursor-pointer"
+            aria-label={`View all ${getCategoryDisplayName(title)}`}
+          >
+            View All
+            <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+);
+
+CategorySection.displayName = "CategorySection";
+
+// Location Results Component - Shows breakdown of categories in a location
+const LocationResults = React.memo(({ location, listings, isMobile }) => {
   const navigate = useNavigate();
+  const categoryBreakdown = getCategoryBreakdownByLocation(listings, location);
+  const locationDisplay = getLocationDisplayName(location);
+  const totalPlaces = listings.length;
 
-  const scrollSection = (direction) => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const scrollAmount = isMobile ? 170 : 220;
-    const newPosition =
-      direction === "next"
-        ? container.scrollLeft + scrollAmount
-        : container.scrollLeft - scrollAmount;
-
-    container.scrollTo({
-      left: newPosition,
-      behavior: "smooth",
+  // Group listings by category
+  const groupedByCategory = useMemo(() => {
+    const groups = {};
+    listings.forEach((item) => {
+      const category = item.category || "other.other";
+      if (!groups[category]) {
+        groups[category] = [];
+      }
+      groups[category].push(item);
     });
+    return groups;
+  }, [listings]);
+
+  const handleViewAllInLocation = () => {
+    navigate(`/search-results?location=${encodeURIComponent(location)}`);
   };
 
-  const handleViewAll = () => {
-    const categorySlug = getCategorySlug(title);
-    navigate(`/category/${categorySlug}`);
+  const handleCategorySelect = (category) => {
+    navigate(
+      `/search-results?category=${encodeURIComponent(
+        category
+      )}&location=${encodeURIComponent(location)}`
+    );
   };
-
-  if (items.length === 0) return null;
 
   return (
     <div className={`${isMobile ? "mb-6" : "mb-10"} font-manrope`}>
-      {/* Header */}
-      <div className="flex justify-between items-center mb-3 px-1">
-        <h2
-          className={`${
-            isMobile ? "text-base" : "text-xl"
-          } font-bold text-gray-900 font-manrope`}
-        >
-          {getCategoryDisplayName(title)}
-        </h2>
-      </div>
-
-      {/* Horizontal Scroll Container - Edges close to screen on mobile */}
-      <div className={`relative ${isMobile ? "px-0" : "px-4"}`}>
-        <div
-          ref={scrollContainerRef}
-          className={`flex overflow-x-auto scrollbar-hide scroll-smooth ${
-            isMobile ? "gap-1 pl-1" : "gap-4"
-          } pb-3`}
-          style={{
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
-          }}
-        >
-          {items.map((item, index) => (
-            <BusinessCard
-              key={item.id || index}
-              item={item}
-              category={title}
-              isMobile={isMobile}
-            />
-          ))}
+      {/* Location Header with Breakdown */}
+      <div className="mb-4 px-1">
+        <div className="flex justify-between items-center mb-3">
+          <h2
+            className={`${
+              isMobile ? "text-lg" : "text-2xl"
+            } font-bold text-gray-900 font-manrope`}
+          >
+            {locationDisplay}
+          </h2>
+          <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full">
+            {totalPlaces} {totalPlaces === 1 ? "place" : "places"} total
+          </span>
         </div>
 
-        {/* Scroll Buttons - Only show on desktop */}
-        {!isMobile && (
-          <>
-            <button
-              onClick={() => scrollSection("prev")}
-              className={`absolute left-0 top-1/2 transform -translate-y-1/2 w-8 h-8 -ml-4 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200 cursor-pointer`}
-              aria-label="Scroll left"
-            >
-              <svg
-                className="w-3 h-3 text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-            </button>
-
-            <button
-              onClick={() => scrollSection("next")}
-              className={`absolute right-0 top-1/2 transform -translate-y-1/2 w-8 h-8 -mr-4 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200 cursor-pointer`}
-              aria-label="Scroll right"
-            >
-              <svg
-                className="w-3 h-3 text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </button>
-          </>
+        {/* Category Breakdown */}
+        {categoryBreakdown.length > 0 && (
+          <div className="mb-4">
+            <p className="text-sm text-gray-600 mb-3">
+              Places in {locationDisplay} include:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {categoryBreakdown.map((cat, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleCategorySelect(cat.category)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer"
+                >
+                  <span>{cat.category}</span>
+                  <span className="bg-white px-2 py-0.5 rounded-full text-xs">
+                    {cat.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
-      {/* View All Button - Centered below category */}
-      <div className="flex justify-center mt-3">
+      {/* Show listings grouped by category */}
+      {Object.entries(groupedByCategory).map(([category, categoryListings]) => {
+        if (categoryListings.length === 0) return null;
+
+        const categoryDisplay = getCategoryDisplayName(category);
+
+        return (
+          <div key={category} className="mb-8">
+            {/* Category Header */}
+            <div className="flex justify-between items-center mb-3 px-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-gray-900 font-manrope">
+                  {categoryDisplay}
+                </h3>
+              </div>
+              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                {categoryListings.length}{" "}
+                {categoryListings.length === 1 ? "place" : "places"}
+              </span>
+            </div>
+
+            {/* Horizontal Scroll for this category */}
+            <div className={`relative ${isMobile ? "px-0" : "px-4"}`}>
+              <div
+                className={`flex overflow-x-auto scrollbar-hide scroll-smooth ${
+                  isMobile ? "gap-1 pl-1" : "gap-4"
+                } pb-3`}
+                style={{
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                }}
+              >
+                {categoryListings.map((item, index) => (
+                  <BusinessCard
+                    key={item.id || index}
+                    item={item}
+                    category={category}
+                    isMobile={isMobile}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* View All Button */}
+      <div className="flex justify-center mt-6">
         <button
-          onClick={handleViewAll}
-          className="text-[#06EAFC] hover:text-[#05d9eb] text-sm font-medium flex items-center gap-1 px-6 py-2 rounded-lg hover:bg-blue-50 transition-colors font-manrope cursor-pointer"
-          aria-label={`View all ${getCategoryDisplayName(title)}`}
+          onClick={handleViewAllInLocation}
+          className="bg-[#06EAFC] hover:bg-[#05d9eb] text-white text-sm font-medium flex items-center gap-2 px-6 py-3 rounded-lg transition-colors font-manrope cursor-pointer"
+          aria-label={`View all places in ${locationDisplay}`}
         >
-          View All
+          View All {totalPlaces} Places in {locationDisplay}
           <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
         </button>
       </div>
@@ -756,7 +979,145 @@ const CategorySection = React.memo(({ title, items, isMobile }) => {
   );
 });
 
-CategorySection.displayName = "CategorySection";
+LocationResults.displayName = "LocationResults";
+
+// Category Results Component - Shows breakdown of locations for a category
+const CategoryResults = React.memo(({ category, listings, isMobile }) => {
+  const navigate = useNavigate();
+  const locationBreakdown = getLocationBreakdownByCategory(listings, category);
+  const categoryDisplay = getCategoryDisplayName(category);
+  const totalPlaces = listings.length;
+
+  // Group listings by location
+  const groupedByLocation = useMemo(() => {
+    const groups = {};
+    listings.forEach((item) => {
+      const location = item.area || "Unknown";
+      if (!groups[location]) {
+        groups[location] = [];
+      }
+      groups[location].push(item);
+    });
+    return groups;
+  }, [listings]);
+
+  const handleViewAllInCategory = () => {
+    navigate(`/search-results?category=${encodeURIComponent(category)}`);
+  };
+
+  const handleLocationSelect = (location) => {
+    navigate(
+      `/search-results?category=${encodeURIComponent(
+        category
+      )}&location=${encodeURIComponent(location)}`
+    );
+  };
+
+  return (
+    <div className={`${isMobile ? "mb-6" : "mb-10"} font-manrope`}>
+      {/* Category Header with Breakdown */}
+      <div className="mb-4 px-1">
+        <div className="flex justify-between items-center mb-3">
+          <div className="flex items-center gap-2">
+            <h2
+              className={`${
+                isMobile ? "text-lg" : "text-2xl"
+              } font-bold text-gray-900 font-manrope`}
+            >
+              {categoryDisplay}
+            </h2>
+          </div>
+          <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full">
+            {totalPlaces} {totalPlaces === 1 ? "place" : "places"} total
+          </span>
+        </div>
+
+        {/* Location Breakdown */}
+        {locationBreakdown.length > 0 && (
+          <div className="mb-4">
+            <p className="text-sm text-gray-600 mb-3">
+              Available in these areas:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {locationBreakdown.map((loc, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleLocationSelect(loc.location)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer"
+                >
+                  <span>{loc.location}</span>
+                  <span className="bg-white px-2 py-0.5 rounded-full text-xs">
+                    {loc.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Show listings grouped by location */}
+      {Object.entries(groupedByLocation).map(([location, locationListings]) => {
+        if (locationListings.length === 0) return null;
+
+        const locationDisplay = getLocationDisplayName(location);
+
+        return (
+          <div key={location} className="mb-8">
+            {/* Location Header */}
+            <div className="flex justify-between items-center mb-3 px-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-gray-900 font-manrope">
+                  {locationDisplay}
+                </h3>
+              </div>
+              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                {locationListings.length}{" "}
+                {locationListings.length === 1 ? "place" : "places"}
+              </span>
+            </div>
+
+            {/* Horizontal Scroll for this location */}
+            <div className={`relative ${isMobile ? "px-0" : "px-4"}`}>
+              <div
+                className={`flex overflow-x-auto scrollbar-hide scroll-smooth ${
+                  isMobile ? "gap-1 pl-1" : "gap-4"
+                } pb-3`}
+                style={{
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                }}
+              >
+                {locationListings.map((item, index) => (
+                  <BusinessCard
+                    key={item.id || index}
+                    item={item}
+                    category={category}
+                    isMobile={isMobile}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* View All Button */}
+      <div className="flex justify-center mt-6">
+        <button
+          onClick={handleViewAllInCategory}
+          className="bg-[#06EAFC] hover:bg-[#05d9eb] text-white text-sm font-medium flex items-center gap-2 px-6 py-3 rounded-lg transition-colors font-manrope cursor-pointer"
+          aria-label={`View all ${categoryDisplay} places`}
+        >
+          View All {totalPlaces} {categoryDisplay} Places
+          <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+        </button>
+      </div>
+    </div>
+  );
+});
+
+CategoryResults.displayName = "CategoryResults";
 
 // Error Boundary Component
 class SearchModalErrorBoundary extends React.Component {
@@ -918,7 +1279,44 @@ const SearchModal = ({
     }
   }, [listings, sheetLoading]);
 
-  // Generate autocomplete suggestions based on search query AND current filters
+  // Handle search query for exact matches
+  useEffect(() => {
+    if (searchQuery && listings.length > 0) {
+      const query = searchQuery.toLowerCase().trim();
+
+      // Check if search query exactly matches a location
+      const exactLocationMatch = allLocations.find(
+        (loc) => getLocationDisplayName(loc).toLowerCase() === query
+      );
+
+      // Check if search query exactly matches a category
+      const exactCategoryMatch = allCategories.find(
+        (cat) => getCategoryDisplayName(cat).toLowerCase() === query
+      );
+
+      // If exact location match, select it immediately
+      if (exactLocationMatch) {
+        setSelectedLocation(exactLocationMatch);
+        setSelectedCategory(null);
+        setAutocompleteSuggestions([]);
+      }
+      // If exact category match, select it immediately
+      else if (exactCategoryMatch) {
+        setSelectedCategory(exactCategoryMatch);
+        setSelectedLocation(null);
+        setAutocompleteSuggestions([]);
+      }
+      // If not an exact match, show autocomplete suggestions
+      else {
+        setAutocompleteSuggestions([]);
+      }
+    } else {
+      // Reset when search is cleared
+      setAutocompleteSuggestions([]);
+    }
+  }, [searchQuery, listings, allCategories, allLocations]);
+
+  // Generate autocomplete suggestions with category breakdown
   useEffect(() => {
     if (!searchQuery.trim() || listings.length === 0) {
       setAutocompleteSuggestions([]);
@@ -928,14 +1326,25 @@ const SearchModal = ({
     const query = searchQuery.toLowerCase().trim();
     const suggestions = [];
 
+    // Don't show autocomplete if we have exact matches
+    const exactLocationMatch = allLocations.find(
+      (loc) => getLocationDisplayName(loc).toLowerCase() === query
+    );
+    const exactCategoryMatch = allCategories.find(
+      (cat) => getCategoryDisplayName(cat).toLowerCase() === query
+    );
+
+    if (exactLocationMatch || exactCategoryMatch) {
+      setAutocompleteSuggestions([]);
+      return;
+    }
+
     // Get filtered listings based on current selections
     const currentlyFilteredListings = listings.filter((item) => {
-      // Filter by selected category
       const matchesCategory =
         !selectedCategory ||
         item.category === getCategoryValueForFilter(selectedCategory);
 
-      // Filter by selected location
       const matchesLocation =
         !selectedLocation ||
         item.area === getLocationValueForFilter(selectedLocation);
@@ -943,11 +1352,11 @@ const SearchModal = ({
       return matchesCategory && matchesLocation;
     });
 
-    // 1. Check for category matches within current filters
+    // 1. Check for partial category matches
     const categoryMatches = [];
     allCategories.forEach((category) => {
       const displayName = getCategoryDisplayName(category).toLowerCase();
-      if (displayName.includes(query)) {
+      if (displayName.includes(query) && displayName !== query) {
         const count = currentlyFilteredListings.filter(
           (item) => item.category === category
         ).length;
@@ -962,7 +1371,7 @@ const SearchModal = ({
       }
     });
 
-    // Sort category matches by relevance and count
+    // Sort category matches by relevance
     categoryMatches.sort((a, b) => {
       const aStartsWith = a.display.toLowerCase().startsWith(query);
       const bStartsWith = b.display.toLowerCase().startsWith(query);
@@ -971,41 +1380,36 @@ const SearchModal = ({
       return b.count - a.count;
     });
 
-    suggestions.push(...categoryMatches.slice(0, 3));
+    suggestions.push(...categoryMatches.slice(0, 2));
 
-    // 2. Check for area matches within current filters
+    // 2. Check for partial area matches with category breakdown
     const areaMatches = [];
     allLocations.forEach((location) => {
       const displayName = getLocationDisplayName(location).toLowerCase();
-      if (displayName.includes(query)) {
+      if (displayName.includes(query) && displayName !== query) {
         const areaListings = currentlyFilteredListings.filter(
           (item) => item.area === location
         );
         const count = areaListings.length;
         if (count > 0) {
-          // Get categories in this area
-          const categoryCounts = {};
-          areaListings.forEach((item) => {
-            const category = getCategoryDisplayName(item.category);
-            categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-          });
-
-          const subcategories = Object.entries(categoryCounts)
-            .slice(0, 3)
-            .map(([name, count]) => ({ name, count }));
+          // Get category breakdown for this area
+          const categoryBreakdown = getCategoryBreakdownByLocation(
+            currentlyFilteredListings,
+            location
+          );
 
           areaMatches.push({
             type: "area",
             display: getLocationDisplayName(location),
             value: location,
             count: count,
-            subcategories: subcategories,
+            categoryBreakdown: categoryBreakdown.slice(0, 3), // Show top 3 categories
           });
         }
       }
     });
 
-    // Sort area matches by relevance and count
+    // Sort area matches by relevance
     areaMatches.sort((a, b) => {
       const aStartsWith = a.display.toLowerCase().startsWith(query);
       const bStartsWith = b.display.toLowerCase().startsWith(query);
@@ -1014,7 +1418,7 @@ const SearchModal = ({
       return b.count - a.count;
     });
 
-    suggestions.push(...areaMatches.slice(0, 3));
+    suggestions.push(...areaMatches.slice(0, 2));
 
     setAutocompleteSuggestions(suggestions);
   }, [
@@ -1166,8 +1570,8 @@ const SearchModal = ({
       setSelectedLocation(null); // Clear location when selecting category
       setShowCategoryDropdown(false);
       setAutocompleteSuggestions([]);
-      // Don't clear search query, just set it to the selected category name
-      onSearchChange(getCategoryDisplayName(category));
+      // Clear the search input when selecting from dropdown
+      onSearchChange("");
     },
     [onSearchChange]
   );
@@ -1178,8 +1582,8 @@ const SearchModal = ({
       setSelectedCategory(null); // Clear category when selecting location
       setShowLocationDropdown(false);
       setAutocompleteSuggestions([]);
-      // Don't clear search query, just set it to the selected location name
-      onSearchChange(getLocationDisplayName(location));
+      // Clear the search input when selecting from dropdown
+      onSearchChange("");
     },
     [onSearchChange]
   );
@@ -1195,7 +1599,9 @@ const SearchModal = ({
   const handleAutocompleteCategorySelect = useCallback(
     (category) => {
       setSelectedCategory(category);
+      setSelectedLocation(null);
       setAutocompleteSuggestions([]);
+      // Update search input to show what was selected
       onSearchChange(getCategoryDisplayName(category));
     },
     [onSearchChange]
@@ -1204,7 +1610,9 @@ const SearchModal = ({
   const handleAutocompleteLocationSelect = useCallback(
     (location) => {
       setSelectedLocation(location);
+      setSelectedCategory(null);
       setAutocompleteSuggestions([]);
+      // Update search input to show what was selected
       onSearchChange(getLocationDisplayName(location));
     },
     [onSearchChange]
@@ -1228,22 +1636,23 @@ const SearchModal = ({
   const handleSearchChange = useCallback(
     (value) => {
       onSearchChange(value);
-      // Clear selected filters when user starts typing (if they type something new)
-      if (value && (selectedCategory || selectedLocation)) {
-        // Only clear if the typed value doesn't match current selection
-        const currentCategoryDisplay = selectedCategory
-          ? getCategoryDisplayName(selectedCategory).toLowerCase()
-          : "";
-        const currentLocationDisplay = selectedLocation
-          ? getLocationDisplayName(selectedLocation).toLowerCase()
-          : "";
 
-        if (
-          !value.toLowerCase().includes(currentCategoryDisplay) &&
-          !value.toLowerCase().includes(currentLocationDisplay)
-        ) {
-          setSelectedCategory(null);
-          setSelectedLocation(null);
+      // When user starts typing a new search, clear existing selections
+      // unless the typed value matches the current selection
+      if (value) {
+        if (selectedCategory) {
+          const categoryDisplay =
+            getCategoryDisplayName(selectedCategory).toLowerCase();
+          if (!value.toLowerCase().includes(categoryDisplay)) {
+            setSelectedCategory(null);
+          }
+        }
+        if (selectedLocation) {
+          const locationDisplay =
+            getLocationDisplayName(selectedLocation).toLowerCase();
+          if (!value.toLowerCase().includes(locationDisplay)) {
+            setSelectedLocation(null);
+          }
         }
       }
     },
@@ -1255,58 +1664,117 @@ const SearchModal = ({
     if (!listings.length) return [];
 
     return listings.filter((item) => {
-      // Filter by selected category
+      // First, check if we have a direct search match
+      const query = searchQuery.toLowerCase().trim();
+
+      // If search query matches location exactly, show all in that location
+      const exactLocationMatch = allLocations.find(
+        (loc) => getLocationDisplayName(loc).toLowerCase() === query
+      );
+
+      // If search query matches category exactly, show all in that category
+      const exactCategoryMatch = allCategories.find(
+        (cat) => getCategoryDisplayName(cat).toLowerCase() === query
+      );
+
+      // Apply filters based on exact matches or selections
       const matchesCategory =
-        !selectedCategory ||
-        item.category === getCategoryValueForFilter(selectedCategory);
+        !selectedCategory && !exactCategoryMatch
+          ? true
+          : exactCategoryMatch
+          ? item.category === getCategoryValueForFilter(exactCategoryMatch)
+          : item.category === getCategoryValueForFilter(selectedCategory);
 
-      // Filter by selected location
       const matchesLocation =
-        !selectedLocation ||
-        item.area === getLocationValueForFilter(selectedLocation);
+        !selectedLocation && !exactLocationMatch
+          ? true
+          : exactLocationMatch
+          ? item.area === getLocationValueForFilter(exactLocationMatch)
+          : item.area === getLocationValueForFilter(selectedLocation);
 
-      // Filter by search query (if any)
+      // If no search query, just use selected filters
+      if (!query) {
+        return matchesCategory && matchesLocation;
+      }
+
+      // If we have exact matches, show those results
+      if (exactLocationMatch || exactCategoryMatch) {
+        return matchesCategory && matchesLocation;
+      }
+
+      // Otherwise, do regular search
       const matchesSearch =
-        !searchQuery.trim() ||
-        (item.name &&
-          item.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.name && item.name.toLowerCase().includes(query)) ||
         (item.area &&
-          getLocationDisplayName(item.area)
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase())) ||
+          getLocationDisplayName(item.area).toLowerCase().includes(query)) ||
         (item.category &&
-          getCategoryDisplayName(item.category)
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()));
+          getCategoryDisplayName(item.category).toLowerCase().includes(query));
 
       return matchesCategory && matchesLocation && matchesSearch;
     });
-  }, [listings, searchQuery, selectedCategory, selectedLocation]);
+  }, [
+    listings,
+    searchQuery,
+    selectedCategory,
+    selectedLocation,
+    allCategories,
+    allLocations,
+  ]);
 
-  // Group filtered listings by category for display
-  const filteredCategories = useMemo(() => {
-    if (filteredListings.length === 0) return [];
+  // Check if we're showing location results
+  const showLocationResults = useMemo(() => {
+    if (!searchQuery && !selectedLocation) return false;
 
-    const categoryMap = {};
+    const query = searchQuery.toLowerCase().trim();
+    const exactLocationMatch = allLocations.find(
+      (loc) => getLocationDisplayName(loc).toLowerCase() === query
+    );
 
-    filteredListings.forEach((item) => {
-      const category = item.category || "other.other";
+    return !!selectedLocation || !!exactLocationMatch;
+  }, [searchQuery, selectedLocation, allLocations]);
 
-      if (!categoryMap[category]) {
-        categoryMap[category] = [];
-      }
-      categoryMap[category].push(item);
-    });
+  // Check if we're showing category results
+  const showCategoryResults = useMemo(() => {
+    if (!searchQuery && !selectedCategory) return false;
 
-    return Object.entries(categoryMap)
-      .map(([category, items]) => ({
-        title: category,
-        items: items.slice(0, 10),
-        count: items.length,
-        displayName: getCategoryDisplayName(category),
-      }))
-      .sort((a, b) => b.count - a.count);
-  }, [filteredListings]);
+    const query = searchQuery.toLowerCase().trim();
+    const exactCategoryMatch = allCategories.find(
+      (cat) => getCategoryDisplayName(cat).toLowerCase() === query
+    );
+
+    return !!selectedCategory || !!exactCategoryMatch;
+  }, [searchQuery, selectedCategory, allCategories]);
+
+  // Get the specific location or category being shown
+  const currentLocation = useMemo(() => {
+    if (selectedLocation) return selectedLocation;
+
+    const query = searchQuery.toLowerCase().trim();
+    return allLocations.find(
+      (loc) => getLocationDisplayName(loc).toLowerCase() === query
+    );
+  }, [searchQuery, selectedLocation, allLocations]);
+
+  const currentCategory = useMemo(() => {
+    if (selectedCategory) return selectedCategory;
+
+    const query = searchQuery.toLowerCase().trim();
+    return allCategories.find(
+      (cat) => getCategoryDisplayName(cat).toLowerCase() === query
+    );
+  }, [searchQuery, selectedCategory, allCategories]);
+
+  // Get category breakdown for filtered listings
+  const categoryBreakdownForLocation = useMemo(() => {
+    if (!filteredListings.length || !showLocationResults) return [];
+    return getCategoryBreakdownByLocation(filteredListings, currentLocation);
+  }, [filteredListings, showLocationResults, currentLocation]);
+
+  // Get location breakdown for filtered listings
+  const locationBreakdownForCategory = useMemo(() => {
+    if (!filteredListings.length || !showCategoryResults) return [];
+    return getLocationBreakdownByCategory(filteredListings, currentCategory);
+  }, [filteredListings, showCategoryResults, currentCategory]);
 
   if (!isOpen) return null;
 
@@ -1637,7 +2105,7 @@ const SearchModal = ({
 
           {/* Content Area */}
           <div className="flex-1 overflow-y-auto">
-            {/* Search Results Summary - Mobile responsive */}
+            {/* Search Results Summary */}
             {(searchQuery || selectedCategory || selectedLocation) && (
               <div
                 className={`${isMobile ? "px-3 py-3" : "px-6 py-4"} ${
@@ -1653,16 +2121,12 @@ const SearchModal = ({
                         isMobile ? "text-sm" : "text-base"
                       } text-gray-700 font-medium font-manrope cursor-default`}
                     >
-                      {searchQuery
+                      {showLocationResults
+                        ? `Places in ${getLocationDisplayName(currentLocation)}`
+                        : showCategoryResults
+                        ? `${getCategoryDisplayName(currentCategory)} in Ibadan`
+                        : searchQuery
                         ? `Results for "${searchQuery}"`
-                        : selectedCategory
-                        ? `${getCategoryDisplayName(
-                            selectedCategory
-                          )} in Ibadan`
-                        : selectedLocation
-                        ? `All listings in ${getLocationDisplayName(
-                            selectedLocation
-                          )}`
                         : "All Results"}
                     </span>
                     <span
@@ -1671,9 +2135,45 @@ const SearchModal = ({
                       } text-gray-500 font-manrope cursor-default`}
                     >
                       {filteredListings.length}{" "}
-                      {filteredListings.length === 1 ? "place" : "places"}
+                      {filteredListings.length === 1 ? "place" : "places"} total
                     </span>
                   </div>
+
+                  {/* Show detailed breakdown */}
+                  {(showLocationResults || showCategoryResults) && (
+                    <div className="text-sm text-gray-600">
+                      {showLocationResults &&
+                        categoryBreakdownForLocation.length > 0 && (
+                          <p className="mb-2">
+                            Includes:{" "}
+                            {categoryBreakdownForLocation.map((cat, idx) => (
+                              <span key={idx}>
+                                {cat.count} {cat.category.toLowerCase()}
+                                {cat.count === 1 ? "" : "s"}
+                                {idx < categoryBreakdownForLocation.length - 1
+                                  ? ", "
+                                  : ""}
+                              </span>
+                            ))}
+                          </p>
+                        )}
+                      {showCategoryResults &&
+                        locationBreakdownForCategory.length > 0 && (
+                          <p className="mb-2">
+                            Available in:{" "}
+                            {locationBreakdownForCategory.map((loc, idx) => (
+                              <span key={idx}>
+                                {loc.location} ({loc.count})
+                                {idx < locationBreakdownForCategory.length - 1
+                                  ? ", "
+                                  : ""}
+                              </span>
+                            ))}
+                          </p>
+                        )}
+                    </div>
+                  )}
+
                   {(selectedCategory || selectedLocation) && (
                     <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
                       {selectedCategory && (
@@ -1732,7 +2232,7 @@ const SearchModal = ({
               </div>
             )}
 
-            {/* Loading State - Mobile responsive */}
+            {/* Loading State */}
             {loading || sheetLoading ? (
               <div className={`${isMobile ? "px-1" : "px-6"} space-y-6`}>
                 {[1, 2, 3].map((i) => (
@@ -1792,19 +2292,61 @@ const SearchModal = ({
                 </button>
               </div>
             ) : (
-              /* Categories List - Mobile responsive */
+              /* Results Area */
               <div className={`${isMobile ? "px-1" : "px-6"}`}>
-                {filteredCategories.length > 0 ? (
-                  filteredCategories.map((category, index) => (
-                    <CategorySection
-                      key={index}
-                      title={category.title}
-                      items={category.items}
-                      isMobile={isMobile}
-                    />
-                  ))
+                {/* Show specific results if we have a location or category */}
+                {showLocationResults && filteredListings.length > 0 ? (
+                  <LocationResults
+                    location={currentLocation}
+                    listings={filteredListings}
+                    isMobile={isMobile}
+                  />
+                ) : showCategoryResults && filteredListings.length > 0 ? (
+                  <CategoryResults
+                    category={currentCategory}
+                    listings={filteredListings}
+                    isMobile={isMobile}
+                  />
+                ) : filteredListings.length > 0 ? (
+                  /* Regular category grouping */
+                  categoriesData
+                    .filter((category) => {
+                      // Filter categories that have listings in the filtered results
+                      const categoryListings = filteredListings.filter(
+                        (item) => item.category === category.title
+                      );
+                      return categoryListings.length > 0;
+                    })
+                    .map((category, index) => {
+                      const categoryListings = filteredListings.filter(
+                        (item) => item.category === category.title
+                      );
+
+                      // Get category breakdown for this specific category
+                      const breakdown = getCategoryBreakdownByLocation(
+                        filteredListings.filter(
+                          (item) => item.category === category.title
+                        ),
+                        selectedLocation || ""
+                      );
+
+                      return (
+                        <CategorySection
+                          key={index}
+                          title={category.title}
+                          items={categoryListings.slice(0, 10)}
+                          isMobile={isMobile}
+                          location={
+                            selectedLocation
+                              ? getLocationDisplayName(selectedLocation)
+                              : null
+                          }
+                          categoryBreakdown={breakdown}
+                        />
+                      );
+                    })
                 ) : (
-                  /* No Results State - Mobile responsive */
+                  /* No Results State */
                   <div className="flex flex-col items-center justify-center h-full px-4 cursor-default">
                     <div
                       className={`${
