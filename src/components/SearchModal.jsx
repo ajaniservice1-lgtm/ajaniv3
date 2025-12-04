@@ -16,6 +16,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 import { PiSliders } from "react-icons/pi";
+import ReactDOM from "react-dom";
 
 // Custom debounce function
 function debounce(func, wait) {
@@ -199,7 +200,12 @@ const getCategorySlug = (category) => {
   return category.toLowerCase().replace(/\s+/g, "-");
 };
 
-// Dropdown Component with keyboard navigation
+// Portal Component for dropdowns to render at body level
+const Portal = ({ children }) => {
+  return ReactDOM.createPortal(children, document.body);
+};
+
+// Dropdown Component with portal rendering
 const Dropdown = ({
   isOpen,
   items,
@@ -207,9 +213,22 @@ const Dropdown = ({
   selectedItem,
   type = "category",
   isMobile,
+  triggerRef,
 }) => {
   const dropdownRef = useRef(null);
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+
+  useEffect(() => {
+    if (isOpen && triggerRef?.current) {
+      const triggerRect = triggerRef.current.getBoundingClientRect();
+      setPosition({
+        top: triggerRect.bottom + window.scrollY + 4,
+        left: triggerRect.left + window.scrollX,
+        width: triggerRect.width,
+      });
+    }
+  }, [isOpen, triggerRef]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -246,18 +265,23 @@ const Dropdown = ({
 
   if (!isOpen) return null;
 
-  return (
+  const DropdownContent = () => (
     <motion.div
       ref={dropdownRef}
       initial={{ opacity: 0, y: -10, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -10, scale: 0.95 }}
       transition={{ duration: 0.2 }}
-      className={`absolute top-full left-0 mt-1 ${
-        isMobile ? "w-full" : "w-48"
-      } bg-white rounded-xl shadow-2xl border border-gray-200 z-50 max-h-60 overflow-y-auto`}
+      className="bg-white rounded-xl shadow-2xl border border-gray-200 z-[10001] max-h-60 overflow-y-auto"
       role="listbox"
       aria-label={`${type} dropdown`}
+      style={{
+        position: "absolute",
+        top: `${position.top}px`,
+        left: `${position.left}px`,
+        width: isMobile ? `${position.width}px` : "192px",
+        maxHeight: "240px",
+      }}
     >
       <div className="py-1">
         {items.length > 0 ? (
@@ -313,6 +337,12 @@ const Dropdown = ({
         )}
       </div>
     </motion.div>
+  );
+
+  return (
+    <Portal>
+      <DropdownContent />
+    </Portal>
   );
 };
 
@@ -665,8 +695,8 @@ const SearchModal = ({
   const [allCategories, setAllCategories] = useState([]);
   const [searchHistory, setSearchHistory] = useState([]);
   const inputRef = useRef(null);
-  const categoryDropdownRef = useRef(null);
-  const locationDropdownRef = useRef(null);
+  const categoryButtonRef = useRef(null);
+  const locationButtonRef = useRef(null);
   const navigate = useNavigate();
 
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
@@ -774,8 +804,8 @@ const SearchModal = ({
       // Close category dropdown if clicked outside
       if (
         showCategoryDropdown &&
-        categoryDropdownRef.current &&
-        !categoryDropdownRef.current.contains(event.target)
+        categoryButtonRef.current &&
+        !categoryButtonRef.current.contains(event.target)
       ) {
         setShowCategoryDropdown(false);
       }
@@ -783,8 +813,8 @@ const SearchModal = ({
       // Close location dropdown if clicked outside
       if (
         showLocationDropdown &&
-        locationDropdownRef.current &&
-        !locationDropdownRef.current.contains(event.target)
+        locationButtonRef.current &&
+        !locationButtonRef.current.contains(event.target)
       ) {
         setShowLocationDropdown(false);
       }
@@ -1147,7 +1177,7 @@ const SearchModal = ({
             )}
 
             {/* Filter Buttons Row - Mobile responsive */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between relative z-[9999]">
               {/* Left side buttons - Mobile responsive layout */}
               <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto scrollbar-hide pb-1">
                 <button
@@ -1164,11 +1194,10 @@ const SearchModal = ({
                   All Categories
                 </button>
 
-                <div
-                  className="relative flex-shrink-0"
-                  ref={categoryDropdownRef}
-                >
+                {/* Category Dropdown Container */}
+                <div className="relative flex-shrink-0">
                   <button
+                    ref={categoryButtonRef}
                     onClick={toggleCategoryDropdown}
                     className={`${
                       isMobile ? "px-3 py-1.5 text-xs" : "px-4 py-2"
@@ -1203,15 +1232,15 @@ const SearchModal = ({
                       selectedItem={selectedCategory}
                       type="category"
                       isMobile={isMobile}
+                      triggerRef={categoryButtonRef}
                     />
                   </AnimatePresence>
                 </div>
 
-                <div
-                  className="relative flex-shrink-0"
-                  ref={locationDropdownRef}
-                >
+                {/* Location Dropdown Container */}
+                <div className="relative flex-shrink-0">
                   <button
+                    ref={locationButtonRef}
                     onClick={toggleLocationDropdown}
                     className={`${
                       isMobile ? "px-3 py-1.5 text-xs" : "px-4 py-2"
@@ -1246,6 +1275,7 @@ const SearchModal = ({
                       selectedItem={selectedLocation}
                       type="location"
                       isMobile={isMobile}
+                      triggerRef={locationButtonRef}
                     />
                   </AnimatePresence>
                 </div>
