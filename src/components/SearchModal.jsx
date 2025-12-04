@@ -768,6 +768,35 @@ const SearchModal = ({
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // Handle click outside to close dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Close category dropdown if clicked outside
+      if (
+        showCategoryDropdown &&
+        categoryDropdownRef.current &&
+        !categoryDropdownRef.current.contains(event.target)
+      ) {
+        setShowCategoryDropdown(false);
+      }
+
+      // Close location dropdown if clicked outside
+      if (
+        showLocationDropdown &&
+        locationDropdownRef.current &&
+        !locationDropdownRef.current.contains(event.target)
+      ) {
+        setShowLocationDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showCategoryDropdown, showLocationDropdown]);
+
+  // Focus input when modal opens
   useEffect(() => {
     if (isOpen && inputRef.current) {
       setTimeout(() => {
@@ -776,10 +805,18 @@ const SearchModal = ({
     }
   }, [isOpen]);
 
+  // Handle escape key and body overflow
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === "Escape") {
-        onClose();
+        // Close dropdowns first
+        if (showCategoryDropdown) {
+          setShowCategoryDropdown(false);
+        } else if (showLocationDropdown) {
+          setShowLocationDropdown(false);
+        } else {
+          onClose();
+        }
       }
     };
 
@@ -794,15 +831,17 @@ const SearchModal = ({
       document.body.style.overflow = "unset";
       document.documentElement.style.overflow = "unset";
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, showCategoryDropdown, showLocationDropdown]);
 
   // Handle search button click
   const handleSearchSubmit = useCallback(() => {
-    if (searchQuery.trim()) {
+    if (searchQuery.trim() || selectedCategory || selectedLocation) {
       // Save to search history
-      setSearchHistory((prev) =>
-        [searchQuery, ...prev.filter((q) => q !== searchQuery)].slice(0, 5)
-      );
+      if (searchQuery.trim()) {
+        setSearchHistory((prev) =>
+          [searchQuery, ...prev.filter((q) => q !== searchQuery)].slice(0, 5)
+        );
+      }
 
       // Navigate to search results page
       const params = new URLSearchParams();
@@ -847,6 +886,18 @@ const SearchModal = ({
     setSelectedLocation(null);
     onSearchChange("");
   }, [onSearchChange]);
+
+  // Toggle category dropdown
+  const toggleCategoryDropdown = useCallback(() => {
+    setShowCategoryDropdown((prev) => !prev);
+    setShowLocationDropdown(false); // Close location dropdown when opening category
+  }, []);
+
+  // Toggle location dropdown
+  const toggleLocationDropdown = useCallback(() => {
+    setShowLocationDropdown((prev) => !prev);
+    setShowCategoryDropdown(false); // Close category dropdown when opening location
+  }, []);
 
   // Filter listings based on search and selected filters
   const filteredListings = useMemo(() => {
@@ -1118,10 +1169,7 @@ const SearchModal = ({
                   ref={categoryDropdownRef}
                 >
                   <button
-                    onClick={() => {
-                      setShowCategoryDropdown(!showCategoryDropdown);
-                      setShowLocationDropdown(false);
-                    }}
+                    onClick={toggleCategoryDropdown}
                     className={`${
                       isMobile ? "px-3 py-1.5 text-xs" : "px-4 py-2"
                     } border rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-1 font-manrope ${
@@ -1164,10 +1212,7 @@ const SearchModal = ({
                   ref={locationDropdownRef}
                 >
                   <button
-                    onClick={() => {
-                      setShowLocationDropdown(!showLocationDropdown);
-                      setShowCategoryDropdown(false);
-                    }}
+                    onClick={toggleLocationDropdown}
                     className={`${
                       isMobile ? "px-3 py-1.5 text-xs" : "px-4 py-2"
                     } border rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-1 font-manrope ${

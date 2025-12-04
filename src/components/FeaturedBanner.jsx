@@ -61,7 +61,7 @@ const FeaturedBanner = () => {
   };
 
   return (
-    <section className="w-full bg-white py-20 font-manrope">
+    <section className="w-full bg-white py-20 font-manrope overflow-x-hidden">
       <div className="lg:max-w-4xl mx-auto px-6">
         {/* Standalone H1 - Separate Animation */}
         <motion.div

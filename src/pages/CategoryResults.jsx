@@ -130,7 +130,6 @@ const CategoryResults = () => {
   const { category } = useParams();
   const navigate = useNavigate();
   const [filters, setFilters] = useState({
-    verifiedVendor: false,
     availableNow: false,
     priceRange: { min: "", max: "" },
     rating: "",
@@ -658,39 +657,7 @@ const CategoryResults = () => {
         <div className="flex flex-col lg:flex-row gap-4 mb-6">
           {/* Toggle Filters */}
           <div className="flex items-center gap-4 flex-wrap">
-            {/* Verified Vendor Toggle */}
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={filters.verifiedVendor}
-                  onChange={(e) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      verifiedVendor: e.target.checked,
-                    }))
-                  }
-                  className="sr-only"
-                />
-                <div
-                  className={`w-10 h-6 rounded-full transition-colors ${
-                    filters.verifiedVendor ? "bg-[#06EAFC]" : "bg-gray-300"
-                  }`}
-                ></div>
-                <div
-                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                    filters.verifiedVendor
-                      ? "transform translate-x-5"
-                      : "transform translate-x-1"
-                  }`}
-                ></div>
-              </div>
-              <span className="text-sm text-gray-700 whitespace-nowrap">
-                Verified Vendor Only
-              </span>
-            </label>
-
-            {/* Available Now Toggle */}
+            {/* Available Now Toggle Only */}
             <label className="flex items-center space-x-2 cursor-pointer">
               <div className="relative">
                 <input
