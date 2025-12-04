@@ -1,4 +1,4 @@
-// Hero.jsx - Updated with same search bar design as SearchModal
+// Hero.jsx - Updated with mouse pointer cursor on all elements
 import React, { useEffect, useRef, useState } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -255,7 +255,7 @@ const NotFoundModal = ({ isOpen, onClose, searchQuery }) => {
   return (
     <>
       <motion.div
-        className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-md"
+        className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-md cursor-default"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -263,22 +263,22 @@ const NotFoundModal = ({ isOpen, onClose, searchQuery }) => {
         onClick={onClose}
       />
       <motion.div
-        className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+        className="fixed inset-0 z-[10000] flex items-center justify-center p-4 cursor-default"
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.8, opacity: 0 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
       >
-        <div className="bg-white rounded-2xl max-w-md w-full p-6 md:p-8 shadow-2xl">
+        <div className="bg-white rounded-2xl max-w-md w-full p-6 md:p-8 shadow-2xl cursor-default">
           <motion.div
-            className="text-center"
+            className="text-center cursor-default"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.1 }}
           >
             {/* Animated Icon */}
             <motion.div
-              className="w-20 h-20 mx-auto mb-6 relative"
+              className="w-20 h-20 mx-auto mb-6 relative cursor-default"
               animate={{
                 scale: [1, 1.1, 1],
                 rotate: [0, 5, -5, 0],
@@ -291,7 +291,7 @@ const NotFoundModal = ({ isOpen, onClose, searchQuery }) => {
             >
               <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full" />
               <svg
-                className="w-12 h-12 text-gray-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+                className="w-12 h-12 text-gray-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 cursor-default"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -307,7 +307,7 @@ const NotFoundModal = ({ isOpen, onClose, searchQuery }) => {
 
             {/* Title */}
             <motion.h3
-              className="text-2xl font-bold text-gray-900 mb-2 font-manrope"
+              className="text-2xl font-bold text-gray-900 mb-2 font-manrope cursor-default"
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2 }}
@@ -317,25 +317,25 @@ const NotFoundModal = ({ isOpen, onClose, searchQuery }) => {
 
             {/* Message */}
             <motion.p
-              className="text-gray-600 mb-6 font-manrope"
+              className="text-gray-600 mb-6 font-manrope cursor-default"
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.3 }}
             >
               We couldn't find any results for{" "}
-              <span className="font-semibold text-blue-600">
+              <span className="font-semibold text-blue-600 cursor-default">
                 "{searchQuery}"
               </span>
             </motion.p>
 
             {/* Suggestions */}
             <motion.div
-              className="mb-8"
+              className="mb-8 cursor-default"
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              <p className="text-sm text-gray-500 mb-3 font-manrope">
+              <p className="text-sm text-gray-500 mb-3 font-manrope cursor-default">
                 Try searching for:
               </p>
               <div className="flex flex-wrap gap-2 justify-center">
@@ -343,7 +343,7 @@ const NotFoundModal = ({ isOpen, onClose, searchQuery }) => {
                   (suggestion, index) => (
                     <motion.button
                       key={suggestion}
-                      className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm hover:bg-blue-100 transition-colors border border-blue-200"
+                      className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm hover:bg-blue-100 transition-colors border border-blue-200 cursor-pointer"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => {
@@ -363,14 +363,14 @@ const NotFoundModal = ({ isOpen, onClose, searchQuery }) => {
 
             {/* Buttons */}
             <motion.div
-              className="flex flex-col sm:flex-row gap-3"
+              className="flex flex-col sm:flex-row gap-3 cursor-default"
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.5 }}
             >
               <button
                 onClick={onClose}
-                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-manrope font-medium"
+                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-manrope font-medium cursor-pointer"
               >
                 Try Another Search
               </button>
@@ -378,7 +378,7 @@ const NotFoundModal = ({ isOpen, onClose, searchQuery }) => {
 
             {/* Additional Help */}
             <motion.p
-              className="text-xs text-gray-400 mt-6 font-manrope"
+              className="text-xs text-gray-400 mt-6 font-manrope cursor-default"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
@@ -534,36 +534,36 @@ const Hero = () => {
     <>
       <section
         id="hero"
-        className="bg-[#F7F7FA] font-rubik overflow-hidden min-h-[30vh] sm:min-h-[30vh] flex items-start relative mt-16"
+        className="bg-[#F7F7FA] font-rubik overflow-hidden min-h-[30vh] sm:min-h-[30vh] flex items-start relative mt-16 cursor-default"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-4 w-full">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-4 w-full cursor-default">
           <div
             ref={heroRef}
-            className="flex flex-col items-center text-center gap-2 sm:gap-3 pt-0 sm:pt-2 pb-2 sm:pb-4"
+            className="flex flex-col items-center text-center gap-2 sm:gap-3 pt-0 sm:pt-2 pb-2 sm:pb-4 cursor-default"
           >
             <motion.div
               initial={{ opacity: 0, x: -50 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6 }}
               viewport={{ margin: "-100px", once: false }}
-              className="flex flex-col justify-start space-y-2 sm:space-y-3 max-w-xl sm:max-w-2xl w-full"
+              className="flex flex-col justify-start space-y-2 sm:space-y-3 max-w-xl sm:max-w-2xl w-full cursor-default"
             >
-              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-manrope font-bold text-[#101828] leading-tight mt-1 sm:mt-2 px-2">
+              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-manrope font-bold text-[#101828] leading-tight mt-1 sm:mt-2 px-2 cursor-default">
                 Discover Ibadan through AI & Local Stories
               </h1>
-              <p className="text-xs sm:text-sm leading-[1.3] text-slate-600 mb-2 sm:mb-4 font-manrope max-w-lg mx-auto px-4">
+              <p className="text-xs sm:text-sm leading-[1.3] text-slate-600 mb-2 sm:mb-4 font-manrope max-w-lg mx-auto px-4 cursor-default">
                 Your all-in-one local guide for hotels, food, events, vendors,
                 and market prices.
               </p>
 
               {/* Updated Search Bar - Same design as SearchModal */}
-              <div className="relative mx-auto w-full max-w-md px-2">
-                <div className="flex items-center">
-                  <div className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-10">
-                    <div className="pl-3 sm:pl-4 text-gray-500">
+              <div className="relative mx-auto w-full max-w-md px-2 cursor-default">
+                <div className="flex items-center cursor-default">
+                  <div className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-10 cursor-default">
+                    <div className="pl-3 sm:pl-4 text-gray-500 cursor-default">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4 sm:h-5 sm:w-5"
+                        className="h-4 w-4 sm:h-5 sm:w-5 cursor-default"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -583,7 +583,7 @@ const Hero = () => {
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onFocus={() => setIsSearchModalOpen(true)}
                       onKeyPress={handleKeyPress}
-                      className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope"
+                      className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope cursor-pointer"
                       autoFocus={false}
                       aria-label="Search input"
                       role="searchbox"
@@ -591,11 +591,11 @@ const Hero = () => {
                     {searchQuery && (
                       <button
                         onClick={() => setSearchQuery("")}
-                        className="p-1 mr-2 text-gray-500 hover:text-gray-700"
+                        className="p-1 mr-2 text-gray-500 hover:text-gray-700 cursor-pointer"
                         aria-label="Clear search"
                       >
                         <svg
-                          className="w-4 h-4"
+                          className="w-4 h-4 cursor-pointer"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -615,7 +615,7 @@ const Hero = () => {
                   <div className="ml-2">
                     <button
                       onClick={handleSearchSubmit}
-                      className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope"
+                      className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope cursor-pointer"
                       aria-label="Perform search"
                     >
                       Search
@@ -625,7 +625,7 @@ const Hero = () => {
 
                 {/* Search hint text - Same as SearchModal */}
                 <motion.div
-                  className="text-center mt-1"
+                  className="text-center mt-1 cursor-default"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{
                     opacity: searchQuery ? 1 : 0,
@@ -633,14 +633,14 @@ const Hero = () => {
                   }}
                   transition={{ duration: 0.3 }}
                 >
-                  <p className="text-xs text-gray-500 font-manrope">
+                  <p className="text-xs text-gray-500 font-manrope cursor-default">
                     Press Enter or click Search to find results
                   </p>
                 </motion.div>
               </div>
 
               {/* Category Icons */}
-              <div className="flex justify-center gap-1 sm:gap-2 mt-2 sm:mt-3 overflow-hidden px-2">
+              <div className="flex justify-center gap-1 sm:gap-2 mt-2 sm:mt-3 overflow-hidden px-2 cursor-default">
                 <motion.div
                   className="text-center cursor-pointer group"
                   whileHover={{ scale: 1.05 }}
@@ -651,14 +651,14 @@ const Hero = () => {
                     <img
                       src={getCategoryImage("Hotel", FALLBACK_IMAGES.Hotel)}
                       alt="Hotel"
-                      className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200"
+                      className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200 cursor-pointer"
                       onError={(e) => {
                         e.target.src = FALLBACK_IMAGES.Hotel;
                       }}
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200"></div>
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200 cursor-pointer"></div>
                   </div>
-                  <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200">
+                  <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200 cursor-pointer">
                     Hotel
                   </p>
                 </motion.div>
@@ -673,14 +673,14 @@ const Hero = () => {
                     <img
                       src={getCategoryImage("Tourism", FALLBACK_IMAGES.Tourism)}
                       alt="Tourism"
-                      className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200"
+                      className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200 cursor-pointer"
                       onError={(e) => {
                         e.target.src = FALLBACK_IMAGES.Tourism;
                       }}
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200"></div>
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200 cursor-pointer"></div>
                   </div>
-                  <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200">
+                  <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200 cursor-pointer">
                     Tourism
                   </p>
                 </motion.div>
@@ -698,14 +698,14 @@ const Hero = () => {
                         FALLBACK_IMAGES.Shortlet
                       )}
                       alt="Shortlet"
-                      className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200"
+                      className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200 cursor-pointer"
                       onError={(e) => {
                         e.target.src = FALLBACK_IMAGES.Shortlet;
                       }}
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200"></div>
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200 cursor-pointer"></div>
                   </div>
-                  <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200">
+                  <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200 cursor-pointer">
                     Shortlet
                   </p>
                 </motion.div>
@@ -723,14 +723,14 @@ const Hero = () => {
                         FALLBACK_IMAGES.Restaurant
                       )}
                       alt="Restaurant"
-                      className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200"
+                      className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200 cursor-pointer"
                       onError={(e) => {
                         e.target.src = FALLBACK_IMAGES.Restaurant;
                       }}
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200"></div>
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200 cursor-pointer"></div>
                   </div>
-                  <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200">
+                  <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200 cursor-pointer">
                     Restaurant
                   </p>
                 </motion.div>

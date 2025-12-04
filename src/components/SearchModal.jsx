@@ -1,4 +1,4 @@
-// SearchModal.jsx - Full screen modal (Optimized Version)
+// SearchModal.jsx - Updated with improved filtering logic
 import React, {
   useEffect,
   useRef,
@@ -13,6 +13,8 @@ import {
   faXmark,
   faChevronRight,
   faChevronDown,
+  faSearch,
+  faFilter,
 } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 import { PiSliders } from "react-icons/pi";
@@ -200,6 +202,150 @@ const getCategorySlug = (category) => {
   return category.toLowerCase().replace(/\s+/g, "-");
 };
 
+// Helper function to get category from display name
+const getCategoryFromDisplayName = (displayName, allCategories) => {
+  if (!displayName || !allCategories.length) return "";
+
+  // Find the category that matches the display name
+  const found = allCategories.find(
+    (cat) =>
+      getCategoryDisplayName(cat).toLowerCase() === displayName.toLowerCase()
+  );
+
+  return found || "";
+};
+
+// Helper function to get location from display name
+const getLocationFromDisplayName = (displayName, allLocations) => {
+  if (!displayName || !allLocations.length) return "";
+
+  // Find the location that matches the display name
+  const found = allLocations.find(
+    (loc) =>
+      getLocationDisplayName(loc).toLowerCase() === displayName.toLowerCase()
+  );
+
+  return found || "";
+};
+
+// Autocomplete Suggestions Component
+const AutocompleteSuggestions = ({
+  suggestions,
+  searchQuery,
+  onSuggestionClick,
+  inputRef,
+  onCategorySelect,
+  onLocationSelect,
+}) => {
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+
+  useEffect(() => {
+    if (inputRef?.current) {
+      const inputRect = inputRef.current.getBoundingClientRect();
+      setPosition({
+        top: inputRect.bottom + window.scrollY + 4,
+        left: inputRect.left + window.scrollX,
+        width: inputRect.width,
+      });
+    }
+  }, [inputRef, suggestions]);
+
+  if (!searchQuery || suggestions.length === 0) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.2 }}
+      className="fixed bg-white rounded-lg shadow-xl border border-gray-200 z-[10001] overflow-hidden"
+      style={{
+        position: "absolute",
+        top: `${position.top}px`,
+        left: `${position.left}px`,
+        width: `${position.width}px`,
+        maxHeight: "320px",
+        overflowY: "auto",
+      }}
+    >
+      <div className="py-2">
+        {suggestions.map((suggestion, index) => (
+          <button
+            key={index}
+            onClick={() => {
+              if (suggestion.type === "category") {
+                onCategorySelect(suggestion.value);
+              } else if (suggestion.type === "area") {
+                onLocationSelect(suggestion.value);
+              }
+            }}
+            className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-100 last:border-b-0"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                  <FontAwesomeIcon
+                    icon={suggestion.type === "category" ? faSearch : faFilter}
+                    className={`text-sm ${
+                      suggestion.type === "category"
+                        ? "text-blue-500"
+                        : "text-green-500"
+                    }`}
+                  />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900 text-sm">
+                    {suggestion.display}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {suggestion.type === "category"
+                      ? `${suggestion.count} ${
+                          suggestion.count === 1 ? "result" : "results"
+                        } in Ibadan`
+                      : `${suggestion.count} ${
+                          suggestion.count === 1 ? "place" : "places"
+                        } in ${suggestion.display}`}
+                  </p>
+                </div>
+              </div>
+              <div className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+                {suggestion.count}
+              </div>
+            </div>
+
+            {/* Show sub-categories for area searches */}
+            {suggestion.type === "area" &&
+              suggestion.subcategories &&
+              suggestion.subcategories.length > 0 && (
+                <div className="mt-2 ml-11 pl-4 border-l border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Includes:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {suggestion.subcategories.map((subcat, subIndex) => (
+                      <span
+                        key={subIndex}
+                        className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-50 text-gray-600 border border-gray-200"
+                      >
+                        {subcat.name} ({subcat.count})
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+          </button>
+        ))}
+      </div>
+
+      <div className="px-4 py-2 bg-gray-50 border-t border-gray-200">
+        <p className="text-xs text-gray-500 text-center">
+          Press{" "}
+          <kbd className="px-1 py-0.5 bg-gray-200 rounded text-xs">Enter</kbd>{" "}
+          to search
+        </p>
+      </div>
+    </motion.div>
+  );
+};
+
 // Portal Component for dropdowns to render at body level
 const Portal = ({ children }) => {
   return ReactDOM.createPortal(children, document.body);
@@ -309,7 +455,7 @@ const Dropdown = ({
                 <span
                   className={`${
                     isMobile ? "text-xs" : "text-sm"
-                  } font-manrope font-medium`}
+                  } font-manrope font-medium cursor-pointer`}
                 >
                   {displayName}
                 </span>
@@ -415,19 +561,19 @@ const BusinessCard = React.memo(({ item, category, isMobile }) => {
           <img
             src={images[0]}
             alt={item.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover cursor-pointer"
             onError={(e) => (e.currentTarget.src = FALLBACK_IMAGES.default)}
             loading="lazy"
           />
         )}
 
         {/* Guest Favorite Badge - Top Left */}
-        <div className="absolute top-2 left-2 bg-white px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
+        <div className="absolute top-2 left-2 bg-white px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm cursor-pointer">
           <div className="w-1 h-1 bg-yellow-500 rounded-full"></div>
           <span
             className={`${
               isMobile ? "text-[8px]" : "text-[9px]"
-            } font-bold text-gray-900 font-manrope`}
+            } font-bold text-gray-900 font-manrope cursor-pointer`}
           >
             Guest favorite
           </span>
@@ -439,7 +585,7 @@ const BusinessCard = React.memo(({ item, category, isMobile }) => {
         <h3
           className={`${
             isMobile ? "text-xs" : "text-sm"
-          } font-bold text-gray-900 mb-1 line-clamp-1 font-manrope`}
+          } font-bold text-gray-900 mb-1 line-clamp-1 font-manrope cursor-pointer`}
         >
           {item.name}
         </h3>
@@ -447,7 +593,7 @@ const BusinessCard = React.memo(({ item, category, isMobile }) => {
         <p
           className={`${
             isMobile ? "text-[10px]" : "text-[11px]"
-          } text-gray-600 mb-2 font-manrope`}
+          } text-gray-600 mb-2 font-manrope cursor-pointer`}
         >
           {location}
         </p>
@@ -456,7 +602,7 @@ const BusinessCard = React.memo(({ item, category, isMobile }) => {
           <p
             className={`${
               isMobile ? "text-[11px]" : "text-xs"
-            } font-medium text-gray-900 font-manrope`}
+            } font-medium text-gray-900 font-manrope cursor-pointer`}
           >
             {priceText}
           </p>
@@ -472,7 +618,7 @@ const BusinessCard = React.memo(({ item, category, isMobile }) => {
               <span
                 className={`${
                   isMobile ? "text-[10px]" : "text-[11px]"
-                } font-medium text-gray-900 font-manrope`}
+                } font-medium text-gray-900 font-manrope cursor-pointer`}
               >
                 {item.rating}
               </span>
@@ -554,7 +700,7 @@ const CategorySection = React.memo(({ title, items, isMobile }) => {
           <>
             <button
               onClick={() => scrollSection("prev")}
-              className={`absolute left-0 top-1/2 transform -translate-y-1/2 w-8 h-8 -ml-4 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200`}
+              className={`absolute left-0 top-1/2 transform -translate-y-1/2 w-8 h-8 -ml-4 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200 cursor-pointer`}
               aria-label="Scroll left"
             >
               <svg
@@ -574,7 +720,7 @@ const CategorySection = React.memo(({ title, items, isMobile }) => {
 
             <button
               onClick={() => scrollSection("next")}
-              className={`absolute right-0 top-1/2 transform -translate-y-1/2 w-8 h-8 -mr-4 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200`}
+              className={`absolute right-0 top-1/2 transform -translate-y-1/2 w-8 h-8 -mr-4 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200 cursor-pointer`}
               aria-label="Scroll right"
             >
               <svg
@@ -599,7 +745,7 @@ const CategorySection = React.memo(({ title, items, isMobile }) => {
       <div className="flex justify-center mt-3">
         <button
           onClick={handleViewAll}
-          className="text-[#06EAFC] hover:text-[#05d9eb] text-sm font-medium flex items-center gap-1 px-6 py-2 rounded-lg hover:bg-blue-50 transition-colors font-manrope"
+          className="text-[#06EAFC] hover:text-[#05d9eb] text-sm font-medium flex items-center gap-1 px-6 py-2 rounded-lg hover:bg-blue-50 transition-colors font-manrope cursor-pointer"
           aria-label={`View all ${getCategoryDisplayName(title)}`}
         >
           View All
@@ -634,7 +780,7 @@ class SearchModalErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="fixed inset-0 z-[9999] bg-white p-6 flex flex-col items-center justify-center">
+        <div className="fixed inset-0 z-[9999] bg-white p-6 flex flex-col items-center justify-center cursor-default">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
             <svg
               className="w-8 h-8 text-red-600"
@@ -658,13 +804,13 @@ class SearchModalErrorBoundary extends React.Component {
           </p>
           <button
             onClick={this.handleRetry}
-            className="bg-[#06EAFC] hover:bg-[#05d9eb] text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+            className="bg-[#06EAFC] hover:bg-[#05d9eb] text-white font-semibold py-2 px-6 rounded-lg transition-colors cursor-pointer"
           >
             Try Again
           </button>
           <button
             onClick={this.props.onClose}
-            className="mt-3 text-gray-600 hover:text-gray-800 text-sm"
+            className="mt-3 text-gray-600 hover:text-gray-800 text-sm cursor-pointer"
           >
             Close Search
           </button>
@@ -694,6 +840,7 @@ const SearchModal = ({
   const [allLocations, setAllLocations] = useState([]);
   const [allCategories, setAllCategories] = useState([]);
   const [searchHistory, setSearchHistory] = useState([]);
+  const [autocompleteSuggestions, setAutocompleteSuggestions] = useState([]);
   const inputRef = useRef(null);
   const categoryButtonRef = useRef(null);
   const locationButtonRef = useRef(null);
@@ -709,13 +856,9 @@ const SearchModal = ({
     error,
   } = useGoogleSheet(SHEET_ID, API_KEY);
 
-  console.log("Sheet Data:", listings); // Debug log
-
   // Get unique categories and locations from your sheet
   useEffect(() => {
     if (listings.length > 0) {
-      console.log("Processing listings:", listings.length); // Debug log
-
       // Extract unique categories - keep original format with dots
       const uniqueCategories = [
         ...new Set(
@@ -725,13 +868,10 @@ const SearchModal = ({
             .map((cat) => cat.trim())
         ),
       ].sort((a, b) => {
-        // Sort by the numeric part before the dot if present
         const numA = parseInt(a.split(".")[0]) || 0;
         const numB = parseInt(b.split(".")[0]) || 0;
         return numA - numB;
       });
-
-      console.log("Unique categories:", uniqueCategories); // Debug log
 
       // Extract unique locations - keep original format with dots
       const uniqueLocations = [
@@ -742,13 +882,10 @@ const SearchModal = ({
             .map((loc) => loc.trim())
         ),
       ].sort((a, b) => {
-        // Sort by the numeric part before the dot if present
         const numA = parseInt(a.split(".")[0]) || 0;
         const numB = parseInt(b.split(".")[0]) || 0;
         return numA - numB;
       });
-
-      console.log("Unique locations:", uniqueLocations); // Debug log
 
       setAllCategories(uniqueCategories);
       setAllLocations(uniqueLocations);
@@ -758,14 +895,11 @@ const SearchModal = ({
 
       listings.forEach((item) => {
         const category = item.category || "other.other";
-
         if (!categoryMap[category]) {
           categoryMap[category] = [];
         }
         categoryMap[category].push(item);
       });
-
-      console.log("Category map:", categoryMap); // Debug log
 
       // Convert to array and sort by number of items
       const sortedCategories = Object.entries(categoryMap)
@@ -777,15 +911,120 @@ const SearchModal = ({
         }))
         .sort((a, b) => b.count - a.count);
 
-      console.log("Sorted categories:", sortedCategories); // Debug log
-
       setCategoriesData(sortedCategories);
       setLoading(false);
     } else if (!sheetLoading && listings.length === 0) {
-      console.log("No listings found"); // Debug log
       setLoading(false);
     }
   }, [listings, sheetLoading]);
+
+  // Generate autocomplete suggestions based on search query AND current filters
+  useEffect(() => {
+    if (!searchQuery.trim() || listings.length === 0) {
+      setAutocompleteSuggestions([]);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    const suggestions = [];
+
+    // Get filtered listings based on current selections
+    const currentlyFilteredListings = listings.filter((item) => {
+      // Filter by selected category
+      const matchesCategory =
+        !selectedCategory ||
+        item.category === getCategoryValueForFilter(selectedCategory);
+
+      // Filter by selected location
+      const matchesLocation =
+        !selectedLocation ||
+        item.area === getLocationValueForFilter(selectedLocation);
+
+      return matchesCategory && matchesLocation;
+    });
+
+    // 1. Check for category matches within current filters
+    const categoryMatches = [];
+    allCategories.forEach((category) => {
+      const displayName = getCategoryDisplayName(category).toLowerCase();
+      if (displayName.includes(query)) {
+        const count = currentlyFilteredListings.filter(
+          (item) => item.category === category
+        ).length;
+        if (count > 0) {
+          categoryMatches.push({
+            type: "category",
+            display: getCategoryDisplayName(category),
+            value: category,
+            count: count,
+          });
+        }
+      }
+    });
+
+    // Sort category matches by relevance and count
+    categoryMatches.sort((a, b) => {
+      const aStartsWith = a.display.toLowerCase().startsWith(query);
+      const bStartsWith = b.display.toLowerCase().startsWith(query);
+      if (aStartsWith && !bStartsWith) return -1;
+      if (!aStartsWith && bStartsWith) return 1;
+      return b.count - a.count;
+    });
+
+    suggestions.push(...categoryMatches.slice(0, 3));
+
+    // 2. Check for area matches within current filters
+    const areaMatches = [];
+    allLocations.forEach((location) => {
+      const displayName = getLocationDisplayName(location).toLowerCase();
+      if (displayName.includes(query)) {
+        const areaListings = currentlyFilteredListings.filter(
+          (item) => item.area === location
+        );
+        const count = areaListings.length;
+        if (count > 0) {
+          // Get categories in this area
+          const categoryCounts = {};
+          areaListings.forEach((item) => {
+            const category = getCategoryDisplayName(item.category);
+            categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+          });
+
+          const subcategories = Object.entries(categoryCounts)
+            .slice(0, 3)
+            .map(([name, count]) => ({ name, count }));
+
+          areaMatches.push({
+            type: "area",
+            display: getLocationDisplayName(location),
+            value: location,
+            count: count,
+            subcategories: subcategories,
+          });
+        }
+      }
+    });
+
+    // Sort area matches by relevance and count
+    areaMatches.sort((a, b) => {
+      const aStartsWith = a.display.toLowerCase().startsWith(query);
+      const bStartsWith = b.display.toLowerCase().startsWith(query);
+      if (aStartsWith && !bStartsWith) return -1;
+      if (!aStartsWith && bStartsWith) return 1;
+      return b.count - a.count;
+    });
+
+    suggestions.push(...areaMatches.slice(0, 3));
+
+    setAutocompleteSuggestions(suggestions);
+  }, [
+    searchQuery,
+    listings,
+    allCategories,
+    allLocations,
+    selectedCategory,
+    selectedLocation,
+  ]);
 
   // Check for mobile view
   useEffect(() => {
@@ -798,7 +1037,7 @@ const SearchModal = ({
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Handle click outside to close dropdowns
+  // Handle click outside to close dropdowns and autocomplete
   useEffect(() => {
     const handleClickOutside = (event) => {
       // Close category dropdown if clicked outside
@@ -818,13 +1057,22 @@ const SearchModal = ({
       ) {
         setShowLocationDropdown(false);
       }
+
+      // Close autocomplete if clicked outside
+      if (
+        autocompleteSuggestions.length > 0 &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target)
+      ) {
+        setAutocompleteSuggestions([]);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [showCategoryDropdown, showLocationDropdown]);
+  }, [showCategoryDropdown, showLocationDropdown, autocompleteSuggestions]);
 
   // Focus input when modal opens
   useEffect(() => {
@@ -839,8 +1087,12 @@ const SearchModal = ({
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === "Escape") {
+        // Close autocomplete first
+        if (autocompleteSuggestions.length > 0) {
+          setAutocompleteSuggestions([]);
+        }
         // Close dropdowns first
-        if (showCategoryDropdown) {
+        else if (showCategoryDropdown) {
           setShowCategoryDropdown(false);
         } else if (showLocationDropdown) {
           setShowLocationDropdown(false);
@@ -861,7 +1113,13 @@ const SearchModal = ({
       document.body.style.overflow = "unset";
       document.documentElement.style.overflow = "unset";
     };
-  }, [isOpen, onClose, showCategoryDropdown, showLocationDropdown]);
+  }, [
+    isOpen,
+    onClose,
+    showCategoryDropdown,
+    showLocationDropdown,
+    autocompleteSuggestions,
+  ]);
 
   // Handle search button click
   const handleSearchSubmit = useCallback(() => {
@@ -899,44 +1157,117 @@ const SearchModal = ({
     onSearchChange("");
     setSelectedCategory(null);
     setSelectedLocation(null);
+    setAutocompleteSuggestions([]);
   }, [onSearchChange]);
 
-  const handleCategorySelect = useCallback((category) => {
-    setSelectedCategory(category);
-    setShowCategoryDropdown(false);
-  }, []);
+  const handleCategorySelect = useCallback(
+    (category) => {
+      setSelectedCategory(category);
+      setSelectedLocation(null); // Clear location when selecting category
+      setShowCategoryDropdown(false);
+      setAutocompleteSuggestions([]);
+      // Don't clear search query, just set it to the selected category name
+      onSearchChange(getCategoryDisplayName(category));
+    },
+    [onSearchChange]
+  );
 
-  const handleLocationSelect = useCallback((location) => {
-    setSelectedLocation(location);
-    setShowLocationDropdown(false);
-  }, []);
+  const handleLocationSelect = useCallback(
+    (location) => {
+      setSelectedLocation(location);
+      setSelectedCategory(null); // Clear category when selecting location
+      setShowLocationDropdown(false);
+      setAutocompleteSuggestions([]);
+      // Don't clear search query, just set it to the selected location name
+      onSearchChange(getLocationDisplayName(location));
+    },
+    [onSearchChange]
+  );
 
   const handleAllCategoriesClick = useCallback(() => {
     setSelectedCategory(null);
     setSelectedLocation(null);
     onSearchChange("");
+    setAutocompleteSuggestions([]);
   }, [onSearchChange]);
+
+  // Handle autocomplete suggestion selection
+  const handleAutocompleteCategorySelect = useCallback(
+    (category) => {
+      setSelectedCategory(category);
+      setAutocompleteSuggestions([]);
+      onSearchChange(getCategoryDisplayName(category));
+    },
+    [onSearchChange]
+  );
+
+  const handleAutocompleteLocationSelect = useCallback(
+    (location) => {
+      setSelectedLocation(location);
+      setAutocompleteSuggestions([]);
+      onSearchChange(getLocationDisplayName(location));
+    },
+    [onSearchChange]
+  );
 
   // Toggle category dropdown
   const toggleCategoryDropdown = useCallback(() => {
     setShowCategoryDropdown((prev) => !prev);
     setShowLocationDropdown(false); // Close location dropdown when opening category
+    setAutocompleteSuggestions([]); // Close autocomplete
   }, []);
 
   // Toggle location dropdown
   const toggleLocationDropdown = useCallback(() => {
     setShowLocationDropdown((prev) => !prev);
     setShowCategoryDropdown(false); // Close category dropdown when opening location
+    setAutocompleteSuggestions([]); // Close autocomplete
   }, []);
 
-  // Filter listings based on search and selected filters
+  // Handle search input change
+  const handleSearchChange = useCallback(
+    (value) => {
+      onSearchChange(value);
+      // Clear selected filters when user starts typing (if they type something new)
+      if (value && (selectedCategory || selectedLocation)) {
+        // Only clear if the typed value doesn't match current selection
+        const currentCategoryDisplay = selectedCategory
+          ? getCategoryDisplayName(selectedCategory).toLowerCase()
+          : "";
+        const currentLocationDisplay = selectedLocation
+          ? getLocationDisplayName(selectedLocation).toLowerCase()
+          : "";
+
+        if (
+          !value.toLowerCase().includes(currentCategoryDisplay) &&
+          !value.toLowerCase().includes(currentLocationDisplay)
+        ) {
+          setSelectedCategory(null);
+          setSelectedLocation(null);
+        }
+      }
+    },
+    [onSearchChange, selectedCategory, selectedLocation]
+  );
+
+  // Filter listings based on search AND selected filters
   const filteredListings = useMemo(() => {
     if (!listings.length) return [];
 
     return listings.filter((item) => {
-      // Filter by search query
+      // Filter by selected category
+      const matchesCategory =
+        !selectedCategory ||
+        item.category === getCategoryValueForFilter(selectedCategory);
+
+      // Filter by selected location
+      const matchesLocation =
+        !selectedLocation ||
+        item.area === getLocationValueForFilter(selectedLocation);
+
+      // Filter by search query (if any)
       const matchesSearch =
-        searchQuery.trim() === "" ||
+        !searchQuery.trim() ||
         (item.name &&
           item.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.area &&
@@ -948,17 +1279,7 @@ const SearchModal = ({
             .toLowerCase()
             .includes(searchQuery.toLowerCase()));
 
-      // Filter by selected category - compare with original category value
-      const matchesCategory =
-        !selectedCategory ||
-        item.category === getCategoryValueForFilter(selectedCategory);
-
-      // Filter by selected location - compare with original location value
-      const matchesLocation =
-        !selectedLocation ||
-        item.area === getLocationValueForFilter(selectedLocation);
-
-      return matchesSearch && matchesCategory && matchesLocation;
+      return matchesCategory && matchesLocation && matchesSearch;
     });
   }, [listings, searchQuery, selectedCategory, selectedLocation]);
 
@@ -993,7 +1314,7 @@ const SearchModal = ({
     <>
       {/* Backdrop */}
       <motion.div
-        className="fixed inset-0 z-[9998] bg-black/50 backdrop-blur-sm"
+        className="fixed inset-0 z-[9998] bg-black/50 backdrop-blur-sm cursor-default"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -1003,7 +1324,7 @@ const SearchModal = ({
 
       {/* Full Screen Modal - Covers entire screen */}
       <motion.div
-        className="fixed inset-0 z-[9999] bg-white overflow-hidden"
+        className="fixed inset-0 z-[9999] bg-white overflow-hidden cursor-default"
         initial={{ y: "100%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
@@ -1023,7 +1344,7 @@ const SearchModal = ({
                 onClick={onClose}
                 className={`${
                   isMobile ? "w-8 h-8" : "w-10 h-10"
-                } rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors`}
+                } rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer`}
                 aria-label="Close search modal"
               >
                 <FontAwesomeIcon
@@ -1051,7 +1372,9 @@ const SearchModal = ({
                     } relative z-10`}
                   >
                     <div
-                      className={`${isMobile ? "pl-3" : "pl-4"} text-gray-500`}
+                      className={`${
+                        isMobile ? "pl-3" : "pl-4"
+                      } text-gray-500 cursor-default`}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -1075,13 +1398,13 @@ const SearchModal = ({
                       type="text"
                       placeholder="Search by area or category..."
                       value={searchQuery}
-                      onChange={(e) => onSearchChange(e.target.value)}
+                      onChange={(e) => handleSearchChange(e.target.value)}
                       onKeyPress={handleKeyPress}
                       className={`flex-1 bg-transparent ${
                         isMobile
                           ? "py-2 px-2 text-xs"
                           : "py-3 px-3 text-sm sm:text-base"
-                      } text-gray-800 outline-none placeholder:text-gray-600 font-manrope`}
+                      } text-gray-800 outline-none placeholder:text-gray-600 font-manrope cursor-pointer`}
                       autoFocus
                       aria-label="Search input"
                       role="searchbox"
@@ -1091,11 +1414,13 @@ const SearchModal = ({
                         onClick={handleClearSearch}
                         className={`${
                           isMobile ? "p-1 mr-1" : "p-1 mr-2"
-                        } text-gray-500 hover:text-gray-700`}
+                        } text-gray-500 hover:text-gray-700 cursor-pointer`}
                         aria-label="Clear search"
                       >
                         <svg
-                          className={`${isMobile ? "w-3 h-3" : "w-4 h-4"}`}
+                          className={`${
+                            isMobile ? "w-3 h-3" : "w-4 h-4"
+                          } cursor-pointer`}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -1119,7 +1444,7 @@ const SearchModal = ({
                         isMobile
                           ? "py-2 px-3 text-xs"
                           : "py-3 px-6 text-sm sm:text-base"
-                      } transition-colors duration-200 whitespace-nowrap font-manrope`}
+                      } transition-colors duration-200 whitespace-nowrap font-manrope cursor-pointer`}
                       aria-label="Perform search"
                     >
                       Search
@@ -1128,6 +1453,19 @@ const SearchModal = ({
                 </div>
               </div>
             </div>
+
+            {/* Autocomplete Suggestions */}
+            <AnimatePresence>
+              {autocompleteSuggestions.length > 0 && searchQuery.trim() && (
+                <AutocompleteSuggestions
+                  suggestions={autocompleteSuggestions}
+                  searchQuery={searchQuery}
+                  inputRef={inputRef}
+                  onCategorySelect={handleAutocompleteCategorySelect}
+                  onLocationSelect={handleAutocompleteLocationSelect}
+                />
+              )}
+            </AnimatePresence>
 
             {/* Search hint text */}
             <motion.div
@@ -1144,7 +1482,9 @@ const SearchModal = ({
               <p
                 className={`${
                   isMobile ? "text-[10px]" : "text-xs"
-                } text-gray-500 font-manrope ${!isMobile ? "text-center" : ""}`}
+                } text-gray-500 font-manrope ${
+                  !isMobile ? "text-center" : ""
+                } cursor-default`}
               >
                 Press Enter or click Search to find results
               </p>
@@ -1156,7 +1496,7 @@ const SearchModal = ({
                 <p
                   className={`${
                     isMobile ? "text-xs" : "text-sm"
-                  } text-gray-500 mb-2 font-manrope`}
+                  } text-gray-500 mb-2 font-manrope cursor-default`}
                 >
                   Recent searches
                 </p>
@@ -1167,7 +1507,7 @@ const SearchModal = ({
                       onClick={() => onSearchChange(term)}
                       className={`${
                         isMobile ? "px-3 py-1 text-xs" : "px-4 py-1.5 text-sm"
-                      } bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors font-manrope`}
+                      } bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors font-manrope cursor-pointer`}
                     >
                       {term}
                     </button>
@@ -1188,7 +1528,7 @@ const SearchModal = ({
                     !selectedCategory && !selectedLocation
                       ? "bg-[#06EAFC] text-white"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
+                  } cursor-pointer`}
                   aria-label="Show all categories"
                 >
                   All Categories
@@ -1205,7 +1545,7 @@ const SearchModal = ({
                       selectedCategory
                         ? "border-[#06EAFC] text-[#06EAFC] bg-blue-50"
                         : "border-gray-300 text-gray-700"
-                    }`}
+                    } cursor-pointer`}
                     aria-label="Select category"
                     aria-expanded={showCategoryDropdown}
                   >
@@ -1248,7 +1588,7 @@ const SearchModal = ({
                       selectedLocation
                         ? "border-[#06EAFC] text-[#06EAFC] bg-blue-50"
                         : "border-gray-300 text-gray-700"
-                    }`}
+                    } cursor-pointer`}
                     aria-label="Select location"
                     aria-expanded={showLocationDropdown}
                   >
@@ -1285,7 +1625,7 @@ const SearchModal = ({
               <button
                 className={`${
                   isMobile ? "px-3 py-1.5" : "px-4 py-2"
-                } border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center flex-shrink-0 font-manrope`}
+                } border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center flex-shrink-0 font-manrope cursor-pointer`}
                 aria-label="Open filters"
               >
                 <PiSliders
@@ -1311,16 +1651,24 @@ const SearchModal = ({
                     <span
                       className={`${
                         isMobile ? "text-sm" : "text-base"
-                      } text-gray-700 font-medium font-manrope`}
+                      } text-gray-700 font-medium font-manrope cursor-default`}
                     >
                       {searchQuery
                         ? `Results for "${searchQuery}"`
+                        : selectedCategory
+                        ? `${getCategoryDisplayName(
+                            selectedCategory
+                          )} in Ibadan`
+                        : selectedLocation
+                        ? `All listings in ${getLocationDisplayName(
+                            selectedLocation
+                          )}`
                         : "All Results"}
                     </span>
                     <span
                       className={`${
                         isMobile ? "text-xs" : "text-sm"
-                      } text-gray-500 font-manrope`}
+                      } text-gray-500 font-manrope cursor-default`}
                     >
                       {filteredListings.length}{" "}
                       {filteredListings.length === 1 ? "place" : "places"}
@@ -1335,11 +1683,11 @@ const SearchModal = ({
                             isMobile
                               ? "px-2 py-1 text-[10px]"
                               : "px-3 py-1 text-xs"
-                          } bg-blue-100 text-blue-700 rounded-full font-medium font-manrope flex-shrink-0 flex items-center gap-1`}
+                          } bg-blue-100 text-blue-700 rounded-full font-medium font-manrope flex-shrink-0 flex items-center gap-1 cursor-pointer`}
                         >
                           {getCategoryDisplayName(selectedCategory)}
                           <svg
-                            className="w-3 h-3"
+                            className="w-3 h-3 cursor-pointer"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -1360,11 +1708,11 @@ const SearchModal = ({
                             isMobile
                               ? "px-2 py-1 text-[10px]"
                               : "px-3 py-1 text-xs"
-                          } bg-green-100 text-green-700 rounded-full font-medium font-manrope flex-shrink-0 flex items-center gap-1`}
+                          } bg-green-100 text-green-700 rounded-full font-medium font-manrope flex-shrink-0 flex items-center gap-1 cursor-pointer`}
                         >
                           {getLocationDisplayName(selectedLocation)}
                           <svg
-                            className="w-3 h-3"
+                            className="w-3 h-3 cursor-pointer"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -1388,7 +1736,7 @@ const SearchModal = ({
             {loading || sheetLoading ? (
               <div className={`${isMobile ? "px-1" : "px-6"} space-y-6`}>
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="animate-pulse">
+                  <div key={i} className="animate-pulse cursor-default">
                     <div
                       className={`h-${
                         isMobile ? "4" : "6"
@@ -1414,7 +1762,7 @@ const SearchModal = ({
                 ))}
               </div>
             ) : error ? (
-              <div className="flex flex-col items-center justify-center h-full px-4">
+              <div className="flex flex-col items-center justify-center h-full px-4 cursor-default">
                 <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
                   <svg
                     className="w-8 h-8 text-red-600"
@@ -1438,7 +1786,7 @@ const SearchModal = ({
                 </p>
                 <button
                   onClick={() => window.location.reload()}
-                  className="bg-[#06EAFC] hover:bg-[#05d9eb] text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+                  className="bg-[#06EAFC] hover:bg-[#05d9eb] text-white font-semibold py-2 px-6 rounded-lg transition-colors cursor-pointer"
                 >
                   Reload
                 </button>
@@ -1457,7 +1805,7 @@ const SearchModal = ({
                   ))
                 ) : (
                   /* No Results State - Mobile responsive */
-                  <div className="flex flex-col items-center justify-center h-full px-4">
+                  <div className="flex flex-col items-center justify-center h-full px-4 cursor-default">
                     <div
                       className={`${
                         isMobile ? "w-16 h-16" : "w-20 h-20"
@@ -1510,18 +1858,28 @@ const SearchModal = ({
                     </p>
                     {listings.length > 0 && (
                       <div className="flex flex-wrap gap-2 justify-center">
+                        <button
+                          onClick={handleAllCategoriesClick}
+                          className={`${
+                            isMobile
+                              ? "px-3 py-1.5 text-xs"
+                              : "px-4 py-2 text-sm"
+                          } bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors font-manrope cursor-pointer`}
+                        >
+                          View All Categories
+                        </button>
                         {allCategories.slice(0, 5).map((term) => (
                           <button
                             key={term}
                             onClick={() => {
-                              onSearchChange(getCategoryDisplayName(term));
                               setSelectedCategory(term);
+                              onSearchChange("");
                             }}
                             className={`${
                               isMobile
                                 ? "px-3 py-1.5 text-xs"
                                 : "px-4 py-2 text-sm"
-                            } bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-manrope`}
+                            } bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-manrope cursor-pointer`}
                           >
                             {getCategoryDisplayName(term)}
                           </button>
