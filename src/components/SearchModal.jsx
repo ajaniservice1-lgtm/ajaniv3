@@ -1,4 +1,4 @@
-// SearchModal.jsx - Updated with detailed category breakdowns (no icons)
+// SearchModal.jsx - Complete with search results navigation
 import React, {
   useEffect,
   useRef,
@@ -13,7 +13,6 @@ import {
   faXmark,
   faChevronRight,
   faChevronDown,
-  faSearch,
   faFilter,
   faMapMarkerAlt,
 } from "@fortawesome/free-solid-svg-icons";
@@ -691,7 +690,7 @@ const BusinessCard = React.memo(({ item, category, isMobile }) => {
 
 BusinessCard.displayName = "BusinessCard";
 
-// Category Section Component - Horizontal scrolling WITH BREAKDOWN
+// Category Section Component - Horizontal scrolling WITH BREAKDOWN AND SEARCH RESULTS NAVIGATION
 const CategorySection = React.memo(
   ({ title, items, isMobile, location, categoryBreakdown }) => {
     const scrollContainerRef = useRef(null);
@@ -714,8 +713,31 @@ const CategorySection = React.memo(
     };
 
     const handleViewAll = () => {
-      const categorySlug = getCategorySlug(title);
-      navigate(`/category/${categorySlug}`);
+      // Create query parameters based on what's being viewed
+      const params = new URLSearchParams();
+
+      if (location) {
+        // If viewing a specific location, pass that
+        // Find the location value from the display name
+        const locationValue = getLocationValueForFilterFromDisplay(location);
+        if (locationValue) {
+          params.append("location", locationValue);
+        }
+      } else {
+        // If viewing a category, pass that
+        const categoryValue = getCategoryValueForFilter(title);
+        if (categoryValue) {
+          params.append("category", categoryValue);
+        }
+      }
+
+      // Navigate to search results with the appropriate filters
+      if (params.toString()) {
+        navigate(`/search-results?${params.toString()}`);
+      } else {
+        // Fallback to category page
+        navigate(`/category/${getCategorySlug(title)}`);
+      }
     };
 
     if (items.length === 0) return null;
@@ -827,7 +849,7 @@ const CategorySection = React.memo(
           )}
         </div>
 
-        {/* View All Button */}
+        {/* View All Button - NAVIGATES TO SEARCH RESULTS */}
         <div className="flex justify-center mt-3">
           <button
             onClick={handleViewAll}
@@ -866,15 +888,21 @@ const LocationResults = React.memo(({ location, listings, isMobile }) => {
   }, [listings]);
 
   const handleViewAllInLocation = () => {
-    navigate(`/search-results?location=${encodeURIComponent(location)}`);
+    const params = new URLSearchParams();
+    const locationValue = getLocationValueForFilter(location);
+    if (locationValue) {
+      params.append("location", locationValue);
+      navigate(`/search-results?${params.toString()}`);
+    }
   };
 
   const handleCategorySelect = (category) => {
-    navigate(
-      `/search-results?category=${encodeURIComponent(
-        category
-      )}&location=${encodeURIComponent(location)}`
-    );
+    const params = new URLSearchParams();
+    const categoryValue = getCategoryValueForFilterFromDisplay(category);
+    const locationValue = getLocationValueForFilter(location);
+    if (categoryValue) params.append("category", categoryValue);
+    if (locationValue) params.append("location", locationValue);
+    navigate(`/search-results?${params.toString()}`);
   };
 
   return (
@@ -964,7 +992,7 @@ const LocationResults = React.memo(({ location, listings, isMobile }) => {
         );
       })}
 
-      {/* View All Button */}
+      {/* View All Button - NAVIGATES TO SEARCH RESULTS */}
       <div className="flex justify-center mt-6">
         <button
           onClick={handleViewAllInLocation}
@@ -1002,15 +1030,21 @@ const CategoryResults = React.memo(({ category, listings, isMobile }) => {
   }, [listings]);
 
   const handleViewAllInCategory = () => {
-    navigate(`/search-results?category=${encodeURIComponent(category)}`);
+    const params = new URLSearchParams();
+    const categoryValue = getCategoryValueForFilter(category);
+    if (categoryValue) {
+      params.append("category", categoryValue);
+      navigate(`/search-results?${params.toString()}`);
+    }
   };
 
   const handleLocationSelect = (location) => {
-    navigate(
-      `/search-results?category=${encodeURIComponent(
-        category
-      )}&location=${encodeURIComponent(location)}`
-    );
+    const params = new URLSearchParams();
+    const categoryValue = getCategoryValueForFilter(category);
+    const locationValue = getLocationValueForFilterFromDisplay(location);
+    if (categoryValue) params.append("category", categoryValue);
+    if (locationValue) params.append("location", locationValue);
+    navigate(`/search-results?${params.toString()}`);
   };
 
   return (
@@ -1102,7 +1136,7 @@ const CategoryResults = React.memo(({ category, listings, isMobile }) => {
         );
       })}
 
-      {/* View All Button */}
+      {/* View All Button - NAVIGATES TO SEARCH RESULTS */}
       <div className="flex justify-center mt-6">
         <button
           onClick={handleViewAllInCategory}
@@ -1525,7 +1559,7 @@ const SearchModal = ({
     autocompleteSuggestions,
   ]);
 
-  // Handle search button click
+  // Handle search button click - NAVIGATES TO SEARCH RESULTS
   const handleSearchSubmit = useCallback(() => {
     if (searchQuery.trim() || selectedCategory || selectedLocation) {
       // Save to search history
@@ -1537,12 +1571,29 @@ const SearchModal = ({
 
       // Navigate to search results page
       const params = new URLSearchParams();
-      if (searchQuery) params.append("q", searchQuery);
-      if (selectedCategory)
-        params.append("category", getCategoryValueForFilter(selectedCategory));
-      if (selectedLocation)
-        params.append("location", getLocationValueForFilter(selectedLocation));
 
+      // Add search query if exists
+      if (searchQuery.trim()) {
+        params.append("q", searchQuery.trim());
+      }
+
+      // Add category if selected
+      if (selectedCategory) {
+        const categoryValue = getCategoryValueForFilter(selectedCategory);
+        if (categoryValue) {
+          params.append("category", categoryValue);
+        }
+      }
+
+      // Add location if selected
+      if (selectedLocation) {
+        const locationValue = getLocationValueForFilter(selectedLocation);
+        if (locationValue) {
+          params.append("location", locationValue);
+        }
+      }
+
+      // Navigate to search results
       navigate(`/search-results?${params.toString()}`);
       onClose(); // Close the modal
     }
@@ -1551,6 +1602,7 @@ const SearchModal = ({
   const handleKeyPress = useCallback(
     (e) => {
       if (e.key === "Enter") {
+        e.preventDefault();
         handleSearchSubmit();
       }
     },
@@ -1616,6 +1668,36 @@ const SearchModal = ({
       onSearchChange(getLocationDisplayName(location));
     },
     [onSearchChange]
+  );
+
+  // Helper function to get location value from display name
+  const getLocationValueForFilterFromDisplay = useCallback(
+    (displayName) => {
+      if (!displayName) return "";
+
+      // Find the location that matches the display name
+      const found = allLocations.find(
+        (loc) => getLocationDisplayName(loc) === displayName
+      );
+
+      return found ? getLocationValueForFilter(found) : "";
+    },
+    [allLocations]
+  );
+
+  // Helper function to get category value from display name
+  const getCategoryValueForFilterFromDisplay = useCallback(
+    (displayName) => {
+      if (!displayName) return "";
+
+      // Find the category that matches the display name
+      const found = allCategories.find(
+        (cat) => getCategoryDisplayName(cat) === displayName
+      );
+
+      return found ? getCategoryValueForFilter(found) : "";
+    },
+    [allCategories]
   );
 
   // Toggle category dropdown
