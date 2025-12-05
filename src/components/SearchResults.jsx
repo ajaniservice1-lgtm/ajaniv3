@@ -18,6 +18,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { PiSliders } from "react-icons/pi";
+import { MdFavoriteBorder } from "react-icons/md";
 import Header from "./Header";
 import Footer from "./Footer";
 import Meta from "./Meta";
@@ -163,7 +164,7 @@ const getCardImages = (item) => {
   return [FALLBACK_IMAGES.default];
 };
 
-// Enhanced FilterSidebar Component - Always visible on desktop
+// Enhanced FilterSidebar Component - Updated with scroll to top functionality
 const FilterSidebar = ({
   onFilterChange,
   allLocations,
@@ -171,6 +172,8 @@ const FilterSidebar = ({
   currentFilters,
   onClose,
   isMobileModal = false,
+  isDesktopModal = false,
+  onApplyFilters, // New prop to handle apply filters with scroll
 }) => {
   const [filters, setFilters] = useState(
     currentFilters || {
@@ -254,11 +257,17 @@ const FilterSidebar = ({
     };
     setFilters(resetFilters);
     onFilterChange(resetFilters);
+    if (onApplyFilters) {
+      onApplyFilters(resetFilters);
+    }
   };
 
   const handleApply = () => {
     onFilterChange(filters);
-    if (isMobileModal && onClose) {
+    if (onApplyFilters) {
+      onApplyFilters(filters);
+    }
+    if ((isMobileModal || isDesktopModal) && onClose) {
       onClose();
     }
   };
@@ -302,9 +311,11 @@ const FilterSidebar = ({
   ].sort();
 
   const sidebarContent = (
-    <div className={`space-y-6 ${isMobileModal ? "p-6" : ""}`}>
-      {/* Header for mobile modal */}
-      {isMobileModal && (
+    <div
+      className={`space-y-6 ${isMobileModal || isDesktopModal ? "p-6" : ""}`}
+    >
+      {/* Header for mobile/desktop modal */}
+      {(isMobileModal || isDesktopModal) && (
         <div className="flex justify-between items-center border-b pb-3 mb-4">
           <div>
             <h3 className="text-xl font-bold text-gray-900">Filter & Sort</h3>
@@ -610,8 +621,22 @@ const FilterSidebar = ({
     );
   }
 
+  if (isDesktopModal) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -20, scale: 0.95 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="fixed left-1/2 top-24 -translate-x-1/2 w-[90vw] max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden max-h-[80vh] overflow-y-auto"
+      >
+        {sidebarContent}
+      </motion.div>
+    );
+  }
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit sticky top-6">
       <div className="mb-6">
         <h3 className="text-lg font-bold text-gray-900">Filter Options</h3>
         <p className="text-sm text-gray-500 mt-1">Refine your search results</p>
@@ -621,8 +646,8 @@ const FilterSidebar = ({
   );
 };
 
-// BusinessCard Component - Updated to match Directory style
-const BusinessCard = ({ item, category, isMobile }) => {
+// BusinessCard Component - EXACTLY like CategoryResults.jsx
+const BusinessCard = ({ item, isMobile }) => {
   const images = getCardImages(item);
   const navigate = useNavigate();
 
@@ -639,7 +664,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
     ? `#${formatPrice(item.price_from)} for 2 nights`
     : "From #2,500 per guest";
 
-  const location = getLocationDisplayName(item.area) || "Ibadan";
+  const location = item.area || "Ibadan";
 
   const handleCardClick = () => {
     if (item.id) {
@@ -649,12 +674,13 @@ const BusinessCard = ({ item, category, isMobile }) => {
     }
   };
 
+  // EXACTLY like CategoryResults.jsx BusinessCard
   return (
     <div
       className={`
         bg-white rounded-xl overflow-hidden flex-shrink-0 
         font-manrope
-        ${isMobile ? "w-[165px]" : "w-[210px]"} 
+        ${isMobile ? "w-[165px]" : "w-full"} 
         transition-all duration-200 cursor-pointer 
         hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
       `}
@@ -669,22 +695,31 @@ const BusinessCard = ({ item, category, isMobile }) => {
       >
         <img
           src={images[0]}
-          alt={item.name}
+          alt=""
           className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
           onError={(e) => (e.currentTarget.src = FALLBACK_IMAGES.default)}
           loading="lazy"
         />
 
-        {/* Guest favorite badge */}
+        {/* Guest favorite badge - EXACTLY like CategoryResults */}
         <div className="absolute top-2 left-2 bg-white px-1.5 py-1 rounded-md shadow-sm flex items-center gap-1">
-          <div className="w-1 h-1 bg-yellow-500 rounded-full"></div>
           <span className="text-[9px] font-semibold text-gray-900">
             Guest favorite
           </span>
         </div>
+
+        {/* Heart icon - EXACTLY like CategoryResults */}
+        <button
+          className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition"
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          <MdFavoriteBorder className="text-[#00d1ff] text-sm" />
+        </button>
       </div>
 
-      {/* Text */}
+      {/* Text - EXACTLY like CategoryResults */}
       <div className={`${isMobile ? "p-1.5" : "p-2.5"} flex flex-col gap-0.5`}>
         <h3
           className={`
@@ -723,9 +758,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
           >
             <FontAwesomeIcon
               icon={faStar}
-              className={`${
-                isMobile ? "text-[9px]" : "text-xs"
-              } text-yellow-400`}
+              className={`${isMobile ? "text-[9px]" : "text-xs"} text-black`}
             />
             {item.rating || "4.9"}
           </div>
@@ -788,25 +821,9 @@ const FilterPill = ({ type, label, value, onRemove }) => {
   );
 };
 
-// CategorySection Component - Horizontal scrolling like Directory
+// CategorySection Component - UPDATED to match CategoryResults.jsx EXACTLY
 const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
   const navigate = useNavigate();
-
-  const scrollSection = (direction) => {
-    const container = document.getElementById(sectionId);
-    if (!container) return;
-
-    const scrollAmount = isMobile ? 140 : 220;
-    const newPosition =
-      direction === "next"
-        ? container.scrollLeft + scrollAmount
-        : container.scrollLeft - scrollAmount;
-
-    container.scrollTo({
-      left: newPosition,
-      behavior: "smooth",
-    });
-  };
 
   const handleCategoryClick = () => {
     navigate(`/category/${category}`);
@@ -814,64 +831,60 @@ const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
 
   if (items.length === 0) return null;
 
+  // EXACTLY like CategoryResults.jsx mobile view - 5 cards per row horizontal scrolling
+  if (isMobile) {
+    return (
+      <div className="mb-6">
+        {/* Section Header */}
+        <div className="flex justify-between items-center mb-3">
+          <div>
+            <button
+              onClick={handleCategoryClick}
+              className="text-[#00065A] hover:text-[#06EAFC] transition-colors text-left text-sm font-bold cursor-pointer flex items-center gap-1"
+            >
+              {title}
+              <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+            </button>
+          </div>
+        </div>
+
+        {/* Horizontal scrolling container with 5 cards - EXACTLY like CategoryResults */}
+        <div className="flex overflow-x-auto scrollbar-hide gap-2 pb-4">
+          {items.map((listing, index) => (
+            <BusinessCard
+              key={listing.id || index}
+              item={listing}
+              isMobile={isMobile}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop view - regular grid
   return (
-    <div className="mb-4">
-      <div className="flex justify-between items-center mb-2">
+    <div className="mb-6">
+      <div className="flex justify-between items-center mb-3">
         <div>
           <button
             onClick={handleCategoryClick}
-            className={`
-              text-[#00065A] hover:text-[#06EAFC] transition-colors text-left
-              ${isMobile ? "text-sm" : "text-base"} 
-              font-bold cursor-pointer flex items-center gap-1
-            `}
+            className="text-[#00065A] hover:text-[#06EAFC] transition-colors text-left text-base font-bold cursor-pointer flex items-center gap-1"
           >
             {title}
             <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
           </button>
         </div>
-        <div className="flex gap-1">
-          <button
-            onClick={() => scrollSection("prev")}
-            className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors border border-gray-300 shadow-sm"
-          >
-            <FontAwesomeIcon
-              icon={faChevronLeft}
-              className="text-gray-600 text-[10px]"
-            />
-          </button>
-          <button
-            onClick={() => scrollSection("next")}
-            className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors border border-gray-300 shadow-sm"
-          >
-            <FontAwesomeIcon
-              icon={faChevronRight}
-              className="text-gray-600 text-[10px]"
-            />
-          </button>
-        </div>
       </div>
 
-      <div className="relative">
-        <div
-          id={sectionId}
-          className={`flex overflow-x-auto scrollbar-hide scroll-smooth ${
-            isMobile ? "gap-1" : "gap-2"
-          }`}
-          style={{
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
-          }}
-        >
-          {items.map((item, index) => (
-            <BusinessCard
-              key={item.id || index}
-              item={item}
-              category={category}
-              isMobile={isMobile}
-            />
-          ))}
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {items.map((listing, index) => (
+          <BusinessCard
+            key={listing.id || index}
+            item={listing}
+            isMobile={isMobile}
+          />
+        ))}
       </div>
     </div>
   );
@@ -897,12 +910,17 @@ const SearchResults = () => {
   });
 
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showDesktopFilters, setShowDesktopFilters] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [filteredListings, setFilteredListings] = useState([]);
   const [groupedListings, setGroupedListings] = useState({});
   const [allLocations, setAllLocations] = useState([]);
   const [allCategories, setAllCategories] = useState([]);
   const [filteredCount, setFilteredCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const searchInputRef = useRef(null);
+  const filterButtonRef = useRef(null);
+  const resultsRef = useRef(null);
 
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
   const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
@@ -1033,6 +1051,7 @@ const SearchResults = () => {
 
     setFilteredListings(filtered);
     setFilteredCount(filtered.length);
+    setCurrentPage(1); // Reset to first page when filters change
 
     // Group listings by category for horizontal scrolling sections
     const grouped = {};
@@ -1051,12 +1070,40 @@ const SearchResults = () => {
     setShowMobileFilters(!showMobileFilters);
   };
 
+  // Toggle desktop filters
+  const toggleDesktopFilters = () => {
+    setShowDesktopFilters(!showDesktopFilters);
+  };
+
   // Close mobile filters
   const closeMobileFilters = () => {
     setShowMobileFilters(false);
   };
 
-  // Handle filter changes
+  // Close desktop filters
+  const closeDesktopFilters = () => {
+    setShowDesktopFilters(false);
+  };
+
+  // Handle filter changes AND scroll to top
+  const handleFilterChangeWithScroll = (newFilters) => {
+    setActiveFilters(newFilters);
+
+    // Scroll to the results section with smooth animation
+    setTimeout(() => {
+      if (resultsRef.current) {
+        resultsRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      } else {
+        // Fallback to scrolling to top of page
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }, 100);
+  };
+
+  // Handle filter changes without scroll (for sidebar)
   const handleFilterChange = (newFilters) => {
     setActiveFilters(newFilters);
   };
@@ -1096,14 +1143,24 @@ const SearchResults = () => {
 
   // Clear all filters
   const clearAllFilters = () => {
-    setActiveFilters({
+    const resetFilters = {
       locations: [],
       categories: [],
       priceRange: { min: "", max: "" },
       ratings: [],
       sortBy: "relevance",
       amenities: [],
-    });
+    };
+    setActiveFilters(resetFilters);
+    // Scroll to top after clearing filters
+    setTimeout(() => {
+      if (resultsRef.current) {
+        resultsRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    }, 100);
   };
 
   const handleSearchChange = (e) => {
@@ -1130,6 +1187,12 @@ const SearchResults = () => {
     // Search is already handled by URL parameter
   };
 
+  const handleSearchInputClick = () => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  };
+
   // Get page title
   const getPageTitle = () => {
     if (searchQuery) return `Results for "${searchQuery}"`;
@@ -1152,6 +1215,40 @@ const SearchResults = () => {
       )}`;
     return `Found ${filteredCount} places in Ibadan`;
   };
+
+  // Pagination logic for all results view
+  const cardsPerPage = isMobile ? 15 : 16;
+  const totalPages = Math.ceil(filteredListings.length / cardsPerPage);
+  const startIndex = (currentPage - 1) * cardsPerPage;
+  const currentListings = filteredListings.slice(
+    startIndex,
+    startIndex + cardsPerPage
+  );
+
+  // Handle page change
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Close filter modal when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        showDesktopFilters &&
+        filterButtonRef.current &&
+        !filterButtonRef.current.contains(event.target) &&
+        !event.target.closest(".filter-modal-content")
+      ) {
+        closeDesktopFilters();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showDesktopFilters]);
 
   if (loading) {
     return (
@@ -1201,20 +1298,27 @@ const SearchResults = () => {
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-32">
-        {/* Search Bar */}
+        {/* Search Bar - EXACTLY like CategoryResults */}
         <div className="flex justify-center mb-8">
           <div className="w-full max-w-2xl">
-            <form onSubmit={handleSearchSubmit} className="relative">
-              <div className="flex items-center bg-gray-200 rounded-full shadow-sm w-full">
+            <form
+              onSubmit={handleSearchSubmit}
+              className="relative mx-auto w-full"
+            >
+              <div
+                className="flex items-center bg-gray-200 rounded-[33.35px] shadow-sm w-full relative z-10 cursor-text"
+                onClick={handleSearchInputClick}
+              >
                 <div className="pl-4 text-gray-500">
                   <FontAwesomeIcon icon={faSearch} className="h-4 w-4" />
                 </div>
                 <input
+                  ref={searchInputRef}
                   type="text"
                   placeholder="Search by area, category, or name..."
                   value={searchQuery}
                   onChange={handleSearchChange}
-                  className="flex-1 bg-transparent py-3 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600"
+                  className="flex-1 bg-transparent py-4 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 cursor-text"
                 />
                 {searchQuery && (
                   <button
@@ -1227,7 +1331,12 @@ const SearchResults = () => {
                 )}
                 <button
                   type="submit"
-                  className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-3 px-6 text-sm transition-colors duration-200 whitespace-nowrap mx-2"
+                  className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-[33.35px] border border-[#06EAFC] py-4 px-6 text-sm transition-colors duration-200 whitespace-nowrap mx-2"
+                  style={{
+                    width: "152.81px",
+                    height: "52.7px",
+                    borderWidth: "1.11px",
+                  }}
                 >
                   Search
                 </button>
@@ -1236,48 +1345,14 @@ const SearchResults = () => {
           </div>
         </div>
 
-        {/* Mobile Filter Button - Only on mobile */}
-        {isMobile && (
-          <div className="mb-6">
-            <button
-              onClick={toggleMobileFilters}
-              className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm w-full justify-center"
-            >
-              <PiSliders className="text-gray-600" />
-              <span className="text-sm text-gray-700 font-medium">
-                Filter & Sort
-              </span>
-              {Object.keys(activeFilters).some((key) => {
-                if (key === "priceRange") {
-                  return (
-                    activeFilters.priceRange.min || activeFilters.priceRange.max
-                  );
-                }
-                return Array.isArray(activeFilters[key])
-                  ? activeFilters[key].length > 0
-                  : activeFilters[key] !== "relevance";
-              }) && (
-                <span className="bg-[#06EAFC] text-white text-xs px-2 py-0.5 rounded-full">
-                  {Object.values(activeFilters).reduce((acc, val) => {
-                    if (Array.isArray(val)) return acc + val.length;
-                    if (typeof val === "object" && val !== null) {
-                      return acc + (val.min || val.max ? 1 : 0);
-                    }
-                    return acc + (val && val !== "relevance" ? 1 : 0);
-                  }, 0)}
-                </span>
-              )}
-            </button>
-          </div>
-        )}
-
         {/* Main Content Layout */}
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Desktop Filter Sidebar - Hidden on mobile */}
+          {/* Desktop Filter Sidebar - Always visible on desktop */}
           {!isMobile && (
             <div className="lg:w-1/4">
               <FilterSidebar
-                onFilterChange={handleFilterChange}
+                onFilterChange={handleFilterChangeWithScroll} // Updated to scroll on apply
+                onApplyFilters={handleFilterChangeWithScroll} // New prop for Apply button
                 allLocations={allLocations}
                 allCategories={allCategories}
                 currentFilters={activeFilters}
@@ -1285,11 +1360,38 @@ const SearchResults = () => {
             </div>
           )}
 
+          {/* Desktop Filter Modal - Shows when clicking Filter & Sort on desktop */}
+          <AnimatePresence>
+            {!isMobile && showDesktopFilters && (
+              <>
+                {/* Overlay */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/50 z-40"
+                  onClick={closeDesktopFilters}
+                />
+                {/* Filter Modal */}
+                <FilterSidebar
+                  onFilterChange={handleFilterChange}
+                  onApplyFilters={handleFilterChangeWithScroll} // Scroll on apply
+                  allLocations={allLocations}
+                  allCategories={allCategories}
+                  currentFilters={activeFilters}
+                  onClose={closeDesktopFilters}
+                  isDesktopModal={true}
+                />
+              </>
+            )}
+          </AnimatePresence>
+
           {/* Mobile Filter Modal */}
           <AnimatePresence>
             {isMobile && showMobileFilters && (
               <FilterSidebar
                 onFilterChange={handleFilterChange}
+                onApplyFilters={handleFilterChangeWithScroll} // Scroll on apply
                 allLocations={allLocations}
                 allCategories={allCategories}
                 currentFilters={activeFilters}
@@ -1300,15 +1402,91 @@ const SearchResults = () => {
           </AnimatePresence>
 
           {/* Results Content */}
-          <div className="lg:w-3/4">
-            {/* Page Header */}
+          <div className="lg:w-3/4" ref={resultsRef}>
+            {/* Page Header with Filter Button */}
             <div className="mb-6">
-              <h1 className="text-xl font-bold text-[#00065A] mb-1">
-                {getPageTitle()}
-              </h1>
-              <p className="text-sm text-gray-600">
-                {filteredCount} {filteredCount === 1 ? "place" : "places"} found
-              </p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  {/* Filter Button for Desktop - Click to show modal */}
+                  {!isMobile && (
+                    <div className="relative" ref={filterButtonRef}>
+                      <button
+                        onClick={toggleDesktopFilters}
+                        className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm"
+                      >
+                        <PiSliders className="text-gray-600" />
+                        <span className="text-sm text-gray-700 font-medium">
+                          Filter & Sort
+                        </span>
+                        {Object.keys(activeFilters).some((key) => {
+                          if (key === "priceRange") {
+                            return (
+                              activeFilters.priceRange.min ||
+                              activeFilters.priceRange.max
+                            );
+                          }
+                          return Array.isArray(activeFilters[key])
+                            ? activeFilters[key].length > 0
+                            : activeFilters[key] !== "relevance";
+                        }) && (
+                          <span className="bg-[#06EAFC] text-white text-xs px-2 py-0.5 rounded-full">
+                            {Object.values(activeFilters).reduce((acc, val) => {
+                              if (Array.isArray(val)) return acc + val.length;
+                              if (typeof val === "object" && val !== null) {
+                                return acc + (val.min || val.max ? 1 : 0);
+                              }
+                              return acc + (val && val !== "relevance" ? 1 : 0);
+                            }, 0)}
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Title and Count */}
+                  <div>
+                    <h1 className="text-xl font-bold text-[#00065A] mb-1">
+                      {getPageTitle()}
+                    </h1>
+                    <p className="text-sm text-gray-600">
+                      {filteredCount} {filteredCount === 1 ? "place" : "places"}{" "}
+                      found
+                    </p>
+                  </div>
+                </div>
+
+                {/* Mobile Filter Button - Only on mobile */}
+                {isMobile && (
+                  <button
+                    onClick={toggleMobileFilters}
+                    className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm w-full justify-center sm:w-auto"
+                  >
+                    <PiSliders className="text-gray-600" />
+
+                    {Object.keys(activeFilters).some((key) => {
+                      if (key === "priceRange") {
+                        return (
+                          activeFilters.priceRange.min ||
+                          activeFilters.priceRange.max
+                        );
+                      }
+                      return Array.isArray(activeFilters[key])
+                        ? activeFilters[key].length > 0
+                        : activeFilters[key] !== "relevance";
+                    }) && (
+                      <span className="bg-[#06EAFC] text-white text-xs px-2 py-0.5 rounded-full">
+                        {Object.values(activeFilters).reduce((acc, val) => {
+                          if (Array.isArray(val)) return acc + val.length;
+                          if (typeof val === "object" && val !== null) {
+                            return acc + (val.min || val.max ? 1 : 0);
+                          }
+                          return acc + (val && val !== "relevance" ? 1 : 0);
+                        }, 0)}
+                      </span>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Active Filters Display */}
@@ -1403,7 +1581,7 @@ const SearchResults = () => {
               </div>
             )}
 
-            {/* Results - Horizontal Scrolling Sections like Directory */}
+            {/* Results Display */}
             <div className="space-y-6">
               {/* If no results with filters */}
               {filteredCount === 0 && (
@@ -1427,14 +1605,18 @@ const SearchResults = () => {
                     >
                       Clear All Filters
                     </button>
-                    {isMobile && (
-                      <button
-                        onClick={() => setShowMobileFilters(true)}
-                        className="bg-white border border-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        Adjust Filters
-                      </button>
-                    )}
+                    <button
+                      onClick={() => {
+                        if (isMobile) {
+                          setShowMobileFilters(true);
+                        } else {
+                          setShowDesktopFilters(true);
+                        }
+                      }}
+                      className="bg-white border border-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Adjust Filters
+                    </button>
                   </div>
                   <p className="text-sm text-gray-500 mt-4">
                     Tip: Try selecting fewer filters or different combinations
@@ -1442,23 +1624,98 @@ const SearchResults = () => {
                 </div>
               )}
 
-              {/* Horizontal Scrolling Category Sections */}
+              {/* Results Display */}
               {filteredCount > 0 && (
                 <>
-                  {/* If we have specific category or location from URL, show all results in grid */}
+                  {/* If we have specific category or location from URL, show all results in grid with pagination */}
                   {category || location ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {filteredListings.map((item, index) => (
-                        <BusinessCard
-                          key={item.id || index}
-                          item={item}
-                          category={category || "all"}
-                          isMobile={isMobile}
-                        />
-                      ))}
-                    </div>
+                    <>
+                      {/* Mobile View - Horizontal scrolling with 5 cards per row */}
+                      {isMobile ? (
+                        <div className="space-y-4">
+                          {/* Create rows with 5 cards each - EXACTLY like CategoryResults */}
+                          {Array.from({
+                            length: Math.ceil(currentListings.length / 5),
+                          }).map((_, rowIndex) => (
+                            <div
+                              key={rowIndex}
+                              className="flex overflow-x-auto scrollbar-hide gap-2 pb-4"
+                            >
+                              {currentListings
+                                .slice(rowIndex * 5, (rowIndex + 1) * 5)
+                                .map((listing, index) => (
+                                  <BusinessCard
+                                    key={listing.id || `${rowIndex}-${index}`}
+                                    item={listing}
+                                    isMobile={isMobile}
+                                  />
+                                ))}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        /* Desktop View - 4 cards per row grid */
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                          {currentListings.map((listing, index) => (
+                            <BusinessCard
+                              key={listing.id || index}
+                              item={listing}
+                              isMobile={isMobile}
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Pagination - Only show if we have multiple pages */}
+                      {totalPages > 1 && (
+                        <div className="flex justify-center items-center space-x-2 mt-8">
+                          <button
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className={`px-4 py-2 rounded-lg border ${
+                              currentPage === 1
+                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                : "bg-white text-gray-700 hover:bg-gray-50"
+                            }`}
+                          >
+                            Previous
+                          </button>
+
+                          <div className="flex space-x-1">
+                            {Array.from(
+                              { length: totalPages },
+                              (_, i) => i + 1
+                            ).map((page) => (
+                              <button
+                                key={page}
+                                onClick={() => handlePageChange(page)}
+                                className={`w-10 h-10 rounded-lg border ${
+                                  currentPage === page
+                                    ? "bg-[#06EAFC] text-white border-[#06EAFC]"
+                                    : "bg-white text-gray-700 hover:bg-gray-50"
+                                }`}
+                              >
+                                {page}
+                              </button>
+                            ))}
+                          </div>
+
+                          <button
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className={`px-4 py-2 rounded-lg border ${
+                              currentPage === totalPages
+                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                : "bg-white text-gray-700 hover:bg-gray-50"
+                            }`}
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </>
                   ) : (
-                    /* Group by category for horizontal scrolling - Like Directory Component */
+                    /* Group by category for horizontal scrolling - EXACTLY like CategoryResults mobile view */
                     Object.entries(groupedListings).map(([catName, items]) => {
                       const categorySlug = catName
                         .toLowerCase()
@@ -1486,7 +1743,7 @@ const SearchResults = () => {
 
       <Footer />
 
-      {/* Custom scrollbar hiding */}
+      {/* Custom scrollbar hiding - EXACTLY like CategoryResults */}
       <style jsx>{`
         .scrollbar-hide {
           -ms-overflow-style: none;
@@ -1498,12 +1755,6 @@ const SearchResults = () => {
         .line-clamp-2 {
           display: -webkit-box;
           -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-        .line-clamp-1 {
-          display: -webkit-box;
-          -webkit-line-clamp: 1;
           -webkit-box-orient: vertical;
           overflow: hidden;
         }
