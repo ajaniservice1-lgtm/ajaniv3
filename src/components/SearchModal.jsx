@@ -748,7 +748,7 @@ const BusinessCard = React.memo(({ item, category, isMobile }) => {
 
 BusinessCard.displayName = "BusinessCard";
 
-// Category Section Component - Horizontal scrolling WITH BREAKDOWN AND SEARCH RESULTS NAVIGATION
+// Updated Category Section Component - Clean and compact
 const CategorySection = React.memo(
   ({ title, items, isMobile, location, categoryBreakdown }) => {
     const scrollContainerRef = useRef(null);
@@ -776,7 +776,6 @@ const CategorySection = React.memo(
 
       if (location) {
         // If viewing a specific location, pass that
-        // Find the location value from the display name
         const locationValue = getLocationValueForFilterFromDisplay(location);
         if (locationValue) {
           params.append("location", locationValue);
@@ -801,10 +800,10 @@ const CategorySection = React.memo(
     if (items.length === 0) return null;
 
     return (
-      <div className={`${isMobile ? "mb-6" : "mb-10"} font-manrope`}>
-        {/* Header with category breakdown */}
-        <div className="mb-4 px-1">
-          <div className="flex justify-between items-center mb-3">
+      <div className={`${isMobile ? "mb-4" : "mb-8"} font-manrope`}>
+        {/* Compact Header */}
+        <div className="mb-3 px-1">
+          <div className="flex justify-between items-center">
             <h2
               className={`${
                 isMobile ? "text-base" : "text-xl"
@@ -816,27 +815,7 @@ const CategorySection = React.memo(
               {items.length} {items.length === 1 ? "place" : "places"}
             </span>
           </div>
-
-          {/* Category Breakdown */}
-          {categoryBreakdown && categoryBreakdown.length > 0 && (
-            <div className="mb-3">
-              <p className="text-sm text-gray-600 mb-2">
-                {location ? `Places in ${location} include:` : "Includes:"}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {categoryBreakdown.map((cat, index) => (
-                  <div
-                    key={index}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
-                  >
-                    <span>
-                      {cat.category} ({cat.count})
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* REMOVED the "Includes:" breakdown section here */}
         </div>
 
         {/* Horizontal Scroll Container */}

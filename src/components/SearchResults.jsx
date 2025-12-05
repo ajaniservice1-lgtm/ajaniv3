@@ -258,7 +258,7 @@ const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
     >
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center border-b pb-3">
+        <div className="flex justify-between items-center border-b pb-3 ">
           <h3 className="text-lg font-bold text-gray-900">Filter Options</h3>
           <button
             onClick={onClose}
@@ -823,7 +823,9 @@ const SearchResults = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 pt-32">
+          {" "}
+          {/* Added pt-32 */}
           <div className="flex space-x-1 justify-center">
             <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"></div>
             <div
@@ -845,7 +847,9 @@ const SearchResults = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 pt-32">
+          {" "}
+          {/* Added pt-32 */}
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
             <p className="text-red-700 font-medium text-sm">{error}</p>
           </div>
@@ -866,7 +870,9 @@ const SearchResults = () => {
 
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-32">
+        {" "}
+        {/* Added pt-32 for top padding */}
         {/* Search Bar */}
         <div className="flex justify-center mb-8">
           <div className="w-full max-w-2xl">
@@ -901,7 +907,6 @@ const SearchResults = () => {
             </form>
           </div>
         </div>
-
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -926,7 +931,6 @@ const SearchResults = () => {
             )}
           </div>
         </div>
-
         {/* Filter Controls */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
@@ -980,7 +984,6 @@ const SearchResults = () => {
             </AnimatePresence>
           </div>
         </div>
-
         {/* Active Filters Display */}
         {Object.keys(activeFilters).length > 0 && (
           <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -997,7 +1000,6 @@ const SearchResults = () => {
             </div>
           </div>
         )}
-
         {/* Results */}
         <div className="space-y-6">
           {/* If we have specific category or location search, show all results together */}
@@ -1047,7 +1049,6 @@ const SearchResults = () => {
             </div>
           )}
         </div>
-
         {/* Pagination for category/location specific views */}
         {(category || location) && filteredListings.length > 0 && (
           <div className="flex justify-center items-center space-x-2 mt-8">
