@@ -229,34 +229,7 @@ const getLocationFromDisplayName = (displayName, allLocations) => {
   return found || "";
 };
 
-// Function to get category breakdown for a location
-const getCategoryBreakdownByLocation = (listings, location) => {
-  if (!listings.length) return [];
-
-  const locationValue = getLocationFromDisplayName(location, [
-    ...new Set(listings.map((item) => item.area).filter(Boolean)),
-  ]);
-
-  const filteredListings = listings.filter(
-    (item) => !locationValue || item.area === locationValue
-  );
-
-  const categoryCounts = {};
-
-  filteredListings.forEach((item) => {
-    const category = getCategoryDisplayName(item.category || "other.other");
-    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-  });
-
-  return Object.entries(categoryCounts)
-    .map(([category, count]) => ({
-      category,
-      count,
-    }))
-    .sort((a, b) => b.count - a.count);
-};
-
-// Function to get location breakdown for a category
+// Enhanced function to get location breakdown for a category
 const getLocationBreakdownByCategory = (listings, category) => {
   if (!listings.length) return [];
 
@@ -283,7 +256,34 @@ const getLocationBreakdownByCategory = (listings, category) => {
     .sort((a, b) => b.count - a.count);
 };
 
-// Autocomplete Suggestions Component
+// Enhanced function to get category breakdown for a location
+const getCategoryBreakdownByLocation = (listings, location) => {
+  if (!listings.length) return [];
+
+  const locationValue = getLocationFromDisplayName(location, [
+    ...new Set(listings.map((item) => item.area).filter(Boolean)),
+  ]);
+
+  const filteredListings = listings.filter(
+    (item) => !locationValue || item.area === locationValue
+  );
+
+  const categoryCounts = {};
+
+  filteredListings.forEach((item) => {
+    const category = getCategoryDisplayName(item.category || "other.other");
+    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+  });
+
+  return Object.entries(categoryCounts)
+    .map(([category, count]) => ({
+      category,
+      count,
+    }))
+    .sort((a, b) => b.count - a.count);
+};
+
+// Autocomplete Suggestions Component - Updated with direct navigation
 const AutocompleteSuggestions = ({
   suggestions,
   searchQuery,
@@ -318,11 +318,24 @@ const AutocompleteSuggestions = ({
         top: `${position.top}px`,
         left: `${position.left}px`,
         width: `${position.width}px`,
-        maxHeight: "320px",
+        maxHeight: "400px",
         overflowY: "auto",
       }}
     >
       <div className="py-2">
+        {/* Header */}
+        <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-gray-700">
+              Quick search suggestions
+            </p>
+            <span className="text-xs text-gray-500">
+              {suggestions.length} suggestion
+              {suggestions.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+        </div>
+
         {suggestions.map((suggestion, index) => (
           <button
             key={index}
@@ -333,72 +346,117 @@ const AutocompleteSuggestions = ({
                 onLocationSelect(suggestion.value);
               }
             }}
-            className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-100 last:border-b-0"
+            className="w-full text-left px-4 py-4 hover:bg-blue-50 transition-colors cursor-pointer border-b border-gray-100 last:border-b-0 group"
+            aria-label={`View all ${suggestion.display} results`}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
                   <FontAwesomeIcon
                     icon={
                       suggestion.type === "category" ? faFilter : faMapMarkerAlt
                     }
                     className={`text-sm ${
                       suggestion.type === "category"
-                        ? "text-blue-500"
-                        : "text-green-500"
+                        ? "text-blue-600"
+                        : "text-green-600"
                     }`}
                   />
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900 text-sm">
-                    {suggestion.display}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {suggestion.count}{" "}
-                    {suggestion.count === 1 ? "place" : "places"}
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-gray-900 text-sm">
+                      {suggestion.display}
+                    </p>
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                      {suggestion.count}{" "}
+                      {suggestion.count === 1 ? "place" : "places"}
+                    </span>
+                  </div>
+
+                  {/* Summary line */}
+                  <p className="text-xs text-gray-600 mt-1">
+                    {suggestion.type === "category"
+                      ? `Search ${
+                          suggestion.count
+                        } ${suggestion.display.toLowerCase()} places`
+                      : `Search ${suggestion.count} places in ${suggestion.display}`}
                   </p>
                 </div>
               </div>
-              <div className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-700">
-                {suggestion.count}
+
+              {/* Right arrow indicator */}
+              <div className="text-gray-400 group-hover:text-blue-500 transition-colors">
+                <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
               </div>
             </div>
 
-            {/* Show category breakdown for location suggestions */}
-            {suggestion.type === "area" &&
-              suggestion.categoryBreakdown &&
-              suggestion.categoryBreakdown.length > 0 && (
-                <div className="mt-2 ml-11">
-                  <p className="text-xs text-gray-500 mb-1">Includes:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {suggestion.categoryBreakdown
-                      .slice(0, 3)
-                      .map((cat, idx) => (
+            {/* Detailed breakdown */}
+            <div className="mt-3 ml-13">
+              {suggestion.type === "category" &&
+                suggestion.locationBreakdown && (
+                  <div className="mb-2">
+                    <p className="text-xs text-gray-500 font-medium mb-1">
+                      Available in these areas:
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {suggestion.locationBreakdown.map((loc, idx) => (
                         <span
                           key={idx}
-                          className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-50 text-gray-600 border border-gray-200"
+                          className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-blue-50 text-blue-700 border border-blue-100"
                         >
-                          {cat.category} ({cat.count})
+                          {loc.location} ({loc.count})
                         </span>
                       ))}
-                    {suggestion.categoryBreakdown.length > 3 && (
-                      <span className="text-xs text-gray-500">
-                        +{suggestion.categoryBreakdown.length - 3} more
+                      {suggestion.locationBreakdown.length > 6 && (
+                        <span className="text-xs text-gray-500">
+                          +{suggestion.locationBreakdown.length - 6} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+              {suggestion.type === "area" && suggestion.categoryBreakdown && (
+                <div className="mb-2">
+                  <p className="text-xs text-gray-500 font-medium mb-1">
+                    Places include:
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {suggestion.categoryBreakdown.map((cat, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-green-50 text-green-700 border border-green-100"
+                      >
+                        {cat.category} ({cat.count})
                       </span>
-                    )}
+                    ))}
                   </div>
                 </div>
               )}
+
+              {/* Click hint */}
+              <div className="flex items-center gap-1 mt-2">
+                <span className="text-xs text-blue-600 font-medium">
+                  Click to view all results →
+                </span>
+              </div>
+            </div>
           </button>
         ))}
       </div>
 
-      <div className="px-4 py-2 bg-gray-50 border-t border-gray-200">
-        <p className="text-xs text-gray-500 text-center">
-          Press{" "}
-          <kbd className="px-1 py-0.5 bg-gray-200 rounded text-xs">Enter</kbd>{" "}
-          to search
-        </p>
+      <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-gray-500">
+            Click any suggestion to view detailed results
+          </p>
+          <div className="flex items-center gap-1">
+            <kbd className="px-1 py-0.5 bg-gray-200 rounded text-xs">↑</kbd>
+            <kbd className="px-1 py-0.5 bg-gray-200 rounded text-xs">↓</kbd>
+            <span className="text-xs text-gray-500 ml-1">to navigate</span>
+          </div>
+        </div>
       </div>
     </motion.div>
   );
@@ -1350,7 +1408,7 @@ const SearchModal = ({
     }
   }, [searchQuery, listings, allCategories, allLocations]);
 
-  // Generate autocomplete suggestions with category breakdown
+  // Generate autocomplete suggestions with detailed breakdowns
   useEffect(() => {
     if (!searchQuery.trim() || listings.length === 0) {
       setAutocompleteSuggestions([]);
@@ -1386,49 +1444,67 @@ const SearchModal = ({
       return matchesCategory && matchesLocation;
     });
 
-    // 1. Check for partial category matches
+    // 1. Check for partial category matches WITH LOCATION BREAKDOWN
     const categoryMatches = [];
     allCategories.forEach((category) => {
       const displayName = getCategoryDisplayName(category).toLowerCase();
       if (displayName.includes(query) && displayName !== query) {
-        const count = currentlyFilteredListings.filter(
+        const categoryListings = currentlyFilteredListings.filter(
           (item) => item.category === category
-        ).length;
+        );
+        const count = categoryListings.length;
+
         if (count > 0) {
+          // Get location breakdown for this category
+          const locationBreakdown = getLocationBreakdownByCategory(
+            categoryListings,
+            category
+          );
+
           categoryMatches.push({
             type: "category",
             display: getCategoryDisplayName(category),
             value: category,
             count: count,
+            locationBreakdown: locationBreakdown.slice(0, 8), // Show top 8 locations
           });
         }
       }
     });
 
-    // Sort category matches by relevance
+    // Sort category matches by relevance and count
     categoryMatches.sort((a, b) => {
       const aStartsWith = a.display.toLowerCase().startsWith(query);
       const bStartsWith = b.display.toLowerCase().startsWith(query);
       if (aStartsWith && !bStartsWith) return -1;
       if (!aStartsWith && bStartsWith) return 1;
+
+      // Then by exact match relevance
+      const aExactMatch = a.display.toLowerCase() === query;
+      const bExactMatch = b.display.toLowerCase() === query;
+      if (aExactMatch && !bExactMatch) return -1;
+      if (!aExactMatch && bExactMatch) return 1;
+
+      // Then by count
       return b.count - a.count;
     });
 
-    suggestions.push(...categoryMatches.slice(0, 2));
+    suggestions.push(...categoryMatches.slice(0, 3)); // Show top 3 category matches
 
-    // 2. Check for partial area matches with category breakdown
+    // 2. Check for partial area matches WITH CATEGORY BREAKDOWN
     const areaMatches = [];
     allLocations.forEach((location) => {
       const displayName = getLocationDisplayName(location).toLowerCase();
       if (displayName.includes(query) && displayName !== query) {
-        const areaListings = currentlyFilteredListings.filter(
+        const locationListings = currentlyFilteredListings.filter(
           (item) => item.area === location
         );
-        const count = areaListings.length;
+        const count = locationListings.length;
+
         if (count > 0) {
           // Get category breakdown for this area
           const categoryBreakdown = getCategoryBreakdownByLocation(
-            currentlyFilteredListings,
+            locationListings,
             location
           );
 
@@ -1437,22 +1513,30 @@ const SearchModal = ({
             display: getLocationDisplayName(location),
             value: location,
             count: count,
-            categoryBreakdown: categoryBreakdown.slice(0, 3), // Show top 3 categories
+            categoryBreakdown: categoryBreakdown, // Show all categories
           });
         }
       }
     });
 
-    // Sort area matches by relevance
+    // Sort area matches by relevance and count
     areaMatches.sort((a, b) => {
       const aStartsWith = a.display.toLowerCase().startsWith(query);
       const bStartsWith = b.display.toLowerCase().startsWith(query);
       if (aStartsWith && !bStartsWith) return -1;
       if (!aStartsWith && bStartsWith) return 1;
+
+      // Then by exact match relevance
+      const aExactMatch = a.display.toLowerCase() === query;
+      const bExactMatch = b.display.toLowerCase() === query;
+      if (aExactMatch && !bExactMatch) return -1;
+      if (!aExactMatch && bExactMatch) return 1;
+
+      // Then by count
       return b.count - a.count;
     });
 
-    suggestions.push(...areaMatches.slice(0, 2));
+    suggestions.push(...areaMatches.slice(0, 3)); // Show top 3 area matches
 
     setAutocompleteSuggestions(suggestions);
   }, [
@@ -1559,8 +1643,99 @@ const SearchModal = ({
     autocompleteSuggestions,
   ]);
 
-  // Handle search button click - NAVIGATES TO SEARCH RESULTS
+  // Helper function to get location value from display name
+  const getLocationValueForFilterFromDisplay = useCallback(
+    (displayName) => {
+      if (!displayName) return "";
+
+      // Find the location that matches the display name
+      const found = allLocations.find(
+        (loc) => getLocationDisplayName(loc) === displayName
+      );
+
+      return found ? getLocationValueForFilter(found) : "";
+    },
+    [allLocations]
+  );
+
+  // Helper function to get category value from display name
+  const getCategoryValueForFilterFromDisplay = useCallback(
+    (displayName) => {
+      if (!displayName) return "";
+
+      // Find the category that matches the display name
+      const found = allCategories.find(
+        (cat) => getCategoryDisplayName(cat) === displayName
+      );
+
+      return found ? getCategoryValueForFilter(found) : "";
+    },
+    [allCategories]
+  );
+
+  // Handle autocomplete suggestion selection - NAVIGATES TO SEARCH RESULTS
+  const handleAutocompleteCategorySelect = useCallback(
+    (category) => {
+      // Navigate directly to search results
+      const params = new URLSearchParams();
+      const categoryValue = getCategoryValueForFilter(category);
+      if (categoryValue) {
+        params.append("category", categoryValue);
+      }
+
+      // Navigate to search results
+      navigate(`/search-results?${params.toString()}`);
+      onClose(); // Close the modal
+
+      // Also update the local state (optional)
+      setSelectedCategory(category);
+      setSelectedLocation(null);
+      setAutocompleteSuggestions([]);
+      onSearchChange(getCategoryDisplayName(category));
+    },
+    [navigate, onClose, onSearchChange]
+  );
+
+  const handleAutocompleteLocationSelect = useCallback(
+    (location) => {
+      // Navigate directly to search results
+      const params = new URLSearchParams();
+      const locationValue = getLocationValueForFilter(location);
+      if (locationValue) {
+        params.append("location", locationValue);
+      }
+
+      // Navigate to search results
+      navigate(`/search-results?${params.toString()}`);
+      onClose(); // Close the modal
+
+      // Also update the local state (optional)
+      setSelectedLocation(location);
+      setSelectedCategory(null);
+      setAutocompleteSuggestions([]);
+      onSearchChange(getLocationDisplayName(location));
+    },
+    [navigate, onClose, onSearchChange]
+  );
+
+  // Update the main search function
   const handleSearchSubmit = useCallback(() => {
+    // If we have autocomplete suggestions and no exact matches, use the first suggestion
+    if (
+      autocompleteSuggestions.length > 0 &&
+      !selectedCategory &&
+      !selectedLocation
+    ) {
+      const firstSuggestion = autocompleteSuggestions[0];
+      if (firstSuggestion.type === "category") {
+        handleAutocompleteCategorySelect(firstSuggestion.value);
+      } else if (firstSuggestion.type === "area") {
+        handleAutocompleteLocationSelect(firstSuggestion.value);
+      }
+      return;
+    }
+
+    // Original logic for regular search
     if (searchQuery.trim() || selectedCategory || selectedLocation) {
       // Save to search history
       if (searchQuery.trim()) {
@@ -1595,9 +1770,18 @@ const SearchModal = ({
 
       // Navigate to search results
       navigate(`/search-results?${params.toString()}`);
-      onClose(); // Close the modal
+      onClose();
     }
-  }, [searchQuery, selectedCategory, selectedLocation, navigate, onClose]);
+  }, [
+    searchQuery,
+    selectedCategory,
+    selectedLocation,
+    navigate,
+    onClose,
+    autocompleteSuggestions,
+    handleAutocompleteCategorySelect,
+    handleAutocompleteLocationSelect,
+  ]);
 
   const handleKeyPress = useCallback(
     (e) => {
@@ -1646,59 +1830,6 @@ const SearchModal = ({
     onSearchChange("");
     setAutocompleteSuggestions([]);
   }, [onSearchChange]);
-
-  // Handle autocomplete suggestion selection
-  const handleAutocompleteCategorySelect = useCallback(
-    (category) => {
-      setSelectedCategory(category);
-      setSelectedLocation(null);
-      setAutocompleteSuggestions([]);
-      // Update search input to show what was selected
-      onSearchChange(getCategoryDisplayName(category));
-    },
-    [onSearchChange]
-  );
-
-  const handleAutocompleteLocationSelect = useCallback(
-    (location) => {
-      setSelectedLocation(location);
-      setSelectedCategory(null);
-      setAutocompleteSuggestions([]);
-      // Update search input to show what was selected
-      onSearchChange(getLocationDisplayName(location));
-    },
-    [onSearchChange]
-  );
-
-  // Helper function to get location value from display name
-  const getLocationValueForFilterFromDisplay = useCallback(
-    (displayName) => {
-      if (!displayName) return "";
-
-      // Find the location that matches the display name
-      const found = allLocations.find(
-        (loc) => getLocationDisplayName(loc) === displayName
-      );
-
-      return found ? getLocationValueForFilter(found) : "";
-    },
-    [allLocations]
-  );
-
-  // Helper function to get category value from display name
-  const getCategoryValueForFilterFromDisplay = useCallback(
-    (displayName) => {
-      if (!displayName) return "";
-
-      // Find the category that matches the display name
-      const found = allCategories.find(
-        (cat) => getCategoryDisplayName(cat) === displayName
-      );
-
-      return found ? getCategoryValueForFilter(found) : "";
-    },
-    [allCategories]
-  );
 
   // Toggle category dropdown
   const toggleCategoryDropdown = useCallback(() => {
@@ -2532,6 +2663,51 @@ const SearchModal = ({
           -webkit-line-clamp: 1;
           -webkit-box-orient: vertical;
           overflow: hidden;
+        }
+        /* Add these styles to your CSS or in the style tag */
+
+        .suggestion-breakdown {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+          margin-top: 6px;
+        }
+
+        .breakdown-pill {
+          font-size: 10px;
+          padding: 2px 6px;
+          border-radius: 12px;
+          font-weight: 500;
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+        }
+
+        .breakdown-summary {
+          font-size: 11px;
+          color: #6b7280;
+          margin-top: 4px;
+          font-weight: 500;
+        }
+        /* Add hover effects for clickable suggestions */
+        .group:hover .group-hover:bg-blue-200 {
+          background-color: #dbeafe;
+        }
+
+        .group:hover .group-hover:text-blue-500 {
+          color: #3b82f6;
+        }
+
+        /* Make the entire suggestion card clickable */
+        .suggestion-card {
+          position: relative;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .suggestion-card:hover {
+          transform: translateX(2px);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
       `}</style>
     </>
