@@ -283,7 +283,7 @@ const getCategoryBreakdownByLocation = (listings, location) => {
     .sort((a, b) => b.count - a.count);
 };
 
-// Autocomplete Suggestions Component - Updated with direct navigation
+// Autocomplete Suggestions Component - Updated with mobile responsiveness
 const AutocompleteSuggestions = ({
   suggestions,
   searchQuery,
@@ -292,17 +292,39 @@ const AutocompleteSuggestions = ({
   onLocationSelect,
 }) => {
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     if (inputRef?.current) {
       const inputRect = inputRef.current.getBoundingClientRect();
-      setPosition({
-        top: inputRect.bottom + window.scrollY + 4,
-        left: inputRect.left + window.scrollX,
-        width: inputRect.width,
-      });
+      const viewportWidth = window.innerWidth;
+
+      // For mobile, use full width minus some padding
+      if (isMobile) {
+        setPosition({
+          top: inputRect.bottom + window.scrollY + 4,
+          left: 16, // 16px from left for mobile
+          width: viewportWidth - 32, // Full width minus padding
+        });
+      } else {
+        setPosition({
+          top: inputRect.bottom + window.scrollY + 4,
+          left: inputRect.left + window.scrollX,
+          width: inputRect.width,
+        });
+      }
     }
-  }, [inputRef, suggestions]);
+  }, [inputRef, suggestions, isMobile]);
 
   if (!searchQuery || suggestions.length === 0) return null;
 
@@ -318,18 +340,30 @@ const AutocompleteSuggestions = ({
         top: `${position.top}px`,
         left: `${position.left}px`,
         width: `${position.width}px`,
-        maxHeight: "400px",
+        maxHeight: isMobile ? "70vh" : "400px", // Increased height for mobile
         overflowY: "auto",
       }}
     >
       <div className="py-2">
         {/* Header */}
-        <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
+        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+          {" "}
+          {/* Increased padding */}
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-gray-700">
+            <p
+              className={`${
+                isMobile ? "text-sm" : "text-xs"
+              } font-medium text-gray-700`}
+            >
+              {" "}
+              {/* Larger text for mobile */}
               Quick search suggestions
             </p>
-            <span className="text-xs text-gray-500">
+            <span
+              className={`${isMobile ? "text-sm" : "text-xs"} text-gray-500`}
+            >
+              {" "}
+              {/* Larger text for mobile */}
               {suggestions.length} suggestion
               {suggestions.length !== 1 ? "s" : ""}
             </span>
@@ -351,12 +385,18 @@ const AutocompleteSuggestions = ({
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                <div
+                  className={`${
+                    isMobile ? "w-12 h-12" : "w-10 h-10"
+                  } rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors`}
+                >
+                  {" "}
+                  {/* Larger icon for mobile */}
                   <FontAwesomeIcon
                     icon={
                       suggestion.type === "category" ? faFilter : faMapMarkerAlt
                     }
-                    className={`text-sm ${
+                    className={`${isMobile ? "text-base" : "text-sm"} ${
                       suggestion.type === "category"
                         ? "text-blue-600"
                         : "text-green-600"
@@ -365,17 +405,37 @@ const AutocompleteSuggestions = ({
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="font-bold text-gray-900 text-sm">
+                    <p
+                      className={`${
+                        isMobile
+                          ? "text-base font-semibold"
+                          : "text-sm font-bold"
+                      } text-gray-900`}
+                    >
+                      {" "}
+                      {/* Larger text for mobile */}
                       {suggestion.display}
                     </p>
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                    <span
+                      className={`${
+                        isMobile ? "text-xs px-2.5 py-1" : "text-xs px-2 py-0.5"
+                      } font-medium rounded-full bg-gray-100 text-gray-700`}
+                    >
+                      {" "}
+                      {/* Larger badge for mobile */}
                       {suggestion.count}{" "}
                       {suggestion.count === 1 ? "place" : "places"}
                     </span>
                   </div>
 
                   {/* Summary line */}
-                  <p className="text-xs text-gray-600 mt-1">
+                  <p
+                    className={`${
+                      isMobile ? "text-sm mt-2" : "text-xs mt-1"
+                    } text-gray-600`}
+                  >
+                    {" "}
+                    {/* Larger text for mobile */}
                     {suggestion.type === "category"
                       ? `Search ${
                           suggestion.count
@@ -387,57 +447,116 @@ const AutocompleteSuggestions = ({
 
               {/* Right arrow indicator */}
               <div className="text-gray-400 group-hover:text-blue-500 transition-colors">
-                <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+                <FontAwesomeIcon
+                  icon={faChevronRight}
+                  className={isMobile ? "text-base" : "text-xs"}
+                />{" "}
+                {/* Larger arrow for mobile */}
               </div>
             </div>
 
             {/* Detailed breakdown */}
-            <div className="mt-3 ml-13">
+            <div className={`mt-4 ${isMobile ? "ml-16" : "ml-13"}`}>
+              {" "}
+              {/* Adjusted margin for mobile */}
               {suggestion.type === "category" &&
                 suggestion.locationBreakdown && (
-                  <div className="mb-2">
-                    <p className="text-xs text-gray-500 font-medium mb-1">
+                  <div className="mb-3">
+                    <p
+                      className={`${
+                        isMobile ? "text-sm mb-2" : "text-xs mb-1"
+                      } text-gray-500 font-medium`}
+                    >
+                      {" "}
+                      {/* Larger text for mobile */}
                       Available in these areas:
                     </p>
-                    <div className="flex flex-wrap gap-1">
-                      {suggestion.locationBreakdown.map((loc, idx) => (
+                    <div className="flex flex-wrap gap-1.5">
+                      {" "}
+                      {/* Increased gap for mobile */}
+                      {suggestion.locationBreakdown
+                        .slice(0, isMobile ? 8 : 6)
+                        .map((loc, idx) => (
+                          <span
+                            key={idx}
+                            className={`${
+                              isMobile
+                                ? "text-xs px-3 py-1"
+                                : "text-xs px-2 py-0.5"
+                            } inline-flex items-center rounded bg-blue-50 text-blue-700 border border-blue-100`} // Larger pills for mobile
+                          >
+                            {loc.location} ({loc.count})
+                          </span>
+                        ))}
+                      {suggestion.locationBreakdown.length >
+                        (isMobile ? 8 : 6) && (
                         <span
-                          key={idx}
-                          className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-blue-50 text-blue-700 border border-blue-100"
+                          className={`${
+                            isMobile ? "text-sm" : "text-xs"
+                          } text-gray-500`}
                         >
-                          {loc.location} ({loc.count})
-                        </span>
-                      ))}
-                      {suggestion.locationBreakdown.length > 6 && (
-                        <span className="text-xs text-gray-500">
-                          +{suggestion.locationBreakdown.length - 6} more
+                          +
+                          {suggestion.locationBreakdown.length -
+                            (isMobile ? 8 : 6)}{" "}
+                          more
                         </span>
                       )}
                     </div>
                   </div>
                 )}
-
               {suggestion.type === "area" && suggestion.categoryBreakdown && (
-                <div className="mb-2">
-                  <p className="text-xs text-gray-500 font-medium mb-1">
+                <div className="mb-3">
+                  <p
+                    className={`${
+                      isMobile ? "text-sm mb-2" : "text-xs mb-1"
+                    } text-gray-500 font-medium`}
+                  >
+                    {" "}
+                    {/* Larger text for mobile */}
                     Places include:
                   </p>
-                  <div className="flex flex-wrap gap-1">
-                    {suggestion.categoryBreakdown.map((cat, idx) => (
+                  <div className="flex flex-wrap gap-1.5">
+                    {" "}
+                    {/* Increased gap for mobile */}
+                    {suggestion.categoryBreakdown
+                      .slice(0, isMobile ? 8 : 6)
+                      .map((cat, idx) => (
+                        <span
+                          key={idx}
+                          className={`${
+                            isMobile
+                              ? "text-xs px-3 py-1"
+                              : "text-xs px-2 py-0.5"
+                          } inline-flex items-center rounded bg-green-50 text-green-700 border border-green-100`} // Larger pills for mobile
+                        >
+                          {cat.category} ({cat.count})
+                        </span>
+                      ))}
+                    {suggestion.categoryBreakdown.length >
+                      (isMobile ? 8 : 6) && (
                       <span
-                        key={idx}
-                        className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-green-50 text-green-700 border border-green-100"
+                        className={`${
+                          isMobile ? "text-sm" : "text-xs"
+                        } text-gray-500`}
                       >
-                        {cat.category} ({cat.count})
+                        +
+                        {suggestion.categoryBreakdown.length -
+                          (isMobile ? 8 : 6)}{" "}
+                        more
                       </span>
-                    ))}
+                    )}
                   </div>
                 </div>
               )}
-
               {/* Click hint */}
-              <div className="flex items-center gap-1 mt-2">
-                <span className="text-xs text-blue-600 font-medium">
+              <div className="flex items-center gap-1 mt-3">
+                <span
+                  className={`${
+                    isMobile ? "text-sm" : "text-xs"
+                  } text-blue-600 font-medium`}
+                >
+                  {" "}
+                  {/* Larger text for mobile */}
                   Click to view all results →
                 </span>
               </div>
@@ -448,13 +567,19 @@ const AutocompleteSuggestions = ({
 
       <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
         <div className="flex items-center justify-between">
-          <p className="text-xs text-gray-500">
+          <p className={`${isMobile ? "text-sm" : "text-xs"} text-gray-500`}>
+            {" "}
+            {/* Larger text for mobile */}
             Click any suggestion to view detailed results
           </p>
           <div className="flex items-center gap-1">
-            <kbd className="px-1 py-0.5 bg-gray-200 rounded text-xs">↑</kbd>
-            <kbd className="px-1 py-0.5 bg-gray-200 rounded text-xs">↓</kbd>
-            <span className="text-xs text-gray-500 ml-1">to navigate</span>
+            <span
+              className={`${
+                isMobile ? "text-sm ml-2" : "text-xs ml-1"
+              } text-gray-500`}
+            >
+              to navigate
+            </span>
           </div>
         </div>
       </div>

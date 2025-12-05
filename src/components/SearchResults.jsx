@@ -7,9 +7,16 @@ import {
   faSearch,
   faTimes,
   faFilter,
+  faMapMarkerAlt,
+  faChevronDown,
+  faChevronUp,
+  faDollarSign,
+  faCheck,
+  faChevronRight,
+  faChevronLeft,
+  faTimesCircle,
 } from "@fortawesome/free-solid-svg-icons";
 import { motion, AnimatePresence } from "framer-motion";
-import { MdFavoriteBorder } from "react-icons/md";
 import { PiSliders } from "react-icons/pi";
 import Header from "./Header";
 import Footer from "./Footer";
@@ -98,7 +105,6 @@ const FALLBACK_IMAGES = {
 const getCategoryDisplayName = (category) => {
   if (!category || category === "All Categories") return "All Categories";
 
-  // Split by dot and get the part after the first dot
   const parts = category.split(".");
   if (parts.length > 1) {
     const afterDot = parts.slice(1).join(".").trim();
@@ -133,16 +139,6 @@ const getLocationDisplayName = (location) => {
     .join(" ");
 };
 
-// Helper function to extract words after dots for categories
-const extractDisplayName = (text) => {
-  if (!text) return "";
-  const parts = text.split(".");
-  if (parts.length > 1) {
-    return parts.slice(1).join(".").trim();
-  }
-  return text.trim();
-};
-
 const getCardImages = (item) => {
   const raw = item["image url"] || "";
   const urls = raw
@@ -167,32 +163,50 @@ const getCardImages = (item) => {
   return [FALLBACK_IMAGES.default];
 };
 
-// FilterDropdown Component
-const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
-  const dropdownRef = useRef(null);
-  const [filters, setFilters] = useState({
-    categories: [],
-    priceRange: { min: "", max: "" },
-    reviews: [],
-    badges: [],
+// Enhanced FilterSidebar Component - Always visible on desktop
+const FilterSidebar = ({
+  onFilterChange,
+  allLocations,
+  allCategories,
+  currentFilters,
+  onClose,
+  isMobileModal = false,
+}) => {
+  const [filters, setFilters] = useState(
+    currentFilters || {
+      locations: [],
+      categories: [],
+      priceRange: { min: "", max: "" },
+      ratings: [],
+      sortBy: "relevance",
+      amenities: [],
+    }
+  );
+
+  const [expandedSections, setExpandedSections] = useState({
+    location: true,
+    category: true,
+    price: true,
+    rating: true,
+    amenities: false,
   });
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        onClose();
-      }
-    };
+  // Toggle section expansion
+  const toggleSection = (section) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
 
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen, onClose]);
+  const handleLocationChange = (location) => {
+    setFilters((prev) => ({
+      ...prev,
+      locations: prev.locations.includes(location)
+        ? prev.locations.filter((l) => l !== location)
+        : [...prev.locations, location],
+    }));
+  };
 
   const handleCategoryChange = (category) => {
     setFilters((prev) => ({
@@ -203,21 +217,12 @@ const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
     }));
   };
 
-  const handleReviewChange = (stars) => {
+  const handleRatingChange = (stars) => {
     setFilters((prev) => ({
       ...prev,
-      reviews: prev.reviews.includes(stars)
-        ? prev.reviews.filter((s) => s !== stars)
-        : [...prev.reviews, stars],
-    }));
-  };
-
-  const handleBadgeChange = (badge) => {
-    setFilters((prev) => ({
-      ...prev,
-      badges: prev.badges.includes(badge)
-        ? prev.badges.filter((b) => b !== badge)
-        : [...prev.badges, badge],
+      ratings: prev.ratings.includes(stars)
+        ? prev.ratings.filter((s) => s !== stars)
+        : [...prev.ratings, stars],
     }));
   };
 
@@ -231,154 +236,393 @@ const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
     }));
   };
 
+  const handleSortChange = (value) => {
+    setFilters((prev) => ({
+      ...prev,
+      sortBy: value,
+    }));
+  };
+
   const handleReset = () => {
-    setFilters({
+    const resetFilters = {
+      locations: [],
       categories: [],
       priceRange: { min: "", max: "" },
-      reviews: [],
-      badges: [],
-    });
+      ratings: [],
+      sortBy: "relevance",
+      amenities: [],
+    };
+    setFilters(resetFilters);
+    onFilterChange(resetFilters);
   };
 
   const handleApply = () => {
     onFilterChange(filters);
-    onClose();
+    if (isMobileModal && onClose) {
+      onClose();
+    }
   };
 
-  if (!isOpen) return null;
+  const handleSelectAllLocations = () => {
+    if (filters.locations.length === allLocations.length) {
+      // If all are selected, clear selection
+      setFilters((prev) => ({ ...prev, locations: [] }));
+    } else {
+      // Select all unique locations
+      setFilters((prev) => ({
+        ...prev,
+        locations: [
+          ...new Set(allLocations.map((l) => getLocationDisplayName(l))),
+        ],
+      }));
+    }
+  };
 
-  return (
-    <motion.div
-      ref={dropdownRef}
-      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 p-6"
-    >
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center border-b pb-3 ">
-          <h3 className="text-lg font-bold text-gray-900">Filter Options</h3>
+  const handleSelectAllCategories = () => {
+    if (filters.categories.length === allCategories.length) {
+      // If all are selected, clear selection
+      setFilters((prev) => ({ ...prev, categories: [] }));
+    } else {
+      // Select all unique categories
+      setFilters((prev) => ({
+        ...prev,
+        categories: [
+          ...new Set(allCategories.map((c) => getCategoryDisplayName(c))),
+        ],
+      }));
+    }
+  };
+
+  // Get unique display names for locations and categories
+  const uniqueLocationDisplayNames = [
+    ...new Set(allLocations.map((loc) => getLocationDisplayName(loc))),
+  ].sort();
+  const uniqueCategoryDisplayNames = [
+    ...new Set(allCategories.map((cat) => getCategoryDisplayName(cat))),
+  ].sort();
+
+  const sidebarContent = (
+    <div className={`space-y-6 ${isMobileModal ? "p-6" : ""}`}>
+      {/* Header for mobile modal */}
+      {isMobileModal && (
+        <div className="flex justify-between items-center border-b pb-3 mb-4">
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">Filter & Sort</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Refine your search results
+            </p>
+          </div>
           <button
             onClick={onClose}
-            className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors"
+            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors"
+            aria-label="Close filters"
           >
             ×
           </button>
         </div>
+      )}
 
-        {/* Category Section */}
-        <div>
-          <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
-            Category
-          </h4>
-          <div className="space-y-2">
-            {["Hotel", "Shortlet", "Restaurant", "Tourist Center"].map(
-              (category) => (
-                <label
-                  key={category}
-                  className="flex items-center space-x-3 cursor-pointer group"
-                >
-                  <input
-                    type="checkbox"
-                    checked={filters.categories.includes(category)}
-                    onChange={() => handleCategoryChange(category)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
-                  />
-                  <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
-                    {category}
-                  </span>
-                </label>
-              )
+      {/* LOCATION SECTION */}
+      <div className="border-b pb-4">
+        <button
+          onClick={() => toggleSection("location")}
+          className="w-full flex justify-between items-center mb-3"
+        >
+          <div className="flex items-center gap-2">
+            <FontAwesomeIcon icon={faMapMarkerAlt} className="text-blue-500" />
+            <h4 className="font-semibold text-gray-900 text-base">Location</h4>
+            {filters.locations.length > 0 && (
+              <span className="bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full">
+                {filters.locations.length}
+              </span>
             )}
           </div>
-        </div>
+          <FontAwesomeIcon
+            icon={expandedSections.location ? faChevronUp : faChevronDown}
+            className="text-gray-400"
+          />
+        </button>
 
-        {/* Price Range */}
-        <div>
-          <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
-            Price
-          </h4>
-          <div className="flex items-center space-x-3">
-            <div className="flex-1">
-              <input
-                type="number"
-                placeholder="2,500"
-                value={filters.priceRange.min}
-                onChange={(e) => handlePriceChange("min", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
+        {expandedSections.location && (
+          <>
+            <div className="mb-3">
+              <button
+                onClick={handleSelectAllLocations}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                {filters.locations.length === uniqueLocationDisplayNames.length
+                  ? "Clear All Locations"
+                  : "Select All Locations"}
+              </button>
             </div>
-            <span className="text-gray-500 font-medium">-</span>
-            <div className="flex-1">
-              <input
-                type="number"
-                placeholder="5,000"
-                value={filters.priceRange.max}
-                onChange={(e) => handlePriceChange("max", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
+            <div className="max-h-48 overflow-y-auto pr-2">
+              <div className="grid grid-cols-1 gap-2">
+                {uniqueLocationDisplayNames.map((location, index) => (
+                  <label
+                    key={index}
+                    className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.locations.includes(location)}
+                      onChange={() => handleLocationChange(location)}
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+                    />
+                    <span className="text-sm text-gray-700 group-hover:text-[#06EAFC] transition-colors truncate">
+                      {location}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            {filters.locations.length > 0 && (
+              <div className="mt-3 p-2 bg-blue-50 rounded-lg">
+                <p className="text-xs text-blue-800">
+                  Selected: {filters.locations.slice(0, 3).join(", ")}
+                  {filters.locations.length > 3 &&
+                    ` +${filters.locations.length - 3} more`}
+                </p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* CATEGORY SECTION */}
+      <div className="border-b pb-4">
+        <button
+          onClick={() => toggleSection("category")}
+          className="w-full flex justify-between items-center mb-3"
+        >
+          <div className="flex items-center gap-2">
+            <FontAwesomeIcon icon={faFilter} className="text-green-500" />
+            <h4 className="font-semibold text-gray-900 text-base">Category</h4>
+            {filters.categories.length > 0 && (
+              <span className="bg-green-100 text-green-600 text-xs px-2 py-0.5 rounded-full">
+                {filters.categories.length}
+              </span>
+            )}
+          </div>
+          <FontAwesomeIcon
+            icon={expandedSections.category ? faChevronUp : faChevronDown}
+            className="text-gray-400"
+          />
+        </button>
+
+        {expandedSections.category && (
+          <>
+            <div className="mb-3">
+              <button
+                onClick={handleSelectAllCategories}
+                className="text-sm text-green-600 hover:text-green-700 font-medium"
+              >
+                {filters.categories.length === uniqueCategoryDisplayNames.length
+                  ? "Clear All Categories"
+                  : "Select All Categories"}
+              </button>
+            </div>
+            <div className="max-h-48 overflow-y-auto pr-2">
+              <div className="grid grid-cols-1 gap-2">
+                {uniqueCategoryDisplayNames.map((category, index) => (
+                  <label
+                    key={index}
+                    className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.categories.includes(category)}
+                      onChange={() => handleCategoryChange(category)}
+                      className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 transition-colors"
+                    />
+                    <span className="text-sm text-gray-700 group-hover:text-[#06EAFC] transition-colors truncate">
+                      {category}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            {filters.categories.length > 0 && (
+              <div className="mt-3 p-2 bg-green-50 rounded-lg">
+                <p className="text-xs text-green-800">
+                  Selected: {filters.categories.slice(0, 3).join(", ")}
+                  {filters.categories.length > 3 &&
+                    ` +${filters.categories.length - 3} more`}
+                </p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* PRICE RANGE SECTION */}
+      <div className="border-b pb-4">
+        <button
+          onClick={() => toggleSection("price")}
+          className="w-full flex justify-between items-center mb-3"
+        >
+          <div className="flex items-center gap-2">
+            <FontAwesomeIcon icon={faDollarSign} className="text-yellow-500" />
+            <h4 className="font-semibold text-gray-900 text-base">
+              Price Range
+            </h4>
+            {(filters.priceRange.min || filters.priceRange.max) && (
+              <span className="bg-yellow-100 text-yellow-600 text-xs px-2 py-0.5 rounded-full">
+                Set
+              </span>
+            )}
+          </div>
+          <FontAwesomeIcon
+            icon={expandedSections.price ? faChevronUp : faChevronDown}
+            className="text-gray-400"
+          />
+        </button>
+
+        {expandedSections.price && (
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3">
+              <div className="flex-1">
+                <label className="block text-sm text-gray-600 mb-1">
+                  Min Price
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                    #
+                  </span>
+                  <input
+                    type="number"
+                    placeholder="2,500"
+                    value={filters.priceRange.min}
+                    onChange={(e) => handlePriceChange("min", e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  />
+                </div>
+              </div>
+              <span className="text-gray-500 font-medium mt-6">to</span>
+              <div className="flex-1">
+                <label className="block text-sm text-gray-600 mb-1">
+                  Max Price
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                    #
+                  </span>
+                  <input
+                    type="number"
+                    placeholder="50,000"
+                    value={filters.priceRange.max}
+                    onChange={(e) => handlePriceChange("max", e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* Review Section */}
-        <div>
-          <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
-            Review
-          </h4>
+      {/* RATING SECTION */}
+      <div className="border-b pb-4">
+        <button
+          onClick={() => toggleSection("rating")}
+          className="w-full flex justify-between items-center mb-3"
+        >
+          <div className="flex items-center gap-2">
+            <FontAwesomeIcon icon={faStar} className="text-yellow-500" />
+            <h4 className="font-semibold text-gray-900 text-base">
+              Minimum Rating
+            </h4>
+            {filters.ratings.length > 0 && (
+              <span className="bg-yellow-100 text-yellow-600 text-xs px-2 py-0.5 rounded-full">
+                {filters.ratings.length}
+              </span>
+            )}
+          </div>
+          <FontAwesomeIcon
+            icon={expandedSections.rating ? faChevronUp : faChevronDown}
+            className="text-gray-400"
+          />
+        </button>
+
+        {expandedSections.rating && (
           <div className="space-y-2">
             {[5, 4, 3, 2, 1].map((stars) => (
               <label
                 key={stars}
-                className="flex items-center space-x-3 cursor-pointer group"
+                className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50"
               >
                 <input
                   type="checkbox"
-                  checked={filters.reviews.includes(stars)}
-                  onChange={() => handleReviewChange(stars)}
-                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+                  checked={filters.ratings.includes(stars)}
+                  onChange={() => handleRatingChange(stars)}
+                  className="w-4 h-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500 transition-colors"
                 />
                 <div className="flex items-center space-x-2">
-                  {[...Array(stars)].map((_, i) => (
-                    <FontAwesomeIcon
-                      key={i}
-                      icon={faStar}
-                      className="text-yellow-400 text-sm"
-                    />
-                  ))}
-                  <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors text-sm">
-                    {stars} Star{stars !== 1 ? "s" : ""}
+                  <div className="flex">
+                    {[...Array(5)].map((_, i) => (
+                      <FontAwesomeIcon
+                        key={i}
+                        icon={faStar}
+                        className={`text-sm ${
+                          i < stars ? "text-yellow-400" : "text-gray-300"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-sm text-gray-700 group-hover:text-[#06EAFC] transition-colors">
+                    {stars}+ stars
                   </span>
                 </div>
               </label>
             ))}
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex space-x-3 pt-4 border-t">
-          <button
-            onClick={handleReset}
-            className="flex-1 px-4 py-3 text-sm font-medium border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
-          >
-            Reset
-          </button>
-          <button
-            onClick={handleApply}
-            className="flex-1 px-4 py-3 text-sm font-medium bg-blue-600 text-white rounded-xl hover:bg-blue-700 transform hover:scale-105 transition-all duration-200"
-          >
-            Apply Filters
-          </button>
-        </div>
+        )}
       </div>
-    </motion.div>
+
+      {/* Action Buttons */}
+      <div className="flex space-x-3 pt-4">
+        <button
+          onClick={handleReset}
+          className="flex-1 px-4 py-3 text-sm font-medium border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+        >
+          Reset All
+        </button>
+        <button
+          onClick={handleApply}
+          className="flex-1 px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2"
+        >
+          <FontAwesomeIcon icon={faCheck} />
+          Apply Filters
+        </button>
+      </div>
+    </div>
+  );
+
+  if (isMobileModal) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 20 }}
+        className="fixed inset-0 bg-white z-50 overflow-y-auto"
+      >
+        {sidebarContent}
+      </motion.div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit">
+      <div className="mb-6">
+        <h3 className="text-lg font-bold text-gray-900">Filter Options</h3>
+        <p className="text-sm text-gray-500 mt-1">Refine your search results</p>
+      </div>
+      {sidebarContent}
+    </div>
   );
 };
 
-// BusinessCard Component
-const BusinessCard = ({ item, isMobile }) => {
+// BusinessCard Component - Updated to match Directory style
+const BusinessCard = ({ item, category, isMobile }) => {
   const images = getCardImages(item);
   const navigate = useNavigate();
 
@@ -393,7 +637,7 @@ const BusinessCard = ({ item, isMobile }) => {
 
   const priceText = item.price_from
     ? `#${formatPrice(item.price_from)} for 2 nights`
-    : "–";
+    : "From #2,500 per guest";
 
   const location = getLocationDisplayName(item.area) || "Ibadan";
 
@@ -402,12 +646,6 @@ const BusinessCard = ({ item, isMobile }) => {
       navigate(`/vendor-detail/${item.id}`);
     } else if (item.name) {
       navigate(`/vendor-detail/${encodeURIComponent(item.name)}`);
-    }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      handleCardClick();
     }
   };
 
@@ -421,94 +659,144 @@ const BusinessCard = ({ item, isMobile }) => {
         hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
       `}
       onClick={handleCardClick}
-      role="button"
-      tabIndex={0}
-      onKeyPress={handleKeyPress}
-      aria-label={`View details for ${item.name} in ${location}`}
     >
-      {/* Image with Guest Favorite Badge */}
-      <div className="relative w-full h-[170px]">
+      {/* Image */}
+      <div
+        className={`
+          relative overflow-hidden rounded-xl 
+          ${isMobile ? "w-full h-[150px]" : "w-full h-[170px]"}
+        `}
+      >
         <img
           src={images[0]}
           alt={item.name}
-          className="w-full h-full object-cover cursor-pointer rounded-xl"
+          className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
           onError={(e) => (e.currentTarget.src = FALLBACK_IMAGES.default)}
           loading="lazy"
         />
 
-        {/* Guest Favorite Badge - Top Left */}
-        <div className="absolute top-2 left-2 bg-white px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm cursor-pointer">
+        {/* Guest favorite badge */}
+        <div className="absolute top-2 left-2 bg-white px-1.5 py-1 rounded-md shadow-sm flex items-center gap-1">
           <div className="w-1 h-1 bg-yellow-500 rounded-full"></div>
-          <span
-            className={`${
-              isMobile ? "text-[8px]" : "text-[9px]"
-            } font-bold text-gray-900 font-manrope cursor-pointer`}
-          >
+          <span className="text-[9px] font-semibold text-gray-900">
             Guest favorite
           </span>
         </div>
       </div>
 
-      {/* Content */}
-      <div className={`${isMobile ? "p-2" : "p-3"}`}>
+      {/* Text */}
+      <div className={`${isMobile ? "p-1.5" : "p-2.5"} flex flex-col gap-0.5`}>
         <h3
-          className={`${
-            isMobile ? "text-xs" : "text-sm"
-          } font-bold text-gray-900 mb-1 line-clamp-1 font-manrope cursor-pointer`}
+          className={`
+            font-semibold text-gray-900 
+            leading-tight line-clamp-2 
+            ${isMobile ? "text-xs" : "text-sm"}
+          `}
         >
           {item.name}
         </h3>
 
         <p
-          className={`${
-            isMobile ? "text-[10px]" : "text-[11px]"
-          } text-gray-600 mb-2 font-manrope cursor-pointer`}
+          className={`
+            text-gray-600 
+            ${isMobile ? "text-[9px]" : "text-xs"}
+          `}
         >
           {location}
         </p>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1 mt-0.5">
           <p
-            className={`${
-              isMobile ? "text-[11px]" : "text-xs"
-            } font-medium text-gray-900 font-manrope cursor-pointer`}
+            className={`
+              font-normal text-gray-900 
+              ${isMobile ? "text-[9px]" : "text-xs"}
+            `}
           >
-            {priceText}
+            {priceText} <span>•</span>
           </p>
 
-          {item.rating && (
-            <div className="flex items-center gap-1">
-              <FontAwesomeIcon
-                icon={faStar}
-                className={`${
-                  isMobile ? "text-[9px]" : "text-[10px]"
-                } text-yellow-400`}
-              />
-              <span
-                className={`${
-                  isMobile ? "text-[10px]" : "text-[11px]"
-                } font-medium text-gray-900 font-manrope cursor-pointer`}
-              >
-                {item.rating}
-              </span>
-            </div>
-          )}
+          <div
+            className={`
+              flex items-center gap-1 text-gray-800 
+              ${isMobile ? "text-[9px]" : "text-xs"}
+            `}
+          >
+            <FontAwesomeIcon
+              icon={faStar}
+              className={`${
+                isMobile ? "text-[9px]" : "text-xs"
+              } text-yellow-400`}
+            />
+            {item.rating || "4.9"}
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-// Category Section Component - Horizontal scrolling
-const CategorySection = ({ title, items, isMobile }) => {
-  const scrollContainerRef = useRef(null);
+// Enhanced FilterPill Component for Active Filters
+const FilterPill = ({ type, label, value, onRemove }) => {
+  const getPillColor = (type) => {
+    switch (type) {
+      case "location":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "category":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "price":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "rating":
+        return "bg-purple-100 text-purple-800 border-purple-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  const getIcon = (type) => {
+    switch (type) {
+      case "location":
+        return faMapMarkerAlt;
+      case "category":
+        return faFilter;
+      case "price":
+        return faDollarSign;
+      case "rating":
+        return faStar;
+      default:
+        return faFilter;
+    }
+  };
+
+  return (
+    <div
+      className={`inline-flex items-center gap-2 px-3 py-2 rounded-full border ${getPillColor(
+        type
+      )} text-sm`}
+    >
+      <FontAwesomeIcon icon={getIcon(type)} className="text-xs" />
+      <span>
+        {label}: {value}
+      </span>
+      <button
+        onClick={onRemove}
+        className="ml-1 hover:opacity-70 transition-opacity"
+        aria-label={`Remove ${label} filter`}
+      >
+        ×
+      </button>
+    </div>
+  );
+};
+
+// CategorySection Component - Horizontal scrolling like Directory
+const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
   const navigate = useNavigate();
 
   const scrollSection = (direction) => {
-    const container = scrollContainerRef.current;
+    const container = document.getElementById(sectionId);
     if (!container) return;
 
-    const scrollAmount = isMobile ? 170 : 220;
+    const scrollAmount = isMobile ? 140 : 220;
     const newPosition =
       direction === "next"
         ? container.scrollLeft + scrollAmount
@@ -520,37 +808,56 @@ const CategorySection = ({ title, items, isMobile }) => {
     });
   };
 
-  const handleViewAll = () => {
-    // Extract category from title for navigation
-    const category = title.toLowerCase().replace(/\s+/g, "-");
+  const handleCategoryClick = () => {
     navigate(`/category/${category}`);
   };
 
   if (items.length === 0) return null;
 
   return (
-    <div className={`${isMobile ? "mb-6" : "mb-10"} font-manrope`}>
-      {/* Header */}
-      <div className="flex justify-between items-center mb-3 px-1">
-        <h2
-          className={`${
-            isMobile ? "text-base" : "text-xl"
-          } font-bold text-gray-900 font-manrope`}
-        >
-          {title}
-        </h2>
-        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-          {items.length} {items.length === 1 ? "place" : "places"}
-        </span>
+    <div className="mb-4">
+      <div className="flex justify-between items-center mb-2">
+        <div>
+          <button
+            onClick={handleCategoryClick}
+            className={`
+              text-[#00065A] hover:text-[#06EAFC] transition-colors text-left
+              ${isMobile ? "text-sm" : "text-base"} 
+              font-bold cursor-pointer flex items-center gap-1
+            `}
+          >
+            {title}
+            <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+          </button>
+        </div>
+        <div className="flex gap-1">
+          <button
+            onClick={() => scrollSection("prev")}
+            className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors border border-gray-300 shadow-sm"
+          >
+            <FontAwesomeIcon
+              icon={faChevronLeft}
+              className="text-gray-600 text-[10px]"
+            />
+          </button>
+          <button
+            onClick={() => scrollSection("next")}
+            className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors border border-gray-300 shadow-sm"
+          >
+            <FontAwesomeIcon
+              icon={faChevronRight}
+              className="text-gray-600 text-[10px]"
+            />
+          </button>
+        </div>
       </div>
 
-      {/* Horizontal Scroll Container */}
-      <div className={`relative ${isMobile ? "px-0" : "px-4"}`}>
+      <div className="relative">
         <div
-          ref={scrollContainerRef}
+          id={sectionId}
           className={`flex overflow-x-auto scrollbar-hide scroll-smooth ${
-            isMobile ? "gap-1 pl-1" : "gap-4"
-          } pb-3`}
+            isMobile ? "gap-1" : "gap-2"
+          }`}
           style={{
             scrollbarWidth: "none",
             msOverflowStyle: "none",
@@ -560,67 +867,11 @@ const CategorySection = ({ title, items, isMobile }) => {
             <BusinessCard
               key={item.id || index}
               item={item}
+              category={category}
               isMobile={isMobile}
             />
           ))}
         </div>
-
-        {/* Scroll Buttons - Only show on desktop */}
-        {!isMobile && (
-          <>
-            <button
-              onClick={() => scrollSection("prev")}
-              className={`absolute left-0 top-1/2 transform -translate-y-1/2 w-8 h-8 -ml-4 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200 cursor-pointer`}
-              aria-label="Scroll left"
-            >
-              <svg
-                className="w-3 h-3 text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-            </button>
-
-            <button
-              onClick={() => scrollSection("next")}
-              className={`absolute right-0 top-1/2 transform -translate-y-1/2 w-8 h-8 -mr-4 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200 cursor-pointer`}
-              aria-label="Scroll right"
-            >
-              <svg
-                className="w-3 h-3 text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* View All Button */}
-      <div className="flex justify-center mt-3">
-        <button
-          onClick={handleViewAll}
-          className="text-[#06EAFC] hover:text-[#05d9eb] text-sm font-medium flex items-center gap-1 px-6 py-2 rounded-lg hover:bg-blue-50 transition-colors font-manrope cursor-pointer"
-          aria-label={`View all ${title}`}
-        >
-          View All
-          <FontAwesomeIcon icon={faStar} className="text-xs" />
-        </button>
       </div>
     </div>
   );
@@ -636,18 +887,22 @@ const SearchResults = () => {
   const category = searchParams.get("category") || "";
   const location = searchParams.get("location") || "";
 
-  const [filters, setFilters] = useState({
-    availableNow: false,
+  const [activeFilters, setActiveFilters] = useState({
+    locations: [],
+    categories: [],
     priceRange: { min: "", max: "" },
-    rating: "",
+    ratings: [],
     sortBy: "relevance",
+    amenities: [],
   });
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [filteredListings, setFilteredListings] = useState([]);
   const [groupedListings, setGroupedListings] = useState({});
-  const [activeFilters, setActiveFilters] = useState({});
-  const [currentPage, setCurrentPage] = useState(1);
+  const [allLocations, setAllLocations] = useState([]);
+  const [allCategories, setAllCategories] = useState([]);
+  const [filteredCount, setFilteredCount] = useState(0);
 
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
   const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
@@ -657,6 +912,20 @@ const SearchResults = () => {
     loading,
     error,
   } = useGoogleSheet(SHEET_ID, API_KEY);
+
+  // Extract unique locations and categories from listings
+  useEffect(() => {
+    if (listings.length > 0) {
+      const locations = [
+        ...new Set(listings.map((item) => item.area).filter(Boolean)),
+      ];
+      const categories = [
+        ...new Set(listings.map((item) => item.category).filter(Boolean)),
+      ];
+      setAllLocations(locations);
+      setAllCategories(categories);
+    }
+  }, [listings]);
 
   // Check for mobile view
   useEffect(() => {
@@ -668,7 +937,7 @@ const SearchResults = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Filter listings based on search parameters
+  // Filter listings based on search parameters and active filters
   useEffect(() => {
     if (!listings.length) return;
 
@@ -685,36 +954,49 @@ const SearchResults = () => {
         const matchesLocation = getLocationDisplayName(item.area || "")
           .toLowerCase()
           .includes(query);
-        return matchesName || matchesCategory || matchesLocation;
+        const matchesDescription = item.description
+          ?.toLowerCase()
+          .includes(query);
+        return (
+          matchesName ||
+          matchesCategory ||
+          matchesLocation ||
+          matchesDescription
+        );
       });
     }
 
-    // Filter by category
+    // Filter by category from URL
     if (category) {
       filtered = filtered.filter((item) => {
         return item.category === category;
       });
     }
 
-    // Filter by location
+    // Filter by location from URL
     if (location) {
       filtered = filtered.filter((item) => {
         return item.area === location;
       });
     }
 
-    // Apply advanced filters
-    if (activeFilters.categories && activeFilters.categories.length > 0) {
+    // Apply advanced filters from dropdown
+    if (activeFilters.locations.length > 0) {
+      filtered = filtered.filter((item) => {
+        const itemLocation = getLocationDisplayName(item.area || "");
+        return activeFilters.locations.includes(itemLocation);
+      });
+    }
+
+    if (activeFilters.categories.length > 0) {
       filtered = filtered.filter((item) => {
         const itemCategory = getCategoryDisplayName(item.category || "");
-        return activeFilters.categories.some((cat) =>
-          itemCategory.toLowerCase().includes(cat.toLowerCase())
-        );
+        return activeFilters.categories.includes(itemCategory);
       });
     }
 
     // Apply price range filter
-    if (activeFilters.priceRange) {
+    if (activeFilters.priceRange.min || activeFilters.priceRange.max) {
       const min = Number(activeFilters.priceRange.min) || 0;
       const max = Number(activeFilters.priceRange.max) || Infinity;
       filtered = filtered.filter((item) => {
@@ -723,15 +1005,34 @@ const SearchResults = () => {
       });
     }
 
-    // Apply review filter
-    if (activeFilters.reviews && activeFilters.reviews.length > 0) {
+    // Apply rating filter
+    if (activeFilters.ratings.length > 0) {
       filtered = filtered.filter((item) => {
         const rating = Number(item.rating) || 0;
-        return activeFilters.reviews.some((stars) => rating >= stars);
+        return activeFilters.ratings.some((stars) => rating >= stars);
+      });
+    }
+
+    // Apply sort
+    if (activeFilters.sortBy) {
+      filtered = [...filtered].sort((a, b) => {
+        switch (activeFilters.sortBy) {
+          case "price_low":
+            return (Number(a.price_from) || 0) - (Number(b.price_from) || 0);
+          case "price_high":
+            return (Number(b.price_from) || 0) - (Number(a.price_from) || 0);
+          case "rating":
+            return (Number(b.rating) || 0) - (Number(a.rating) || 0);
+          case "name":
+            return (a.name || "").localeCompare(b.name || "");
+          default:
+            return 0;
+        }
       });
     }
 
     setFilteredListings(filtered);
+    setFilteredCount(filtered.length);
 
     // Group listings by category for horizontal scrolling sections
     const grouped = {};
@@ -745,23 +1046,66 @@ const SearchResults = () => {
     setGroupedListings(grouped);
   }, [listings, searchQuery, category, location, activeFilters]);
 
-  // Toggle filter dropdown
-  const toggleFilterDropdown = () => {
-    setShowFilterDropdown(!showFilterDropdown);
+  // Toggle mobile filters
+  const toggleMobileFilters = () => {
+    setShowMobileFilters(!showMobileFilters);
   };
 
-  // Close filter dropdown
-  const closeFilterDropdown = () => {
-    setShowFilterDropdown(false);
+  // Close mobile filters
+  const closeMobileFilters = () => {
+    setShowMobileFilters(false);
   };
 
-  // Handle filter changes from dropdown
-  const handleFilterChange = (filters) => {
-    setActiveFilters(filters);
-    setCurrentPage(1); // Reset to first page when filtering
+  // Handle filter changes
+  const handleFilterChange = (newFilters) => {
+    setActiveFilters(newFilters);
   };
 
-  // Handle search input change
+  // Remove specific filter
+  const removeFilter = (type, value = null) => {
+    setActiveFilters((prev) => {
+      const newFilters = { ...prev };
+
+      switch (type) {
+        case "location":
+          newFilters.locations = value
+            ? prev.locations.filter((l) => l !== value)
+            : [];
+          break;
+        case "category":
+          newFilters.categories = value
+            ? prev.categories.filter((c) => c !== value)
+            : [];
+          break;
+        case "price":
+          newFilters.priceRange = { min: "", max: "" };
+          break;
+        case "rating":
+          newFilters.ratings = value
+            ? prev.ratings.filter((r) => r !== value)
+            : [];
+          break;
+        case "sort":
+          newFilters.sortBy = "relevance";
+          break;
+      }
+
+      return newFilters;
+    });
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setActiveFilters({
+      locations: [],
+      categories: [],
+      priceRange: { min: "", max: "" },
+      ratings: [],
+      sortBy: "relevance",
+      amenities: [],
+    });
+  };
+
   const handleSearchChange = (e) => {
     const value = e.target.value;
     // Update URL with new search query
@@ -786,16 +1130,6 @@ const SearchResults = () => {
     // Search is already handled by URL parameter
   };
 
-  // Format price
-  const formatPrice = (n) => {
-    if (!n) return "–";
-    const num = Number(n);
-    return num.toLocaleString("en-US", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    });
-  };
-
   // Get page title
   const getPageTitle = () => {
     if (searchQuery) return `Results for "${searchQuery}"`;
@@ -807,16 +1141,16 @@ const SearchResults = () => {
   // Get page description
   const getPageDescription = () => {
     if (searchQuery)
-      return `Found ${filteredListings.length} places matching "${searchQuery}"`;
+      return `Found ${filteredCount} places matching "${searchQuery}"`;
     if (category)
-      return `Browse ${filteredListings.length} ${getCategoryDisplayName(
+      return `Browse ${filteredCount} ${getCategoryDisplayName(
         category
       ).toLowerCase()} places in Ibadan`;
     if (location)
-      return `Discover ${
-        filteredListings.length
-      } places in ${getLocationDisplayName(location)}`;
-    return `Found ${filteredListings.length} places in Ibadan`;
+      return `Discover ${filteredCount} places in ${getLocationDisplayName(
+        location
+      )}`;
+    return `Found ${filteredCount} places in Ibadan`;
   };
 
   if (loading) {
@@ -824,8 +1158,6 @@ const SearchResults = () => {
       <div className="min-h-screen bg-gray-50">
         <Header />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 pt-32">
-          {" "}
-          {/* Added pt-32 */}
           <div className="flex space-x-1 justify-center">
             <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"></div>
             <div
@@ -848,8 +1180,6 @@ const SearchResults = () => {
       <div className="min-h-screen bg-gray-50">
         <Header />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 pt-32">
-          {" "}
-          {/* Added pt-32 */}
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
             <p className="text-red-700 font-medium text-sm">{error}</p>
           </div>
@@ -871,8 +1201,6 @@ const SearchResults = () => {
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-32">
-        {" "}
-        {/* Added pt-32 for top padding */}
         {/* Search Bar */}
         <div className="flex justify-center mb-8">
           <div className="w-full max-w-2xl">
@@ -883,7 +1211,7 @@ const SearchResults = () => {
                 </div>
                 <input
                   type="text"
-                  placeholder="Search by area or category..."
+                  placeholder="Search by area, category, or name..."
                   value={searchQuery}
                   onChange={handleSearchChange}
                   className="flex-1 bg-transparent py-3 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600"
@@ -907,180 +1235,253 @@ const SearchResults = () => {
             </form>
           </div>
         </div>
-        {/* Page Header */}
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-[#00065A] mb-2">
+
+        {/* Mobile Filter Button - Only on mobile */}
+        {isMobile && (
+          <div className="mb-6">
+            <button
+              onClick={toggleMobileFilters}
+              className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm w-full justify-center"
+            >
+              <PiSliders className="text-gray-600" />
+              <span className="text-sm text-gray-700 font-medium">
+                Filter & Sort
+              </span>
+              {Object.keys(activeFilters).some((key) => {
+                if (key === "priceRange") {
+                  return (
+                    activeFilters.priceRange.min || activeFilters.priceRange.max
+                  );
+                }
+                return Array.isArray(activeFilters[key])
+                  ? activeFilters[key].length > 0
+                  : activeFilters[key] !== "relevance";
+              }) && (
+                <span className="bg-[#06EAFC] text-white text-xs px-2 py-0.5 rounded-full">
+                  {Object.values(activeFilters).reduce((acc, val) => {
+                    if (Array.isArray(val)) return acc + val.length;
+                    if (typeof val === "object" && val !== null) {
+                      return acc + (val.min || val.max ? 1 : 0);
+                    }
+                    return acc + (val && val !== "relevance" ? 1 : 0);
+                  }, 0)}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Main Content Layout */}
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Desktop Filter Sidebar - Hidden on mobile */}
+          {!isMobile && (
+            <div className="lg:w-1/4">
+              <FilterSidebar
+                onFilterChange={handleFilterChange}
+                allLocations={allLocations}
+                allCategories={allCategories}
+                currentFilters={activeFilters}
+              />
+            </div>
+          )}
+
+          {/* Mobile Filter Modal */}
+          <AnimatePresence>
+            {isMobile && showMobileFilters && (
+              <FilterSidebar
+                onFilterChange={handleFilterChange}
+                allLocations={allLocations}
+                allCategories={allCategories}
+                currentFilters={activeFilters}
+                onClose={closeMobileFilters}
+                isMobileModal={true}
+              />
+            )}
+          </AnimatePresence>
+
+          {/* Results Content */}
+          <div className="lg:w-3/4">
+            {/* Page Header */}
+            <div className="mb-6">
+              <h1 className="text-xl font-bold text-[#00065A] mb-1">
                 {getPageTitle()}
               </h1>
-              <p className="text-gray-600">
-                {filteredListings.length}{" "}
-                {filteredListings.length === 1 ? "place" : "places"} found
+              <p className="text-sm text-gray-600">
+                {filteredCount} {filteredCount === 1 ? "place" : "places"} found
               </p>
             </div>
 
-            {/* Clear search button */}
-            {searchQuery && (
-              <button
-                onClick={handleClearSearch}
-                className="px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Clear Search
-              </button>
+            {/* Active Filters Display */}
+            {(activeFilters.locations.length > 0 ||
+              activeFilters.categories.length > 0 ||
+              activeFilters.priceRange.min ||
+              activeFilters.priceRange.max ||
+              activeFilters.ratings.length > 0 ||
+              activeFilters.sortBy !== "relevance") && (
+              <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700 font-medium text-sm">
+                      Active Filters:
+                    </span>
+                    <button
+                      onClick={clearAllFilters}
+                      className="text-[#06EAFC] hover:text-[#05d9eb] text-sm font-medium"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {/* Location Filters */}
+                    {activeFilters.locations.map((location, idx) => (
+                      <FilterPill
+                        key={`location-${idx}`}
+                        type="location"
+                        label="Location"
+                        value={location}
+                        onRemove={() => removeFilter("location", location)}
+                      />
+                    ))}
+
+                    {/* Category Filters */}
+                    {activeFilters.categories.map((category, idx) => (
+                      <FilterPill
+                        key={`category-${idx}`}
+                        type="category"
+                        label="Category"
+                        value={category}
+                        onRemove={() => removeFilter("category", category)}
+                      />
+                    ))}
+
+                    {/* Price Filter */}
+                    {(activeFilters.priceRange.min ||
+                      activeFilters.priceRange.max) && (
+                      <FilterPill
+                        type="price"
+                        label="Price"
+                        value={`#${activeFilters.priceRange.min || "0"} - #${
+                          activeFilters.priceRange.max || "∞"
+                        }`}
+                        onRemove={() => removeFilter("price")}
+                      />
+                    )}
+
+                    {/* Rating Filters */}
+                    {activeFilters.ratings.map((rating, idx) => (
+                      <FilterPill
+                        key={`rating-${idx}`}
+                        type="rating"
+                        label="Min Rating"
+                        value={`${rating}+ stars`}
+                        onRemove={() => removeFilter("rating", rating)}
+                      />
+                    ))}
+
+                    {/* Sort Filter */}
+                    {activeFilters.sortBy !== "relevance" && (
+                      <FilterPill
+                        type="sort"
+                        label="Sorted by"
+                        value={
+                          activeFilters.sortBy === "price_low"
+                            ? "Price: Low to High"
+                            : activeFilters.sortBy === "price_high"
+                            ? "Price: High to Low"
+                            : activeFilters.sortBy === "rating"
+                            ? "Highest Rated"
+                            : activeFilters.sortBy === "name"
+                            ? "Name: A to Z"
+                            : "Relevance"
+                        }
+                        onRemove={() => removeFilter("sort")}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
-          </div>
-        </div>
-        {/* Filter Controls */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            {/* Available Now Toggle */}
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={filters.availableNow}
-                  onChange={(e) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      availableNow: e.target.checked,
-                    }))
-                  }
-                  className="sr-only"
-                />
-                <div
-                  className={`w-10 h-6 rounded-full transition-colors ${
-                    filters.availableNow ? "bg-[#06EAFC]" : "bg-gray-300"
-                  }`}
-                ></div>
-                <div
-                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                    filters.availableNow
-                      ? "transform translate-x-5"
-                      : "transform translate-x-1"
-                  }`}
-                ></div>
-              </div>
-              <span className="text-sm text-gray-700">Available Now</span>
-            </label>
-          </div>
 
-          {/* Filter Button */}
-          <div className="relative">
-            <button
-              onClick={toggleFilterDropdown}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <PiSliders className="text-gray-600" />
-              <span className="text-sm text-gray-700">Filter</span>
-            </button>
+            {/* Results - Horizontal Scrolling Sections like Directory */}
+            <div className="space-y-6">
+              {/* If no results with filters */}
+              {filteredCount === 0 && (
+                <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+                  <FontAwesomeIcon
+                    icon={faSearch}
+                    className="text-4xl text-gray-300 mb-4 block"
+                  />
+                  <h3 className="text-xl text-gray-800 mb-2">
+                    No matching results found
+                  </h3>
+                  <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                    {searchQuery
+                      ? `No places found for "${searchQuery}" with the selected filters.`
+                      : "No places match your current filters."}
+                  </p>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    <button
+                      onClick={clearAllFilters}
+                      className="bg-[#06EAFC] text-white px-6 py-2 rounded-lg hover:bg-[#05d9eb] transition-colors"
+                    >
+                      Clear All Filters
+                    </button>
+                    {isMobile && (
+                      <button
+                        onClick={() => setShowMobileFilters(true)}
+                        className="bg-white border border-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        Adjust Filters
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500 mt-4">
+                    Tip: Try selecting fewer filters or different combinations
+                  </p>
+                </div>
+              )}
 
-            <AnimatePresence>
-              <FilterDropdown
-                isOpen={showFilterDropdown}
-                onClose={closeFilterDropdown}
-                onFilterChange={handleFilterChange}
-              />
-            </AnimatePresence>
-          </div>
-        </div>
-        {/* Active Filters Display */}
-        {Object.keys(activeFilters).length > 0 && (
-          <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="flex items-center justify-between">
-              <span className="text-blue-800 font-medium text-sm">
-                Active Filters:
-              </span>
-              <button
-                onClick={() => setActiveFilters({})}
-                className="text-blue-600 hover:text-blue-800 text-sm"
-              >
-                Clear All
-              </button>
+              {/* Horizontal Scrolling Category Sections */}
+              {filteredCount > 0 && (
+                <>
+                  {/* If we have specific category or location from URL, show all results in grid */}
+                  {category || location ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {filteredListings.map((item, index) => (
+                        <BusinessCard
+                          key={item.id || index}
+                          item={item}
+                          category={category || "all"}
+                          isMobile={isMobile}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    /* Group by category for horizontal scrolling - Like Directory Component */
+                    Object.entries(groupedListings).map(([catName, items]) => {
+                      const categorySlug = catName
+                        .toLowerCase()
+                        .replace(/\s+/g, "-");
+                      const sectionId = `${categorySlug}-section`;
+
+                      return (
+                        <CategorySection
+                          key={catName}
+                          title={catName}
+                          items={items}
+                          sectionId={sectionId}
+                          isMobile={isMobile}
+                          category={categorySlug}
+                        />
+                      );
+                    })
+                  )}
+                </>
+              )}
             </div>
           </div>
-        )}
-        {/* Results */}
-        <div className="space-y-6">
-          {/* If we have specific category or location search, show all results together */}
-          {(category || location) && filteredListings.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredListings.map((item, index) => (
-                <BusinessCard
-                  key={item.id || index}
-                  item={item}
-                  isMobile={isMobile}
-                />
-              ))}
-            </div>
-          ) : (
-            /* Group by category for general search */
-            Object.entries(groupedListings).map(([category, items]) => (
-              <CategorySection
-                key={category}
-                title={category}
-                items={items.slice(0, 10)}
-                isMobile={isMobile}
-              />
-            ))
-          )}
-
-          {/* No Results State */}
-          {filteredListings.length === 0 && (
-            <div className="text-center py-12">
-              <div className="bg-gray-50 rounded-xl p-8 max-w-md mx-auto">
-                <FontAwesomeIcon
-                  icon={faSearch}
-                  className="text-3xl text-gray-300 mb-4 block"
-                />
-                <h3 className="text-lg text-gray-800 mb-2">No results found</h3>
-                <p className="text-gray-600 mb-4">
-                  {searchQuery
-                    ? `No places found for "${searchQuery}"`
-                    : "Try adjusting your search or filters"}
-                </p>
-                <button
-                  onClick={handleClearSearch}
-                  className="bg-[#06EAFC] text-white px-6 py-2 rounded-lg hover:bg-[#05d9eb] transition-colors"
-                >
-                  Clear Search
-                </button>
-              </div>
-            </div>
-          )}
         </div>
-        {/* Pagination for category/location specific views */}
-        {(category || location) && filteredListings.length > 0 && (
-          <div className="flex justify-center items-center space-x-2 mt-8">
-            <button
-              onClick={() => setCurrentPage(currentPage - 1)}
-              disabled={currentPage === 1}
-              className={`px-4 py-2 rounded-lg border ${
-                currentPage === 1
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-white text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              Previous
-            </button>
-
-            <span className="text-gray-600">
-              Page {currentPage} of {Math.ceil(filteredListings.length / 12)}
-            </span>
-
-            <button
-              onClick={() => setCurrentPage(currentPage + 1)}
-              disabled={currentPage >= Math.ceil(filteredListings.length / 12)}
-              className={`px-4 py-2 rounded-lg border ${
-                currentPage >= Math.ceil(filteredListings.length / 12)
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-white text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              Next
-            </button>
-          </div>
-        )}
       </main>
 
       <Footer />
@@ -1093,6 +1494,12 @@ const SearchResults = () => {
         }
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
+        }
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
         }
         .line-clamp-1 {
           display: -webkit-box;
