@@ -1,8 +1,22 @@
-// Hero.jsx - Updated with mouse pointer cursor on all elements
-import React, { useEffect, useRef, useState } from "react";
+// Hero.jsx - Complete component with all functions
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import SearchModal from "./SearchModal"; // Import the updated SearchModal
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faSearch,
+  faTimes,
+  faChevronDown,
+  faMapMarkerAlt,
+  faFilter,
+  faChevronRight,
+} from "@fortawesome/free-solid-svg-icons";
 
 // FALLBACK IMAGES
 const FALLBACK_IMAGES = {
@@ -14,6 +28,62 @@ const FALLBACK_IMAGES = {
     "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop&q=80",
   Tourism:
     "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=300&fit=crop&q=80",
+};
+
+// Helper function to fetch Google Sheet data
+const useGoogleSheet = (sheetId, apiKey) => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!sheetId || !apiKey) {
+      setError("⚠️ Missing SHEET_ID or API_KEY");
+      setLoading(false);
+      return;
+    }
+
+    const fetchData = async () => {
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A1:Z1000?key=${apiKey}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        let result = [];
+        if (
+          json.values &&
+          Array.isArray(json.values) &&
+          json.values.length > 1
+        ) {
+          const headers = json.values[0];
+          const rows = json.values.slice(1);
+          result = rows
+            .filter((row) => Array.isArray(row) && row.length > 0)
+            .map((row, index) => {
+              const obj = {};
+              headers.forEach((h, i) => {
+                obj[h?.toString().trim() || `col_${i}`] = (row[i] || "")
+                  .toString()
+                  .trim();
+              });
+              obj.id = obj.id || `item-${index}`;
+              return obj;
+            });
+        }
+        setData(result);
+      } catch (err) {
+        console.error("Google Sheets fetch error:", err);
+        setError("⚠️ Failed to load directory. Try again later.");
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [sheetId, apiKey]);
+
+  return { data: Array.isArray(data) ? data : [], loading, error };
 };
 
 // Helper function to safely get image source
@@ -62,333 +132,344 @@ const getCategoryImage = (category, fallback) => {
   }
 };
 
-// Utility functions
-const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
+// Helper functions for search
+const getCategoryDisplayName = (category) => {
+  if (!category || category === "All Categories") return "All Categories";
 
-const AREA_CLUSTERS = {
-  Bodija: { lat: 7.4762, lng: 3.9147, radius: 2 },
-  Sango: { lat: 7.4762, lng: 3.9147, radius: 2 },
-  Mokola: { lat: 7.4762, lng: 3.9147, radius: 2 },
-  Jericho: { lat: 7.4762, lng: 3.9147, radius: 2 },
-  "Ring Road": { lat: 7.4762, lng: 3.9147, radius: 2 },
-  Agodi: { lat: 7.4762, lng: 3.9147, radius: 2 },
-  UI: { lat: 7.4762, lng: 3.9147, radius: 2 },
-  Dugbe: { lat: 7.4762, lng: 3.9147, radius: 2 },
-  "Iwo Road": { lat: 7.4762, lng: 3.9147, radius: 2 },
-  Challenge: { lat: 7.4762, lng: 3.9147, radius: 2 },
-  Moniya: { lat: 7.4762, lng: 3.9147, radius: 2 },
-  Akobo: { lat: 7.4762, lng: 3.9147, radius: 2 },
-  Oluyole: { lat: 7.4762, lng: 3.9147, radius: 2 },
-  "New Garage": { lat: 7.4762, lng: 3.9147, radius: 2 },
-  Ojoo: { lat: 7.4762, lng: 3.9147, radius: 2 },
-  Ologuneru: { lat: 7.4762, lng: 3.9147, radius: 2 },
-  "Oke-Are": { lat: 7.4762, lng: 3.9147, radius: 2 },
-  "New Bodija": { lat: 7.4762, lng: 3.9147, radius: 2 },
-  Gate: { lat: 7.4762, lng: 3.9147, radius: 2 },
-};
-
-const findNearbyAreas = (targetArea, allListings, maxDistance = 5) => {
-  const targetCluster = AREA_CLUSTERS[targetArea];
-  if (!targetCluster) return [];
-  const nearbyAreas = new Set();
-  nearbyAreas.add(targetArea);
-  Object.entries(AREA_CLUSTERS).forEach(([area, cluster]) => {
-    if (area !== targetArea) {
-      const distance = calculateDistance(
-        targetCluster.lat,
-        targetCluster.lng,
-        cluster.lat,
-        cluster.lng
-      );
-      if (distance <= maxDistance) {
-        nearbyAreas.add(area);
-      }
-    }
-  });
-  return Array.from(nearbyAreas);
-};
-
-const getAreaGroups = () => {
-  const groups = [];
-  const processedAreas = new Set();
-  Object.keys(AREA_CLUSTERS).forEach((area) => {
-    if (!processedAreas.has(area)) {
-      const nearby = findNearbyAreas(area, [], 3);
-      groups.push(nearby);
-      nearby.forEach((a) => processedAreas.add(a));
-    }
-  });
-  return groups;
-};
-
-const normalizeWord = (word) => {
-  if (!word || typeof word !== "string") return "";
-  const lowerWord = word.toLowerCase().trim();
-  const pluralToSingular = {
-    hotels: "hotel",
-    restaurants: "restaurant",
-    events: "event",
-    tourisms: "tourism",
-    cafes: "cafe",
-    cafés: "cafe",
-    bars: "bar",
-    hostels: "hostel",
-    shortlets: "shortlet",
-    services: "service",
-    attractions: "attraction",
-    gardens: "garden",
-    towers: "tower",
-    centers: "center",
-    centres: "centre",
-    vendors: "vendor",
-    markets: "market",
-    prices: "price",
-    results: "result",
-    stories: "story",
-  };
-  return pluralToSingular[lowerWord] || lowerWord;
-};
-
-const matchesWord = (searchWord, targetWord) => {
-  if (!searchWord || !targetWord) return false;
-  const normalizedSearch = normalizeWord(searchWord);
-  const normalizedTarget = normalizeWord(targetWord);
-  if (normalizedSearch === normalizedTarget) return true;
-  if (
-    normalizedTarget.includes(normalizedSearch) ||
-    normalizedSearch.includes(normalizedTarget)
-  ) {
-    return true;
+  const parts = category.split(".");
+  if (parts.length > 1) {
+    const afterDot = parts.slice(1).join(".").trim();
+    return afterDot
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   }
-  return false;
+
+  return category
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 };
 
-const useGoogleSheet = (sheetId, apiKey) => {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+const getLocationDisplayName = (location) => {
+  if (!location) return "All Locations";
 
+  const parts = location.split(".");
+  if (parts.length > 1) {
+    const afterDot = parts.slice(1).join(".").trim();
+    return afterDot
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  }
+
+  return location
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
+// Helper function to get location breakdown
+const getLocationBreakdown = (listings) => {
+  const locationCounts = {};
+  listings.forEach((item) => {
+    const location = getLocationDisplayName(item.area || "Unknown");
+    locationCounts[location] = (locationCounts[location] || 0) + 1;
+  });
+
+  return Object.entries(locationCounts)
+    .map(([location, count]) => ({ location, count }))
+    .sort((a, b) => b.count - a.count);
+};
+
+// Helper function to get category breakdown by location
+const getCategoryBreakdownByLocation = (listings) => {
+  const categoryCounts = {};
+  listings.forEach((item) => {
+    const category = getCategoryDisplayName(item.category || "other.other");
+    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+  });
+
+  return Object.entries(categoryCounts)
+    .map(([category, count]) => ({ category, count }))
+    .sort((a, b) => b.count - a.count);
+};
+
+// Search Suggestions Component
+const SearchSuggestions = ({
+  searchQuery,
+  listings,
+  onSuggestionClick,
+  onClose,
+  isVisible,
+  isMobile,
+}) => {
+  const suggestionsRef = useRef(null);
+
+  // Generate suggestions based on search query
+  const suggestions = useMemo(() => {
+    if (!searchQuery.trim() || !listings.length) return [];
+
+    const query = searchQuery.toLowerCase().trim();
+    const suggestions = [];
+
+    // Get unique categories and locations
+    const uniqueCategories = [
+      ...new Set(
+        listings
+          .map((item) => item.category)
+          .filter((cat) => cat && cat.trim() !== "")
+          .map((cat) => cat.trim())
+      ),
+    ];
+
+    const uniqueLocations = [
+      ...new Set(
+        listings
+          .map((item) => item.area)
+          .filter((loc) => loc && loc.trim() !== "")
+          .map((loc) => loc.trim())
+      ),
+    ];
+
+    // Category suggestions
+    const categoryMatches = uniqueCategories
+      .filter((category) => {
+        const displayName = getCategoryDisplayName(category).toLowerCase();
+        return displayName.includes(query);
+      })
+      .map((category) => {
+        const categoryListings = listings.filter(
+          (item) =>
+            item.category &&
+            item.category.toLowerCase() === category.toLowerCase()
+        );
+        const locationBreakdown = getLocationBreakdown(categoryListings);
+
+        return {
+          type: "category",
+          title: getCategoryDisplayName(category),
+          count: categoryListings.length,
+          description: `Search ${
+            categoryListings.length
+          } ${getCategoryDisplayName(category).toLowerCase()} places`,
+          locations: locationBreakdown,
+          action: () => {
+            const params = new URLSearchParams();
+            params.append("category", category);
+            return `/search-results?${params.toString()}`;
+          },
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    // Location suggestions
+    const locationMatches = uniqueLocations
+      .filter((location) => {
+        const displayName = getLocationDisplayName(location).toLowerCase();
+        return displayName.includes(query);
+      })
+      .map((location) => {
+        const locationListings = listings.filter(
+          (item) =>
+            item.area && item.area.toLowerCase() === location.toLowerCase()
+        );
+        const categoryBreakdown =
+          getCategoryBreakdownByLocation(locationListings);
+
+        return {
+          type: "location",
+          title: getLocationDisplayName(location),
+          count: locationListings.length,
+          description: `Search ${
+            locationListings.length
+          } places in ${getLocationDisplayName(location)}`,
+          categories: categoryBreakdown,
+          action: () => {
+            const params = new URLSearchParams();
+            params.append("location", location);
+            return `/search-results?${params.toString()}`;
+          },
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    // Combine and sort by relevance
+    return [...categoryMatches, ...locationMatches]
+      .sort((a, b) => {
+        // Exact matches first
+        const aExact = a.title.toLowerCase() === query;
+        const bExact = b.title.toLowerCase() === query;
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+
+        // Starts with query
+        const aStartsWith = a.title.toLowerCase().startsWith(query);
+        const bStartsWith = b.title.toLowerCase().startsWith(query);
+        if (aStartsWith && !bStartsWith) return -1;
+        if (!aStartsWith && bStartsWith) return 1;
+
+        // Then by count
+        return b.count - a.count;
+      })
+      .slice(0, 6); // Limit to 6 suggestions
+  }, [searchQuery, listings]);
+
+  // Handle click outside
   useEffect(() => {
-    if (!sheetId || !apiKey) {
-      setError("⚠️ Missing SHEET_ID or API_KEY");
-      setLoading(false);
-      return;
-    }
-
-    const fetchData = async () => {
-      try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A1:Z1000?key=${apiKey}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        let result = [];
-        if (
-          json.values &&
-          Array.isArray(json.values) &&
-          json.values.length > 1
-        ) {
-          const headers = json.values[0];
-          const rows = json.values.slice(1);
-          result = rows
-            .filter((row) => Array.isArray(row) && row.length > 0)
-            .map((row) => {
-              const obj = {};
-              headers.forEach((h, i) => {
-                obj[h?.toString().trim() || `col_${i}`] = (row[i] || "")
-                  .toString()
-                  .trim();
-              });
-              return obj;
-            });
-        }
-        setData(result);
-      } catch (err) {
-        console.error("Google Sheets fetch error:", err);
-        setError("⚠️ Failed to load directory. Try again later.");
-        setData([]);
-      } finally {
-        setLoading(false);
+    const handleClickOutside = (event) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target)
+      ) {
+        onClose();
       }
     };
 
-    fetchData();
-  }, [sheetId, apiKey]);
+    if (isVisible) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
 
-  return { data: Array.isArray(data) ? data : [], loading, error };
-};
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isVisible, onClose]);
 
-const getCardImages = (item) => {
-  const raw = item["image url"] || "";
-  const urls = raw
-    .split(",")
-    .map((u) => u.trim())
-    .filter((u) => u && u.startsWith("http"));
-  if (urls.length > 0) return urls[0];
-  const cat = (item.category || "").toLowerCase();
-  if (cat.includes("hotel"))
-    return "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80";
-  if (cat.includes("restaurant"))
-    return "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80";
-  if (cat.includes("shortlet"))
-    return "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80";
-  return "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80";
-};
-
-// Animated Not Found Modal Component
-const NotFoundModal = ({ isOpen, onClose, searchQuery }) => {
-  const navigate = useNavigate();
-
-  if (!isOpen) return null;
+  if (!isVisible || !searchQuery.trim() || suggestions.length === 0)
+    return null;
 
   return (
-    <>
-      <motion.div
-        className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-md cursor-default"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
-        onClick={onClose}
-      />
-      <motion.div
-        className="fixed inset-0 z-[10000] flex items-center justify-center p-4 cursor-default"
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.8, opacity: 0 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-      >
-        <div className="bg-white rounded-2xl max-w-md w-full p-6 md:p-8 shadow-2xl cursor-default">
-          <motion.div
-            className="text-center cursor-default"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.1 }}
-          >
-            {/* Animated Icon */}
-            <motion.div
-              className="w-20 h-20 mx-auto mb-6 relative cursor-default"
-              animate={{
-                scale: [1, 1.1, 1],
-                rotate: [0, 5, -5, 0],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                repeatType: "reverse",
-              }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full" />
-              <svg
-                className="w-12 h-12 text-gray-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 cursor-default"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.5"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </motion.div>
-
-            {/* Title */}
-            <motion.h3
-              className="text-2xl font-bold text-gray-900 mb-2 font-manrope cursor-default"
-              initial={{ y: 10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              No Results Found
-            </motion.h3>
-
-            {/* Message */}
-            <motion.p
-              className="text-gray-600 mb-6 font-manrope cursor-default"
-              initial={{ y: 10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              We couldn't find any results for{" "}
-              <span className="font-semibold text-blue-600 cursor-default">
-                "{searchQuery}"
-              </span>
-            </motion.p>
-
-            {/* Suggestions */}
-            <motion.div
-              className="mb-8 cursor-default"
-              initial={{ y: 10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4 }}
-            >
-              <p className="text-sm text-gray-500 mb-3 font-manrope cursor-default">
-                Try searching for:
-              </p>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {["Hotels", "Restaurants", "Bodija", "Mokola", "Shortlets"].map(
-                  (suggestion, index) => (
-                    <motion.button
-                      key={suggestion}
-                      className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm hover:bg-blue-100 transition-colors border border-blue-200 cursor-pointer"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        onClose();
-                        // You can trigger a new search here if needed
-                      }}
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: 0.5 + index * 0.1 }}
-                    >
-                      {suggestion}
-                    </motion.button>
-                  )
-                )}
-              </div>
-            </motion.div>
-
-            {/* Buttons */}
-            <motion.div
-              className="flex flex-col sm:flex-row gap-3 cursor-default"
-              initial={{ y: 10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              <button
-                onClick={onClose}
-                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-manrope font-medium cursor-pointer"
-              >
-                Try Another Search
-              </button>
-            </motion.div>
-
-            {/* Additional Help */}
-            <motion.p
-              className="text-xs text-gray-400 mt-6 font-manrope cursor-default"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-            >
-              Need help? Check our categories or contact support
-            </motion.p>
-          </motion.div>
+    <div
+      ref={suggestionsRef}
+      className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-[80vh] overflow-y-auto"
+      style={{
+        position: "absolute",
+        width: "100%",
+        maxWidth: "600px",
+        left: "50%",
+        transform: "translateX(-50%)",
+      }}
+    >
+      <div className="p-3 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+            Quick search suggestions
+          </span>
+          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+            {suggestions.length} suggestions
+          </span>
         </div>
-      </motion.div>
-    </>
+      </div>
+
+      <div className="divide-y divide-gray-100">
+        {suggestions.map((suggestion, index) => (
+          <div
+            key={index}
+            className="p-4 hover:bg-blue-50 cursor-pointer transition-colors group"
+            onClick={() => {
+              if (suggestion.action) {
+                onSuggestionClick(suggestion.action());
+              }
+            }}
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                  <FontAwesomeIcon
+                    icon={
+                      suggestion.type === "category" ? faFilter : faMapMarkerAlt
+                    }
+                    className={`text-sm ${
+                      suggestion.type === "category"
+                        ? "text-blue-600"
+                        : "text-green-600"
+                    }`}
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-gray-900">
+                      {suggestion.title}
+                    </h3>
+                    <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
+                      {suggestion.count}{" "}
+                      {suggestion.count === 1 ? "place" : "places"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {suggestion.description}
+                  </p>
+                </div>
+              </div>
+              <div className="text-gray-400 group-hover:text-blue-500 transition-colors">
+                <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+              </div>
+            </div>
+
+            {/* Location or Category breakdown */}
+            {suggestion.type === "category" &&
+              suggestion.locations &&
+              suggestion.locations.length > 0 && (
+                <div className="ml-10 mt-2">
+                  <p className="text-xs text-gray-500 mb-1">
+                    Available in these areas:
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {suggestion.locations.slice(0, 5).map((loc, idx) => (
+                      <span
+                        key={idx}
+                        className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100"
+                      >
+                        {loc.location} ({loc.count})
+                      </span>
+                    ))}
+                    {suggestion.locations.length > 5 && (
+                      <span className="text-xs text-gray-500">
+                        +{suggestion.locations.length - 5} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+            {suggestion.type === "location" &&
+              suggestion.categories &&
+              suggestion.categories.length > 0 && (
+                <div className="ml-10 mt-2">
+                  <p className="text-xs text-gray-500 mb-1">Places include:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {suggestion.categories.slice(0, 5).map((cat, idx) => (
+                      <span
+                        key={idx}
+                        className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-100"
+                      >
+                        {cat.category} ({cat.count})
+                      </span>
+                    ))}
+                    {suggestion.categories.length > 5 && (
+                      <span className="text-xs text-gray-500">
+                        +{suggestion.categories.length - 5} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+            <div className="ml-10 mt-3">
+              <span className="text-xs text-blue-600 font-medium">
+                Click to view all results →
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="p-3 bg-gray-50 border-t border-gray-100">
+        <p className="text-xs text-gray-500 text-center">
+          Click any suggestion to view detailed results
+        </p>
+      </div>
+    </div>
   );
 };
 
@@ -398,81 +479,60 @@ const Hero = () => {
   const heroRef = useRef(null);
   const isInView = useInView(heroRef, { margin: "-100px", once: false });
   const [searchQuery, setSearchQuery] = useState("");
-  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
-  const [isNotFoundModalOpen, setIsNotFoundModalOpen] = useState(false);
-  const [suggestions, setSuggestions] = useState([]);
-  const [areaSuggestions, setAreaSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const searchInputRef = useRef(null);
 
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
   const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
-  const { data: listings = [] } = useGoogleSheet(SHEET_ID, API_KEY);
+  const { data: listings = [], loading } = useGoogleSheet(SHEET_ID, API_KEY);
 
-  const filterVendors = (query, vendors) => {
-    if (!query.trim()) return [];
-    const normalizedQuery = normalizeWord(query);
-    const queryWords = normalizedQuery
-      .split(" ")
-      .filter((word) => word.length > 0);
-    return vendors.filter((item) => {
-      const areaMatch = queryWords.some(
-        (word) =>
-          item.area && item.area.toLowerCase().includes(word.toLowerCase())
-      );
-      const nearbyAreasMatch = queryWords.some((word) => {
-        const targetArea = Object.keys(AREA_CLUSTERS).find((area) =>
-          area.toLowerCase().includes(word.toLowerCase())
-        );
-        if (targetArea && item.area) {
-          const nearbyAreas = findNearbyAreas(targetArea, vendors, 3);
-          return nearbyAreas.includes(item.area);
-        }
-        return false;
-      });
-      const categoryMatch = queryWords.some(
-        (word) =>
-          matchesWord(word, item.category) ||
-          (item.category &&
-            item.category.toLowerCase().includes(word.toLowerCase()))
-      );
-      const nameMatch = queryWords.some(
-        (word) =>
-          item.name && item.name.toLowerCase().includes(word.toLowerCase())
-      );
-      return areaMatch || nearbyAreasMatch || categoryMatch || nameMatch;
-    });
-  };
-
-  const getAreaSuggestions = (query = "") => {
-    const allAreas = [
-      ...new Set(listings.map((item) => item.area).filter(Boolean)),
-    ];
-    if (!query.trim()) {
-      const areaGroups = getAreaGroups();
-      return areaGroups.slice(0, 3).flat();
-    }
-    const matchingAreas = allAreas.filter((area) =>
-      area.toLowerCase().includes(query.toLowerCase())
-    );
-    const nearbySuggestions = new Set();
-    matchingAreas.forEach((area) => {
-      nearbySuggestions.add(area);
-      const nearby = findNearbyAreas(area, listings, 3);
-      nearby.forEach((nearbyArea) => nearbySuggestions.add(nearbyArea));
-    });
-    return Array.from(nearbySuggestions).slice(0, 6);
-  };
-
+  // Check for mobile view
   useEffect(() => {
-    if (searchQuery.trim() === "") {
-      setSuggestions([]);
-      setAreaSuggestions(getAreaSuggestions());
-      return;
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Handle search submission
+  const handleSearchSubmit = useCallback(() => {
+    if (searchQuery.trim()) {
+      const params = new URLSearchParams();
+      params.append("q", searchQuery.trim());
+      navigate(`/search-results?${params.toString()}`);
+      setShowSuggestions(false);
     }
-    const filtered = filterVendors(searchQuery, listings).slice(0, 8);
-    setSuggestions(filtered);
-    const matchingAreas = getAreaSuggestions(searchQuery);
-    setAreaSuggestions(matchingAreas);
-  }, [searchQuery, listings]);
+  }, [searchQuery, navigate]);
+
+  const handleKeyPress = useCallback(
+    (e) => {
+      if (e.key === "Enter") {
+        handleSearchSubmit();
+      }
+    },
+    [handleSearchSubmit]
+  );
+
+  const handleSuggestionClick = useCallback(
+    (url) => {
+      navigate(url);
+      setShowSuggestions(false);
+      setSearchQuery("");
+    },
+    [navigate]
+  );
+
+  const handleSearchChange = useCallback((value) => {
+    setSearchQuery(value);
+    setShowSuggestions(value.trim().length > 0);
+  }, []);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery("");
+    setShowSuggestions(false);
+    searchInputRef.current?.focus();
+  }, []);
 
   const handleCategoryClick = (category) => {
     const categoryMap = {
@@ -485,49 +545,6 @@ const Hero = () => {
     if (categorySlug) {
       navigate(`/category/${categorySlug}`);
     }
-  };
-
-  const handleSelectSuggestion = (vendor) => {
-    if (vendor && vendor.id) {
-      setIsSearchModalOpen(false);
-      navigate(`/vendor-detail/${vendor.id}`);
-    }
-  };
-
-  const handleSearchSubmit = () => {
-    if (searchQuery.trim()) {
-      const filtered = filterVendors(searchQuery, listings);
-      if (filtered.length > 0) {
-        // If we have results, navigate to the first one
-        setIsSearchModalOpen(false);
-        navigate(`/vendor-detail/${filtered[0].id}`);
-      } else {
-        // If no results, show not found modal
-        setIsSearchModalOpen(false);
-        setIsNotFoundModalOpen(true);
-      }
-    }
-  };
-
-  const handleSearchClick = (e) => {
-    e.stopPropagation();
-    if (searchQuery.trim()) {
-      handleSearchSubmit();
-    } else {
-      setIsSearchModalOpen(true);
-    }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      handleSearchSubmit();
-    }
-  };
-
-  const handleSelectArea = (area) => {
-    setSearchQuery(area);
-    setIsSearchModalOpen(false);
-    navigate(`/search?query=${encodeURIComponent(area)}`);
   };
 
   return (
@@ -546,7 +563,7 @@ const Hero = () => {
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6 }}
               viewport={{ margin: "-100px", once: false }}
-              className="flex flex-col justify-start space-y-2 sm:space-y-3 max-w-xl sm:max-w-2xl w-full cursor-default"
+              className="flex flex-col justify-start space-y-2 sm:space-y-3 max-w-xl sm:max-w-2xl w-full cursor-default relative"
             >
               <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-manrope font-bold text-[#101828] leading-tight mt-1 sm:mt-2 px-2 cursor-default">
                 Discover Ibadan through AI & Local Stories
@@ -556,32 +573,24 @@ const Hero = () => {
                 and market prices.
               </p>
 
-              {/* Updated Search Bar - Same design as SearchModal */}
+              {/* Search Bar with Suggestions */}
               <div className="relative mx-auto w-full max-w-md px-2 cursor-default">
                 <div className="flex items-center cursor-default">
-                  <div className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-10 cursor-default">
+                  <div
+                    className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-10 cursor-default"
+                    ref={searchInputRef}
+                  >
                     <div className="pl-3 sm:pl-4 text-gray-500 cursor-default">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4 sm:h-5 sm:w-5 cursor-default"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                        />
-                      </svg>
+                      <FontAwesomeIcon icon={faSearch} className="h-4 w-4" />
                     </div>
                     <input
                       type="text"
-                      placeholder="Search by area or category..."
+                      placeholder="Search by area, category, or name..."
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onFocus={() => setIsSearchModalOpen(true)}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      onFocus={() =>
+                        setShowSuggestions(searchQuery.trim().length > 0)
+                      }
                       onKeyPress={handleKeyPress}
                       className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope cursor-pointer"
                       autoFocus={false}
@@ -590,28 +599,15 @@ const Hero = () => {
                     />
                     {searchQuery && (
                       <button
-                        onClick={() => setSearchQuery("")}
+                        onClick={handleClearSearch}
                         className="p-1 mr-2 text-gray-500 hover:text-gray-700 cursor-pointer"
                         aria-label="Clear search"
                       >
-                        <svg
-                          className="w-4 h-4 cursor-pointer"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
+                        <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
                       </button>
                     )}
                   </div>
 
-                  {/* Separate Search Button with gap - Same as SearchModal */}
                   <div className="ml-2">
                     <button
                       onClick={handleSearchSubmit}
@@ -623,7 +619,16 @@ const Hero = () => {
                   </div>
                 </div>
 
-                {/* Search hint text - Same as SearchModal */}
+                {/* Search Suggestions Dropdown */}
+                <SearchSuggestions
+                  searchQuery={searchQuery}
+                  listings={listings}
+                  onSuggestionClick={handleSuggestionClick}
+                  onClose={() => setShowSuggestions(false)}
+                  isVisible={showSuggestions && !loading}
+                  isMobile={isMobile}
+                />
+
                 <motion.div
                   className="text-center mt-1 cursor-default"
                   initial={{ opacity: 0, y: 10 }}
@@ -641,119 +646,53 @@ const Hero = () => {
 
               {/* Category Icons */}
               <div className="flex justify-center gap-1 sm:gap-2 mt-2 sm:mt-3 overflow-hidden px-2 cursor-default">
-                <motion.div
-                  className="text-center cursor-pointer group"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleCategoryClick("Hotel")}
-                >
-                  <div className="relative">
-                    <img
-                      src={getCategoryImage("Hotel", FALLBACK_IMAGES.Hotel)}
-                      alt="Hotel"
-                      className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200 cursor-pointer"
-                      onError={(e) => {
-                        e.target.src = FALLBACK_IMAGES.Hotel;
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200 cursor-pointer"></div>
-                  </div>
-                  <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200 cursor-pointer">
-                    Hotel
-                  </p>
-                </motion.div>
-
-                <motion.div
-                  className="text-center cursor-pointer group"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleCategoryClick("Tourism")}
-                >
-                  <div className="relative">
-                    <img
-                      src={getCategoryImage("Tourism", FALLBACK_IMAGES.Tourism)}
-                      alt="Tourism"
-                      className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200 cursor-pointer"
-                      onError={(e) => {
-                        e.target.src = FALLBACK_IMAGES.Tourism;
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200 cursor-pointer"></div>
-                  </div>
-                  <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200 cursor-pointer">
-                    Tourism
-                  </p>
-                </motion.div>
-
-                <motion.div
-                  className="text-center cursor-pointer group"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleCategoryClick("Shortlet")}
-                >
-                  <div className="relative">
-                    <img
-                      src={getCategoryImage(
-                        "Shortlet",
-                        FALLBACK_IMAGES.Shortlet
-                      )}
-                      alt="Shortlet"
-                      className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200 cursor-pointer"
-                      onError={(e) => {
-                        e.target.src = FALLBACK_IMAGES.Shortlet;
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200 cursor-pointer"></div>
-                  </div>
-                  <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200 cursor-pointer">
-                    Shortlet
-                  </p>
-                </motion.div>
-
-                <motion.div
-                  className="text-center cursor-pointer group"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleCategoryClick("Restaurant")}
-                >
-                  <div className="relative">
-                    <img
-                      src={getCategoryImage(
-                        "Restaurant",
-                        FALLBACK_IMAGES.Restaurant
-                      )}
-                      alt="Restaurant"
-                      className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200 cursor-pointer"
-                      onError={(e) => {
-                        e.target.src = FALLBACK_IMAGES.Restaurant;
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200 cursor-pointer"></div>
-                  </div>
-                  <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200 cursor-pointer">
-                    Restaurant
-                  </p>
-                </motion.div>
+                {["Hotel", "Tourism", "Shortlet", "Restaurant"].map(
+                  (category) => (
+                    <motion.div
+                      key={category}
+                      className="text-center cursor-pointer group"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleCategoryClick(category)}
+                    >
+                      <div className="relative">
+                        <img
+                          src={getCategoryImage(
+                            category,
+                            FALLBACK_IMAGES[category]
+                          )}
+                          alt={category}
+                          className="w-10 h-10 rounded-lg overflow-hidden sm:w-12 sm:h-12 md:w-14 md:h-14 object-cover group-hover:brightness-110 group-hover:shadow-md transition-all duration-200 cursor-pointer"
+                          onError={(e) => {
+                            e.target.src = FALLBACK_IMAGES[category];
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200 cursor-pointer"></div>
+                      </div>
+                      <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-700 group-hover:text-[#06EAFC] transition-colors duration-200 cursor-pointer">
+                        {category}
+                      </p>
+                    </motion.div>
+                  )
+                )}
               </div>
             </motion.div>
           </div>
         </div>
+
+        {/* Backdrop for suggestions when visible */}
+        <AnimatePresence>
+          {showSuggestions && (
+            <motion.div
+              className="fixed inset-0 bg-black/20 z-40 cursor-default"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowSuggestions(false)}
+            />
+          )}
+        </AnimatePresence>
       </section>
-      <AnimatePresence>
-        <SearchModal
-          isOpen={isSearchModalOpen}
-          onClose={() => setIsSearchModalOpen(false)}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onSearchSubmit={handleSearchSubmit}
-          onSelectSuggestion={handleSelectSuggestion}
-        />
-        <NotFoundModal
-          isOpen={isNotFoundModalOpen}
-          onClose={() => setIsNotFoundModalOpen(false)}
-          searchQuery={searchQuery}
-        />
-      </AnimatePresence>
     </>
   );
 };

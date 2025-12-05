@@ -164,7 +164,311 @@ const getCardImages = (item) => {
   return [FALLBACK_IMAGES.default];
 };
 
-// Enhanced FilterSidebar Component - Updated with scroll to top functionality
+// Helper functions for search suggestions (from Hero.jsx)
+const getLocationBreakdown = (listings) => {
+  const locationCounts = {};
+  listings.forEach((item) => {
+    const location = getLocationDisplayName(item.area || "Unknown");
+    locationCounts[location] = (locationCounts[location] || 0) + 1;
+  });
+
+  return Object.entries(locationCounts)
+    .map(([location, count]) => ({ location, count }))
+    .sort((a, b) => b.count - a.count);
+};
+
+const getCategoryBreakdownByLocation = (listings) => {
+  const categoryCounts = {};
+  listings.forEach((item) => {
+    const category = getCategoryDisplayName(item.category || "other.other");
+    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+  });
+
+  return Object.entries(categoryCounts)
+    .map(([category, count]) => ({ category, count }))
+    .sort((a, b) => b.count - a.count);
+};
+
+// SEARCH SUGGESTIONS COMPONENT - EXACTLY like Hero.jsx
+const SearchSuggestions = ({
+  searchQuery,
+  listings,
+  onSuggestionClick,
+  onClose,
+  isVisible,
+  isMobile,
+}) => {
+  const suggestionsRef = useRef(null);
+
+  // Generate suggestions based on search query
+  const suggestions = React.useMemo(() => {
+    if (!searchQuery.trim() || !listings.length) return [];
+
+    const query = searchQuery.toLowerCase().trim();
+    const suggestions = [];
+
+    // Get unique categories and locations
+    const uniqueCategories = [
+      ...new Set(
+        listings
+          .map((item) => item.category)
+          .filter((cat) => cat && cat.trim() !== "")
+          .map((cat) => cat.trim())
+      ),
+    ];
+
+    const uniqueLocations = [
+      ...new Set(
+        listings
+          .map((item) => item.area)
+          .filter((loc) => loc && loc.trim() !== "")
+          .map((loc) => loc.trim())
+      ),
+    ];
+
+    // Category suggestions
+    const categoryMatches = uniqueCategories
+      .filter((category) => {
+        const displayName = getCategoryDisplayName(category).toLowerCase();
+        return displayName.includes(query);
+      })
+      .map((category) => {
+        const categoryListings = listings.filter(
+          (item) =>
+            item.category &&
+            item.category.toLowerCase() === category.toLowerCase()
+        );
+        const locationBreakdown = getLocationBreakdown(categoryListings);
+
+        return {
+          type: "category",
+          title: getCategoryDisplayName(category),
+          count: categoryListings.length,
+          description: `Search ${
+            categoryListings.length
+          } ${getCategoryDisplayName(category).toLowerCase()} places`,
+          locations: locationBreakdown,
+          action: () => {
+            const params = new URLSearchParams();
+            params.append("category", category);
+            return `/search-results?${params.toString()}`;
+          },
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    // Location suggestions
+    const locationMatches = uniqueLocations
+      .filter((location) => {
+        const displayName = getLocationDisplayName(location).toLowerCase();
+        return displayName.includes(query);
+      })
+      .map((location) => {
+        const locationListings = listings.filter(
+          (item) =>
+            item.area && item.area.toLowerCase() === location.toLowerCase()
+        );
+        const categoryBreakdown =
+          getCategoryBreakdownByLocation(locationListings);
+
+        return {
+          type: "location",
+          title: getLocationDisplayName(location),
+          count: locationListings.length,
+          description: `Search ${
+            locationListings.length
+          } places in ${getLocationDisplayName(location)}`,
+          categories: categoryBreakdown,
+          action: () => {
+            const params = new URLSearchParams();
+            params.append("location", location);
+            return `/search-results?${params.toString()}`;
+          },
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    // Combine and sort by relevance
+    return [...categoryMatches, ...locationMatches]
+      .sort((a, b) => {
+        // Exact matches first
+        const aExact = a.title.toLowerCase() === query;
+        const bExact = b.title.toLowerCase() === query;
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+
+        // Starts with query
+        const aStartsWith = a.title.toLowerCase().startsWith(query);
+        const bStartsWith = b.title.toLowerCase().startsWith(query);
+        if (aStartsWith && !bStartsWith) return -1;
+        if (!aStartsWith && bStartsWith) return 1;
+
+        // Then by count
+        return b.count - a.count;
+      })
+      .slice(0, 6); // Limit to 6 suggestions
+  }, [searchQuery, listings]);
+
+  // Handle click outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target)
+      ) {
+        onClose();
+      }
+    };
+
+    if (isVisible) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isVisible, onClose]);
+
+  if (!isVisible || !searchQuery.trim() || suggestions.length === 0)
+    return null;
+
+  return (
+    <div
+      ref={suggestionsRef}
+      className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 z-[10000] max-h-[80vh] overflow-y-auto"
+      style={{
+        position: "absolute",
+        width: "100%",
+        maxWidth: "600px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: 10000,
+      }}
+    >
+      <div className="p-3 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+            Quick search suggestions
+          </span>
+          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+            {suggestions.length} suggestions
+          </span>
+        </div>
+      </div>
+
+      <div className="divide-y divide-gray-100">
+        {suggestions.map((suggestion, index) => (
+          <div
+            key={index}
+            className="p-4 hover:bg-blue-50 cursor-pointer transition-colors group"
+            onClick={() => {
+              if (suggestion.action) {
+                onSuggestionClick(suggestion.action());
+              }
+            }}
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                  <FontAwesomeIcon
+                    icon={
+                      suggestion.type === "category" ? faFilter : faMapMarkerAlt
+                    }
+                    className={`text-sm ${
+                      suggestion.type === "category"
+                        ? "text-blue-600"
+                        : "text-green-600"
+                    }`}
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-gray-900">
+                      {suggestion.title}
+                    </h3>
+                    <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
+                      {suggestion.count}{" "}
+                      {suggestion.count === 1 ? "place" : "places"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {suggestion.description}
+                  </p>
+                </div>
+              </div>
+              <div className="text-gray-400 group-hover:text-blue-500 transition-colors">
+                <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+              </div>
+            </div>
+
+            {/* Location or Category breakdown */}
+            {suggestion.type === "category" &&
+              suggestion.locations &&
+              suggestion.locations.length > 0 && (
+                <div className="ml-10 mt-2">
+                  <p className="text-xs text-gray-500 mb-1">
+                    Available in these areas:
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {suggestion.locations.slice(0, 5).map((loc, idx) => (
+                      <span
+                        key={idx}
+                        className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100"
+                      >
+                        {loc.location} ({loc.count})
+                      </span>
+                    ))}
+                    {suggestion.locations.length > 5 && (
+                      <span className="text-xs text-gray-500">
+                        +{suggestion.locations.length - 5} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+            {suggestion.type === "location" &&
+              suggestion.categories &&
+              suggestion.categories.length > 0 && (
+                <div className="ml-10 mt-2">
+                  <p className="text-xs text-gray-500 mb-1">Places include:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {suggestion.categories.slice(0, 5).map((cat, idx) => (
+                      <span
+                        key={idx}
+                        className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-100"
+                      >
+                        {cat.category} ({cat.count})
+                      </span>
+                    ))}
+                    {suggestion.categories.length > 5 && (
+                      <span className="text-xs text-gray-500">
+                        +{suggestion.categories.length - 5} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+            <div className="ml-10 mt-3">
+              <span className="text-xs text-blue-600 font-medium">
+                Click to view all results →
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="p-3 bg-gray-50 border-t border-gray-100">
+        <p className="text-xs text-gray-500 text-center">
+          Click any suggestion to view detailed results
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// ENHANCED FilterSidebar Component with SEARCHABLE dropdowns for location and category
 const FilterSidebar = ({
   onFilterChange,
   allLocations,
@@ -173,7 +477,11 @@ const FilterSidebar = ({
   onClose,
   isMobileModal = false,
   isDesktopModal = false,
-  onApplyFilters, // New prop to handle apply filters with scroll
+  onApplyFilters,
+  currentSearchQuery = "",
+  currentCategoryParam = "",
+  currentLocationParam = "",
+  onDynamicFilterApply,
 }) => {
   const [filters, setFilters] = useState(
     currentFilters || {
@@ -193,6 +501,43 @@ const FilterSidebar = ({
     rating: true,
     amenities: false,
   });
+
+  // Search states for location and category
+  const [locationSearch, setLocationSearch] = useState("");
+  const [categorySearch, setCategorySearch] = useState("");
+
+  // Get unique display names for locations and categories
+  const uniqueLocationDisplayNames = React.useMemo(() => {
+    const locations = [
+      ...new Set(allLocations.map((loc) => getLocationDisplayName(loc))),
+    ];
+    return locations.sort();
+  }, [allLocations]);
+
+  const uniqueCategoryDisplayNames = React.useMemo(() => {
+    const categories = [
+      ...new Set(allCategories.map((cat) => getCategoryDisplayName(cat))),
+    ];
+    return categories.sort();
+  }, [allCategories]);
+
+  // Filter locations based on search
+  const filteredLocationDisplayNames = React.useMemo(() => {
+    if (!locationSearch.trim()) return uniqueLocationDisplayNames;
+    const searchTerm = locationSearch.toLowerCase().trim();
+    return uniqueLocationDisplayNames.filter((location) =>
+      location.toLowerCase().includes(searchTerm)
+    );
+  }, [uniqueLocationDisplayNames, locationSearch]);
+
+  // Filter categories based on search
+  const filteredCategoryDisplayNames = React.useMemo(() => {
+    if (!categorySearch.trim()) return uniqueCategoryDisplayNames;
+    const searchTerm = categorySearch.toLowerCase().trim();
+    return uniqueCategoryDisplayNames.filter((category) =>
+      category.toLowerCase().includes(searchTerm)
+    );
+  }, [uniqueCategoryDisplayNames, categorySearch]);
 
   // Toggle section expansion
   const toggleSection = (section) => {
@@ -246,6 +591,43 @@ const FilterSidebar = ({
     }));
   };
 
+  const handleDynamicApply = () => {
+    if (onDynamicFilterApply) {
+      const hasCategoryFilters = filters.categories.length > 0;
+      const hasLocationFilters = filters.locations.length > 0;
+
+      let newCategory = currentCategoryParam;
+      let newLocation = currentLocationParam;
+
+      if (hasCategoryFilters && filters.categories[0]) {
+        const selectedCategory = allCategories.find(
+          (cat) => getCategoryDisplayName(cat) === filters.categories[0]
+        );
+        if (selectedCategory) {
+          newCategory = selectedCategory;
+        }
+      }
+
+      if (hasLocationFilters && filters.locations[0]) {
+        const selectedLocation = allLocations.find(
+          (loc) => getLocationDisplayName(loc) === filters.locations[0]
+        );
+        if (selectedLocation) {
+          newLocation = selectedLocation;
+        }
+      }
+
+      onDynamicFilterApply({
+        filters,
+        newCategory,
+        newLocation,
+        keepSearchQuery: currentSearchQuery,
+      });
+    }
+
+    handleApply();
+  };
+
   const handleReset = () => {
     const resetFilters = {
       locations: [],
@@ -256,6 +638,8 @@ const FilterSidebar = ({
       amenities: [],
     };
     setFilters(resetFilters);
+    setLocationSearch("");
+    setCategorySearch("");
     onFilterChange(resetFilters);
     if (onApplyFilters) {
       onApplyFilters(resetFilters);
@@ -273,42 +657,26 @@ const FilterSidebar = ({
   };
 
   const handleSelectAllLocations = () => {
-    if (filters.locations.length === allLocations.length) {
-      // If all are selected, clear selection
+    if (filters.locations.length === uniqueLocationDisplayNames.length) {
       setFilters((prev) => ({ ...prev, locations: [] }));
     } else {
-      // Select all unique locations
       setFilters((prev) => ({
         ...prev,
-        locations: [
-          ...new Set(allLocations.map((l) => getLocationDisplayName(l))),
-        ],
+        locations: [...uniqueLocationDisplayNames],
       }));
     }
   };
 
   const handleSelectAllCategories = () => {
-    if (filters.categories.length === allCategories.length) {
-      // If all are selected, clear selection
+    if (filters.categories.length === uniqueCategoryDisplayNames.length) {
       setFilters((prev) => ({ ...prev, categories: [] }));
     } else {
-      // Select all unique categories
       setFilters((prev) => ({
         ...prev,
-        categories: [
-          ...new Set(allCategories.map((c) => getCategoryDisplayName(c))),
-        ],
+        categories: [...uniqueCategoryDisplayNames],
       }));
     }
   };
-
-  // Get unique display names for locations and categories
-  const uniqueLocationDisplayNames = [
-    ...new Set(allLocations.map((loc) => getLocationDisplayName(loc))),
-  ].sort();
-  const uniqueCategoryDisplayNames = [
-    ...new Set(allCategories.map((cat) => getCategoryDisplayName(cat))),
-  ].sort();
 
   const sidebarContent = (
     <div
@@ -333,7 +701,7 @@ const FilterSidebar = ({
         </div>
       )}
 
-      {/* LOCATION SECTION */}
+      {/* LOCATION SECTION WITH SEARCH */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("location")}
@@ -357,34 +725,70 @@ const FilterSidebar = ({
         {expandedSections.location && (
           <>
             <div className="mb-3">
-              <button
-                onClick={handleSelectAllLocations}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-              >
-                {filters.locations.length === uniqueLocationDisplayNames.length
-                  ? "Clear All Locations"
-                  : "Select All Locations"}
-              </button>
+              <div className="relative mb-3">
+                <FontAwesomeIcon
+                  icon={faSearch}
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"
+                />
+                <input
+                  type="text"
+                  placeholder="Search locations..."
+                  value={locationSearch}
+                  onChange={(e) => setLocationSearch(e.target.value)}
+                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                />
+                {locationSearch && (
+                  <button
+                    onClick={() => setLocationSearch("")}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <FontAwesomeIcon icon={faTimes} className="text-sm" />
+                  </button>
+                )}
+              </div>
+              <div className="flex justify-between mb-2">
+                <button
+                  onClick={handleSelectAllLocations}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  {filters.locations.length ===
+                  uniqueLocationDisplayNames.length
+                    ? "Clear All Locations"
+                    : "Select All Locations"}
+                </button>
+                <span className="text-xs text-gray-500">
+                  {filteredLocationDisplayNames.length} locations
+                </span>
+              </div>
             </div>
             <div className="max-h-48 overflow-y-auto pr-2">
-              <div className="grid grid-cols-1 gap-2">
-                {uniqueLocationDisplayNames.map((location, index) => (
-                  <label
-                    key={index}
-                    className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={filters.locations.includes(location)}
-                      onChange={() => handleLocationChange(location)}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
-                    />
-                    <span className="text-sm text-gray-700 group-hover:text-[#06EAFC] transition-colors truncate">
-                      {location}
-                    </span>
-                  </label>
-                ))}
-              </div>
+              {filteredLocationDisplayNames.length === 0 ? (
+                <div className="text-center py-4 text-gray-500 text-sm">
+                  No locations found matching "{locationSearch}"
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-2">
+                  {filteredLocationDisplayNames.map((location, index) => (
+                    <label
+                      key={index}
+                      className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={filters.locations.includes(location)}
+                        onChange={() => handleLocationChange(location)}
+                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+                      />
+                      <span className="text-sm text-gray-700 group-hover:text-[#06EAFC] transition-colors truncate">
+                        {location}
+                      </span>
+                      {filters.locations.includes(location) && (
+                        <span className="ml-auto text-xs text-blue-600">✓</span>
+                      )}
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
             {filters.locations.length > 0 && (
               <div className="mt-3 p-2 bg-blue-50 rounded-lg">
@@ -399,7 +803,7 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* CATEGORY SECTION */}
+      {/* CATEGORY SECTION WITH SEARCH */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("category")}
@@ -423,34 +827,72 @@ const FilterSidebar = ({
         {expandedSections.category && (
           <>
             <div className="mb-3">
-              <button
-                onClick={handleSelectAllCategories}
-                className="text-sm text-green-600 hover:text-green-700 font-medium"
-              >
-                {filters.categories.length === uniqueCategoryDisplayNames.length
-                  ? "Clear All Categories"
-                  : "Select All Categories"}
-              </button>
+              <div className="relative mb-3">
+                <FontAwesomeIcon
+                  icon={faSearch}
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"
+                />
+                <input
+                  type="text"
+                  placeholder="Search categories..."
+                  value={categorySearch}
+                  onChange={(e) => setCategorySearch(e.target.value)}
+                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                />
+                {categorySearch && (
+                  <button
+                    onClick={() => setCategorySearch("")}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <FontAwesomeIcon icon={faTimes} className="text-sm" />
+                  </button>
+                )}
+              </div>
+              <div className="flex justify-between mb-2">
+                <button
+                  onClick={handleSelectAllCategories}
+                  className="text-sm text-green-600 hover:text-green-700 font-medium"
+                >
+                  {filters.categories.length ===
+                  uniqueCategoryDisplayNames.length
+                    ? "Clear All Categories"
+                    : "Select All Categories"}
+                </button>
+                <span className="text-xs text-gray-500">
+                  {filteredCategoryDisplayNames.length} categories
+                </span>
+              </div>
             </div>
             <div className="max-h-48 overflow-y-auto pr-2">
-              <div className="grid grid-cols-1 gap-2">
-                {uniqueCategoryDisplayNames.map((category, index) => (
-                  <label
-                    key={index}
-                    className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={filters.categories.includes(category)}
-                      onChange={() => handleCategoryChange(category)}
-                      className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 transition-colors"
-                    />
-                    <span className="text-sm text-gray-700 group-hover:text-[#06EAFC] transition-colors truncate">
-                      {category}
-                    </span>
-                  </label>
-                ))}
-              </div>
+              {filteredCategoryDisplayNames.length === 0 ? (
+                <div className="text-center py-4 text-gray-500 text-sm">
+                  No categories found matching "{categorySearch}"
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-2">
+                  {filteredCategoryDisplayNames.map((category, index) => (
+                    <label
+                      key={index}
+                      className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={filters.categories.includes(category)}
+                        onChange={() => handleCategoryChange(category)}
+                        className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 transition-colors"
+                      />
+                      <span className="text-sm text-gray-700 group-hover:text-[#06EAFC] transition-colors truncate">
+                        {category}
+                      </span>
+                      {filters.categories.includes(category) && (
+                        <span className="ml-auto text-xs text-green-600">
+                          ✓
+                        </span>
+                      )}
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
             {filters.categories.length > 0 && (
               <div className="mt-3 p-2 bg-green-50 rounded-lg">
@@ -590,20 +1032,25 @@ const FilterSidebar = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex space-x-3 pt-4">
-        <button
-          onClick={handleReset}
-          className="flex-1 px-4 py-3 text-sm font-medium border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
-        >
-          Reset All
-        </button>
-        <button
-          onClick={handleApply}
-          className="flex-1 px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2"
-        >
-          <FontAwesomeIcon icon={faCheck} />
-          Apply Filters
-        </button>
+      <div className="flex flex-col space-y-3 pt-4">
+        <div className="flex space-x-3">
+          <button
+            onClick={handleReset}
+            className="flex-1 px-4 py-3 text-sm font-medium border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+          >
+            Reset All
+          </button>
+          <button
+            onClick={handleDynamicApply}
+            className="flex-1 px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2"
+          >
+            <FontAwesomeIcon icon={faCheck} />
+            Apply Filters
+          </button>
+        </div>
+        <p className="text-xs text-gray-500 text-center">
+          Applying filters will update the search results
+        </p>
       </div>
     </div>
   );
@@ -639,7 +1086,6 @@ const FilterSidebar = ({
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit sticky top-6">
       <div className="mb-6">
         <h3 className="text-lg font-bold text-gray-900">Filter Options</h3>
-        <p className="text-sm text-gray-500 mt-1">Refine your search results</p>
       </div>
       {sidebarContent}
     </div>
@@ -674,7 +1120,6 @@ const BusinessCard = ({ item, isMobile }) => {
     }
   };
 
-  // EXACTLY like CategoryResults.jsx BusinessCard
   return (
     <div
       className={`
@@ -701,14 +1146,14 @@ const BusinessCard = ({ item, isMobile }) => {
           loading="lazy"
         />
 
-        {/* Guest favorite badge - EXACTLY like CategoryResults */}
+        {/* Guest favorite badge */}
         <div className="absolute top-2 left-2 bg-white px-1.5 py-1 rounded-md shadow-sm flex items-center gap-1">
           <span className="text-[9px] font-semibold text-gray-900">
             Guest favorite
           </span>
         </div>
 
-        {/* Heart icon - EXACTLY like CategoryResults */}
+        {/* Heart icon */}
         <button
           className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition"
           onClick={(e) => {
@@ -719,7 +1164,7 @@ const BusinessCard = ({ item, isMobile }) => {
         </button>
       </div>
 
-      {/* Text - EXACTLY like CategoryResults */}
+      {/* Text */}
       <div className={`${isMobile ? "p-1.5" : "p-2.5"} flex flex-col gap-0.5`}>
         <h3
           className={`
@@ -831,7 +1276,7 @@ const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
 
   if (items.length === 0) return null;
 
-  // EXACTLY like CategoryResults.jsx mobile view - 5 cards per row horizontal scrolling
+  // Mobile view - 5 cards per row horizontal scrolling
   if (isMobile) {
     return (
       <div className="mb-6">
@@ -848,7 +1293,7 @@ const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
           </div>
         </div>
 
-        {/* Horizontal scrolling container with 5 cards - EXACTLY like CategoryResults */}
+        {/* Horizontal scrolling container with 5 cards */}
         <div className="flex overflow-x-auto scrollbar-hide gap-2 pb-4">
           {items.map((listing, index) => (
             <BusinessCard
@@ -892,7 +1337,7 @@ const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
 
 // Main SearchResults Component
 const SearchResults = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
   // Get search parameters from URL
@@ -918,6 +1363,8 @@ const SearchResults = () => {
   const [allCategories, setAllCategories] = useState([]);
   const [filteredCount, setFilteredCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const searchInputRef = useRef(null);
   const filterButtonRef = useRef(null);
   const resultsRef = useRef(null);
@@ -954,6 +1401,11 @@ const SearchResults = () => {
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  // Update local search query when URL changes
+  useEffect(() => {
+    setLocalSearchQuery(searchQuery);
+  }, [searchQuery]);
 
   // Filter listings based on search parameters and active filters
   useEffect(() => {
@@ -998,7 +1450,7 @@ const SearchResults = () => {
       });
     }
 
-    // Apply advanced filters from dropdown
+    // Apply advanced filters from dropdown (GLOBAL FILTERS)
     if (activeFilters.locations.length > 0) {
       filtered = filtered.filter((item) => {
         const itemLocation = getLocationDisplayName(item.area || "");
@@ -1085,7 +1537,50 @@ const SearchResults = () => {
     setShowDesktopFilters(false);
   };
 
-  // Handle filter changes AND scroll to top
+  // NEW: Handle dynamic filter application (changes URL to show specific category/location)
+  const handleDynamicFilterApply = ({
+    filters,
+    newCategory,
+    newLocation,
+    keepSearchQuery,
+  }) => {
+    // Update URL to reflect the new category/location filter
+    const params = new URLSearchParams();
+
+    if (keepSearchQuery && searchQuery) {
+      params.set("q", searchQuery);
+    }
+
+    if (newCategory) {
+      params.set("category", newCategory);
+    } else if (category) {
+      params.set("category", category);
+    }
+
+    if (newLocation) {
+      params.set("location", newLocation);
+    } else if (location) {
+      params.set("location", location);
+    }
+
+    // Update URL
+    setSearchParams(params);
+
+    // Also update active filters
+    setActiveFilters(filters);
+
+    // Scroll to results
+    setTimeout(() => {
+      if (resultsRef.current) {
+        resultsRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    }, 100);
+  };
+
+  // Handle filter changes AND scroll to top (for regular filter updates)
   const handleFilterChangeWithScroll = (newFilters) => {
     setActiveFilters(newFilters);
 
@@ -1152,6 +1647,14 @@ const SearchResults = () => {
       amenities: [],
     };
     setActiveFilters(resetFilters);
+
+    // Also clear URL parameters for category/location
+    const params = new URLSearchParams();
+    if (searchQuery) {
+      params.set("q", searchQuery);
+    }
+    setSearchParams(params);
+
     // Scroll to top after clearing filters
     setTimeout(() => {
       if (resultsRef.current) {
@@ -1163,28 +1666,41 @@ const SearchResults = () => {
     }, 100);
   };
 
+  // Handle search input change
   const handleSearchChange = (e) => {
     const value = e.target.value;
-    // Update URL with new search query
-    const params = new URLSearchParams(searchParams);
-    if (value) {
-      params.set("q", value);
-    } else {
-      params.delete("q");
-    }
-    navigate(`/search-results?${params.toString()}`);
-  };
-
-  const handleClearSearch = () => {
-    const params = new URLSearchParams(searchParams);
-    params.delete("q");
-    navigate(`/search-results?${params.toString()}`);
+    setLocalSearchQuery(value);
+    setShowSuggestions(value.trim().length > 0);
   };
 
   // Handle search submit
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    // Search is already handled by URL parameter
+    if (localSearchQuery.trim()) {
+      // Update URL with search query, clear category and location filters
+      const params = new URLSearchParams();
+      params.set("q", localSearchQuery.trim());
+      setSearchParams(params);
+      setShowSuggestions(false);
+    }
+  };
+
+  // Handle clear search
+  const handleClearSearch = () => {
+    setLocalSearchQuery("");
+    setShowSuggestions(false);
+    const params = new URLSearchParams();
+    // Keep category and location if they exist
+    if (category) params.set("category", category);
+    if (location) params.set("location", location);
+    setSearchParams(params);
+  };
+
+  // Handle suggestion click
+  const handleSuggestionClick = (url) => {
+    navigate(url);
+    setShowSuggestions(false);
+    setLocalSearchQuery("");
   };
 
   const handleSearchInputClick = () => {
@@ -1298,52 +1814,102 @@ const SearchResults = () => {
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-32">
-        {/* Search Bar - EXACTLY like CategoryResults */}
+        {/* Search Bar - Original version */}
         <div className="flex justify-center mb-8">
-          <div className="w-full max-w-2xl">
-            <form
-              onSubmit={handleSearchSubmit}
-              className="relative mx-auto w-full"
-            >
-              <div
-                className="flex items-center bg-gray-200 rounded-[33.35px] shadow-sm w-full relative z-10 cursor-text"
-                onClick={handleSearchInputClick}
-              >
-                <div className="pl-4 text-gray-500">
-                  <FontAwesomeIcon icon={faSearch} className="h-4 w-4" />
-                </div>
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder="Search by area, category, or name..."
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                  className="flex-1 bg-transparent py-4 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 cursor-text"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={handleClearSearch}
-                    className="p-2 text-gray-500 hover:text-gray-700"
-                  >
-                    <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
-                  </button>
-                )}
-                <button
-                  type="submit"
-                  className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-[33.35px] border border-[#06EAFC] py-4 px-6 text-sm transition-colors duration-200 whitespace-nowrap mx-2"
-                  style={{
-                    width: "152.81px",
-                    height: "52.7px",
-                    borderWidth: "1.11px",
-                  }}
+          <div className="w-full max-w-md px-2">
+            <div className="relative mx-auto w-full" style={{ zIndex: 9998 }}>
+              <form onSubmit={handleSearchSubmit} className="relative">
+                <div
+                  className="flex items-center cursor-default"
+                  onClick={handleSearchInputClick}
                 >
-                  Search
-                </button>
-              </div>
-            </form>
+                  <div
+                    className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-10 cursor-default"
+                    ref={searchInputRef}
+                  >
+                    <div className="pl-3 sm:pl-4 text-gray-500 cursor-default">
+                      <FontAwesomeIcon icon={faSearch} className="h-4 w-4" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search by area, category, or name..."
+                      value={localSearchQuery}
+                      onChange={handleSearchChange}
+                      onFocus={() =>
+                        setShowSuggestions(localSearchQuery.trim().length > 0)
+                      }
+                      className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope cursor-pointer"
+                      aria-label="Search input"
+                      role="searchbox"
+                    />
+                    {localSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={handleClearSearch}
+                        className="p-1 mr-2 text-gray-500 hover:text-gray-700 cursor-pointer"
+                        aria-label="Clear search"
+                      >
+                        <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="ml-2">
+                    <button
+                      type="submit"
+                      className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope cursor-pointer"
+                      aria-label="Perform search"
+                    >
+                      Search
+                    </button>
+                  </div>
+                </div>
+
+                {/* Search Suggestions Dropdown */}
+                <div className="relative z-[10000]">
+                  <SearchSuggestions
+                    searchQuery={localSearchQuery}
+                    listings={listings}
+                    onSuggestionClick={handleSuggestionClick}
+                    onClose={() => setShowSuggestions(false)}
+                    isVisible={showSuggestions && !loading}
+                    isMobile={isMobile}
+                  />
+                </div>
+
+                <motion.div
+                  className="text-center mt-1 cursor-default"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{
+                    opacity: localSearchQuery ? 1 : 0,
+                    y: localSearchQuery ? 0 : 10,
+                  }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <p className="text-xs text-gray-500 font-manrope cursor-default">
+                    Press Enter or click Search to find results
+                  </p>
+                </motion.div>
+              </form>
+            </div>
           </div>
         </div>
+
+        {/* Backdrop for suggestions when visible */}
+        <AnimatePresence>
+          {showSuggestions && (
+            <motion.div
+              className="fixed inset-0 bg-black/20 z-[9997] cursor-default"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowSuggestions(false)}
+              style={{
+                zIndex: 9997,
+              }}
+            />
+          )}
+        </AnimatePresence>
 
         {/* Main Content Layout */}
         <div className="flex flex-col lg:flex-row gap-6">
@@ -1351,11 +1917,15 @@ const SearchResults = () => {
           {!isMobile && (
             <div className="lg:w-1/4">
               <FilterSidebar
-                onFilterChange={handleFilterChangeWithScroll} // Updated to scroll on apply
-                onApplyFilters={handleFilterChangeWithScroll} // New prop for Apply button
+                onFilterChange={handleFilterChangeWithScroll}
+                onApplyFilters={handleFilterChangeWithScroll}
+                onDynamicFilterApply={handleDynamicFilterApply}
                 allLocations={allLocations}
                 allCategories={allCategories}
                 currentFilters={activeFilters}
+                currentSearchQuery={searchQuery}
+                currentCategoryParam={category}
+                currentLocationParam={location}
               />
             </div>
           )}
@@ -1375,10 +1945,14 @@ const SearchResults = () => {
                 {/* Filter Modal */}
                 <FilterSidebar
                   onFilterChange={handleFilterChange}
-                  onApplyFilters={handleFilterChangeWithScroll} // Scroll on apply
+                  onApplyFilters={handleFilterChangeWithScroll}
+                  onDynamicFilterApply={handleDynamicFilterApply}
                   allLocations={allLocations}
                   allCategories={allCategories}
                   currentFilters={activeFilters}
+                  currentSearchQuery={searchQuery}
+                  currentCategoryParam={category}
+                  currentLocationParam={location}
                   onClose={closeDesktopFilters}
                   isDesktopModal={true}
                 />
@@ -1391,10 +1965,14 @@ const SearchResults = () => {
             {isMobile && showMobileFilters && (
               <FilterSidebar
                 onFilterChange={handleFilterChange}
-                onApplyFilters={handleFilterChangeWithScroll} // Scroll on apply
+                onApplyFilters={handleFilterChangeWithScroll}
+                onDynamicFilterApply={handleDynamicFilterApply}
                 allLocations={allLocations}
                 allCategories={allCategories}
                 currentFilters={activeFilters}
+                currentSearchQuery={searchQuery}
+                currentCategoryParam={category}
+                currentLocationParam={location}
                 onClose={closeMobileFilters}
                 isMobileModal={true}
               />
@@ -1462,7 +2040,9 @@ const SearchResults = () => {
                     className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm w-full justify-center sm:w-auto"
                   >
                     <PiSliders className="text-gray-600" />
-
+                    <span className="text-sm text-gray-700 font-medium">
+                      Filter & Sort
+                    </span>
                     {Object.keys(activeFilters).some((key) => {
                       if (key === "priceRange") {
                         return (
@@ -1633,7 +2213,7 @@ const SearchResults = () => {
                       {/* Mobile View - Horizontal scrolling with 5 cards per row */}
                       {isMobile ? (
                         <div className="space-y-4">
-                          {/* Create rows with 5 cards each - EXACTLY like CategoryResults */}
+                          {/* Create rows with 5 cards each */}
                           {Array.from({
                             length: Math.ceil(currentListings.length / 5),
                           }).map((_, rowIndex) => (
@@ -1715,7 +2295,7 @@ const SearchResults = () => {
                       )}
                     </>
                   ) : (
-                    /* Group by category for horizontal scrolling - EXACTLY like CategoryResults mobile view */
+                    /* Group by category for horizontal scrolling */
                     Object.entries(groupedListings).map(([catName, items]) => {
                       const categorySlug = catName
                         .toLowerCase()
@@ -1743,7 +2323,7 @@ const SearchResults = () => {
 
       <Footer />
 
-      {/* Custom scrollbar hiding - EXACTLY like CategoryResults */}
+      {/* Custom scrollbar hiding */}
       <style jsx>{`
         .scrollbar-hide {
           -ms-overflow-style: none;
