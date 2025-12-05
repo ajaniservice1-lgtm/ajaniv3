@@ -14,6 +14,182 @@
   /* --font-dmsans: "DM Sans", sans-serif; */
 }
 
+/* ===== GLOBAL CUSTOM SCROLLBAR FOR ALL PAGES ===== */
+
+/* Main scrollbar for the entire application - INCREASED THICKNESS */
+::-webkit-scrollbar {
+  width: 16px; /* Increased from 12px */
+  height: 16px; /* Increased from 12px */
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 12px; /* Increased from 10px */
+  margin: 4px; /* Adds space around scrollbar */
+  border: 2px solid #e5e7eb; /* Added border for better visibility */
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    45deg,
+    #000000,
+    #333333,
+    #000000
+  ); /* Pure black gradient */
+  border-radius: 12px; /* Increased from 10px */
+  border: 3px solid #f1f1f1; /* Increased border thickness from 2px */
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Added shadow for depth */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    45deg,
+    #333333,
+    #000000,
+    #333333
+  ); /* Darker on hover */
+  transform: scale(1.05);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3); /* Enhanced shadow on hover */
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(
+    45deg,
+    #000000,
+    #555555,
+    #000000
+  ); /* Even darker when clicking */
+  transform: scale(1.02);
+}
+
+::-webkit-scrollbar-corner {
+  background: #f1f1f1;
+}
+
+/* Firefox scrollbar - THICKER */
+* {
+  scrollbar-width: auto; /* Changed from 'thin' to 'auto' for thicker */
+  scrollbar-color: #000000 #f1f1f1; /* Black thumb, light gray track */
+}
+
+/* Smooth scrolling for entire app */
+html {
+  scroll-behavior: smooth;
+  scrollbar-width: auto; /* Thicker for Firefox */
+  scrollbar-color: #000000 #f1f1f1;
+}
+
+/* ===== CUSTOM SCROLLBAR FOR CONTAINERS ===== */
+.custom-scrollbar {
+  scrollbar-width: auto; /* Thicker */
+  scrollbar-color: #000000 #f8fafc;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 12px; /* Increased from 8px */
+  height: 12px; /* Increased from 8px */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 10px; /* Increased from 8px */
+  margin: 3px;
+  border: 2px solid #e2e8f0;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #000000, #333333);
+  border-radius: 10px; /* Increased from 8px */
+  border: 3px solid #f8fafc; /* Increased border */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(45deg, #333333, #000000);
+}
+
+/* SUPER THICK scrollbar for specific needs */
+.scrollbar-extra-thick::-webkit-scrollbar {
+  width: 20px;
+  height: 20px;
+}
+
+.scrollbar-extra-thick::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 15px;
+  margin: 5px;
+  border: 3px solid #d1d5db;
+}
+
+.scrollbar-extra-thick::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #000000, #444444, #000000);
+  border-radius: 15px;
+  border: 4px solid #f1f1f1;
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+/* Thin scrollbar - original thin option */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+/* Thick scrollbar - thicker option */
+.scrollbar-thick::-webkit-scrollbar {
+  width: 16px; /* Same as main scrollbar */
+  height: 16px;
+}
+
+/* Extra thick scrollbar */
+.scrollbar-extra-thick::-webkit-scrollbar {
+  width: 24px;
+  height: 24px;
+}
+
+/* Dark theme scrollbar - also thicker */
+.dark-scrollbar::-webkit-scrollbar-track {
+  background: #1f2937; /* Darker track */
+  border-radius: 12px;
+  margin: 4px;
+  border: 2px solid #374151;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #000000, #4b5563, #000000);
+  border-radius: 12px;
+  border: 3px solid #1f2937;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(45deg, #4b5563, #000000, #4b5563);
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar for specific elements */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+/* ===== END SCROLLBAR STYLING ===== */
+
 body {
   overflow-x: hidden;
 }
@@ -37,22 +213,22 @@ body {
   animation: bounce 1s infinite;
 }
 
-/* Custom scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
+/* Original custom scrollbar - keeping for backward compatibility */
+.original-custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
+.original-custom-scrollbar::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 10px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
+.original-custom-scrollbar::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 10px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+.original-custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
 
@@ -97,6 +273,7 @@ body {
     transform: translateY(0);
   }
 }
+
 /* In your CSS or Tailwind config */
 .wip-banner {
   background: linear-gradient(90deg, #101828 0%, #05f2c1 50%, #3276ee 100%);
@@ -115,10 +292,6 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
-/* body {
-  @apply font-poppins;
-} */
-
 html {
   scroll-behavior: smooth;
 }
@@ -128,14 +301,6 @@ section[id] {
 }
 
 /* Custom slider styling */
-::-webkit-scrollbar {
-  display: none;
-}
-
-.ch::-webkit-scrollbar {
-  display: none;
-}
-
 .slider::-webkit-slider-thumb {
   appearance: none;
   height: 20px;
@@ -196,4 +361,52 @@ section[id] {
 
 .animate-fadeInSlideUp {
   animation: fadeInSlideUp 0.2s ease-out forwards;
+}
+
+/* Additional scrollbar utilities */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-auto {
+  scrollbar-width: auto;
+}
+
+/* For scrollable containers with custom styling */
+.scroll-container {
+  overflow-y: auto;
+  scrollbar-width: auto; /* Thicker */
+  scrollbar-color: #000000 #f1f1f1;
+}
+
+.scroll-container::-webkit-scrollbar {
+  width: 14px; /* Increased from 10px */
+}
+
+.scroll-container::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 10px; /* Increased from 8px */
+  margin: 3px;
+  border: 2px solid #e5e7eb;
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #000000, #333333);
+  border-radius: 10px; /* Increased from 8px */
+  border: 3px solid #f8fafc; /* Increased border */
+}
+
+.scroll-container::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(45deg, #333333, #000000);
+}
+
+/* Body class to force thicker scrollbar on all pages */
+body.thick-scrollbar {
+  scrollbar-width: auto !important;
+  scrollbar-color: #000000 #f1f1f1 !important;
+}
+
+body.thick-scrollbar::-webkit-scrollbar {
+  width: 16px !important;
+  height: 16px !important;
 }

@@ -1813,84 +1813,98 @@ const SearchResults = () => {
 
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-32">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20">
         {/* Search Bar - Original version */}
-        <div className="flex justify-center mb-8">
-          <div className="w-full max-w-md px-2">
-            <div className="relative mx-auto w-full" style={{ zIndex: 9998 }}>
-              <form onSubmit={handleSearchSubmit} className="relative">
-                <div
-                  className="flex items-center cursor-default"
-                  onClick={handleSearchInputClick}
-                >
-                  <div
-                    className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-10 cursor-default"
-                    ref={searchInputRef}
-                  >
-                    <div className="pl-3 sm:pl-4 text-gray-500 cursor-default">
-                      <FontAwesomeIcon icon={faSearch} className="h-4 w-4" />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Search by area, category, or name..."
-                      value={localSearchQuery}
-                      onChange={handleSearchChange}
-                      onFocus={() =>
-                        setShowSuggestions(localSearchQuery.trim().length > 0)
-                      }
-                      className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope cursor-pointer"
-                      aria-label="Search input"
-                      role="searchbox"
-                    />
-                    {localSearchQuery && (
-                      <button
-                        type="button"
-                        onClick={handleClearSearch}
-                        className="p-1 mr-2 text-gray-500 hover:text-gray-700 cursor-pointer"
-                        aria-label="Clear search"
-                      >
-                        <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="ml-2">
-                    <button
-                      type="submit"
-                      className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope cursor-pointer"
-                      aria-label="Perform search"
+        {/* Fixed Search Bar Container */}
+        <div className=" top-16 z-30 py-3">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-center">
+              <div className="w-full max-w-md">
+                <div className="relative mx-auto w-full">
+                  <form onSubmit={handleSearchSubmit} className="relative">
+                    {/* ... rest of your search bar code ... */}
+                    <div
+                      className="flex items-center cursor-default"
+                      onClick={handleSearchInputClick}
                     >
-                      Search
-                    </button>
-                  </div>
-                </div>
+                      <div
+                        className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-10 cursor-default"
+                        ref={searchInputRef}
+                      >
+                        <div className="pl-3 sm:pl-4 text-gray-500 cursor-default">
+                          <FontAwesomeIcon
+                            icon={faSearch}
+                            className="h-4 w-4"
+                          />
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Search by area, category, or name..."
+                          value={localSearchQuery}
+                          onChange={handleSearchChange}
+                          onFocus={() =>
+                            setShowSuggestions(
+                              localSearchQuery.trim().length > 0
+                            )
+                          }
+                          className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope cursor-pointer"
+                          aria-label="Search input"
+                          role="searchbox"
+                        />
+                        {localSearchQuery && (
+                          <button
+                            type="button"
+                            onClick={handleClearSearch}
+                            className="p-1 mr-2 text-gray-500 hover:text-gray-700 cursor-pointer"
+                            aria-label="Clear search"
+                          >
+                            <FontAwesomeIcon
+                              icon={faTimes}
+                              className="h-4 w-4"
+                            />
+                          </button>
+                        )}
+                      </div>
 
-                {/* Search Suggestions Dropdown */}
-                <div className="relative z-[10000]">
-                  <SearchSuggestions
-                    searchQuery={localSearchQuery}
-                    listings={listings}
-                    onSuggestionClick={handleSuggestionClick}
-                    onClose={() => setShowSuggestions(false)}
-                    isVisible={showSuggestions && !loading}
-                    isMobile={isMobile}
-                  />
-                </div>
+                      <div className="ml-2">
+                        <button
+                          type="submit"
+                          className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope cursor-pointer"
+                          aria-label="Perform search"
+                        >
+                          Search
+                        </button>
+                      </div>
+                    </div>
 
-                <motion.div
-                  className="text-center mt-1 cursor-default"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{
-                    opacity: localSearchQuery ? 1 : 0,
-                    y: localSearchQuery ? 0 : 10,
-                  }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <p className="text-xs text-gray-500 font-manrope cursor-default">
-                    Press Enter or click Search to find results
-                  </p>
-                </motion.div>
-              </form>
+                    {/* Search Suggestions Dropdown */}
+                    <div className="relative z-10000">
+                      <SearchSuggestions
+                        searchQuery={localSearchQuery}
+                        listings={listings}
+                        onSuggestionClick={handleSuggestionClick}
+                        onClose={() => setShowSuggestions(false)}
+                        isVisible={showSuggestions && !loading}
+                        isMobile={isMobile}
+                      />
+                    </div>
+
+                    <motion.div
+                      className="text-center mt-1 cursor-default"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{
+                        opacity: localSearchQuery ? 1 : 0,
+                        y: localSearchQuery ? 0 : 10,
+                      }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <p className="text-xs text-gray-500 font-manrope cursor-default">
+                        Press Enter or click Search to find results
+                      </p>
+                    </motion.div>
+                  </form>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1993,9 +2007,7 @@ const SearchResults = () => {
                         className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm"
                       >
                         <PiSliders className="text-gray-600" />
-                        <span className="text-sm text-gray-700 font-medium">
-                          Filter & Sort
-                        </span>
+
                         {Object.keys(activeFilters).some((key) => {
                           if (key === "priceRange") {
                             return (
@@ -2033,37 +2045,37 @@ const SearchResults = () => {
                   </div>
                 </div>
 
-                {/* Mobile Filter Button - Only on mobile */}
+                {/* Mobile Filter Button - Only on mobile - Icon only */}
                 {isMobile && (
                   <button
                     onClick={toggleMobileFilters}
-                    className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm w-full justify-center sm:w-auto"
+                    className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm"
+                    aria-label="Open filters"
                   >
-                    <PiSliders className="text-gray-600" />
-                    <span className="text-sm text-gray-700 font-medium">
-                      Filter & Sort
-                    </span>
-                    {Object.keys(activeFilters).some((key) => {
-                      if (key === "priceRange") {
-                        return (
-                          activeFilters.priceRange.min ||
-                          activeFilters.priceRange.max
-                        );
-                      }
-                      return Array.isArray(activeFilters[key])
-                        ? activeFilters[key].length > 0
-                        : activeFilters[key] !== "relevance";
-                    }) && (
-                      <span className="bg-[#06EAFC] text-white text-xs px-2 py-0.5 rounded-full">
-                        {Object.values(activeFilters).reduce((acc, val) => {
-                          if (Array.isArray(val)) return acc + val.length;
-                          if (typeof val === "object" && val !== null) {
-                            return acc + (val.min || val.max ? 1 : 0);
-                          }
-                          return acc + (val && val !== "relevance" ? 1 : 0);
-                        }, 0)}
-                      </span>
-                    )}
+                    <div className="relative">
+                      <PiSliders className="text-gray-600 text-lg" />
+                      {Object.keys(activeFilters).some((key) => {
+                        if (key === "priceRange") {
+                          return (
+                            activeFilters.priceRange.min ||
+                            activeFilters.priceRange.max
+                          );
+                        }
+                        return Array.isArray(activeFilters[key])
+                          ? activeFilters[key].length > 0
+                          : activeFilters[key] !== "relevance";
+                      }) && (
+                        <span className="absolute -top-1 -right-1 bg-[#06EAFC] text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                          {Object.values(activeFilters).reduce((acc, val) => {
+                            if (Array.isArray(val)) return acc + val.length;
+                            if (typeof val === "object" && val !== null) {
+                              return acc + (val.min || val.max ? 1 : 0);
+                            }
+                            return acc + (val && val !== "relevance" ? 1 : 0);
+                          }, 0)}
+                        </span>
+                      )}
+                    </div>
                   </button>
                 )}
               </div>
