@@ -2242,11 +2242,9 @@ const CategoryResults = () => {
                 <div className="flex items-center gap-3">
                   {/* Desktop filter button */}
                   {!isMobile && (
-                    <button
-                      className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg bg-white shadow-sm hover:bg-gray-50 transition-colors"
-                    >
+                    <button className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg bg-white shadow-sm hover:bg-gray-50 transition-colors">
                       <PiSliders className="text-gray-600" />
-                      
+
                       {Object.keys(activeFilters).some((key) => {
                         if (key === "priceRange") {
                           return (
@@ -2318,8 +2316,6 @@ const CategoryResults = () => {
                 )}
               </div>
             </div>
-
-         
 
             {/* Results Display */}
             <div className="space-y-6">

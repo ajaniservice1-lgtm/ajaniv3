@@ -15,6 +15,9 @@ import {
   faChevronRight,
   faChevronLeft,
   faTimesCircle,
+  faBed,
+  faHome,
+  faCalendarWeek,
 } from "@fortawesome/free-solid-svg-icons";
 import { motion } from "framer-motion";
 import { PiSliders } from "react-icons/pi";
@@ -141,6 +144,60 @@ const getLocationDisplayName = (location) => {
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+};
+
+// Helper function to get location breakdown
+const getLocationBreakdown = (listings) => {
+  const locationCounts = {};
+  listings.forEach((item) => {
+    const location = getLocationDisplayName(item.area || "Unknown");
+    locationCounts[location] = (locationCounts[location] || 0) + 1;
+  });
+
+  return Object.entries(locationCounts)
+    .map(([location, count]) => ({ location, count }))
+    .sort((a, b) => b.count - a.count);
+};
+
+// Helper function to get category breakdown by location
+const getCategoryBreakdownByLocation = (listings) => {
+  const categoryCounts = {};
+  listings.forEach((item) => {
+    const category = getCategoryDisplayName(item.category || "other.other");
+    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+  });
+
+  return Object.entries(categoryCounts)
+    .map(([category, count]) => ({ category, count }))
+    .sort((a, b) => b.count - a.count);
+};
+
+// Helper function to get category breakdown for a specific location
+const getCategoryBreakdownForLocation = (listings, targetLocation) => {
+  const filteredListings = listings.filter((item) => {
+    const itemLocation = getLocationDisplayName(item.area || "Unknown");
+    return itemLocation.toLowerCase() === targetLocation.toLowerCase();
+  });
+
+  const categoryCounts = {};
+  filteredListings.forEach((item) => {
+    const category = getCategoryDisplayName(item.category || "other.other");
+    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+  });
+
+  return Object.entries(categoryCounts)
+    .map(([category, count]) => ({ category, count }))
+    .sort((a, b) => b.count - a.count);
+};
+
+// Helper function to get category icon
+const getCategoryIcon = (category) => {
+  const cat = category.toLowerCase();
+  if (cat.includes("hotel") || cat.includes("accommodation")) return faBed;
+  if (cat.includes("shortlet") || cat.includes("apartment")) return faHome;
+  if (cat.includes("weekend") || cat.includes("event")) return faCalendarWeek;
+  if (cat.includes("restaurant") || cat.includes("food")) return faFilter;
+  return faFilter;
 };
 
 const getCardImages = (item) => {
@@ -288,6 +345,37 @@ const BusinessCard = ({ item, isMobile }) => {
   );
 };
 
+// ================== CATEGORY BREAKDOWN BADGES COMPONENT ==================
+const CategoryBreakdownBadges = ({ categories }) => {
+  if (!categories || categories.length === 0) return null;
+
+  // Limit to top 3 categories for display
+  const topCategories = categories.slice(0, 3);
+
+  return (
+    <div className="mt-3">
+      <p className="text-xs text-gray-500 mb-2 font-medium">Places include:</p>
+      <div className="flex flex-wrap gap-2">
+        {topCategories.map(({ category, count }, index) => (
+          <div
+            key={index}
+            className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-50 rounded-lg border border-gray-200"
+          >
+            <FontAwesomeIcon
+              icon={getCategoryIcon(category)}
+              className="text-xs text-gray-600"
+            />
+            <span className="text-xs font-medium text-gray-700">
+              {category}
+            </span>
+            <span className="text-xs font-bold text-blue-600">({count})</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ================== DESKTOP SEARCH SUGGESTIONS ==================
 const DesktopSearchSuggestions = ({
   searchQuery,
@@ -297,13 +385,12 @@ const DesktopSearchSuggestions = ({
   isVisible,
 }) => {
   const suggestionsRef = useRef(null);
-  const [modalTop, setModalTop] = useState('40px');
   const [modalStyle, setModalStyle] = useState({
-    top: '40px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    width: '100%',
-    maxWidth: '600px'
+    top: "40px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    width: "100%",
+    maxWidth: "600px",
   });
 
   const suggestions = React.useMemo(() => {
@@ -341,6 +428,7 @@ const DesktopSearchSuggestions = ({
             item.category &&
             item.category.toLowerCase() === category.toLowerCase()
         );
+        const locationBreakdown = getLocationBreakdown(categoryListings);
 
         return {
           type: "category",
@@ -349,7 +437,7 @@ const DesktopSearchSuggestions = ({
           description: `Search ${
             categoryListings.length
           } ${getCategoryDisplayName(category).toLowerCase()} places`,
-          categoryValue: category,
+          locations: locationBreakdown,
           action: `/search-results?category=${encodeURIComponent(category)}`,
         };
       })
@@ -365,6 +453,10 @@ const DesktopSearchSuggestions = ({
           (item) =>
             item.area && item.area.toLowerCase() === location.toLowerCase()
         );
+        const categoryBreakdown = getCategoryBreakdownForLocation(
+          listings,
+          location
+        );
 
         return {
           type: "location",
@@ -373,7 +465,7 @@ const DesktopSearchSuggestions = ({
           description: `Search ${
             locationListings.length
           } places in ${getLocationDisplayName(location)}`,
-          locationValue: location,
+          categories: categoryBreakdown,
           action: `/search-results?location=${encodeURIComponent(location)}`,
         };
       })
@@ -398,29 +490,27 @@ const DesktopSearchSuggestions = ({
       .slice(0, 6);
   }, [searchQuery, listings]);
 
-  // Dynamic positioning effect - FIXED: Use state instead of directly manipulating DOM
+  // Dynamic positioning effect
   useEffect(() => {
     if (isVisible) {
-      // Find the search input element in the SearchResults component
       const searchInput = document.querySelector('input[role="searchbox"]');
       if (searchInput) {
         const rect = searchInput.getBoundingClientRect();
-        const searchContainer = searchInput.closest('.flex.items-center');
-        
+        const searchContainer = searchInput.closest(".flex.items-center");
+
         let newStyle = {
           top: `${rect.bottom + window.scrollY + 10}px`,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '100%',
-          maxWidth: '600px'
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "100%",
+          maxWidth: "600px",
         };
 
-        // If we found the search container, match its width
         if (searchContainer) {
           const containerRect = searchContainer.getBoundingClientRect();
           newStyle.width = `${containerRect.width}px`;
           newStyle.left = `${rect.left}px`;
-          newStyle.transform = 'translateX(0)';
+          newStyle.transform = "translateX(0)";
         }
 
         setModalStyle(newStyle);
@@ -470,21 +560,21 @@ const DesktopSearchSuggestions = ({
         const searchInput = document.querySelector('input[role="searchbox"]');
         if (searchInput) {
           const rect = searchInput.getBoundingClientRect();
-          const searchContainer = searchInput.closest('.flex.items-center');
-          
+          const searchContainer = searchInput.closest(".flex.items-center");
+
           let newStyle = {
             top: `${rect.bottom + window.scrollY + 10}px`,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '100%',
-            maxWidth: '600px'
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "100%",
+            maxWidth: "600px",
           };
 
           if (searchContainer) {
             const containerRect = searchContainer.getBoundingClientRect();
             newStyle.width = `${containerRect.width}px`;
             newStyle.left = `${rect.left}px`;
-            newStyle.transform = 'translateX(0)';
+            newStyle.transform = "translateX(0)";
           }
 
           setModalStyle(newStyle);
@@ -492,8 +582,8 @@ const DesktopSearchSuggestions = ({
       }
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, [isVisible]);
 
   // Handle scroll
@@ -503,16 +593,16 @@ const DesktopSearchSuggestions = ({
         const searchInput = document.querySelector('input[role="searchbox"]');
         if (searchInput) {
           const rect = searchInput.getBoundingClientRect();
-          setModalStyle(prev => ({
+          setModalStyle((prev) => ({
             ...prev,
-            top: `${rect.bottom + window.scrollY + 10}px`
+            top: `${rect.bottom + window.scrollY + 10}px`,
           }));
         }
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [isVisible]);
 
   if (!isVisible || !searchQuery.trim() || suggestions.length === 0)
@@ -524,26 +614,25 @@ const DesktopSearchSuggestions = ({
       className="fixed z-[999998] pointer-events-none"
       style={{
         zIndex: 999998,
-        position: 'fixed',
-        ...modalStyle
+        position: "fixed",
+        ...modalStyle,
       }}
     >
-      {/* Semi-transparent backdrop - only covers suggestions area */}
-      <div 
-        className="absolute inset-0 bg-black/20 pointer-events-auto" 
+      <div
+        className="absolute inset-0 bg-black/20 pointer-events-auto"
         onClick={onClose}
         style={{
-          backdropFilter: 'blur(2px)',
-          borderRadius: '12px'
+          backdropFilter: "blur(2px)",
+          borderRadius: "12px",
         }}
       />
-      
-      {/* Suggestions Modal */}
+
       <div
         className="relative bg-white rounded-xl shadow-2xl border border-gray-200 pointer-events-auto max-h-[70vh] overflow-y-auto"
-        style={{ 
+        style={{
           zIndex: 999999,
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+          boxShadow:
+            "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
         }}
       >
         <div className="sticky top-0 p-4 border-b border-gray-100 bg-gray-50 z-10">
@@ -599,12 +688,20 @@ const DesktopSearchSuggestions = ({
                   </div>
                 </div>
                 <div className="text-gray-400 group-hover:text-blue-500 transition-colors">
-                  <FontAwesomeIcon
-                    icon={faChevronRight}
-                    className="text-sm"
-                  />
+                  <FontAwesomeIcon icon={faChevronRight} className="text-sm" />
                 </div>
               </div>
+
+              {/* Category Breakdown for Location Suggestions */}
+              {suggestion.type === "location" &&
+                suggestion.categories &&
+                suggestion.categories.length > 0 && (
+                  <div className="ml-12 mt-3">
+                    <CategoryBreakdownBadges
+                      categories={suggestion.categories}
+                    />
+                  </div>
+                )}
 
               <div className="ml-12 mt-3">
                 <span className="text-xs text-blue-600 font-medium">
@@ -617,7 +714,9 @@ const DesktopSearchSuggestions = ({
 
         <div className="sticky bottom-0 p-4 bg-gray-50 border-t border-gray-100">
           <p className="text-xs text-gray-500 text-center">
-            Press <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-xs">ESC</kbd> to close • Click any suggestion to view detailed results
+            Press{" "}
+            <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-xs">ESC</kbd>{" "}
+            to close • Click any suggestion to view detailed results
           </p>
         </div>
       </div>
@@ -675,6 +774,7 @@ const MobileSearchModal = ({
             item.category &&
             item.category.toLowerCase() === category.toLowerCase()
         );
+        const locationBreakdown = getLocationBreakdown(categoryListings);
 
         return {
           type: "category",
@@ -683,6 +783,7 @@ const MobileSearchModal = ({
           description: `Search ${
             categoryListings.length
           } ${getCategoryDisplayName(category).toLowerCase()} places`,
+          locations: locationBreakdown,
           action: `/search-results?category=${encodeURIComponent(category)}`,
         };
       })
@@ -698,6 +799,10 @@ const MobileSearchModal = ({
           (item) =>
             item.area && item.area.toLowerCase() === location.toLowerCase()
         );
+        const categoryBreakdown = getCategoryBreakdownForLocation(
+          listings,
+          location
+        );
 
         return {
           type: "location",
@@ -706,6 +811,7 @@ const MobileSearchModal = ({
           description: `Search ${
             locationListings.length
           } places in ${getLocationDisplayName(location)}`,
+          categories: categoryBreakdown,
           action: `/search-results?location=${encodeURIComponent(location)}`,
         };
       })
@@ -948,6 +1054,17 @@ const MobileSearchModal = ({
                           />
                         </div>
                       </div>
+
+                      {/* Category Breakdown for Location Suggestions */}
+                      {suggestion.type === "location" &&
+                        suggestion.categories &&
+                        suggestion.categories.length > 0 && (
+                          <div className="ml-12 mt-3">
+                            <CategoryBreakdownBadges
+                              categories={suggestion.categories}
+                            />
+                          </div>
+                        )}
 
                       <div className="ml-12 mt-3">
                         <span className="text-xs text-blue-600 font-medium">
@@ -2392,11 +2509,9 @@ const SearchResults = () => {
                   {/* Desktop filter button */}
                   {!isMobile && (
                     <div className="relative" ref={filterButtonRef}>
-                      <button
-                        className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg bg-white shadow-sm hover:bg-gray-50 transition-colors"
-                      >
+                      <button className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg bg-white shadow-sm hover:bg-gray-50 transition-colors">
                         <PiSliders className="text-gray-600" />
-                        
+
                         {Object.keys(activeFilters).some((key) => {
                           if (key === "priceRange") {
                             return (
@@ -2469,7 +2584,6 @@ const SearchResults = () => {
                 )}
               </div>
             </div>
-
 
             {/* Results Display */}
             <div className="space-y-6">
