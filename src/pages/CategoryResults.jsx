@@ -14,6 +14,9 @@ import {
   faCheck,
   faChevronRight,
   faTimesCircle,
+  faBed,
+  faHome,
+  faCalendarWeek,
 } from "@fortawesome/free-solid-svg-icons";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
@@ -168,6 +171,34 @@ const getCategoryBreakdownByLocation = (listings) => {
     .sort((a, b) => b.count - a.count);
 };
 
+// Helper function to get category breakdown for a specific location
+const getCategoryBreakdownForLocation = (listings, targetLocation) => {
+  const filteredListings = listings.filter((item) => {
+    const itemLocation = getLocationDisplayName(item.area || "Unknown");
+    return itemLocation.toLowerCase() === targetLocation.toLowerCase();
+  });
+
+  const categoryCounts = {};
+  filteredListings.forEach((item) => {
+    const category = getCategoryDisplayName(item.category || "other.other");
+    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+  });
+
+  return Object.entries(categoryCounts)
+    .map(([category, count]) => ({ category, count }))
+    .sort((a, b) => b.count - a.count);
+};
+
+// Helper function to get category icon
+const getCategoryIcon = (category) => {
+  const cat = category.toLowerCase();
+  if (cat.includes("hotel") || cat.includes("accommodation")) return faBed;
+  if (cat.includes("shortlet") || cat.includes("apartment")) return faHome;
+  if (cat.includes("weekend") || cat.includes("event")) return faCalendarWeek;
+  if (cat.includes("restaurant") || cat.includes("food")) return faFilter;
+  return faFilter;
+};
+
 // ================== BUSINESS CARD ==================
 const BusinessCard = ({ item, isMobile }) => {
   const images = getCardImages(item);
@@ -314,6 +345,37 @@ const getCardImages = (item) => {
   return [FALLBACK_IMAGES.default];
 };
 
+// ================== CATEGORY BREAKDOWN BADGES COMPONENT ==================
+const CategoryBreakdownBadges = ({ categories }) => {
+  if (!categories || categories.length === 0) return null;
+
+  // Limit to top 3 categories for display
+  const topCategories = categories.slice(0, 3);
+
+  return (
+    <div className="mt-3">
+      <p className="text-xs text-gray-500 mb-2 font-medium">Places include:</p>
+      <div className="flex flex-wrap gap-2">
+        {topCategories.map(({ category, count }, index) => (
+          <div
+            key={index}
+            className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-50 rounded-lg border border-gray-200"
+          >
+            <FontAwesomeIcon
+              icon={getCategoryIcon(category)}
+              className="text-xs text-gray-600"
+            />
+            <span className="text-xs font-medium text-gray-700">
+              {category}
+            </span>
+            <span className="text-xs font-bold text-blue-600">({count})</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ================== MOBILE SEARCH MODAL ==================
 const MobileSearchModal = ({
   searchQuery,
@@ -388,8 +450,10 @@ const MobileSearchModal = ({
           (item) =>
             item.area && item.area.toLowerCase() === location.toLowerCase()
         );
-        const categoryBreakdown =
-          getCategoryBreakdownByLocation(locationListings);
+        const categoryBreakdown = getCategoryBreakdownForLocation(
+          listings,
+          location
+        );
 
         return {
           type: "location",
@@ -644,6 +708,17 @@ const MobileSearchModal = ({
                         </div>
                       </div>
 
+                      {/* Category Breakdown for Location Suggestions */}
+                      {suggestion.type === "location" &&
+                        suggestion.categories &&
+                        suggestion.categories.length > 0 && (
+                          <div className="ml-12 mt-3">
+                            <CategoryBreakdownBadges
+                              categories={suggestion.categories}
+                            />
+                          </div>
+                        )}
+
                       <div className="ml-12 mt-3">
                         <span className="text-xs text-blue-600 font-medium">
                           Tap to view all results →
@@ -764,6 +839,10 @@ const DesktopSearchSuggestions = ({
           (item) =>
             item.area && item.area.toLowerCase() === location.toLowerCase()
         );
+        const categoryBreakdown = getCategoryBreakdownForLocation(
+          listings,
+          location
+        );
 
         return {
           type: "location",
@@ -773,6 +852,7 @@ const DesktopSearchSuggestions = ({
             locationListings.length
           } places in ${getLocationDisplayName(location)}`,
           locationValue: location,
+          categories: categoryBreakdown,
           action: `/search-results?location=${encodeURIComponent(location)}`,
         };
       })
@@ -998,6 +1078,17 @@ const DesktopSearchSuggestions = ({
                   <FontAwesomeIcon icon={faChevronRight} className="text-sm" />
                 </div>
               </div>
+
+              {/* Category Breakdown for Location Suggestions */}
+              {suggestion.type === "location" &&
+                suggestion.categories &&
+                suggestion.categories.length > 0 && (
+                  <div className="ml-12 mt-3">
+                    <CategoryBreakdownBadges
+                      categories={suggestion.categories}
+                    />
+                  </div>
+                )}
 
               <div className="ml-12 mt-3">
                 <span className="text-xs text-blue-600 font-medium">
@@ -2152,11 +2243,10 @@ const CategoryResults = () => {
                   {/* Desktop filter button */}
                   {!isMobile && (
                     <button
-                      onClick={toggleDesktopFilters}
                       className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg bg-white shadow-sm hover:bg-gray-50 transition-colors"
                     >
                       <PiSliders className="text-gray-600" />
-                      <span className="text-sm font-medium">Filter & Sort</span>
+                      
                       {Object.keys(activeFilters).some((key) => {
                         if (key === "priceRange") {
                           return (
@@ -2229,136 +2319,7 @@ const CategoryResults = () => {
               </div>
             </div>
 
-            {/* Active Filters Display */}
-            {(activeFilters.locations.length > 0 ||
-              activeFilters.categories.length > 0 ||
-              activeFilters.priceRange.min ||
-              activeFilters.priceRange.max ||
-              activeFilters.ratings.length > 0 ||
-              activeFilters.sortBy !== "relevance") && (
-              <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-700 font-medium text-sm">
-                      Active Filters:
-                    </span>
-                    <button
-                      onClick={clearAllFilters}
-                      className="text-[#06EAFC] hover:text-[#05d9eb] text-sm font-medium"
-                    >
-                      Clear All
-                    </button>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {/* Location Filters */}
-                    {activeFilters.locations.map((location, idx) => (
-                      <div
-                        key={`location-${idx}`}
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-full border bg-blue-100 text-blue-800 border-blue-200 text-sm"
-                      >
-                        <FontAwesomeIcon
-                          icon={faMapMarkerAlt}
-                          className="text-xs"
-                        />
-                        <span>Location: {location}</span>
-                        <button
-                          onClick={() => removeFilter("location", location)}
-                          className="ml-1 hover:opacity-70 transition-opacity"
-                          aria-label="Remove location filter"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-
-                    {/* Category Filters */}
-                    {activeFilters.categories.map((category, idx) => (
-                      <div
-                        key={`category-${idx}`}
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-full border bg-green-100 text-green-800 border-green-200 text-sm"
-                      >
-                        <FontAwesomeIcon icon={faFilter} className="text-xs" />
-                        <span>Category: {category}</span>
-                        <button
-                          onClick={() => removeFilter("category", category)}
-                          className="ml-1 hover:opacity-70 transition-opacity"
-                          aria-label="Remove category filter"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-
-                    {/* Price Filter */}
-                    {(activeFilters.priceRange.min ||
-                      activeFilters.priceRange.max) && (
-                      <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full border bg-yellow-100 text-yellow-800 border-yellow-200 text-sm">
-                        <FontAwesomeIcon
-                          icon={faDollarSign}
-                          className="text-xs"
-                        />
-                        <span>
-                          Price: #{activeFilters.priceRange.min || "0"} - #
-                          {activeFilters.priceRange.max || "∞"}
-                        </span>
-                        <button
-                          onClick={() => removeFilter("price")}
-                          className="ml-1 hover:opacity-70 transition-opacity"
-                          aria-label="Remove price filter"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Rating Filters */}
-                    {activeFilters.ratings.map((rating, idx) => (
-                      <div
-                        key={`rating-${idx}`}
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-full border bg-purple-100 text-purple-800 border-purple-200 text-sm"
-                      >
-                        <FontAwesomeIcon icon={faStar} className="text-xs" />
-                        <span>Min Rating: {rating}+ stars</span>
-                        <button
-                          onClick={() => removeFilter("rating", rating)}
-                          className="ml-1 hover:opacity-70 transition-opacity"
-                          aria-label="Remove rating filter"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-
-                    {/* Sort Filter */}
-                    {activeFilters.sortBy !== "relevance" && (
-                      <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full border bg-gray-100 text-gray-800 border-gray-200 text-sm">
-                        <FontAwesomeIcon icon={faFilter} className="text-xs" />
-                        <span>
-                          Sorted by:{" "}
-                          {activeFilters.sortBy === "price_low"
-                            ? "Price: Low to High"
-                            : activeFilters.sortBy === "price_high"
-                            ? "Price: High to Low"
-                            : activeFilters.sortBy === "rating"
-                            ? "Highest Rated"
-                            : activeFilters.sortBy === "name"
-                            ? "Name: A to Z"
-                            : "Relevance"}
-                        </span>
-                        <button
-                          onClick={() => removeFilter("sort")}
-                          className="ml-1 hover:opacity-70 transition-opacity"
-                          aria-label="Remove sort filter"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
+         
 
             {/* Results Display */}
             <div className="space-y-6">
