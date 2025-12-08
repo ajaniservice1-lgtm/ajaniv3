@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FaLessThan } from "react-icons/fa6";
 import {
   faStar,
   faSearch,
@@ -297,7 +298,6 @@ const DesktopSearchSuggestions = ({
   isVisible,
 }) => {
   const suggestionsRef = useRef(null);
-  const navigate = useNavigate();
 
   const suggestions = React.useMemo(() => {
     if (!searchQuery.trim() || !listings.length) return [];
@@ -424,24 +424,11 @@ const DesktopSearchSuggestions = ({
     >
       <div className="h-full overflow-y-auto">
         <div className="container mx-auto px-4 py-6 max-w-4xl">
-          {/* Search input at the top with back button */}
+          {/* Search input at the top */}
           <div className="mb-6">
-            <div className="flex items-center mb-4">
-              <button
-                onClick={() => navigate(-1)}
-                className="mr-3 text-gray-600 hover:text-gray-900"
-                aria-label="Go back"
-              >
-                <FontAwesomeIcon icon={faChevronLeft} className="h-5 w-5" />
-              </button>
-              <h2 className="text-lg font-bold text-gray-900">Search</h2>
-            </div>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Search</h2>
             <div className="flex items-center bg-gray-100 rounded-full px-4 py-3">
-              <FontAwesomeIcon
-                icon={faChevronLeft}
-                className="text-gray-500 cursor-pointer"
-                onClick={() => navigate(-1)}
-              />
+              <FontAwesomeIcon icon={faSearch} className="text-gray-500" />
               <input
                 type="text"
                 value={searchQuery}
@@ -731,11 +718,7 @@ const MobileSearchModal = ({
         <div className="sticky top-0 bg-white border-b border-gray-200 z-10">
           <div className="px-4 pt-8 pb-4">
             <div className="flex items-center bg-gray-100 rounded-full px-4 py-3">
-              <FontAwesomeIcon
-                icon={faChevronLeft}
-                className="text-gray-500 cursor-pointer"
-                onClick={() => navigate(-1)}
-              />
+              <FontAwesomeIcon icon={faSearch} className="text-gray-500" />
               <input
                 ref={inputRef}
                 type="text"
@@ -836,9 +819,8 @@ const MobileSearchModal = ({
               ) : (
                 <div className="p-8 text-center">
                   <FontAwesomeIcon
-                    icon={faChevronLeft}
-                    className="h-12 w-12 mx-auto mb-4 text-gray-300 cursor-pointer"
-                    onClick={() => navigate(-1)}
+                    icon={faSearch}
+                    className="h-12 w-12 mx-auto mb-4 text-gray-300"
                   />
                   <p className="text-lg font-medium text-gray-700 mb-2">
                     No matches found
@@ -852,9 +834,8 @@ const MobileSearchModal = ({
           ) : (
             <div className="p-8 text-center">
               <FontAwesomeIcon
-                icon={faChevronLeft}
-                className="h-16 w-16 mx-auto mb-6 text-gray-300 cursor-pointer"
-                onClick={() => navigate(-1)}
+                icon={faSearch}
+                className="h-16 w-16 mx-auto mb-6 text-gray-300"
               />
               <p className="text-xl font-medium text-gray-700 mb-2">
                 Start typing to search
@@ -907,7 +888,6 @@ const FilterSidebar = ({
 
   const [locationSearch, setLocationSearch] = useState("");
   const [categorySearch, setCategorySearch] = useState("");
-  const navigate = useNavigate();
 
   const uniqueLocationDisplayNames = React.useMemo(() => {
     const locations = [
@@ -1085,20 +1065,11 @@ const FilterSidebar = ({
     >
       {(isMobileModal || isDesktopModal) && (
         <div className="flex justify-between items-center border-b pb-4 mb-4">
-          <div className="flex items-center">
-            <button
-              onClick={() => navigate(-1)}
-              className="mr-3 text-gray-600 hover:text-gray-900"
-              aria-label="Go back"
-            >
-              <FontAwesomeIcon icon={faChevronLeft} className="h-5 w-5" />
-            </button>
-            <div>
-              <h3 className="text-xl font-bold text-gray-900">Filter & Sort</h3>
-              <p className="text-sm text-gray-500 mt-1">
-                Refine your search results
-              </p>
-            </div>
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">Filter & Sort</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Refine your search results
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -1173,11 +1144,6 @@ const FilterSidebar = ({
             <div className="max-h-48 overflow-y-auto pr-2">
               {filteredLocationDisplayNames.length === 0 ? (
                 <div className="text-center py-4 text-gray-500 text-sm">
-                  <FontAwesomeIcon
-                    icon={faChevronLeft}
-                    className="h-8 w-8 mx-auto mb-2 text-gray-300 cursor-pointer"
-                    onClick={() => navigate(-1)}
-                  />
                   No locations found matching "{locationSearch}"
                 </div>
               ) : (
@@ -1280,11 +1246,6 @@ const FilterSidebar = ({
             <div className="max-h-48 overflow-y-auto pr-2">
               {filteredCategoryDisplayNames.length === 0 ? (
                 <div className="text-center py-4 text-gray-500 text-sm">
-                  <FontAwesomeIcon
-                    icon={faChevronLeft}
-                    className="h-8 w-8 mx-auto mb-2 text-gray-300 cursor-pointer"
-                    onClick={() => navigate(-1)}
-                  />
                   No categories found matching "{categorySearch}"
                 </div>
               ) : (
@@ -2133,9 +2094,8 @@ const SearchResults = () => {
                       <div className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-40">
                         <div className="pl-3 sm:pl-4 text-gray-500">
                           <FontAwesomeIcon
-                            icon={faChevronLeft}
-                            className="h-4 w-4 cursor-pointer"
-                            onClick={() => navigate(-1)}
+                            icon={faSearch}
+                            className="h-4 w-4"
                           />
                         </div>
                         <input
@@ -2448,9 +2408,8 @@ const SearchResults = () => {
                 {filteredCount === 0 && (
                   <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
                     <FontAwesomeIcon
-                      icon={faChevronLeft}
-                      className="h-12 w-12 mx-auto mb-4 text-gray-300 cursor-pointer"
-                      onClick={() => navigate(-1)}
+                      icon={faSearch}
+                      className="text-4xl text-gray-300 mb-4 block"
                     />
                     <h3 className="text-xl text-gray-800 mb-2">
                       No matching results found
