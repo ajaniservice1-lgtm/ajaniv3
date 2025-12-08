@@ -297,6 +297,7 @@ const DesktopSearchSuggestions = ({
   isVisible,
 }) => {
   const suggestionsRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   const suggestions = React.useMemo(() => {
     if (!searchQuery.trim() || !listings.length) return [];
@@ -425,29 +426,44 @@ const DesktopSearchSuggestions = ({
     };
   }, [isVisible, onClose]);
 
+  // Get the search input position
+  useEffect(() => {
+    if (isVisible) {
+      // Find the search input element
+      const searchInput = document.querySelector('input[role="searchbox"]');
+      if (searchInput) {
+        searchInputRef.current = searchInput;
+      }
+    }
+  }, [isVisible]);
+
   if (!isVisible || !searchQuery.trim() || suggestions.length === 0)
     return null;
 
   return createPortal(
     <div
       ref={suggestionsRef}
-      className="fixed inset-0 z-[1000000]"
+      className="fixed inset-0 z-[999998] pointer-events-none"
       style={{
-        zIndex: 1000000,
-        position: "fixed",
+        zIndex: 999998,
+        position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
-        bottom: 0,
-        width: "100%",
-        height: "100%",
+        bottom: 0
       }}
     >
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full h-full pt-24">
+      <div 
+        className="absolute inset-0 bg-black/50 pointer-events-auto" 
+        onClick={onClose} 
+      />
+      <div className="relative w-full h-full">
         <div
-          className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200 pointer-events-auto max-h-[70vh] overflow-y-auto"
-          style={{ zIndex: 1000001 }}
+          className="absolute top-40 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200 pointer-events-auto max-h-[70vh] overflow-y-auto"
+          style={{ 
+            zIndex: 999999,
+            marginTop: '120px' // Position it below the search input
+          }}
         >
           <div className="p-4 border-b border-gray-100 bg-gray-50">
             <div className="flex items-center justify-between">
