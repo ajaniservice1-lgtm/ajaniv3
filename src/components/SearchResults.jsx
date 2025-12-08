@@ -1119,7 +1119,6 @@ const FilterSidebar = ({
   onClose,
   isMobileModal = false,
   isDesktopModal = false,
-  onApplyFilters,
   currentSearchQuery = "",
   currentCategoryParam = "",
   currentLocationParam = "",
@@ -1142,6 +1141,7 @@ const FilterSidebar = ({
     price: true,
     rating: true,
     amenities: false,
+    sort: false,
   });
 
   const [locationSearch, setLocationSearch] = useState("");
@@ -1188,16 +1188,17 @@ const FilterSidebar = ({
   const applyFiltersImmediately = (updatedFilters) => {
     setFilters(updatedFilters);
     onFilterChange(updatedFilters);
-    
+
     // Update URL if needed
     if (onDynamicFilterApply) {
       const hasCategoryFilters = updatedFilters.categories.length > 0;
       const hasLocationFilters = updatedFilters.locations.length > 0;
 
-      let newCategory = currentCategoryParam;
-      let newLocation = currentLocationParam;
+      let newCategory = "";
+      let newLocation = "";
 
-      if (hasCategoryFilters && updatedFilters.categories[0]) {
+      if (hasCategoryFilters && updatedFilters.categories.length === 1) {
+        // If only one category is selected, update URL
         const selectedCategory = allCategories.find(
           (cat) => getCategoryDisplayName(cat) === updatedFilters.categories[0]
         );
@@ -1206,7 +1207,8 @@ const FilterSidebar = ({
         }
       }
 
-      if (hasLocationFilters && updatedFilters.locations[0]) {
+      if (hasLocationFilters && updatedFilters.locations.length === 1) {
+        // If only one location is selected, update URL
         const selectedLocation = allLocations.find(
           (loc) => getLocationDisplayName(loc) === updatedFilters.locations[0]
         );
@@ -1262,12 +1264,7 @@ const FilterSidebar = ({
         [field]: value,
       },
     };
-    
-    // Apply after a short debounce for price input
-    clearTimeout(window.priceChangeTimeout);
-    window.priceChangeTimeout = setTimeout(() => {
-      applyFiltersImmediately(updatedFilters);
-    }, 500);
+    applyFiltersImmediately(updatedFilters);
   };
 
   const handleSortChange = (value) => {
@@ -1281,9 +1278,10 @@ const FilterSidebar = ({
   const handleSelectAllLocations = () => {
     const updatedFilters = {
       ...filters,
-      locations: filters.locations.length === uniqueLocationDisplayNames.length 
-        ? [] 
-        : [...uniqueLocationDisplayNames],
+      locations:
+        filters.locations.length === uniqueLocationDisplayNames.length
+          ? []
+          : [...uniqueLocationDisplayNames],
     };
     applyFiltersImmediately(updatedFilters);
   };
@@ -1291,9 +1289,10 @@ const FilterSidebar = ({
   const handleSelectAllCategories = () => {
     const updatedFilters = {
       ...filters,
-      categories: filters.categories.length === uniqueCategoryDisplayNames.length 
-        ? [] 
-        : [...uniqueCategoryDisplayNames],
+      categories:
+        filters.categories.length === uniqueCategoryDisplayNames.length
+          ? []
+          : [...uniqueCategoryDisplayNames],
     };
     applyFiltersImmediately(updatedFilters);
   };
@@ -1311,7 +1310,7 @@ const FilterSidebar = ({
     setLocationSearch("");
     setCategorySearch("");
     onFilterChange(resetFilters);
-    
+
     if (onDynamicFilterApply) {
       onDynamicFilterApply({
         filters: resetFilters,
@@ -1346,7 +1345,7 @@ const FilterSidebar = ({
         </div>
       )}
 
-      {/* Clear All Button - Only on desktop */}
+      {/* Clear All Button - Only on desktop sidebar */}
       {!isMobileModal && !isDesktopModal && (
         <div className="flex justify-between items-center mb-4">
           <div>
@@ -1355,11 +1354,11 @@ const FilterSidebar = ({
               Filters apply immediately
             </p>
           </div>
-          {(filters.locations.length > 0 || 
-            filters.categories.length > 0 || 
-            filters.ratings.length > 0 || 
-            filters.priceRange.min || 
-            filters.priceRange.max || 
+          {(filters.locations.length > 0 ||
+            filters.categories.length > 0 ||
+            filters.ratings.length > 0 ||
+            filters.priceRange.min ||
+            filters.priceRange.max ||
             filters.sortBy !== "relevance") && (
             <button
               onClick={handleClearAllFilters}
@@ -1449,17 +1448,19 @@ const FilterSidebar = ({
                         onChange={() => handleLocationChange(location)}
                         className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
                       />
-                      <span className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
-                        filters.locations.includes(location) 
-                          ? "text-blue-700 font-medium" 
-                          : "text-gray-700"
-                      }`}>
+                      <span
+                        className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
+                          filters.locations.includes(location)
+                            ? "text-blue-700 font-medium"
+                            : "text-gray-700"
+                        }`}
+                      >
                         {location}
                       </span>
                       {filters.locations.includes(location) && (
-                        <FontAwesomeIcon 
-                          icon={faCheck} 
-                          className="ml-auto text-xs text-blue-600" 
+                        <FontAwesomeIcon
+                          icon={faCheck}
+                          className="ml-auto text-xs text-blue-600"
                         />
                       )}
                     </label>
@@ -1558,17 +1559,19 @@ const FilterSidebar = ({
                         onChange={() => handleCategoryChange(category)}
                         className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 transition-colors"
                       />
-                      <span className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
-                        filters.categories.includes(category) 
-                          ? "text-green-700 font-medium" 
-                          : "text-gray-700"
-                      }`}>
+                      <span
+                        className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
+                          filters.categories.includes(category)
+                            ? "text-green-700 font-medium"
+                            : "text-gray-700"
+                        }`}
+                      >
                         {category}
                       </span>
                       {filters.categories.includes(category) && (
-                        <FontAwesomeIcon 
-                          icon={faCheck} 
-                          className="ml-auto text-xs text-green-600" 
+                        <FontAwesomeIcon
+                          icon={faCheck}
+                          className="ml-auto text-xs text-green-600"
                         />
                       )}
                     </label>
@@ -1719,11 +1722,13 @@ const FilterSidebar = ({
                       />
                     ))}
                   </div>
-                  <span className={`text-sm group-hover:text-[#06EAFC] transition-colors ${
-                    filters.ratings.includes(stars) 
-                      ? "text-yellow-700 font-medium" 
-                      : "text-gray-700"
-                  }`}>
+                  <span
+                    className={`text-sm group-hover:text-[#06EAFC] transition-colors ${
+                      filters.ratings.includes(stars)
+                        ? "text-yellow-700 font-medium"
+                        : "text-gray-700"
+                    }`}
+                  >
                     {stars}+ stars
                   </span>
                 </div>
@@ -1749,72 +1754,78 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* SORTING SECTION (New) */}
-      <div className="border-b pb-4">
-        <button
-          onClick={() => toggleSection("sort")}
-          className="w-full flex justify-between items-center mb-3"
-        >
-          <div className="flex items-center gap-2">
-            <FontAwesomeIcon icon={faFilter} className="text-purple-500" />
-            <h4 className="font-semibold text-gray-900 text-base">Sort By</h4>
-            {filters.sortBy !== "relevance" && (
-              <span className="bg-purple-100 text-purple-600 text-xs px-2 py-0.5 rounded-full">
-                Active
-              </span>
-            )}
-          </div>
-          <FontAwesomeIcon
-            icon={expandedSections.sort ? faChevronUp : faChevronDown}
-            className="text-gray-400"
-          />
-        </button>
-
-        {expandedSections.sort && (
-          <div className="space-y-2">
-            {[
-              { value: "relevance", label: "Relevance" },
-              { value: "price_low", label: "Price: Low to High" },
-              { value: "price_high", label: "Price: High to Low" },
-              { value: "rating", label: "Highest Rated" },
-              { value: "name", label: "Name: A to Z" },
-            ].map((option) => (
-              <label
-                key={option.value}
-                className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <input
-                  type="radio"
-                  name="sortBy"
-                  checked={filters.sortBy === option.value}
-                  onChange={() => handleSortChange(option.value)}
-                  className="w-4 h-4 rounded-full border-gray-300 text-purple-600 focus:ring-purple-500 transition-colors"
-                />
-                <span className={`text-sm group-hover:text-[#06EAFC] transition-colors ${
-                  filters.sortBy === option.value 
-                    ? "text-purple-700 font-medium" 
-                    : "text-gray-700"
-                }`}>
-                  {option.label}
+      {/* SORTING SECTION - Only show for mobile modals (REMOVED from desktop sidebar) */}
+      {isMobileModal && (
+        <div className="border-b pb-4">
+          <button
+            onClick={() => toggleSection("sort")}
+            className="w-full flex justify-between items-center mb-3"
+          >
+            <div className="flex items-center gap-2">
+              <FontAwesomeIcon icon={faFilter} className="text-purple-500" />
+              <h4 className="font-semibold text-gray-900 text-base">Sort By</h4>
+              {filters.sortBy !== "relevance" && (
+                <span className="bg-purple-100 text-purple-600 text-xs px-2 py-0.5 rounded-full">
+                  Active
                 </span>
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
+              )}
+            </div>
+            <FontAwesomeIcon
+              icon={expandedSections.sort ? faChevronUp : faChevronDown}
+              className="text-gray-400"
+            />
+          </button>
+
+          {expandedSections.sort && (
+            <div className="space-y-2">
+              {[
+                { value: "relevance", label: "Relevance" },
+                { value: "price_low", label: "Price: Low to High" },
+                { value: "price_high", label: "Price: High to Low" },
+                { value: "rating", label: "Highest Rated" },
+                { value: "name", label: "Name: A to Z" },
+              ].map((option) => (
+                <label
+                  key={option.value}
+                  className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <input
+                    type="radio"
+                    name="sortBy"
+                    checked={filters.sortBy === option.value}
+                    onChange={() => handleSortChange(option.value)}
+                    className="w-4 h-4 rounded-full border-gray-300 text-purple-600 focus:ring-purple-500 transition-colors"
+                  />
+                  <span
+                    className={`text-sm group-hover:text-[#06EAFC] transition-colors ${
+                      filters.sortBy === option.value
+                        ? "text-purple-700 font-medium"
+                        : "text-gray-700"
+                    }`}
+                  >
+                    {option.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Status Message */}
       <div className="pt-4">
         <div className="text-center">
           <p className="text-xs text-gray-500">
-            {filters.locations.length > 0 || 
-             filters.categories.length > 0 || 
-             filters.ratings.length > 0 || 
-             filters.priceRange.min || 
-             filters.priceRange.max || 
-             filters.sortBy !== "relevance" ? (
+            {filters.locations.length > 0 ||
+            filters.categories.length > 0 ||
+            filters.ratings.length > 0 ||
+            filters.priceRange.min ||
+            filters.priceRange.max ||
+            filters.sortBy !== "relevance" ? (
               <>
-                <span className="text-green-600 font-medium">✓ Active filters</span>
+                <span className="text-green-600 font-medium">
+                  ✓ Active filters
+                </span>
                 <span className="text-gray-400 mx-2">•</span>
                 <button
                   onClick={handleClearAllFilters}
@@ -1827,15 +1838,13 @@ const FilterSidebar = ({
               "No filters applied"
             )}
           </p>
-          <p className="text-xs text-gray-400 mt-1">
-            Changes apply instantly
-          </p>
+          <p className="text-xs text-gray-400 mt-1">Changes apply instantly</p>
         </div>
       </div>
     </div>
   );
 
-  // Mobile Modal - Fullscreen (Keep Apply buttons for mobile)
+  // Mobile Modal - Fullscreen
   if (isMobileModal) {
     return createPortal(
       <motion.div
@@ -1868,24 +1877,16 @@ const FilterSidebar = ({
             </div>
           </div>
           <div className="p-4">{sidebarContent}</div>
-          
-          {/* Mobile Action Buttons */}
+
+          {/* Mobile Action Buttons - Only Close button for real-time filtering */}
           <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg">
-            <div className="flex space-x-3">
-              <button
-                onClick={handleClearAllFilters}
-                className="flex-1 px-4 py-3 text-sm font-medium border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
-              >
-                Reset All
-              </button>
-              <button
-                onClick={onClose}
-                className="flex-1 px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2"
-              >
-                <FontAwesomeIcon icon={faCheck} />
-                Apply & Close
-              </button>
-            </div>
+            <button
+              onClick={onClose}
+              className="w-full px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              <FontAwesomeIcon icon={faCheck} />
+              Close
+            </button>
           </div>
         </div>
       </motion.div>,
@@ -1893,7 +1894,7 @@ const FilterSidebar = ({
     );
   }
 
-  // Desktop Modal - Fullscreen like mobile search (Keep Apply buttons for modal)
+  // Desktop Modal - Fullscreen
   if (isDesktopModal) {
     return createPortal(
       <motion.div
@@ -1936,24 +1937,16 @@ const FilterSidebar = ({
           </div>
           <div className="container mx-auto px-4 py-6 max-w-4xl">
             {sidebarContent}
-            
-            {/* Modal Action Buttons */}
+
+            {/* Modal Action Buttons - Only Close */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg mt-8">
-              <div className="flex space-x-3">
-                <button
-                  onClick={handleClearAllFilters}
-                  className="flex-1 px-4 py-3 text-sm font-medium border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
-                >
-                  Reset All
-                </button>
-                <button
-                  onClick={onClose}
-                  className="flex-1 px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2"
-                >
-                  <FontAwesomeIcon icon={faCheck} />
-                  Apply & Close
-                </button>
-              </div>
+              <button
+                onClick={onClose}
+                className="w-full px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                <FontAwesomeIcon icon={faCheck} />
+                Close
+              </button>
             </div>
           </div>
         </div>
@@ -2158,16 +2151,34 @@ const SearchResults = () => {
     setLocalSearchQuery(searchQuery);
   }, [searchQuery]);
 
+  // Initialize filters from URL parameters
   useEffect(() => {
-    if (!listings.length) {
-      setFilteredListings([]);
-      setFilteredCount(0);
-      setGroupedListings({});
-      return;
+    const initialFilters = {
+      locations: [],
+      categories: [],
+      priceRange: { min: "", max: "" },
+      ratings: [],
+      sortBy: "relevance",
+      amenities: [],
+    };
+
+    if (location && location !== "All Locations" && location !== "All") {
+      const targetLocation = getLocationDisplayName(location);
+      initialFilters.locations = [targetLocation];
     }
 
-    let filtered = [...listings];
+    if (category && category !== "All Categories" && category !== "All") {
+      const targetCategory = getCategoryDisplayName(category);
+      initialFilters.categories = [targetCategory];
+    }
 
+    setActiveFilters(initialFilters);
+  }, [category, location]);
+
+  const applyFilters = (listingsToFilter, filters) => {
+    let filtered = [...listingsToFilter];
+
+    // Apply search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter((item) => {
@@ -2187,6 +2198,7 @@ const SearchResults = () => {
       });
     }
 
+    // Apply category from URL if present
     if (category && category !== "All Categories" && category !== "All") {
       const targetCategory = getCategoryDisplayName(category);
       filtered = filtered.filter((item) => {
@@ -2195,6 +2207,7 @@ const SearchResults = () => {
       });
     }
 
+    // Apply location from URL if present
     if (location && location !== "All Locations" && location !== "All") {
       const targetLocation = getLocationDisplayName(location);
       filtered = filtered.filter((item) => {
@@ -2203,39 +2216,44 @@ const SearchResults = () => {
       });
     }
 
-    if (activeFilters.locations.length > 0) {
+    // Apply filter panel locations (supports multiple selections)
+    if (filters.locations.length > 0) {
       filtered = filtered.filter((item) => {
         const itemLocation = getLocationDisplayName(item.area || "");
-        return activeFilters.locations.includes(itemLocation);
+        return filters.locations.includes(itemLocation);
       });
     }
 
-    if (activeFilters.categories.length > 0) {
+    // Apply filter panel categories (supports multiple selections)
+    if (filters.categories.length > 0) {
       filtered = filtered.filter((item) => {
         const itemCategory = getCategoryDisplayName(item.category || "");
-        return activeFilters.categories.includes(itemCategory);
+        return filters.categories.includes(itemCategory);
       });
     }
 
-    if (activeFilters.priceRange.min || activeFilters.priceRange.max) {
-      const min = Number(activeFilters.priceRange.min) || 0;
-      const max = Number(activeFilters.priceRange.max) || Infinity;
+    // Apply price range
+    if (filters.priceRange.min || filters.priceRange.max) {
+      const min = Number(filters.priceRange.min) || 0;
+      const max = Number(filters.priceRange.max) || Infinity;
       filtered = filtered.filter((item) => {
         const price = Number(item.price_from) || 0;
         return price >= min && price <= max;
       });
     }
 
-    if (activeFilters.ratings.length > 0) {
+    // Apply ratings
+    if (filters.ratings.length > 0) {
       filtered = filtered.filter((item) => {
         const rating = Number(item.rating) || 0;
-        return activeFilters.ratings.some((stars) => rating >= stars);
+        return filters.ratings.some((stars) => rating >= stars);
       });
     }
 
-    if (activeFilters.sortBy && activeFilters.sortBy !== "relevance") {
+    // Apply sorting
+    if (filters.sortBy && filters.sortBy !== "relevance") {
       filtered = [...filtered].sort((a, b) => {
-        switch (activeFilters.sortBy) {
+        switch (filters.sortBy) {
           case "price_low":
             return (Number(a.price_from) || 0) - (Number(b.price_from) || 0);
           case "price_high":
@@ -2254,6 +2272,7 @@ const SearchResults = () => {
     setFilteredCount(filtered.length);
     setCurrentPage(1);
 
+    // Group by category for browsing view
     const grouped = {};
     filtered.forEach((item) => {
       const cat = getCategoryDisplayName(item.category || "Other");
@@ -2263,6 +2282,18 @@ const SearchResults = () => {
       grouped[cat].push(item);
     });
     setGroupedListings(grouped);
+  };
+
+  // Apply filters whenever any dependency changes
+  useEffect(() => {
+    if (!listings.length) {
+      setFilteredListings([]);
+      setFilteredCount(0);
+      setGroupedListings({});
+      return;
+    }
+
+    applyFilters(listings, activeFilters);
   }, [listings, searchQuery, category, location, activeFilters]);
 
   const handleSuggestionClick = (url) => {
@@ -2337,34 +2368,19 @@ const SearchResults = () => {
 
     if (newCategory) {
       params.set("category", newCategory);
-    } else if (category) {
-      params.set("category", category);
     }
 
     if (newLocation) {
       params.set("location", newLocation);
-    } else if (location) {
-      params.set("location", location);
     }
 
     setSearchParams(params);
-    setActiveFilters(filters);  
+    setActiveFilters(filters);
   };
 
-  const handleFilterChangeWithScroll = (newFilters) => {
-    setActiveFilters(newFilters);
-    setCurrentPage(1);
-    setTimeout(() => {
-      if (resultsRef.current) {
-        resultsRef.current.scrollIntoView({ behavior: "smooth" });
-      }
-    }, 100);
-  };
-
-  // Replace handleFilterChangeWithScroll with this:
+  // Real-time filter change handler
   const handleFilterChange = (newFilters) => {
     setActiveFilters(newFilters);
-    setCurrentPage(1); // Reset to first page when filters change
   };
 
   const removeFilter = (type, value = null) => {
@@ -2415,15 +2431,6 @@ const SearchResults = () => {
       params.set("q", searchQuery);
     }
     setSearchParams(params);
-
-    setTimeout(() => {
-      if (resultsRef.current) {
-        resultsRef.current.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }
-    }, 100);
   };
 
   const getPageTitle = () => {
@@ -2621,7 +2628,6 @@ const SearchResults = () => {
         {!isMobile && showDesktopFilters && (
           <FilterSidebar
             onFilterChange={handleFilterChange}
-            onApplyFilters={handleFilterChangeWithScroll}
             onDynamicFilterApply={handleDynamicFilterApply}
             allLocations={allLocations}
             allCategories={allCategories}
@@ -2638,7 +2644,6 @@ const SearchResults = () => {
         {isMobile && showMobileFilters && (
           <FilterSidebar
             onFilterChange={handleFilterChange}
-            onApplyFilters={handleFilterChangeWithScroll}
             onDynamicFilterApply={handleDynamicFilterApply}
             allLocations={allLocations}
             allCategories={allCategories}
@@ -2657,7 +2662,7 @@ const SearchResults = () => {
           {!isMobile && (
             <div className="lg:w-1/4">
               <FilterSidebar
-                onFilterChange={handleFilterChange} // Changed this
+                onFilterChange={handleFilterChange}
                 onDynamicFilterApply={handleDynamicFilterApply}
                 allLocations={allLocations}
                 allCategories={allCategories}
@@ -2674,7 +2679,7 @@ const SearchResults = () => {
             {/* Page Header with Filter Button */}
             <div className="mb-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
+                <div className="flex-1 flex items-center gap-3">
                   {/* Desktop filter button */}
                   {!isMobile && (
                     <div className="relative" ref={filterButtonRef}>
@@ -2706,17 +2711,81 @@ const SearchResults = () => {
                     </div>
                   )}
 
-                  {/* Title and Count */}
-                  <div>
-                    <h1 className="text-xl font-bold text-[#00065A] mb-1">
-                      {getPageTitle()}
-                    </h1>
-                    <p className="text-sm text-gray-600">
-                      {filteredCount} {filteredCount === 1 ? "place" : "places"}{" "}
-                      found
-                    </p>
+                  {/* Title and Count - Moved to single line with sort */}
+                  <div className="flex-1 flex items-center justify-between">
+                    <div>
+                      <h1 className="text-xl font-bold text-[#00065A] mb-1">
+                        {getPageTitle()}
+                      </h1>
+                      <p className="text-sm text-gray-600">
+                        {filteredCount}{" "}
+                        {filteredCount === 1 ? "place" : "places"} found
+                      </p>
+                    </div>
+                    
+                    {/* Desktop Sort Dropdown - At far right, clean minimal design */}
+                    {!isMobile && (
+                      <div className="flex items-center">
+                        <div className="relative">
+                          <select
+                            value={activeFilters.sortBy}
+                            onChange={(e) => {
+                              const updatedFilters = {
+                                ...activeFilters,
+                                sortBy: e.target.value,
+                              };
+                              handleFilterChange(updatedFilters);
+                            }}
+                            className="appearance-none bg-transparent text-sm font-medium text-gray-600 hover:text-gray-900 focus:outline-none cursor-pointer pr-6"
+                          >
+                            <option value="relevance">Sort by: Relevance</option>
+                            <option value="price_low">Price: Low to High</option>
+                            <option value="price_high">Price: High to Low</option>
+                            <option value="rating">Highest Rated</option>
+                            <option value="name">Name: A to Z</option>
+                          </select>
+                          <div className="absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                            <FontAwesomeIcon 
+                              icon={faChevronDown} 
+                              className="text-gray-500 text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* Sort By Dropdown - Only on mobile */}
+                {isMobile && (
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <select
+                        value={activeFilters.sortBy}
+                        onChange={(e) => {
+                          const updatedFilters = {
+                            ...activeFilters,
+                            sortBy: e.target.value,
+                          };
+                          handleFilterChange(updatedFilters);
+                        }}
+                        className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-10"
+                      >
+                        <option value="relevance">Sort by: Relevance</option>
+                        <option value="price_low">Price: Low to High</option>
+                        <option value="price_high">Price: High to Low</option>
+                        <option value="rating">Highest Rated</option>
+                        <option value="name">Name: A to Z</option>
+                      </select>
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                        <FontAwesomeIcon
+                          icon={faChevronDown}
+                          className="text-gray-500 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Mobile filter button - Icon only, no text */}
                 {isMobile && (
