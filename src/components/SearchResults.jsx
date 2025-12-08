@@ -409,21 +409,45 @@ const DesktopSearchSuggestions = ({
     };
   }, [isVisible, onClose]);
 
+  useEffect(() => {
+    const handleEscapeKey = (e) => {
+      if (e.key === "Escape" && isVisible) {
+        onClose();
+      }
+    };
+
+    if (isVisible) {
+      window.addEventListener("keydown", handleEscapeKey);
+    }
+
+    return () => {
+      window.removeEventListener("keydown", handleEscapeKey);
+    };
+  }, [isVisible, onClose]);
+
   if (!isVisible || !searchQuery.trim() || suggestions.length === 0)
     return null;
 
-  // FIXED: Moved portal down to show what user is typing
   return createPortal(
     <div
       ref={suggestionsRef}
-      className="fixed inset-0 z-[999998] pointer-events-none"
-      style={{ zIndex: 999998 }}
+      className="fixed inset-0 z-[1000000]"
+      style={{
+        zIndex: 1000000,
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: "100%",
+        height: "100%",
+      }}
     >
-      <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative w-full h-full">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative w-full h-full pt-24">
         <div
-          className="absolute top-40 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200 pointer-events-auto max-h-[70vh] overflow-y-auto"
-          style={{ zIndex: 999999 }}
+          className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200 pointer-events-auto max-h-[70vh] overflow-y-auto"
+          style={{ zIndex: 1000001 }}
         >
           <div className="p-4 border-b border-gray-100 bg-gray-50">
             <div className="flex items-center justify-between">
@@ -657,33 +681,57 @@ const MobileSearchModal = ({
 
   useEffect(() => {
     if (isVisible) {
+      document.body.classList.add("modal-open");
       document.body.style.overflow = "hidden";
-      document.body.style.position = "fixed";
-      document.body.style.width = "100%";
+      document.documentElement.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = "auto";
-      document.body.style.position = "static";
+      document.body.classList.remove("modal-open");
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
     }
 
     return () => {
-      document.body.style.overflow = "auto";
-      document.body.style.position = "static";
+      document.body.classList.remove("modal-open");
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
     };
   }, [isVisible]);
 
+  useEffect(() => {
+    const handleEscapeKey = (e) => {
+      if (e.key === "Escape" && isVisible) {
+        onClose();
+      }
+    };
+
+    if (isVisible) {
+      window.addEventListener("keydown", handleEscapeKey);
+    }
+
+    return () => {
+      window.removeEventListener("keydown", handleEscapeKey);
+    };
+  }, [isVisible, onClose]);
+
   if (!isVisible) return null;
 
-  // FIXED: Modal should cover header with higher z-index
   return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[1000000]"
-      style={{ zIndex: 1000000 }}
+      style={{
+        zIndex: 1000000,
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: "100%",
+        height: "100%",
+      }}
     >
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-
       <motion.div
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
@@ -691,6 +739,15 @@ const MobileSearchModal = ({
         transition={{ type: "spring", damping: 25 }}
         className="absolute inset-0 bg-white flex flex-col"
         ref={modalRef}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: "100%",
+          height: "100%",
+        }}
       >
         <div className="sticky top-0 bg-white border-b border-gray-200 shadow-sm z-10">
           <div className="p-4">
@@ -1430,10 +1487,33 @@ const FilterSidebar = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[1000000] bg-white overflow-y-auto"
-        style={{ zIndex: 1000000 }}
+        className="fixed inset-0 z-[1000000] bg-white"
+        style={{
+          zIndex: 1000000,
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: "100%",
+          height: "100%",
+        }}
       >
-        {sidebarContent}
+        <div className="h-full overflow-y-auto">
+          <div className="sticky top-0 bg-white border-b border-gray-200 shadow-sm z-10">
+            <div className="flex items-center justify-between p-4">
+              <h3 className="text-xl font-bold text-gray-900">Filter & Sort</h3>
+              <button
+                onClick={onClose}
+                className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl"
+                aria-label="Close filters"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          <div className="p-4">{sidebarContent}</div>
+        </div>
       </motion.div>,
       document.body
     );
@@ -1447,9 +1527,39 @@ const FilterSidebar = ({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[1000000] bg-white"
-        style={{ zIndex: 1000000 }}
+        style={{
+          zIndex: 1000000,
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: "100%",
+          height: "100%",
+        }}
       >
         <div className="h-full overflow-y-auto">
+          <div className="sticky top-0 bg-white border-b border-gray-200 shadow-sm z-10">
+            <div className="container mx-auto px-4 py-4 max-w-4xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    Filter & Sort
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Refine your search results
+                  </p>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl"
+                  aria-label="Close filters"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          </div>
           <div className="container mx-auto px-4 py-6 max-w-4xl">
             {sidebarContent}
           </div>
@@ -2126,26 +2236,19 @@ const SearchResults = () => {
 
         {/* Desktop Filter Modal */}
         {!isMobile && showDesktopFilters && (
-          <>
-            <div
-              className="fixed inset-0 bg-black/50 z-[999998]"
-              onClick={() => setShowDesktopFilters(false)}
-              style={{ zIndex: 999998 }}
-            />
-            <FilterSidebar
-              onFilterChange={handleFilterChange}
-              onApplyFilters={handleFilterChangeWithScroll}
-              onDynamicFilterApply={handleDynamicFilterApply}
-              allLocations={allLocations}
-              allCategories={allCategories}
-              currentFilters={activeFilters}
-              currentSearchQuery={searchQuery}
-              currentCategoryParam={category}
-              currentLocationParam={location}
-              onClose={() => setShowDesktopFilters(false)}
-              isDesktopModal={true}
-            />
-          </>
+          <FilterSidebar
+            onFilterChange={handleFilterChange}
+            onApplyFilters={handleFilterChangeWithScroll}
+            onDynamicFilterApply={handleDynamicFilterApply}
+            allLocations={allLocations}
+            allCategories={allCategories}
+            currentFilters={activeFilters}
+            currentSearchQuery={searchQuery}
+            currentCategoryParam={category}
+            currentLocationParam={location}
+            onClose={() => setShowDesktopFilters(false)}
+            isDesktopModal={true}
+          />
         )}
 
         {/* Mobile Filter Modal */}
@@ -2190,10 +2293,13 @@ const SearchResults = () => {
             <div className="mb-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  {/* FIXED: Desktop slider icon - NOT clickable, just shows filter count */}
+                  {/* Desktop filter button */}
                   {!isMobile && (
                     <div className="relative" ref={filterButtonRef}>
-                      <div className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg bg-white shadow-sm">
+                      <button
+                        onClick={toggleDesktopFilters}
+                        className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg bg-white shadow-sm hover:bg-gray-50 transition-colors"
+                      >
                         <PiSliders className="text-gray-600" />
                         <span className="text-sm font-medium">
                           Filter & Sort
@@ -2219,7 +2325,7 @@ const SearchResults = () => {
                             }, 0)}
                           </span>
                         )}
-                      </div>
+                      </button>
                     </div>
                   )}
 
@@ -2235,7 +2341,7 @@ const SearchResults = () => {
                   </div>
                 </div>
 
-                {/* FIXED: Mobile filter button - Icon only, no text */}
+                {/* Mobile filter button - Icon only, no text */}
                 {isMobile && (
                   <button
                     onClick={toggleMobileFilters}
