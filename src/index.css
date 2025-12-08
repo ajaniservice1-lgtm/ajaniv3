@@ -30,12 +30,7 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(
-    45deg,
-    #000000,
-    #333333,
-    #000000
-  ); /* Pure black gradient */
+  background: linear-gradient(45deg, #000000, #333333, #000000); /* Pure black gradient */
   border-radius: 12px; /* Increased from 10px */
   border: 3px solid #f1f1f1; /* Increased border thickness from 2px */
   transition: all 0.3s ease;
@@ -43,23 +38,13 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(
-    45deg,
-    #333333,
-    #000000,
-    #333333
-  ); /* Darker on hover */
+  background: linear-gradient(45deg, #333333, #000000, #333333); /* Darker on hover */
   transform: scale(1.05);
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3); /* Enhanced shadow on hover */
 }
 
 ::-webkit-scrollbar-thumb:active {
-  background: linear-gradient(
-    45deg,
-    #000000,
-    #555555,
-    #000000
-  ); /* Even darker when clicking */
+  background: linear-gradient(45deg, #000000, #555555, #000000); /* Even darker when clicking */
   transform: scale(1.02);
 }
 
@@ -130,8 +115,8 @@ html {
 
 /* Hide scrollbar but keep functionality */
 .scrollbar-hide {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
@@ -192,6 +177,8 @@ html {
 
 body {
   overflow-x: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 #directory {
@@ -410,3 +397,150 @@ body.thick-scrollbar::-webkit-scrollbar {
   width: 16px !important;
   height: 16px !important;
 }
+
+/* ===== MODAL FIXES ===== */
+
+/* ANIMATIONS */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: translate(-50%, -50%) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Modal Backdrop */
+.modal-backdrop {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  z-index: 9999998 !important;
+}
+
+/* Mobile Modal */
+.mobile-fullscreen-modal {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: white !important;
+  z-index: 9999999 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Desktop Modal */
+.desktop-modal {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  background: white !important;
+  border-radius: 16px !important;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25) !important;
+  z-index: 9999999 !important;
+  overflow: hidden !important;
+}
+
+/* Fix for body when modal is open - NO POSITION FIXED */
+body.modal-open {
+  overflow: hidden !important;
+}
+
+/* Ensure header stays in place */
+header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+}
+
+/* Fix hero images */
+#hero img {
+  position: relative !important;
+  z-index: 1 !important;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Hero section fix */
+#hero {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Remove problematic z-index overrides */
+* {
+  z-index: auto !important;
+}
+
+/* Modal specific z-index */
+.modal-backdrop {
+  z-index: 9999998 !important;
+}
+
+.mobile-fullscreen-modal,
+.desktop-modal {
+  z-index: 9999999 !important;
+}
+
+/* Fix for header when modal is open */
+body.modal-open header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+}
+
+/* Ensure modals don't affect other content */
+body:not(.modal-open) {
+  overflow: auto !important;
+}
+
+/* Fix for iOS Safari */
+@supports (-webkit-touch-callout: none) {
+  .mobile-fullscreen-modal {
+    height: -webkit-fill-available !important;
+  }
+  
+  body.modal-open {
+    position: relative !important;
+    overflow: hidden !important;
+  }
+}
+
+/* Ensure portal renders properly */
+[data-react-portal] {
+  z-index: 9999999 !important;
+}
+
+/* ===== END MODAL FIXES ===== */
+

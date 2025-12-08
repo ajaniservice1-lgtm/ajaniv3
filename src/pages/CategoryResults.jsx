@@ -1,18 +1,26 @@
-// src/pages/CategoryResults.jsx
+// src/pages/CategoryResults.jsx - Complete corrected file
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faStar,
   faFilter,
   faSearch,
   faTimes,
+  faMapMarkerAlt,
+  faChevronDown,
+  faChevronUp,
+  faDollarSign,
+  faCheck,
+  faChevronRight,
 } from "@fortawesome/free-solid-svg-icons";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Meta from "../components/Meta";
 import { MdFavoriteBorder } from "react-icons/md";
 import { PiSliders } from "react-icons/pi";
+import { motion, AnimatePresence } from "framer-motion";
+import { createPortal } from "react-dom";
 
 // Import your Google Sheets hook
 const useGoogleSheet = (sheetId, apiKey) => {
@@ -67,6 +75,725 @@ const useGoogleSheet = (sheetId, apiKey) => {
   }, [sheetId, apiKey]);
 
   return { data: Array.isArray(data) ? data : [], loading, error };
+};
+
+// Helper functions for search suggestions
+const getCategoryDisplayName = (category) => {
+  if (!category || category === "All Categories") return "All Categories";
+
+  const parts = category.split(".");
+  if (parts.length > 1) {
+    const afterDot = parts.slice(1).join(".").trim();
+    return afterDot
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  }
+
+  return category
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
+const getLocationDisplayName = (location) => {
+  if (!location) return "All Locations";
+
+  const parts = location.split(".");
+  if (parts.length > 1) {
+    const afterDot = parts.slice(1).join(".").trim();
+    return afterDot
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  }
+
+  return location
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
+// Helper function to get location breakdown
+const getLocationBreakdown = (listings) => {
+  const locationCounts = {};
+  listings.forEach((item) => {
+    const location = getLocationDisplayName(item.area || "Unknown");
+    locationCounts[location] = (locationCounts[location] || 0) + 1;
+  });
+
+  return Object.entries(locationCounts)
+    .map(([location, count]) => ({ location, count }))
+    .sort((a, b) => b.count - a.count);
+};
+
+// Helper function to get category breakdown by location
+const getCategoryBreakdownByLocation = (listings) => {
+  const categoryCounts = {};
+  listings.forEach((item) => {
+    const category = getCategoryDisplayName(item.category || "other.other");
+    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+  });
+
+  return Object.entries(categoryCounts)
+    .map(([category, count]) => ({ category, count }))
+    .sort((a, b) => b.count - a.count);
+};
+
+// Mobile Fullscreen Search Modal Component
+const MobileSearchModal = ({
+  searchQuery,
+  listings,
+  onSuggestionClick,
+  onClose,
+  onTyping,
+  isVisible,
+  categoryTitle,
+}) => {
+  const [inputValue, setInputValue] = useState(searchQuery);
+  const modalRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // Generate suggestions based on search query
+  const suggestions = React.useMemo(() => {
+    if (!inputValue.trim() || !listings.length) return [];
+
+    const query = inputValue.toLowerCase().trim();
+    const suggestions = [];
+
+    // Get unique categories and locations
+    const uniqueCategories = [
+      ...new Set(
+        listings
+          .map((item) => item.category)
+          .filter((cat) => cat && cat.trim() !== "")
+          .map((cat) => cat.trim())
+      ),
+    ];
+
+    const uniqueLocations = [
+      ...new Set(
+        listings
+          .map((item) => item.area)
+          .filter((loc) => loc && loc.trim() !== "")
+          .map((loc) => loc.trim())
+      ),
+    ];
+
+    // Category suggestions
+    const categoryMatches = uniqueCategories
+      .filter((category) => {
+        const displayName = getCategoryDisplayName(category).toLowerCase();
+        return displayName.includes(query);
+      })
+      .map((category) => {
+        const categoryListings = listings.filter(
+          (item) =>
+            item.category &&
+            item.category.toLowerCase() === category.toLowerCase()
+        );
+        const locationBreakdown = getLocationBreakdown(categoryListings);
+
+        return {
+          type: "category",
+          title: getCategoryDisplayName(category),
+          count: categoryListings.length,
+          description: `Search ${
+            categoryListings.length
+          } ${getCategoryDisplayName(category).toLowerCase()} places`,
+          locations: locationBreakdown,
+          action: () => {
+            const params = new URLSearchParams();
+            params.append("category", category);
+            return `/search-results?${params.toString()}`;
+          },
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    // Location suggestions
+    const locationMatches = uniqueLocations
+      .filter((location) => {
+        const displayName = getLocationDisplayName(location).toLowerCase();
+        return displayName.includes(query);
+      })
+      .map((location) => {
+        const locationListings = listings.filter(
+          (item) =>
+            item.area && item.area.toLowerCase() === location.toLowerCase()
+        );
+        const categoryBreakdown =
+          getCategoryBreakdownByLocation(locationListings);
+
+        return {
+          type: "location",
+          title: getLocationDisplayName(location),
+          count: locationListings.length,
+          description: `Search ${
+            locationListings.length
+          } places in ${getLocationDisplayName(location)}`,
+          categories: categoryBreakdown,
+          action: () => {
+            const params = new URLSearchParams();
+            params.append("location", location);
+            return `/search-results?${params.toString()}`;
+          },
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    // Combine and sort by relevance
+    return [...categoryMatches, ...locationMatches]
+      .sort((a, b) => {
+        // Exact matches first
+        const aExact = a.title.toLowerCase() === query;
+        const bExact = b.title.toLowerCase() === query;
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+
+        // Starts with query
+        const aStartsWith = a.title.toLowerCase().startsWith(query);
+        const bStartsWith = b.title.toLowerCase().startsWith(query);
+        if (aStartsWith && !bStartsWith) return -1;
+        if (!aStartsWith && bStartsWith) return 1;
+
+        // Then by count
+        return b.count - a.count;
+      })
+      .slice(0, 6); // Limit to 6 suggestions
+  }, [inputValue, listings]);
+
+  // Handle input change
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setInputValue(value);
+    onTyping(value);
+  };
+
+  // Handle clear input
+  const handleClearInput = () => {
+    setInputValue("");
+    onTyping("");
+    inputRef.current?.focus();
+  };
+
+  // Handle suggestion click
+  const handleSuggestionClick = (action) => {
+    onSuggestionClick(action);
+  };
+
+  // Handle key press
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && inputValue.trim()) {
+      const params = new URLSearchParams();
+      params.append("q", inputValue.trim());
+      onSuggestionClick(`/search-results?${params.toString()}`);
+    }
+  };
+
+  // Focus input when modal opens
+  useEffect(() => {
+    if (isVisible && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [isVisible]);
+
+  // Handle click outside modal
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+
+    if (isVisible) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [isVisible, onClose]);
+
+  if (!isVisible) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 bg-white z-[99999] flex flex-col">
+      {/* Modal Header with Search Bar */}
+      <div className="sticky top-0 bg-white border-b border-gray-200 shadow-sm">
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-gray-900">Search</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-600 hover:text-gray-900 font-medium px-3 py-1"
+              aria-label="Close search"
+            >
+              Cancel
+            </button>
+          </div>
+
+          {/* Search Input */}
+          <div className="flex items-center bg-gray-100 rounded-full px-4 py-2">
+            <FontAwesomeIcon icon={faSearch} className="text-gray-500" />
+            <input
+              ref={inputRef}
+              type="text"
+              className="flex-1 bg-transparent ml-3 py-1 outline-none font-manrope text-base placeholder:text-gray-500"
+              value={inputValue}
+              onChange={handleInputChange}
+              onKeyPress={handleKeyPress}
+              placeholder={`Search ${categoryTitle} in Ibadan...`}
+              autoFocus
+            />
+            {inputValue && (
+              <button
+                onClick={handleClearInput}
+                className="text-gray-500 hover:text-gray-700 p-1"
+                aria-label="Clear search"
+              >
+                <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Suggestions Content */}
+      <div className="flex-1 overflow-y-auto">
+        {inputValue.trim() ? (
+          <>
+            {/* Suggestions Header */}
+            <div className="p-4 border-b border-gray-100 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  Quick search suggestions
+                </span>
+                {suggestions.length > 0 && (
+                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                    {suggestions.length} suggestions
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Suggestions List */}
+            {suggestions.length > 0 ? (
+              <div className="divide-y divide-gray-100">
+                {suggestions.map((suggestion, index) => (
+                  <div
+                    key={index}
+                    className="p-4 hover:bg-blue-50 active:bg-blue-100 cursor-pointer transition-colors group"
+                    onClick={() => handleSuggestionClick(suggestion.action())}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                          <FontAwesomeIcon
+                            icon={
+                              suggestion.type === "category"
+                                ? faFilter
+                                : faMapMarkerAlt
+                            }
+                            className={`text-sm ${
+                              suggestion.type === "category"
+                                ? "text-blue-600"
+                                : "text-green-600"
+                            }`}
+                          />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-bold text-gray-900">
+                              {suggestion.title}
+                            </h3>
+                            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
+                              {suggestion.count}{" "}
+                              {suggestion.count === 1 ? "place" : "places"}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {suggestion.description}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-gray-400 group-hover:text-blue-500 transition-colors">
+                        <FontAwesomeIcon
+                          icon={faChevronRight}
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Location or Category breakdown */}
+                    {suggestion.type === "category" &&
+                      suggestion.locations &&
+                      suggestion.locations.length > 0 && (
+                        <div className="ml-12 mt-2">
+                          <p className="text-xs text-gray-500 mb-1">
+                            Available in these areas:
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {suggestion.locations
+                              .slice(0, 5)
+                              .map((loc, idx) => (
+                                <span
+                                  key={idx}
+                                  className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100"
+                                >
+                                  {loc.location} ({loc.count})
+                                </span>
+                              ))}
+                            {suggestion.locations.length > 5 && (
+                              <span className="text-xs text-gray-500">
+                                +{suggestion.locations.length - 5} more
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                    {suggestion.type === "location" &&
+                      suggestion.categories &&
+                      suggestion.categories.length > 0 && (
+                        <div className="ml-12 mt-2">
+                          <p className="text-xs text-gray-500 mb-1">
+                            Places include:
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {suggestion.categories
+                              .slice(0, 5)
+                              .map((cat, idx) => (
+                                <span
+                                  key={idx}
+                                  className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-100"
+                                >
+                                  {cat.category} ({cat.count})
+                                </span>
+                              ))}
+                            {suggestion.categories.length > 5 && (
+                              <span className="text-xs text-gray-500">
+                                +{suggestion.categories.length - 5} more
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                    <div className="ml-12 mt-3">
+                      <span className="text-xs text-blue-600 font-medium">
+                        Tap to view all results →
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <FontAwesomeIcon
+                  icon={faSearch}
+                  className="h-12 w-12 mx-auto mb-4 text-gray-300"
+                />
+                <p className="text-lg font-medium text-gray-700 mb-2">
+                  No matches found
+                </p>
+                <p className="text-sm text-gray-500">
+                  Try searching with different keywords
+                </p>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="p-8 text-center">
+            <FontAwesomeIcon
+              icon={faSearch}
+              className="h-16 w-16 mx-auto mb-6 text-gray-300"
+            />
+            <p className="text-xl font-medium text-gray-700 mb-2">
+              Start typing to search
+            </p>
+            <p className="text-sm text-gray-500">
+              Search for {categoryTitle.toLowerCase()} in Ibadan
+            </p>
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+// Desktop Search Suggestions Component
+const DesktopSearchSuggestions = ({
+  searchQuery,
+  listings,
+  onSuggestionClick,
+  onClose,
+  isVisible,
+}) => {
+  const suggestionsRef = useRef(null);
+
+  // Generate suggestions (same logic as mobile)
+  const suggestions = React.useMemo(() => {
+    if (!searchQuery.trim() || !listings.length) return [];
+
+    const query = searchQuery.toLowerCase().trim();
+    const suggestions = [];
+
+    // Get unique categories and locations
+    const uniqueCategories = [
+      ...new Set(
+        listings
+          .map((item) => item.category)
+          .filter((cat) => cat && cat.trim() !== "")
+          .map((cat) => cat.trim())
+      ),
+    ];
+
+    const uniqueLocations = [
+      ...new Set(
+        listings
+          .map((item) => item.area)
+          .filter((loc) => loc && loc.trim() !== "")
+          .map((loc) => loc.trim())
+      ),
+    ];
+
+    // Category suggestions
+    const categoryMatches = uniqueCategories
+      .filter((category) => {
+        const displayName = getCategoryDisplayName(category).toLowerCase();
+        return displayName.includes(query);
+      })
+      .map((category) => {
+        const categoryListings = listings.filter(
+          (item) =>
+            item.category &&
+            item.category.toLowerCase() === category.toLowerCase()
+        );
+        const locationBreakdown = getLocationBreakdown(categoryListings);
+
+        return {
+          type: "category",
+          title: getCategoryDisplayName(category),
+          count: categoryListings.length,
+          description: `Search ${
+            categoryListings.length
+          } ${getCategoryDisplayName(category).toLowerCase()} places`,
+          locations: locationBreakdown,
+          action: () => {
+            const params = new URLSearchParams();
+            params.append("category", category);
+            return `/search-results?${params.toString()}`;
+          },
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    // Location suggestions
+    const locationMatches = uniqueLocations
+      .filter((location) => {
+        const displayName = getLocationDisplayName(location).toLowerCase();
+        return displayName.includes(query);
+      })
+      .map((location) => {
+        const locationListings = listings.filter(
+          (item) =>
+            item.area && item.area.toLowerCase() === location.toLowerCase()
+        );
+        const categoryBreakdown =
+          getCategoryBreakdownByLocation(locationListings);
+
+        return {
+          type: "location",
+          title: getLocationDisplayName(location),
+          count: locationListings.length,
+          description: `Search ${
+            locationListings.length
+          } places in ${getLocationDisplayName(location)}`,
+          categories: categoryBreakdown,
+          action: () => {
+            const params = new URLSearchParams();
+            params.append("location", location);
+            return `/search-results?${params.toString()}`;
+          },
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    // Combine and sort by relevance
+    return [...categoryMatches, ...locationMatches]
+      .sort((a, b) => {
+        const aExact = a.title.toLowerCase() === query;
+        const bExact = b.title.toLowerCase() === query;
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+
+        const aStartsWith = a.title.toLowerCase().startsWith(query);
+        const bStartsWith = b.title.toLowerCase().startsWith(query);
+        if (aStartsWith && !bStartsWith) return -1;
+        if (!aStartsWith && bStartsWith) return 1;
+
+        return b.count - a.count;
+      })
+      .slice(0, 6);
+  }, [searchQuery, listings]);
+
+  // Handle click outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target)
+      ) {
+        onClose();
+      }
+    };
+
+    if (isVisible) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isVisible, onClose]);
+
+  if (!isVisible || !searchQuery.trim() || suggestions.length === 0)
+    return null;
+
+  return (
+    <div
+      ref={suggestionsRef}
+      className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-[80vh] overflow-y-auto"
+      style={{
+        width: "100%",
+        maxWidth: "600px",
+        left: "50%",
+        transform: "translateX(-50%)",
+      }}
+    >
+      <div className="p-3 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+            Quick search suggestions
+          </span>
+          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+            {suggestions.length} suggestions
+          </span>
+        </div>
+      </div>
+
+      <div className="divide-y divide-gray-100">
+        {suggestions.map((suggestion, index) => (
+          <div
+            key={index}
+            className="p-4 hover:bg-blue-50 cursor-pointer transition-colors group"
+            onClick={() => onSuggestionClick(suggestion.action())}
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                  <FontAwesomeIcon
+                    icon={
+                      suggestion.type === "category" ? faFilter : faMapMarkerAlt
+                    }
+                    className={`text-sm ${
+                      suggestion.type === "category"
+                        ? "text-blue-600"
+                        : "text-green-600"
+                    }`}
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-gray-900">
+                      {suggestion.title}
+                    </h3>
+                    <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
+                      {suggestion.count}{" "}
+                      {suggestion.count === 1 ? "place" : "places"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {suggestion.description}
+                  </p>
+                </div>
+              </div>
+              <div className="text-gray-400 group-hover:text-blue-500 transition-colors">
+                <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+              </div>
+            </div>
+
+            {/* Location or Category breakdown */}
+            {suggestion.type === "category" &&
+              suggestion.locations &&
+              suggestion.locations.length > 0 && (
+                <div className="ml-10 mt-2">
+                  <p className="text-xs text-gray-500 mb-1">
+                    Available in these areas:
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {suggestion.locations.slice(0, 5).map((loc, idx) => (
+                      <span
+                        key={idx}
+                        className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100"
+                      >
+                        {loc.location} ({loc.count})
+                      </span>
+                    ))}
+                    {suggestion.locations.length > 5 && (
+                      <span className="text-xs text-gray-500">
+                        +{suggestion.locations.length - 5} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+            {suggestion.type === "location" &&
+              suggestion.categories &&
+              suggestion.categories.length > 0 && (
+                <div className="ml-10 mt-2">
+                  <p className="text-xs text-gray-500 mb-1">Places include:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {suggestion.categories.slice(0, 5).map((cat, idx) => (
+                      <span
+                        key={idx}
+                        className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-100"
+                      >
+                        {cat.category} ({cat.count})
+                      </span>
+                    ))}
+                    {suggestion.categories.length > 5 && (
+                      <span className="text-xs text-gray-500">
+                        +{suggestion.categories.length - 5} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+            <div className="ml-10 mt-3">
+              <span className="text-xs text-blue-600 font-medium">
+                Click to view all results →
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="p-3 bg-gray-50 border-t border-gray-100">
+        <p className="text-xs text-gray-500 text-center">
+          Click any suggestion to view detailed results
+        </p>
+      </div>
+    </div>
+  );
 };
 
 // Fallback images
@@ -142,6 +869,7 @@ const CategoryResults = () => {
   const [filteredListings, setFilteredListings] = useState([]);
   const [originalListings, setOriginalListings] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
   const searchInputRef = useRef(null);
 
   // Use your actual Google Sheets data
@@ -232,6 +960,10 @@ const CategoryResults = () => {
     console.log("Search submitted:", searchQuery);
   };
 
+  const handleSearchChange = (value) => {
+    setSearchQuery(value);
+  };
+
   const handleClearSearch = () => {
     setSearchQuery("");
     if (searchInputRef.current) {
@@ -243,6 +975,27 @@ const CategoryResults = () => {
     if (e.key === "Enter") {
       handleSearchSubmit(e);
     }
+  };
+
+  // Handle mobile search click - opens fullscreen modal
+  const handleMobileSearchClick = () => {
+    if (isMobile) {
+      setShowMobileSearchModal(true);
+    }
+  };
+
+  // Handle search input focus
+  const handleSearchFocus = () => {
+    if (isMobile) {
+      handleMobileSearchClick();
+    }
+  };
+
+  // Handle suggestion click
+  const handleSuggestionClick = (url) => {
+    navigate(url);
+    setShowMobileSearchModal(false);
+    setSearchQuery("");
   };
 
   // Get card images function
@@ -561,62 +1314,103 @@ const CategoryResults = () => {
 
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        {/* Search Bar - Functional with real-time filtering */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20">
+        {/* Search Bar - Designed like Hero and SearchResults */}
         <div className="flex justify-center mb-8">
-          <div className="w-full max-w-2xl">
-            <form
-              onSubmit={handleSearchSubmit}
-              className="relative mx-auto w-full"
-            >
-              <div
-                className="flex items-center bg-gray-200 rounded-[33.35px] shadow-sm w-full relative z-10 cursor-text"
-                onClick={handleSearchInputClick}
-              >
-                <div className="pl-4 text-gray-500">
-                  <FontAwesomeIcon icon={faSearch} className="h-4 w-4" />
-                </div>
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder={`Search ${categoryTitle} in Ibadan...`}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  className="flex-1 bg-transparent py-4 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 cursor-text"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={handleClearSearch}
-                    className="p-2 text-gray-500 hover:text-gray-700"
-                  >
-                    <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
-                  </button>
-                )}
-                <button
-                  type="submit"
-                  className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-[33.35px] border border-[#06EAFC] py-4 px-6 text-sm transition-colors duration-200 whitespace-nowrap mx-2"
-                  style={{
-                    width: "152.81px",
-                    height: "52.7px",
-                    borderWidth: "1.11px",
-                  }}
+          <div className="w-full max-w-md">
+            <div className="relative mx-auto w-full">
+              <form onSubmit={handleSearchSubmit} className="relative">
+                <div
+                  className="flex items-center cursor-default"
+                  onClick={handleSearchInputClick}
                 >
-                  {isSearching ? "Searching..." : "Search"}
-                </button>
-              </div>
+                  <div
+                    className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-10 cursor-default"
+                    ref={searchInputRef}
+                    onClick={isMobile ? handleMobileSearchClick : undefined}
+                  >
+                    <div className="pl-3 sm:pl-4 text-gray-500 cursor-default">
+                      <FontAwesomeIcon icon={faSearch} className="h-4 w-4" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder={`Search ${categoryTitle} in Ibadan...`}
+                      value={searchQuery}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      onFocus={handleSearchFocus}
+                      onKeyPress={handleKeyPress}
+                      className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope cursor-pointer"
+                      autoFocus={false}
+                      aria-label="Search input"
+                      role="searchbox"
+                      readOnly={isMobile} // Read-only on mobile to force modal
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={handleClearSearch}
+                        className="p-1 mr-2 text-gray-500 hover:text-gray-700 cursor-pointer"
+                        aria-label="Clear search"
+                      >
+                        <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
 
-              {/* Search status indicator */}
-              {isSearching && (
-                <div className="absolute -bottom-6 left-0 text-xs text-gray-600">
-                  Found {filteredListings.length} results for "{searchQuery}" in{" "}
-                  {categoryTitle}
+                  <div className="ml-2">
+                    <button
+                      type="submit"
+                      className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope cursor-pointer"
+                      aria-label="Perform search"
+                    >
+                      Search
+                    </button>
+                  </div>
                 </div>
-              )}
-            </form>
+
+                {/* Desktop Search Suggestions */}
+                {!isMobile && (
+                  <div className="relative z-10000">
+                    <DesktopSearchSuggestions
+                      searchQuery={searchQuery}
+                      listings={listings}
+                      onSuggestionClick={handleSuggestionClick}
+                      onClose={() => {}}
+                      isVisible={searchQuery.trim().length > 0}
+                    />
+                  </div>
+                )}
+
+                <motion.div
+                  className="text-center mt-1 cursor-default"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{
+                    opacity: searchQuery ? 1 : 0,
+                    y: searchQuery ? 0 : 10,
+                  }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <p className="text-xs text-gray-500 font-manrope cursor-default">
+                    Press Enter or click Search to find results
+                  </p>
+                </motion.div>
+              </form>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Fullscreen Search Modal */}
+        {isMobile && (
+          <MobileSearchModal
+            searchQuery={searchQuery}
+            listings={listings}
+            onSuggestionClick={handleSuggestionClick}
+            onClose={() => setShowMobileSearchModal(false)}
+            onTyping={handleSearchChange}
+            isVisible={showMobileSearchModal}
+            categoryTitle={categoryTitle}
+          />
+        )}
 
         {/* Page Header with dynamic count */}
         <div className="mb-8">

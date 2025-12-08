@@ -57,8 +57,8 @@ const SkeletonCategorySection = ({ isMobile }) => (
 );
 
 const SkeletonDirectory = ({ isMobile }) => (
-  <section id="directory" className="bg-white py-4 font-manrope relative">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  <section id="directory" className="bg-white py-4 font-manrope">
+    <div className="max-w-8xl mx-auto px-2 sm:px-4 lg:px-6">
       {/* Header Skeleton */}
       <div className="mb-4">
         <div className="text-center mb-4">
@@ -589,7 +589,7 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
             onClick={handleCategoryClick}
             className={`
               text-[#00065A] hover:text-[#06EAFC] transition-colors text-left
-              ${isMobile ? "text-sm" : "text-base"} 
+              ${isMobile ? "text-sm" : "text-[19px]"} 
               font-bold cursor-pointer flex items-center gap-1
             `}
           >
@@ -634,6 +634,8 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
           style={{
             scrollbarWidth: "none",
             msOverflowStyle: "none",
+            // CHANGED: Added extra right padding to ensure last card is visible
+            paddingRight: "16px",
           }}
         >
           {items.map((item, index) => (
@@ -644,6 +646,8 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
               isMobile={isMobile}
             />
           ))}
+          {/* CHANGED: Added empty div for extra spacing on the right */}
+          <div className="flex-shrink-0" style={{ width: "16px" }}></div>
         </div>
       </div>
     </section>
@@ -787,8 +791,9 @@ const Directory = () => {
 
   if (error)
     return (
-      <section id="directory" className="bg-white py-6 font-manrope relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      // REMOVED: All positioning and z-index from error state
+      <section id="directory" className="bg-white py-6 font-manrope">
+        <div className="max-w-8xl mx-auto px-2 sm:px-4 lg:px-6">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
             <p className="text-red-700 font-medium text-sm">{error}</p>
           </div>
@@ -797,8 +802,9 @@ const Directory = () => {
     );
 
   return (
-    <section id="directory" className="bg-white py-3 font-manrope relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    // CRITICAL CHANGE: Removed ALL positioning and z-index
+    <section id="directory" className="bg-white py-3 font-manrope">
+      <div className="max-w-8xl mx-auto px-2 sm:px-4 lg:px-6">
         {/* Header - More compact with better mobile spacing */}
         <div className="mb-4">
           <motion.div
@@ -866,25 +872,8 @@ const Directory = () => {
           </div>
         </div>
 
-        {/* Active Filters Display - Compact */}
-        {Object.keys(activeFilters).length > 0 && (
-          <div className="mb-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="flex items-center justify-between">
-              <span className="text-blue-800 font-medium text-xs">
-                Active Filters:
-              </span>
-              <button
-                onClick={() => setActiveFilters({})}
-                className="text-blue-600 hover:text-blue-800 text-[10px]"
-              >
-                Clear All
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Category Sections - Tighter spacing */}
-        <div className="space-y-4 ">
+        <div className="space-y-4">
           {getPopularCategories().map((category) => {
             const items = categorizedListings[category] || [];
             if (items.length === 0) return null;

@@ -699,10 +699,10 @@ const VendorDetail = () => {
           {/* Price Range Section */}
           <div className="px-2 md:px-0">
             <div className="text-center bg-white rounded-xl md:rounded-2xl p-4 md:p-6 mx-2 md:mx-0">
-              <p className="text-[#00065A] font-manrope text-base md:text-xl font-bold mb-2">
+              <p className="text-[#00065A] font-manrope text-base md:text-xl font-bold mb-2 md:text-start">
                 Price Range
               </p>
-              <div className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-3">
+              <div className="flex md:justify-start flex-col md:flex-row items-center justify-center gap-1 md:gap-3">
                 <div className="flex items-center gap-1 md:gap-2">
                   <span className="text-xl md:text-2xl text-gray-900 font-manrope font-bold">
                     ₦{formatPrice(priceRange.from)}

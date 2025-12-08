@@ -16,14 +16,15 @@ import {
   faChevronLeft,
   faTimesCircle,
 } from "@fortawesome/free-solid-svg-icons";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { PiSliders } from "react-icons/pi";
 import { MdFavoriteBorder } from "react-icons/md";
 import Header from "./Header";
 import Footer from "./Footer";
 import Meta from "./Meta";
+import { createPortal } from "react-dom";
 
-// Import your Google Sheets hook
+// Google Sheets hook
 const useGoogleSheet = (sheetId, apiKey) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -104,7 +105,8 @@ const FALLBACK_IMAGES = {
 
 // Helper function to get category display name
 const getCategoryDisplayName = (category) => {
-  if (!category || category === "All Categories") return "All Categories";
+  if (!category || category === "All Categories" || category === "All")
+    return "All Categories";
 
   const parts = category.split(".");
   if (parts.length > 1) {
@@ -123,7 +125,8 @@ const getCategoryDisplayName = (category) => {
 
 // Helper function to get location display name
 const getLocationDisplayName = (location) => {
-  if (!location) return "All Locations";
+  if (!location || location === "All Locations" || location === "All")
+    return "All Locations";
 
   const parts = location.split(".");
   if (parts.length > 1) {
@@ -164,50 +167,144 @@ const getCardImages = (item) => {
   return [FALLBACK_IMAGES.default];
 };
 
-// Helper functions for search suggestions (from Hero.jsx)
-const getLocationBreakdown = (listings) => {
-  const locationCounts = {};
-  listings.forEach((item) => {
-    const location = getLocationDisplayName(item.area || "Unknown");
-    locationCounts[location] = (locationCounts[location] || 0) + 1;
-  });
+// ================== BUSINESS CARD (EXACT DESIGN AS REQUESTED) ==================
+const BusinessCard = ({ item, isMobile }) => {
+  const images = getCardImages(item);
+  const navigate = useNavigate();
 
-  return Object.entries(locationCounts)
-    .map(([location, count]) => ({ location, count }))
-    .sort((a, b) => b.count - a.count);
+  const formatPrice = (n) => {
+    if (!n) return "–";
+    const num = Number(n);
+    return num.toLocaleString("en-US", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+  };
+
+  const priceText = item.price_from
+    ? `#${formatPrice(item.price_from)} for 2 nights`
+    : "From #2,500 per guest";
+
+  const location = item.area || "Ibadan";
+
+  const handleCardClick = () => {
+    if (item.id) {
+      navigate(`/vendor-detail/${item.id}`);
+    } else if (item.name) {
+      navigate(`/vendor-detail/${encodeURIComponent(item.name)}`);
+    }
+  };
+
+  return (
+    <div
+      className={`
+        bg-white rounded-xl overflow-hidden flex-shrink-0 
+        font-manrope
+        ${isMobile ? "w-[165px]" : "w-full"} 
+        transition-all duration-200 cursor-pointer 
+        hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
+      `}
+      onClick={handleCardClick}
+    >
+      {/* Image */}
+      <div
+        className={`
+          relative overflow-hidden rounded-xl 
+          ${isMobile ? "w-full h-[150px]" : "w-full h-[170px]"}
+        `}
+      >
+        <img
+          src={images[0]}
+          alt=""
+          className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
+          onError={(e) => (e.currentTarget.src = FALLBACK_IMAGES.default)}
+          loading="lazy"
+        />
+
+        {/* Guest favorite badge */}
+        <div className="absolute top-2 left-2 bg-white px-1.5 py-1 rounded-md shadow-sm flex items-center gap-1">
+          <span className="text-[9px] font-semibold text-gray-900">
+            Guest favorite
+          </span>
+        </div>
+
+        {/* Heart icon */}
+        <button
+          className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition"
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          <MdFavoriteBorder className="text-[#00d1ff] text-sm" />
+        </button>
+      </div>
+
+      {/* Text */}
+      <div className={`${isMobile ? "p-1.5" : "p-2.5"} flex flex-col gap-0.5`}>
+        <h3
+          className={`
+            font-semibold text-gray-900 
+            leading-tight line-clamp-2 
+            ${isMobile ? "text-xs" : "text-sm"}
+          `}
+        >
+          {item.name}
+        </h3>
+
+        <p
+          className={`
+            text-gray-600 
+            ${isMobile ? "text-[9px]" : "text-xs"}
+          `}
+        >
+          {location}
+        </p>
+
+        <div className="flex items-center gap-1 mt-0.5">
+          <p
+            className={`
+              font-normal text-gray-900 
+              ${isMobile ? "text-[9px]" : "text-xs"}
+            `}
+          >
+            {priceText} <span>•</span>
+          </p>
+
+          <div
+            className={`
+              flex items-center gap-1 text-gray-800 
+              ${isMobile ? "text-[9px]" : "text-xs"}
+            `}
+          >
+            <FontAwesomeIcon
+              icon={faStar}
+              className={`${isMobile ? "text-[9px]" : "text-xs"} text-black`}
+            />
+            {item.rating || "4.9"}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
-const getCategoryBreakdownByLocation = (listings) => {
-  const categoryCounts = {};
-  listings.forEach((item) => {
-    const category = getCategoryDisplayName(item.category || "other.other");
-    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-  });
-
-  return Object.entries(categoryCounts)
-    .map(([category, count]) => ({ category, count }))
-    .sort((a, b) => b.count - a.count);
-};
-
-// SEARCH SUGGESTIONS COMPONENT - EXACTLY like Hero.jsx
-const SearchSuggestions = ({
+// ================== DESKTOP SEARCH SUGGESTIONS ==================
+const DesktopSearchSuggestions = ({
   searchQuery,
   listings,
   onSuggestionClick,
   onClose,
   isVisible,
-  isMobile,
 }) => {
   const suggestionsRef = useRef(null);
+  const navigate = useNavigate();
 
-  // Generate suggestions based on search query
   const suggestions = React.useMemo(() => {
     if (!searchQuery.trim() || !listings.length) return [];
 
     const query = searchQuery.toLowerCase().trim();
     const suggestions = [];
 
-    // Get unique categories and locations
     const uniqueCategories = [
       ...new Set(
         listings
@@ -226,7 +323,6 @@ const SearchSuggestions = ({
       ),
     ];
 
-    // Category suggestions
     const categoryMatches = uniqueCategories
       .filter((category) => {
         const displayName = getCategoryDisplayName(category).toLowerCase();
@@ -238,7 +334,6 @@ const SearchSuggestions = ({
             item.category &&
             item.category.toLowerCase() === category.toLowerCase()
         );
-        const locationBreakdown = getLocationBreakdown(categoryListings);
 
         return {
           type: "category",
@@ -247,17 +342,12 @@ const SearchSuggestions = ({
           description: `Search ${
             categoryListings.length
           } ${getCategoryDisplayName(category).toLowerCase()} places`,
-          locations: locationBreakdown,
-          action: () => {
-            const params = new URLSearchParams();
-            params.append("category", category);
-            return `/search-results?${params.toString()}`;
-          },
+          categoryValue: category,
+          action: `/search-results?category=${encodeURIComponent(category)}`,
         };
       })
       .sort((a, b) => b.count - a.count);
 
-    // Location suggestions
     const locationMatches = uniqueLocations
       .filter((location) => {
         const displayName = getLocationDisplayName(location).toLowerCase();
@@ -268,8 +358,6 @@ const SearchSuggestions = ({
           (item) =>
             item.area && item.area.toLowerCase() === location.toLowerCase()
         );
-        const categoryBreakdown =
-          getCategoryBreakdownByLocation(locationListings);
 
         return {
           type: "location",
@@ -278,38 +366,31 @@ const SearchSuggestions = ({
           description: `Search ${
             locationListings.length
           } places in ${getLocationDisplayName(location)}`,
-          categories: categoryBreakdown,
-          action: () => {
-            const params = new URLSearchParams();
-            params.append("location", location);
-            return `/search-results?${params.toString()}`;
-          },
+          locationValue: location,
+          action: `/search-results?location=${encodeURIComponent(location)}`,
         };
       })
       .sort((a, b) => b.count - a.count);
 
-    // Combine and sort by relevance
-    return [...categoryMatches, ...locationMatches]
+    const allSuggestions = [...categoryMatches, ...locationMatches];
+
+    return allSuggestions
       .sort((a, b) => {
-        // Exact matches first
         const aExact = a.title.toLowerCase() === query;
         const bExact = b.title.toLowerCase() === query;
         if (aExact && !bExact) return -1;
         if (!aExact && bExact) return 1;
 
-        // Starts with query
         const aStartsWith = a.title.toLowerCase().startsWith(query);
         const bStartsWith = b.title.toLowerCase().startsWith(query);
         if (aStartsWith && !bStartsWith) return -1;
         if (!aStartsWith && bStartsWith) return 1;
 
-        // Then by count
         return b.count - a.count;
       })
-      .slice(0, 6); // Limit to 6 suggestions
+      .slice(0, 6);
   }, [searchQuery, listings]);
 
-  // Handle click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -332,143 +413,465 @@ const SearchSuggestions = ({
   if (!isVisible || !searchQuery.trim() || suggestions.length === 0)
     return null;
 
-  return (
-    <div
-      ref={suggestionsRef}
-      className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 z-[10000] max-h-[80vh] overflow-y-auto"
-      style={{
-        position: "absolute",
-        width: "100%",
-        maxWidth: "600px",
-        left: "50%",
-        transform: "translateX(-50%)",
-        zIndex: 10000,
-      }}
+  // FULLSCREEN MODAL THAT COVERS HEADER
+  return createPortal(
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[1000000] bg-white"
+      style={{ zIndex: 1000000 }}
     >
-      <div className="p-3 border-b border-gray-100">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-            Quick search suggestions
-          </span>
-          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-            {suggestions.length} suggestions
-          </span>
-        </div>
-      </div>
-
-      <div className="divide-y divide-gray-100">
-        {suggestions.map((suggestion, index) => (
-          <div
-            key={index}
-            className="p-4 hover:bg-blue-50 cursor-pointer transition-colors group"
-            onClick={() => {
-              if (suggestion.action) {
-                onSuggestionClick(suggestion.action());
-              }
-            }}
-          >
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                  <FontAwesomeIcon
-                    icon={
-                      suggestion.type === "category" ? faFilter : faMapMarkerAlt
-                    }
-                    className={`text-sm ${
-                      suggestion.type === "category"
-                        ? "text-blue-600"
-                        : "text-green-600"
-                    }`}
-                  />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-gray-900">
-                      {suggestion.title}
-                    </h3>
-                    <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
-                      {suggestion.count}{" "}
-                      {suggestion.count === 1 ? "place" : "places"}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-600 mt-1">
-                    {suggestion.description}
-                  </p>
-                </div>
-              </div>
-              <div className="text-gray-400 group-hover:text-blue-500 transition-colors">
-                <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
-              </div>
+      <div className="h-full overflow-y-auto">
+        <div className="container mx-auto px-4 py-6 max-w-4xl">
+          {/* Search input at the top with back button */}
+          <div className="mb-6">
+            <div className="flex items-center mb-4">
+              <button
+                onClick={() => navigate(-1)}
+                className="mr-3 text-gray-600 hover:text-gray-900"
+                aria-label="Go back"
+              >
+                <FontAwesomeIcon icon={faChevronLeft} className="h-5 w-5" />
+              </button>
+              <h2 className="text-lg font-bold text-gray-900">Search</h2>
             </div>
-
-            {/* Location or Category breakdown */}
-            {suggestion.type === "category" &&
-              suggestion.locations &&
-              suggestion.locations.length > 0 && (
-                <div className="ml-10 mt-2">
-                  <p className="text-xs text-gray-500 mb-1">
-                    Available in these areas:
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {suggestion.locations.slice(0, 5).map((loc, idx) => (
-                      <span
-                        key={idx}
-                        className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100"
-                      >
-                        {loc.location} ({loc.count})
-                      </span>
-                    ))}
-                    {suggestion.locations.length > 5 && (
-                      <span className="text-xs text-gray-500">
-                        +{suggestion.locations.length - 5} more
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-            {suggestion.type === "location" &&
-              suggestion.categories &&
-              suggestion.categories.length > 0 && (
-                <div className="ml-10 mt-2">
-                  <p className="text-xs text-gray-500 mb-1">Places include:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {suggestion.categories.slice(0, 5).map((cat, idx) => (
-                      <span
-                        key={idx}
-                        className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-100"
-                      >
-                        {cat.category} ({cat.count})
-                      </span>
-                    ))}
-                    {suggestion.categories.length > 5 && (
-                      <span className="text-xs text-gray-500">
-                        +{suggestion.categories.length - 5} more
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-            <div className="ml-10 mt-3">
-              <span className="text-xs text-blue-600 font-medium">
-                Click to view all results →
-              </span>
+            <div className="flex items-center bg-gray-100 rounded-full px-4 py-3">
+              <FontAwesomeIcon
+                icon={faChevronLeft}
+                className="text-gray-500 cursor-pointer"
+                onClick={() => navigate(-1)}
+              />
+              <input
+                type="text"
+                value={searchQuery}
+                readOnly
+                className="flex-1 bg-transparent ml-3 py-1 outline-none font-manrope text-base placeholder:text-gray-500"
+                placeholder="Search by area, category, or name..."
+              />
+              <button
+                onClick={onClose}
+                className="text-gray-500 hover:text-gray-700 p-1 ml-2"
+                aria-label="Close search"
+              >
+                Cancel
+              </button>
             </div>
           </div>
-        ))}
-      </div>
 
-      <div className="p-3 bg-gray-50 border-t border-gray-100">
-        <p className="text-xs text-gray-500 text-center">
-          Click any suggestion to view detailed results
-        </p>
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+            {/* Suggestions header */}
+            <div className="p-4 border-b border-gray-100 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  Quick search suggestions
+                </span>
+                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                  {suggestions.length} suggestions
+                </span>
+              </div>
+            </div>
+
+            {/* Suggestions list */}
+            <div className="divide-y divide-gray-100">
+              {suggestions.map((suggestion, index) => (
+                <div
+                  key={index}
+                  className="p-4 hover:bg-blue-50 cursor-pointer transition-colors group"
+                  onClick={() => {
+                    onSuggestionClick(suggestion.action);
+                    onClose();
+                  }}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                        <FontAwesomeIcon
+                          icon={
+                            suggestion.type === "category"
+                              ? faFilter
+                              : faMapMarkerAlt
+                          }
+                          className={`text-sm ${
+                            suggestion.type === "category"
+                              ? "text-blue-600"
+                              : "text-green-600"
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-bold text-gray-900">
+                            {suggestion.title}
+                          </h3>
+                          <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
+                            {suggestion.count}{" "}
+                            {suggestion.count === 1 ? "place" : "places"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {suggestion.description}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-gray-400 group-hover:text-blue-500 transition-colors">
+                      <FontAwesomeIcon
+                        icon={faChevronRight}
+                        className="text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="ml-12 mt-3">
+                    <span className="text-xs text-blue-600 font-medium">
+                      Click to view all results →
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-4 bg-gray-50 border-t border-gray-100">
+              <p className="text-xs text-gray-500 text-center">
+                Click any suggestion to view detailed results
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </motion.div>,
+    document.body
   );
 };
 
-// ENHANCED FilterSidebar Component with SEARCHABLE dropdowns for location and category
+// ================== MOBILE SEARCH MODAL ==================
+const MobileSearchModal = ({
+  searchQuery,
+  listings,
+  onSuggestionClick,
+  onClose,
+  onTyping,
+  isVisible,
+}) => {
+  const [inputValue, setInputValue] = useState(searchQuery);
+  const modalRef = useRef(null);
+  const inputRef = useRef(null);
+  const navigate = useNavigate();
+
+  const suggestions = React.useMemo(() => {
+    if (!inputValue.trim() || !listings.length) return [];
+
+    const query = inputValue.toLowerCase().trim();
+    const suggestions = [];
+
+    const uniqueCategories = [
+      ...new Set(
+        listings
+          .map((item) => item.category)
+          .filter((cat) => cat && cat.trim() !== "")
+          .map((cat) => cat.trim())
+      ),
+    ];
+
+    const uniqueLocations = [
+      ...new Set(
+        listings
+          .map((item) => item.area)
+          .filter((loc) => loc && loc.trim() !== "")
+          .map((loc) => loc.trim())
+      ),
+    ];
+
+    const categoryMatches = uniqueCategories
+      .filter((category) => {
+        const displayName = getCategoryDisplayName(category).toLowerCase();
+        return displayName.includes(query);
+      })
+      .map((category) => {
+        const categoryListings = listings.filter(
+          (item) =>
+            item.category &&
+            item.category.toLowerCase() === category.toLowerCase()
+        );
+
+        return {
+          type: "category",
+          title: getCategoryDisplayName(category),
+          count: categoryListings.length,
+          description: `Search ${
+            categoryListings.length
+          } ${getCategoryDisplayName(category).toLowerCase()} places`,
+          action: `/search-results?category=${encodeURIComponent(category)}`,
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    const locationMatches = uniqueLocations
+      .filter((location) => {
+        const displayName = getLocationDisplayName(location).toLowerCase();
+        return displayName.includes(query);
+      })
+      .map((location) => {
+        const locationListings = listings.filter(
+          (item) =>
+            item.area && item.area.toLowerCase() === location.toLowerCase()
+        );
+
+        return {
+          type: "location",
+          title: getLocationDisplayName(location),
+          count: locationListings.length,
+          description: `Search ${
+            locationListings.length
+          } places in ${getLocationDisplayName(location)}`,
+          action: `/search-results?location=${encodeURIComponent(location)}`,
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    const allSuggestions = [...categoryMatches, ...locationMatches];
+
+    return allSuggestions
+      .sort((a, b) => {
+        const aExact = a.title.toLowerCase() === query;
+        const bExact = b.title.toLowerCase() === query;
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+
+        const aStartsWith = a.title.toLowerCase().startsWith(query);
+        const bStartsWith = b.title.toLowerCase().startsWith(query);
+        if (aStartsWith && !bStartsWith) return -1;
+        if (!aStartsWith && bStartsWith) return 1;
+
+        return b.count - a.count;
+      })
+      .slice(0, 6);
+  }, [inputValue, listings]);
+
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setInputValue(value);
+    onTyping(value);
+  };
+
+  const handleClearInput = () => {
+    setInputValue("");
+    onTyping("");
+    inputRef.current?.focus();
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && inputValue.trim()) {
+      navigate(`/search-results?q=${encodeURIComponent(inputValue.trim())}`);
+      onClose();
+    }
+  };
+
+  useEffect(() => {
+    if (isVisible && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [isVisible]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+
+    if (isVisible) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [isVisible, onClose]);
+
+  useEffect(() => {
+    if (isVisible) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+    } else {
+      document.body.style.overflow = "auto";
+      document.body.style.position = "static";
+    }
+
+    return () => {
+      document.body.style.overflow = "auto";
+      document.body.style.position = "static";
+    };
+  }, [isVisible]);
+
+  if (!isVisible) return null;
+
+  // FULLSCREEN MODAL THAT COVERS HEADER
+  return createPortal(
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[1000000] bg-white"
+      style={{ zIndex: 1000000 }}
+    >
+      <motion.div
+        initial={{ y: 0, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 0, opacity: 0 }}
+        className="h-full flex flex-col"
+        ref={modalRef}
+      >
+        {/* Header with time and close button */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 z-10">
+          <div className="px-4 pt-8 pb-4">
+            <div className="flex items-center bg-gray-100 rounded-full px-4 py-3">
+              <FontAwesomeIcon
+                icon={faChevronLeft}
+                className="text-gray-500 cursor-pointer"
+                onClick={() => navigate(-1)}
+              />
+              <input
+                ref={inputRef}
+                type="text"
+                className="flex-1 bg-transparent ml-3 py-1 outline-none font-manrope text-base placeholder:text-gray-500"
+                value={inputValue}
+                onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
+                placeholder="Search by area, category, or name..."
+                autoFocus
+              />
+              {inputValue && (
+                <button
+                  onClick={handleClearInput}
+                  className="text-gray-500 hover:text-gray-700 p-1"
+                  aria-label="Clear search"
+                >
+                  <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto pb-4">
+          {inputValue.trim() ? (
+            <>
+              <div className="sticky top-0 p-4 border-b border-gray-100 bg-gray-50 z-10">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                    Quick search suggestions
+                  </span>
+                  {suggestions.length > 0 && (
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                      {suggestions.length} suggestions
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {suggestions.length > 0 ? (
+                <div className="divide-y divide-gray-100">
+                  {suggestions.map((suggestion, index) => (
+                    <div
+                      key={index}
+                      className="p-4 hover:bg-blue-50 active:bg-blue-100 cursor-pointer transition-colors group"
+                      onClick={() => {
+                        onSuggestionClick(suggestion.action);
+                        onClose();
+                      }}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                            <FontAwesomeIcon
+                              icon={
+                                suggestion.type === "category"
+                                  ? faFilter
+                                  : faMapMarkerAlt
+                              }
+                              className={`text-sm ${
+                                suggestion.type === "category"
+                                  ? "text-blue-600"
+                                  : "text-green-600"
+                              }`}
+                            />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-sm font-bold text-gray-900">
+                                {suggestion.title}
+                              </h3>
+                              <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
+                                {suggestion.count}{" "}
+                                {suggestion.count === 1 ? "place" : "places"}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-600 mt-1">
+                              {suggestion.description}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-gray-400 group-hover:text-blue-500 transition-colors">
+                          <FontAwesomeIcon
+                            icon={faChevronRight}
+                            className="text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="ml-12 mt-3">
+                        <span className="text-xs text-blue-600 font-medium">
+                          Tap to view all results →
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center">
+                  <FontAwesomeIcon
+                    icon={faChevronLeft}
+                    className="h-12 w-12 mx-auto mb-4 text-gray-300 cursor-pointer"
+                    onClick={() => navigate(-1)}
+                  />
+                  <p className="text-lg font-medium text-gray-700 mb-2">
+                    No matches found
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Try searching with different keywords
+                  </p>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="p-8 text-center">
+              <FontAwesomeIcon
+                icon={faChevronLeft}
+                className="h-16 w-16 mx-auto mb-6 text-gray-300 cursor-pointer"
+                onClick={() => navigate(-1)}
+              />
+              <p className="text-xl font-medium text-gray-700 mb-2">
+                Start typing to search
+              </p>
+              <p className="text-sm text-gray-500">
+                Search for categories, locations, or places in Ibadan
+              </p>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>,
+    document.body
+  );
+};
+
+// ================== ENHANCED FILTER SIDEBAR (SEARCHABLE) ==================
 const FilterSidebar = ({
   onFilterChange,
   allLocations,
@@ -502,11 +905,10 @@ const FilterSidebar = ({
     amenities: false,
   });
 
-  // Search states for location and category
   const [locationSearch, setLocationSearch] = useState("");
   const [categorySearch, setCategorySearch] = useState("");
+  const navigate = useNavigate();
 
-  // Get unique display names for locations and categories
   const uniqueLocationDisplayNames = React.useMemo(() => {
     const locations = [
       ...new Set(allLocations.map((loc) => getLocationDisplayName(loc))),
@@ -521,7 +923,6 @@ const FilterSidebar = ({
     return categories.sort();
   }, [allCategories]);
 
-  // Filter locations based on search
   const filteredLocationDisplayNames = React.useMemo(() => {
     if (!locationSearch.trim()) return uniqueLocationDisplayNames;
     const searchTerm = locationSearch.toLowerCase().trim();
@@ -530,7 +931,6 @@ const FilterSidebar = ({
     );
   }, [uniqueLocationDisplayNames, locationSearch]);
 
-  // Filter categories based on search
   const filteredCategoryDisplayNames = React.useMemo(() => {
     if (!categorySearch.trim()) return uniqueCategoryDisplayNames;
     const searchTerm = categorySearch.toLowerCase().trim();
@@ -539,7 +939,6 @@ const FilterSidebar = ({
     );
   }, [uniqueCategoryDisplayNames, categorySearch]);
 
-  // Toggle section expansion
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
       ...prev,
@@ -680,20 +1079,30 @@ const FilterSidebar = ({
 
   const sidebarContent = (
     <div
-      className={`space-y-6 ${isMobileModal || isDesktopModal ? "p-6" : ""}`}
+      className={`space-y-6 ${
+        isMobileModal || isDesktopModal ? "p-4 sm:p-6" : ""
+      }`}
     >
-      {/* Header for mobile/desktop modal */}
       {(isMobileModal || isDesktopModal) && (
-        <div className="flex justify-between items-center border-b pb-3 mb-4">
-          <div>
-            <h3 className="text-xl font-bold text-gray-900">Filter & Sort</h3>
-            <p className="text-sm text-gray-500 mt-1">
-              Refine your search results
-            </p>
+        <div className="flex justify-between items-center border-b pb-4 mb-4">
+          <div className="flex items-center">
+            <button
+              onClick={() => navigate(-1)}
+              className="mr-3 text-gray-600 hover:text-gray-900"
+              aria-label="Go back"
+            >
+              <FontAwesomeIcon icon={faChevronLeft} className="h-5 w-5" />
+            </button>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Filter & Sort</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Refine your search results
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors"
+            className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl"
             aria-label="Close filters"
           >
             ×
@@ -764,6 +1173,11 @@ const FilterSidebar = ({
             <div className="max-h-48 overflow-y-auto pr-2">
               {filteredLocationDisplayNames.length === 0 ? (
                 <div className="text-center py-4 text-gray-500 text-sm">
+                  <FontAwesomeIcon
+                    icon={faChevronLeft}
+                    className="h-8 w-8 mx-auto mb-2 text-gray-300 cursor-pointer"
+                    onClick={() => navigate(-1)}
+                  />
                   No locations found matching "{locationSearch}"
                 </div>
               ) : (
@@ -866,6 +1280,11 @@ const FilterSidebar = ({
             <div className="max-h-48 overflow-y-auto pr-2">
               {filteredCategoryDisplayNames.length === 0 ? (
                 <div className="text-center py-4 text-gray-500 text-sm">
+                  <FontAwesomeIcon
+                    icon={faChevronLeft}
+                    className="h-8 w-8 mx-auto mb-2 text-gray-300 cursor-pointer"
+                    onClick={() => navigate(-1)}
+                  />
                   No categories found matching "{categorySearch}"
                 </div>
               ) : (
@@ -1055,33 +1474,43 @@ const FilterSidebar = ({
     </div>
   );
 
+  // Mobile Modal - Fullscreen
   if (isMobileModal) {
-    return (
+    return createPortal(
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 20 }}
-        className="fixed inset-0 bg-white z-50 overflow-y-auto"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[1000000] bg-white overflow-y-auto"
+        style={{ zIndex: 1000000 }}
       >
         {sidebarContent}
-      </motion.div>
+      </motion.div>,
+      document.body
     );
   }
 
+  // Desktop Modal - Fullscreen like mobile search
   if (isDesktopModal) {
-    return (
+    return createPortal(
       <motion.div
-        initial={{ opacity: 0, y: -20, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -20, scale: 0.95 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
-        className="fixed left-1/2 top-24 -translate-x-1/2 w-[90vw] max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden max-h-[80vh] overflow-y-auto"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[1000000] bg-white"
+        style={{ zIndex: 1000000 }}
       >
-        {sidebarContent}
-      </motion.div>
+        <div className="h-full overflow-y-auto">
+          <div className="container mx-auto px-4 py-6 max-w-4xl">
+            {sidebarContent}
+          </div>
+        </div>
+      </motion.div>,
+      document.body
     );
   }
 
+  // Regular sidebar (not modal)
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit sticky top-6">
       <div className="mb-6">
@@ -1092,128 +1521,72 @@ const FilterSidebar = ({
   );
 };
 
-// BusinessCard Component - EXACTLY like CategoryResults.jsx
-const BusinessCard = ({ item, isMobile }) => {
-  const images = getCardImages(item);
+// ================== CATEGORY SECTION ==================
+const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
   const navigate = useNavigate();
 
-  const formatPrice = (n) => {
-    if (!n) return "–";
-    const num = Number(n);
-    return num.toLocaleString("en-US", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    });
+  const handleCategoryClick = () => {
+    navigate(`/category/${category}`);
   };
 
-  const priceText = item.price_from
-    ? `#${formatPrice(item.price_from)} for 2 nights`
-    : "From #2,500 per guest";
+  if (items.length === 0) return null;
 
-  const location = item.area || "Ibadan";
-
-  const handleCardClick = () => {
-    if (item.id) {
-      navigate(`/vendor-detail/${item.id}`);
-    } else if (item.name) {
-      navigate(`/vendor-detail/${encodeURIComponent(item.name)}`);
-    }
-  };
-
-  return (
-    <div
-      className={`
-        bg-white rounded-xl overflow-hidden flex-shrink-0 
-        font-manrope
-        ${isMobile ? "w-[165px]" : "w-full"} 
-        transition-all duration-200 cursor-pointer 
-        hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
-      `}
-      onClick={handleCardClick}
-    >
-      {/* Image */}
-      <div
-        className={`
-          relative overflow-hidden rounded-xl 
-          ${isMobile ? "w-full h-[150px]" : "w-full h-[170px]"}
-        `}
-      >
-        <img
-          src={images[0]}
-          alt=""
-          className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
-          onError={(e) => (e.currentTarget.src = FALLBACK_IMAGES.default)}
-          loading="lazy"
-        />
-
-        {/* Guest favorite badge */}
-        <div className="absolute top-2 left-2 bg-white px-1.5 py-1 rounded-md shadow-sm flex items-center gap-1">
-          <span className="text-[9px] font-semibold text-gray-900">
-            Guest favorite
-          </span>
-        </div>
-
-        {/* Heart icon */}
-        <button
-          className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition"
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
-        >
-          <MdFavoriteBorder className="text-[#00d1ff] text-sm" />
-        </button>
-      </div>
-
-      {/* Text */}
-      <div className={`${isMobile ? "p-1.5" : "p-2.5"} flex flex-col gap-0.5`}>
-        <h3
-          className={`
-            font-semibold text-gray-900 
-            leading-tight line-clamp-2 
-            ${isMobile ? "text-xs" : "text-sm"}
-          `}
-        >
-          {item.name}
-        </h3>
-
-        <p
-          className={`
-            text-gray-600 
-            ${isMobile ? "text-[9px]" : "text-xs"}
-          `}
-        >
-          {location}
-        </p>
-
-        <div className="flex items-center gap-1 mt-0.5">
-          <p
-            className={`
-              font-normal text-gray-900 
-              ${isMobile ? "text-[9px]" : "text-xs"}
-            `}
-          >
-            {priceText} <span>•</span>
-          </p>
-
-          <div
-            className={`
-              flex items-center gap-1 text-gray-800 
-              ${isMobile ? "text-[9px]" : "text-xs"}
-            `}
-          >
-            <FontAwesomeIcon
-              icon={faStar}
-              className={`${isMobile ? "text-[9px]" : "text-xs"} text-black`}
-            />
-            {item.rating || "4.9"}
+  if (isMobile) {
+    return (
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-3">
+          <div>
+            <button
+              onClick={handleCategoryClick}
+              className="text-[#00065A] hover:text-[#06EAFC] transition-colors text-left text-sm font-bold cursor-pointer flex items-center gap-1"
+            >
+              {title}
+              <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+            </button>
           </div>
         </div>
+
+        <div className="flex overflow-x-auto scrollbar-hide gap-2 pb-4">
+          {items.map((listing, index) => (
+            <BusinessCard
+              key={listing.id || index}
+              item={listing}
+              isMobile={isMobile}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-6">
+      <div className="flex justify-between items-center mb-3">
+        <div>
+          <button
+            onClick={handleCategoryClick}
+            className="text-[#00065A] hover:text-[#06EAFC] transition-colors text-left text-base font-bold cursor-pointer flex items-center gap-1"
+          >
+            {title}
+            <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {items.map((listing, index) => (
+          <BusinessCard
+            key={listing.id || index}
+            item={listing}
+            isMobile={isMobile}
+          />
+        ))}
       </div>
     </div>
   );
 };
 
-// Enhanced FilterPill Component for Active Filters
+// ================== FILTER PILL ==================
 const FilterPill = ({ type, label, value, onRemove }) => {
   const getPillColor = (type) => {
     switch (type) {
@@ -1266,81 +1639,11 @@ const FilterPill = ({ type, label, value, onRemove }) => {
   );
 };
 
-// CategorySection Component - UPDATED to match CategoryResults.jsx EXACTLY
-const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
-  const navigate = useNavigate();
-
-  const handleCategoryClick = () => {
-    navigate(`/category/${category}`);
-  };
-
-  if (items.length === 0) return null;
-
-  // Mobile view - 5 cards per row horizontal scrolling
-  if (isMobile) {
-    return (
-      <div className="mb-6">
-        {/* Section Header */}
-        <div className="flex justify-between items-center mb-3">
-          <div>
-            <button
-              onClick={handleCategoryClick}
-              className="text-[#00065A] hover:text-[#06EAFC] transition-colors text-left text-sm font-bold cursor-pointer flex items-center gap-1"
-            >
-              {title}
-              <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
-            </button>
-          </div>
-        </div>
-
-        {/* Horizontal scrolling container with 5 cards */}
-        <div className="flex overflow-x-auto scrollbar-hide gap-2 pb-4">
-          {items.map((listing, index) => (
-            <BusinessCard
-              key={listing.id || index}
-              item={listing}
-              isMobile={isMobile}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // Desktop view - regular grid
-  return (
-    <div className="mb-6">
-      <div className="flex justify-between items-center mb-3">
-        <div>
-          <button
-            onClick={handleCategoryClick}
-            className="text-[#00065A] hover:text-[#06EAFC] transition-colors text-left text-base font-bold cursor-pointer flex items-center gap-1"
-          >
-            {title}
-            <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {items.map((listing, index) => (
-          <BusinessCard
-            key={listing.id || index}
-            item={listing}
-            isMobile={isMobile}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// Main SearchResults Component
+// ================== MAIN SEARCHRESULTS COMPONENT ==================
 const SearchResults = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // Get search parameters from URL
   const searchQuery = searchParams.get("q") || "";
   const category = searchParams.get("category") || "";
   const location = searchParams.get("location") || "";
@@ -1364,8 +1667,14 @@ const SearchResults = () => {
   const [filteredCount, setFilteredCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const searchInputRef = useRef(null);
+  const [showDesktopSearchSuggestions, setShowDesktopSearchSuggestions] =
+    useState(false);
+  const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
+
+  // Track if any modal is open
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const searchContainerRef = useRef(null);
   const filterButtonRef = useRef(null);
   const resultsRef = useRef(null);
 
@@ -1378,7 +1687,21 @@ const SearchResults = () => {
     error,
   } = useGoogleSheet(SHEET_ID, API_KEY);
 
-  // Extract unique locations and categories from listings
+  // Track when any modal is open
+  useEffect(() => {
+    setIsModalOpen(
+      showMobileFilters ||
+        showDesktopFilters ||
+        showMobileSearchModal ||
+        showDesktopSearchSuggestions
+    );
+  }, [
+    showMobileFilters,
+    showDesktopFilters,
+    showMobileSearchModal,
+    showDesktopSearchSuggestions,
+  ]);
+
   useEffect(() => {
     if (listings.length > 0) {
       const locations = [
@@ -1392,7 +1715,6 @@ const SearchResults = () => {
     }
   }, [listings]);
 
-  // Check for mobile view
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -1402,31 +1724,30 @@ const SearchResults = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Update local search query when URL changes
   useEffect(() => {
     setLocalSearchQuery(searchQuery);
   }, [searchQuery]);
 
-  // Filter listings based on search parameters and active filters
   useEffect(() => {
-    if (!listings.length) return;
+    if (!listings.length) {
+      setFilteredListings([]);
+      setFilteredCount(0);
+      setGroupedListings({});
+      return;
+    }
 
-    let filtered = listings;
+    let filtered = [...listings];
 
-    // Filter by search query
-    if (searchQuery) {
+    if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter((item) => {
         const matchesName = item.name?.toLowerCase().includes(query);
-        const matchesCategory = getCategoryDisplayName(item.category || "")
-          .toLowerCase()
-          .includes(query);
-        const matchesLocation = getLocationDisplayName(item.area || "")
-          .toLowerCase()
-          .includes(query);
+        const matchesCategory = item.category?.toLowerCase().includes(query);
+        const matchesLocation = item.area?.toLowerCase().includes(query);
         const matchesDescription = item.description
           ?.toLowerCase()
           .includes(query);
+
         return (
           matchesName ||
           matchesCategory ||
@@ -1436,21 +1757,22 @@ const SearchResults = () => {
       });
     }
 
-    // Filter by category from URL
-    if (category) {
+    if (category && category !== "All Categories" && category !== "All") {
+      const targetCategory = getCategoryDisplayName(category);
       filtered = filtered.filter((item) => {
-        return item.category === category;
+        const itemCategory = getCategoryDisplayName(item.category || "");
+        return itemCategory === targetCategory;
       });
     }
 
-    // Filter by location from URL
-    if (location) {
+    if (location && location !== "All Locations" && location !== "All") {
+      const targetLocation = getLocationDisplayName(location);
       filtered = filtered.filter((item) => {
-        return item.area === location;
+        const itemLocation = getLocationDisplayName(item.area || "");
+        return itemLocation === targetLocation;
       });
     }
 
-    // Apply advanced filters from dropdown (GLOBAL FILTERS)
     if (activeFilters.locations.length > 0) {
       filtered = filtered.filter((item) => {
         const itemLocation = getLocationDisplayName(item.area || "");
@@ -1465,7 +1787,6 @@ const SearchResults = () => {
       });
     }
 
-    // Apply price range filter
     if (activeFilters.priceRange.min || activeFilters.priceRange.max) {
       const min = Number(activeFilters.priceRange.min) || 0;
       const max = Number(activeFilters.priceRange.max) || Infinity;
@@ -1475,7 +1796,6 @@ const SearchResults = () => {
       });
     }
 
-    // Apply rating filter
     if (activeFilters.ratings.length > 0) {
       filtered = filtered.filter((item) => {
         const rating = Number(item.rating) || 0;
@@ -1483,8 +1803,7 @@ const SearchResults = () => {
       });
     }
 
-    // Apply sort
-    if (activeFilters.sortBy) {
+    if (activeFilters.sortBy && activeFilters.sortBy !== "relevance") {
       filtered = [...filtered].sort((a, b) => {
         switch (activeFilters.sortBy) {
           case "price_low":
@@ -1503,9 +1822,8 @@ const SearchResults = () => {
 
     setFilteredListings(filtered);
     setFilteredCount(filtered.length);
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
 
-    // Group listings by category for horizontal scrolling sections
     const grouped = {};
     filtered.forEach((item) => {
       const cat = getCategoryDisplayName(item.category || "Other");
@@ -1517,34 +1835,70 @@ const SearchResults = () => {
     setGroupedListings(grouped);
   }, [listings, searchQuery, category, location, activeFilters]);
 
-  // Toggle mobile filters
+  const handleSuggestionClick = (url) => {
+    const urlObj = new URL(url, window.location.origin);
+    const params = new URLSearchParams(urlObj.search);
+    setSearchParams(params);
+    setShowMobileSearchModal(false);
+    setShowDesktopSearchSuggestions(false);
+    setLocalSearchQuery("");
+  };
+
+  const handleSearchChange = (value) => {
+    setLocalSearchQuery(value);
+    if (!isMobile) {
+      setShowDesktopSearchSuggestions(true);
+    }
+  };
+
+  const handleSearchSubmit = (e) => {
+    e?.preventDefault();
+    if (localSearchQuery.trim()) {
+      const params = new URLSearchParams();
+      params.set("q", localSearchQuery.trim());
+      setSearchParams(params);
+      setShowMobileSearchModal(false);
+      setShowDesktopSearchSuggestions(false);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setLocalSearchQuery("");
+    const params = new URLSearchParams();
+    setSearchParams(params);
+    setShowDesktopSearchSuggestions(false);
+  };
+
+  const handleSearchFocus = () => {
+    if (isMobile) {
+      setShowMobileSearchModal(true);
+      if (showMobileFilters) {
+        setShowMobileFilters(false);
+      }
+    } else {
+      setShowDesktopSearchSuggestions(true);
+      if (showDesktopFilters) {
+        setShowDesktopFilters(false);
+      }
+    }
+  };
+
   const toggleMobileFilters = () => {
     setShowMobileFilters(!showMobileFilters);
+    setShowMobileSearchModal(false);
   };
 
-  // Toggle desktop filters
   const toggleDesktopFilters = () => {
     setShowDesktopFilters(!showDesktopFilters);
+    setShowDesktopSearchSuggestions(false);
   };
 
-  // Close mobile filters
-  const closeMobileFilters = () => {
-    setShowMobileFilters(false);
-  };
-
-  // Close desktop filters
-  const closeDesktopFilters = () => {
-    setShowDesktopFilters(false);
-  };
-
-  // NEW: Handle dynamic filter application (changes URL to show specific category/location)
   const handleDynamicFilterApply = ({
     filters,
     newCategory,
     newLocation,
     keepSearchQuery,
   }) => {
-    // Update URL to reflect the new category/location filter
     const params = new URLSearchParams();
 
     if (keepSearchQuery && searchQuery) {
@@ -1563,13 +1917,9 @@ const SearchResults = () => {
       params.set("location", location);
     }
 
-    // Update URL
     setSearchParams(params);
-
-    // Also update active filters
     setActiveFilters(filters);
 
-    // Scroll to results
     setTimeout(() => {
       if (resultsRef.current) {
         resultsRef.current.scrollIntoView({
@@ -1580,30 +1930,20 @@ const SearchResults = () => {
     }, 100);
   };
 
-  // Handle filter changes AND scroll to top (for regular filter updates)
   const handleFilterChangeWithScroll = (newFilters) => {
     setActiveFilters(newFilters);
-
-    // Scroll to the results section with smooth animation
+    setCurrentPage(1);
     setTimeout(() => {
       if (resultsRef.current) {
-        resultsRef.current.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      } else {
-        // Fallback to scrolling to top of page
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        resultsRef.current.scrollIntoView({ behavior: "smooth" });
       }
     }, 100);
   };
 
-  // Handle filter changes without scroll (for sidebar)
   const handleFilterChange = (newFilters) => {
     setActiveFilters(newFilters);
   };
 
-  // Remove specific filter
   const removeFilter = (type, value = null) => {
     setActiveFilters((prev) => {
       const newFilters = { ...prev };
@@ -1636,7 +1976,6 @@ const SearchResults = () => {
     });
   };
 
-  // Clear all filters
   const clearAllFilters = () => {
     const resetFilters = {
       locations: [],
@@ -1648,14 +1987,12 @@ const SearchResults = () => {
     };
     setActiveFilters(resetFilters);
 
-    // Also clear URL parameters for category/location
     const params = new URLSearchParams();
     if (searchQuery) {
       params.set("q", searchQuery);
     }
     setSearchParams(params);
 
-    // Scroll to top after clearing filters
     setTimeout(() => {
       if (resultsRef.current) {
         resultsRef.current.scrollIntoView({
@@ -1666,88 +2003,47 @@ const SearchResults = () => {
     }, 100);
   };
 
-  // Handle search input change
-  const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setLocalSearchQuery(value);
-    setShowSuggestions(value.trim().length > 0);
-  };
-
-  // Handle search submit
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (localSearchQuery.trim()) {
-      // Update URL with search query, clear category and location filters
-      const params = new URLSearchParams();
-      params.set("q", localSearchQuery.trim());
-      setSearchParams(params);
-      setShowSuggestions(false);
-    }
-  };
-
-  // Handle clear search
-  const handleClearSearch = () => {
-    setLocalSearchQuery("");
-    setShowSuggestions(false);
-    const params = new URLSearchParams();
-    // Keep category and location if they exist
-    if (category) params.set("category", category);
-    if (location) params.set("location", location);
-    setSearchParams(params);
-  };
-
-  // Handle suggestion click
-  const handleSuggestionClick = (url) => {
-    navigate(url);
-    setShowSuggestions(false);
-    setLocalSearchQuery("");
-  };
-
-  const handleSearchInputClick = () => {
-    if (searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  };
-
-  // Get page title
   const getPageTitle = () => {
-    if (searchQuery) return `Results for "${searchQuery}"`;
-    if (category) return `${getCategoryDisplayName(category)} in Ibadan`;
-    if (location) return `Places in ${getLocationDisplayName(location)}`;
-    return "Search Results";
+    if (searchQuery) {
+      return `Search Results for "${searchQuery}"`;
+    } else if (
+      category &&
+      category !== "All Categories" &&
+      category !== "All"
+    ) {
+      const displayCategory = getCategoryDisplayName(category);
+      return `${displayCategory} in Ibadan`;
+    } else if (location && location !== "All Locations" && location !== "All") {
+      const displayLocation = getLocationDisplayName(location);
+      return `Places in ${displayLocation}`;
+    } else {
+      return "All Places in Ibadan";
+    }
   };
 
-  // Get page description
   const getPageDescription = () => {
-    if (searchQuery)
-      return `Found ${filteredCount} places matching "${searchQuery}"`;
-    if (category)
-      return `Browse ${filteredCount} ${getCategoryDisplayName(
-        category
-      ).toLowerCase()} places in Ibadan`;
-    if (location)
-      return `Discover ${filteredCount} places in ${getLocationDisplayName(
-        location
-      )}`;
-    return `Found ${filteredCount} places in Ibadan`;
+    if (searchQuery) {
+      return `Find the best places in Ibadan matching "${searchQuery}". Search results include hotels, restaurants, shortlets, tourist attractions, and more.`;
+    } else if (
+      category &&
+      category !== "All Categories" &&
+      category !== "All"
+    ) {
+      const displayCategory = getCategoryDisplayName(category);
+      return `Browse the best ${displayCategory.toLowerCase()} places in Ibadan. Find top-rated venues, compare prices, and book your next experience.`;
+    } else if (location && location !== "All Locations" && location !== "All") {
+      const displayLocation = getLocationDisplayName(location);
+      return `Discover amazing places in ${displayLocation}, Ibadan. Find restaurants, hotels, attractions, and more in this area.`;
+    } else {
+      return "Browse all places in Ibadan. Find hotels, restaurants, shortlets, tourist attractions, cafes, bars, services, events, and halls.";
+    }
   };
 
-  // Pagination logic for all results view
-  const cardsPerPage = isMobile ? 15 : 16;
-  const totalPages = Math.ceil(filteredListings.length / cardsPerPage);
-  const startIndex = (currentPage - 1) * cardsPerPage;
-  const currentListings = filteredListings.slice(
-    startIndex,
-    startIndex + cardsPerPage
-  );
-
-  // Handle page change
   const handlePageChange = (page) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Close filter modal when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -1756,7 +2052,7 @@ const SearchResults = () => {
         !filterButtonRef.current.contains(event.target) &&
         !event.target.closest(".filter-modal-content")
       ) {
-        closeDesktopFilters();
+        setShowDesktopFilters(false);
       }
     };
 
@@ -1765,6 +2061,14 @@ const SearchResults = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showDesktopFilters]);
+
+  const ITEMS_PER_PAGE = 20;
+  const totalPages = Math.ceil(filteredCount / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const currentListings = filteredListings.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE
+  );
 
   if (loading) {
     return (
@@ -1811,43 +2115,37 @@ const SearchResults = () => {
         image="https://ajani.ai/images/search-og.jpg"
       />
 
-      <Header />
+      {/* Only show Header when no modal is open */}
+      {!isModalOpen && <Header />}
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20">
-        {/* Search Bar - Original version */}
-        {/* Fixed Search Bar Container */}
-        <div className=" top-16 z-30 py-3">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-center">
-              <div className="w-full max-w-md">
-                <div className="relative mx-auto w-full">
-                  <form onSubmit={handleSearchSubmit} className="relative">
-                    {/* ... rest of your search bar code ... */}
-                    <div
-                      className="flex items-center cursor-default"
-                      onClick={handleSearchInputClick}
-                    >
-                      <div
-                        className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-10 cursor-default"
-                        ref={searchInputRef}
-                      >
-                        <div className="pl-3 sm:pl-4 text-gray-500 cursor-default">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+        {/* Fixed Search Bar Container - Only show when no modal is open */}
+        {!isModalOpen && (
+          <div className="z-30 py-6 relative" style={{ zIndex: 100 }}>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-center">
+                <div
+                  className="w-full max-w-md relative"
+                  ref={searchContainerRef}
+                >
+                  <form onSubmit={handleSearchSubmit}>
+                    <div className="flex items-center">
+                      <div className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-40">
+                        <div className="pl-3 sm:pl-4 text-gray-500">
                           <FontAwesomeIcon
-                            icon={faSearch}
-                            className="h-4 w-4"
+                            icon={faChevronLeft}
+                            className="h-4 w-4 cursor-pointer"
+                            onClick={() => navigate(-1)}
                           />
                         </div>
                         <input
                           type="text"
                           placeholder="Search by area, category, or name..."
                           value={localSearchQuery}
-                          onChange={handleSearchChange}
-                          onFocus={() =>
-                            setShowSuggestions(
-                              localSearchQuery.trim().length > 0
-                            )
-                          }
-                          className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope cursor-pointer"
+                          onChange={(e) => handleSearchChange(e.target.value)}
+                          onFocus={handleSearchFocus}
+                          className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope"
+                          autoFocus={false}
                           aria-label="Search input"
                           role="searchbox"
                         />
@@ -1855,7 +2153,7 @@ const SearchResults = () => {
                           <button
                             type="button"
                             onClick={handleClearSearch}
-                            className="p-1 mr-2 text-gray-500 hover:text-gray-700 cursor-pointer"
+                            className="p-1 mr-2 text-gray-500 hover:text-gray-700"
                             aria-label="Clear search"
                           >
                             <FontAwesomeIcon
@@ -1869,7 +2167,7 @@ const SearchResults = () => {
                       <div className="ml-2">
                         <button
                           type="submit"
-                          className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope cursor-pointer"
+                          className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope"
                           aria-label="Perform search"
                         >
                           Search
@@ -1877,88 +2175,77 @@ const SearchResults = () => {
                       </div>
                     </div>
 
-                    {/* Search Suggestions Dropdown */}
-                    <div className="relative z-10000">
-                      <SearchSuggestions
+                    {/* Desktop Search Suggestions - Now fullscreen */}
+                    {!isMobile && showDesktopSearchSuggestions && (
+                      <DesktopSearchSuggestions
                         searchQuery={localSearchQuery}
                         listings={listings}
                         onSuggestionClick={handleSuggestionClick}
-                        onClose={() => setShowSuggestions(false)}
-                        isVisible={showSuggestions && !loading}
-                        isMobile={isMobile}
+                        onClose={() => setShowDesktopSearchSuggestions(false)}
+                        isVisible={showDesktopSearchSuggestions}
                       />
-                    </div>
-
-                    <motion.div
-                      className="text-center mt-1 cursor-default"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{
-                        opacity: localSearchQuery ? 1 : 0,
-                        y: localSearchQuery ? 0 : 10,
-                      }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <p className="text-xs text-gray-500 font-manrope cursor-default">
-                        Press Enter or click Search to find results
-                      </p>
-                    </motion.div>
+                    )}
                   </form>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Backdrop for suggestions when visible */}
-        <AnimatePresence>
-          {showSuggestions && (
-            <motion.div
-              className="fixed inset-0 bg-black/20 z-[9997] cursor-default"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowSuggestions(false)}
-              style={{
-                zIndex: 9997,
-              }}
-            />
-          )}
-        </AnimatePresence>
+        {/* Mobile Fullscreen Search Modal */}
+        {isMobile && (
+          <MobileSearchModal
+            searchQuery={localSearchQuery}
+            listings={listings}
+            onSuggestionClick={handleSuggestionClick}
+            onClose={() => setShowMobileSearchModal(false)}
+            onTyping={handleSearchChange}
+            isVisible={showMobileSearchModal}
+          />
+        )}
 
-        {/* Main Content Layout */}
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Desktop Filter Sidebar - Always visible on desktop */}
-          {!isMobile && (
-            <div className="lg:w-1/4">
-              <FilterSidebar
-                onFilterChange={handleFilterChangeWithScroll}
-                onApplyFilters={handleFilterChangeWithScroll}
-                onDynamicFilterApply={handleDynamicFilterApply}
-                allLocations={allLocations}
-                allCategories={allCategories}
-                currentFilters={activeFilters}
-                currentSearchQuery={searchQuery}
-                currentCategoryParam={category}
-                currentLocationParam={location}
-              />
-            </div>
-          )}
+        {/* Desktop Filter Modal - Now fullscreen */}
+        {!isMobile && showDesktopFilters && (
+          <FilterSidebar
+            onFilterChange={handleFilterChange}
+            onApplyFilters={handleFilterChangeWithScroll}
+            onDynamicFilterApply={handleDynamicFilterApply}
+            allLocations={allLocations}
+            allCategories={allCategories}
+            currentFilters={activeFilters}
+            currentSearchQuery={searchQuery}
+            currentCategoryParam={category}
+            currentLocationParam={location}
+            onClose={() => setShowDesktopFilters(false)}
+            isDesktopModal={true}
+          />
+        )}
 
-          {/* Desktop Filter Modal - Shows when clicking Filter & Sort on desktop */}
-          <AnimatePresence>
-            {!isMobile && showDesktopFilters && (
-              <>
-                {/* Overlay */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-black/50 z-40"
-                  onClick={closeDesktopFilters}
-                />
-                {/* Filter Modal */}
+        {/* Mobile Filter Modal */}
+        {isMobile && showMobileFilters && (
+          <FilterSidebar
+            onFilterChange={handleFilterChange}
+            onApplyFilters={handleFilterChangeWithScroll}
+            onDynamicFilterApply={handleDynamicFilterApply}
+            allLocations={allLocations}
+            allCategories={allCategories}
+            currentFilters={activeFilters}
+            currentSearchQuery={searchQuery}
+            currentCategoryParam={category}
+            currentLocationParam={location}
+            onClose={() => setShowMobileFilters(false)}
+            isMobileModal={true}
+          />
+        )}
+
+        {/* Main Content Layout - Only show when no modal is open */}
+        {!isModalOpen && (
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Desktop Filter Sidebar - Always visible on desktop */}
+            {!isMobile && (
+              <div className="lg:w-1/4">
                 <FilterSidebar
-                  onFilterChange={handleFilterChange}
+                  onFilterChange={handleFilterChangeWithScroll}
                   onApplyFilters={handleFilterChangeWithScroll}
                   onDynamicFilterApply={handleDynamicFilterApply}
                   allLocations={allLocations}
@@ -1967,47 +2254,76 @@ const SearchResults = () => {
                   currentSearchQuery={searchQuery}
                   currentCategoryParam={category}
                   currentLocationParam={location}
-                  onClose={closeDesktopFilters}
-                  isDesktopModal={true}
                 />
-              </>
+              </div>
             )}
-          </AnimatePresence>
 
-          {/* Mobile Filter Modal */}
-          <AnimatePresence>
-            {isMobile && showMobileFilters && (
-              <FilterSidebar
-                onFilterChange={handleFilterChange}
-                onApplyFilters={handleFilterChangeWithScroll}
-                onDynamicFilterApply={handleDynamicFilterApply}
-                allLocations={allLocations}
-                allCategories={allCategories}
-                currentFilters={activeFilters}
-                currentSearchQuery={searchQuery}
-                currentCategoryParam={category}
-                currentLocationParam={location}
-                onClose={closeMobileFilters}
-                isMobileModal={true}
-              />
-            )}
-          </AnimatePresence>
+            {/* Results Content */}
+            <div className="lg:w-3/4" ref={resultsRef}>
+              {/* Page Header with Filter Button */}
+              <div className="mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    {/* Desktop slider icon - NOT clickable, just shows filter count */}
+                    {!isMobile && (
+                      <div className="relative" ref={filterButtonRef}>
+                        <div className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg bg-white shadow-sm">
+                          <PiSliders className="text-gray-600" />
+                          <span className="text-sm font-medium">
+                            Filter & Sort
+                          </span>
+                          {Object.keys(activeFilters).some((key) => {
+                            if (key === "priceRange") {
+                              return (
+                                activeFilters.priceRange.min ||
+                                activeFilters.priceRange.max
+                              );
+                            }
+                            return Array.isArray(activeFilters[key])
+                              ? activeFilters[key].length > 0
+                              : activeFilters[key] !== "relevance";
+                          }) && (
+                            <span className="bg-[#06EAFC] text-white text-xs px-2 py-0.5 rounded-full">
+                              {Object.values(activeFilters).reduce(
+                                (acc, val) => {
+                                  if (Array.isArray(val))
+                                    return acc + val.length;
+                                  if (typeof val === "object" && val !== null) {
+                                    return acc + (val.min || val.max ? 1 : 0);
+                                  }
+                                  return (
+                                    acc + (val && val !== "relevance" ? 1 : 0)
+                                  );
+                                },
+                                0
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
-          {/* Results Content */}
-          <div className="lg:w-3/4" ref={resultsRef}>
-            {/* Page Header with Filter Button */}
-            <div className="mb-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  {/* Filter Button for Desktop - Click to show modal */}
-                  {!isMobile && (
-                    <div className="relative" ref={filterButtonRef}>
-                      <button
-                        onClick={toggleDesktopFilters}
-                        className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm"
-                      >
-                        <PiSliders className="text-gray-600" />
+                    {/* Title and Count */}
+                    <div>
+                      <h1 className="text-xl font-bold text-[#00065A] mb-1">
+                        {getPageTitle()}
+                      </h1>
+                      <p className="text-sm text-gray-600">
+                        {filteredCount}{" "}
+                        {filteredCount === 1 ? "place" : "places"} found
+                      </p>
+                    </div>
+                  </div>
 
+                  {/* Mobile filter button - Icon only, no text */}
+                  {isMobile && (
+                    <button
+                      onClick={toggleMobileFilters}
+                      className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm"
+                      aria-label="Open filters"
+                    >
+                      <div className="relative">
+                        <PiSliders className="text-gray-600 text-lg" />
                         {Object.keys(activeFilters).some((key) => {
                           if (key === "priceRange") {
                             return (
@@ -2019,7 +2335,7 @@ const SearchResults = () => {
                             ? activeFilters[key].length > 0
                             : activeFilters[key] !== "relevance";
                         }) && (
-                          <span className="bg-[#06EAFC] text-white text-xs px-2 py-0.5 rounded-full">
+                          <span className="absolute -top-1 -right-1 bg-[#06EAFC] text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
                             {Object.values(activeFilters).reduce((acc, val) => {
                               if (Array.isArray(val)) return acc + val.length;
                               if (typeof val === "object" && val !== null) {
@@ -2029,308 +2345,260 @@ const SearchResults = () => {
                             }, 0)}
                           </span>
                         )}
+                      </div>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Active Filters Display */}
+              {(activeFilters.locations.length > 0 ||
+                activeFilters.categories.length > 0 ||
+                activeFilters.priceRange.min ||
+                activeFilters.priceRange.max ||
+                activeFilters.ratings.length > 0 ||
+                activeFilters.sortBy !== "relevance") && (
+                <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-700 font-medium text-sm">
+                        Active Filters:
+                      </span>
+                      <button
+                        onClick={clearAllFilters}
+                        className="text-[#06EAFC] hover:text-[#05d9eb] text-sm font-medium"
+                      >
+                        Clear All
                       </button>
                     </div>
-                  )}
 
-                  {/* Title and Count */}
-                  <div>
-                    <h1 className="text-xl font-bold text-[#00065A] mb-1">
-                      {getPageTitle()}
-                    </h1>
-                    <p className="text-sm text-gray-600">
-                      {filteredCount} {filteredCount === 1 ? "place" : "places"}{" "}
-                      found
-                    </p>
-                  </div>
-                </div>
+                    <div className="flex flex-wrap gap-2">
+                      {/* Location Filters */}
+                      {activeFilters.locations.map((location, idx) => (
+                        <FilterPill
+                          key={`location-${idx}`}
+                          type="location"
+                          label="Location"
+                          value={location}
+                          onRemove={() => removeFilter("location", location)}
+                        />
+                      ))}
 
-                {/* Mobile Filter Button - Only on mobile - Icon only */}
-                {isMobile && (
-                  <button
-                    onClick={toggleMobileFilters}
-                    className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm"
-                    aria-label="Open filters"
-                  >
-                    <div className="relative">
-                      <PiSliders className="text-gray-600 text-lg" />
-                      {Object.keys(activeFilters).some((key) => {
-                        if (key === "priceRange") {
-                          return (
-                            activeFilters.priceRange.min ||
-                            activeFilters.priceRange.max
-                          );
-                        }
-                        return Array.isArray(activeFilters[key])
-                          ? activeFilters[key].length > 0
-                          : activeFilters[key] !== "relevance";
-                      }) && (
-                        <span className="absolute -top-1 -right-1 bg-[#06EAFC] text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
-                          {Object.values(activeFilters).reduce((acc, val) => {
-                            if (Array.isArray(val)) return acc + val.length;
-                            if (typeof val === "object" && val !== null) {
-                              return acc + (val.min || val.max ? 1 : 0);
-                            }
-                            return acc + (val && val !== "relevance" ? 1 : 0);
-                          }, 0)}
-                        </span>
+                      {/* Category Filters */}
+                      {activeFilters.categories.map((category, idx) => (
+                        <FilterPill
+                          key={`category-${idx}`}
+                          type="category"
+                          label="Category"
+                          value={category}
+                          onRemove={() => removeFilter("category", category)}
+                        />
+                      ))}
+
+                      {/* Price Filter */}
+                      {(activeFilters.priceRange.min ||
+                        activeFilters.priceRange.max) && (
+                        <FilterPill
+                          type="price"
+                          label="Price"
+                          value={`#${activeFilters.priceRange.min || "0"} - #${
+                            activeFilters.priceRange.max || "∞"
+                          }`}
+                          onRemove={() => removeFilter("price")}
+                        />
+                      )}
+
+                      {/* Rating Filters */}
+                      {activeFilters.ratings.map((rating, idx) => (
+                        <FilterPill
+                          key={`rating-${idx}`}
+                          type="rating"
+                          label="Min Rating"
+                          value={`${rating}+ stars`}
+                          onRemove={() => removeFilter("rating", rating)}
+                        />
+                      ))}
+
+                      {/* Sort Filter */}
+                      {activeFilters.sortBy !== "relevance" && (
+                        <FilterPill
+                          type="sort"
+                          label="Sorted by"
+                          value={
+                            activeFilters.sortBy === "price_low"
+                              ? "Price: Low to High"
+                              : activeFilters.sortBy === "price_high"
+                              ? "Price: High to Low"
+                              : activeFilters.sortBy === "rating"
+                              ? "Highest Rated"
+                              : activeFilters.sortBy === "name"
+                              ? "Name: A to Z"
+                              : "Relevance"
+                          }
+                          onRemove={() => removeFilter("sort")}
+                        />
                       )}
                     </div>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Active Filters Display */}
-            {(activeFilters.locations.length > 0 ||
-              activeFilters.categories.length > 0 ||
-              activeFilters.priceRange.min ||
-              activeFilters.priceRange.max ||
-              activeFilters.ratings.length > 0 ||
-              activeFilters.sortBy !== "relevance") && (
-              <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-700 font-medium text-sm">
-                      Active Filters:
-                    </span>
-                    <button
-                      onClick={clearAllFilters}
-                      className="text-[#06EAFC] hover:text-[#05d9eb] text-sm font-medium"
-                    >
-                      Clear All
-                    </button>
                   </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {/* Location Filters */}
-                    {activeFilters.locations.map((location, idx) => (
-                      <FilterPill
-                        key={`location-${idx}`}
-                        type="location"
-                        label="Location"
-                        value={location}
-                        onRemove={() => removeFilter("location", location)}
-                      />
-                    ))}
-
-                    {/* Category Filters */}
-                    {activeFilters.categories.map((category, idx) => (
-                      <FilterPill
-                        key={`category-${idx}`}
-                        type="category"
-                        label="Category"
-                        value={category}
-                        onRemove={() => removeFilter("category", category)}
-                      />
-                    ))}
-
-                    {/* Price Filter */}
-                    {(activeFilters.priceRange.min ||
-                      activeFilters.priceRange.max) && (
-                      <FilterPill
-                        type="price"
-                        label="Price"
-                        value={`#${activeFilters.priceRange.min || "0"} - #${
-                          activeFilters.priceRange.max || "∞"
-                        }`}
-                        onRemove={() => removeFilter("price")}
-                      />
-                    )}
-
-                    {/* Rating Filters */}
-                    {activeFilters.ratings.map((rating, idx) => (
-                      <FilterPill
-                        key={`rating-${idx}`}
-                        type="rating"
-                        label="Min Rating"
-                        value={`${rating}+ stars`}
-                        onRemove={() => removeFilter("rating", rating)}
-                      />
-                    ))}
-
-                    {/* Sort Filter */}
-                    {activeFilters.sortBy !== "relevance" && (
-                      <FilterPill
-                        type="sort"
-                        label="Sorted by"
-                        value={
-                          activeFilters.sortBy === "price_low"
-                            ? "Price: Low to High"
-                            : activeFilters.sortBy === "price_high"
-                            ? "Price: High to Low"
-                            : activeFilters.sortBy === "rating"
-                            ? "Highest Rated"
-                            : activeFilters.sortBy === "name"
-                            ? "Name: A to Z"
-                            : "Relevance"
-                        }
-                        onRemove={() => removeFilter("sort")}
-                      />
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Results Display */}
-            <div className="space-y-6">
-              {/* If no results with filters */}
-              {filteredCount === 0 && (
-                <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-                  <FontAwesomeIcon
-                    icon={faSearch}
-                    className="text-4xl text-gray-300 mb-4 block"
-                  />
-                  <h3 className="text-xl text-gray-800 mb-2">
-                    No matching results found
-                  </h3>
-                  <p className="text-gray-600 mb-4 max-w-md mx-auto">
-                    {searchQuery
-                      ? `No places found for "${searchQuery}" with the selected filters.`
-                      : "No places match your current filters."}
-                  </p>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    <button
-                      onClick={clearAllFilters}
-                      className="bg-[#06EAFC] text-white px-6 py-2 rounded-lg hover:bg-[#05d9eb] transition-colors"
-                    >
-                      Clear All Filters
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (isMobile) {
-                          setShowMobileFilters(true);
-                        } else {
-                          setShowDesktopFilters(true);
-                        }
-                      }}
-                      className="bg-white border border-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      Adjust Filters
-                    </button>
-                  </div>
-                  <p className="text-sm text-gray-500 mt-4">
-                    Tip: Try selecting fewer filters or different combinations
-                  </p>
                 </div>
               )}
 
               {/* Results Display */}
-              {filteredCount > 0 && (
-                <>
-                  {/* If we have specific category or location from URL, show all results in grid with pagination */}
-                  {category || location ? (
-                    <>
-                      {/* Mobile View - Horizontal scrolling with 5 cards per row */}
-                      {isMobile ? (
-                        <div className="space-y-4">
-                          {/* Create rows with 5 cards each */}
-                          {Array.from({
-                            length: Math.ceil(currentListings.length / 5),
-                          }).map((_, rowIndex) => (
-                            <div
-                              key={rowIndex}
-                              className="flex overflow-x-auto scrollbar-hide gap-2 pb-4"
-                            >
-                              {currentListings
-                                .slice(rowIndex * 5, (rowIndex + 1) * 5)
-                                .map((listing, index) => (
-                                  <BusinessCard
-                                    key={listing.id || `${rowIndex}-${index}`}
-                                    item={listing}
-                                    isMobile={isMobile}
-                                  />
-                                ))}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        /* Desktop View - 4 cards per row grid */
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                          {currentListings.map((listing, index) => (
-                            <BusinessCard
-                              key={listing.id || index}
-                              item={listing}
-                              isMobile={isMobile}
-                            />
-                          ))}
-                        </div>
-                      )}
+              <div className="space-y-6">
+                {filteredCount === 0 && (
+                  <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+                    <FontAwesomeIcon
+                      icon={faChevronLeft}
+                      className="h-12 w-12 mx-auto mb-4 text-gray-300 cursor-pointer"
+                      onClick={() => navigate(-1)}
+                    />
+                    <h3 className="text-xl text-gray-800 mb-2">
+                      No matching results found
+                    </h3>
+                    <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                      {searchQuery
+                        ? `No places found for "${searchQuery}" with the selected filters.`
+                        : "No places match your current filters."}
+                    </p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      <button
+                        onClick={clearAllFilters}
+                        className="bg-[#06EAFC] text-white px-6 py-2 rounded-lg hover:bg-[#05d9eb] transition-colors"
+                      >
+                        Clear All Filters
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (isMobile) {
+                            setShowMobileFilters(true);
+                          } else {
+                            setShowDesktopFilters(true);
+                          }
+                        }}
+                        className="bg-white border border-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        Adjust Filters
+                      </button>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-4">
+                      Tip: Try selecting fewer filters or different combinations
+                    </p>
+                  </div>
+                )}
 
-                      {/* Pagination - Only show if we have multiple pages */}
-                      {totalPages > 1 && (
-                        <div className="flex justify-center items-center space-x-2 mt-8">
-                          <button
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={currentPage === 1}
-                            className={`px-4 py-2 rounded-lg border ${
-                              currentPage === 1
-                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                : "bg-white text-gray-700 hover:bg-gray-50"
-                            }`}
-                          >
-                            Previous
-                          </button>
-
-                          <div className="flex space-x-1">
-                            {Array.from(
-                              { length: totalPages },
-                              (_, i) => i + 1
-                            ).map((page) => (
-                              <button
-                                key={page}
-                                onClick={() => handlePageChange(page)}
-                                className={`w-10 h-10 rounded-lg border ${
-                                  currentPage === page
-                                    ? "bg-[#06EAFC] text-white border-[#06EAFC]"
-                                    : "bg-white text-gray-700 hover:bg-gray-50"
-                                }`}
+                {filteredCount > 0 && (
+                  <>
+                    {/* Show results based on URL parameters */}
+                    {searchQuery || category || location ? (
+                      <>
+                        {isMobile ? (
+                          <div className="space-y-4">
+                            {Array.from({
+                              length: Math.ceil(currentListings.length / 5),
+                            }).map((_, rowIndex) => (
+                              <div
+                                key={rowIndex}
+                                className="flex overflow-x-auto scrollbar-hide gap-2 pb-4"
                               >
-                                {page}
-                              </button>
+                                {currentListings
+                                  .slice(rowIndex * 5, (rowIndex + 1) * 5)
+                                  .map((listing, index) => (
+                                    <BusinessCard
+                                      key={listing.id || `${rowIndex}-${index}`}
+                                      item={listing}
+                                      isMobile={isMobile}
+                                    />
+                                  ))}
+                              </div>
                             ))}
                           </div>
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {currentListings.map((listing, index) => (
+                              <BusinessCard
+                                key={listing.id || index}
+                                item={listing}
+                                isMobile={isMobile}
+                              />
+                            ))}
+                          </div>
+                        )}
 
-                          <button
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                            className={`px-4 py-2 rounded-lg border ${
-                              currentPage === totalPages
-                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                : "bg-white text-gray-700 hover:bg-gray-50"
-                            }`}
-                          >
-                            Next
-                          </button>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    /* Group by category for horizontal scrolling */
-                    Object.entries(groupedListings).map(([catName, items]) => {
-                      const categorySlug = catName
-                        .toLowerCase()
-                        .replace(/\s+/g, "-");
-                      const sectionId = `${categorySlug}-section`;
+                        {totalPages > 1 && (
+                          <div className="flex justify-center items-center space-x-2 mt-8">
+                            <button
+                              onClick={() => handlePageChange(currentPage - 1)}
+                              disabled={currentPage === 1}
+                              className={`px-4 py-2 rounded-lg border ${
+                                currentPage === 1
+                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                  : "bg-white text-gray-700 hover:bg-gray-50"
+                              }`}
+                            >
+                              Previous
+                            </button>
 
-                      return (
-                        <CategorySection
-                          key={catName}
-                          title={catName}
-                          items={items}
-                          sectionId={sectionId}
-                          isMobile={isMobile}
-                          category={categorySlug}
-                        />
-                      );
-                    })
-                  )}
-                </>
-              )}
+                            <div className="flex space-x-1">
+                              {Array.from(
+                                { length: Math.min(totalPages, 5) },
+                                (_, i) => i + 1
+                              ).map((page) => (
+                                <button
+                                  key={page}
+                                  onClick={() => handlePageChange(page)}
+                                  className={`w-10 h-10 rounded-lg border ${
+                                    currentPage === page
+                                      ? "bg-[#06EAFC] text-white border-[#06EAFC]"
+                                      : "bg-white text-gray-700 hover:bg-gray-50"
+                                  }`}
+                                >
+                                  {page}
+                                </button>
+                              ))}
+                            </div>
+
+                            <button
+                              onClick={() => handlePageChange(currentPage + 1)}
+                              disabled={currentPage === totalPages}
+                              className={`px-4 py-2 rounded-lg border ${
+                                currentPage === totalPages
+                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                  : "bg-white text-gray-700 hover:bg-gray-50"
+                              }`}
+                            >
+                              Next
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      /* Group by category for browsing */
+                      Object.entries(groupedListings).map(
+                        ([catName, items]) => {
+                          const categorySlug = catName
+                            .toLowerCase()
+                            .replace(/\s+/g, "-");
+                          const sectionId = `${categorySlug}-section`;
+
+                          return (
+                            <CategorySection
+                              key={catName}
+                              title={catName}
+                              items={items}
+                              sectionId={sectionId}
+                              isMobile={isMobile}
+                              category={categorySlug}
+                            />
+                          );
+                        }
+                      )
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </main>
 
       <Footer />
