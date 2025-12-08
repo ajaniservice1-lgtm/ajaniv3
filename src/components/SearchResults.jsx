@@ -1110,7 +1110,7 @@ const MobileSearchModal = ({
   );
 };
 
-// ================== ENHANCED FILTER SIDEBAR (SEARCHABLE) ==================
+// ================== ENHANCED FILTER SIDEBAR (SEARCHABLE) - REAL-TIME FILTERING ==================
 const FilterSidebar = ({
   onFilterChange,
   allLocations,
@@ -1184,70 +1184,31 @@ const FilterSidebar = ({
     }));
   };
 
-  const handleLocationChange = (location) => {
-    setFilters((prev) => ({
-      ...prev,
-      locations: prev.locations.includes(location)
-        ? prev.locations.filter((l) => l !== location)
-        : [...prev.locations, location],
-    }));
-  };
-
-  const handleCategoryChange = (category) => {
-    setFilters((prev) => ({
-      ...prev,
-      categories: prev.categories.includes(category)
-        ? prev.categories.filter((c) => c !== category)
-        : [...prev.categories, category],
-    }));
-  };
-
-  const handleRatingChange = (stars) => {
-    setFilters((prev) => ({
-      ...prev,
-      ratings: prev.ratings.includes(stars)
-        ? prev.ratings.filter((s) => s !== stars)
-        : [...prev.ratings, stars],
-    }));
-  };
-
-  const handlePriceChange = (field, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      priceRange: {
-        ...prev.priceRange,
-        [field]: value,
-      },
-    }));
-  };
-
-  const handleSortChange = (value) => {
-    setFilters((prev) => ({
-      ...prev,
-      sortBy: value,
-    }));
-  };
-
-  const handleDynamicApply = () => {
+  // Real-time filter application
+  const applyFiltersImmediately = (updatedFilters) => {
+    setFilters(updatedFilters);
+    onFilterChange(updatedFilters);
+    
+    // Update URL if needed
     if (onDynamicFilterApply) {
-      const hasCategoryFilters = filters.categories.length > 0;
-      const hasLocationFilters = filters.locations.length > 0;
+      const hasCategoryFilters = updatedFilters.categories.length > 0;
+      const hasLocationFilters = updatedFilters.locations.length > 0;
 
       let newCategory = currentCategoryParam;
       let newLocation = currentLocationParam;
 
-      if (hasCategoryFilters && filters.categories[0]) {
+      if (hasCategoryFilters && updatedFilters.categories[0]) {
         const selectedCategory = allCategories.find(
-          (cat) => getCategoryDisplayName(cat) === filters.categories[0]
+          (cat) => getCategoryDisplayName(cat) === updatedFilters.categories[0]
         );
         if (selectedCategory) {
           newCategory = selectedCategory;
         }
       }
 
-      if (hasLocationFilters && filters.locations[0]) {
+      if (hasLocationFilters && updatedFilters.locations[0]) {
         const selectedLocation = allLocations.find(
-          (loc) => getLocationDisplayName(loc) === filters.locations[0]
+          (loc) => getLocationDisplayName(loc) === updatedFilters.locations[0]
         );
         if (selectedLocation) {
           newLocation = selectedLocation;
@@ -1255,17 +1216,89 @@ const FilterSidebar = ({
       }
 
       onDynamicFilterApply({
-        filters,
+        filters: updatedFilters,
         newCategory,
         newLocation,
         keepSearchQuery: currentSearchQuery,
       });
     }
-
-    handleApply();
   };
 
-  const handleReset = () => {
+  const handleLocationChange = (location) => {
+    const updatedFilters = {
+      ...filters,
+      locations: filters.locations.includes(location)
+        ? filters.locations.filter((l) => l !== location)
+        : [...filters.locations, location],
+    };
+    applyFiltersImmediately(updatedFilters);
+  };
+
+  const handleCategoryChange = (category) => {
+    const updatedFilters = {
+      ...filters,
+      categories: filters.categories.includes(category)
+        ? filters.categories.filter((c) => c !== category)
+        : [...filters.categories, category],
+    };
+    applyFiltersImmediately(updatedFilters);
+  };
+
+  const handleRatingChange = (stars) => {
+    const updatedFilters = {
+      ...filters,
+      ratings: filters.ratings.includes(stars)
+        ? filters.ratings.filter((s) => s !== stars)
+        : [...filters.ratings, stars],
+    };
+    applyFiltersImmediately(updatedFilters);
+  };
+
+  const handlePriceChange = (field, value) => {
+    const updatedFilters = {
+      ...filters,
+      priceRange: {
+        ...filters.priceRange,
+        [field]: value,
+      },
+    };
+    
+    // Apply after a short debounce for price input
+    clearTimeout(window.priceChangeTimeout);
+    window.priceChangeTimeout = setTimeout(() => {
+      applyFiltersImmediately(updatedFilters);
+    }, 500);
+  };
+
+  const handleSortChange = (value) => {
+    const updatedFilters = {
+      ...filters,
+      sortBy: value,
+    };
+    applyFiltersImmediately(updatedFilters);
+  };
+
+  const handleSelectAllLocations = () => {
+    const updatedFilters = {
+      ...filters,
+      locations: filters.locations.length === uniqueLocationDisplayNames.length 
+        ? [] 
+        : [...uniqueLocationDisplayNames],
+    };
+    applyFiltersImmediately(updatedFilters);
+  };
+
+  const handleSelectAllCategories = () => {
+    const updatedFilters = {
+      ...filters,
+      categories: filters.categories.length === uniqueCategoryDisplayNames.length 
+        ? [] 
+        : [...uniqueCategoryDisplayNames],
+    };
+    applyFiltersImmediately(updatedFilters);
+  };
+
+  const handleClearAllFilters = () => {
     const resetFilters = {
       locations: [],
       categories: [],
@@ -1278,40 +1311,14 @@ const FilterSidebar = ({
     setLocationSearch("");
     setCategorySearch("");
     onFilterChange(resetFilters);
-    if (onApplyFilters) {
-      onApplyFilters(resetFilters);
-    }
-  };
-
-  const handleApply = () => {
-    onFilterChange(filters);
-    if (onApplyFilters) {
-      onApplyFilters(filters);
-    }
-    if ((isMobileModal || isDesktopModal) && onClose) {
-      onClose();
-    }
-  };
-
-  const handleSelectAllLocations = () => {
-    if (filters.locations.length === uniqueLocationDisplayNames.length) {
-      setFilters((prev) => ({ ...prev, locations: [] }));
-    } else {
-      setFilters((prev) => ({
-        ...prev,
-        locations: [...uniqueLocationDisplayNames],
-      }));
-    }
-  };
-
-  const handleSelectAllCategories = () => {
-    if (filters.categories.length === uniqueCategoryDisplayNames.length) {
-      setFilters((prev) => ({ ...prev, categories: [] }));
-    } else {
-      setFilters((prev) => ({
-        ...prev,
-        categories: [...uniqueCategoryDisplayNames],
-      }));
+    
+    if (onDynamicFilterApply) {
+      onDynamicFilterApply({
+        filters: resetFilters,
+        newCategory: "",
+        newLocation: "",
+        keepSearchQuery: currentSearchQuery,
+      });
     }
   };
 
@@ -1336,6 +1343,31 @@ const FilterSidebar = ({
           >
             ×
           </button>
+        </div>
+      )}
+
+      {/* Clear All Button - Only on desktop */}
+      {!isMobileModal && !isDesktopModal && (
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Filter Options</h3>
+            <p className="text-xs text-gray-500 mt-1">
+              Filters apply immediately
+            </p>
+          </div>
+          {(filters.locations.length > 0 || 
+            filters.categories.length > 0 || 
+            filters.ratings.length > 0 || 
+            filters.priceRange.min || 
+            filters.priceRange.max || 
+            filters.sortBy !== "relevance") && (
+            <button
+              onClick={handleClearAllFilters}
+              className="text-xs text-red-600 hover:text-red-700 font-medium px-3 py-1.5 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              Clear All
+            </button>
+          )}
         </div>
       )}
 
@@ -1409,7 +1441,7 @@ const FilterSidebar = ({
                   {filteredLocationDisplayNames.map((location, index) => (
                     <label
                       key={index}
-                      className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50"
+                      className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       <input
                         type="checkbox"
@@ -1417,11 +1449,18 @@ const FilterSidebar = ({
                         onChange={() => handleLocationChange(location)}
                         className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
                       />
-                      <span className="text-sm text-gray-700 group-hover:text-[#06EAFC] transition-colors truncate">
+                      <span className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
+                        filters.locations.includes(location) 
+                          ? "text-blue-700 font-medium" 
+                          : "text-gray-700"
+                      }`}>
                         {location}
                       </span>
                       {filters.locations.includes(location) && (
-                        <span className="ml-auto text-xs text-blue-600">✓</span>
+                        <FontAwesomeIcon 
+                          icon={faCheck} 
+                          className="ml-auto text-xs text-blue-600" 
+                        />
                       )}
                     </label>
                   ))}
@@ -1511,7 +1550,7 @@ const FilterSidebar = ({
                   {filteredCategoryDisplayNames.map((category, index) => (
                     <label
                       key={index}
-                      className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50"
+                      className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       <input
                         type="checkbox"
@@ -1519,13 +1558,18 @@ const FilterSidebar = ({
                         onChange={() => handleCategoryChange(category)}
                         className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 transition-colors"
                       />
-                      <span className="text-sm text-gray-700 group-hover:text-[#06EAFC] transition-colors truncate">
+                      <span className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
+                        filters.categories.includes(category) 
+                          ? "text-green-700 font-medium" 
+                          : "text-gray-700"
+                      }`}>
                         {category}
                       </span>
                       {filters.categories.includes(category) && (
-                        <span className="ml-auto text-xs text-green-600">
-                          ✓
-                        </span>
+                        <FontAwesomeIcon 
+                          icon={faCheck} 
+                          className="ml-auto text-xs text-green-600" 
+                        />
                       )}
                     </label>
                   ))}
@@ -1607,6 +1651,22 @@ const FilterSidebar = ({
                 </div>
               </div>
             </div>
+            {(filters.priceRange.min || filters.priceRange.max) && (
+              <div className="flex justify-center">
+                <button
+                  onClick={() => {
+                    const updatedFilters = {
+                      ...filters,
+                      priceRange: { min: "", max: "" },
+                    };
+                    applyFiltersImmediately(updatedFilters);
+                  }}
+                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Clear Price Range
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1639,7 +1699,7 @@ const FilterSidebar = ({
             {[5, 4, 3, 2, 1].map((stars) => (
               <label
                 key={stars}
-                className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50"
+                className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <input
                   type="checkbox"
@@ -1659,41 +1719,123 @@ const FilterSidebar = ({
                       />
                     ))}
                   </div>
-                  <span className="text-sm text-gray-700 group-hover:text-[#06EAFC] transition-colors">
+                  <span className={`text-sm group-hover:text-[#06EAFC] transition-colors ${
+                    filters.ratings.includes(stars) 
+                      ? "text-yellow-700 font-medium" 
+                      : "text-gray-700"
+                  }`}>
                     {stars}+ stars
                   </span>
                 </div>
+              </label>
+            ))}
+            {filters.ratings.length > 0 && (
+              <div className="flex justify-center mt-2">
+                <button
+                  onClick={() => {
+                    const updatedFilters = {
+                      ...filters,
+                      ratings: [],
+                    };
+                    applyFiltersImmediately(updatedFilters);
+                  }}
+                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Clear Ratings
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* SORTING SECTION (New) */}
+      <div className="border-b pb-4">
+        <button
+          onClick={() => toggleSection("sort")}
+          className="w-full flex justify-between items-center mb-3"
+        >
+          <div className="flex items-center gap-2">
+            <FontAwesomeIcon icon={faFilter} className="text-purple-500" />
+            <h4 className="font-semibold text-gray-900 text-base">Sort By</h4>
+            {filters.sortBy !== "relevance" && (
+              <span className="bg-purple-100 text-purple-600 text-xs px-2 py-0.5 rounded-full">
+                Active
+              </span>
+            )}
+          </div>
+          <FontAwesomeIcon
+            icon={expandedSections.sort ? faChevronUp : faChevronDown}
+            className="text-gray-400"
+          />
+        </button>
+
+        {expandedSections.sort && (
+          <div className="space-y-2">
+            {[
+              { value: "relevance", label: "Relevance" },
+              { value: "price_low", label: "Price: Low to High" },
+              { value: "price_high", label: "Price: High to Low" },
+              { value: "rating", label: "Highest Rated" },
+              { value: "name", label: "Name: A to Z" },
+            ].map((option) => (
+              <label
+                key={option.value}
+                className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <input
+                  type="radio"
+                  name="sortBy"
+                  checked={filters.sortBy === option.value}
+                  onChange={() => handleSortChange(option.value)}
+                  className="w-4 h-4 rounded-full border-gray-300 text-purple-600 focus:ring-purple-500 transition-colors"
+                />
+                <span className={`text-sm group-hover:text-[#06EAFC] transition-colors ${
+                  filters.sortBy === option.value 
+                    ? "text-purple-700 font-medium" 
+                    : "text-gray-700"
+                }`}>
+                  {option.label}
+                </span>
               </label>
             ))}
           </div>
         )}
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex flex-col space-y-3 pt-4">
-        <div className="flex space-x-3">
-          <button
-            onClick={handleReset}
-            className="flex-1 px-4 py-3 text-sm font-medium border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
-          >
-            Reset All
-          </button>
-          <button
-            onClick={handleDynamicApply}
-            className="flex-1 px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2"
-          >
-            <FontAwesomeIcon icon={faCheck} />
-            Apply Filters
-          </button>
+      {/* Status Message */}
+      <div className="pt-4">
+        <div className="text-center">
+          <p className="text-xs text-gray-500">
+            {filters.locations.length > 0 || 
+             filters.categories.length > 0 || 
+             filters.ratings.length > 0 || 
+             filters.priceRange.min || 
+             filters.priceRange.max || 
+             filters.sortBy !== "relevance" ? (
+              <>
+                <span className="text-green-600 font-medium">✓ Active filters</span>
+                <span className="text-gray-400 mx-2">•</span>
+                <button
+                  onClick={handleClearAllFilters}
+                  className="text-red-600 hover:text-red-700 font-medium"
+                >
+                  Clear all
+                </button>
+              </>
+            ) : (
+              "No filters applied"
+            )}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            Changes apply instantly
+          </p>
         </div>
-        <p className="text-xs text-gray-500 text-center">
-          Applying filters will update the search results
-        </p>
       </div>
     </div>
   );
 
-  // Mobile Modal - Fullscreen
+  // Mobile Modal - Fullscreen (Keep Apply buttons for mobile)
   if (isMobileModal) {
     return createPortal(
       <motion.div
@@ -1726,13 +1868,32 @@ const FilterSidebar = ({
             </div>
           </div>
           <div className="p-4">{sidebarContent}</div>
+          
+          {/* Mobile Action Buttons */}
+          <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg">
+            <div className="flex space-x-3">
+              <button
+                onClick={handleClearAllFilters}
+                className="flex-1 px-4 py-3 text-sm font-medium border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+              >
+                Reset All
+              </button>
+              <button
+                onClick={onClose}
+                className="flex-1 px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                <FontAwesomeIcon icon={faCheck} />
+                Apply & Close
+              </button>
+            </div>
+          </div>
         </div>
       </motion.div>,
       document.body
     );
   }
 
-  // Desktop Modal - Fullscreen like mobile search
+  // Desktop Modal - Fullscreen like mobile search (Keep Apply buttons for modal)
   if (isDesktopModal) {
     return createPortal(
       <motion.div
@@ -1775,6 +1936,25 @@ const FilterSidebar = ({
           </div>
           <div className="container mx-auto px-4 py-6 max-w-4xl">
             {sidebarContent}
+            
+            {/* Modal Action Buttons */}
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg mt-8">
+              <div className="flex space-x-3">
+                <button
+                  onClick={handleClearAllFilters}
+                  className="flex-1 px-4 py-3 text-sm font-medium border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+                >
+                  Reset All
+                </button>
+                <button
+                  onClick={onClose}
+                  className="flex-1 px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                  <FontAwesomeIcon icon={faCheck} />
+                  Apply & Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </motion.div>,
@@ -1782,12 +1962,9 @@ const FilterSidebar = ({
     );
   }
 
-  // Regular sidebar (not modal)
+  // Regular sidebar (not modal) - No Apply/Reset buttons, real-time filtering
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit sticky top-6">
-      <div className="mb-6">
-        <h3 className="text-lg font-bold text-gray-900">Filter Options</h3>
-      </div>
       {sidebarContent}
     </div>
   );
@@ -2171,16 +2348,7 @@ const SearchResults = () => {
     }
 
     setSearchParams(params);
-    setActiveFilters(filters);
-
-    setTimeout(() => {
-      if (resultsRef.current) {
-        resultsRef.current.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }
-    }, 100);
+    setActiveFilters(filters);  
   };
 
   const handleFilterChangeWithScroll = (newFilters) => {
@@ -2193,8 +2361,10 @@ const SearchResults = () => {
     }, 100);
   };
 
+  // Replace handleFilterChangeWithScroll with this:
   const handleFilterChange = (newFilters) => {
     setActiveFilters(newFilters);
+    setCurrentPage(1); // Reset to first page when filters change
   };
 
   const removeFilter = (type, value = null) => {
@@ -2487,8 +2657,7 @@ const SearchResults = () => {
           {!isMobile && (
             <div className="lg:w-1/4">
               <FilterSidebar
-                onFilterChange={handleFilterChangeWithScroll}
-                onApplyFilters={handleFilterChangeWithScroll}
+                onFilterChange={handleFilterChange} // Changed this
                 onDynamicFilterApply={handleDynamicFilterApply}
                 allLocations={allLocations}
                 allCategories={allCategories}
