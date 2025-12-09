@@ -1360,30 +1360,7 @@ const FilterSidebar = ({
         </div>
       )}
 
-      {/* Clear All Button - Only on desktop sidebar */}
-      {!isMobileModal && !isDesktopModal && (
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h3 className="text-lg font-bold text-gray-900">Filter Options</h3>
-            <p className="text-xs text-gray-500 mt-1">
-              Filters apply immediately
-            </p>
-          </div>
-          {(filters.locations.length > 0 ||
-            filters.categories.length > 0 ||
-            filters.ratings.length > 0 ||
-            filters.priceRange.min ||
-            filters.priceRange.max ||
-            filters.sortBy !== "relevance") && (
-            <button
-              onClick={handleClearAllFilters}
-              className="text-xs text-red-600 hover:text-red-700 font-medium px-3 py-1.5 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
-            >
-              Clear All
-            </button>
-          )}
-        </div>
-      )}
+     
 
       {/* LOCATION SECTION WITH SEARCH */}
       <div className="border-b pb-4">
@@ -2813,16 +2790,19 @@ const CategoryResults = () => {
 
           {/* Results Content */}
           <div className="lg:w-3/4" ref={resultsRef}>
-            {/* Page Header with Filter Button */}
+            {/* Page Header with Filter Button - REMOVED DESKTOP FILTER BUTTON */}
             <div className="mb-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex-1 flex items-center gap-3">
-                  {/* Desktop filter button */}
-                  {!isMobile && filtersInitialized && (
-                    <div className="relative" ref={filterButtonRef}>
-                      <button className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg bg-white shadow-sm hover:bg-gray-50 transition-colors">
-                        <PiSliders className="text-gray-600" />
-
+                  {/* Mobile filter button - Show only on mobile */}
+                  {isMobile && filtersInitialized && (
+                    <button
+                      onClick={toggleMobileFilters}
+                      className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm"
+                      aria-label="Open filters"
+                    >
+                      <div className="relative">
+                        <PiSliders className="text-gray-600 text-lg" />
                         {Object.keys(activeFilters).some((key) => {
                           if (key === "priceRange") {
                             return (
@@ -2834,7 +2814,7 @@ const CategoryResults = () => {
                             ? activeFilters[key].length > 0
                             : activeFilters[key] !== "relevance";
                         }) && (
-                          <span className="bg-[#06EAFC] text-white text-xs px-2 py-0.5 rounded-full">
+                          <span className="absolute -top-1 -right-1 bg-[#06EAFC] text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
                             {Object.values(activeFilters).reduce((acc, val) => {
                               if (Array.isArray(val)) return acc + val.length;
                               if (typeof val === "object" && val !== null) {
@@ -2844,8 +2824,8 @@ const CategoryResults = () => {
                             }, 0)}
                           </span>
                         )}
-                      </button>
-                    </div>
+                      </div>
+                    </button>
                   )}
 
                   {/* Title and Count - Moved to single line with sort */}
@@ -2928,40 +2908,6 @@ const CategoryResults = () => {
                       </div>
                     </div>
                   </div>
-                )}
-
-                {/* Mobile filter button - Icon only, no text */}
-                {isMobile && filtersInitialized && (
-                  <button
-                    onClick={toggleMobileFilters}
-                    className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm"
-                    aria-label="Open filters"
-                  >
-                    <div className="relative">
-                      <PiSliders className="text-gray-600 text-lg" />
-                      {Object.keys(activeFilters).some((key) => {
-                        if (key === "priceRange") {
-                          return (
-                            activeFilters.priceRange.min ||
-                            activeFilters.priceRange.max
-                          );
-                        }
-                        return Array.isArray(activeFilters[key])
-                          ? activeFilters[key].length > 0
-                          : activeFilters[key] !== "relevance";
-                      }) && (
-                        <span className="absolute -top-1 -right-1 bg-[#06EAFC] text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
-                          {Object.values(activeFilters).reduce((acc, val) => {
-                            if (Array.isArray(val)) return acc + val.length;
-                            if (typeof val === "object" && val !== null) {
-                              return acc + (val.min || val.max ? 1 : 0);
-                            }
-                            return acc + (val && val !== "relevance" ? 1 : 0);
-                          }, 0)}
-                        </span>
-                      )}
-                    </div>
-                  </button>
                 )}
               </div>
             </div>
