@@ -1,110 +1,137 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FcGoogle } from "react-icons/fc";
-import { FaApple } from "react-icons/fa";
+import Logo from "../../../assets/Logos/logo6.png";
 
 const UserRegistration = () => {
-  const [email, setEmail] = useState("");
   const navigate = useNavigate();
 
-  const handleContinue = (e) => {
+  // FORM STATE
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    contact: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e) => {
     e.preventDefault();
-    if (email) {
-      navigate("/register/user/process1");
-    }
+    navigate("/register/user/process1");
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center p-4">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-lg">
-        {/* Header */}
-        <div className="text-center">
-          <div className="flex justify-center">
-            <img
-              src="/assets/Logos/logo5.png"
-              alt="Ajani Logo"
-              className="h-10 w-40 object-contain"
-            />
-          </div>
-          <h2 className="mt-6 text-2xl font-bold text-gray-900">
-            Create your client account
-          </h2>
-          <p className="mt-2 text-gray-600 text-sm">
-            Find and hire the best professionals
-          </p>
-        </div>
+    <div className="min-h-screen w-full bg-[#d9d9e8] flex flex-col items-center py-10 font-manrope">
+      {/* Logo */}
+      <img src={Logo} alt="Ajani Logo" className="h-16 object-contain mt-4" />
 
-        {/* Progress Bar */}
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div className="bg-blue-600 h-2 rounded-full w-1/6"></div>
-        </div>
+      {/* Title */}
+      <h2 className="text-3xl font-bold text-center text-gray-900 mt-6">
+        Create account
+      </h2>
 
-        <form onSubmit={handleContinue} className="space-y-6">
-          {/* Email Input */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email address
+      {/* Subtitle */}
+      <p className="text-center text-gray-600 text-sm mt-2 leading-relaxed">
+        Connect with verified vendors, and discover local stories through <br />
+        <span className="font-semibold">AI and local stories</span>
+      </p>
+
+      {/* Divider */}
+      <div className="w-72 border-t-2 border-[#00d1ff] mt-4 mb-6"></div>
+
+      {/* Main Form */}
+      <form onSubmit={handleSubmit} className="w-full max-w-md px-6 space-y-4">
+        {/* First + Last Name */}
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <label className="text-sm font-medium text-gray-700">
+              First Name
             </label>
             <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="you@example.com"
+              type="text"
+              name="firstName"
+              onChange={handleChange}
+              className="w-full mt-1 px-4 py-2 border rounded-md "
             />
           </div>
 
-          {/* Continue Button */}
-          <button
-            type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
-          >
-            Continue
-          </button>
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">or</span>
-            </div>
+          <div className="flex-1">
+            <label className="text-sm font-medium text-gray-700">
+              Last Name
+            </label>
+            <input
+              type="text"
+              name="lastName"
+              onChange={handleChange}
+              className="w-full mt-1 px-4 py-2 border rounded-md "
+            />
           </div>
+        </div>
 
-          {/* Social Login */}
-          <div className="space-y-3">
-            <button
-              type="button"
-              className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-3 px-4 rounded-lg"
-            >
-              <FcGoogle className="w-5 h-5" />
-              Continue with Google
-            </button>
-            <button
-              type="button"
-              className="w-full flex items-center justify-center gap-3 bg-black hover:bg-gray-800 text-white py-3 px-4 rounded-lg"
-            >
-              <FaApple className="w-5 h-5" />
-              Continue with Apple
-            </button>
-          </div>
-        </form>
+        {/* Phone/Email */}
+        <div>
+          <label className="text-sm font-medium text-gray-700">
+            Phone Number/Email
+          </label>
+          <input
+            type="text"
+            name="contact"
+            onChange={handleChange}
+            className="w-full mt-1 px-4 py-2 border rounded-md "
+          />
+        </div>
 
-        {/* Footer */}
-        <div className="text-center text-sm text-gray-600">
-          <p>
-            Already have an account?{" "}
-            <button
-              onClick={() => navigate("/login")}
-              className="text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Log In
-            </button>
+        {/* Password */}
+        <div>
+          <label className="text-sm font-medium text-gray-700">Password</label>
+          <input
+            type="password"
+            name="password"
+            onChange={handleChange}
+            className="w-full mt-1 px-4 py-2 border rounded-md "
+          />
+        </div>
+
+        {/* Confirm Password */}
+        <div>
+          <label className="text-sm font-medium text-gray-700">
+            Confirm Password
+          </label>
+          <input
+            type="password"
+            name="confirmPassword"
+            onChange={handleChange}
+            className="w-full mt-1 px-4 py-2 border rounded-md "
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Password must be at least 6 characters long
           </p>
         </div>
-      </div>
+
+        {/* Already Have Account */}
+        <p className="text-center text-sm mt-2 text-gray-700">
+          Already have an account?{" "}
+          <span
+            className="text-[#00a2ff] font-semibold cursor-pointer"
+            onClick={() => navigate("/login")}
+          >
+            Sign Up Here
+          </span>
+        </p>
+
+        {/* Done Button */}
+        <div className="flex justify-end mt-4">
+          <button
+            type="submit"
+            className="bg-[#00d37f] text-white px-6 py-2 rounded-lg shadow hover:bg-[#02be72] transition"
+          >
+            Done
+          </button>
+        </div>
+      </form>
     </div>
   );
 };

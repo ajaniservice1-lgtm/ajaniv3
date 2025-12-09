@@ -66,7 +66,7 @@ const RegisterChoicePage = () => {
             </div>
 
             <h3 className="mt-6 text-lg font-medium text-gray-900">
-              I'm a vendor for listing
+              I'm a user to buy
             </h3>
           </button>
 
@@ -111,7 +111,7 @@ const RegisterChoicePage = () => {
             </div>
 
             <h3 className="mt-6 text-lg font-medium text-gray-900">
-              I'm a user to buy
+              I'm a vendor for listing
             </h3>
           </button>
         </div>
@@ -133,8 +133,8 @@ const RegisterChoicePage = () => {
           `}
         >
           {!selected && "Create Account"}
-          {selected === "vendor" && "Join as user"}
-          {selected === "client" && "Apply as vedor"}
+          {selected === "client" && "Join as user"}
+          {selected === "vendor" && "Apply as vedor"}
         </button>
 
         {/* Login */}
