@@ -1,20 +1,18 @@
-// Header.jsx - Updated with mouse pointer cursor on all elements
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "../assets/Logos/logo5.png";
-import LoginButton from "../components/ui/LoginButton";
 import { MdOutlineChat } from "react-icons/md";
 import { RiNotification2Fill } from "react-icons/ri";
 import { PiUserCircleFill } from "react-icons/pi";
-import { useAuth } from "../hook/useAuth"; // Import auth hook
-import { supabase } from "../lib/supabase"; // Import supabase for sign out
+import { useAuth } from "../hook/useAuth";
+import { supabase } from "../lib/supabase";
 
 // Main Header Component
 const Header = ({ onAuthToast }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth(); // Get auth state
+  const { user } = useAuth();
   const profileDropdownRef = useRef(null);
 
   const scrollToSection = (id) => {
@@ -30,6 +28,7 @@ const Header = ({ onAuthToast }) => {
       await supabase.auth.signOut();
       onAuthToast?.("Successfully signed out");
       setIsProfileDropdownOpen(false);
+      setIsMenuOpen(false);
     } catch (error) {
       console.error("Sign out error:", error);
       onAuthToast?.("Error signing out", "error");
@@ -67,6 +66,12 @@ const Header = ({ onAuthToast }) => {
     { label: "List Your Business", onClick: () => navigate("/add-business") },
   ];
 
+  // Handle mobile navigate
+  const handleMobileNavigate = (path) => {
+    navigate(path);
+    setIsMenuOpen(false);
+  };
+
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#F7F7FA] border-b-2 font-manrope border-[#00d1ff] h-16 cursor-default">
@@ -88,9 +93,8 @@ const Header = ({ onAuthToast }) => {
               </button>
             </div>
 
-            {/* Desktop Navigation - Increased gap between labels, reduced left margin */}
+            {/* Desktop Navigation */}
             <div className="hidden lg:flex flex-1 justify-center items-center gap-10 text-sm lg:ml-20 h-full">
-              {/* Base navigation items */}
               {baseNavItems.map((item) => (
                 <button
                   key={item.id}
@@ -101,7 +105,6 @@ const Header = ({ onAuthToast }) => {
                 </button>
               ))}
 
-              {/* Additional items for logged-in users (text only) */}
               {user &&
                 loggedInNavItems.map((item, index) => (
                   <button
@@ -114,15 +117,13 @@ const Header = ({ onAuthToast }) => {
                 ))}
             </div>
 
-            {/* Right section with icons - Increased gap for desktop, reduced for mobile */}
+            {/* Right section */}
             <div className="flex items-center gap-2 lg:gap-6 h-full">
-              {/* Right section: Chat icon (only when logged in), Notification, and Profile dropdown */}
               {user && (
                 <>
                   <button
                     onClick={() => navigate("/chat")}
                     className="text-2xl hover:text-[#00d1ff] transition-colors p-1 cursor-pointer"
-                    title="Chat Assistant"
                   >
                     <MdOutlineChat />
                   </button>
@@ -130,7 +131,6 @@ const Header = ({ onAuthToast }) => {
                   <button
                     onClick={() => navigate("/notifications")}
                     className="text-2xl hover:text-[#00d1ff] transition-colors p-1 cursor-pointer"
-                    title="Notifications"
                   >
                     <RiNotification2Fill />
                   </button>
@@ -145,12 +145,10 @@ const Header = ({ onAuthToast }) => {
                         setIsProfileDropdownOpen(!isProfileDropdownOpen)
                       }
                       className="text-2xl hover:text-[#00d1ff] transition-colors p-1 cursor-pointer"
-                      title="Profile"
                     >
                       <PiUserCircleFill />
                     </button>
 
-                    {/* Dropdown menu */}
                     {isProfileDropdownOpen && (
                       <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-200 cursor-default">
                         <div className="px-4 py-3 border-b border-gray-100 cursor-default">
@@ -183,13 +181,34 @@ const Header = ({ onAuthToast }) => {
                 </>
               )}
 
-              {/* Login button when not logged in */}
-              {!user && <LoginButton onAuthToast={onAuthToast} />}
+              {/* Fixed Login | Register UI */}
+              {!user && (
+                <div className="hidden lg:flex items-center gap-1.5">
+                  {/* Log in button - Blue pill */}
+                  <button
+                    onClick={() => navigate("/login")}
+                    className="py-2.5 px-5 text-sm font-normal bg-[#06EAFC] hover:bg-[#6cf5ff] duration-300 rounded-full  transition-colors shadow-sm"
+                  >
+                    Log in
+                  </button>
 
-              {/* Mobile menu button with consistent sizing */}
+                  {/* Divider */}
+                  <div className="w-px h-5 bg-gray-400 font-bold"></div>
+
+                  {/* Register button - Outline */}
+                  <button
+                    onClick={() => navigate("/register")}
+                    className="py-2.5 px-4 text-sm font-normal border-3 border-[#06EAFC]  rounded-full transition-colors shadow-sm"
+                  >
+                    Register
+                  </button>
+                </div>
+              )}
+
+              {/* Mobile menu button */}
               <button
-                // onClick={() => setIsMenuOpen(true)}
-                className="lg:hidden text-gray-900 text-2xl p-1 ml-2 cursor-pointer"
+                onClick={() => setIsMenuOpen(true)}
+                className="lg:hidden text-gray-900 text-2xl p-1 ml-2 cursor-pointer hover:text-[#00d1ff] transition-colors"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -211,7 +230,7 @@ const Header = ({ onAuthToast }) => {
         </div>
       </header>
 
-      {/* Mobile Menu - Updated with auth-aware items */}
+      {/* MOBILE MENU */}
       <div
         className={`fixed inset-0 z-50 md:hidden ${
           isMenuOpen ? "" : "pointer-events-none"
@@ -265,12 +284,12 @@ const Header = ({ onAuthToast }) => {
               </svg>
             </button>
           </div>
-          <nav className="flex-1 p-4 space-y-2 text-sm">
+          <nav className="flex-1 p-4 space-y-2 text-sm overflow-y-auto">
             {/* Base navigation items */}
             {baseNavItems.map((item) => (
               <button
                 key={item.id}
-                className="block w-full text-left py-3 text-gray-900 hover:text-[#06EAFC] font-normal whitespace-nowrap text-sm cursor-pointer"
+                className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-colors font-normal whitespace-nowrap text-sm cursor-pointer"
                 onClick={() => {
                   scrollToSection(item.id);
                   setTimeout(() => setIsMenuOpen(false), 400);
@@ -289,57 +308,166 @@ const Header = ({ onAuthToast }) => {
                     item.onClick();
                     setIsMenuOpen(false);
                   }}
-                  className="block w-full text-left py-3 text-gray-900 hover:text-[#06EAFC] font-normal whitespace-nowrap text-sm cursor-pointer"
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-colors font-normal whitespace-nowrap text-sm cursor-pointer"
                 >
                   {item.label}
                 </button>
               ))}
 
-            {/* Notifications for logged-in users */}
-            {user && (
-              <button
-                onClick={() => {
-                  navigate("/notifications");
-                  setIsMenuOpen(false);
-                }}
-                className="block w-full text-left py-3 text-gray-900 hover:text-[#06EAFC] font-normal whitespace-nowrap text-sm cursor-pointer"
-              >
-                Notifications
-              </button>
-            )}
+            {/* Divider */}
+            <div className="h-px bg-gray-200 my-4"></div>
 
-            {/* Auth-aware sign out/login items */}
+            {/* Authentication buttons for mobile */}
             {user ? (
-              <button
-                onClick={() => {
-                  handleSignOut();
-                  setIsMenuOpen(false);
-                }}
-                className="block w-full text-left py-3 text-red-600 hover:text-red-800 font-normal whitespace-nowrap text-sm cursor-pointer"
-              >
-                Sign Out
-              </button>
-            ) : (
               <>
+                {/* Mobile user info */}
+                <div className="px-4 py-3 bg-white rounded-lg mb-4 cursor-default">
+                  <p className="text-sm font-medium text-gray-900 cursor-default">
+                    {user.email}
+                  </p>
+                </div>
+
+                {/* Mobile navigation for logged-in users */}
+                <button
+                  onClick={() => handleMobileNavigate("/chat")}
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-colors font-normal whitespace-nowrap text-sm cursor-pointer"
+                >
+                  Chat Assistant
+                </button>
+                <button
+                  onClick={() => handleMobileNavigate("/notifications")}
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-colors font-normal whitespace-nowrap text-sm cursor-pointer"
+                >
+                  Notifications
+                </button>
+                <button
+                  onClick={() => handleMobileNavigate("/add-business")}
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-colors font-normal whitespace-nowrap text-sm cursor-pointer"
+                >
+                  List Your Business
+                </button>
+
+                {/* Sign Out button */}
                 <button
                   onClick={() => {
-                    setIsMenuOpen(false);
+                    handleSignOut();
                   }}
-                  className="block w-full text-left py-3 text-gray-900 hover:text-[#06EAFC] font-normal whitespace-nowrap text-sm cursor-pointer"
+                  className="block w-full text-left py-3 px-4 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors font-normal whitespace-nowrap text-sm cursor-pointer"
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Authentication buttons for non-logged-in users in mobile */}
+                <button
+                  onClick={() => handleMobileNavigate("/login")}
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-colors font-normal whitespace-nowrap text-sm cursor-pointer"
                 >
                   Log In
                 </button>
                 <button
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                  }}
-                  className="block w-full text-left py-3 text-gray-900 hover:text-[#06EAFC] font-normal whitespace-nowrap text-sm cursor-pointer"
+                  onClick={() => handleMobileNavigate("/register")}
+                  className="block w-full text-left py-3 px-4 bg-[#00e6ff] hover:bg-[#00d1ff] text-black rounded-full font-medium whitespace-nowrap text-sm cursor-pointer transition-colors"
                 >
                   Register
                 </button>
+
+                {/* Divider */}
+                <div className="h-px bg-gray-200 my-4"></div>
+
+                {/* Registration options in mobile */}
+                <div className="px-4">
+                  <p className="text-sm font-medium text-gray-900 mb-3">
+                    Join as:
+                  </p>
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => handleMobileNavigate("/register/user")}
+                      className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <svg
+                            className="w-4 h-4 text-blue-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                            />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">Client</p>
+                          <p className="text-xs text-gray-600">
+                            Looking to hire
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => handleMobileNavigate("/register/vendor")}
+                      className="w-full text-left p-3 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                          <svg
+                            className="w-4 h-4 text-green-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">Vendor</p>
+                          <p className="text-xs text-gray-600">
+                            Offering services
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
               </>
             )}
           </nav>
+
+          {/* Mobile menu footer */}
+          <div className="p-4 border-t border-gray-200 bg-white">
+            <div className="text-xs text-gray-500 space-y-1">
+              <p>
+                By using Ajani, you agree to our{" "}
+                <button
+                  onClick={() => handleMobileNavigate("/termspage")}
+                  className="text-blue-600 hover:text-blue-800"
+                >
+                  Terms
+                </button>{" "}
+                and{" "}
+                <button
+                  onClick={() => handleMobileNavigate("/privacypage")}
+                  className="text-blue-600 hover:text-blue-800"
+                >
+                  Privacy Policy
+                </button>
+              </p>
+              <p className="text-gray-400">
+                © {new Date().getFullYear()} Ajani. All rights reserved.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </>

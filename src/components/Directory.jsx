@@ -851,23 +851,7 @@ const Directory = () => {
                 ))}
               </select>
 
-              {/* Filter Button - Compact */}
-              <div className="relative">
-                <div
-                  className="bg-gray-300 sm:p-1.5 p-2 flex items-center rounded-lg cursor-pointer hover:bg-gray-400 transition-colors duration-200 font-medium whitespace-nowrap"
-                  onClick={toggleFilterDropdown}
-                >
-                  <PiSliders className="text-sm" />
-                </div>
-
-                <AnimatePresence>
-                  <FilterDropdown
-                    isOpen={showFilterDropdown}
-                    onClose={closeFilterDropdown}
-                    onFilterChange={handleFilterChange}
-                  />
-                </AnimatePresence>
-              </div>
+              
             </div>
           </div>
         </div>
