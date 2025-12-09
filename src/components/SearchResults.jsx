@@ -1120,9 +1120,8 @@ const FilterSidebar = ({
   isMobileModal = false,
   isDesktopModal = false,
   currentSearchQuery = "",
-  currentCategoryParam = "",
-  currentLocationParam = "",
   onDynamicFilterApply,
+  isInitialized,
 }) => {
   const [filters, setFilters] = useState(
     currentFilters || {
@@ -1184,6 +1183,13 @@ const FilterSidebar = ({
     }));
   };
 
+  // Sync filters when currentFilters prop changes
+  useEffect(() => {
+    if (isInitialized && currentFilters) {
+      setFilters(currentFilters);
+    }
+  }, [currentFilters, isInitialized]);
+
   // Real-time filter application
   const applyFiltersImmediately = (updatedFilters) => {
     setFilters(updatedFilters);
@@ -1194,33 +1200,39 @@ const FilterSidebar = ({
       const hasCategoryFilters = updatedFilters.categories.length > 0;
       const hasLocationFilters = updatedFilters.locations.length > 0;
 
-      let newCategory = "";
-      let newLocation = "";
+      // For categories, we need to handle multiple selections
+      // We'll use category1, category2, etc. for multiple categories
+      let categoryParams = [];
 
-      if (hasCategoryFilters && updatedFilters.categories.length === 1) {
-        // If only one category is selected, update URL
-        const selectedCategory = allCategories.find(
-          (cat) => getCategoryDisplayName(cat) === updatedFilters.categories[0]
-        );
-        if (selectedCategory) {
-          newCategory = selectedCategory;
-        }
+      if (hasCategoryFilters) {
+        // Map display names back to original category values
+        updatedFilters.categories.forEach((catDisplayName) => {
+          const selectedCategory = allCategories.find(
+            (cat) => getCategoryDisplayName(cat) === catDisplayName
+          );
+          if (selectedCategory) {
+            categoryParams.push(selectedCategory);
+          }
+        });
       }
 
-      if (hasLocationFilters && updatedFilters.locations.length === 1) {
-        // If only one location is selected, update URL
-        const selectedLocation = allLocations.find(
-          (loc) => getLocationDisplayName(loc) === updatedFilters.locations[0]
-        );
-        if (selectedLocation) {
-          newLocation = selectedLocation;
-        }
+      // For locations
+      let locationParams = [];
+      if (hasLocationFilters) {
+        updatedFilters.locations.forEach((locDisplayName) => {
+          const selectedLocation = allLocations.find(
+            (loc) => getLocationDisplayName(loc) === locDisplayName
+          );
+          if (selectedLocation) {
+            locationParams.push(selectedLocation);
+          }
+        });
       }
 
       onDynamicFilterApply({
         filters: updatedFilters,
-        newCategory,
-        newLocation,
+        categories: categoryParams, // Pass array of categories
+        locations: locationParams, // Pass array of locations
         keepSearchQuery: currentSearchQuery,
       });
     }
@@ -1314,8 +1326,8 @@ const FilterSidebar = ({
     if (onDynamicFilterApply) {
       onDynamicFilterApply({
         filters: resetFilters,
-        newCategory: "",
-        newLocation: "",
+        categories: [],
+        locations: [],
         keepSearchQuery: currentSearchQuery,
       });
     }
@@ -1878,14 +1890,14 @@ const FilterSidebar = ({
           </div>
           <div className="p-4">{sidebarContent}</div>
 
-          {/* Mobile Action Buttons - Only Close button for real-time filtering */}
+          {/* Mobile Action Buttons - Changed to Apply Filter */}
           <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg">
             <button
               onClick={onClose}
               className="w-full px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2"
             >
               <FontAwesomeIcon icon={faCheck} />
-              Close
+              Apply Filter
             </button>
           </div>
         </div>
@@ -1938,14 +1950,14 @@ const FilterSidebar = ({
           <div className="container mx-auto px-4 py-6 max-w-4xl">
             {sidebarContent}
 
-            {/* Modal Action Buttons - Only Close */}
+            {/* Modal Action Buttons - Changed to Apply Filter */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg mt-8">
               <button
                 onClick={onClose}
                 className="w-full px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2"
               >
                 <FontAwesomeIcon icon={faCheck} />
-                Close
+                Apply Filter
               </button>
             </div>
           </div>
@@ -1957,7 +1969,7 @@ const FilterSidebar = ({
 
   // Regular sidebar (not modal) - No Apply/Reset buttons, real-time filtering
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit sticky top-6">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit">
       {sidebarContent}
     </div>
   );
@@ -2087,8 +2099,6 @@ const SearchResults = () => {
   const navigate = useNavigate();
 
   const searchQuery = searchParams.get("q") || "";
-  const category = searchParams.get("category") || "";
-  const location = searchParams.get("location") || "";
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState({
     locations: [],
@@ -2099,6 +2109,7 @@ const SearchResults = () => {
     amenities: [],
   });
 
+  const [filtersInitialized, setFiltersInitialized] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [showDesktopFilters, setShowDesktopFilters] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -2151,8 +2162,10 @@ const SearchResults = () => {
     setLocalSearchQuery(searchQuery);
   }, [searchQuery]);
 
-  // Initialize filters from URL parameters
+  // Initialize filters from URL parameters - HANDLES MULTIPLE LOCATIONS AND CATEGORIES
   useEffect(() => {
+    if (!listings.length) return;
+
     const initialFilters = {
       locations: [],
       categories: [],
@@ -2162,19 +2175,43 @@ const SearchResults = () => {
       amenities: [],
     };
 
-    if (location && location !== "All Locations" && location !== "All") {
-      const targetLocation = getLocationDisplayName(location);
-      initialFilters.locations = [targetLocation];
+    // Collect all location parameters (location, location2, location3, etc.)
+    const locationParams = [];
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith("location")) {
+        const displayName = getLocationDisplayName(value);
+        if (displayName !== "All Locations" && displayName !== "All") {
+          locationParams.push(displayName);
+        }
+      }
     }
 
-    if (category && category !== "All Categories" && category !== "All") {
-      const targetCategory = getCategoryDisplayName(category);
-      initialFilters.categories = [targetCategory];
+    // Collect all category parameters (category, category2, category3, etc.)
+    const categoryParams = [];
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith("category")) {
+        const displayName = getCategoryDisplayName(value);
+        if (displayName !== "All Categories" && displayName !== "All") {
+          categoryParams.push(displayName);
+        }
+      }
+    }
+
+    // Set locations from URL params
+    if (locationParams.length > 0) {
+      initialFilters.locations = [...new Set(locationParams)]; // Remove duplicates
+    }
+
+    // Set categories from URL params
+    if (categoryParams.length > 0) {
+      initialFilters.categories = [...new Set(categoryParams)]; // Remove duplicates
     }
 
     setActiveFilters(initialFilters);
-  }, [category, location]);
+    setFiltersInitialized(true);
+  }, [listings.length, searchParams.toString()]);
 
+  // FIXED: Correct filter logic for exact area filtering with MULTIPLE LOCATIONS AND CATEGORIES
   const applyFilters = (listingsToFilter, filters) => {
     let filtered = [...listingsToFilter];
 
@@ -2198,37 +2235,67 @@ const SearchResults = () => {
       });
     }
 
-    // Apply category from URL if present
-    if (category && category !== "All Categories" && category !== "All") {
-      const targetCategory = getCategoryDisplayName(category);
-      filtered = filtered.filter((item) => {
-        const itemCategory = getCategoryDisplayName(item.category || "");
-        return itemCategory === targetCategory;
-      });
+    // Get all location parameters from URL
+    const locationParams = [];
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith("location")) {
+        const displayName = getLocationDisplayName(value);
+        if (displayName !== "All Locations" && displayName !== "All") {
+          locationParams.push(displayName);
+        }
+      }
     }
 
-    // Apply location from URL if present
-    if (location && location !== "All Locations" && location !== "All") {
-      const targetLocation = getLocationDisplayName(location);
+    // Get all category parameters from URL
+    const categoryParams = [];
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith("category")) {
+        const displayName = getCategoryDisplayName(value);
+        if (displayName !== "All Categories" && displayName !== "All") {
+          categoryParams.push(displayName);
+        }
+      }
+    }
+
+    // Apply locations from URL if present - MULTIPLE LOCATIONS SUPPORT
+    if (locationParams.length > 0) {
       filtered = filtered.filter((item) => {
         const itemLocation = getLocationDisplayName(item.area || "");
-        return itemLocation === targetLocation;
+        return locationParams.some(
+          (loc) => itemLocation.toLowerCase() === loc.toLowerCase()
+        );
       });
     }
 
-    // Apply filter panel locations (supports multiple selections)
+    // Apply categories from URL if present - MULTIPLE CATEGORIES SUPPORT
+    if (categoryParams.length > 0) {
+      filtered = filtered.filter((item) => {
+        const itemCategory = getCategoryDisplayName(item.category || "");
+        return categoryParams.some(
+          (cat) => itemCategory.toLowerCase() === cat.toLowerCase()
+        );
+      });
+    }
+
+    // Apply filter panel locations - show items ONLY in selected locations
     if (filters.locations.length > 0) {
       filtered = filtered.filter((item) => {
         const itemLocation = getLocationDisplayName(item.area || "");
-        return filters.locations.includes(itemLocation);
+        return filters.locations.some(
+          (selectedLocation) =>
+            itemLocation.toLowerCase() === selectedLocation.toLowerCase()
+        );
       });
     }
 
-    // Apply filter panel categories (supports multiple selections)
+    // Apply filter panel categories - show items ONLY in selected categories
     if (filters.categories.length > 0) {
       filtered = filtered.filter((item) => {
         const itemCategory = getCategoryDisplayName(item.category || "");
-        return filters.categories.includes(itemCategory);
+        return filters.categories.some(
+          (selectedCategory) =>
+            itemCategory.toLowerCase() === selectedCategory.toLowerCase()
+        );
       });
     }
 
@@ -2286,7 +2353,7 @@ const SearchResults = () => {
 
   // Apply filters whenever any dependency changes
   useEffect(() => {
-    if (!listings.length) {
+    if (!listings.length || !filtersInitialized) {
       setFilteredListings([]);
       setFilteredCount(0);
       setGroupedListings({});
@@ -2294,7 +2361,65 @@ const SearchResults = () => {
     }
 
     applyFilters(listings, activeFilters);
-  }, [listings, searchQuery, category, location, activeFilters]);
+  }, [
+    listings,
+    searchQuery,
+    searchParams.toString(),
+    activeFilters,
+    filtersInitialized,
+  ]);
+
+  // FIXED: Handle multiple locations AND categories in URL parameters
+  const handleDynamicFilterApply = ({
+    filters,
+    categories = [],
+    locations = [],
+    keepSearchQuery,
+  }) => {
+    const params = new URLSearchParams();
+
+    // Always keep the search query if present
+    if (keepSearchQuery && searchQuery) {
+      params.set("q", searchQuery);
+    }
+
+    // Clear previous category parameters
+    for (const [key] of params.entries()) {
+      if (key.startsWith("category")) {
+        params.delete(key);
+      }
+    }
+
+    // Add categories to params - allow multiple with category, category2, category3, etc.
+    categories.forEach((category, index) => {
+      if (index === 0) {
+        params.set("category", category);
+      } else {
+        params.set(`category${index + 1}`, category);
+      }
+    });
+
+    // Clear previous location parameters
+    for (const [key] of params.entries()) {
+      if (key.startsWith("location")) {
+        params.delete(key);
+      }
+    }
+
+    // Add locations to params
+    locations.forEach((location, index) => {
+      if (index === 0) {
+        params.set("location", location);
+      } else {
+        params.set(`location${index + 1}`, location);
+      }
+    });
+
+    // Update URL
+    setSearchParams(params);
+    // Update filters state
+    setActiveFilters(filters);
+  };
 
   const handleSuggestionClick = (url) => {
     const urlObj = new URL(url, window.location.origin);
@@ -2354,30 +2479,6 @@ const SearchResults = () => {
     setShowDesktopSearchSuggestions(false);
   };
 
-  const handleDynamicFilterApply = ({
-    filters,
-    newCategory,
-    newLocation,
-    keepSearchQuery,
-  }) => {
-    const params = new URLSearchParams();
-
-    if (keepSearchQuery && searchQuery) {
-      params.set("q", searchQuery);
-    }
-
-    if (newCategory) {
-      params.set("category", newCategory);
-    }
-
-    if (newLocation) {
-      params.set("location", newLocation);
-    }
-
-    setSearchParams(params);
-    setActiveFilters(filters);
-  };
-
   // Real-time filter change handler
   const handleFilterChange = (newFilters) => {
     setActiveFilters(newFilters);
@@ -2434,36 +2535,118 @@ const SearchResults = () => {
   };
 
   const getPageTitle = () => {
+    // Get all location parameters
+    const locationParams = [];
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith("location")) {
+        const displayName = getLocationDisplayName(value);
+        if (displayName !== "All Locations" && displayName !== "All") {
+          locationParams.push(displayName);
+        }
+      }
+    }
+
+    // Get all category parameters
+    const categoryParams = [];
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith("category")) {
+        const displayName = getCategoryDisplayName(value);
+        if (displayName !== "All Categories" && displayName !== "All") {
+          categoryParams.push(displayName);
+        }
+      }
+    }
+
     if (searchQuery) {
+      if (locationParams.length > 0 || categoryParams.length > 0) {
+        let parts = [];
+        if (categoryParams.length > 0) parts.push(categoryParams.join(", "));
+        if (locationParams.length > 0) parts.push(locationParams.join(", "));
+
+        return `Search Results for "${searchQuery}" in ${parts.join(" • ")}`;
+      }
       return `Search Results for "${searchQuery}"`;
+    } else if (categoryParams.length > 0) {
+      const categoriesText = categoryParams.join(", ");
+      if (locationParams.length > 0) {
+        return `${categoriesText} in ${locationParams.join(", ")}`;
+      }
+      return `${categoriesText} in Ibadan`;
+    } else if (locationParams.length > 0) {
+      return `Places in ${locationParams.join(", ")}`;
     } else if (
-      category &&
-      category !== "All Categories" &&
-      category !== "All"
+      activeFilters.locations.length > 0 ||
+      activeFilters.categories.length > 0
     ) {
-      const displayCategory = getCategoryDisplayName(category);
-      return `${displayCategory} in Ibadan`;
-    } else if (location && location !== "All Locations" && location !== "All") {
-      const displayLocation = getLocationDisplayName(location);
-      return `Places in ${displayLocation}`;
+      const parts = [];
+      if (activeFilters.categories.length > 0)
+        parts.push(activeFilters.categories.join(", "));
+      if (activeFilters.locations.length > 0)
+        parts.push(activeFilters.locations.join(", "));
+      return `Places in ${parts.join(" • ")}`;
     } else {
       return "All Places in Ibadan";
     }
   };
 
   const getPageDescription = () => {
+    // Get all location parameters
+    const locationParams = [];
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith("location")) {
+        const displayName = getLocationDisplayName(value);
+        if (displayName !== "All Locations" && displayName !== "All") {
+          locationParams.push(displayName);
+        }
+      }
+    }
+
+    // Get all category parameters
+    const categoryParams = [];
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith("category")) {
+        const displayName = getCategoryDisplayName(value);
+        if (displayName !== "All Categories" && displayName !== "All") {
+          categoryParams.push(displayName);
+        }
+      }
+    }
+
     if (searchQuery) {
+      if (locationParams.length > 0 || categoryParams.length > 0) {
+        let parts = [];
+        if (categoryParams.length > 0) parts.push(categoryParams.join(", "));
+        if (locationParams.length > 0) parts.push(locationParams.join(", "));
+
+        return `Find the best places in ${parts.join(
+          " • "
+        )} matching "${searchQuery}". Search results include hotels, restaurants, shortlets, tourist attractions, and more.`;
+      }
       return `Find the best places in Ibadan matching "${searchQuery}". Search results include hotels, restaurants, shortlets, tourist attractions, and more.`;
+    } else if (categoryParams.length > 0) {
+      const categoriesText = categoryParams.join(", ");
+      if (locationParams.length > 0) {
+        return `Browse the best ${categoriesText.toLowerCase()} places in ${locationParams.join(
+          ", "
+        )}, Ibadan. Find top-rated venues, compare prices, and book your next experience.`;
+      }
+      return `Browse the best ${categoriesText.toLowerCase()} places in Ibadan. Find top-rated venues, compare prices, and book your next experience.`;
+    } else if (locationParams.length > 0) {
+      return `Discover amazing places in ${locationParams.join(
+        ", "
+      )}, Ibadan. Find restaurants, hotels, attractions, and more in these areas.`;
     } else if (
-      category &&
-      category !== "All Categories" &&
-      category !== "All"
+      activeFilters.locations.length > 0 ||
+      activeFilters.categories.length > 0
     ) {
-      const displayCategory = getCategoryDisplayName(category);
-      return `Browse the best ${displayCategory.toLowerCase()} places in Ibadan. Find top-rated venues, compare prices, and book your next experience.`;
-    } else if (location && location !== "All Locations" && location !== "All") {
-      const displayLocation = getLocationDisplayName(location);
-      return `Discover amazing places in ${displayLocation}, Ibadan. Find restaurants, hotels, attractions, and more in this area.`;
+      const parts = [];
+      if (activeFilters.categories.length > 0)
+        parts.push(activeFilters.categories.join(", "));
+      if (activeFilters.locations.length > 0)
+        parts.push(activeFilters.locations.join(", "));
+      return `Discover amazing places in ${parts.join(
+        " • "
+      )}, Ibadan. Find restaurants, hotels, attractions, and more in these areas.`;
     } else {
       return "Browse all places in Ibadan. Find hotels, restaurants, shortlets, tourist attractions, cafes, bars, services, events, and halls.";
     }
@@ -2633,10 +2816,9 @@ const SearchResults = () => {
             allCategories={allCategories}
             currentFilters={activeFilters}
             currentSearchQuery={searchQuery}
-            currentCategoryParam={category}
-            currentLocationParam={location}
             onClose={() => setShowDesktopFilters(false)}
             isDesktopModal={true}
+            isInitialized={filtersInitialized}
           />
         )}
 
@@ -2649,17 +2831,16 @@ const SearchResults = () => {
             allCategories={allCategories}
             currentFilters={activeFilters}
             currentSearchQuery={searchQuery}
-            currentCategoryParam={category}
-            currentLocationParam={location}
             onClose={() => setShowMobileFilters(false)}
             isMobileModal={true}
+            isInitialized={filtersInitialized}
           />
         )}
 
         {/* Main Content Layout */}
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Desktop Filter Sidebar - Always visible on desktop */}
-          {!isMobile && (
+          {!isMobile && filtersInitialized && (
             <div className="lg:w-1/4">
               <FilterSidebar
                 onFilterChange={handleFilterChange}
@@ -2668,8 +2849,7 @@ const SearchResults = () => {
                 allCategories={allCategories}
                 currentFilters={activeFilters}
                 currentSearchQuery={searchQuery}
-                currentCategoryParam={category}
-                currentLocationParam={location}
+                isInitialized={filtersInitialized}
               />
             </div>
           )}
@@ -2681,7 +2861,7 @@ const SearchResults = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex-1 flex items-center gap-3">
                   {/* Desktop filter button */}
-                  {!isMobile && (
+                  {!isMobile && filtersInitialized && (
                     <div className="relative" ref={filterButtonRef}>
                       <button className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg bg-white shadow-sm hover:bg-gray-50 transition-colors">
                         <PiSliders className="text-gray-600" />
@@ -2722,7 +2902,7 @@ const SearchResults = () => {
                         {filteredCount === 1 ? "place" : "places"} found
                       </p>
                     </div>
-                    
+
                     {/* Desktop Sort Dropdown - At far right, clean minimal design */}
                     {!isMobile && (
                       <div className="flex items-center">
@@ -2738,15 +2918,21 @@ const SearchResults = () => {
                             }}
                             className="appearance-none bg-transparent text-sm font-medium text-gray-600 hover:text-gray-900 focus:outline-none cursor-pointer pr-6"
                           >
-                            <option value="relevance">Sort by: Relevance</option>
-                            <option value="price_low">Price: Low to High</option>
-                            <option value="price_high">Price: High to Low</option>
+                            <option value="relevance">
+                              Sort by: Relevance
+                            </option>
+                            <option value="price_low">
+                              Price: Low to High
+                            </option>
+                            <option value="price_high">
+                              Price: High to Low
+                            </option>
                             <option value="rating">Highest Rated</option>
                             <option value="name">Name: A to Z</option>
                           </select>
                           <div className="absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                            <FontAwesomeIcon 
-                              icon={faChevronDown} 
+                            <FontAwesomeIcon
+                              icon={faChevronDown}
                               className="text-gray-500 text-xs"
                             />
                           </div>
@@ -2757,7 +2943,7 @@ const SearchResults = () => {
                 </div>
 
                 {/* Sort By Dropdown - Only on mobile */}
-                {isMobile && (
+                {isMobile && filtersInitialized && (
                   <div className="flex items-center gap-2">
                     <div className="relative">
                       <select
@@ -2788,7 +2974,7 @@ const SearchResults = () => {
                 )}
 
                 {/* Mobile filter button - Icon only, no text */}
-                {isMobile && (
+                {isMobile && filtersInitialized && (
                   <button
                     onClick={toggleMobileFilters}
                     className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm"
@@ -2825,7 +3011,7 @@ const SearchResults = () => {
 
             {/* Results Display */}
             <div className="space-y-6">
-              {filteredCount === 0 && (
+              {filteredCount === 0 && filtersInitialized && (
                 <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
                   <FontAwesomeIcon
                     icon={faSearch}
@@ -2865,10 +3051,21 @@ const SearchResults = () => {
                 </div>
               )}
 
-              {filteredCount > 0 && (
+              {filteredCount > 0 && filtersInitialized && (
                 <>
                   {/* Show results based on URL parameters */}
-                  {searchQuery || category || location ? (
+                  {searchQuery ||
+                  (() => {
+                    // Check if there are any location or category parameters
+                    for (const [key] of searchParams.entries()) {
+                      if (
+                        key.startsWith("location") ||
+                        key.startsWith("category")
+                      )
+                        return true;
+                    }
+                    return false;
+                  })() ? (
                     <>
                       {isMobile ? (
                         <div className="space-y-4">

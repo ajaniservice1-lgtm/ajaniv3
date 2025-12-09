@@ -188,7 +188,7 @@ const Header = ({ onAuthToast }) => {
 
               {/* Mobile menu button with consistent sizing */}
               <button
-                onClick={() => setIsMenuOpen(true)}
+                // onClick={() => setIsMenuOpen(true)}
                 className="lg:hidden text-gray-900 text-2xl p-1 ml-2 cursor-pointer"
               >
                 <svg

@@ -804,7 +804,7 @@ const Directory = () => {
   return (
     // CRITICAL CHANGE: Removed ALL positioning and z-index
     <section id="directory" className="bg-white py-3 font-manrope">
-      <div className="max-w-8xl mx-auto px-2 sm:px-4 lg:px-6">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
         {/* Header - More compact with better mobile spacing */}
         <div className="mb-4">
           <motion.div

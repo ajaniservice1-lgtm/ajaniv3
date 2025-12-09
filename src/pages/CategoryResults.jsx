@@ -1,6 +1,6 @@
 // src/pages/CategoryResults.jsx
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faStar,
@@ -1112,7 +1112,7 @@ const DesktopSearchSuggestions = ({
   );
 };
 
-// ================== FILTER SIDEBAR ==================
+// ================== ENHANCED FILTER SIDEBAR (SEARCHABLE) - REAL-TIME FILTERING ==================
 const FilterSidebar = ({
   onFilterChange,
   allLocations,
@@ -1121,7 +1121,9 @@ const FilterSidebar = ({
   onClose,
   isMobileModal = false,
   isDesktopModal = false,
-  onApplyFilters,
+  currentSearchQuery = "",
+  onDynamicFilterApply,
+  isInitialized,
   categoryTitle = "",
 }) => {
   const [filters, setFilters] = useState(
@@ -1141,6 +1143,7 @@ const FilterSidebar = ({
     price: true,
     rating: true,
     amenities: false,
+    sort: false,
   });
 
   const [locationSearch, setLocationSearch] = useState("");
@@ -1183,51 +1186,133 @@ const FilterSidebar = ({
     }));
   };
 
+  // Sync filters when currentFilters prop changes
+  useEffect(() => {
+    if (isInitialized && currentFilters) {
+      setFilters(currentFilters);
+    }
+  }, [currentFilters, isInitialized]);
+
+  // Real-time filter application
+  const applyFiltersImmediately = (updatedFilters) => {
+    setFilters(updatedFilters);
+    onFilterChange(updatedFilters);
+
+    // Update URL if needed
+    if (onDynamicFilterApply) {
+      const hasCategoryFilters = updatedFilters.categories.length > 0;
+      const hasLocationFilters = updatedFilters.locations.length > 0;
+
+      // For categories, we need to handle multiple selections
+      // We'll use category1, category2, etc. for multiple categories
+      let categoryParams = [];
+
+      if (hasCategoryFilters) {
+        // Map display names back to original category values
+        updatedFilters.categories.forEach((catDisplayName) => {
+          const selectedCategory = allCategories.find(
+            (cat) => getCategoryDisplayName(cat) === catDisplayName
+          );
+          if (selectedCategory) {
+            categoryParams.push(selectedCategory);
+          }
+        });
+      }
+
+      // For locations
+      let locationParams = [];
+      if (hasLocationFilters) {
+        updatedFilters.locations.forEach((locDisplayName) => {
+          const selectedLocation = allLocations.find(
+            (loc) => getLocationDisplayName(loc) === locDisplayName
+          );
+          if (selectedLocation) {
+            locationParams.push(selectedLocation);
+          }
+        });
+      }
+
+      onDynamicFilterApply({
+        filters: updatedFilters,
+        categories: categoryParams, // Pass array of categories
+        locations: locationParams, // Pass array of locations
+        keepSearchQuery: currentSearchQuery,
+      });
+    }
+  };
+
   const handleLocationChange = (location) => {
-    setFilters((prev) => ({
-      ...prev,
-      locations: prev.locations.includes(location)
-        ? prev.locations.filter((l) => l !== location)
-        : [...prev.locations, location],
-    }));
+    const updatedFilters = {
+      ...filters,
+      locations: filters.locations.includes(location)
+        ? filters.locations.filter((l) => l !== location)
+        : [...filters.locations, location],
+    };
+    applyFiltersImmediately(updatedFilters);
   };
 
   const handleCategoryChange = (category) => {
-    setFilters((prev) => ({
-      ...prev,
-      categories: prev.categories.includes(category)
-        ? prev.categories.filter((c) => c !== category)
-        : [...prev.categories, category],
-    }));
+    const updatedFilters = {
+      ...filters,
+      categories: filters.categories.includes(category)
+        ? filters.categories.filter((c) => c !== category)
+        : [...filters.categories, category],
+    };
+    applyFiltersImmediately(updatedFilters);
   };
 
   const handleRatingChange = (stars) => {
-    setFilters((prev) => ({
-      ...prev,
-      ratings: prev.ratings.includes(stars)
-        ? prev.ratings.filter((s) => s !== stars)
-        : [...prev.ratings, stars],
-    }));
+    const updatedFilters = {
+      ...filters,
+      ratings: filters.ratings.includes(stars)
+        ? filters.ratings.filter((s) => s !== stars)
+        : [...filters.ratings, stars],
+    };
+    applyFiltersImmediately(updatedFilters);
   };
 
   const handlePriceChange = (field, value) => {
-    setFilters((prev) => ({
-      ...prev,
+    const updatedFilters = {
+      ...filters,
       priceRange: {
-        ...prev.priceRange,
+        ...filters.priceRange,
         [field]: value,
       },
-    }));
+    };
+    applyFiltersImmediately(updatedFilters);
   };
 
   const handleSortChange = (value) => {
-    setFilters((prev) => ({
-      ...prev,
+    const updatedFilters = {
+      ...filters,
       sortBy: value,
-    }));
+    };
+    applyFiltersImmediately(updatedFilters);
   };
 
-  const handleReset = () => {
+  const handleSelectAllLocations = () => {
+    const updatedFilters = {
+      ...filters,
+      locations:
+        filters.locations.length === uniqueLocationDisplayNames.length
+          ? []
+          : [...uniqueLocationDisplayNames],
+    };
+    applyFiltersImmediately(updatedFilters);
+  };
+
+  const handleSelectAllCategories = () => {
+    const updatedFilters = {
+      ...filters,
+      categories:
+        filters.categories.length === uniqueCategoryDisplayNames.length
+          ? []
+          : [...uniqueCategoryDisplayNames],
+    };
+    applyFiltersImmediately(updatedFilters);
+  };
+
+  const handleClearAllFilters = () => {
     const resetFilters = {
       locations: [],
       categories: [],
@@ -1240,40 +1325,14 @@ const FilterSidebar = ({
     setLocationSearch("");
     setCategorySearch("");
     onFilterChange(resetFilters);
-    if (onApplyFilters) {
-      onApplyFilters(resetFilters);
-    }
-  };
 
-  const handleApply = () => {
-    onFilterChange(filters);
-    if (onApplyFilters) {
-      onApplyFilters(filters);
-    }
-    if ((isMobileModal || isDesktopModal) && onClose) {
-      onClose();
-    }
-  };
-
-  const handleSelectAllLocations = () => {
-    if (filters.locations.length === uniqueLocationDisplayNames.length) {
-      setFilters((prev) => ({ ...prev, locations: [] }));
-    } else {
-      setFilters((prev) => ({
-        ...prev,
-        locations: [...uniqueLocationDisplayNames],
-      }));
-    }
-  };
-
-  const handleSelectAllCategories = () => {
-    if (filters.categories.length === uniqueCategoryDisplayNames.length) {
-      setFilters((prev) => ({ ...prev, categories: [] }));
-    } else {
-      setFilters((prev) => ({
-        ...prev,
-        categories: [...uniqueCategoryDisplayNames],
-      }));
+    if (onDynamicFilterApply) {
+      onDynamicFilterApply({
+        filters: resetFilters,
+        categories: [],
+        locations: [],
+        keepSearchQuery: currentSearchQuery,
+      });
     }
   };
 
@@ -1298,6 +1357,31 @@ const FilterSidebar = ({
           >
             ×
           </button>
+        </div>
+      )}
+
+      {/* Clear All Button - Only on desktop sidebar */}
+      {!isMobileModal && !isDesktopModal && (
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Filter Options</h3>
+            <p className="text-xs text-gray-500 mt-1">
+              Filters apply immediately
+            </p>
+          </div>
+          {(filters.locations.length > 0 ||
+            filters.categories.length > 0 ||
+            filters.ratings.length > 0 ||
+            filters.priceRange.min ||
+            filters.priceRange.max ||
+            filters.sortBy !== "relevance") && (
+            <button
+              onClick={handleClearAllFilters}
+              className="text-xs text-red-600 hover:text-red-700 font-medium px-3 py-1.5 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              Clear All
+            </button>
+          )}
         </div>
       )}
 
@@ -1371,7 +1455,7 @@ const FilterSidebar = ({
                   {filteredLocationDisplayNames.map((location, index) => (
                     <label
                       key={index}
-                      className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50"
+                      className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       <input
                         type="checkbox"
@@ -1379,11 +1463,20 @@ const FilterSidebar = ({
                         onChange={() => handleLocationChange(location)}
                         className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
                       />
-                      <span className="text-sm text-gray-700 group-hover:text-[#06EAFC] transition-colors truncate">
+                      <span
+                        className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
+                          filters.locations.includes(location)
+                            ? "text-blue-700 font-medium"
+                            : "text-gray-700"
+                        }`}
+                      >
                         {location}
                       </span>
                       {filters.locations.includes(location) && (
-                        <span className="ml-auto text-xs text-blue-600">✓</span>
+                        <FontAwesomeIcon
+                          icon={faCheck}
+                          className="ml-auto text-xs text-blue-600"
+                        />
                       )}
                     </label>
                   ))}
@@ -1473,7 +1566,7 @@ const FilterSidebar = ({
                   {filteredCategoryDisplayNames.map((category, index) => (
                     <label
                       key={index}
-                      className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50"
+                      className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       <input
                         type="checkbox"
@@ -1481,13 +1574,20 @@ const FilterSidebar = ({
                         onChange={() => handleCategoryChange(category)}
                         className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 transition-colors"
                       />
-                      <span className="text-sm text-gray-700 group-hover:text-[#06EAFC] transition-colors truncate">
+                      <span
+                        className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
+                          filters.categories.includes(category)
+                            ? "text-green-700 font-medium"
+                            : "text-gray-700"
+                        }`}
+                      >
                         {category}
                       </span>
                       {filters.categories.includes(category) && (
-                        <span className="ml-auto text-xs text-green-600">
-                          ✓
-                        </span>
+                        <FontAwesomeIcon
+                          icon={faCheck}
+                          className="ml-auto text-xs text-green-600"
+                        />
                       )}
                     </label>
                   ))}
@@ -1569,6 +1669,22 @@ const FilterSidebar = ({
                 </div>
               </div>
             </div>
+            {(filters.priceRange.min || filters.priceRange.max) && (
+              <div className="flex justify-center">
+                <button
+                  onClick={() => {
+                    const updatedFilters = {
+                      ...filters,
+                      priceRange: { min: "", max: "" },
+                    };
+                    applyFiltersImmediately(updatedFilters);
+                  }}
+                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Clear Price Range
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1601,7 +1717,7 @@ const FilterSidebar = ({
             {[5, 4, 3, 2, 1].map((stars) => (
               <label
                 key={stars}
-                className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50"
+                className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <input
                   type="checkbox"
@@ -1621,36 +1737,124 @@ const FilterSidebar = ({
                       />
                     ))}
                   </div>
-                  <span className="text-sm text-gray-700 group-hover:text-[#06EAFC] transition-colors">
+                  <span
+                    className={`text-sm group-hover:text-[#06EAFC] transition-colors ${
+                      filters.ratings.includes(stars)
+                        ? "text-yellow-700 font-medium"
+                        : "text-gray-700"
+                    }`}
+                  >
                     {stars}+ stars
                   </span>
                 </div>
               </label>
             ))}
+            {filters.ratings.length > 0 && (
+              <div className="flex justify-center mt-2">
+                <button
+                  onClick={() => {
+                    const updatedFilters = {
+                      ...filters,
+                      ratings: [],
+                    };
+                    applyFiltersImmediately(updatedFilters);
+                  }}
+                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Clear Ratings
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex flex-col space-y-3 pt-4">
-        <div className="flex space-x-3">
+      {/* SORTING SECTION - Only show for mobile modals (REMOVED from desktop sidebar) */}
+      {isMobileModal && (
+        <div className="border-b pb-4">
           <button
-            onClick={handleReset}
-            className="flex-1 px-4 py-3 text-sm font-medium border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+            onClick={() => toggleSection("sort")}
+            className="w-full flex justify-between items-center mb-3"
           >
-            Reset All
+            <div className="flex items-center gap-2">
+              <FontAwesomeIcon icon={faFilter} className="text-purple-500" />
+              <h4 className="font-semibold text-gray-900 text-base">Sort By</h4>
+              {filters.sortBy !== "relevance" && (
+                <span className="bg-purple-100 text-purple-600 text-xs px-2 py-0.5 rounded-full">
+                  Active
+                </span>
+              )}
+            </div>
+            <FontAwesomeIcon
+              icon={expandedSections.sort ? faChevronUp : faChevronDown}
+              className="text-gray-400"
+            />
           </button>
-          <button
-            onClick={handleApply}
-            className="flex-1 px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2"
-          >
-            <FontAwesomeIcon icon={faCheck} />
-            Apply Filters
-          </button>
+
+          {expandedSections.sort && (
+            <div className="space-y-2">
+              {[
+                { value: "relevance", label: "Relevance" },
+                { value: "price_low", label: "Price: Low to High" },
+                { value: "price_high", label: "Price: High to Low" },
+                { value: "rating", label: "Highest Rated" },
+                { value: "name", label: "Name: A to Z" },
+              ].map((option) => (
+                <label
+                  key={option.value}
+                  className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <input
+                    type="radio"
+                    name="sortBy"
+                    checked={filters.sortBy === option.value}
+                    onChange={() => handleSortChange(option.value)}
+                    className="w-4 h-4 rounded-full border-gray-300 text-purple-600 focus:ring-purple-500 transition-colors"
+                  />
+                  <span
+                    className={`text-sm group-hover:text-[#06EAFC] transition-colors ${
+                      filters.sortBy === option.value
+                        ? "text-purple-700 font-medium"
+                        : "text-gray-700"
+                    }`}
+                  >
+                    {option.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
-        <p className="text-xs text-gray-500 text-center">
-          Applying filters will update the search results
-        </p>
+      )}
+
+      {/* Status Message */}
+      <div className="pt-4">
+        <div className="text-center">
+          <p className="text-xs text-gray-500">
+            {filters.locations.length > 0 ||
+            filters.categories.length > 0 ||
+            filters.ratings.length > 0 ||
+            filters.priceRange.min ||
+            filters.priceRange.max ||
+            filters.sortBy !== "relevance" ? (
+              <>
+                <span className="text-green-600 font-medium">
+                  ✓ Active filters
+                </span>
+                <span className="text-gray-400 mx-2">•</span>
+                <button
+                  onClick={handleClearAllFilters}
+                  className="text-red-600 hover:text-red-700 font-medium"
+                >
+                  Clear all
+                </button>
+              </>
+            ) : (
+              "No filters applied"
+            )}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">Changes apply instantly</p>
+        </div>
       </div>
     </div>
   );
@@ -1688,13 +1892,24 @@ const FilterSidebar = ({
             </div>
           </div>
           <div className="p-4">{sidebarContent}</div>
+
+          {/* Mobile Action Buttons - Changed to Apply Filter */}
+          <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg">
+            <button
+              onClick={onClose}
+              className="w-full px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              <FontAwesomeIcon icon={faCheck} />
+              Apply Filter
+            </button>
+          </div>
         </div>
       </motion.div>,
       document.body
     );
   }
 
-  // Desktop Modal - Fullscreen like mobile search
+  // Desktop Modal - Fullscreen
   if (isDesktopModal) {
     return createPortal(
       <motion.div
@@ -1737,6 +1952,17 @@ const FilterSidebar = ({
           </div>
           <div className="container mx-auto px-4 py-6 max-w-4xl">
             {sidebarContent}
+
+            {/* Modal Action Buttons - Changed to Apply Filter */}
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg mt-8">
+              <button
+                onClick={onClose}
+                className="w-full px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                <FontAwesomeIcon icon={faCheck} />
+                Apply Filter
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>,
@@ -1744,12 +1970,9 @@ const FilterSidebar = ({
     );
   }
 
-  // Regular sidebar (not modal)
+  // Regular sidebar (not modal) - No Apply/Reset buttons, real-time filtering
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit sticky top-6">
-      <div className="mb-6">
-        <h3 className="text-lg font-bold text-gray-900">Filter Options</h3>
-      </div>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit">
       {sidebarContent}
     </div>
   );
@@ -1758,8 +1981,10 @@ const FilterSidebar = ({
 // ================== MAIN CATEGORY RESULTS COMPONENT ==================
 const CategoryResults = () => {
   const { category } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
+
+  const searchQuery = searchParams.get("q") || "";
   const [activeFilters, setActiveFilters] = useState({
     locations: [],
     categories: [],
@@ -1769,18 +1994,21 @@ const CategoryResults = () => {
     amenities: [],
   });
 
+  const [filtersInitialized, setFiltersInitialized] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [showDesktopFilters, setShowDesktopFilters] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [filteredListings, setFilteredListings] = useState([]);
-  const [originalListings, setOriginalListings] = useState([]);
   const [allLocations, setAllLocations] = useState([]);
   const [allCategories, setAllCategories] = useState([]);
+  const [filteredCount, setFilteredCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
   const [showDesktopSearchSuggestions, setShowDesktopSearchSuggestions] =
     useState(false);
   const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
   const searchContainerRef = useRef(null);
+  const filterButtonRef = useRef(null);
   const resultsRef = useRef(null);
 
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
@@ -1832,8 +2060,6 @@ const CategoryResults = () => {
         return itemCategory.includes(categorySlug);
       });
 
-      setOriginalListings(filtered);
-
       // Extract unique locations and categories
       const locations = [
         ...new Set(filtered.map((item) => item.area).filter(Boolean)),
@@ -1846,16 +2072,96 @@ const CategoryResults = () => {
     }
   }, [listings, category]);
 
-  // Apply filters to listings
+  // Initialize filters from URL parameters - HANDLES MULTIPLE LOCATIONS AND CATEGORIES
   useEffect(() => {
-    if (!originalListings.length) {
-      setFilteredListings([]);
-      return;
+    if (!listings.length) return;
+
+    const initialFilters = {
+      locations: [],
+      categories: [],
+      priceRange: { min: "", max: "" },
+      ratings: [],
+      sortBy: "relevance",
+      amenities: [],
+    };
+
+    // Collect all location parameters (location, location2, location3, etc.)
+    const locationParams = [];
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith("location")) {
+        const displayName = getLocationDisplayName(value);
+        if (displayName !== "All Locations" && displayName !== "All") {
+          locationParams.push(displayName);
+        }
+      }
     }
 
-    let filtered = [...originalListings];
+    // Collect all category parameters (category, category2, category3, etc.)
+    const categoryParams = [];
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith("category")) {
+        const displayName = getCategoryDisplayName(value);
+        if (displayName !== "All Categories" && displayName !== "All") {
+          categoryParams.push(displayName);
+        }
+      }
+    }
 
-    // Apply search query filter
+    // Set locations from URL params
+    if (locationParams.length > 0) {
+      initialFilters.locations = [...new Set(locationParams)]; // Remove duplicates
+    }
+
+    // Set categories from URL params
+    if (categoryParams.length > 0) {
+      initialFilters.categories = [...new Set(categoryParams)]; // Remove duplicates
+    }
+
+    setActiveFilters(initialFilters);
+    setFiltersInitialized(true);
+  }, [listings.length, searchParams.toString()]);
+
+  // FIXED: Correct filter logic for exact area filtering with MULTIPLE LOCATIONS AND CATEGORIES
+  const applyFilters = (listingsToFilter, filters) => {
+    // First filter by category
+    const categorySlug = category.toLowerCase();
+    let filtered = listingsToFilter.filter((item) => {
+      const itemCategory = (item.category || "").toLowerCase();
+
+      // Handle different category mappings
+      if (categorySlug === "tourist-center") {
+        return (
+          itemCategory.includes("tourist") ||
+          itemCategory.includes("attraction")
+        );
+      }
+
+      if (categorySlug === "shortlet") {
+        return (
+          itemCategory.includes("shortlet") ||
+          itemCategory.includes("apartment")
+        );
+      }
+
+      if (categorySlug === "restaurant") {
+        return (
+          itemCategory.includes("restaurant") ||
+          itemCategory.includes("cafe") ||
+          itemCategory.includes("food")
+        );
+      }
+
+      if (categorySlug === "hotel") {
+        return (
+          itemCategory.includes("hotel") ||
+          itemCategory.includes("accommodation")
+        );
+      }
+
+      return itemCategory.includes(categorySlug);
+    });
+
+    // Apply search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter((item) => {
@@ -1875,44 +2181,92 @@ const CategoryResults = () => {
       });
     }
 
-    // Apply location filters
-    if (activeFilters.locations.length > 0) {
+    // Get all location parameters from URL
+    const locationParams = [];
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith("location")) {
+        const displayName = getLocationDisplayName(value);
+        if (displayName !== "All Locations" && displayName !== "All") {
+          locationParams.push(displayName);
+        }
+      }
+    }
+
+    // Get all category parameters from URL
+    const categoryParams = [];
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith("category")) {
+        const displayName = getCategoryDisplayName(value);
+        if (displayName !== "All Categories" && displayName !== "All") {
+          categoryParams.push(displayName);
+        }
+      }
+    }
+
+    // Apply locations from URL if present - MULTIPLE LOCATIONS SUPPORT
+    if (locationParams.length > 0) {
       filtered = filtered.filter((item) => {
         const itemLocation = getLocationDisplayName(item.area || "");
-        return activeFilters.locations.includes(itemLocation);
+        return locationParams.some(
+          (loc) => itemLocation.toLowerCase() === loc.toLowerCase()
+        );
       });
     }
 
-    // Apply category filters
-    if (activeFilters.categories.length > 0) {
+    // Apply categories from URL if present - MULTIPLE CATEGORIES SUPPORT
+    if (categoryParams.length > 0) {
       filtered = filtered.filter((item) => {
         const itemCategory = getCategoryDisplayName(item.category || "");
-        return activeFilters.categories.includes(itemCategory);
+        return categoryParams.some(
+          (cat) => itemCategory.toLowerCase() === cat.toLowerCase()
+        );
       });
     }
 
-    // Apply price range filter
-    if (activeFilters.priceRange.min || activeFilters.priceRange.max) {
-      const min = Number(activeFilters.priceRange.min) || 0;
-      const max = Number(activeFilters.priceRange.max) || Infinity;
+    // Apply filter panel locations - show items ONLY in selected locations
+    if (filters.locations.length > 0) {
+      filtered = filtered.filter((item) => {
+        const itemLocation = getLocationDisplayName(item.area || "");
+        return filters.locations.some(
+          (selectedLocation) =>
+            itemLocation.toLowerCase() === selectedLocation.toLowerCase()
+        );
+      });
+    }
+
+    // Apply filter panel categories - show items ONLY in selected categories
+    if (filters.categories.length > 0) {
+      filtered = filtered.filter((item) => {
+        const itemCategory = getCategoryDisplayName(item.category || "");
+        return filters.categories.some(
+          (selectedCategory) =>
+            itemCategory.toLowerCase() === selectedCategory.toLowerCase()
+        );
+      });
+    }
+
+    // Apply price range
+    if (filters.priceRange.min || filters.priceRange.max) {
+      const min = Number(filters.priceRange.min) || 0;
+      const max = Number(filters.priceRange.max) || Infinity;
       filtered = filtered.filter((item) => {
         const price = Number(item.price_from) || 0;
         return price >= min && price <= max;
       });
     }
 
-    // Apply rating filters
-    if (activeFilters.ratings.length > 0) {
+    // Apply ratings
+    if (filters.ratings.length > 0) {
       filtered = filtered.filter((item) => {
         const rating = Number(item.rating) || 0;
-        return activeFilters.ratings.some((stars) => rating >= stars);
+        return filters.ratings.some((stars) => rating >= stars);
       });
     }
 
     // Apply sorting
-    if (activeFilters.sortBy && activeFilters.sortBy !== "relevance") {
+    if (filters.sortBy && filters.sortBy !== "relevance") {
       filtered = [...filtered].sort((a, b) => {
-        switch (activeFilters.sortBy) {
+        switch (filters.sortBy) {
           case "price_low":
             return (Number(a.price_from) || 0) - (Number(b.price_from) || 0);
           case "price_high":
@@ -1928,20 +2282,91 @@ const CategoryResults = () => {
     }
 
     setFilteredListings(filtered);
+    setFilteredCount(filtered.length);
     setCurrentPage(1);
-  }, [originalListings, searchQuery, activeFilters]);
+  };
 
+  // Apply filters whenever any dependency changes
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+    if (!listings.length || !filtersInitialized) {
+      setFilteredListings([]);
+      setFilteredCount(0);
+      return;
+    }
+
+    applyFilters(listings, activeFilters);
+  }, [
+    listings,
+    searchQuery,
+    searchParams.toString(),
+    activeFilters,
+    filtersInitialized,
+    category,
+  ]);
+
+  // FIXED: Handle multiple locations AND categories in URL parameters
+  const handleDynamicFilterApply = ({
+    filters,
+    categories = [],
+    locations = [],
+    keepSearchQuery,
+  }) => {
+    const params = new URLSearchParams();
+
+    // Always keep the search query if present
+    if (keepSearchQuery && searchQuery) {
+      params.set("q", searchQuery);
+    }
+
+    // Clear previous category parameters
+    for (const [key] of params.entries()) {
+      if (key.startsWith("category")) {
+        params.delete(key);
+      }
+    }
+
+    // Add categories to params - allow multiple with category, category2, category3, etc.
+    categories.forEach((category, index) => {
+      if (index === 0) {
+        params.set("category", category);
+      } else {
+        params.set(`category${index + 1}`, category);
+      }
+    });
+
+    // Clear previous location parameters
+    for (const [key] of params.entries()) {
+      if (key.startsWith("location")) {
+        params.delete(key);
+      }
+    }
+
+    // Add locations to params
+    locations.forEach((location, index) => {
+      if (index === 0) {
+        params.set("location", location);
+      } else {
+        params.set(`location${index + 1}`, location);
+      }
+    });
+
+    // Update URL
+    setSearchParams(params);
+    // Update filters state
+    setActiveFilters(filters);
+  };
+
+  const handleSuggestionClick = (url) => {
+    const urlObj = new URL(url, window.location.origin);
+    const params = new URLSearchParams(urlObj.search);
+    setSearchParams(params);
+    setShowMobileSearchModal(false);
+    setShowDesktopSearchSuggestions(false);
+    setLocalSearchQuery("");
+  };
 
   const handleSearchChange = (value) => {
-    setSearchQuery(value);
+    setLocalSearchQuery(value);
     if (!isMobile) {
       setShowDesktopSearchSuggestions(true);
     }
@@ -1949,14 +2374,19 @@ const CategoryResults = () => {
 
   const handleSearchSubmit = (e) => {
     e?.preventDefault();
-    if (searchQuery.trim()) {
+    if (localSearchQuery.trim()) {
+      const params = new URLSearchParams();
+      params.set("q", localSearchQuery.trim());
+      setSearchParams(params);
       setShowMobileSearchModal(false);
       setShowDesktopSearchSuggestions(false);
     }
   };
 
   const handleClearSearch = () => {
-    setSearchQuery("");
+    setLocalSearchQuery("");
+    const params = new URLSearchParams();
+    setSearchParams(params);
     setShowDesktopSearchSuggestions(false);
   };
 
@@ -1974,13 +2404,6 @@ const CategoryResults = () => {
     }
   };
 
-  const handleSuggestionClick = (url) => {
-    navigate(url);
-    setShowMobileSearchModal(false);
-    setShowDesktopSearchSuggestions(false);
-    setSearchQuery("");
-  };
-
   const toggleMobileFilters = () => {
     setShowMobileFilters(!showMobileFilters);
     setShowMobileSearchModal(false);
@@ -1991,26 +2414,9 @@ const CategoryResults = () => {
     setShowDesktopSearchSuggestions(false);
   };
 
-  const handleFilterChangeWithScroll = (newFilters) => {
+  // Real-time filter change handler
+  const handleFilterChange = (newFilters) => {
     setActiveFilters(newFilters);
-    setCurrentPage(1);
-    setTimeout(() => {
-      if (resultsRef.current) {
-        resultsRef.current.scrollIntoView({ behavior: "smooth" });
-      }
-    }, 100);
-  };
-
-  const clearAllFilters = () => {
-    const resetFilters = {
-      locations: [],
-      categories: [],
-      priceRange: { min: "", max: "" },
-      ratings: [],
-      sortBy: "relevance",
-      amenities: [],
-    };
-    setActiveFilters(resetFilters);
   };
 
   const removeFilter = (type, value = null) => {
@@ -2045,6 +2451,24 @@ const CategoryResults = () => {
     });
   };
 
+  const clearAllFilters = () => {
+    const resetFilters = {
+      locations: [],
+      categories: [],
+      priceRange: { min: "", max: "" },
+      ratings: [],
+      sortBy: "relevance",
+      amenities: [],
+    };
+    setActiveFilters(resetFilters);
+
+    const params = new URLSearchParams();
+    if (searchQuery) {
+      params.set("q", searchQuery);
+    }
+    setSearchParams(params);
+  };
+
   const categoryTitle = category
     ? category
         .split("-")
@@ -2052,18 +2476,165 @@ const CategoryResults = () => {
         .join(" ")
     : "Category";
 
-  const ITEMS_PER_PAGE = isMobile ? 15 : 16;
-  const totalPages = Math.ceil(filteredListings.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const currentListings = filteredListings.slice(
-    startIndex,
-    startIndex + ITEMS_PER_PAGE
-  );
+  const getPageTitle = () => {
+    // Get all location parameters
+    const locationParams = [];
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith("location")) {
+        const displayName = getLocationDisplayName(value);
+        if (displayName !== "All Locations" && displayName !== "All") {
+          locationParams.push(displayName);
+        }
+      }
+    }
+
+    // Get all category parameters
+    const categoryParams = [];
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith("category")) {
+        const displayName = getCategoryDisplayName(value);
+        if (displayName !== "All Categories" && displayName !== "All") {
+          categoryParams.push(displayName);
+        }
+      }
+    }
+
+    if (searchQuery) {
+      if (locationParams.length > 0 || categoryParams.length > 0) {
+        let parts = [];
+        if (categoryParams.length > 0) parts.push(categoryParams.join(", "));
+        if (locationParams.length > 0) parts.push(locationParams.join(", "));
+
+        return `${categoryTitle} matching "${searchQuery}" in ${parts.join(
+          " • "
+        )}`;
+      }
+      return `${categoryTitle} matching "${searchQuery}"`;
+    } else if (categoryParams.length > 0) {
+      const categoriesText = categoryParams.join(", ");
+      if (locationParams.length > 0) {
+        return `${categoriesText} in ${locationParams.join(", ")}`;
+      }
+      return `${categoriesText} in Ibadan`;
+    } else if (locationParams.length > 0) {
+      return `${categoryTitle} in ${locationParams.join(", ")}`;
+    } else if (
+      activeFilters.locations.length > 0 ||
+      activeFilters.categories.length > 0
+    ) {
+      const parts = [];
+      if (activeFilters.categories.length > 0)
+        parts.push(activeFilters.categories.join(", "));
+      if (activeFilters.locations.length > 0)
+        parts.push(activeFilters.locations.join(", "));
+      return `${categoryTitle} in ${parts.join(" • ")}`;
+    } else {
+      return `${categoryTitle} in Ibadan`;
+    }
+  };
+
+  const getPageDescription = () => {
+    // Get all location parameters
+    const locationParams = [];
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith("location")) {
+        const displayName = getLocationDisplayName(value);
+        if (displayName !== "All Locations" && displayName !== "All") {
+          locationParams.push(displayName);
+        }
+      }
+    }
+
+    // Get all category parameters
+    const categoryParams = [];
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith("category")) {
+        const displayName = getCategoryDisplayName(value);
+        if (displayName !== "All Categories" && displayName !== "All") {
+          categoryParams.push(displayName);
+        }
+      }
+    }
+
+    if (searchQuery) {
+      if (locationParams.length > 0 || categoryParams.length > 0) {
+        let parts = [];
+        if (categoryParams.length > 0) parts.push(categoryParams.join(", "));
+        if (locationParams.length > 0) parts.push(locationParams.join(", "));
+
+        return `Find the best ${categoryTitle.toLowerCase()} in ${parts.join(
+          " • "
+        )} matching "${searchQuery}". Browse prices, reviews, and book directly.`;
+      }
+      return `Find the best ${categoryTitle.toLowerCase()} in Ibadan matching "${searchQuery}". Browse prices, reviews, and book directly.`;
+    } else if (categoryParams.length > 0) {
+      const categoriesText = categoryParams.join(", ");
+      if (locationParams.length > 0) {
+        return `Browse the best ${categoriesText.toLowerCase()} in ${locationParams.join(
+          ", "
+        )}, Ibadan. Find top-rated venues, compare prices, and book your next experience.`;
+      }
+      return `Browse the best ${categoriesText.toLowerCase()} in Ibadan. Find top-rated venues, compare prices, and book your next experience.`;
+    } else if (locationParams.length > 0) {
+      return `Discover amazing ${categoryTitle.toLowerCase()} in ${locationParams.join(
+        ", "
+      )}, Ibadan. Find top-rated places, compare prices, and book directly.`;
+    } else if (
+      activeFilters.locations.length > 0 ||
+      activeFilters.categories.length > 0
+    ) {
+      const parts = [];
+      if (activeFilters.categories.length > 0)
+        parts.push(activeFilters.categories.join(", "));
+      if (activeFilters.locations.length > 0)
+        parts.push(activeFilters.locations.join(", "));
+      return `Discover amazing ${categoryTitle.toLowerCase()} in ${parts.join(
+        " • "
+      )}, Ibadan. Find top-rated places, compare prices, and book directly.`;
+    } else {
+      return `Find the best ${categoryTitle.toLowerCase()} in Ibadan. Browse prices, reviews, and book directly.`;
+    }
+  };
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        showDesktopFilters &&
+        filterButtonRef.current &&
+        !filterButtonRef.current.contains(event.target) &&
+        !event.target.closest(".filter-modal-content")
+      ) {
+        setShowDesktopFilters(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showDesktopFilters]);
+
+  const ITEMS_PER_PAGE = 20;
+  const totalPages = Math.ceil(filteredCount / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const currentListings = filteredListings.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE
+  );
 
   if (loading) {
     return (
@@ -2104,16 +2675,16 @@ const CategoryResults = () => {
   return (
     <div className="min-h-screen bg-gray-50 font-manrope">
       <Meta
-        title={`${categoryTitle} in Ibadan | Ajani Directory`}
-        description={`Find the best ${categoryTitle} in Ibadan. Browse prices, reviews, and book directly.`}
-        url={`https://ajani.ai/category/${category}`}
+        title={`${getPageTitle()} | Ajani Directory`}
+        description={getPageDescription()}
+        url={`https://ajani.ai/category/${category}?${searchParams.toString()}`}
         image="https://ajani.ai/images/category-og.jpg"
       />
 
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-        {/* Search Bar Container */}
+        {/* Fixed Search Bar Container */}
         <div className="z-30 py-6 relative" style={{ zIndex: 100 }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-center">
@@ -2130,7 +2701,7 @@ const CategoryResults = () => {
                       <input
                         type="text"
                         placeholder={`Search ${categoryTitle} in Ibadan...`}
-                        value={searchQuery}
+                        value={localSearchQuery}
                         onChange={(e) => handleSearchChange(e.target.value)}
                         onFocus={handleSearchFocus}
                         className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope"
@@ -2138,7 +2709,7 @@ const CategoryResults = () => {
                         aria-label="Search input"
                         role="searchbox"
                       />
-                      {searchQuery && (
+                      {localSearchQuery && (
                         <button
                           type="button"
                           onClick={handleClearSearch}
@@ -2164,7 +2735,7 @@ const CategoryResults = () => {
                   {/* Desktop Search Suggestions */}
                   {!isMobile && showDesktopSearchSuggestions && (
                     <DesktopSearchSuggestions
-                      searchQuery={searchQuery}
+                      searchQuery={localSearchQuery}
                       listings={listings}
                       onSuggestionClick={handleSuggestionClick}
                       onClose={() => setShowDesktopSearchSuggestions(false)}
@@ -2180,7 +2751,7 @@ const CategoryResults = () => {
         {/* Mobile Fullscreen Search Modal */}
         {isMobile && (
           <MobileSearchModal
-            searchQuery={searchQuery}
+            searchQuery={localSearchQuery}
             listings={listings}
             onSuggestionClick={handleSuggestionClick}
             onClose={() => setShowMobileSearchModal(false)}
@@ -2193,42 +2764,48 @@ const CategoryResults = () => {
         {/* Desktop Filter Modal */}
         {!isMobile && showDesktopFilters && (
           <FilterSidebar
-            onFilterChange={handleFilterChangeWithScroll}
-            onApplyFilters={handleFilterChangeWithScroll}
+            onFilterChange={handleFilterChange}
+            onDynamicFilterApply={handleDynamicFilterApply}
             allLocations={allLocations}
             allCategories={allCategories}
             currentFilters={activeFilters}
-            categoryTitle={categoryTitle}
+            currentSearchQuery={searchQuery}
             onClose={() => setShowDesktopFilters(false)}
             isDesktopModal={true}
+            isInitialized={filtersInitialized}
+            categoryTitle={categoryTitle}
           />
         )}
 
         {/* Mobile Filter Modal */}
         {isMobile && showMobileFilters && (
           <FilterSidebar
-            onFilterChange={handleFilterChangeWithScroll}
-            onApplyFilters={handleFilterChangeWithScroll}
+            onFilterChange={handleFilterChange}
+            onDynamicFilterApply={handleDynamicFilterApply}
             allLocations={allLocations}
             allCategories={allCategories}
             currentFilters={activeFilters}
-            categoryTitle={categoryTitle}
+            currentSearchQuery={searchQuery}
             onClose={() => setShowMobileFilters(false)}
             isMobileModal={true}
+            isInitialized={filtersInitialized}
+            categoryTitle={categoryTitle}
           />
         )}
 
         {/* Main Content Layout */}
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Desktop Filter Sidebar - Always visible on desktop */}
-          {!isMobile && (
+          {!isMobile && filtersInitialized && (
             <div className="lg:w-1/4">
               <FilterSidebar
-                onFilterChange={handleFilterChangeWithScroll}
-                onApplyFilters={handleFilterChangeWithScroll}
+                onFilterChange={handleFilterChange}
+                onDynamicFilterApply={handleDynamicFilterApply}
                 allLocations={allLocations}
                 allCategories={allCategories}
                 currentFilters={activeFilters}
+                currentSearchQuery={searchQuery}
+                isInitialized={filtersInitialized}
                 categoryTitle={categoryTitle}
               />
             </div>
@@ -2236,53 +2813,125 @@ const CategoryResults = () => {
 
           {/* Results Content */}
           <div className="lg:w-3/4" ref={resultsRef}>
-            {/* Page Header */}
+            {/* Page Header with Filter Button */}
             <div className="mb-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
+                <div className="flex-1 flex items-center gap-3">
                   {/* Desktop filter button */}
-                  {!isMobile && (
-                    <button className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg bg-white shadow-sm hover:bg-gray-50 transition-colors">
-                      <PiSliders className="text-gray-600" />
+                  {!isMobile && filtersInitialized && (
+                    <div className="relative" ref={filterButtonRef}>
+                      <button className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg bg-white shadow-sm hover:bg-gray-50 transition-colors">
+                        <PiSliders className="text-gray-600" />
 
-                      {Object.keys(activeFilters).some((key) => {
-                        if (key === "priceRange") {
-                          return (
-                            activeFilters.priceRange.min ||
-                            activeFilters.priceRange.max
-                          );
-                        }
-                        return Array.isArray(activeFilters[key])
-                          ? activeFilters[key].length > 0
-                          : activeFilters[key] !== "relevance";
-                      }) && (
-                        <span className="bg-[#06EAFC] text-white text-xs px-2 py-0.5 rounded-full">
-                          {Object.values(activeFilters).reduce((acc, val) => {
-                            if (Array.isArray(val)) return acc + val.length;
-                            if (typeof val === "object" && val !== null) {
-                              return acc + (val.min || val.max ? 1 : 0);
-                            }
-                            return acc + (val && val !== "relevance" ? 1 : 0);
-                          }, 0)}
-                        </span>
-                      )}
-                    </button>
+                        {Object.keys(activeFilters).some((key) => {
+                          if (key === "priceRange") {
+                            return (
+                              activeFilters.priceRange.min ||
+                              activeFilters.priceRange.max
+                            );
+                          }
+                          return Array.isArray(activeFilters[key])
+                            ? activeFilters[key].length > 0
+                            : activeFilters[key] !== "relevance";
+                        }) && (
+                          <span className="bg-[#06EAFC] text-white text-xs px-2 py-0.5 rounded-full">
+                            {Object.values(activeFilters).reduce((acc, val) => {
+                              if (Array.isArray(val)) return acc + val.length;
+                              if (typeof val === "object" && val !== null) {
+                                return acc + (val.min || val.max ? 1 : 0);
+                              }
+                              return acc + (val && val !== "relevance" ? 1 : 0);
+                            }, 0)}
+                          </span>
+                        )}
+                      </button>
+                    </div>
                   )}
 
-                  {/* Title and Count */}
-                  <div>
-                    <h1 className="text-xl font-bold text-[#00065A] mb-1">
-                      {categoryTitle} in Ibadan
-                    </h1>
-                    <p className="text-sm text-gray-600">
-                      {filteredListings.length}{" "}
-                      {filteredListings.length === 1 ? "place" : "places"} found
-                    </p>
+                  {/* Title and Count - Moved to single line with sort */}
+                  <div className="flex-1 flex items-center justify-between">
+                    <div>
+                      <h1 className="text-xl font-bold text-[#00065A] mb-1">
+                        {getPageTitle()}
+                      </h1>
+                      <p className="text-sm text-gray-600">
+                        {filteredCount}{" "}
+                        {filteredCount === 1 ? "place" : "places"} found
+                      </p>
+                    </div>
+
+                    {/* Desktop Sort Dropdown - At far right, clean minimal design */}
+                    {!isMobile && (
+                      <div className="flex items-center">
+                        <div className="relative">
+                          <select
+                            value={activeFilters.sortBy}
+                            onChange={(e) => {
+                              const updatedFilters = {
+                                ...activeFilters,
+                                sortBy: e.target.value,
+                              };
+                              handleFilterChange(updatedFilters);
+                            }}
+                            className="appearance-none bg-transparent text-sm font-medium text-gray-600 hover:text-gray-900 focus:outline-none cursor-pointer pr-6"
+                          >
+                            <option value="relevance">
+                              Sort by: Relevance
+                            </option>
+                            <option value="price_low">
+                              Price: Low to High
+                            </option>
+                            <option value="price_high">
+                              Price: High to Low
+                            </option>
+                            <option value="rating">Highest Rated</option>
+                            <option value="name">Name: A to Z</option>
+                          </select>
+                          <div className="absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                            <FontAwesomeIcon
+                              icon={faChevronDown}
+                              className="text-gray-500 text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Mobile filter button */}
-                {isMobile && (
+                {/* Sort By Dropdown - Only on mobile */}
+                {isMobile && filtersInitialized && (
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <select
+                        value={activeFilters.sortBy}
+                        onChange={(e) => {
+                          const updatedFilters = {
+                            ...activeFilters,
+                            sortBy: e.target.value,
+                          };
+                          handleFilterChange(updatedFilters);
+                        }}
+                        className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-10"
+                      >
+                        <option value="relevance">Sort by: Relevance</option>
+                        <option value="price_low">Price: Low to High</option>
+                        <option value="price_high">Price: High to Low</option>
+                        <option value="rating">Highest Rated</option>
+                        <option value="name">Name: A to Z</option>
+                      </select>
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                        <FontAwesomeIcon
+                          icon={faChevronDown}
+                          className="text-gray-500 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Mobile filter button - Icon only, no text */}
+                {isMobile && filtersInitialized && (
                   <button
                     onClick={toggleMobileFilters}
                     className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm"
@@ -2319,14 +2968,14 @@ const CategoryResults = () => {
 
             {/* Results Display */}
             <div className="space-y-6">
-              {filteredListings.length === 0 && (
+              {filteredCount === 0 && filtersInitialized && (
                 <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
                   <FontAwesomeIcon
                     icon={faSearch}
                     className="text-4xl text-gray-300 mb-4 block"
                   />
                   <h3 className="text-xl text-gray-800 mb-2">
-                    No {categoryTitle.toLowerCase()} found
+                    No matching results found
                   </h3>
                   <p className="text-gray-600 mb-4 max-w-md mx-auto">
                     {searchQuery
@@ -2359,7 +3008,7 @@ const CategoryResults = () => {
                 </div>
               )}
 
-              {filteredListings.length > 0 && (
+              {filteredCount > 0 && filtersInitialized && (
                 <>
                   {isMobile ? (
                     <div className="space-y-4">
