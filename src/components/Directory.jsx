@@ -827,7 +827,6 @@ const Directory = () => {
             {/* Mobile View - Compact filter row */}
             <div className="flex w-full sm:w-auto justify-between items-center gap-1">
               <button
-                onClick={() => handleCategoryButtonClick("all")}
                 className="sm:px-2 sm:py-1.5 p-2 bg-[#06EAFC] font-medium rounded-lg text-[10px] lg:text-[12px] hover:bg-[#08d7e6] transition-colors whitespace-nowrap flex-1 text-center"
               >
                 Popular destination
