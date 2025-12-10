@@ -3,410 +3,28 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* --color-pc: #ff5c00; */
-  /* --color-ph: #ff4d00; */
-
   --font-poppins: "Poppins", sans-serif;
   --font-montserrat: "Montserrat", sans-serif;
   --font-rubik: "Rubik", sans-serif;
   --font-manrope: "Manrope", sans-serif;
-
-  /* --font-dmsans: "DM Sans", sans-serif; */
 }
 
-/* ===== GLOBAL CUSTOM SCROLLBAR FOR ALL PAGES ===== */
-
-/* Main scrollbar for the entire application - INCREASED THICKNESS */
-::-webkit-scrollbar {
-  width: 16px; /* Increased from 12px */
-  height: 16px; /* Increased from 12px */
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 12px; /* Increased from 10px */
-  margin: 4px; /* Adds space around scrollbar */
-  border: 2px solid #e5e7eb; /* Added border for better visibility */
-}
-
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(45deg, #000000, #333333, #000000); /* Pure black gradient */
-  border-radius: 12px; /* Increased from 10px */
-  border: 3px solid #f1f1f1; /* Increased border thickness from 2px */
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Added shadow for depth */
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(45deg, #333333, #000000, #333333); /* Darker on hover */
-  transform: scale(1.05);
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3); /* Enhanced shadow on hover */
-}
-
-::-webkit-scrollbar-thumb:active {
-  background: linear-gradient(45deg, #000000, #555555, #000000); /* Even darker when clicking */
-  transform: scale(1.02);
-}
-
-::-webkit-scrollbar-corner {
-  background: #f1f1f1;
-}
-
-/* Firefox scrollbar - THICKER */
-* {
-  scrollbar-width: auto; /* Changed from 'thin' to 'auto' for thicker */
-  scrollbar-color: #000000 #f1f1f1; /* Black thumb, light gray track */
-}
-
-/* Smooth scrolling for entire app */
-html {
-  scroll-behavior: smooth;
-  scrollbar-width: auto; /* Thicker for Firefox */
-  scrollbar-color: #000000 #f1f1f1;
-}
-
-/* ===== CUSTOM SCROLLBAR FOR CONTAINERS ===== */
-.custom-scrollbar {
-  scrollbar-width: auto; /* Thicker */
-  scrollbar-color: #000000 #f8fafc;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 12px; /* Increased from 8px */
-  height: 12px; /* Increased from 8px */
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: #f8fafc;
-  border-radius: 10px; /* Increased from 8px */
-  margin: 3px;
-  border: 2px solid #e2e8f0;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(45deg, #000000, #333333);
-  border-radius: 10px; /* Increased from 8px */
-  border: 3px solid #f8fafc; /* Increased border */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(45deg, #333333, #000000);
-}
-
-/* SUPER THICK scrollbar for specific needs */
-.scrollbar-extra-thick::-webkit-scrollbar {
-  width: 20px;
-  height: 20px;
-}
-
-.scrollbar-extra-thick::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 15px;
-  margin: 5px;
-  border: 3px solid #d1d5db;
-}
-
-.scrollbar-extra-thick::-webkit-scrollbar-thumb {
-  background: linear-gradient(45deg, #000000, #444444, #000000);
-  border-radius: 15px;
-  border: 4px solid #f1f1f1;
-}
-
-/* Hide scrollbar but keep functionality */
-.scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;     /* Firefox */
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
-}
-
-/* Thin scrollbar - original thin option */
-.scrollbar-thin::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-/* Thick scrollbar - thicker option */
-.scrollbar-thick::-webkit-scrollbar {
-  width: 16px; /* Same as main scrollbar */
-  height: 16px;
-}
-
-/* Extra thick scrollbar */
-.scrollbar-extra-thick::-webkit-scrollbar {
-  width: 24px;
-  height: 24px;
-}
-
-/* Dark theme scrollbar - also thicker */
-.dark-scrollbar::-webkit-scrollbar-track {
-  background: #1f2937; /* Darker track */
-  border-radius: 12px;
-  margin: 4px;
-  border: 2px solid #374151;
-}
-
-.dark-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(45deg, #000000, #4b5563, #000000);
-  border-radius: 12px;
-  border: 3px solid #1f2937;
-}
-
-.dark-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(45deg, #4b5563, #000000, #4b5563);
-}
-
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Hide scrollbar for specific elements */
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-/* ===== END SCROLLBAR STYLING ===== */
-
-body {
-  overflow-x: hidden;
-  margin: 0;
-  padding: 0;
-}
-
-#directory {
-  scroll-margin-top: 80px; /* adjust for sticky header or extra spacing */
-}
-
-/* Add to your global.css or tailwind.css */
-@keyframes bounce {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-}
-
-.animate-bounce {
-  animation: bounce 1s infinite;
-}
-
-/* Original custom scrollbar - keeping for backward compatibility */
-.original-custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.original-custom-scrollbar::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 10px;
-}
-
-.original-custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 10px;
-}
-
-.original-custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
-@keyframes fade {
-  0% {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade {
-  animation: fade 0.2s ease-out;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fadeInUp {
-  opacity: 0;
-  animation: fadeInUp 0.6s ease forwards;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* In your CSS or Tailwind config */
-.wip-banner {
-  background: linear-gradient(90deg, #101828 0%, #05f2c1 50%, #3276ee 100%);
-  color: white;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  text-align: center;
-}
-
-.gradient-text {
-  background: linear-gradient(to right, #101828, #05f2c1, #3276ee, #1ab9d6);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-section[id] {
-  scroll-margin-top: 80px; /* Same as header height */
-}
-
-/* Custom slider styling */
-.slider::-webkit-slider-thumb {
-  appearance: none;
-  height: 20px;
-  width: 20px;
-  border-radius: 50%;
-  background: #10b981;
-  cursor: pointer;
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
-}
-
-.slider::-moz-range-thumb {
-  height: 20px;
-  width: 20px;
-  border-radius: 50%;
-  background: #10b981;
-  cursor: pointer;
-  border: none;
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
-}
-
-.spinner {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  border: 2px solid #ffffff;
-  border-radius: 50%;
-  border-top-color: transparent;
-  animation: spin 0.8s linear infinite;
-  margin-left: 8px;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.toast {
-  z-index: 10000;
-  background-color: #3b82f6; /* blue-500 */
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
-
-/* Fade in + slide up animation */
-@keyframes fadeInSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fadeInSlideUp {
-  animation: fadeInSlideUp 0.2s ease-out forwards;
-}
-
-/* Additional scrollbar utilities */
-.scrollbar-thin {
-  scrollbar-width: thin;
-}
-
-.scrollbar-auto {
-  scrollbar-width: auto;
-}
-
-/* For scrollable containers with custom styling */
-.scroll-container {
-  overflow-y: auto;
-  scrollbar-width: auto; /* Thicker */
-  scrollbar-color: #000000 #f1f1f1;
-}
-
-.scroll-container::-webkit-scrollbar {
-  width: 14px; /* Increased from 10px */
-}
-
-.scroll-container::-webkit-scrollbar-track {
-  background: #f8fafc;
-  border-radius: 10px; /* Increased from 8px */
-  margin: 3px;
-  border: 2px solid #e5e7eb;
-}
-
-.scroll-container::-webkit-scrollbar-thumb {
-  background: linear-gradient(45deg, #000000, #333333);
-  border-radius: 10px; /* Increased from 8px */
-  border: 3px solid #f8fafc; /* Increased border */
-}
-
-.scroll-container::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(45deg, #333333, #000000);
-}
-
-/* Body class to force thicker scrollbar on all pages */
-body.thick-scrollbar {
-  scrollbar-width: auto !important;
-  scrollbar-color: #000000 #f1f1f1 !important;
-}
-
-body.thick-scrollbar::-webkit-scrollbar {
-  width: 16px !important;
-  height: 16px !important;
-}
-
-/* ===== MODAL FIXES ===== */
-
-/* ANIMATIONS */
+/* ===== ANIMATIONS ===== */
 @keyframes fadeIn {
   from {
     opacity: 0;
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
   }
 }
 
@@ -423,17 +41,105 @@ body.thick-scrollbar::-webkit-scrollbar {
 
 @keyframes scaleIn {
   from {
-    transform: translate(-50%, -50%) scale(0.95);
+    transform: scale(0.95);
     opacity: 0;
   }
   to {
-    transform: translate(-50%, -50%) scale(1);
+    transform: scale(1);
     opacity: 1;
   }
 }
 
-/* Modal Backdrop */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+.animate-slideInLeft {
+  animation: slideInLeft 0.3s ease-out forwards;
+}
+
+.animate-slideInUp {
+  animation: slideInUp 0.3s ease-out forwards;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.3s ease-out forwards;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+/* ===== GLOBAL STYLES ===== */
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--font-manrope), sans-serif;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  background-color: #F7F7FA;
+  color: #1a202c;
+}
+
+/* ===== Z-INDEX STACKING ORDER ===== */
+/* Hero section - normal flow */
+#hero {
+  position: relative;
+  z-index: 1;
+}
+
+/* Header */
+header {
+  z-index: 100 !important;
+  position: fixed !important;
+  top: 0 !important;
+  width: 100% !important;
+}
+
+/* Desktop search suggestions */
+.desktop-suggestions {
+  z-index: 150 !important;
+}
+
+/* Mobile menu backdrop */
+.mobile-menu-backdrop {
+  z-index: 200 !important;
+}
+
+/* Mobile menu content */
+.mobile-menu-content {
+  z-index: 210 !important;
+}
+
+/* Hero search modal backdrop */
 .modal-backdrop {
+  z-index: 300 !important;
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
@@ -441,106 +147,519 @@ body.thick-scrollbar::-webkit-scrollbar {
   height: 100vh !important;
   background-color: rgba(0, 0, 0, 0.5) !important;
   backdrop-filter: blur(4px) !important;
-  -webkit-backdrop-filter: blur(4px) !important;
-  z-index: 9999998 !important;
 }
 
-/* Mobile Modal */
+/* Hero search modal content (mobile) */
 .mobile-fullscreen-modal {
+  z-index: 310 !important;
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
   background: white !important;
-  z-index: 9999999 !important;
-  display: flex !important;
-  flex-direction: column !important;
 }
 
-/* Desktop Modal */
-.desktop-modal {
-  position: fixed !important;
-  top: 50% !important;
-  left: 50% !important;
-  transform: translate(-50%, -50%) !important;
-  background: white !important;
-  border-radius: 16px !important;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25) !important;
-  z-index: 9999999 !important;
-  overflow: hidden !important;
+/* Profile dropdown */
+.profile-dropdown {
+  z-index: 400 !important;
 }
 
-/* Fix for body when modal is open - NO POSITION FIXED */
+/* Toast notifications */
+.toast-notification {
+  z-index: 500 !important;
+}
+
+/* ===== HERO SECTION FIXES - UPDATED ===== */
+#hero {
+  background: #F7F7FA;
+  min-height: 30vh;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+#hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(6, 234, 252, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(11, 228, 243, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  #hero {
+    min-height: 35vh;
+  }
+}
+
+@media (min-width: 1024px) {
+  #hero {
+    min-height: 40vh;
+  }
+}
+
+/* Compact Hero Content */
+.hero-content-compact {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+  position: relative;
+  z-index: 2;
+}
+
+@media (min-width: 640px) {
+  .hero-content-compact {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-content-compact {
+    padding: 2rem;
+  }
+}
+
+/* Hero title - Compact */
+.hero-title-compact {
+  font-size: clamp(1.25rem, 3.5vw, 1.75rem);
+  font-weight: 700;
+  line-height: 1.2;
+  color: #1a202c;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .hero-title-compact {
+    font-size: clamp(1.5rem, 4vw, 2.25rem);
+  }
+}
+
+/* Hero subtitle - Compact */
+.hero-subtitle-compact {
+  font-size: clamp(0.75rem, 2vw, 0.875rem);
+  line-height: 1.5;
+  color: #4a5568;
+  max-width: 600px;
+  margin: 0 auto 1rem;
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .hero-subtitle-compact {
+    font-size: clamp(0.875rem, 2vw, 1rem);
+    margin-bottom: 1.5rem;
+  }
+}
+
+/* Search bar container - Compact */
+.search-container-compact {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .search-container-compact {
+    max-width: 600px;
+    margin-bottom: 2rem;
+  }
+}
+
+/* Search input wrapper - Compact */
+.search-input-wrapper-compact {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.search-input-compact {
+  flex: 1;
+  position: relative;
+}
+
+.search-input-compact input {
+  width: 100%;
+  padding: 0.5rem 0.5rem 0.5rem 2.25rem;
+  font-size: 0.875rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9999px;
+  background: white;
+  color: #1a202c;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+}
+
+.search-input-compact input:focus {
+  outline: none;
+  border-color: #06EAFC;
+  box-shadow: 0 0 0 2px rgba(6, 234, 252, 0.2);
+}
+
+.search-input-compact input::placeholder {
+  color: #a0aec0;
+  font-size: 0.875rem;
+}
+
+.search-icon-compact {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a0aec0;
+  pointer-events: none;
+  width: 1rem;
+  height: 1rem;
+}
+
+.clear-search-compact {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #a0aec0;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  width: 1rem;
+  height: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clear-search-compact:hover {
+  color: #718096;
+  background-color: #f7fafc;
+}
+
+/* Search button - Compact */
+.search-button-compact {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #06EAFC 0%, #0be4f3 100%);
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px -1px rgba(6, 234, 252, 0.3);
+  white-space: nowrap;
+  min-width: fit-content;
+}
+
+.search-button-compact:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(6, 234, 252, 0.4);
+}
+
+.search-button-compact:active {
+  transform: translateY(0);
+}
+
+/* Categories section - Compact */
+.categories-section-compact {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 0.5rem;
+}
+
+.categories-grid-compact {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+@media (min-width: 640px) {
+  .categories-grid-compact {
+    gap: 1rem;
+    max-width: 600px;
+  }
+}
+
+/* Category card - Compact */
+.category-card-compact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.category-card-compact:hover {
+  transform: translateY(-3px);
+}
+
+.category-icon-wrapper-compact {
+  position: relative;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+@media (min-width: 640px) {
+  .category-icon-wrapper-compact {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .category-icon-wrapper-compact {
+    width: 4rem;
+    height: 4rem;
+  }
+}
+
+.category-card-compact:hover .category-icon-wrapper-compact {
+  box-shadow: 0 8px 12px -3px rgba(0, 0, 0, 0.1);
+}
+
+.category-image-compact {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: all 0.3s ease;
+}
+
+.category-card-compact:hover .category-image-compact {
+  transform: scale(1.1);
+}
+
+.category-name-compact {
+  margin-top: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4a5568;
+  text-align: center;
+  transition: color 0.3s ease;
+}
+
+.category-card-compact:hover .category-name-compact {
+  color: #06EAFC;
+}
+
+/* Loading state for images */
+.category-image-loading {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 6px;
+  margin: 1px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #06EAFC, #0be4f3);
+  border-radius: 6px;
+  border: 2px solid #f1f1f1;
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(45deg, #0be4f3, #06EAFC);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #06EAFC #f1f1f1;
+}
+
+/* ===== MODAL FIXES ===== */
 body.modal-open {
   overflow: hidden !important;
 }
 
-/* Ensure header stays in place */
-header {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 100 !important;
-}
-
-/* Fix hero images */
-#hero img {
-  position: relative !important;
-  z-index: 1 !important;
-  display: block !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-/* Hero section fix */
-#hero {
-  position: relative !important;
-  z-index: 1 !important;
-}
-
-/* Remove problematic z-index overrides */
-* {
-  z-index: auto !important;
-}
-
-/* Modal specific z-index */
-.modal-backdrop {
-  z-index: 9999998 !important;
-}
-
-.mobile-fullscreen-modal,
-.desktop-modal {
-  z-index: 9999999 !important;
-}
-
-/* Fix for header when modal is open */
-body.modal-open header {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 100 !important;
-}
-
-/* Ensure modals don't affect other content */
-body:not(.modal-open) {
-  overflow: auto !important;
-}
-
-/* Fix for iOS Safari */
+/* Fix for iOS Safari modal issues */
 @supports (-webkit-touch-callout: none) {
   .mobile-fullscreen-modal {
     height: -webkit-fill-available !important;
   }
+}
+
+/* ===== UTILITY CLASSES ===== */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Focus styles for accessibility */
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid #06EAFC;
+  outline-offset: 2px;
+}
+
+/* ===== RESPONSIVE FIXES ===== */
+@media (max-width: 768px) {
+  /* Mobile specific fixes */
+  body {
+    font-size: 14px;
+  }
   
-  body.modal-open {
-    position: relative !important;
-    overflow: hidden !important;
+  .search-input-wrapper-compact {
+    flex-direction: row !important;
+    gap: 0.5rem !important;
+  }
+  
+  .search-input-compact input {
+    font-size: 16px; /* Prevent iOS zoom */
+    padding: 0.5rem 0.5rem 0.5rem 2.25rem;
+  }
+  
+  .search-button-compact {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    min-width: fit-content;
   }
 }
 
-/* Ensure portal renders properly */
-[data-react-portal] {
-  z-index: 9999999 !important;
+/* Fix for mobile tap targets */
+@media (max-width: 768px) {
+  button,
+  .category-card-compact,
+  input[type="text"] {
+    min-height: 40px;
+    min-width: 40px;
+  }
+  
+  .category-card-compact {
+    padding: 0.125rem;
+  }
 }
 
-/* ===== END MODAL FIXES ===== */
+/* Tablet optimizations */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .category-icon-wrapper-compact {
+    width: 4rem;
+    height: 4rem;
+  }
+}
 
+/* ===== FIX FOR IMAGES ===== */
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+/* Ensure all images in hero are visible */
+#hero img {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
+/* Fix for fallback images */
+img[src*="unsplash.com"],
+img[src*="images.unsplash.com"] {
+  background-color: #f3f4f6;
+}
+
+/* ===== GRADIENT TEXT ===== */
+.gradient-text {
+  background: linear-gradient(135deg, #06EAFC 0%, #0be4f3 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== SHADOW UTILITIES ===== */
+.shadow-soft {
+  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+}
+
+.shadow-medium {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-hard {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* ===== TRANSITION UTILITIES ===== */
+.transition-all-300 {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-transform-300 {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Bottom gradient fade - Minimal */
+.bottom-gradient-fade-minimal {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1.5rem;
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.5), transparent);
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* ===== CLEANUP ===== */
+* {
+  box-sizing: border-box;
+}
+
+/* Remove any unwanted outlines */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Smooth scrolling for anchor links */
+html:focus-within {
+  scroll-behavior: smooth;
+}
+
+/* Improve text rendering */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}

@@ -547,6 +547,9 @@ const BusinessCard = ({ item, category, isMobile }) => {
 // ---------------- CategorySection Component ----------------
 const CategorySection = ({ title, items, sectionId, isMobile }) => {
   const navigate = useNavigate();
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+  const containerRef = useRef(null);
 
   if (items.length === 0) return null;
 
@@ -561,20 +564,63 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
 
   const category = getCategoryFromTitle(title);
 
-  const scrollSection = (sectionId, direction) => {
-    const container = document.getElementById(sectionId);
+  // Check scroll position to update arrow states
+  const updateArrows = () => {
+    if (!containerRef.current) return;
+    
+    const container = containerRef.current;
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    
+    // Check if we can scroll left (not at start)
+    const hasScrollLeft = scrollLeft > 0;
+    setCanScrollLeft(hasScrollLeft);
+    
+    // Check if we can scroll right (not at end)
+    // Using 5px buffer to account for rounding
+    const hasScrollRight = Math.ceil(scrollLeft + clientWidth) < Math.floor(scrollWidth) - 5;
+    setCanScrollRight(hasScrollRight);
+    
+    console.log(`Section: ${sectionId}, Left: ${hasScrollLeft}, Right: ${hasScrollRight}, scrollLeft: ${scrollLeft}, clientWidth: ${clientWidth}, scrollWidth: ${scrollWidth}`);
+  };
+
+  // Initialize and add scroll listener
+  useEffect(() => {
+    const container = containerRef.current;
+    if (container) {
+      // Initial check
+      setTimeout(updateArrows, 100); // Small delay to ensure DOM is ready
+      
+      // Add scroll event listener
+      container.addEventListener('scroll', updateArrows);
+      
+      // Also check on resize
+      const handleResize = () => setTimeout(updateArrows, 100);
+      window.addEventListener('resize', handleResize);
+      
+      return () => {
+        container.removeEventListener('scroll', updateArrows);
+        window.removeEventListener('resize', handleResize);
+      };
+    }
+  }, [items.length, isMobile, sectionId]);
+
+  const scrollSection = (direction) => {
+    const container = containerRef.current;
     if (!container) return;
 
-    const scrollAmount = isMobile ? 140 : 280;
-    const newPosition =
-      direction === "next"
-        ? container.scrollLeft + scrollAmount
-        : container.scrollLeft - scrollAmount;
+    const scrollAmount = isMobile ? 180 : 220; // Slightly more than one card
+    
+    const newPosition = direction === "next" 
+      ? container.scrollLeft + scrollAmount
+      : container.scrollLeft - scrollAmount;
 
     container.scrollTo({
       left: newPosition,
       behavior: "smooth",
     });
+
+    // Check position after animation
+    setTimeout(updateArrows, 400);
   };
 
   const handleCategoryClick = () => {
@@ -610,23 +656,47 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
           </button>
         </div>
         <div className="flex gap-1">
+          {/* Left arrow - gray when active, light gray when disabled */}
           <button
-            onClick={() => scrollSection(sectionId, "prev")}
-            className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors border border-gray-300 shadow-sm"
+            onClick={() => scrollSection("prev")}
+            className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors shadow-sm ${
+              canScrollLeft 
+                ? "bg-gray-100 hover:bg-gray-300 cursor-pointer" 
+                : "bg-gray-50 cursor-not-allowed"
+            }`}
+            disabled={!canScrollLeft}
+            aria-label="Scroll left"
           >
-            <FaLessThan className="text-gray-600 text-[10px]" />
+            <FaLessThan 
+              className={`text-[10px] ${
+                canScrollLeft ? "text-gray-700" : "text-gray-400"
+              }`} 
+            />
           </button>
+          
+          {/* Right arrow - gray when active, light gray when disabled */}
           <button
-            onClick={() => scrollSection(sectionId, "next")}
-            className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors border border-gray-300 shadow-sm"
+            onClick={() => scrollSection("next")}
+            className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors shadow-sm ${
+              canScrollRight 
+                ? "bg-gray-100 hover:bg-gray-300 cursor-pointer" 
+                : "bg-gray-50 cursor-not-allowed"
+            }`}
+            disabled={!canScrollRight}
+            aria-label="Scroll right"
           >
-            <FaGreaterThan className="text-gray-600 text-[10px]" />
+            <FaGreaterThan 
+              className={`text-[10px] ${
+                canScrollRight ? "text-gray-700" : "text-gray-400"
+              }`} 
+            />
           </button>
         </div>
       </div>
 
       <div className="relative">
         <div
+          ref={containerRef}
           id={sectionId}
           className={`flex overflow-x-auto scrollbar-hide scroll-smooth ${
             isMobile ? "gap-1" : "gap-2"
@@ -634,9 +704,9 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
           style={{
             scrollbarWidth: "none",
             msOverflowStyle: "none",
-            // CHANGED: Added extra right padding to ensure last card is visible
             paddingRight: "16px",
           }}
+          onScroll={updateArrows} // Also trigger on scroll
         >
           {items.map((item, index) => (
             <BusinessCard
@@ -646,7 +716,7 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
               isMobile={isMobile}
             />
           ))}
-          {/* CHANGED: Added empty div for extra spacing on the right */}
+          {/* Spacer for last card visibility */}
           <div className="flex-shrink-0" style={{ width: "16px" }}></div>
         </div>
       </div>
@@ -827,7 +897,7 @@ const Directory = () => {
             {/* Mobile View - Compact filter row */}
             <div className="flex w-full sm:w-auto justify-between items-center gap-1">
               <button
-                className="sm:px-2 sm:py-1.5 p-2 bg-[#06EAFC] font-medium rounded-lg text-[10px] lg:text-[12px] hover:bg-[#08d7e6] transition-colors whitespace-nowrap flex-1 text-center"
+                className="md:px-2 md:py-1.5 p-2 bg-[#06EAFC] font-medium rounded-lg text-[12px] lg:text-[12px] hover:bg-[#08d7e6] transition-colors whitespace-nowrap flex-1 text-center"
               >
                 Popular destination
               </button>
@@ -840,7 +910,7 @@ const Directory = () => {
                     handleCategoryButtonClick(e.target.value);
                   }
                 }}
-                className="px-2 py-1.5 border border-gray-300 rounded-lg font-medium text-[10px] lg:text-[12px] bg-gray-300 focus:ring-1 focus:ring-[#06EAFC]  p-2 focus:border-[#06EAFC] flex-1"
+                className="md:px-2 md:py-1.5 p-2.5 border border-gray-300 rounded-lg font-medium text-[12px] lg:text-[12px] bg-gray-300 focus:ring-1 focus:ring-[#06EAFC]   focus:border-[#06EAFC] flex-1"
               >
                 <option value="">Categories</option>
                 {getPopularCategories().map((category) => (

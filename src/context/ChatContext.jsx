@@ -3,13 +3,14 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ChatWidget from "../components/ChatWidget";
 import { useModal } from "./ModalContext"; // ✅ Import modal context
+import { CiChat1 } from "react-icons/ci";
 
 const ChatContext = createContext();
 
 export const ChatProvider = ({ children }) => {
   const { isAnyModalOpen } = useModal(); // ✅ Get modal state
   const [isChatOpen, setIsChatOpen] = useState(false);
- console.log("📌 ChatContext: isAnyModalOpen =", isAnyModalOpen);
+  console.log("📌 ChatContext: isAnyModalOpen =", isAnyModalOpen);
 
   const openChat = () => setIsChatOpen(true);
   const closeChat = () => setIsChatOpen(false);
@@ -39,7 +40,7 @@ export const ChatProvider = ({ children }) => {
               onClick={openChat}
               className="fixed bottom-6 right-6 z-50 bg-[#06EAFC] hover:bg-[#0be4f3]  px-5 py-4 rounded-full shadow-lg text-lg font-medium"
             >
-              💬 Ask Ajani
+              <CiChat1 className="text-xl"/>
             </motion.button>
           )}
       </AnimatePresence>

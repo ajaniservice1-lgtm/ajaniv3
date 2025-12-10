@@ -1975,68 +1975,174 @@ const FilterSidebar = ({
   );
 };
 
-// ================== CATEGORY SECTION ==================
-const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
+// ---------------- CategorySection Component ----------------
+const CategorySection = ({ title, items, sectionId, isMobile }) => {
   const navigate = useNavigate();
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(true);
+  const containerRef = useRef(null);
+
+  if (items.length === 0) return null;
+
+  const getCategoryFromTitle = (title) => {
+    const words = title.toLowerCase().split(" ");
+    if (words.includes("hotel")) return "hotel";
+    if (words.includes("shortlet")) return "shortlet";
+    if (words.includes("restaurant")) return "restaurant";
+    if (words.includes("tourist")) return "tourist-center";
+    return words[1] || "all";
+  };
+
+  const category = getCategoryFromTitle(title);
+
+  // Check scroll position to update arrow states
+  const checkScrollPosition = () => {
+    if (!containerRef.current) return;
+    
+    const container = containerRef.current;
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    
+    // Show left arrow if scrolled past the start
+    setShowLeftArrow(scrollLeft > 0);
+    
+    // Show right arrow if not at the end (with a small buffer)
+    const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 10;
+    setShowRightArrow(!isAtEnd);
+  };
+
+  // Initialize and add scroll listener
+  useEffect(() => {
+    const container = containerRef.current;
+    if (container) {
+      checkScrollPosition(); // Initial check
+      container.addEventListener('scroll', checkScrollPosition);
+      
+      // Also check on resize
+      window.addEventListener('resize', checkScrollPosition);
+      
+      return () => {
+        container.removeEventListener('scroll', checkScrollPosition);
+        window.removeEventListener('resize', checkScrollPosition);
+      };
+    }
+  }, [items.length, isMobile]); // Re-run when items or mobile state changes
+
+  const scrollSection = (direction) => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const cardWidth = isMobile ? 165 + 4 : 210 + 8; // Card width + gap
+    const cardsToScroll = isMobile ? 3 : 3; // Number of cards to scroll at once
+    const scrollAmount = cardWidth * cardsToScroll;
+    
+    const newPosition = direction === "next" 
+      ? container.scrollLeft + scrollAmount
+      : container.scrollLeft - scrollAmount;
+
+    container.scrollTo({
+      left: newPosition,
+      behavior: "smooth",
+    });
+
+    // Check position after a short delay to ensure smooth transition
+    setTimeout(checkScrollPosition, 300);
+  };
 
   const handleCategoryClick = () => {
     navigate(`/category/${category}`);
   };
 
-  if (items.length === 0) return null;
-
-  if (isMobile) {
-    return (
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-3">
-          <div>
-            <button
-              onClick={handleCategoryClick}
-              className="text-[#00065A] hover:text-[#06EAFC] transition-colors text-left text-sm font-bold cursor-pointer flex items-center gap-1"
-            >
-              {title}
-              <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
-            </button>
-          </div>
-        </div>
-
-        <div className="flex overflow-x-auto scrollbar-hide gap-2 pb-4">
-          {items.map((listing, index) => (
-            <BusinessCard
-              key={listing.id || index}
-              item={listing}
-              isMobile={isMobile}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="mb-6">
-      <div className="flex justify-between items-center mb-3">
+    <section className="mb-4">
+      <div className="flex justify-between items-center mb-2">
         <div>
           <button
             onClick={handleCategoryClick}
-            className="text-[#00065A] hover:text-[#06EAFC] transition-colors text-left text-base font-bold cursor-pointer flex items-center gap-1"
+            className={`
+              text-[#00065A] hover:text-[#06EAFC] transition-colors text-left
+              ${isMobile ? "text-sm" : "text-[19px]"} 
+              font-bold cursor-pointer flex items-center gap-1
+            `}
           >
             {title}
-            <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </button>
+        </div>
+        <div className="flex gap-1">
+          {/* Left arrow - active when not at start */}
+          <button
+            onClick={() => scrollSection("prev")}
+            className={`w-6 h-6 rounded-full flex items-center justify-center transition-all shadow-sm ${
+              showLeftArrow 
+                ? "bg-[#D9D9D9] hover:bg-gray-300 cursor-pointer" 
+                : "bg-gray-100 cursor-not-allowed"
+            }`}
+            disabled={!showLeftArrow}
+          >
+            <FaLessThan 
+              className={`text-[10px] ${
+                showLeftArrow ? "text-gray-600" : "text-gray-400"
+              }`} 
+            />
+          </button>
+          
+          {/* Right arrow - active when not at end */}
+          <button
+            onClick={() => scrollSection("next")}
+            className={`w-6 h-6 rounded-full flex items-center justify-center transition-all shadow-sm ${
+              showRightArrow 
+                ? "bg-[#D9D9D9] hover:bg-gray-300 cursor-pointer" 
+                : "bg-gray-100 cursor-not-allowed"
+            }`}
+            disabled={!showRightArrow}
+          >
+            <FaGreaterThan 
+              className={`text-[10px] ${
+                showRightArrow ? "text-gray-600" : "text-gray-400"
+              }`} 
+            />
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {items.map((listing, index) => (
-          <BusinessCard
-            key={listing.id || index}
-            item={listing}
-            isMobile={isMobile}
-          />
-        ))}
+      <div className="relative">
+        <div
+          ref={containerRef}
+          id={sectionId}
+          className={`flex overflow-x-auto scrollbar-hide scroll-smooth ${
+            isMobile ? "gap-1" : "gap-2"
+          }`}
+          style={{
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+            paddingRight: "16px",
+          }}
+        >
+          {items.map((item, index) => (
+            <BusinessCard
+              key={item.id || index}
+              item={item}
+              category={sectionId.replace("-section", "")}
+              isMobile={isMobile}
+            />
+          ))}
+          {/* Spacer for last card visibility */}
+          <div className="flex-shrink-0" style={{ width: "16px" }}></div>
+        </div>
       </div>
-    </div>
+    </section>
   );
 };
 
