@@ -272,40 +272,44 @@ const Header = ({ onAuthToast }) => {
           isMenuOpen ? "" : "pointer-events-none"
         }`}
       >
-        {/* Backdrop with highest z-index */}
+        {/* Backdrop with highest z-index - Slower fade */}
         <div
-          className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity z-[100000] ${
-            isMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0"
+          className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-[100000] transition-all duration-500 ease-out ${
+            isMenuOpen
+              ? "opacity-100 pointer-events-auto"
+              : "opacity-0 pointer-events-none"
           }`}
           onClick={() => setIsMenuOpen(false)}
         />
 
-        {/* Mobile menu content with ultra high z-index */}
+        {/* Mobile menu content with ultra high z-index - Slower slide animation */}
         <div
-          className={`fixed left-0 top-0 w-full h-screen bg-[#e6f2ff] flex flex-col transform transition-transform z-[100001] ${
-            isMenuOpen ? "translate-x-0" : "-translate-x-full"
+          className={`fixed left-0 top-0 w-full h-screen bg-[#e6f2ff] flex flex-col z-[100001] transform transition-all duration-500 ease-out ${
+            isMenuOpen
+              ? "translate-x-0 opacity-100"
+              : "-translate-x-full opacity-0"
           }`}
         >
-          <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-[#f2f9ff] rounded-lg shadow-sm mt-1 mx-2 cursor-default">
+          <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-[#f2f9ff] rounded-lg shadow-sm mt-1 mx-2 cursor-default transition-all duration-300 delay-100">
             <div className="flex items-center gap-2 cursor-pointer">
               {/* Mobile slide menu logo - NOW SAME SIZE as main header logo: h-7 w-20 */}
               <img
                 src={Logo}
                 alt="Ajani Logo"
-                className="h-7 w-20 object-contain cursor-pointer"
+                className="h-7 w-20 object-contain cursor-pointer transition-transform duration-300"
               />
-              <div className="w-px h-4 bg-gray-300 mx-1"></div>
-              <span className="text-xs text-slate-600 hover:text-gray-900 whitespace-nowrap cursor-pointer">
+              <div className="w-px h-4 bg-gray-300 mx-1 transition-all duration-300"></div>
+              <span className="text-xs text-slate-600 hover:text-gray-900 whitespace-nowrap cursor-pointer transition-colors duration-300">
                 The Ibadan Smart Guide
               </span>
             </div>
             <button
               onClick={() => setIsMenuOpen(false)}
-              className="text-gray-900 hover:text-gray-600 text-xl cursor-pointer"
+              className="text-gray-900 hover:text-gray-600 text-xl cursor-pointer transition-colors duration-300"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
+                className="h-6 w-6 transition-transform duration-300 hover:rotate-90"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -321,14 +325,19 @@ const Header = ({ onAuthToast }) => {
           </div>
 
           <nav className="flex-1 p-4 space-y-2 text-sm overflow-y-auto">
-            {/* Base navigation items */}
-            {baseNavItems.map((item) => (
+            {/* Base navigation items with staggered animations */}
+            {baseNavItems.map((item, index) => (
               <button
                 key={item.id}
-                className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-colors font-normal whitespace-nowrap text-sm cursor-pointer"
+                className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
                 onClick={() => {
                   scrollToSection(item.id);
                   setTimeout(() => setIsMenuOpen(false), 400);
+                }}
+                style={{
+                  transitionDelay: isMenuOpen ? `${index * 50}ms` : "0ms",
+                  opacity: isMenuOpen ? 1 : 0,
+                  transform: isMenuOpen ? "translateX(0)" : "translateX(-20px)",
                 }}
               >
                 {item.label}
@@ -344,25 +353,63 @@ const Header = ({ onAuthToast }) => {
                     item.onClick();
                     setIsMenuOpen(false);
                   }}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-colors font-normal whitespace-nowrap text-sm cursor-pointer"
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  style={{
+                    transitionDelay: isMenuOpen
+                      ? `${(baseNavItems.length + index) * 50}ms`
+                      : "0ms",
+                    opacity: isMenuOpen ? 1 : 0,
+                    transform: isMenuOpen
+                      ? "translateX(0)"
+                      : "translateX(-20px)",
+                  }}
                 >
                   {item.label}
                 </button>
               ))}
 
             {/* Divider - Only show if user is logged in */}
-            {user && <div className="h-px bg-gray-200 my-2"></div>}
+            {user && (
+              <div
+                className="h-px bg-gray-200 my-2 transition-all duration-300"
+                style={{
+                  transitionDelay: isMenuOpen
+                    ? `${
+                        (baseNavItems.length + loggedInNavItems.length) * 50
+                      }ms`
+                    : "0ms",
+                  opacity: isMenuOpen ? 1 : 0,
+                }}
+              ></div>
+            )}
 
             {/* Authentication buttons for mobile - Only show if NOT logged in */}
             {!user && (
               <>
                 {/* Divider before authentication buttons */}
-                <div className="h-px bg-gray-200 my-2"></div>
+                <div
+                  className="h-px bg-gray-200 my-2 transition-all duration-300"
+                  style={{
+                    transitionDelay: isMenuOpen
+                      ? `${baseNavItems.length * 50}ms`
+                      : "0ms",
+                    opacity: isMenuOpen ? 1 : 0,
+                  }}
+                ></div>
 
                 {/* Log In button */}
                 <button
                   onClick={() => handleMobileNavigate("/login")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-colors font-normal whitespace-nowrap text-sm cursor-pointer"
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  style={{
+                    transitionDelay: isMenuOpen
+                      ? `${(baseNavItems.length + 1) * 50}ms`
+                      : "0ms",
+                    opacity: isMenuOpen ? 1 : 0,
+                    transform: isMenuOpen
+                      ? "translateX(0)"
+                      : "translateX(-20px)",
+                  }}
                 >
                   Log In
                 </button>
@@ -370,7 +417,16 @@ const Header = ({ onAuthToast }) => {
                 {/* Register button */}
                 <button
                   onClick={() => handleMobileNavigate("/register")}
-                  className="block w-full text-left py-3 px-4 hover:bg-blue-50 text-black rounded-lg font-normal whitespace-nowrap text-sm cursor-pointer transition-colors"
+                  className="block w-full text-left py-3 px-4 hover:bg-blue-50 text-black rounded-lg font-normal whitespace-nowrap text-sm cursor-pointer transition-all duration-300 transform hover:translate-x-1"
+                  style={{
+                    transitionDelay: isMenuOpen
+                      ? `${(baseNavItems.length + 2) * 50}ms`
+                      : "0ms",
+                    opacity: isMenuOpen ? 1 : 0,
+                    transform: isMenuOpen
+                      ? "translateX(0)"
+                      : "translateX(-20px)",
+                  }}
                 >
                   Register
                 </button>
@@ -381,7 +437,21 @@ const Header = ({ onAuthToast }) => {
             {user && (
               <>
                 {/* Mobile user info */}
-                <div className="px-4 py-3 bg-white rounded-lg mb-4 cursor-default">
+                <div
+                  className="px-4 py-3 bg-white rounded-lg mb-4 cursor-default transition-all duration-300"
+                  style={{
+                    transitionDelay: isMenuOpen
+                      ? `${
+                          (baseNavItems.length + loggedInNavItems.length + 1) *
+                          50
+                        }ms`
+                      : "0ms",
+                    opacity: isMenuOpen ? 1 : 0,
+                    transform: isMenuOpen
+                      ? "translateX(0)"
+                      : "translateX(-20px)",
+                  }}
+                >
                   <p className="text-sm font-medium text-gray-900 cursor-default">
                     {user.email}
                   </p>
@@ -390,32 +460,91 @@ const Header = ({ onAuthToast }) => {
                 {/* Mobile navigation for logged-in users */}
                 <button
                   onClick={() => handleMobileNavigate("/chat")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-colors font-normal whitespace-nowrap text-sm cursor-pointer"
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  style={{
+                    transitionDelay: isMenuOpen
+                      ? `${
+                          (baseNavItems.length + loggedInNavItems.length + 2) *
+                          50
+                        }ms`
+                      : "0ms",
+                    opacity: isMenuOpen ? 1 : 0,
+                    transform: isMenuOpen
+                      ? "translateX(0)"
+                      : "translateX(-20px)",
+                  }}
                 >
                   Chat Assistant
                 </button>
                 <button
                   onClick={() => handleMobileNavigate("/notifications")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-colors font-normal whitespace-nowrap text-sm cursor-pointer"
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  style={{
+                    transitionDelay: isMenuOpen
+                      ? `${
+                          (baseNavItems.length + loggedInNavItems.length + 3) *
+                          50
+                        }ms`
+                      : "0ms",
+                    opacity: isMenuOpen ? 1 : 0,
+                    transform: isMenuOpen
+                      ? "translateX(0)"
+                      : "translateX(-20px)",
+                  }}
                 >
                   Notifications
                 </button>
                 <button
                   onClick={() => handleMobileNavigate("/add-business")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-colors font-normal whitespace-nowrap text-sm cursor-pointer"
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  style={{
+                    transitionDelay: isMenuOpen
+                      ? `${
+                          (baseNavItems.length + loggedInNavItems.length + 4) *
+                          50
+                        }ms`
+                      : "0ms",
+                    opacity: isMenuOpen ? 1 : 0,
+                    transform: isMenuOpen
+                      ? "translateX(0)"
+                      : "translateX(-20px)",
+                  }}
                 >
                   List Your Business
                 </button>
 
                 {/* Divider before sign out */}
-                <div className="h-px bg-gray-200 my-2"></div>
+                <div
+                  className="h-px bg-gray-200 my-2 transition-all duration-300"
+                  style={{
+                    transitionDelay: isMenuOpen
+                      ? `${
+                          (baseNavItems.length + loggedInNavItems.length + 5) *
+                          50
+                        }ms`
+                      : "0ms",
+                    opacity: isMenuOpen ? 1 : 0,
+                  }}
+                ></div>
 
                 {/* Sign Out button */}
                 <button
                   onClick={() => {
                     handleSignOut();
                   }}
-                  className="block w-full text-left py-3 px-4 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors font-normal whitespace-nowrap text-sm cursor-pointer"
+                  className="block w-full text-left py-3 px-4 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  style={{
+                    transitionDelay: isMenuOpen
+                      ? `${
+                          (baseNavItems.length + loggedInNavItems.length + 6) *
+                          50
+                        }ms`
+                      : "0ms",
+                    opacity: isMenuOpen ? 1 : 0,
+                    transform: isMenuOpen
+                      ? "translateX(0)"
+                      : "translateX(-20px)",
+                  }}
                 >
                   Sign Out
                 </button>
