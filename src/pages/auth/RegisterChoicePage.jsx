@@ -8,38 +8,36 @@ const RegisterChoicePage = () => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      {/* Logo Left */}
-      <div className="p-6">
+      {/* Logo */}
+      {/* <div className="p-4">
         <img
           src={Icon}
           alt="Ajani Logo"
-          className="h-7 object-contain cursor-pointer"
+          className="h-5 w-auto object-contain cursor-pointer" // reduced size
         />
-      </div>
+      </div> */}
 
-      {/* Middle Content */}
-      <div className="flex flex-col items-center px-4 mt-4">
-        <h2 className="text-3xl font-semibold text-gray-900">
+      {/* Content */}
+      <div className="flex flex-col items-center px-4 py-25 md:py-40">
+        <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 text-center">
           Join Ajani as a client or freelancer
         </h2>
 
-        {/* Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
-          {/* Client Card */}
+        {/* Choices */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+          {/* Client */}
           <button
             onClick={() => setSelected("client")}
-            className={`p-6 w-80 border rounded-xl text-left transition-all bg-white
+            className={`p-5 w-72 md:w-80 border rounded-xl text-left transition-all duration-200 bg-white
               ${
                 selected === "client"
                   ? "border-black shadow-sm"
                   : "border-gray-300 hover:border-black"
-              }
-            `}
+              }`}
           >
-            <div className="flex justify-between items-start">
-              {/* Icon */}
+            <div className="flex justify-between items-center">
               <svg
-                className="w-7 h-7 text-gray-700"
+                className="w-6 h-6 text-gray-700"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -48,11 +46,10 @@ const RegisterChoicePage = () => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth="2"
-                  d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2H8a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                 />
               </svg>
 
-              {/* Radio */}
               <div
                 className={`w-5 h-5 rounded-full border-2 flex items-center justify-center
                   ${
@@ -65,26 +62,24 @@ const RegisterChoicePage = () => {
               </div>
             </div>
 
-            <h3 className="mt-6 text-lg font-medium text-gray-900">
+            <h3 className="mt-5 text-lg font-medium text-gray-900">
               I'm a user to buy
             </h3>
           </button>
 
-          {/* Freelancer Card */}
+          {/* Vendor */}
           <button
             onClick={() => setSelected("vendor")}
-            className={`p-6 w-80 border rounded-xl text-left transition-all bg-white
+            className={`p-5 w-72 md:w-80 border rounded-xl text-left transition-all duration-200 bg-white
               ${
                 selected === "vendor"
                   ? "border-black shadow-sm"
                   : "border-gray-300 hover:border-black"
-              }
-            `}
+              }`}
           >
-            <div className="flex justify-between items-start">
-              {/* Icon */}
+            <div className="flex justify-between items-center">
               <svg
-                className="w-7 h-7 text-gray-700"
+                className="w-6 h-6 text-gray-700"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -97,7 +92,6 @@ const RegisterChoicePage = () => {
                 />
               </svg>
 
-              {/* Radio */}
               <div
                 className={`w-5 h-5 rounded-full border-2 flex items-center justify-center
                   ${
@@ -110,13 +104,13 @@ const RegisterChoicePage = () => {
               </div>
             </div>
 
-            <h3 className="mt-6 text-lg font-medium text-gray-900">
+            <h3 className="mt-5 text-lg font-medium text-gray-900">
               I'm a vendor for listing
             </h3>
           </button>
         </div>
 
-        {/* Dynamic Create Button */}
+        {/* Main Button */}
         <button
           disabled={!selected}
           onClick={() =>
@@ -124,17 +118,16 @@ const RegisterChoicePage = () => {
               selected === "client" ? "/register/user" : "/register/vendor"
             )
           }
-          className={`mt-10 w-80 py-3 rounded-lg font-medium transition-all
+          className={`mt-10 w-72 md:w-80 py-3 rounded-lg font-medium transition-all
             ${
               selected
                 ? "bg-black text-white hover:bg-gray-900"
                 : "bg-gray-200 text-gray-400 cursor-not-allowed"
-            }
-          `}
+            }`}
         >
           {!selected && "Create Account"}
           {selected === "client" && "Join as user"}
-          {selected === "vendor" && "Apply as vedor"}
+          {selected === "vendor" && "Apply as vendor"}
         </button>
 
         {/* Login */}

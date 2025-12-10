@@ -22,6 +22,7 @@ import {
 import { motion } from "framer-motion";
 import { PiSliders } from "react-icons/pi";
 import { MdFavoriteBorder } from "react-icons/md";
+import { FaLessThan, FaGreaterThan } from "react-icons/fa";
 import Header from "./Header";
 import Footer from "./Footer";
 import Meta from "./Meta";
@@ -964,7 +965,7 @@ const MobileSearchModal = ({
               </button>
             </div>
 
-            <div className="flex items-center bg-gray-100 rounded-full px-4 py-3">
+            <div className="flex items-center bg-gray-100 rounded-full px-4 py-3 ">
               <FontAwesomeIcon icon={faSearch} className="text-gray-500" />
               <input
                 ref={inputRef}
@@ -1357,30 +1358,7 @@ const FilterSidebar = ({
         </div>
       )}
 
-      {/* Clear All Button - Only on desktop sidebar */}
-      {!isMobileModal && !isDesktopModal && (
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h3 className="text-lg font-bold text-gray-900">Filter Options</h3>
-            <p className="text-xs text-gray-500 mt-1">
-              Filters apply immediately
-            </p>
-          </div>
-          {(filters.locations.length > 0 ||
-            filters.categories.length > 0 ||
-            filters.ratings.length > 0 ||
-            filters.priceRange.min ||
-            filters.priceRange.max ||
-            filters.sortBy !== "relevance") && (
-            <button
-              onClick={handleClearAllFilters}
-              className="text-xs text-red-600 hover:text-red-700 font-medium px-3 py-1.5 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
-            >
-              Clear All
-            </button>
-          )}
-        </div>
-      )}
+     
 
       {/* LOCATION SECTION WITH SEARCH */}
       <div className="border-b pb-4">
@@ -1998,13 +1976,13 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
   // Check scroll position to update arrow states
   const checkScrollPosition = () => {
     if (!containerRef.current) return;
-    
+
     const container = containerRef.current;
     const { scrollLeft, scrollWidth, clientWidth } = container;
-    
+
     // Show left arrow if scrolled past the start
     setShowLeftArrow(scrollLeft > 0);
-    
+
     // Show right arrow if not at the end (with a small buffer)
     const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 10;
     setShowRightArrow(!isAtEnd);
@@ -2015,14 +1993,14 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
     const container = containerRef.current;
     if (container) {
       checkScrollPosition(); // Initial check
-      container.addEventListener('scroll', checkScrollPosition);
-      
+      container.addEventListener("scroll", checkScrollPosition);
+
       // Also check on resize
-      window.addEventListener('resize', checkScrollPosition);
-      
+      window.addEventListener("resize", checkScrollPosition);
+
       return () => {
-        container.removeEventListener('scroll', checkScrollPosition);
-        window.removeEventListener('resize', checkScrollPosition);
+        container.removeEventListener("scroll", checkScrollPosition);
+        window.removeEventListener("resize", checkScrollPosition);
       };
     }
   }, [items.length, isMobile]); // Re-run when items or mobile state changes
@@ -2034,10 +2012,11 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
     const cardWidth = isMobile ? 165 + 4 : 210 + 8; // Card width + gap
     const cardsToScroll = isMobile ? 3 : 3; // Number of cards to scroll at once
     const scrollAmount = cardWidth * cardsToScroll;
-    
-    const newPosition = direction === "next" 
-      ? container.scrollLeft + scrollAmount
-      : container.scrollLeft - scrollAmount;
+
+    const newPosition =
+      direction === "next"
+        ? container.scrollLeft + scrollAmount
+        : container.scrollLeft - scrollAmount;
 
     container.scrollTo({
       left: newPosition,
@@ -2085,33 +2064,33 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
           <button
             onClick={() => scrollSection("prev")}
             className={`w-6 h-6 rounded-full flex items-center justify-center transition-all shadow-sm ${
-              showLeftArrow 
-                ? "bg-[#D9D9D9] hover:bg-gray-300 cursor-pointer" 
+              showLeftArrow
+                ? "bg-[#D9D9D9] hover:bg-gray-300 cursor-pointer"
                 : "bg-gray-100 cursor-not-allowed"
             }`}
             disabled={!showLeftArrow}
           >
-            <FaLessThan 
+            <FaLessThan
               className={`text-[10px] ${
                 showLeftArrow ? "text-gray-600" : "text-gray-400"
-              }`} 
+              }`}
             />
           </button>
-          
+
           {/* Right arrow - active when not at end */}
           <button
             onClick={() => scrollSection("next")}
             className={`w-6 h-6 rounded-full flex items-center justify-center transition-all shadow-sm ${
-              showRightArrow 
-                ? "bg-[#D9D9D9] hover:bg-gray-300 cursor-pointer" 
+              showRightArrow
+                ? "bg-[#D9D9D9] hover:bg-gray-300 cursor-pointer"
                 : "bg-gray-100 cursor-not-allowed"
             }`}
             disabled={!showRightArrow}
           >
-            <FaGreaterThan 
+            <FaGreaterThan
               className={`text-[10px] ${
                 showRightArrow ? "text-gray-600" : "text-gray-400"
-              }`} 
+              }`}
             />
           </button>
         </div>
@@ -2792,7 +2771,9 @@ const SearchResults = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header />
+        <div className="hidden md:block">
+          <Header />
+        </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 pt-32">
           <div className="flex space-x-1 justify-center">
             <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"></div>
@@ -2814,7 +2795,9 @@ const SearchResults = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header />
+        <div className="hidden md:block">
+          <Header />
+        </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 pt-32">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
             <p className="text-red-700 font-medium text-sm">{error}</p>
@@ -2834,11 +2817,22 @@ const SearchResults = () => {
         image="https://ajani.ai/images/search-og.jpg"
       />
 
-      <Header />
+      {/* Hide Header on mobile only */}
+      <div className="hidden md:block">
+        <Header />
+      </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-        {/* Fixed Search Bar Container */}
-        <div className="z-30 py-6 relative" style={{ zIndex: 100 }}>
+        {/* Fixed Search Bar Container - Updated for mobile */}
+        <div
+          className={`
+            relative 
+            ${isMobile ? "sticky top-0 bg-gray-50 z-50 pt-4 pb-3" : "z-30 py-6"}
+          `}
+          style={{
+            zIndex: isMobile ? 50 : 100,
+          }}
+        >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-center">
               <div
@@ -2847,7 +2841,7 @@ const SearchResults = () => {
               >
                 <form onSubmit={handleSearchSubmit}>
                   <div className="flex items-center">
-                    <div className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-40">
+                    <div className="flex items-center bg-gray-200 lg:mt-20 rounded-full shadow-sm w-full relative z-40">
                       <div className="pl-3 sm:pl-4 text-gray-500">
                         <FontAwesomeIcon icon={faSearch} className="h-4 w-4" />
                       </div>
@@ -2866,7 +2860,7 @@ const SearchResults = () => {
                         <button
                           type="button"
                           onClick={handleClearSearch}
-                          className="p-1 mr-2 text-gray-500 hover:text-gray-700"
+                          className="p-1 mr-2 text-gray-500  hover:text-gray-700"
                           aria-label="Clear search"
                         >
                           <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
@@ -2877,7 +2871,7 @@ const SearchResults = () => {
                     <div className="ml-2">
                       <button
                         type="submit"
-                        className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope"
+                        className="bg-[#06EAFC] lg:mt-20 hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope"
                         aria-label="Perform search"
                       >
                         Search
@@ -3064,7 +3058,7 @@ const SearchResults = () => {
                           };
                           handleFilterChange(updatedFilters);
                         }}
-                        className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-10"
+                        className="appearance-none bg-transparent text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none cursor-pointer pr-6"
                       >
                         <option value="relevance">Sort by: Relevance</option>
                         <option value="price_low">Price: Low to High</option>
@@ -3072,10 +3066,10 @@ const SearchResults = () => {
                         <option value="rating">Highest Rated</option>
                         <option value="name">Name: A to Z</option>
                       </select>
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <div className="absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
                         <FontAwesomeIcon
                           icon={faChevronDown}
-                          className="text-gray-500 text-sm"
+                          className="text-gray-500 text-xs"
                         />
                       </div>
                     </div>
@@ -3265,6 +3259,20 @@ const SearchResults = () => {
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
+        }
+
+        /* Additional styles for mobile */
+        @media (max-width: 767px) {
+          /* Ensure search bar stays on top */
+          .sticky {
+            position: sticky;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            background: #f9fafb; /* gray-50 */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          }
         }
       `}</style>
     </div>

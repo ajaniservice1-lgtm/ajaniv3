@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaArrowRight } from "react-icons/fa";
-import Logo from "../../../assets/Logos/logo6.png";
 
 const VendorRegistration = () => {
   const navigate = useNavigate();
@@ -18,37 +17,29 @@ const VendorRegistration = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-const handleNext = (e) => {
-  e.preventDefault();
-  navigate("/register/vendor/process1", {
-    state: { firstName: form.firstName },
-  });
-};
+  const handleNext = (e) => {
+    e.preventDefault();
+
+    // Pass entire form to next step (or next page)
+    navigate("/register/vendor/process1", {
+      state: { ...form },
+    });
+  };
 
   return (
-    <div className="min-h-screen w-full bg-[#e8e8f8] flex items-center justify-center p-6 font-manrope">
-      <div className="w-full max-w-2xl p-12 rounded-xl shadow-md ">
-        {/* Logo */}
-        <div className="flex justify-center mb-6">
-          <img src={Logo} alt="Ajani Logo" className="h-14 object-contain" />
-        </div>
-
-        {/* Title + Subtitle */}
-        <h2 className="text-3xl font-bold text-center text-gray-900">
-          Create account
+    <div className="min-h-screen w-full bg-white flex items-center justify-center p-4 sm:p-6 md:p-12 font-manrope">
+      <div className="w-full max-w-md sm:max-w-lg md:max-w-2xl p-8 sm:p-10 md:p-12 rounded-xl shadow-lg bg-white">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-900">
+          Create Account
         </h2>
-
-        <p className="text-center text-gray-600 mt-2 text-sm">
-          Connect with verified vendors, and discover Ibadan through <br />
-          AI and Local stories
+        <p className="text-center text-gray-600 mt-2 text-sm sm:text-base">
+          Connect with verified vendors and discover Ibadan through AI and local
+          stories
         </p>
 
-        {/* Middle Divider */}
-        <div className="w-full border-t border-[#00d1ff] mt-6 mb-4"></div>
+        <div className="w-full border-t border-[#00d1ff] mt-6 mb-6"></div>
 
-        {/* Form */}
-        <form onSubmit={handleNext} className="space-y-6">
-          {/* First + Last Name */}
+        <form onSubmit={handleNext} className="space-y-5 sm:space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-gray-700">
@@ -59,11 +50,10 @@ const handleNext = (e) => {
                 name="firstName"
                 value={form.firstName}
                 onChange={handleChange}
-                className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d1ff] focus:outline-none"
                 placeholder="First name"
+                className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d1ff] focus:outline-none"
               />
             </div>
-
             <div>
               <label className="text-sm font-medium text-gray-700">
                 Last Name
@@ -73,28 +63,26 @@ const handleNext = (e) => {
                 name="lastName"
                 value={form.lastName}
                 onChange={handleChange}
-                className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d1ff] focus:outline-none"
                 placeholder="Last name"
+                className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d1ff] focus:outline-none"
               />
             </div>
           </div>
 
-          {/* Phone/Email */}
           <div>
             <label className="text-sm font-medium text-gray-700">
-              Phone Number/Email
+              Phone Number / Email
             </label>
             <input
               type="text"
               name="contact"
               value={form.contact}
               onChange={handleChange}
-              className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d1ff] focus:outline-none"
               placeholder="+23469955399 or email@example.com"
+              className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d1ff] focus:outline-none"
             />
           </div>
 
-          {/* Password */}
           <div>
             <label className="text-sm font-medium text-gray-700">
               Password
@@ -104,12 +92,11 @@ const handleNext = (e) => {
               name="password"
               value={form.password}
               onChange={handleChange}
-              className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d1ff] focus:outline-none"
               placeholder="************"
+              className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d1ff] focus:outline-none"
             />
           </div>
 
-          {/* Confirm Password */}
           <div>
             <label className="text-sm font-medium text-gray-700">
               Confirm Password
@@ -119,18 +106,16 @@ const handleNext = (e) => {
               name="confirmPassword"
               value={form.confirmPassword}
               onChange={handleChange}
-              className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d1ff] focus:outline-none"
               placeholder="************"
+              className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d1ff] focus:outline-none"
             />
           </div>
 
-          {/* Password Note */}
-          <p className="text-xs text-gray-500 -mt-3">
+          <p className="text-xs text-gray-500 -mt-2">
             Password must be at least 8 characters long
           </p>
 
-          {/* Sign in link */}
-          <p className="text-center text-sm text-gray-600">
+          <p className="text-center text-sm text-gray-600 mt-2">
             Already have an account?{" "}
             <button
               type="button"
@@ -141,8 +126,7 @@ const handleNext = (e) => {
             </button>
           </p>
 
-          {/* Next Button (bottom right) */}
-          <div className="flex justify-end">
+          <div className="flex justify-end mt-4">
             <button
               type="submit"
               className="bg-[#00d37f] text-white flex items-center gap-2 px-6 py-3 rounded-lg shadow-md hover:bg-[#02be72] transition focus:outline-none focus:ring-2 focus:ring-[#00d37f] focus:ring-offset-2"

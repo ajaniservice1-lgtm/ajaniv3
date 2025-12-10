@@ -1,30 +1,36 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
-import Logo from "../../../assets/Logos/logo6.png";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const Process3 = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get ALL collected data
+  const formData = location.state || {};
 
   return (
-    <div className="min-h-screen bg-[#d6d7e1] flex flex-col items-center justify-center px-4">
-      {/* Logo */}
-      <img src={Logo} alt="Ajani Logo" className="w-40 mb-10" />
+    <div className="min-h-screen w-full bg-white flex justify-center items-center p-4 sm:p-6 md:p-12 font-manrope">
+      <div className="w-full max-w-md sm:max-w-lg md:max-w-xl p-8 sm:p-10 md:p-12 rounded-xl shadow-lg bg-white text-center">
+        {/* Welcome Text */}
+        <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-2">
+          Welcome, thanks for registering!
+        </h1>
+        <p className="text-gray-700 text-sm sm:text-base">
+          We will notify you when your account is activated.
+        </p>
 
-      {/* Text */}
-      <h1 className="text-2xl font-semibold text-black text-center">
-        Welcome, thanks for registration
-      </h1>
-      <p className="mt-2 text-gray-600 text-center">
-        We will notify you when your account is activated
-      </p>
-
-      {/* Button - FIXED PATH */}
-      <button
-        onClick={() => navigate("/register/vendor/complete-profile")} // Fixed: added hyphen
-        className="mt-8 bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-5 rounded-lg flex items-center gap-2 transition"
-      >
-        View your profile →
-      </button>
+        {/* Button - PASS ALL DATA TO COMPLETE PROFILE */}
+        <button
+          onClick={() =>
+            navigate("/register/vendor/complete-profile", {
+              state: { ...formData }, // Pass all collected data
+            })
+          }
+          className="mt-8 bg-[#00d37f] hover:bg-[#02be72] text-white font-medium py-3 px-6 rounded-lg shadow flex items-center justify-center gap-2 transition"
+        >
+          View your profile →
+        </button>
+      </div>
     </div>
   );
 };

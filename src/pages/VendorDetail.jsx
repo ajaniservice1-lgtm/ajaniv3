@@ -438,9 +438,9 @@ const VendorDetail = () => {
 
       <Header />
 
-      <main className="lg:max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6">
+      <main className="lg:max-w-7xl mx-auto px-0 sm:px-2 md:px-6 lg:px-8 py-4 md:py-6">
         {/* Breadcrumb - Reduced font by 3px */}
-        <nav className="flex items-center space-x-2 text-xs text-gray-600 mb-4 md:mb-6 px-2 font-manrope">
+        <nav className="flex items-center space-x-2 text-xs text-gray-600 mb-4 md:mb-6 px-4 sm:px-2 md:px-0 font-manrope">
           <Link to="/" className="hover:text-[#06EAFC] transition-colors">
             Home
           </Link>
@@ -462,7 +462,7 @@ const VendorDetail = () => {
         {/* Single Column Layout */}
         <div className="space-y-4 md:space-y-8">
           {/* Header Info - Updated layout */}
-          <div className="px-2 md:px-4 lg:px-8 py-4 md:py-8 bg-white rounded-xl md:rounded-2xl mx-2 md:mx-0">
+          <div className="px-4 sm:px-2 md:px-4 lg:px-8 py-4 md:py-8 bg-white rounded-xl md:rounded-2xl mx-0 md:mx-0">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6">
               {/* Left: Name and Info */}
               <div className="flex-1">
@@ -549,11 +549,11 @@ const VendorDetail = () => {
             </div>
           </div>
 
-          {/* MOBILE: Swipeable Image Gallery */}
-          <div className="block md:hidden px-2">
+          {/* MOBILE: Swipeable Image Gallery - Full width */}
+          <div className="block md:hidden px-0">
             <div className="relative w-full">
               <div
-                className="relative w-full h-[300px] rounded-2xl overflow-hidden"
+                className="relative w-full h-[320px] rounded-none md:rounded-2xl overflow-hidden"
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
@@ -568,7 +568,7 @@ const VendorDetail = () => {
                 {/* Prev Button */}
                 <button
                   onClick={prevImage}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md"
                 >
                   <IoIosArrowBack className="text-gray-800 text-lg" />
                 </button>
@@ -576,32 +576,21 @@ const VendorDetail = () => {
                 {/* Next Button */}
                 <button
                   onClick={nextImage}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md"
                 >
                   <IoIosArrowForward className="text-gray-800 text-lg" />
                 </button>
 
-                {/* Counter */}
-                <div className="absolute bottom-3 right-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs font-manrope">
+                {/* Counter - Moved to bottom-right corner like desktop */}
+                <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-manrope backdrop-blur-sm">
                   {activeImageIndex + 1}/{images.length}
                 </div>
 
-                {/* Image Dots */}
-                <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex gap-2">
-                  {images.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setActiveImageIndex(index)}
-                      className={`w-2 h-2 rounded-full transition-all ${
-                        index === activeImageIndex ? "bg-white" : "bg-white/50"
-                      }`}
-                    />
-                  ))}
-                </div>
+                {/* REMOVED: Image Dots (replaced by counter) */}
               </div>
 
-              {/* Thumbnail Strip */}
-              <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
+              {/* Thumbnail Strip - Removed margin-top to bring it closer */}
+              <div className="flex gap-2 overflow-x-auto pb-2 px-4 mt-0">
                 {images.map((img, index) => (
                   <button
                     key={index}
@@ -696,13 +685,13 @@ const VendorDetail = () => {
             </div>
           </div>
 
-          {/* Price Range Section */}
-          <div className="px-2 md:px-0">
-            <div className="text-center bg-white rounded-xl md:rounded-2xl p-4 md:p-6 mx-2 md:mx-0">
-              <p className="text-[#00065A] font-manrope text-base md:text-xl font-bold mb-2 md:text-start">
+          {/* Price Range Section - Full width on mobile */}
+          <div className="px-0 md:px-0">
+            <div className="text-center bg-white py-4 md:py-6 mx-0 md:mx-0">
+              <p className="text-[#00065A] font-manrope text-base md:text-xl font-bold mb-2 md:text-start px-4 sm:px-2 md:px-0">
                 Price Range
               </p>
-              <div className="flex md:justify-start flex-col md:flex-row items-center justify-center gap-1 md:gap-3">
+              <div className="flex md:justify-start flex-col md:flex-row items-center justify-center gap-1 md:gap-3 px-4 sm:px-2 md:px-0">
                 <div className="flex items-center gap-1 md:gap-2">
                   <span className="text-xl md:text-2xl text-gray-900 font-manrope font-bold">
                     ₦{formatPrice(priceRange.from)}
@@ -719,22 +708,22 @@ const VendorDetail = () => {
             </div>
           </div>
 
-          {/* Action Icons Bar - Centered */}
-          <div className="flex justify-center px-2 md:px-0">
-            <div className="w-full md:w-[600px] h-14 md:h-16 bg-gray-200 rounded-2xl md:rounded-3xl flex items-center justify-between px-6 md:px-12 mx-2 md:mx-0">
-              <button className="flex flex-col items-center hover:opacity-80 transition-opacity">
+          {/* Action Icons Bar - Full width on mobile */}
+          <div className="flex justify-center px-0 md:px-0">
+            <div className="w-full md:w-[600px] h-14 md:h-16 bg-gray-200 rounded-none md:rounded-3xl flex items-center justify-between px-4 md:px-12 mx-0 md:mx-0">
+              <button className="flex flex-col items-center hover:opacity-80 transition-opacity px-2">
                 <FaPhone size={24} color="#000" />
                 <span className="text-xs mt-1 font-manrope">Call</span>
               </button>
-              <button className="flex flex-col items-center hover:opacity-80 transition-opacity">
+              <button className="flex flex-col items-center hover:opacity-80 transition-opacity px-2">
                 <IoChatbubbleEllipsesOutline size={24} color="#000" />
                 <span className="text-xs mt-1 font-manrope">Chat</span>
               </button>
-              <button className="flex flex-col items-center hover:opacity-80 transition-opacity">
+              <button className="flex flex-col items-center hover:opacity-80 transition-opacity px-2">
                 <FaBookOpen size={24} color="#000" />
                 <span className="text-xs mt-1 font-manrope">Book</span>
               </button>
-              <button className="flex flex-col items-center hover:opacity-80 transition-opacity">
+              <button className="flex flex-col items-center hover:opacity-80 transition-opacity px-2">
                 <HiLocationMarker size={24} color="#000" />
                 <span className="text-xs mt-1 font-manrope">Map</span>
               </button>
@@ -742,10 +731,10 @@ const VendorDetail = () => {
           </div>
 
           {/* About and Features Section with full width background */}
-          <section className="w-full bg-[#F7F7FA] rounded-2xl md:rounded-3xl">
-            <div className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
+          <section className="w-full bg-[#F7F7FA] rounded-none md:rounded-3xl">
+            <div className="px-4 sm:px-4 md:px-6 lg:px-8 py-6 md:py-8">
               {/* About Section */}
-              <div className="mb-8 md:mb-12 px-2 md:px-0">
+              <div className="mb-8 md:mb-12">
                 <h2 className="text-lg md:text-xl font-bold text-[#06F49F] mb-3 md:mb-4 font-manrope">
                   About
                 </h2>
@@ -757,7 +746,7 @@ const VendorDetail = () => {
               </div>
 
               {/* What They Do & Features Side by Side - Full width */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 md:px-0">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
                 {/* What They Do Section */}
                 <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6">
                   <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-4 md:mb-6 font-manrope">
@@ -820,8 +809,8 @@ const VendorDetail = () => {
             </div>
           </section>
 
-          {/* Reviews Section */}
-          <section className="bg-[#F7F7FA] rounded-2xl md:rounded-3xl shadow-sm md:shadow-lg p-4 md:p-8 mx-2 md:mx-0">
+          {/* Reviews Section - Full width on mobile */}
+          <section className="bg-[#F7F7FA] rounded-none md:rounded-3xl shadow-sm md:shadow-lg p-4 md:p-8 mx-0 md:mx-0">
             <div className="flex items-center justify-between mb-4 md:mb-6">
               <h2 className="text-lg md:text-xl font-bold text-[#06F49F] font-manrope">
                 Reviews
@@ -902,13 +891,13 @@ const VendorDetail = () => {
             )}
           </section>
 
-          {/* Location Map with OpenStreetMap Iframe */}
-          <div className="p-4 md:p-8 mx-2 md:mx-0">
-            <h3 className="text-lg font-bold text-gray-900 mb-3 md:mb-4 font-manrope">
+          {/* Location Map with OpenStreetMap Iframe - Full width on mobile */}
+          <div className="p-0 md:p-8 mx-0 md:mx-0">
+            <h3 className="text-lg font-bold text-gray-900 mb-3 md:mb-4 font-manrope px-4 sm:px-4 md:px-0">
               Location
             </h3>
 
-            <div className="relative rounded-2xl overflow-hidden h-64 md:h-96">
+            <div className="relative rounded-none md:rounded-2xl overflow-hidden h-64 md:h-96">
               {vendor.lat && vendor.long ? (
                 <iframe
                   src={`https://www.openstreetmap.org/export/embed.html?bbox=${
@@ -963,8 +952,8 @@ const VendorDetail = () => {
               </div>
             </div>
 
-            {/* Map Action Buttons */}
-            <div className="mt-4 md:mt-6 flex flex-col md:flex-row gap-3">
+            {/* Map Action Buttons - Full width on mobile */}
+            <div className="mt-4 md:mt-6 flex flex-col md:flex-row gap-3 px-4 sm:px-4 md:px-0">
               <a
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
                   `${vendor.name} ${area}`
