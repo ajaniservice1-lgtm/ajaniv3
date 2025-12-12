@@ -82,6 +82,12 @@ const useGoogleSheet = (sheetId, apiKey) => {
   return { data: Array.isArray(data) ? data : [], loading, error };
 };
 
+// Helper function for capitalizing
+const capitalizeFirst = (str) => {
+  if (!str) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+
 // FALLBACK IMAGES
 const FALLBACK_IMAGES = {
   hotel:
@@ -103,6 +109,31 @@ const FALLBACK_IMAGES = {
     "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
   default:
     "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
+};
+
+// Helper function to get card images
+const getCardImages = (item) => {
+  const raw = item["image url"] || "";
+  const urls = raw
+    .split(",")
+    .map((u) => u.trim())
+    .filter((u) => u && u.startsWith("http"));
+
+  if (urls.length > 0) return urls;
+
+  const cat = (item.category || "").toLowerCase();
+  if (cat.includes("hotel")) return [FALLBACK_IMAGES.hotel];
+  if (cat.includes("restaurant")) return [FALLBACK_IMAGES.restaurant];
+  if (cat.includes("shortlet")) return [FALLBACK_IMAGES.shortlet];
+  if (cat.includes("tourist")) return [FALLBACK_IMAGES.tourist];
+  if (cat.includes("cafe")) return [FALLBACK_IMAGES.cafe];
+  if (cat.includes("bar") || cat.includes("lounge"))
+    return [FALLBACK_IMAGES.bar];
+  if (cat.includes("services")) return [FALLBACK_IMAGES.services];
+  if (cat.includes("event")) return [FALLBACK_IMAGES.event];
+  if (cat.includes("hall") || cat.includes("weekend"))
+    return [FALLBACK_IMAGES.hall];
+  return [FALLBACK_IMAGES.default];
 };
 
 // Helper function to get category display name
@@ -199,10 +230,18 @@ const getCategoryIcon = (category) => {
   return faFilter;
 };
 
-// ================== BUSINESS CARD ==================
-const BusinessCard = ({ item, isMobile }) => {
+// ================== ENHANCED BUSINESS CARD WITH FAVORITES ==================
+const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   const images = getCardImages(item);
   const navigate = useNavigate();
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  // Check if this item is already saved on mount
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
+    const isAlreadySaved = saved.some((savedItem) => savedItem.id === item.id);
+    setIsFavorite(isAlreadySaved);
+  }, [item.id]);
 
   const formatPrice = (n) => {
     if (!n) return "–";
@@ -213,17 +252,204 @@ const BusinessCard = ({ item, isMobile }) => {
     });
   };
 
-  const priceText = item.price_from
-    ? `#${formatPrice(item.price_from)} for 2 nights`
-    : "From #2,500 per guest";
+  // Proper price text based on category
+  const getPriceText = () => {
+    const priceFrom = item.price_from || item.price || "0";
+    const formattedPrice = formatPrice(priceFrom);
 
-  const location = item.area || "Ibadan";
+    // Categories that show "for 2 nights"
+    const nightlyCategories = [
+      "hotel",
+      "hostel",
+      "shortlet",
+      "apartment",
+      "cabin",
+      "condo",
+      "resort",
+      "inn",
+      "motel",
+    ];
+
+    if (nightlyCategories.some((cat) => category.toLowerCase().includes(cat))) {
+      return `₦${formattedPrice}`;
+    }
+
+    // Other categories show "per guest" or "per meal"
+    if (
+      category.toLowerCase().includes("restaurant") ||
+      category.toLowerCase().includes("food") ||
+      category.toLowerCase().includes("cafe")
+    ) {
+      return `₦${formattedPrice}`;
+    }
+
+    return `₦${formattedPrice}`;
+  };
+
+  // Get the per text (for 2 nights, per guest, per meal)
+  const getPerText = () => {
+    const nightlyCategories = [
+      "hotel",
+      "hostel",
+      "shortlet",
+      "apartment",
+      "cabin",
+      "condo",
+      "resort",
+      "inn",
+      "motel",
+    ];
+
+    if (nightlyCategories.some((cat) => category.toLowerCase().includes(cat))) {
+      return "for 2 nights";
+    }
+
+    if (
+      category.toLowerCase().includes("restaurant") ||
+      category.toLowerCase().includes("food") ||
+      category.toLowerCase().includes("cafe")
+    ) {
+      return "per meal";
+    }
+
+    return "per guest";
+  };
+
+  const priceText = getPriceText();
+  const perText = getPerText();
+  const location = item.area || item.location || "Ibadan";
+  const rating = item.rating || "4.9";
+  const businessName = item.name || "Business Name";
 
   const handleCardClick = () => {
     if (item.id) {
       navigate(`/vendor-detail/${item.id}`);
-    } else if (item.name) {
-      navigate(`/vendor-detail/${encodeURIComponent(item.name)}`);
+    } else {
+      navigate(`/category/${category}`);
+    }
+  };
+
+  // Toast Notification Function
+  const showToast = (message, type = "success") => {
+    // Remove any existing toast
+    const existingToast = document.getElementById("toast-notification");
+    if (existingToast) {
+      existingToast.remove();
+    }
+
+    // Create toast element
+    const toast = document.createElement("div");
+    toast.id = "toast-notification";
+    toast.className = `fixed z-50 px-4 py-3 rounded-lg shadow-lg border ${
+      type === "success"
+        ? "bg-green-50 border-green-200 text-green-800"
+        : "bg-blue-50 border-blue-200 text-blue-800"
+    }`;
+
+    // Position toast lower - 15px for mobile, 15px for desktop
+    toast.style.top = isMobile ? "15px" : "15px";
+    toast.style.right = "15px";
+    toast.style.maxWidth = "320px";
+    toast.style.animation = "slideInRight 0.3s ease-out forwards";
+
+    // Toast content
+    toast.innerHTML = `
+      <div class="flex items-start gap-3">
+        <div class="${
+          type === "success" ? "text-green-600" : "text-blue-600"
+        } mt-0.5">
+          ${
+            type === "success"
+              ? '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>'
+              : '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>'
+          }
+        </div>
+        <div class="flex-1">
+          <p class="font-medium">${message}</p>
+          <p class="text-sm opacity-80 mt-1">${businessName}</p>
+        </div>
+        <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70 transition-opacity">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        </button>
+      </div>
+    `;
+
+    // Add to DOM
+    document.body.appendChild(toast);
+
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+      toast.style.animation = "slideOutRight 0.3s ease-in forwards";
+      setTimeout(() => {
+        if (toast.parentElement) {
+          toast.remove();
+        }
+      }, 300);
+    }, 3000);
+  };
+
+  // Full handleFavoriteClick Function (saves to saved listings)
+  const handleFavoriteClick = (e) => {
+    e.stopPropagation(); // Prevent card click when clicking heart
+
+    // Get existing saved listings from localStorage
+    const saved = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
+
+    // Check if this item is already saved
+    const isAlreadySaved = saved.some((savedItem) => savedItem.id === item.id);
+
+    if (isAlreadySaved) {
+      // REMOVE FROM SAVED
+      const updated = saved.filter((savedItem) => savedItem.id !== item.id);
+      localStorage.setItem("userSavedListings", JSON.stringify(updated));
+      setIsFavorite(false); // Update React state
+
+      // Show toast notification
+      showToast("Removed from saved listings", "info");
+
+      // Dispatch event for other components
+      window.dispatchEvent(
+        new CustomEvent("savedListingsUpdated", {
+          detail: { action: "removed", itemId: item.id },
+        })
+      );
+    } else {
+      // ADD TO SAVED
+      const listingToSave = {
+        id: item.id || `listing_${Date.now()}`,
+        name: businessName,
+        price: priceText,
+        perText: perText,
+        rating: parseFloat(rating),
+        tag: "Guest Favorite",
+        image: images[0] || FALLBACK_IMAGES.default,
+        category: capitalizeFirst(category) || "Business",
+        location: location,
+        savedDate: new Date().toISOString().split("T")[0],
+        // Keep original data
+        originalData: {
+          price_from: item.price_from,
+          area: item.area,
+          rating: item.rating,
+          description: item.description,
+          amenities: item.amenities,
+          contact: item.contact,
+        },
+      };
+
+      const updated = [...saved, listingToSave];
+      localStorage.setItem("userSavedListings", JSON.stringify(updated));
+      setIsFavorite(true); // Update React state
+
+      // Show toast notification
+      showToast("Added to saved listings!", "success");
+
+      // Dispatch event for other components
+      window.dispatchEvent(
+        new CustomEvent("savedListingsUpdated", {
+          detail: { action: "added", item: listingToSave },
+        })
+      );
     }
   };
 
@@ -231,7 +457,7 @@ const BusinessCard = ({ item, isMobile }) => {
     <div
       className={`
         bg-white rounded-xl overflow-hidden flex-shrink-0 
-        font-manrope
+        font-manrope relative group
         ${isMobile ? "w-[165px]" : "w-full"} 
         transition-all duration-200 cursor-pointer 
         hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
@@ -247,9 +473,12 @@ const BusinessCard = ({ item, isMobile }) => {
       >
         <img
           src={images[0]}
-          alt=""
+          alt={businessName}
           className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
-          onError={(e) => (e.currentTarget.src = FALLBACK_IMAGES.default)}
+          onError={(e) => {
+            e.currentTarget.src = FALLBACK_IMAGES.default;
+            e.currentTarget.onerror = null; // Prevent infinite loop
+          }}
           loading="lazy"
         />
 
@@ -260,18 +489,36 @@ const BusinessCard = ({ item, isMobile }) => {
           </span>
         </div>
 
-        {/* Heart icon */}
+        {/* Heart icon - Updated with better styling */}
         <button
-          className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition"
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
+          onClick={handleFavoriteClick}
+          className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 ${
+            isFavorite
+              ? "bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
+              : "bg-white/90 hover:bg-white backdrop-blur-sm"
+          }`}
+          title={isFavorite ? "Remove from saved" : "Add to saved"}
+          aria-label={isFavorite ? "Remove from saved" : "Save this listing"}
         >
-          <MdFavoriteBorder className="text-[#00d1ff] text-sm" />
+          {isFavorite ? (
+            <svg
+              className="w-4 h-4 text-white"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                clipRule="evenodd"
+              />
+            </svg>
+          ) : (
+            <MdFavoriteBorder className="text-[#00d1ff] w-4 h-4" />
+          )}
         </button>
       </div>
 
-      {/* Text */}
+      {/* Text Content */}
       <div className={`${isMobile ? "p-1.5" : "p-2.5"} flex flex-col gap-0.5`}>
         <h3
           className={`
@@ -280,69 +527,84 @@ const BusinessCard = ({ item, isMobile }) => {
             ${isMobile ? "text-xs" : "text-sm"}
           `}
         >
-          {item.name}
+          {businessName}
         </h3>
 
-        <p
-          className={`
-            text-gray-600 
-            ${isMobile ? "text-[9px]" : "text-xs"}
-          `}
-        >
-          {location}
-        </p>
-
-        <div className="flex items-center gap-1 mt-0.5">
-          <p
-            className={`
-              font-normal text-gray-900 
-              ${isMobile ? "text-[9px]" : "text-xs"}
-            `}
-          >
-            {priceText} <span>•</span>
+        <div className="text-gray-600">
+          <p className={`${isMobile ? "text-[9px]" : "text-xs"} line-clamp-1`}>
+            {location}
           </p>
+        </div>
 
-          <div
-            className={`
-              flex items-center gap-1 text-gray-800 
-              ${isMobile ? "text-[9px]" : "text-xs"}
-            `}
-          >
-            <FontAwesomeIcon
-              icon={faStar}
-              className={`${isMobile ? "text-[9px]" : "text-xs"} text-black`}
-            />
-            {item.rating || "4.9"}
+        {/* Combined Price, Per Text, and Ratings on same line */}
+        <div className="flex items-center justify-between mt-1">
+          <div className="flex items-center gap-1 flex-wrap">
+            {/* Price and Per Text */}
+            <div className="flex items-baseline gap-1">
+              <span
+                className={`${
+                  isMobile ? "text-xs" : "text-xs"
+                } font-manrope text-gray-900`}
+              >
+                {priceText}
+              </span>
+              <span
+                className={`${
+                  isMobile ? "text-[9px]" : "text-xs"
+                } text-gray-600`}
+              >
+                {perText}
+              </span>
+            </div>
+          </div>
+
+          {/* Ratings on the right */}
+          <div className="flex items-center gap-1">
+            <div
+              className={`
+                flex items-center gap-1 text-gray-800 
+                ${isMobile ? "text-[9px]" : "text-xs"}
+              `}
+            >
+              {/* BLACK STAR */}
+              <FontAwesomeIcon
+                icon={faStar}
+                className={`${isMobile ? "text-[9px]" : "text-xs"} text-black`}
+              />
+              <span className="font-semibold text-black">{rating}</span>
+            </div>
           </div>
         </div>
+
+        {/* Bottom row: Category tag and Saved indicator */}
+        <div className="flex items-center justify-between mt-1">
+          {/* Category tag */}
+          <div>
+            <span className="inline-block text-[10px] text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
+              {capitalizeFirst(category)}
+            </span>
+          </div>
+
+          {/* Saved indicator badge - Shows "Saved" when favorited */}
+          {isFavorite && (
+            <span className="inline-flex items-center gap-1 text-[10px] text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+              <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Saved
+            </span>
+          )}
+        </div>
       </div>
+
+      {/* Hover overlay effect */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none"></div>
     </div>
   );
-};
-
-// Helper function to get card images
-const getCardImages = (item) => {
-  const raw = item["image url"] || "";
-  const urls = raw
-    .split(",")
-    .map((u) => u.trim())
-    .filter((u) => u && u.startsWith("http"));
-
-  if (urls.length > 0) return urls;
-
-  const cat = (item.category || "").toLowerCase();
-  if (cat.includes("hotel")) return [FALLBACK_IMAGES.hotel];
-  if (cat.includes("restaurant")) return [FALLBACK_IMAGES.restaurant];
-  if (cat.includes("shortlet")) return [FALLBACK_IMAGES.shortlet];
-  if (cat.includes("tourist")) return [FALLBACK_IMAGES.tourist];
-  if (cat.includes("cafe")) return [FALLBACK_IMAGES.cafe];
-  if (cat.includes("bar") || cat.includes("lounge"))
-    return [FALLBACK_IMAGES.bar];
-  if (cat.includes("services")) return [FALLBACK_IMAGES.services];
-  if (cat.includes("event")) return [FALLBACK_IMAGES.event];
-  if (cat.includes("hall") || cat.includes("weekend"))
-    return [FALLBACK_IMAGES.hall];
-  return [FALLBACK_IMAGES.default];
 };
 
 // ================== CATEGORY BREAKDOWN BADGES COMPONENT ==================
@@ -518,7 +780,11 @@ const MobileSearchModal = ({
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (modalRef.current && !modalRef.current.contains(event.target)) {
+      if (
+        modalRef.current &&
+        !modalRef.current.contains(event.target) &&
+        !event.target.closest(".fixed.z-50") // Prevent conflict with toast
+      ) {
         onClose();
       }
     };
@@ -1359,8 +1625,6 @@ const FilterSidebar = ({
           </button>
         </div>
       )}
-
-     
 
       {/* LOCATION SECTION WITH SEARCH */}
       <div className="border-b pb-4">
@@ -2660,7 +2924,7 @@ const CategoryResults = () => {
 
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 mt-16">
         {/* Fixed Search Bar Container */}
         <div className="z-30 py-6 relative" style={{ zIndex: 100 }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -2800,6 +3064,7 @@ const CategoryResults = () => {
                       onClick={toggleMobileFilters}
                       className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm"
                       aria-label="Open filters"
+                      ref={filterButtonRef}
                     >
                       <div className="relative">
                         <PiSliders className="text-gray-600 text-lg" />
@@ -2968,9 +3233,10 @@ const CategoryResults = () => {
                           {currentListings
                             .slice(rowIndex * 5, (rowIndex + 1) * 5)
                             .map((listing, index) => (
-                              <BusinessCard
+                              <SearchResultBusinessCard
                                 key={listing.id || `${rowIndex}-${index}`}
                                 item={listing}
+                                category={category}
                                 isMobile={isMobile}
                               />
                             ))}
@@ -2980,9 +3246,10 @@ const CategoryResults = () => {
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {currentListings.map((listing, index) => (
-                        <BusinessCard
+                        <SearchResultBusinessCard
                           key={listing.id || index}
                           item={listing}
+                          category={category}
                           isMobile={isMobile}
                         />
                       ))}
@@ -3045,19 +3312,94 @@ const CategoryResults = () => {
       <Footer />
 
       {/* Custom scrollbar hiding */}
-      <style jsx>{`
+      <style jsx global>{`
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+
+        @keyframes slideOutRight {
+          from {
+            transform: translateX(0);
+            opacity: 1;
+          }
+          to {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+        }
+
         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
+
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }
+
+        .line-clamp-1 {
+          display: -webkit-box;
+          -webkit-line-clamp: 1;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
         .line-clamp-2 {
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
+        }
+
+        .modal-open {
+          overflow: hidden !important;
+        }
+
+        /* Toast notification styles */
+        #toast-notification {
+          animation: slideInRight 0.3s ease-out forwards;
+          z-index: 9999999;
+        }
+
+        /* Smooth transitions */
+        * {
+          transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+
+        /* Focus styles */
+        input:focus,
+        button:focus,
+        select:focus {
+          outline: none;
+          ring-width: 2px;
+          ring-color: #06eafc;
+        }
+
+        /* Better scrollbar for webkit */
+        ::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+          background: #c1c1c1;
+          border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+          background: #a1a1a1;
         }
       `}</style>
     </div>

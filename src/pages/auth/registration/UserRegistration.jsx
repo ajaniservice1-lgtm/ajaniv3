@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaArrowRight } from "react-icons/fa";
+import Logo from "../../../assets/Logos/logo5.png";
+
 
 const UserRegistration = () => {
   const navigate = useNavigate();
@@ -14,13 +16,49 @@ const UserRegistration = () => {
     confirmPassword: "",
   });
 
+  const [errors, setErrors] = useState({});
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!form.firstName.trim()) newErrors.firstName = "First name is required";
+    if (!form.lastName.trim()) newErrors.lastName = "Last name is required";
+    if (!form.phone.trim()) newErrors.phone = "Phone number is required";
+    if (!form.email.trim()) newErrors.email = "Email is required";
+    else if (!/\S+@\S+\.\S+/.test(form.email))
+      newErrors.email = "Email is invalid";
+    if (!form.password) newErrors.password = "Password is required";
+    else if (form.password.length < 6)
+      newErrors.password = "Password must be at least 6 characters";
+    if (form.password !== form.confirmPassword)
+      newErrors.confirmPassword = "Passwords do not match";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    // Clear error for this field when user starts typing
+    if (errors[e.target.name]) {
+      setErrors({ ...errors, [e.target.name]: "" });
+    }
   };
 
   const handleNext = (e) => {
     e.preventDefault();
-    navigate("/register/user/process1", { state: { ...form } });
+
+    if (validateForm()) {
+      // Store user data temporarily
+      const userData = {
+        ...form,
+        fullName: `${form.firstName} ${form.lastName}`,
+        registrationDate: new Date().toISOString(),
+      };
+
+      localStorage.setItem("tempUserData", JSON.stringify(userData));
+      navigate("/register/user/process1", { state: userData });
+    }
   };
 
   return (
@@ -28,7 +66,11 @@ const UserRegistration = () => {
       <div className="w-full max-w-lg p-4 sm:p-8 rounded-xl shadow-lg bg-white">
         {/* Logo */}
         <div className="flex justify-center mb-4">
-          <img src="/ajani-logo.png" alt="Ajani Logo" className="h-14" />
+           <img
+                          src={Logo}
+                          alt="Ajani Logo"
+                          className="md:w-48 w-10 h-auto"
+                        />
         </div>
 
         {/* Heading */}
@@ -51,7 +93,7 @@ const UserRegistration = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="text-sm font-medium text-gray-700">
-                First Name
+                First Name *
               </label>
               <input
                 type="text"
@@ -59,13 +101,18 @@ const UserRegistration = () => {
                 value={form.firstName}
                 onChange={handleChange}
                 placeholder="Adeyemi"
-                className="w-full mt-1 px-3 py-3 border border-gray-300 rounded-lg focus:outline-none"
+                className={`w-full mt-1 px-3 py-3 border ${
+                  errors.firstName ? "border-red-500" : "border-gray-300"
+                } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff]`}
               />
+              {errors.firstName && (
+                <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
+              )}
             </div>
 
             <div>
               <label className="text-sm font-medium text-gray-700">
-                Last Name
+                Last Name *
               </label>
               <input
                 type="text"
@@ -73,8 +120,13 @@ const UserRegistration = () => {
                 value={form.lastName}
                 onChange={handleChange}
                 placeholder="Daniels"
-                className="w-full mt-1 px-3 py-3 border border-gray-300 rounded-lg focus:outline-none"
+                className={`w-full mt-1 px-3 py-3 border ${
+                  errors.lastName ? "border-red-500" : "border-gray-300"
+                } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff]`}
               />
+              {errors.lastName && (
+                <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
+              )}
             </div>
           </div>
 
@@ -82,35 +134,47 @@ const UserRegistration = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="text-sm font-medium text-gray-700">
-                Phone Number
+                Phone Number *
               </label>
               <input
-                type="text"
+                type="tel"
                 name="phone"
                 value={form.phone}
                 onChange={handleChange}
                 placeholder="+23469955399"
-                className="w-full mt-1 px-3 py-3 border border-gray-300 rounded-lg focus:outline-none"
+                className={`w-full mt-1 px-3 py-3 border ${
+                  errors.phone ? "border-red-500" : "border-gray-300"
+                } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff]`}
               />
+              {errors.phone && (
+                <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
+              )}
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700">Email</label>
+              <label className="text-sm font-medium text-gray-700">
+                Email *
+              </label>
               <input
                 type="email"
                 name="email"
                 value={form.email}
                 onChange={handleChange}
                 placeholder="example@gmail.com"
-                className="w-full mt-1 px-3 py-3 border border-gray-300 rounded-lg focus:outline-none"
+                className={`w-full mt-1 px-3 py-3 border ${
+                  errors.email ? "border-red-500" : "border-gray-300"
+                } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff]`}
               />
+              {errors.email && (
+                <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+              )}
             </div>
           </div>
 
           {/* Password */}
           <div>
             <label className="text-sm font-medium text-gray-700">
-              Password
+              Password *
             </label>
             <input
               type="password"
@@ -118,14 +182,19 @@ const UserRegistration = () => {
               value={form.password}
               onChange={handleChange}
               placeholder="***********"
-              className="w-full mt-1 px-3 py-3 border border-gray-300 rounded-lg focus:outline-none"
+              className={`w-full mt-1 px-3 py-3 border ${
+                errors.password ? "border-red-500" : "border-gray-300"
+              } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff]`}
             />
+            {errors.password && (
+              <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+            )}
           </div>
 
           {/* Confirm Password */}
           <div>
             <label className="text-sm font-medium text-gray-700">
-              Confirm Password
+              Confirm Password *
             </label>
             <input
               type="password"
@@ -133,8 +202,15 @@ const UserRegistration = () => {
               value={form.confirmPassword}
               onChange={handleChange}
               placeholder="***********"
-              className="w-full mt-1 px-3 py-3 border border-gray-300 rounded-lg focus:outline-none"
+              className={`w-full mt-1 px-3 py-3 border ${
+                errors.confirmPassword ? "border-red-500" : "border-gray-300"
+              } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff]`}
             />
+            {errors.confirmPassword && (
+              <p className="text-red-500 text-xs mt-1">
+                {errors.confirmPassword}
+              </p>
+            )}
           </div>
 
           {/* Sign In */}
@@ -145,7 +221,7 @@ const UserRegistration = () => {
               onClick={() => navigate("/login")}
               className="text-black font-medium underline"
             >
-              Sign Up Here
+              Sign In Here
             </button>
           </p>
 
