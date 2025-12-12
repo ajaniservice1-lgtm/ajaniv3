@@ -20,7 +20,7 @@ const RegisterChoicePage = () => {
       {/* Content */}
       <div className="flex flex-col items-center px-4 py-25 md:py-40">
         <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 text-center">
-          Join Ajani as a client or freelancer
+          Join Ajani as a useer or vendor
         </h2>
 
         {/* Choices */}

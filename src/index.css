@@ -228,6 +228,8 @@ header {
   }
 }
 
+
+
 /* Hero title - Compact */
 .hero-title-compact {
   font-size: clamp(1.25rem, 3.5vw, 1.75rem);
