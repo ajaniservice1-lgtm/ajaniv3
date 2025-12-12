@@ -454,11 +454,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
     }
   };
 
-  // Extract just the numeric price for overlay
-  const getPriceForOverlay = () => {
-    const match = priceText.match(/₦([\d,]+)/);
-    return match ? `₦${match[1]}` : "₦--";
-  };
+
 
   return (
     <div
@@ -524,10 +520,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
           )}
         </button>
 
-        {/* Price overlay - Moved to top center */}
-        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-black/80 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg min-w-[60px] text-center">
-          {getPriceForOverlay()}
-        </div>
+        
       </div>
 
       {/* Text Content */}
