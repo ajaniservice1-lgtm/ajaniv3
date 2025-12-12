@@ -137,7 +137,10 @@ function App() {
                     path="/register/user/process3"
                     element={<UserProcess3 />}
                   />
-
+                  <Route
+                    path="/register/user/process4"
+                    element={<UserProcess4 />}
+                  />
                   {/* User Complete Profile */}
                   <Route
                     path="/register/user/complete-profile"

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Camera, Bookmark, Star, Clock, Settings } from "lucide-react";
-import Logo from "../../../assets/Logos/logo5.png";
+import Header from "../../../components/Header";
+import Footer from "../../../components/Footer";
 
 const UserProcess2 = () => {
   const navigate = useNavigate();
@@ -196,9 +197,9 @@ const UserProcess2 = () => {
     navigate("/register/user/process3");
   };
 
-  // Handler for My Reviews button
+  // Handler for My Reviews button - FIXED to navigate to UserProcess4
   const handleMyReviewsClick = () => {
-    navigate("/register/user/reviews");
+    navigate("/register/user/process4");
   };
 
   // Handler for Booking History button
@@ -241,26 +242,9 @@ const UserProcess2 = () => {
 
   return (
     <div className="min-h-screen bg-white font-manrope flex flex-col">
-      {/* Header with Logo */}
-      <header className="w-full py-4 px-4 sm:px-6 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <img src={Logo} alt="Ajani Logo" className="h-10" />
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Ajani</h1>
-              <p className="text-xs text-gray-600">
-                Verified Vendors & Local Stories
-              </p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-gray-600">Welcome back,</p>
-            <p className="font-semibold text-gray-900">{user.firstName}</p>
-          </div>
-        </div>
-      </header>
+      <Header />
 
-      <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 py-8 md:py-10">
+      <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 py-8 md:py-10 mt-15">
         {/* Edit Button */}
         <div className="flex justify-end mb-6 md:mb-8">
           {editMode ? (
@@ -535,19 +519,7 @@ const UserProcess2 = () => {
         )}
       </main>
 
-      {/* Simple Footer */}
-      <footer className="w-full py-6 px-4 sm:px-6 border-t border-gray-200 mt-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <img src={Logo} alt="Ajani Logo" className="h-8 mx-auto mb-4" />
-          <p className="text-sm text-gray-600">
-            © {new Date().getFullYear()} Ajani. All rights reserved.
-          </p>
-          <p className="text-xs text-gray-500 mt-2">
-            Connect with verified vendors and discover Ibadan through AI and
-            Local stories
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

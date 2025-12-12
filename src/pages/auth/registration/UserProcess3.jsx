@@ -2,9 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../../components/Header";
 import Footer from "../../../components/Footer";
-import { Heart, MapPin, Star, ArrowLeft, Filter, Search } from "lucide-react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faStar } from "@fortawesome/free-solid-svg-icons";
+import { Heart, ArrowLeft, Search } from "lucide-react";
 
 const UserProcess3 = () => {
   const navigate = useNavigate();
@@ -15,6 +13,7 @@ const UserProcess3 = () => {
     category: "all",
     priceRange: "all",
   });
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Load saved listings from localStorage
   useEffect(() => {
@@ -61,7 +60,6 @@ const UserProcess3 = () => {
   }, []);
 
   const loadDefaultSavedListings = () => {
-    // Empty default - no fallback images
     const defaultListings = [];
     setSavedListings(defaultListings);
     localStorage.setItem("userSavedListings", JSON.stringify(defaultListings));
@@ -139,15 +137,15 @@ const UserProcess3 = () => {
         break;
       case "price-low":
         filtered.sort((a, b) => {
-          const priceA = parseInt(a.price.replace(/\D/g, "")) || 0;
-          const priceB = parseInt(b.price.replace(/\D/g, "")) || 0;
+          const priceA = parseInt(a.price?.replace(/\D/g, "")) || 0;
+          const priceB = parseInt(b.price?.replace(/\D/g, "")) || 0;
           return priceA - priceB;
         });
         break;
       case "price-high":
         filtered.sort((a, b) => {
-          const priceA = parseInt(a.price.replace(/\D/g, "")) || 0;
-          const priceB = parseInt(b.price.replace(/\D/g, "")) || 0;
+          const priceA = parseInt(a.price?.replace(/\D/g, "")) || 0;
+          const priceB = parseInt(b.price?.replace(/\D/g, "")) || 0;
           return priceB - priceA;
         });
         break;
@@ -159,7 +157,7 @@ const UserProcess3 = () => {
     if (activeFilters.category !== "all") {
       filtered = filtered.filter(
         (listing) =>
-          listing.category.toLowerCase() ===
+          listing.category?.toLowerCase() ===
           activeFilters.category.toLowerCase()
       );
     }
@@ -167,7 +165,7 @@ const UserProcess3 = () => {
     // Filter by price range
     if (activeFilters.priceRange !== "all") {
       filtered = filtered.filter((listing) => {
-        const price = parseInt(listing.price.replace(/\D/g, "")) || 0;
+        const price = parseInt(listing.price?.replace(/\D/g, "")) || 0;
         switch (activeFilters.priceRange) {
           case "budget":
             return price < 30000;
@@ -187,10 +185,9 @@ const UserProcess3 = () => {
   const filteredListings = applyFilters(savedListings);
 
   // Get unique categories
-  const categories = [...new Set(savedListings.map((item) => item.category))];
+  const categories = [...new Set(savedListings.map((item) => item.category).filter(Boolean))];
 
   // Search functionality
-  const [searchTerm, setSearchTerm] = useState("");
   const handleSearch = (e) => {
     setSearchTerm(e.target.value.toLowerCase());
   };
@@ -198,13 +195,27 @@ const UserProcess3 = () => {
   const searchedListings = searchTerm
     ? filteredListings.filter(
         (listing) =>
-          listing.name.toLowerCase().includes(searchTerm) ||
-          listing.location.toLowerCase().includes(searchTerm) ||
-          listing.category.toLowerCase().includes(searchTerm)
+          listing.name?.toLowerCase().includes(searchTerm) ||
+          listing.location?.toLowerCase().includes(searchTerm) ||
+          listing.category?.toLowerCase().includes(searchTerm)
       )
     : filteredListings;
 
-  // Business Card Component (same as Directory)
+  // Load current user profile
+  const [userProfile, setUserProfile] = useState(null);
+  
+  useEffect(() => {
+    const profile = localStorage.getItem("userProfile");
+    if (profile) {
+      try {
+        setUserProfile(JSON.parse(profile));
+      } catch (error) {
+        console.error("Error parsing user profile:", error);
+      }
+    }
+  }, []);
+
+  // Business Card Component
   const BusinessCard = ({ listing }) => {
     const handleCardClick = () => {
       if (listing.id) {
@@ -223,6 +234,9 @@ const UserProcess3 = () => {
             src={listing.image}
             alt={listing.name}
             className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
+            onError={(e) => {
+              e.target.src = "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=600&q=80";
+            }}
           />
 
           {/* Guest favorite badge */}
@@ -279,10 +293,9 @@ const UserProcess3 = () => {
           <div className="flex items-center justify-between mt-1">
             <div className="flex items-center gap-1">
               <div className="flex items-center gap-1 text-gray-800 text-xs">
-                <FontAwesomeIcon
-                  icon={faStar}
-                  className="text-xs text-yellow-500"
-                />
+                <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
                 <span className="font-semibold">{listing.rating || "4.9"}</span>
                 <span className="text-gray-500">
                   ({listing.reviews || "0"})
@@ -379,15 +392,20 @@ const UserProcess3 = () => {
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-full overflow-hidden border-4 border-white">
                 <img
-                  src="https://randomuser.me/api/portraits/men/32.jpg"
+                  src={userProfile?.image || "https://randomuser.me/api/portraits/men/32.jpg"}
                   alt="Profile"
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.src = "https://randomuser1d.me/api/portraits/men/32.jpg";
+                  }}
                 />
               </div>
               <div>
-                <h2 className="text-xl font-bold">Daniel Adeyemi</h2>
+                <h2 className="text-xl font-bold">
+                  {userProfile?.fullName || "Daniel Adeyemi"}
+                </h2>
                 <p className="text-white/80 text-sm">
-                  Member since September 2025
+                  Member since {userProfile?.memberSince || "September 2025"}
                 </p>
               </div>
             </div>
@@ -503,7 +521,7 @@ const UserProcess3 = () => {
           </div>
         </div>
 
-        {/* Saved Listings - Horizontal Scroll (like Directory) */}
+        {/* Saved Listings */}
         {searchedListings.length > 0 ? (
           <div>
             {/* Mobile View - Horizontal Scroll */}
@@ -515,7 +533,7 @@ const UserProcess3 = () => {
               </div>
             </div>
 
-            {/* Desktop View - Grid with exact Directory card sizes */}
+            {/* Desktop View - Grid */}
             <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {searchedListings.map((listing) => (
                 <BusinessCard key={listing.id} listing={listing} />
@@ -575,8 +593,7 @@ const UserProcess3 = () => {
                   ₦
                   {Math.round(
                     savedListings.reduce((sum, item) => {
-                      const price =
-                        parseInt(item.price.replace(/\D/g, "")) || 0;
+                      const price = parseInt(item.price?.replace(/\D/g, "")) || 0;
                       return sum + price;
                     }, 0) / 1000
                   )}
