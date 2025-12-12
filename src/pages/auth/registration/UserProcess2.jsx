@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
-import Header from "../../../components/Header";
-import Footer from "../../../components/Footer";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Camera, Bookmark, Star, Clock, Settings } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import Logo from "../../../assets/Logos/logo5.png";
 
 const UserProcess2 = () => {
-  // Default profile image URLs for variety
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Default profile images for variety
   const defaultProfileImages = [
     "https://images.unsplash.com/photo-1607746882042-944635dfe10e?auto=format&fit=crop&w=600&q=80",
     "https://images.unsplash.com/photo-1494790108755-2616b612b786?auto=format&fit=crop&w=600&q=80",
@@ -14,43 +16,106 @@ const UserProcess2 = () => {
     "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80",
   ];
 
-  const navigate = useNavigate();
-
-  // Load user from localStorage or use default
+  // Initialize user from localStorage or registration data
   const getInitialUser = () => {
-    const saved = localStorage.getItem("userProfile");
-    if (saved) {
-      const parsed = JSON.parse(saved);
+    const savedProfile = localStorage.getItem("userProfile");
+    const tempData = JSON.parse(localStorage.getItem("tempUserData") || "null");
+    const locationData = location.state;
+
+    if (locationData && locationData.fromRegistration) {
+      // Use registration data
       return {
-        name: parsed.name || "Daniel Adeyemi",
-        memberSince: parsed.memberSince || "September 2025",
+        firstName: locationData.firstName,
+        lastName: locationData.lastName,
+        fullName:
+          locationData.fullName ||
+          `${locationData.firstName} ${locationData.lastName}`,
+        phone: locationData.phone,
+        email: locationData.email,
+        memberSince: new Date().toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        }),
         about:
-          parsed.about ||
-          "Lorem ipsum dolor sit amet consectetur. Erat eu commodo sed nunc aliquam lacinia velit sed. Dictum lacus vulputate sapien diam tristique tempor. Et amet netus vitae habitant augue lorem.",
+          "Welcome to Ajani! Start exploring verified vendors and share your experiences.",
+        image:
+          defaultProfileImages[
+            Math.floor(Math.random() * defaultProfileImages.length)
+          ],
+        stats: {
+          vendorsSaved: 0,
+          reviewsWritten: 0,
+          bookingsMade: 0,
+        },
+      };
+    } else if (savedProfile) {
+      // Use saved profile
+      const parsed = JSON.parse(savedProfile);
+      return {
+        ...parsed,
         image:
           parsed.image ||
           defaultProfileImages[
             Math.floor(Math.random() * defaultProfileImages.length)
           ],
       };
+    } else if (tempData) {
+      // Use temporary registration data
+      return {
+        firstName: tempData.firstName,
+        lastName: tempData.lastName,
+        fullName:
+          tempData.fullName || `${tempData.firstName} ${tempData.lastName}`,
+        phone: tempData.phone,
+        email: tempData.email,
+        memberSince: new Date().toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        }),
+        about:
+          "Welcome to Ajani! Start exploring verified vendors and share your experiences.",
+        image:
+          defaultProfileImages[
+            Math.floor(Math.random() * defaultProfileImages.length)
+          ],
+        stats: {
+          vendorsSaved: 0,
+          reviewsWritten: 0,
+          bookingsMade: 0,
+        },
+      };
     }
 
+    // Default fallback
     return {
-      name: "Daniel Adeyemi",
-      memberSince: "September 2025",
+      firstName: "User",
+      lastName: "Profile",
+      fullName: "User Profile",
+      phone: "",
+      email: "",
+      memberSince: new Date().toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      }),
       about:
-        "Lorem ipsum dolor sit amet consectetur. Erat eu commodo sed nunc aliquam lacinia velit sed. Dictum lacus vulputate sapien diam tristique tempor. Et amet netus vitae habitant augue lorem.",
+        "Welcome to Ajani! Start exploring verified vendors and share your experiences.",
       image:
         defaultProfileImages[
           Math.floor(Math.random() * defaultProfileImages.length)
         ],
+      stats: {
+        vendorsSaved: 0,
+        reviewsWritten: 0,
+        bookingsMade: 0,
+      },
     };
   };
 
   const [user, setUser] = useState(getInitialUser);
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState({
-    name: user.name,
+    firstName: user.firstName,
+    lastName: user.lastName,
     about: user.about,
     image: user.image,
   });
@@ -58,15 +123,17 @@ const UserProcess2 = () => {
   // Update form when user changes
   useEffect(() => {
     setForm({
-      name: user.name,
+      firstName: user.firstName,
+      lastName: user.lastName,
       about: user.about,
       image: user.image,
     });
   }, [user]);
 
-  // Save to localStorage
+  // Save to localStorage whenever user changes
   useEffect(() => {
     localStorage.setItem("userProfile", JSON.stringify(user));
+    localStorage.setItem("currentUser", JSON.stringify(user));
   }, [user]);
 
   const handleChange = (e) => {
@@ -96,13 +163,24 @@ const UserProcess2 = () => {
   };
 
   const handleSave = () => {
-    setUser({
+    const updatedUser = {
       ...user,
-      name: form.name.trim(),
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      fullName: `${form.firstName.trim()} ${form.lastName.trim()}`,
       about: form.about.trim(),
       image: form.image,
-    });
+    };
+
+    setUser(updatedUser);
     setEditMode(false);
+
+    // Update in localStorage
+    localStorage.setItem("userProfile", JSON.stringify(updatedUser));
+    localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+
+    // Show success message
+    alert("Profile updated successfully!");
   };
 
   const handleRandomImage = () => {
@@ -133,11 +211,56 @@ const UserProcess2 = () => {
     navigate("/register/user/settings");
   };
 
+  // Load user stats
+  const loadUserStats = () => {
+    const savedListings = JSON.parse(
+      localStorage.getItem("userSavedListings") || "[]"
+    );
+    const reviews = JSON.parse(localStorage.getItem("userReviews") || "[]");
+    const bookings = JSON.parse(localStorage.getItem("userBookings") || "[]");
+
+    return {
+      vendorsSaved: savedListings.length,
+      reviewsWritten: reviews.length,
+      bookingsMade: bookings.length,
+    };
+  };
+
+  const [stats, setStats] = useState(loadUserStats());
+
+  // Update stats when component mounts
+  useEffect(() => {
+    setStats(loadUserStats());
+
+    // Update user stats
+    setUser((prev) => ({
+      ...prev,
+      stats: loadUserStats(),
+    }));
+  }, []);
+
   return (
     <div className="min-h-screen bg-white font-manrope flex flex-col">
-      <Header />
+      {/* Header with Logo */}
+      <header className="w-full py-4 px-4 sm:px-6 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <img src={Logo} alt="Ajani Logo" className="h-10" />
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Ajani</h1>
+              <p className="text-xs text-gray-600">
+                Verified Vendors & Local Stories
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-gray-600">Welcome back,</p>
+            <p className="font-semibold text-gray-900">{user.firstName}</p>
+          </div>
+        </div>
+      </header>
 
-      <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 py-8 md:py-10 lg:mt-10 mt-10">
+      <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 py-8 md:py-10">
         {/* Edit Button */}
         <div className="flex justify-end mb-6 md:mb-8">
           {editMode ? (
@@ -146,7 +269,8 @@ const UserProcess2 = () => {
                 onClick={() => {
                   setEditMode(false);
                   setForm({
-                    name: user.name,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
                     about: user.about,
                     image: user.image,
                   });
@@ -213,18 +337,33 @@ const UserProcess2 = () => {
           <div className="flex-1 mt-2 sm:mt-0">
             {editMode ? (
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-3 text-lg font-semibold focus:ring-2 focus:ring-[#00d37f] focus:border-[#00d37f] outline-none transition"
-                    placeholder="Enter your name"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      name="firstName"
+                      value={form.firstName}
+                      onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#00d37f] focus:border-[#00d37f] outline-none transition"
+                      placeholder="Enter first name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      name="lastName"
+                      value={form.lastName}
+                      onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#00d37f] focus:border-[#00d37f] outline-none transition"
+                      placeholder="Enter last name"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -247,6 +386,12 @@ const UserProcess2 = () => {
 
                 <div className="pt-4 border-t border-gray-200">
                   <p className="text-sm text-gray-600">
+                    <span className="font-medium">Email:</span> {user.email}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium">Phone:</span> {user.phone}
+                  </p>
+                  <p className="text-sm text-gray-600">
                     <span className="font-medium">Member since:</span>{" "}
                     {user.memberSince}
                   </p>
@@ -258,7 +403,7 @@ const UserProcess2 = () => {
             ) : (
               <div>
                 <h2 className="text-2xl md:text-3xl font-semibold text-gray-900">
-                  {user.name}
+                  {user.fullName}
                 </h2>
                 <p className="text-sm text-gray-600 mt-1 mb-4">
                   Member since: {user.memberSince}
@@ -268,6 +413,14 @@ const UserProcess2 = () => {
                     About
                   </h3>
                   <p className="text-gray-700 leading-relaxed">{user.about}</p>
+                </div>
+                <div className="mt-4 space-y-2">
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium">Email:</span> {user.email}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium">Phone:</span> {user.phone}
+                  </p>
                 </div>
               </div>
             )}
@@ -329,15 +482,21 @@ const UserProcess2 = () => {
             {/* Additional Stats */}
             <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl">
               <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                <div className="text-3xl font-bold text-gray-900 mb-2">12</div>
+                <div className="text-3xl font-bold text-gray-900 mb-2">
+                  {stats.vendorsSaved}
+                </div>
                 <p className="text-sm text-gray-600">Vendors Saved</p>
               </div>
               <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                <div className="text-3xl font-bold text-gray-900 mb-2">8</div>
+                <div className="text-3xl font-bold text-gray-900 mb-2">
+                  {stats.reviewsWritten}
+                </div>
                 <p className="text-sm text-gray-600">Reviews Written</p>
               </div>
               <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                <div className="text-3xl font-bold text-gray-900 mb-2">15</div>
+                <div className="text-3xl font-bold text-gray-900 mb-2">
+                  {stats.bookingsMade}
+                </div>
                 <p className="text-sm text-gray-600">Bookings Made</p>
               </div>
             </div>
@@ -376,7 +535,19 @@ const UserProcess2 = () => {
         )}
       </main>
 
-      <Footer />
+      {/* Simple Footer */}
+      <footer className="w-full py-6 px-4 sm:px-6 border-t border-gray-200 mt-8">
+        <div className="max-w-7xl mx-auto text-center">
+          <img src={Logo} alt="Ajani Logo" className="h-8 mx-auto mb-4" />
+          <p className="text-sm text-gray-600">
+            © {new Date().getFullYear()} Ajani. All rights reserved.
+          </p>
+          <p className="text-xs text-gray-500 mt-2">
+            Connect with verified vendors and discover Ibadan through AI and
+            Local stories
+          </p>
+        </div>
+      </footer>
     </div>
   );
 };
