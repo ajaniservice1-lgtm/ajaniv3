@@ -21,7 +21,7 @@ import {
   DollarSign,
   Package,
 } from "lucide-react";
-import Logo from "../../assets/Logos/logo5.png";
+import Logo from "../../../assets/Logos/logo5.png";
 
 const VendorCompleteProfile = () => {
   const navigate = useNavigate();
