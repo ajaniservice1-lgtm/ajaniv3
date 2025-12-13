@@ -68,6 +68,15 @@
   }
 }
 
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out forwards;
 }
@@ -105,16 +114,17 @@ body {
   padding: 0;
   background-color: #F7F7FA;
   color: #1a202c;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* ===== Z-INDEX STACKING ORDER ===== */
-/* Hero section - normal flow */
 #hero {
   position: relative;
   z-index: 1;
 }
 
-/* Header */
 header {
   z-index: 100 !important;
   position: fixed !important;
@@ -122,22 +132,18 @@ header {
   width: 100% !important;
 }
 
-/* Desktop search suggestions */
 .desktop-suggestions {
   z-index: 150 !important;
 }
 
-/* Mobile menu backdrop */
 .mobile-menu-backdrop {
   z-index: 200 !important;
 }
 
-/* Mobile menu content */
 .mobile-menu-content {
   z-index: 210 !important;
 }
 
-/* Hero search modal backdrop */
 .modal-backdrop {
   z-index: 300 !important;
   position: fixed !important;
@@ -149,7 +155,6 @@ header {
   backdrop-filter: blur(4px) !important;
 }
 
-/* Hero search modal content (mobile) */
 .mobile-fullscreen-modal {
   z-index: 310 !important;
   position: fixed !important;
@@ -160,17 +165,15 @@ header {
   background: white !important;
 }
 
-/* Profile dropdown */
 .profile-dropdown {
   z-index: 400 !important;
 }
 
-/* Toast notifications */
 .toast-notification {
   z-index: 500 !important;
 }
 
-/* ===== HERO SECTION FIXES - UPDATED ===== */
+/* ===== HERO SECTION FIXES ===== */
 #hero {
   background: #F7F7FA;
   min-height: 30vh;
@@ -227,8 +230,6 @@ header {
     padding: 2rem;
   }
 }
-
-
 
 /* Hero title - Compact */
 .hero-title-compact {
@@ -462,6 +463,82 @@ header {
   color: #06EAFC;
 }
 
+/* ===== FIXED IMAGE STYLES ===== */
+/* Default image style - FIXED for proper object-fit */
+img {
+  display: block;
+  max-width: 100%;
+  /* REMOVED: height: auto - causes issues with object-fit: cover */
+  object-fit: cover;
+}
+
+/* Ensure all images in hero are visible */
+#hero img {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
+/* Fix for fallback images */
+img[src*="unsplash.com"],
+img[src*="images.unsplash.com"] {
+  background-color: #f3f4f6;
+}
+
+/* Hero background images */
+.hero-bg-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+}
+
+/* Profile images, thumbnails, etc. */
+.profile-image, 
+.thumbnail-image,
+.card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* For banner/slider images */
+.banner-image,
+.slider-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* For images inside cards */
+.card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+/* For square/avatar images */
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* For background images using img tags */
+.bg-cover-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -1;
+}
+
 /* Loading state for images */
 .category-image-loading {
   background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
@@ -469,12 +546,241 @@ header {
   animation: loading 1.5s infinite;
 }
 
-@keyframes loading {
-  0% {
-    background-position: 200% 0;
+/* ===== SPECIFIC FIXES FOR CARD/PLACE IMAGES ===== */
+/* For place cards like Agodi Gardens, Bower's Tower, etc. */
+.place-card-image,
+.listing-card-image,
+.guest-favorite-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* For card containers that hold place images */
+.place-card,
+.listing-card,
+.guest-favorite-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.75rem;
+}
+
+.place-card img,
+.listing-card img,
+.guest-favorite-card img {
+  width: 100%;
+  height: 200px; /* Fixed height for consistency */
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.place-card:hover img,
+.listing-card:hover img,
+.guest-favorite-card:hover img {
+  transform: scale(1.05);
+}
+
+/* For images in grid layouts */
+.image-grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.image-grid-container img {
+  width: 100%;
+  height: 180px; /* Fixed height for grid items */
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+
+/* For specific image aspect ratios */
+.aspect-square img {
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+.aspect-video img {
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.aspect-portrait img {
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+}
+
+/* Image utility classes */
+.img-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.img-contain {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.img-fill {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+/* Ensure parent containers have defined dimensions */
+.image-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.image-container img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ===== GUEST FAVORITE CARDS ===== */
+.guest-favorite-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem;
+}
+
+.guest-favorite-item {
+  background: white;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.guest-favorite-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.guest-favorite-image-container {
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+}
+
+.guest-favorite-image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.guest-favorite-content {
+  padding: 1rem;
+}
+
+.guest-favorite-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1a202c;
+  margin-bottom: 0.25rem;
+}
+
+.guest-favorite-location {
+  font-size: 0.875rem;
+  color: #718096;
+  margin-bottom: 0.5rem;
+}
+
+.guest-favorite-price {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #06EAFC;
+  margin-bottom: 0.25rem;
+}
+
+.guest-favorite-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  color: #4a5568;
+}
+
+/* Exceptions for logos/icons that should use contain */
+img.logo,
+img.icon,
+img.inline-icon {
+  object-fit: contain !important;
+  height: auto !important;
+}
+
+/* Override for specific image types */
+img:not(.logo):not(.icon):not(.inline-icon):not(.aspect-contain) {
+  object-fit: cover;
+}
+
+/* Responsive adjustments for guest favorite cards */
+@media (max-width: 640px) {
+  .guest-favorite-container {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
-  100% {
-    background-position: -200% 0;
+  
+  .guest-favorite-image-container {
+    height: 150px;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .guest-favorite-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1025px) {
+  .guest-favorite-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Responsive image adjustments */
+@media (max-width: 768px) {
+  .card img {
+    height: 150px;
+  }
+  
+  .banner-image {
+    height: 200px;
+  }
+  
+  .guest-favorite-image-container {
+    height: 150px;
+  }
+}
+
+/* Fallback for older browsers that don't support object-fit */
+@supports not (object-fit: cover) {
+  .category-image-compact,
+  .hero-bg-image,
+  .profile-image,
+  .bg-cover-image,
+  .guest-favorite-image-container img {
+    background-size: cover;
+    background-position: center;
+    position: relative;
+  }
+  
+  .category-image-compact img,
+  .hero-bg-image img,
+  .profile-image img,
+  .bg-cover-image img,
+  .guest-favorite-image-container img {
+    display: none;
   }
 }
 
@@ -535,6 +841,48 @@ input:focus-visible {
   outline-offset: 2px;
 }
 
+/* ===== GRADIENT TEXT ===== */
+.gradient-text {
+  background: linear-gradient(135deg, #06EAFC 0%, #0be4f3 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== SHADOW UTILITIES ===== */
+.shadow-soft {
+  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+}
+
+.shadow-medium {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-hard {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* ===== TRANSITION UTILITIES ===== */
+.transition-all-300 {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-transform-300 {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Bottom gradient fade - Minimal */
+.bottom-gradient-fade-minimal {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1.5rem;
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.5), transparent);
+  pointer-events: none;
+  opacity: 0.5;
+}
+
 /* ===== RESPONSIVE FIXES ===== */
 @media (max-width: 768px) {
   /* Mobile specific fixes */
@@ -581,69 +929,6 @@ input:focus-visible {
   }
 }
 
-/* ===== FIX FOR IMAGES ===== */
-img {
-  display: block;
-  max-width: 100%;
-  height: auto;
-  object-fit: cover;
-}
-
-/* Ensure all images in hero are visible */
-#hero img {
-  opacity: 1 !important;
-  visibility: visible !important;
-  display: block !important;
-}
-
-/* Fix for fallback images */
-img[src*="unsplash.com"],
-img[src*="images.unsplash.com"] {
-  background-color: #f3f4f6;
-}
-
-/* ===== GRADIENT TEXT ===== */
-.gradient-text {
-  background: linear-gradient(135deg, #06EAFC 0%, #0be4f3 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ===== SHADOW UTILITIES ===== */
-.shadow-soft {
-  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
-}
-
-.shadow-medium {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
-}
-
-.shadow-hard {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
-
-/* ===== TRANSITION UTILITIES ===== */
-.transition-all-300 {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.transition-transform-300 {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Bottom gradient fade - Minimal */
-.bottom-gradient-fade-minimal {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 1.5rem;
-  background: linear-gradient(to top, rgba(255, 255, 255, 0.5), transparent);
-  pointer-events: none;
-  opacity: 0.5;
-}
-
 /* ===== CLEANUP ===== */
 * {
   box-sizing: border-box;
@@ -657,11 +942,4 @@ img[src*="images.unsplash.com"] {
 /* Smooth scrolling for anchor links */
 html:focus-within {
   scroll-behavior: smooth;
-}
-
-/* Improve text rendering */
-body {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
