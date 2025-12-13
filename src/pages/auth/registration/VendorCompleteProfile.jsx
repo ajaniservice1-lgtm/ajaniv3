@@ -21,7 +21,8 @@ import {
   DollarSign,
   Package,
 } from "lucide-react";
-import Logo from "../../../assets/Logos/logo5.png";
+import Header from "../../../components/Header";
+import Footer from "../../../components/Footer";
 
 const VendorCompleteProfile = () => {
   const navigate = useNavigate();
@@ -518,76 +519,10 @@ const VendorCompleteProfile = () => {
   );
 
   return (
-    <div className="min-h-screen bg-white font-manrope">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <img src={Logo} alt="Ajani Logo" className="h-10" />
-              <h1 className="text-xl font-bold text-gray-900 hidden md:block">
-                Vendor Profile
-              </h1>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate("/dashboard")}
-                className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
-              >
-                <ArrowLeft size={18} />
-                <span className="hidden sm:inline">Dashboard</span>
-              </button>
-              {!editMode ? (
-                <button
-                  onClick={() => setEditMode(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
-                >
-                  <Edit2 size={16} />
-                  Edit Profile
-                </button>
-              ) : (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setEditMode(false);
-                      setForm({
-                        firstName: vendor.firstName,
-                        lastName: vendor.lastName,
-                        fullName: vendor.fullName,
-                        email: vendor.email,
-                        phone: vendor.phone,
-                        address: vendor.address,
-                        description: vendor.description,
-                        businessName: vendor.businessName,
-                        businessType: vendor.businessType,
-                        workType: vendor.workType,
-                        location: vendor.location,
-                        hourlyRate: vendor.hourlyRate,
-                        minOrder: vendor.minOrder,
-                        services: vendor.services.join(", "),
-                        specialties: vendor.specialties.join(", "),
-                        yearsExperience: vendor.yearsExperience,
-                        businessHours: vendor.businessHours,
-                      });
-                    }}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={saveProfileChanges}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold"
-                  >
-                    Save Changes
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-white font-manrope flex flex-col">
+      <Header />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 py-8 mt-15">
         {/* Cover Photo */}
         <div className="relative mb-8">
           <div className="h-48 md:h-64 rounded-2xl overflow-hidden bg-gradient-to-r from-blue-500 to-teal-400 relative">
@@ -1333,7 +1268,9 @@ const VendorCompleteProfile = () => {
             </div>
           </div>
         </div>
-      </div>
+      </main>
+
+      <Footer />
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
-import Logo from "../../assets/Logos/logo5.png";
+import Logo from "../../../assets/Logos/logo5.png";
 
 const VendorProcess2 = () => {
   const navigate = useNavigate();
