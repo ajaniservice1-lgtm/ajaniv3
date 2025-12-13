@@ -1576,35 +1576,16 @@ const FilterSidebar = ({
     applyFiltersImmediately(updatedFilters);
   };
 
-  const handleClearAllFilters = () => {
-    const resetFilters = {
-      locations: [],
-      categories: [],
-      priceRange: { min: "", max: "" },
-      ratings: [],
-      sortBy: "relevance",
-      amenities: [],
-    };
-    setFilters(resetFilters);
-    setLocationSearch("");
-    setCategorySearch("");
-    onFilterChange(resetFilters);
-
-    if (onDynamicFilterApply) {
-      onDynamicFilterApply({
-        filters: resetFilters,
-        categories: [],
-        locations: [],
-        keepSearchQuery: currentSearchQuery,
-      });
-    }
-  };
-
   const sidebarContent = (
     <div
-      className={`space-y-6 ${
-        isMobileModal || isDesktopModal ? "p-4 sm:p-6" : ""
-      }`}
+      className={`space-y-6 ${isMobileModal ? "px-0" : ""}`}
+      style={{
+        // Ensure content stretches to screen edges on mobile
+        marginLeft: isMobileModal ? "-1rem" : "0",
+        marginRight: isMobileModal ? "-1rem" : "0",
+        paddingLeft: isMobileModal ? "1rem" : "0",
+        paddingRight: isMobileModal ? "1rem" : "0",
+      }}
     >
       {(isMobileModal || isDesktopModal) && (
         <div className="flex justify-between items-center border-b pb-4 mb-4">
@@ -1624,7 +1605,7 @@ const FilterSidebar = ({
         </div>
       )}
 
-      {/* LOCATION SECTION WITH SEARCH */}
+      {/* LOCATION SECTION WITH SEARCH - Reduced padding */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("location")}
@@ -1634,7 +1615,7 @@ const FilterSidebar = ({
             <FontAwesomeIcon icon={faMapMarkerAlt} className="text-blue-500" />
             <h4 className="font-semibold text-gray-900 text-base">Location</h4>
             {filters.locations.length > 0 && (
-              <span className="bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full">
+              <span className="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full">
                 {filters.locations.length}
               </span>
             )}
@@ -1658,7 +1639,13 @@ const FilterSidebar = ({
                   placeholder="Search locations..."
                   value={locationSearch}
                   onChange={(e) => setLocationSearch(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="w-full pl-10 pr-8 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  style={{
+                    width: isMobileModal ? "100%" : "100%",
+                    fontSize: isMobileModal ? "14px" : "inherit",
+                    paddingLeft: isMobileModal ? "2.5rem" : "2.5rem",
+                    paddingRight: isMobileModal ? "2rem" : "2rem",
+                  }}
                 />
                 {locationSearch && (
                   <button
@@ -1684,7 +1671,7 @@ const FilterSidebar = ({
                 </span>
               </div>
             </div>
-            <div className="max-h-48 overflow-y-auto pr-2">
+            <div className="max-h-52 overflow-y-auto pr-1">
               {filteredLocationDisplayNames.length === 0 ? (
                 <div className="text-center py-4 text-gray-500 text-sm">
                   No locations found matching "{locationSearch}"
@@ -1694,13 +1681,21 @@ const FilterSidebar = ({
                   {filteredLocationDisplayNames.map((location, index) => (
                     <label
                       key={index}
-                      className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex items-center space-x-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                      style={{
+                        paddingLeft: isMobileModal ? "0.25rem" : "0.5rem",
+                        paddingRight: isMobileModal ? "0.25rem" : "0.5rem",
+                      }}
                     >
                       <input
                         type="checkbox"
                         checked={filters.locations.includes(location)}
                         onChange={() => handleLocationChange(location)}
                         className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+                        style={{
+                          transform: isMobileModal ? "scale(1.1)" : "scale(1)",
+                          marginRight: isMobileModal ? "0.5rem" : "0.25rem",
+                        }}
                       />
                       <span
                         className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
@@ -1708,13 +1703,17 @@ const FilterSidebar = ({
                             ? "text-blue-700 font-medium"
                             : "text-gray-700"
                         }`}
+                        style={{
+                          fontSize: isMobileModal ? "14px" : "inherit",
+                          flex: 1,
+                        }}
                       >
                         {location}
                       </span>
                       {filters.locations.includes(location) && (
                         <FontAwesomeIcon
                           icon={faCheck}
-                          className="ml-auto text-xs text-blue-600"
+                          className="text-sm text-blue-600"
                         />
                       )}
                     </label>
@@ -1735,7 +1734,7 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* CATEGORY SECTION WITH SEARCH */}
+      {/* CATEGORY SECTION WITH SEARCH - Reduced padding */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("category")}
@@ -1745,7 +1744,7 @@ const FilterSidebar = ({
             <FontAwesomeIcon icon={faFilter} className="text-green-500" />
             <h4 className="font-semibold text-gray-900 text-base">Category</h4>
             {filters.categories.length > 0 && (
-              <span className="bg-green-100 text-green-600 text-xs px-2 py-0.5 rounded-full">
+              <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full">
                 {filters.categories.length}
               </span>
             )}
@@ -1769,7 +1768,13 @@ const FilterSidebar = ({
                   placeholder="Search categories..."
                   value={categorySearch}
                   onChange={(e) => setCategorySearch(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  className="w-full pl-10 pr-8 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  style={{
+                    width: isMobileModal ? "100%" : "100%",
+                    fontSize: isMobileModal ? "14px" : "inherit",
+                    paddingLeft: isMobileModal ? "2.5rem" : "2.5rem",
+                    paddingRight: isMobileModal ? "2rem" : "2rem",
+                  }}
                 />
                 {categorySearch && (
                   <button
@@ -1795,7 +1800,7 @@ const FilterSidebar = ({
                 </span>
               </div>
             </div>
-            <div className="max-h-48 overflow-y-auto pr-2">
+            <div className="max-h-52 overflow-y-auto pr-1">
               {filteredCategoryDisplayNames.length === 0 ? (
                 <div className="text-center py-4 text-gray-500 text-sm">
                   No categories found matching "{categorySearch}"
@@ -1805,13 +1810,21 @@ const FilterSidebar = ({
                   {filteredCategoryDisplayNames.map((category, index) => (
                     <label
                       key={index}
-                      className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex items-center space-x-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                      style={{
+                        paddingLeft: isMobileModal ? "0.25rem" : "0.5rem",
+                        paddingRight: isMobileModal ? "0.25rem" : "0.5rem",
+                      }}
                     >
                       <input
                         type="checkbox"
                         checked={filters.categories.includes(category)}
                         onChange={() => handleCategoryChange(category)}
                         className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 transition-colors"
+                        style={{
+                          transform: isMobileModal ? "scale(1.1)" : "scale(1)",
+                          marginRight: isMobileModal ? "0.5rem" : "0.25rem",
+                        }}
                       />
                       <span
                         className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
@@ -1819,13 +1832,17 @@ const FilterSidebar = ({
                             ? "text-green-700 font-medium"
                             : "text-gray-700"
                         }`}
+                        style={{
+                          fontSize: isMobileModal ? "14px" : "inherit",
+                          flex: 1,
+                        }}
                       >
                         {category}
                       </span>
                       {filters.categories.includes(category) && (
                         <FontAwesomeIcon
                           icon={faCheck}
-                          className="ml-auto text-xs text-green-600"
+                          className="text-sm text-green-600"
                         />
                       )}
                     </label>
@@ -1846,7 +1863,7 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* PRICE RANGE SECTION */}
+      {/* PRICE RANGE SECTION - Reduced padding */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("price")}
@@ -1858,7 +1875,7 @@ const FilterSidebar = ({
               Price Range
             </h4>
             {(filters.priceRange.min || filters.priceRange.max) && (
-              <span className="bg-yellow-100 text-yellow-600 text-xs px-2 py-0.5 rounded-full">
+              <span className="bg-yellow-100 text-yellow-600 text-xs px-2 py-1 rounded-full">
                 Set
               </span>
             )}
@@ -1870,8 +1887,8 @@ const FilterSidebar = ({
         </button>
 
         {expandedSections.price && (
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
               <div className="flex-1">
                 <label className="block text-sm text-gray-600 mb-1">
                   Min Price
@@ -1885,11 +1902,14 @@ const FilterSidebar = ({
                     placeholder="2,500"
                     value={filters.priceRange.min}
                     onChange={(e) => handlePriceChange("min", e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    style={{
+                      fontSize: isMobileModal ? "14px" : "inherit",
+                    }}
                   />
                 </div>
               </div>
-              <span className="text-gray-500 font-medium mt-6">to</span>
+              <span className="text-gray-500 font-medium mt-6 text-sm">to</span>
               <div className="flex-1">
                 <label className="block text-sm text-gray-600 mb-1">
                   Max Price
@@ -1903,7 +1923,10 @@ const FilterSidebar = ({
                     placeholder="50,000"
                     value={filters.priceRange.max}
                     onChange={(e) => handlePriceChange("max", e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    style={{
+                      fontSize: isMobileModal ? "14px" : "inherit",
+                    }}
                   />
                 </div>
               </div>
@@ -1918,7 +1941,7 @@ const FilterSidebar = ({
                     };
                     applyFiltersImmediately(updatedFilters);
                   }}
-                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Clear Price Range
                 </button>
@@ -1928,7 +1951,7 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* RATING SECTION */}
+      {/* RATING SECTION - Reduced padding */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("rating")}
@@ -1940,7 +1963,7 @@ const FilterSidebar = ({
               Minimum Rating
             </h4>
             {filters.ratings.length > 0 && (
-              <span className="bg-yellow-100 text-yellow-600 text-xs px-2 py-0.5 rounded-full">
+              <span className="bg-yellow-100 text-yellow-600 text-xs px-2 py-1 rounded-full">
                 {filters.ratings.length}
               </span>
             )}
@@ -1956,13 +1979,21 @@ const FilterSidebar = ({
             {[5, 4, 3, 2, 1].map((stars) => (
               <label
                 key={stars}
-                className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center space-x-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                style={{
+                  paddingLeft: isMobileModal ? "0.25rem" : "0.5rem",
+                  paddingRight: isMobileModal ? "0.25rem" : "0.5rem",
+                }}
               >
                 <input
                   type="checkbox"
                   checked={filters.ratings.includes(stars)}
                   onChange={() => handleRatingChange(stars)}
                   className="w-4 h-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500 transition-colors"
+                  style={{
+                    transform: isMobileModal ? "scale(1.1)" : "scale(1)",
+                    marginRight: isMobileModal ? "0.5rem" : "0.25rem",
+                  }}
                 />
                 <div className="flex items-center space-x-2">
                   <div className="flex">
@@ -1998,7 +2029,7 @@ const FilterSidebar = ({
                     };
                     applyFiltersImmediately(updatedFilters);
                   }}
-                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Clear Ratings
                 </button>
@@ -2008,7 +2039,7 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* SORTING SECTION - Only show for mobile modals (REMOVED from desktop sidebar) */}
+      {/* SORTING SECTION - Only show for mobile modals - Reduced padding */}
       {isMobileModal && (
         <div className="border-b pb-4">
           <button
@@ -2019,7 +2050,7 @@ const FilterSidebar = ({
               <FontAwesomeIcon icon={faFilter} className="text-purple-500" />
               <h4 className="font-semibold text-gray-900 text-base">Sort By</h4>
               {filters.sortBy !== "relevance" && (
-                <span className="bg-purple-100 text-purple-600 text-xs px-2 py-0.5 rounded-full">
+                <span className="bg-purple-100 text-purple-600 text-xs px-2 py-1 rounded-full">
                   Active
                 </span>
               )}
@@ -2041,7 +2072,11 @@ const FilterSidebar = ({
               ].map((option) => (
                 <label
                   key={option.value}
-                  className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex items-center space-x-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                  style={{
+                    paddingLeft: isMobileModal ? "0.25rem" : "0.5rem",
+                    paddingRight: isMobileModal ? "0.25rem" : "0.5rem",
+                  }}
                 >
                   <input
                     type="radio"
@@ -2049,6 +2084,10 @@ const FilterSidebar = ({
                     checked={filters.sortBy === option.value}
                     onChange={() => handleSortChange(option.value)}
                     className="w-4 h-4 rounded-full border-gray-300 text-purple-600 focus:ring-purple-500 transition-colors"
+                    style={{
+                      transform: isMobileModal ? "scale(1.1)" : "scale(1)",
+                      marginRight: isMobileModal ? "0.5rem" : "0.25rem",
+                    }}
                   />
                   <span
                     className={`text-sm group-hover:text-[#06EAFC] transition-colors ${
@@ -2056,6 +2095,10 @@ const FilterSidebar = ({
                         ? "text-purple-700 font-medium"
                         : "text-gray-700"
                     }`}
+                    style={{
+                      fontSize: isMobileModal ? "14px" : "inherit",
+                      flex: 1,
+                    }}
                   >
                     {option.label}
                   </span>
@@ -2065,12 +2108,10 @@ const FilterSidebar = ({
           )}
         </div>
       )}
-
-      
     </div>
   );
 
-  // Mobile Modal - Fullscreen
+  // Mobile Modal - Fullscreen with NO duplicate header
   if (isMobileModal) {
     return createPortal(
       <motion.div
@@ -2085,32 +2126,59 @@ const FilterSidebar = ({
           left: 0,
           right: 0,
           bottom: 0,
-          width: "100%",
-          height: "100%",
+          width: "100vw",
+          height: "100vh",
+          maxWidth: "100vw",
         }}
       >
-        <div className="h-full overflow-y-auto">
-          <div className="sticky top-0 bg-white border-b border-gray-200 shadow-sm z-10">
-            <div className="flex items-center justify-between p-4">
-              <h3 className="text-xl font-bold text-gray-900">Filter & Sort</h3>
+        <div className="h-full overflow-y-auto w-full">
+          {/* Main content with increased width */}
+          <div
+            className="pt-5"
+            style={{
+              paddingLeft: "1rem",
+              paddingRight: "1rem",
+              maxWidth: "100vw",
+            }}
+          >
+            {/* Header with Filter & Sort and Cancel button on same line */}
+            <div className="flex items-center justify-between mb-6 px-1">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">
+                  Filter & Sort
+                </h3>
+                <p className="text-base text-gray-500 mt-1">
+                  Refine your search results
+                </p>
+              </div>
               <button
                 onClick={onClose}
-                className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl"
+                className="text-base font-medium text-gray-600 hover:text-gray-900 px-4 py-2"
                 aria-label="Close filters"
               >
-                ×
+                Cancel
               </button>
             </div>
-          </div>
-          <div className="p-4">{sidebarContent}</div>
 
-          {/* Mobile Action Buttons - Changed to Apply Filter */}
-          <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg">
+            {sidebarContent}
+          </div>
+
+          {/* Mobile Action Buttons - Wider and closer to screen edges */}
+          <div
+            className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]"
+            style={{
+              paddingLeft: "1rem",
+              paddingRight: "1rem",
+            }}
+          >
             <button
               onClick={onClose}
-              className="w-full px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2"
+              className="w-full px-4 py-3.5 text-base font-bold bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2 shadow-lg"
+              style={{
+                fontSize: "16px",
+              }}
             >
-              <FontAwesomeIcon icon={faCheck} />
+              <FontAwesomeIcon icon={faCheck} className="text-base" />
               Apply Filter
             </button>
           </div>

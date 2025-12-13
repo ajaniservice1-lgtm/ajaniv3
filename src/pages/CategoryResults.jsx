@@ -1604,119 +1604,134 @@ const FilterSidebar = ({
 
   const sidebarContent = (
     <div
-      className={`space-y-6 ${
-        isMobileModal || isDesktopModal ? "p-4 sm:p-6" : ""
-      }`}
+      className={`space-y-8 ${isMobileModal ? "px-0" : ""}`} // Removed horizontal padding for mobile modal
+      style={{
+        // Ensure content stretches to screen edges on mobile
+        marginLeft: isMobileModal ? "-1rem" : "0",
+        marginRight: isMobileModal ? "-1rem" : "0",
+        paddingLeft: isMobileModal ? "1.5rem" : "0",
+        paddingRight: isMobileModal ? "1.5rem" : "0",
+      }}
     >
-      {(isMobileModal || isDesktopModal) && (
-        <div className="flex justify-between items-center border-b pb-4 mb-4">
-          <div>
-            <h3 className="text-xl font-bold text-gray-900">Filter & Sort</h3>
-            <p className="text-sm text-gray-500 mt-1">
-              Refine your search results
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl"
-            aria-label="Close filters"
-          >
-            ×
-          </button>
-        </div>
-      )}
+      {/* REMOVED DUPLICATE HEADING SECTION */}
 
-      {/* LOCATION SECTION WITH SEARCH */}
-      <div className="border-b pb-4">
+      {/* LOCATION SECTION WITH SEARCH - WIDER ON MOBILE */}
+      <div className="border-b pb-6">
         <button
           onClick={() => toggleSection("location")}
-          className="w-full flex justify-between items-center mb-3"
+          className="w-full flex justify-between items-center mb-4"
+          style={{
+            paddingLeft: isMobileModal ? "0" : "0",
+            paddingRight: isMobileModal ? "0" : "0",
+          }}
         >
-          <div className="flex items-center gap-2">
-            <FontAwesomeIcon icon={faMapMarkerAlt} className="text-blue-500" />
-            <h4 className="font-semibold text-gray-900 text-base">Location</h4>
+          <div className="flex items-center gap-3">
+            <FontAwesomeIcon
+              icon={faMapMarkerAlt}
+              className="text-blue-500 text-xl"
+            />
+            <h4 className="font-bold text-gray-900 text-lg">Location</h4>
             {filters.locations.length > 0 && (
-              <span className="bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full">
+              <span className="bg-blue-100 text-blue-600 text-sm px-3 py-1 rounded-full">
                 {filters.locations.length}
               </span>
             )}
           </div>
           <FontAwesomeIcon
             icon={expandedSections.location ? faChevronUp : faChevronDown}
-            className="text-gray-400"
+            className="text-gray-400 text-lg"
           />
         </button>
 
         {expandedSections.location && (
           <>
-            <div className="mb-3">
-              <div className="relative mb-3">
+            <div className="mb-4">
+              <div className="relative mb-4">
                 <FontAwesomeIcon
                   icon={faSearch}
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg"
                 />
                 <input
                   type="text"
                   placeholder="Search locations..."
                   value={locationSearch}
                   onChange={(e) => setLocationSearch(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="w-full pl-12 pr-10 py-3.5 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  style={{
+                    // Wider input on mobile
+                    width: isMobileModal ? "100%" : "100%",
+                    fontSize: isMobileModal ? "16px" : "inherit",
+                    paddingLeft: isMobileModal ? "3.5rem" : "3rem",
+                    paddingRight: isMobileModal ? "3rem" : "2.5rem",
+                  }}
                 />
                 {locationSearch && (
                   <button
                     onClick={() => setLocationSearch("")}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    <FontAwesomeIcon icon={faTimes} className="text-sm" />
+                    <FontAwesomeIcon icon={faTimes} className="text-lg" />
                   </button>
                 )}
               </div>
-              <div className="flex justify-between mb-2">
+              <div className="flex justify-between mb-3">
                 <button
                   onClick={handleSelectAllLocations}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-base text-blue-600 hover:text-blue-700 font-semibold"
                 >
                   {filters.locations.length ===
                   uniqueLocationDisplayNames.length
                     ? "Clear All Locations"
                     : "Select All Locations"}
                 </button>
-                <span className="text-xs text-gray-500">
+                <span className="text-sm text-gray-500">
                   {filteredLocationDisplayNames.length} locations
                 </span>
               </div>
             </div>
-            <div className="max-h-48 overflow-y-auto pr-2">
+            <div className="max-h-60 overflow-y-auto pr-2">
               {filteredLocationDisplayNames.length === 0 ? (
-                <div className="text-center py-4 text-gray-500 text-sm">
+                <div className="text-center py-6 text-gray-500 text-base">
                   No locations found matching "{locationSearch}"
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-2">
+                <div className="grid grid-cols-1 gap-3">
                   {filteredLocationDisplayNames.map((location, index) => (
                     <label
                       key={index}
-                      className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex items-center space-x-4 cursor-pointer group p-3 rounded-xl hover:bg-gray-50 transition-colors"
+                      style={{
+                        paddingLeft: isMobileModal ? "0.5rem" : "0.75rem",
+                        paddingRight: isMobileModal ? "0.5rem" : "0.75rem",
+                      }}
                     >
                       <input
                         type="checkbox"
                         checked={filters.locations.includes(location)}
                         onChange={() => handleLocationChange(location)}
-                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+                        className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+                        style={{
+                          transform: isMobileModal ? "scale(1.2)" : "scale(1)",
+                          marginRight: isMobileModal ? "0.75rem" : "0.5rem",
+                        }}
                       />
                       <span
-                        className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
+                        className={`text-base group-hover:text-[#06EAFC] transition-colors truncate ${
                           filters.locations.includes(location)
-                            ? "text-blue-700 font-medium"
+                            ? "text-blue-700 font-semibold"
                             : "text-gray-700"
                         }`}
+                        style={{
+                          fontSize: isMobileModal ? "16px" : "inherit",
+                          flex: 1,
+                        }}
                       >
                         {location}
                       </span>
                       {filters.locations.includes(location) && (
                         <FontAwesomeIcon
                           icon={faCheck}
-                          className="ml-auto text-xs text-blue-600"
+                          className="text-base text-blue-600"
                         />
                       )}
                     </label>
@@ -1725,8 +1740,8 @@ const FilterSidebar = ({
               )}
             </div>
             {filters.locations.length > 0 && (
-              <div className="mt-3 p-2 bg-blue-50 rounded-lg">
-                <p className="text-xs text-blue-800">
+              <div className="mt-4 p-3 bg-blue-50 rounded-xl">
+                <p className="text-sm text-blue-800">
                   Selected: {filters.locations.slice(0, 3).join(", ")}
                   {filters.locations.length > 3 &&
                     ` +${filters.locations.length - 3} more`}
@@ -1737,97 +1752,123 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* CATEGORY SECTION WITH SEARCH */}
-      <div className="border-b pb-4">
+      {/* CATEGORY SECTION WITH SEARCH - WIDER ON MOBILE */}
+      <div className="border-b pb-6">
         <button
           onClick={() => toggleSection("category")}
-          className="w-full flex justify-between items-center mb-3"
+          className="w-full flex justify-between items-center mb-4"
+          style={{
+            paddingLeft: isMobileModal ? "0" : "0",
+            paddingRight: isMobileModal ? "0" : "0",
+          }}
         >
-          <div className="flex items-center gap-2">
-            <FontAwesomeIcon icon={faFilter} className="text-green-500" />
-            <h4 className="font-semibold text-gray-900 text-base">Category</h4>
+          <div className="flex items-center gap-3">
+            <FontAwesomeIcon
+              icon={faFilter}
+              className="text-green-500 text-xl"
+            />
+            <h4 className="font-bold text-gray-900 text-lg">Category</h4>
             {filters.categories.length > 0 && (
-              <span className="bg-green-100 text-green-600 text-xs px-2 py-0.5 rounded-full">
+              <span className="bg-green-100 text-green-600 text-sm px-3 py-1 rounded-full">
                 {filters.categories.length}
               </span>
             )}
           </div>
           <FontAwesomeIcon
             icon={expandedSections.category ? faChevronUp : faChevronDown}
-            className="text-gray-400"
+            className="text-gray-400 text-lg"
           />
         </button>
 
         {expandedSections.category && (
           <>
-            <div className="mb-3">
-              <div className="relative mb-3">
+            <div className="mb-4">
+              <div className="relative mb-4">
                 <FontAwesomeIcon
                   icon={faSearch}
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg"
                 />
                 <input
                   type="text"
                   placeholder="Search categories..."
                   value={categorySearch}
                   onChange={(e) => setCategorySearch(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  className="w-full pl-12 pr-10 py-3.5 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  style={{
+                    // Wider input on mobile
+                    width: isMobileModal ? "100%" : "100%",
+                    fontSize: isMobileModal ? "16px" : "inherit",
+                    paddingLeft: isMobileModal ? "3.5rem" : "3rem",
+                    paddingRight: isMobileModal ? "3rem" : "2.5rem",
+                  }}
                 />
                 {categorySearch && (
                   <button
                     onClick={() => setCategorySearch("")}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    <FontAwesomeIcon icon={faTimes} className="text-sm" />
+                    <FontAwesomeIcon icon={faTimes} className="text-lg" />
                   </button>
                 )}
               </div>
-              <div className="flex justify-between mb-2">
+              <div className="flex justify-between mb-3">
                 <button
                   onClick={handleSelectAllCategories}
-                  className="text-sm text-green-600 hover:text-green-700 font-medium"
+                  className="text-base text-green-600 hover:text-green-700 font-semibold"
                 >
                   {filters.categories.length ===
                   uniqueCategoryDisplayNames.length
                     ? "Clear All Categories"
                     : "Select All Categories"}
                 </button>
-                <span className="text-xs text-gray-500">
+                <span className="text-sm text-gray-500">
                   {filteredCategoryDisplayNames.length} categories
                 </span>
               </div>
             </div>
-            <div className="max-h-48 overflow-y-auto pr-2">
+            <div className="max-h-60 overflow-y-auto pr-2">
               {filteredCategoryDisplayNames.length === 0 ? (
-                <div className="text-center py-4 text-gray-500 text-sm">
+                <div className="text-center py-6 text-gray-500 text-base">
                   No categories found matching "{categorySearch}"
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-2">
+                <div className="grid grid-cols-1 gap-3">
                   {filteredCategoryDisplayNames.map((category, index) => (
                     <label
                       key={index}
-                      className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex items-center space-x-4 cursor-pointer group p-3 rounded-xl hover:bg-gray-50 transition-colors"
+                      style={{
+                        paddingLeft: isMobileModal ? "0.5rem" : "0.75rem",
+                        paddingRight: isMobileModal ? "0.5rem" : "0.75rem",
+                      }}
                     >
                       <input
                         type="checkbox"
                         checked={filters.categories.includes(category)}
                         onChange={() => handleCategoryChange(category)}
-                        className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 transition-colors"
+                        className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500 transition-colors"
+                        style={{
+                          transform: isMobileModal ? "scale(1.2)" : "scale(1)",
+                          marginRight: isMobileModal ? "0.75rem" : "0.5rem",
+                        }}
                       />
                       <span
-                        className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
+                        className={`text-base group-hover:text-[#06EAFC] transition-colors truncate ${
                           filters.categories.includes(category)
-                            ? "text-green-700 font-medium"
+                            ? "text-green-700 font-semibold"
                             : "text-gray-700"
                         }`}
+                        style={{
+                          fontSize: isMobileModal ? "16px" : "inherit",
+                          flex: 1,
+                        }}
                       >
                         {category}
                       </span>
                       {filters.categories.includes(category) && (
                         <FontAwesomeIcon
                           icon={faCheck}
-                          className="ml-auto text-xs text-green-600"
+                          className="text-base text-green-600"
                         />
                       )}
                     </label>
@@ -1836,8 +1877,8 @@ const FilterSidebar = ({
               )}
             </div>
             {filters.categories.length > 0 && (
-              <div className="mt-3 p-2 bg-green-50 rounded-lg">
-                <p className="text-xs text-green-800">
+              <div className="mt-4 p-3 bg-green-50 rounded-xl">
+                <p className="text-sm text-green-800">
                   Selected: {filters.categories.slice(0, 3).join(", ")}
                   {filters.categories.length > 3 &&
                     ` +${filters.categories.length - 3} more`}
@@ -1848,64 +1889,71 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* PRICE RANGE SECTION */}
-      <div className="border-b pb-4">
+      {/* PRICE RANGE SECTION - WIDER ON MOBILE */}
+      <div className="border-b pb-6">
         <button
           onClick={() => toggleSection("price")}
-          className="w-full flex justify-between items-center mb-3"
+          className="w-full flex justify-between items-center mb-4"
         >
-          <div className="flex items-center gap-2">
-            <FontAwesomeIcon icon={faDollarSign} className="text-yellow-500" />
-            <h4 className="font-semibold text-gray-900 text-base">
-              Price Range
-            </h4>
+          <div className="flex items-center gap-3">
+            <FontAwesomeIcon
+              icon={faDollarSign}
+              className="text-yellow-500 text-xl"
+            />
+            <h4 className="font-bold text-gray-900 text-lg">Price Range</h4>
             {(filters.priceRange.min || filters.priceRange.max) && (
-              <span className="bg-yellow-100 text-yellow-600 text-xs px-2 py-0.5 rounded-full">
+              <span className="bg-yellow-100 text-yellow-600 text-sm px-3 py-1 rounded-full">
                 Set
               </span>
             )}
           </div>
           <FontAwesomeIcon
             icon={expandedSections.price ? faChevronUp : faChevronDown}
-            className="text-gray-400"
+            className="text-gray-400 text-lg"
           />
         </button>
 
         {expandedSections.price && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="flex items-center space-x-3">
               <div className="flex-1">
-                <label className="block text-sm text-gray-600 mb-1">
+                <label className="block text-base text-gray-600 mb-2 font-medium">
                   Min Price
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                    #
+                  <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg">
+                    ₦
                   </span>
                   <input
                     type="number"
                     placeholder="2,500"
                     value={filters.priceRange.min}
                     onChange={(e) => handlePriceChange("min", e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="w-full pl-12 pr-4 py-3.5 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    style={{
+                      fontSize: isMobileModal ? "16px" : "inherit",
+                    }}
                   />
                 </div>
               </div>
-              <span className="text-gray-500 font-medium mt-6">to</span>
+              <span className="text-gray-500 font-medium mt-8 text-lg">to</span>
               <div className="flex-1">
-                <label className="block text-sm text-gray-600 mb-1">
+                <label className="block text-base text-gray-600 mb-2 font-medium">
                   Max Price
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                    #
+                  <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg">
+                    ₦
                   </span>
                   <input
                     type="number"
                     placeholder="50,000"
                     value={filters.priceRange.max}
                     onChange={(e) => handlePriceChange("max", e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="w-full pl-12 pr-4 py-3.5 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    style={{
+                      fontSize: isMobileModal ? "16px" : "inherit",
+                    }}
                   />
                 </div>
               </div>
@@ -1920,7 +1968,7 @@ const FilterSidebar = ({
                     };
                     applyFiltersImmediately(updatedFilters);
                   }}
-                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="text-sm text-gray-500 hover:text-gray-700 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                 >
                   Clear Price Range
                 </button>
@@ -1930,58 +1978,67 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* RATING SECTION */}
-      <div className="border-b pb-4">
+      {/* RATING SECTION - WIDER ON MOBILE */}
+      <div className="border-b pb-6">
         <button
           onClick={() => toggleSection("rating")}
-          className="w-full flex justify-between items-center mb-3"
+          className="w-full flex justify-between items-center mb-4"
         >
-          <div className="flex items-center gap-2">
-            <FontAwesomeIcon icon={faStar} className="text-yellow-500" />
-            <h4 className="font-semibold text-gray-900 text-base">
-              Minimum Rating
-            </h4>
+          <div className="flex items-center gap-3">
+            <FontAwesomeIcon
+              icon={faStar}
+              className="text-yellow-500 text-xl"
+            />
+            <h4 className="font-bold text-gray-900 text-lg">Minimum Rating</h4>
             {filters.ratings.length > 0 && (
-              <span className="bg-yellow-100 text-yellow-600 text-xs px-2 py-0.5 rounded-full">
+              <span className="bg-yellow-100 text-yellow-600 text-sm px-3 py-1 rounded-full">
                 {filters.ratings.length}
               </span>
             )}
           </div>
           <FontAwesomeIcon
             icon={expandedSections.rating ? faChevronUp : faChevronDown}
-            className="text-gray-400"
+            className="text-gray-400 text-lg"
           />
         </button>
 
         {expandedSections.rating && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {[5, 4, 3, 2, 1].map((stars) => (
               <label
                 key={stars}
-                className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center space-x-4 cursor-pointer group p-3 rounded-xl hover:bg-gray-50 transition-colors"
+                style={{
+                  paddingLeft: isMobileModal ? "0.5rem" : "0.75rem",
+                  paddingRight: isMobileModal ? "0.5rem" : "0.75rem",
+                }}
               >
                 <input
                   type="checkbox"
                   checked={filters.ratings.includes(stars)}
                   onChange={() => handleRatingChange(stars)}
-                  className="w-4 h-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500 transition-colors"
+                  className="w-5 h-5 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500 transition-colors"
+                  style={{
+                    transform: isMobileModal ? "scale(1.2)" : "scale(1)",
+                    marginRight: isMobileModal ? "0.75rem" : "0.5rem",
+                  }}
                 />
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-3 flex-1">
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
                       <FontAwesomeIcon
                         key={i}
                         icon={faStar}
-                        className={`text-sm ${
+                        className={`text-lg ${
                           i < stars ? "text-yellow-400" : "text-gray-300"
                         }`}
                       />
                     ))}
                   </div>
                   <span
-                    className={`text-sm group-hover:text-[#06EAFC] transition-colors ${
+                    className={`text-base group-hover:text-[#06EAFC] transition-colors ${
                       filters.ratings.includes(stars)
-                        ? "text-yellow-700 font-medium"
+                        ? "text-yellow-700 font-semibold"
                         : "text-gray-700"
                     }`}
                   >
@@ -1991,7 +2048,7 @@ const FilterSidebar = ({
               </label>
             ))}
             {filters.ratings.length > 0 && (
-              <div className="flex justify-center mt-2">
+              <div className="flex justify-center mt-3">
                 <button
                   onClick={() => {
                     const updatedFilters = {
@@ -2000,7 +2057,7 @@ const FilterSidebar = ({
                     };
                     applyFiltersImmediately(updatedFilters);
                   }}
-                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="text-sm text-gray-500 hover:text-gray-700 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                 >
                   Clear Ratings
                 </button>
@@ -2010,30 +2067,33 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* SORTING SECTION - Only show for mobile modals (REMOVED from desktop sidebar) */}
+      {/* SORTING SECTION - Only show for mobile modals */}
       {isMobileModal && (
-        <div className="border-b pb-4">
+        <div className="border-b pb-6">
           <button
             onClick={() => toggleSection("sort")}
-            className="w-full flex justify-between items-center mb-3"
+            className="w-full flex justify-between items-center mb-4"
           >
-            <div className="flex items-center gap-2">
-              <FontAwesomeIcon icon={faFilter} className="text-purple-500" />
-              <h4 className="font-semibold text-gray-900 text-base">Sort By</h4>
+            <div className="flex items-center gap-3">
+              <FontAwesomeIcon
+                icon={faFilter}
+                className="text-purple-500 text-xl"
+              />
+              <h4 className="font-bold text-gray-900 text-lg">Sort By</h4>
               {filters.sortBy !== "relevance" && (
-                <span className="bg-purple-100 text-purple-600 text-xs px-2 py-0.5 rounded-full">
+                <span className="bg-purple-100 text-purple-600 text-sm px-3 py-1 rounded-full">
                   Active
                 </span>
               )}
             </div>
             <FontAwesomeIcon
               icon={expandedSections.sort ? faChevronUp : faChevronDown}
-              className="text-gray-400"
+              className="text-gray-400 text-lg"
             />
           </button>
 
           {expandedSections.sort && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {[
                 { value: "relevance", label: "Relevance" },
                 { value: "price_low", label: "Price: Low to High" },
@@ -2043,21 +2103,33 @@ const FilterSidebar = ({
               ].map((option) => (
                 <label
                   key={option.value}
-                  className="flex items-center space-x-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex items-center space-x-4 cursor-pointer group p-3 rounded-xl hover:bg-gray-50 transition-colors"
+                  style={{
+                    paddingLeft: isMobileModal ? "0.5rem" : "0.75rem",
+                    paddingRight: isMobileModal ? "0.5rem" : "0.75rem",
+                  }}
                 >
                   <input
                     type="radio"
                     name="sortBy"
                     checked={filters.sortBy === option.value}
                     onChange={() => handleSortChange(option.value)}
-                    className="w-4 h-4 rounded-full border-gray-300 text-purple-600 focus:ring-purple-500 transition-colors"
+                    className="w-5 h-5 rounded-full border-gray-300 text-purple-600 focus:ring-purple-500 transition-colors"
+                    style={{
+                      transform: isMobileModal ? "scale(1.2)" : "scale(1)",
+                      marginRight: isMobileModal ? "0.75rem" : "0.5rem",
+                    }}
                   />
                   <span
-                    className={`text-sm group-hover:text-[#06EAFC] transition-colors ${
+                    className={`text-base group-hover:text-[#06EAFC] transition-colors ${
                       filters.sortBy === option.value
-                        ? "text-purple-700 font-medium"
+                        ? "text-purple-700 font-semibold"
                         : "text-gray-700"
                     }`}
+                    style={{
+                      fontSize: isMobileModal ? "16px" : "inherit",
+                      flex: 1,
+                    }}
                   >
                     {option.label}
                   </span>
@@ -2068,39 +2140,11 @@ const FilterSidebar = ({
         </div>
       )}
 
-      {/* Status Message */}
-      <div className="pt-4">
-        <div className="text-center">
-          <p className="text-xs text-gray-500">
-            {filters.locations.length > 0 ||
-            filters.categories.length > 0 ||
-            filters.ratings.length > 0 ||
-            filters.priceRange.min ||
-            filters.priceRange.max ||
-            filters.sortBy !== "relevance" ? (
-              <>
-                <span className="text-green-600 font-medium">
-                  ✓ Active filters
-                </span>
-                <span className="text-gray-400 mx-2">•</span>
-                <button
-                  onClick={handleClearAllFilters}
-                  className="text-red-600 hover:text-red-700 font-medium"
-                >
-                  Clear all
-                </button>
-              </>
-            ) : (
-              "No filters applied"
-            )}
-          </p>
-          <p className="text-xs text-gray-400 mt-1">Changes apply instantly</p>
-        </div>
-      </div>
+      
     </div>
   );
 
-  // Mobile Modal - Fullscreen
+  // Mobile Modal - Fullscreen with NO duplicate header
   if (isMobileModal) {
     return createPortal(
       <motion.div
@@ -2115,32 +2159,59 @@ const FilterSidebar = ({
           left: 0,
           right: 0,
           bottom: 0,
-          width: "100%",
-          height: "100%",
+          width: "100vw",
+          height: "100vh",
+          maxWidth: "100vw",
         }}
       >
-        <div className="h-full overflow-y-auto">
-          <div className="sticky top-0 bg-white border-b border-gray-200 shadow-sm z-10">
-            <div className="flex items-center justify-between p-4">
-              <h3 className="text-xl font-bold text-gray-900">Filter & Sort</h3>
+        <div className="h-full overflow-y-auto w-full">
+          {/* Main content with increased width */}
+          <div
+            className="pt-5"
+            style={{
+              paddingLeft: "1rem",
+              paddingRight: "1rem",
+              maxWidth: "100vw",
+            }}
+          >
+            {/* Header with Filter & Sort and Cancel button on same line */}
+            <div className="flex items-center justify-between mb-6 px-1">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">
+                  Filter & Sort
+                </h3>
+                <p className="text-base text-gray-500 mt-1">
+                  Refine your search results
+                </p>
+              </div>
               <button
                 onClick={onClose}
-                className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl"
+                className="text-base font-medium text-gray-600 hover:text-gray-900 px-4 py-2"
                 aria-label="Close filters"
               >
-                ×
+                Cancel
               </button>
             </div>
-          </div>
-          <div className="p-4">{sidebarContent}</div>
 
-          {/* Mobile Action Buttons - Changed to Apply Filter */}
-          <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg">
+            {sidebarContent}
+          </div>
+
+          {/* Mobile Action Buttons - Wider and closer to screen edges */}
+          <div
+            className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]"
+            style={{
+              paddingLeft: "1rem",
+              paddingRight: "1rem",
+            }}
+          >
             <button
               onClick={onClose}
-              className="w-full px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2"
+              className="w-full px-4 py-3.5 text-base font-bold bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2 shadow-lg"
+              style={{
+                fontSize: "16px",
+              }}
             >
-              <FontAwesomeIcon icon={faCheck} />
+              <FontAwesomeIcon icon={faCheck} className="text-base" />
               Apply Filter
             </button>
           </div>
@@ -2150,7 +2221,7 @@ const FilterSidebar = ({
     );
   }
 
-  // Desktop Modal - Fullscreen
+  // Desktop Modal - Fullscreen (unchanged)
   if (isDesktopModal) {
     return createPortal(
       <motion.div
