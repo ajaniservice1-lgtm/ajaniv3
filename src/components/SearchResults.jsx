@@ -454,8 +454,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
     }
   };
 
-
-
   return (
     <div
       className={`
@@ -519,8 +517,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
             <MdFavoriteBorder className="text-[#00d1ff] w-4 h-4" />
           )}
         </button>
-
-        
       </div>
 
       {/* Text Content */}
@@ -596,7 +592,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
               <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fillRule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 011.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
                   clipRule="evenodd"
                 />
               </svg>
@@ -1407,7 +1403,7 @@ const FilterSidebar = ({
     price: true,
     rating: true,
     amenities: false,
-    sort: false,
+    sort: true,
   });
 
   const [locationSearch, setLocationSearch] = useState("");
@@ -2039,75 +2035,73 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* SORTING SECTION - Only show for mobile modals - Reduced padding */}
-      {isMobileModal && (
-        <div className="border-b pb-4">
-          <button
-            onClick={() => toggleSection("sort")}
-            className="w-full flex justify-between items-center mb-3"
-          >
-            <div className="flex items-center gap-2">
-              <FontAwesomeIcon icon={faFilter} className="text-purple-500" />
-              <h4 className="font-semibold text-gray-900 text-base">Sort By</h4>
-              {filters.sortBy !== "relevance" && (
-                <span className="bg-purple-100 text-purple-600 text-xs px-2 py-1 rounded-full">
-                  Active
-                </span>
-              )}
-            </div>
-            <FontAwesomeIcon
-              icon={expandedSections.sort ? faChevronUp : faChevronDown}
-              className="text-gray-400"
-            />
-          </button>
+      {/* SORTING SECTION - Reduced padding */}
+      <div className="border-b pb-4">
+        <button
+          onClick={() => toggleSection("sort")}
+          className="w-full flex justify-between items-center mb-3"
+        >
+          <div className="flex items-center gap-2">
+            <FontAwesomeIcon icon={faFilter} className="text-purple-500" />
+            <h4 className="font-semibold text-gray-900 text-base">Sort By</h4>
+            {filters.sortBy !== "relevance" && (
+              <span className="bg-purple-100 text-purple-600 text-xs px-2 py-1 rounded-full">
+                Active
+              </span>
+            )}
+          </div>
+          <FontAwesomeIcon
+            icon={expandedSections.sort ? faChevronUp : faChevronDown}
+            className="text-gray-400"
+          />
+        </button>
 
-          {expandedSections.sort && (
-            <div className="space-y-2">
-              {[
-                { value: "relevance", label: "Relevance" },
-                { value: "price_low", label: "Price: Low to High" },
-                { value: "price_high", label: "Price: High to Low" },
-                { value: "rating", label: "Highest Rated" },
-                { value: "name", label: "Name: A to Z" },
-              ].map((option) => (
-                <label
-                  key={option.value}
-                  className="flex items-center space-x-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+        {expandedSections.sort && (
+          <div className="space-y-2">
+            {[
+              { value: "relevance", label: "Relevance" },
+              { value: "price_low", label: "Price: Low to High" },
+              { value: "price_high", label: "Price: High to Low" },
+              { value: "rating", label: "Highest Rated" },
+              { value: "name", label: "Name: A to Z" },
+            ].map((option) => (
+              <label
+                key={option.value}
+                className="flex items-center space-x-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                style={{
+                  paddingLeft: isMobileModal ? "0.25rem" : "0.5rem",
+                  paddingRight: isMobileModal ? "0.25rem" : "0.5rem",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="sortBy"
+                  checked={filters.sortBy === option.value}
+                  onChange={() => handleSortChange(option.value)}
+                  className="w-4 h-4 rounded-full border-gray-300 text-purple-600 focus:ring-purple-500 transition-colors"
                   style={{
-                    paddingLeft: isMobileModal ? "0.25rem" : "0.5rem",
-                    paddingRight: isMobileModal ? "0.25rem" : "0.5rem",
+                    transform: isMobileModal ? "scale(1.1)" : "scale(1)",
+                    marginRight: isMobileModal ? "0.5rem" : "0.25rem",
+                  }}
+                />
+                <span
+                  className={`text-sm group-hover:text-[#06EAFC] transition-colors ${
+                    filters.sortBy === option.value
+                      ? "text-purple-700 font-medium"
+                      : "text-gray-700"
+                  }`}
+                  style={{
+                    fontSize: isMobileModal ? "14px" : "inherit",
+                    flex: 1,
                   }}
                 >
-                  <input
-                    type="radio"
-                    name="sortBy"
-                    checked={filters.sortBy === option.value}
-                    onChange={() => handleSortChange(option.value)}
-                    className="w-4 h-4 rounded-full border-gray-300 text-purple-600 focus:ring-purple-500 transition-colors"
-                    style={{
-                      transform: isMobileModal ? "scale(1.1)" : "scale(1)",
-                      marginRight: isMobileModal ? "0.5rem" : "0.25rem",
-                    }}
-                  />
-                  <span
-                    className={`text-sm group-hover:text-[#06EAFC] transition-colors ${
-                      filters.sortBy === option.value
-                        ? "text-purple-700 font-medium"
-                        : "text-gray-700"
-                    }`}
-                    style={{
-                      fontSize: isMobileModal ? "14px" : "inherit",
-                      flex: 1,
-                    }}
-                  >
-                    {option.label}
-                  </span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                  {option.label}
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 
@@ -2141,24 +2135,7 @@ const FilterSidebar = ({
               maxWidth: "100vw",
             }}
           >
-            {/* Header with Filter & Sort and Cancel button on same line */}
-            <div className="flex items-center justify-between mb-6 px-1">
-              <div>
-                <h3 className="text-2xl font-bold text-gray-900">
-                  Filter & Sort
-                </h3>
-                <p className="text-base text-gray-500 mt-1">
-                  Refine your search results
-                </p>
-              </div>
-              <button
-                onClick={onClose}
-                className="text-base font-medium text-gray-600 hover:text-gray-900 px-4 py-2"
-                aria-label="Close filters"
-              >
-                Cancel
-              </button>
-            </div>
+          
 
             {sidebarContent}
           </div>
@@ -3260,7 +3237,7 @@ const SearchResults = () => {
 
           {/* Results Content */}
           <div className="lg:w-3/4" ref={resultsRef}>
-            {/* Page Header with Filter Button - REMOVED DESKTOP FILTER BUTTON */}
+            {/* Page Header with Filter Button */}
             <div className="mb-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex-1 flex items-center gap-3">
@@ -3298,87 +3275,17 @@ const SearchResults = () => {
                     </button>
                   )}
 
-                  {/* Title and Count - Moved to single line with sort */}
-                  <div className="flex-1 flex items-center justify-between">
-                    <div>
-                      <h1 className="text-xl font-bold text-[#00065A] mb-1">
-                        {getPageTitle()}
-                      </h1>
-                      <p className="text-sm text-gray-600">
-                        {filteredCount}{" "}
-                        {filteredCount === 1 ? "place" : "places"} found
-                      </p>
-                    </div>
-
-                    {/* Desktop Sort Dropdown - At far right, clean minimal design */}
-                    {!isMobile && (
-                      <div className="flex items-center">
-                        <div className="relative">
-                          <select
-                            value={activeFilters.sortBy}
-                            onChange={(e) => {
-                              const updatedFilters = {
-                                ...activeFilters,
-                                sortBy: e.target.value,
-                              };
-                              handleFilterChange(updatedFilters);
-                            }}
-                            className="appearance-none bg-transparent text-sm font-medium text-gray-600 hover:text-gray-900 focus:outline-none cursor-pointer pr-6"
-                          >
-                            <option value="relevance">
-                              Sort by: Relevance
-                            </option>
-                            <option value="price_low">
-                              Price: Low to High
-                            </option>
-                            <option value="price_high">
-                              Price: High to Low
-                            </option>
-                            <option value="rating">Highest Rated</option>
-                            <option value="name">Name: A to Z</option>
-                          </select>
-                          <div className="absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                            <FontAwesomeIcon
-                              icon={faChevronDown}
-                              className="text-gray-500 text-xs"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                  {/* Title and Count */}
+                  <div className="flex-1">
+                    <h1 className="text-xl font-bold text-[#00065A] mb-1">
+                      {getPageTitle()}
+                    </h1>
+                    <p className="text-sm text-gray-600">
+                      {filteredCount} {filteredCount === 1 ? "place" : "places"}{" "}
+                      found
+                    </p>
                   </div>
                 </div>
-
-                {/* Sort By Dropdown - Only on mobile */}
-                {isMobile && filtersInitialized && (
-                  <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <select
-                        value={activeFilters.sortBy}
-                        onChange={(e) => {
-                          const updatedFilters = {
-                            ...activeFilters,
-                            sortBy: e.target.value,
-                          };
-                          handleFilterChange(updatedFilters);
-                        }}
-                        className="appearance-none bg-transparent text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none cursor-pointer pr-6"
-                      >
-                        <option value="relevance">Sort by: Relevance</option>
-                        <option value="price_low">Price: Low to High</option>
-                        <option value="price_high">Price: High to Low</option>
-                        <option value="rating">Highest Rated</option>
-                        <option value="name">Name: A to Z</option>
-                      </select>
-                      <div className="absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                        <FontAwesomeIcon
-                          icon={faChevronDown}
-                          className="text-gray-500 text-xs"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 
