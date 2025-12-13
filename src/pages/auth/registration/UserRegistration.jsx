@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaArrowRight } from "react-icons/fa";
+import { FaArrowRight, FaEye, FaEyeSlash } from "react-icons/fa";
 import Logo from "../../../assets/Logos/logo5.png";
-
 
 const UserRegistration = () => {
   const navigate = useNavigate();
@@ -17,6 +16,8 @@ const UserRegistration = () => {
   });
 
   const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const validateForm = () => {
     const newErrors = {};
@@ -39,7 +40,6 @@ const UserRegistration = () => {
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    // Clear error for this field when user starts typing
     if (errors[e.target.name]) {
       setErrors({ ...errors, [e.target.name]: "" });
     }
@@ -49,7 +49,6 @@ const UserRegistration = () => {
     e.preventDefault();
 
     if (validateForm()) {
-      // Store user data temporarily
       const userData = {
         ...form,
         fullName: `${form.firstName} ${form.lastName}`,
@@ -66,19 +65,15 @@ const UserRegistration = () => {
       <div className="w-full max-w-lg p-4 sm:p-8 rounded-xl shadow-lg bg-white">
         {/* Logo */}
         <div className="flex justify-center mb-4">
-           <img
-                          src={Logo}
-                          alt="Ajani Logo"
-                          className="md:w-48 w-10 h-auto"
-                        />
+          <img src={Logo} alt="Ajani Logo" className="md:w-48 w-10 h-auto" />
         </div>
 
         {/* Heading */}
-        <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-900">
+        <h2 className="text-xl font-bold text-center text-gray-900">
           Create account
         </h2>
 
-        <p className="text-center text-gray-600 mt-2 text-sm sm:text-base leading-tight">
+        <p className="text-center text-gray-600 mt-2 text-base leading-tight">
           Connect with verified vendors, and discover Ibadan through{" "}
           <br className="hidden sm:block" />
           AI and Local stories
@@ -88,11 +83,11 @@ const UserRegistration = () => {
         <div className="w-full border-t border-[#00d1ff] mt-6 mb-6"></div>
 
         {/* Form */}
-        <form onSubmit={handleNext} className="space-y-5">
+        <form onSubmit={handleNext} className="space-y-5 text-base">
           {/* First & Last Name */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-700">
+              <label className="text-base font-medium text-gray-700">
                 First Name *
               </label>
               <input
@@ -111,7 +106,7 @@ const UserRegistration = () => {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700">
+              <label className="text-base font-medium text-gray-700">
                 Last Name *
               </label>
               <input
@@ -133,7 +128,7 @@ const UserRegistration = () => {
           {/* Phone & Email */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-700">
+              <label className="text-base font-medium text-gray-700">
                 Phone Number *
               </label>
               <input
@@ -152,7 +147,7 @@ const UserRegistration = () => {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700">
+              <label className="text-base font-medium text-gray-700">
                 Email *
               </label>
               <input
@@ -172,40 +167,54 @@ const UserRegistration = () => {
           </div>
 
           {/* Password */}
-          <div>
-            <label className="text-sm font-medium text-gray-700">
+          <div className="relative">
+            <label className="text-base font-medium text-gray-700">
               Password *
             </label>
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               name="password"
               value={form.password}
               onChange={handleChange}
               placeholder="***********"
-              className={`w-full mt-1 px-3 py-3 border ${
+              className={`w-full mt-1 px-3 py-3 pr-10 border ${
                 errors.password ? "border-red-500" : "border-gray-300"
               } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff]`}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-10 text-gray-500"
+            >
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
+            </button>
             {errors.password && (
               <p className="text-red-500 text-xs mt-1">{errors.password}</p>
             )}
           </div>
 
           {/* Confirm Password */}
-          <div>
-            <label className="text-sm font-medium text-gray-700">
+          <div className="relative">
+            <label className="text-base font-medium text-gray-700">
               Confirm Password *
             </label>
             <input
-              type="password"
+              type={showConfirmPassword ? "text" : "password"}
               name="confirmPassword"
               value={form.confirmPassword}
               onChange={handleChange}
               placeholder="***********"
-              className={`w-full mt-1 px-3 py-3 border ${
+              className={`w-full mt-1 px-3 py-3 pr-10 border ${
                 errors.confirmPassword ? "border-red-500" : "border-gray-300"
               } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff]`}
             />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-10 text-gray-500"
+            >
+              {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+            </button>
             {errors.confirmPassword && (
               <p className="text-red-500 text-xs mt-1">
                 {errors.confirmPassword}
@@ -214,7 +223,7 @@ const UserRegistration = () => {
           </div>
 
           {/* Sign In */}
-          <p className="text-center text-sm text-gray-600 mt-1">
+          <p className="text-center text-base text-gray-600 mt-1">
             Already have an account?{" "}
             <button
               type="button"

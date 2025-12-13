@@ -115,7 +115,7 @@ const getCategoryImage = (category, fallback) => {
       case "Restaurant":
         return restuarantImg;
       case "Services": // ADDED
-        return servicesImg;
+        return FALLBACK_IMAGES.Services; // Use fallback since servicesImg is commented out
       default:
         return fallback;
     }
@@ -1184,6 +1184,11 @@ const Hero = () => {
         {/* Remove or keep minimal bottom gradient */}
         <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent opacity-50"></div>
       </section>
+
+      {/* Green Separator Line - AT THE LAST EDGE OF HERO */}
+      <div className="relative mb-4">
+        <div className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-green-400 mt-3 via-green-500 to-green-400 opacity-70"></div>
+      </div>
 
       {/* Desktop Search Suggestions */}
       {!isMobile && (
