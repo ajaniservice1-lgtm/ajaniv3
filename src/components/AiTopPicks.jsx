@@ -1,4 +1,3 @@
-// src/components/AiTopPicks.jsx
 import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
@@ -165,7 +164,6 @@ const FilterBar = ({
 
       {/* Mobile: Line 2 - Toggle switches only */}
       <div className="flex lg:hidden items-center justify-center gap-6">
-        
         <ToggleSwitch
           enabled={availableNow}
           setEnabled={setAvailableNow}
@@ -221,7 +219,6 @@ const FilterBar = ({
 
           {/* Toggle Switches */}
           <div className="flex items-center gap-6">
-           
             <ToggleSwitch
               enabled={availableNow}
               setEnabled={setAvailableNow}
@@ -675,27 +672,31 @@ const AiTopPicks = () => {
   return (
     <section className="bg-white py-5 font-manrope" id="toppicks">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+        {/* Header - FIXED ANIMATION */}
         <div ref={headerRef} className="mb-1">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={
-              headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }
+              headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
             }
             transition={{ duration: 0.5, ease: "easeOut" }}
             className="text-center"
           >
             <motion.h1
-              initial={{ opacity: 0, x: -50 }}
-              animate={headerInView ? { opacity: 1, x: 0 } : {}}
+              initial={{ opacity: 0, y: 20 }}
+              animate={
+                headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
+              }
               transition={{ delay: 0.1, duration: 0.4 }}
               className="text-start text-xl lg:text-3xl font-bold text-gray-900 mb-1"
             >
               Verified Vendors
             </motion.h1>
             <motion.p
-              initial={{ opacity: 0, x: -50 }}
-              animate={headerInView ? { opacity: 1, x: 0 } : {}}
+              initial={{ opacity: 0, y: 20 }}
+              animate={
+                headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
+              }
               transition={{ delay: 0.2, duration: 0.4 }}
               className="text-start lg:text-start text-gray-600 text-[14px] lg:text-[15px] max-w-2xl leading-relaxed"
             >
@@ -719,8 +720,6 @@ const AiTopPicks = () => {
           districts={districts} // This now contains the actual locations from your Google Sheet
           onFilterClick={() => setShowFilterModal(true)}
         />
-
-       
 
         {/* Venues Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-8 mb-12">

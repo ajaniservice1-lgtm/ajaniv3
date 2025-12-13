@@ -21,6 +21,7 @@ import {
   faCalendarAlt,
   faUsers,
   faCheckCircle,
+  faArrowLeft,
 } from "@fortawesome/free-solid-svg-icons";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
@@ -91,6 +92,18 @@ const VendorDetail = () => {
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
   const imageRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check for mobile view
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Use your actual Google Sheets data
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
@@ -104,6 +117,19 @@ const VendorDetail = () => {
 
   // Find the specific vendor by ID
   const vendor = listings.find((item) => item.id === id);
+
+  // Check if vendor is already saved on mount
+  useEffect(() => {
+    if (vendor) {
+      const saved = JSON.parse(
+        localStorage.getItem("userSavedListings") || "[]"
+      );
+      const isAlreadySaved = saved.some(
+        (savedItem) => savedItem.id === vendor.id
+      );
+      setIsSaved(isAlreadySaved);
+    }
+  }, [vendor]);
 
   // Dummy images for carousel (5 images as shown in your reference)
   const dummyImages = [
@@ -349,6 +375,173 @@ const VendorDetail = () => {
     setTouchEnd(null);
   };
 
+  // Toast Notification Function (same as Directory)
+  const showToast = (message, type = "success") => {
+    // Remove any existing toast
+    const existingToast = document.getElementById("toast-notification");
+    if (existingToast) {
+      existingToast.remove();
+    }
+
+    // Create toast element
+    const toast = document.createElement("div");
+    toast.id = "toast-notification";
+    toast.className = `fixed z-50 px-4 py-3 rounded-lg shadow-lg border ${
+      type === "success"
+        ? "bg-green-50 border-green-200 text-green-800"
+        : "bg-blue-50 border-blue-200 text-blue-800"
+    }`;
+
+    // Position toast
+    toast.style.top = isMobile ? "15px" : "15px";
+    toast.style.right = "15px";
+    toast.style.maxWidth = "320px";
+    toast.style.animation = "slideInRight 0.3s ease-out forwards";
+
+    // Toast content
+    toast.innerHTML = `
+      <div class="flex items-start gap-3">
+        <div class="${
+          type === "success" ? "text-green-600" : "text-blue-600"
+        } mt-0.5">
+          ${
+            type === "success"
+              ? '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>'
+              : '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>'
+          }
+        </div>
+        <div class="flex-1">
+          <p class="font-medium">${message}</p>
+          <p class="text-sm opacity-80 mt-1">${vendor?.name || "Vendor"}</p>
+        </div>
+        <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70 transition-opacity">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        </button>
+      </div>
+    `;
+
+    // Add to DOM
+    document.body.appendChild(toast);
+
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+      toast.style.animation = "slideOutRight 0.3s ease-in forwards";
+      setTimeout(() => {
+        if (toast.parentElement) {
+          toast.remove();
+        }
+      }, 300);
+    }, 3000);
+  };
+
+  // Handle bookmark click (same logic as Directory)
+  const handleBookmarkClick = () => {
+    if (!vendor) return;
+
+    // Get existing saved listings from localStorage
+    const saved = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
+
+    // Check if this vendor is already saved
+    const isAlreadySaved = saved.some(
+      (savedItem) => savedItem.id === vendor.id
+    );
+
+    if (isAlreadySaved) {
+      // REMOVE FROM SAVED
+      const updated = saved.filter((savedItem) => savedItem.id !== vendor.id);
+      localStorage.setItem("userSavedListings", JSON.stringify(updated));
+      setIsSaved(false); // Update React state
+
+      // Show toast notification
+      showToast("Removed from saved listings", "info");
+
+      // Dispatch event for other components
+      window.dispatchEvent(
+        new CustomEvent("savedListingsUpdated", {
+          detail: { action: "removed", itemId: vendor.id },
+        })
+      );
+    } else {
+      // ADD TO SAVED
+      const images = getVendorImages(vendor);
+      const categoryDisplay = getCategoryDisplay(vendor);
+      const priceRange = getPriceRange(vendor);
+      const rating = getRating(vendor);
+      const area = getArea(vendor);
+
+      // Determine per text based on category
+      const getPerText = () => {
+        const nightlyCategories = [
+          "hotel",
+          "hostel",
+          "shortlet",
+          "apartment",
+          "cabin",
+          "condo",
+          "resort",
+          "inn",
+          "motel",
+        ];
+
+        if (
+          nightlyCategories.some((cat) =>
+            categoryDisplay.toLowerCase().includes(cat)
+          )
+        ) {
+          return "for 2 nights";
+        }
+
+        if (
+          categoryDisplay.toLowerCase().includes("restaurant") ||
+          categoryDisplay.toLowerCase().includes("food") ||
+          categoryDisplay.toLowerCase().includes("cafe")
+        ) {
+          return "per meal";
+        }
+
+        return "per guest";
+      };
+
+      const listingToSave = {
+        id: vendor.id,
+        name: vendor.name || "Vendor",
+        price: `₦${formatPrice(priceRange.from)}`,
+        perText: getPerText(),
+        rating: rating,
+        tag: "Guest Favorite",
+        image: images[0] || dummyImages[0],
+        category: categoryDisplay,
+        location: area,
+        savedDate: new Date().toISOString().split("T")[0],
+        // Keep original data
+        originalData: {
+          price_from: vendor.price_from,
+          area: vendor.area,
+          rating: vendor.rating,
+          description: vendor.description,
+          amenities: vendor.amenities,
+          contact: vendor.contact,
+          features: vendor.features,
+          services: vendor.services,
+        },
+      };
+
+      const updated = [...saved, listingToSave];
+      localStorage.setItem("userSavedListings", JSON.stringify(updated));
+      setIsSaved(true); // Update React state
+
+      // Show toast notification
+      showToast("Added to saved listings!", "success");
+
+      // Dispatch event for other components
+      window.dispatchEvent(
+        new CustomEvent("savedListingsUpdated", {
+          detail: { action: "added", item: listingToSave },
+        })
+      );
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center font-manrope">
@@ -414,7 +607,7 @@ const VendorDetail = () => {
     "Laundry & Concierge Services",
   ];
 
-  // Default features if none in Google Sheets - REMOVED color classes
+  // Default features if none in Google Sheets
   const defaultFeatures = [
     { icon: faWifi, name: "WiFi" },
     { icon: faSwimmingPool, name: "Swimming Pool" },
@@ -438,9 +631,23 @@ const VendorDetail = () => {
 
       <Header />
 
-      <main className="lg:max-w-7xl mx-auto px-0 sm:px-2 md:px-6 lg:px-8 py-4 md:py-6">
-        {/* Breadcrumb - Reduced font by 3px */}
-        <nav className="flex items-center space-x-2 text-xs text-gray-600 mb-4 md:mb-6 px-4 sm:px-2 md:px-0 font-manrope">
+      <main className="lg:max-w-7xl mx-auto px-0 sm:px-2 md:px-6 lg:px-8 py-4 md:py-6 mt-16">
+        {/* MOBILE BACK BUTTON */}
+        <div className="md:hidden fixed top-16 left-0 z-50">
+          <button
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 flex items-center justify-center"
+            aria-label="Go back"
+          >
+            <FontAwesomeIcon
+              icon={faArrowLeft}
+              className="text-gray-800 text-base"
+            />
+          </button>
+        </div>
+
+        {/* Breadcrumb */}
+        <nav className="flex items-center space-x-2 text-xs text-gray-600 mb-4 md:mb-6 px-4 sm:px-2 md:px-0 font-manrope justify-center">
           <Link to="/" className="hover:text-[#06EAFC] transition-colors">
             Home
           </Link>
@@ -461,7 +668,7 @@ const VendorDetail = () => {
 
         {/* Single Column Layout */}
         <div className="space-y-4 md:space-y-8">
-          {/* Header Info - Updated layout */}
+          {/* Header Info */}
           <div className="px-4 sm:px-2 md:px-4 lg:px-8 py-4 md:py-8 bg-white rounded-xl md:rounded-2xl mx-0 md:mx-0">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6">
               {/* Left: Name and Info */}
@@ -511,7 +718,7 @@ const VendorDetail = () => {
                 </div>
               </div>
 
-              {/* Right: Save/Share buttons with new icons */}
+              {/* Right: Save/Share buttons with updated bookmark functionality */}
               <div className="flex flex-col items-end gap-2 md:gap-4 mt-2 md:mt-0">
                 <div className="flex gap-4 md:gap-6 items-center">
                   {/* Share button first */}
@@ -524,24 +731,42 @@ const VendorDetail = () => {
                     </span>
                   </div>
 
-                  {/* Save button second */}
+                  {/* Save/Bookmark button second - UPDATED */}
                   <div className="flex items-center gap-1 md:gap-2">
                     <button
-                      onClick={() => setIsSaved(!isSaved)}
+                      onClick={handleBookmarkClick}
                       className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors border md:border-2 ${
                         isSaved
-                          ? "bg-blue-50 border-blue-200"
+                          ? "bg-gradient-to-br from-red-500 to-pink-500 border-red-200 hover:from-red-600 hover:to-pink-600"
                           : "bg-white border-gray-200 hover:bg-gray-50"
                       }`}
+                      title={isSaved ? "Remove from saved" : "Add to saved"}
+                      aria-label={
+                        isSaved ? "Remove from saved" : "Save this vendor"
+                      }
                     >
-                      <CiBookmark
-                        className={`text-base md:text-xl ${
-                          isSaved ? "text-blue-500" : "text-gray-600"
-                        }`}
-                      />
+                      {isSaved ? (
+                        <svg
+                          className="w-5 h-5 text-white"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      ) : (
+                        <CiBookmark
+                          className={`text-base md:text-xl ${
+                            isSaved ? "text-white" : "text-gray-600"
+                          }`}
+                        />
+                      )}
                     </button>
                     <span className="text-gray-600 text-xs md:text-sm font-manrope hidden md:inline">
-                      Save
+                      {isSaved ? "Saved" : "Save"}
                     </span>
                   </div>
                 </div>
@@ -549,7 +774,7 @@ const VendorDetail = () => {
             </div>
           </div>
 
-          {/* MOBILE: Swipeable Image Gallery - Full width */}
+          {/* MOBILE: Swipeable Image Gallery */}
           <div className="block md:hidden px-0">
             <div className="relative w-full">
               <div
@@ -581,15 +806,13 @@ const VendorDetail = () => {
                   <IoIosArrowForward className="text-gray-800 text-lg" />
                 </button>
 
-                {/* Counter - Moved to bottom-right corner like desktop */}
+                {/* Counter */}
                 <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-manrope backdrop-blur-sm">
                   {activeImageIndex + 1}/{images.length}
                 </div>
-
-                {/* REMOVED: Image Dots (replaced by counter) */}
               </div>
 
-              {/* Thumbnail Strip - Removed margin-top to bring it closer */}
+              {/* Thumbnail Strip */}
               <div className="flex gap-2 overflow-x-auto pb-2 px-4 mt-0">
                 {images.map((img, index) => (
                   <button
@@ -685,7 +908,7 @@ const VendorDetail = () => {
             </div>
           </div>
 
-          {/* Price Range Section - Full width on mobile */}
+          {/* Price Range Section */}
           <div className="px-0 md:px-0">
             <div className="text-center bg-white py-4 md:py-6 mx-0 md:mx-0">
               <p className="text-[#00065A] font-manrope text-base md:text-xl font-bold mb-2 md:text-start px-4 sm:px-2 md:px-0">
@@ -708,7 +931,7 @@ const VendorDetail = () => {
             </div>
           </div>
 
-          {/* Action Icons Bar - Full width on mobile */}
+          {/* Action Icons Bar */}
           <div className="flex justify-center px-0 md:px-0">
             <div className="w-full md:w-[600px] h-14 md:h-16 bg-gray-200 rounded-none md:rounded-3xl flex items-center justify-between px-4 md:px-12 mx-0 md:mx-0">
               <button className="flex flex-col items-center hover:opacity-80 transition-opacity px-2">
@@ -730,7 +953,7 @@ const VendorDetail = () => {
             </div>
           </div>
 
-          {/* About and Features Section with full width background */}
+          {/* About and Features Section */}
           <section className="w-full bg-[#F7F7FA] rounded-none md:rounded-3xl">
             <div className="px-4 sm:px-4 md:px-6 lg:px-8 py-6 md:py-8">
               {/* About Section */}
@@ -745,7 +968,7 @@ const VendorDetail = () => {
                 </p>
               </div>
 
-              {/* What They Do & Features Side by Side - Full width */}
+              {/* What They Do & Features Side by Side */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
                 {/* What They Do Section */}
                 <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6">
@@ -809,7 +1032,7 @@ const VendorDetail = () => {
             </div>
           </section>
 
-          {/* Reviews Section - Full width on mobile */}
+          {/* Reviews Section */}
           <section className="bg-[#F7F7FA] rounded-none md:rounded-3xl shadow-sm md:shadow-lg p-4 md:p-8 mx-0 md:mx-0">
             <div className="flex items-center justify-between mb-4 md:mb-6">
               <h2 className="text-lg md:text-xl font-bold text-[#06F49F] font-manrope">
@@ -891,7 +1114,7 @@ const VendorDetail = () => {
             )}
           </section>
 
-          {/* Location Map with OpenStreetMap Iframe - Full width on mobile */}
+          {/* Location Map */}
           <div className="p-0 md:p-8 mx-0 md:mx-0">
             <h3 className="text-lg font-bold text-gray-900 mb-3 md:mb-4 font-manrope px-4 sm:px-4 md:px-0">
               Location
@@ -952,7 +1175,7 @@ const VendorDetail = () => {
               </div>
             </div>
 
-            {/* Map Action Buttons - Full width on mobile */}
+            {/* Map Action Buttons */}
             <div className="mt-4 md:mt-6 flex flex-col md:flex-row gap-3 px-4 sm:px-4 md:px-0">
               <a
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(

@@ -19,6 +19,7 @@ import {
   faUtensils,
   faLandmark,
   faHome,
+  faTools, // Added for services icon
 } from "@fortawesome/free-solid-svg-icons";
 import { createPortal } from "react-dom";
 
@@ -27,8 +28,9 @@ import hotelImg from "../assets/Logos/hotel.jpg";
 import tourismImg from "../assets/Logos/tourism.jpg";
 import eventsImg from "../assets/Logos/events.jpg";
 import restuarantImg from "../assets/Logos/restuarant.jpg";
+// import servicesImg from "../assets/Logos/services.jpg"; // Add this import
 
-// FALLBACK IMAGES
+// FALLBACK IMAGES - ADDED SERVICES
 const FALLBACK_IMAGES = {
   Hotel:
     "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop&q=80",
@@ -38,6 +40,8 @@ const FALLBACK_IMAGES = {
     "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop&q=80",
   Tourism:
     "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=300&fit=crop&q=80",
+  Services:
+    "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=400&h=300&fit=crop&q=80", // Added services fallback
 };
 
 // ===== HELPER FUNCTIONS =====
@@ -98,7 +102,7 @@ const useGoogleSheet = (sheetId, apiKey) => {
   return { data: Array.isArray(data) ? data : [], loading, error };
 };
 
-// Helper function to safely get image source
+// Helper function to safely get image source - UPDATED WITH SERVICES
 const getCategoryImage = (category, fallback) => {
   try {
     switch (category) {
@@ -110,6 +114,8 @@ const getCategoryImage = (category, fallback) => {
         return eventsImg;
       case "Restaurant":
         return restuarantImg;
+      case "Services": // ADDED
+        return servicesImg;
       default:
         return fallback;
     }
@@ -119,13 +125,14 @@ const getCategoryImage = (category, fallback) => {
   }
 };
 
-// Helper function to get category icon
+// Helper function to get category icon - UPDATED WITH SERVICES
 const getCategoryIcon = (category) => {
   const cat = category.toLowerCase();
   if (cat.includes("hotel")) return faBuilding;
   if (cat.includes("restaurant") || cat.includes("food")) return faUtensils;
   if (cat.includes("shortlet") || cat.includes("apartment")) return faHome;
   if (cat.includes("tourism") || cat.includes("tourist")) return faLandmark;
+  if (cat.includes("services")) return faTools; // ADDED
   return faFilter;
 };
 
@@ -1021,16 +1028,42 @@ const Hero = () => {
     }
   }, [isMobile, searchQuery, handleMobileSearchClick]);
 
+  // Smooth scroll to AiTopPicks section
+  const scrollToAiTopPicks = useCallback(() => {
+    const aiTopPicksSection = document.getElementById("toppicks");
+    if (aiTopPicksSection) {
+      // Get the offset position
+      const offset = 80; // Adjust this value based on your header height
+      const elementPosition = aiTopPicksSection.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - offset;
+
+      // Smooth scroll
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth",
+      });
+    }
+  }, []);
+
+  // Handle category click - UPDATED WITH SERVICES
   const handleCategoryClick = (category) => {
     const categoryMap = {
       Hotel: "hotel",
       Restaurant: "restaurant",
       Shortlet: "shortlet",
       Tourism: "tourist-center",
+      Services: "services", // ADDED
     };
     const categorySlug = categoryMap[category];
+
     if (categorySlug) {
-      navigate(`/category/${categorySlug}`);
+      if (category === "Services") {
+        // For Services, scroll to AiTopPicks section
+        scrollToAiTopPicks();
+      } else {
+        // For other categories, navigate normally
+        navigate(`/category/${categorySlug}`);
+      }
     }
   };
 
@@ -1105,10 +1138,11 @@ const Hero = () => {
               </div>
             </div>
 
-            {/* Category Icons */}
+            {/* Category Icons - UPDATED WITH SERVICES */}
             <div className="w-full">
               <div className="flex flex-wrap justify-center gap-2  max-w-3xl mx-auto">
-                {["Hotel", "Tourism", "Shortlet", "Restaurant"].map(
+                {["Hotel", "Tourism", "Shortlet", "Restaurant", "Services"].map(
+                  // ADDED SERVICES
                   (category) => (
                     <motion.div
                       key={category}
