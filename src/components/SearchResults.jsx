@@ -1185,6 +1185,7 @@ const MobileSearchModal = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
       className="fixed inset-0 z-[1000000]"
       style={{
         zIndex: 1000000,
@@ -1197,11 +1198,24 @@ const MobileSearchModal = ({
         height: "100%",
       }}
     >
+      {/* Quick fade-in full screen white background */}
       <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 25 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
+        className="absolute inset-0 bg-white"
+      />
+
+      {/* Modal Content */}
+      <motion.div
+        initial={{ opacity: 0, y: 0 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 0 }}
+        transition={{ 
+          duration: 0.2,
+          ease: "easeOut"
+        }}
         className="absolute inset-0 bg-white flex flex-col"
         ref={modalRef}
         style={{
@@ -1212,8 +1226,10 @@ const MobileSearchModal = ({
           bottom: 0,
           width: "100%",
           height: "100%",
+          overflow: "hidden",
         }}
       >
+        {/* Header with search bar */}
         <div className="sticky top-0 bg-white border-b border-gray-200 shadow-sm z-10">
           <div className="p-4">
             <div className="flex items-center justify-between mb-3">
@@ -1227,7 +1243,7 @@ const MobileSearchModal = ({
               </button>
             </div>
 
-            <div className="flex items-center bg-gray-100 rounded-full px-4 py-3 ">
+            <div className="flex items-center bg-gray-100 rounded-full px-4 py-3">
               <FontAwesomeIcon icon={faSearch} className="text-gray-500" />
               <input
                 ref={inputRef}
@@ -1252,6 +1268,7 @@ const MobileSearchModal = ({
           </div>
         </div>
 
+        {/* Content Area */}
         <div className="flex-1 overflow-y-auto pb-4">
           {inputValue.trim() ? (
             <>

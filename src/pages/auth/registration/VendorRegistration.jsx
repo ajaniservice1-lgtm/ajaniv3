@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaArrowRight } from "react-icons/fa";
+import { FaArrowRight, FaEye, FaEyeSlash } from "react-icons/fa";
 import Logo from "../../../assets/Logos/logo5.png";
 
 const VendorRegistration = () => {
@@ -17,6 +17,8 @@ const VendorRegistration = () => {
 
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const validateForm = () => {
     const newErrors = {};
@@ -181,17 +183,26 @@ const VendorRegistration = () => {
             <label className="text-sm font-medium text-gray-700">
               Password *
             </label>
-            <input
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              onBlur={() => handleBlur("password")}
-              placeholder="********"
-              className={`w-full mt-1 px-3 py-2.5 border ${
-                errors.password ? "border-red-500" : "border-gray-300"
-              } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm`}
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                onBlur={() => handleBlur("password")}
+                placeholder="********"
+                className={`w-full mt-1 px-3 py-2.5 border ${
+                  errors.password ? "border-red-500" : "border-gray-300"
+                } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm pr-10`}
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+              </button>
+            </div>
             {errors.password && (
               <p className="text-red-500 text-xs mt-1">{errors.password}</p>
             )}
@@ -205,17 +216,30 @@ const VendorRegistration = () => {
             <label className="text-sm font-medium text-gray-700">
               Confirm Password *
             </label>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={form.confirmPassword}
-              onChange={handleChange}
-              onBlur={() => handleBlur("confirmPassword")}
-              placeholder="********"
-              className={`w-full mt-1 px-3 py-2.5 border ${
-                errors.confirmPassword ? "border-red-500" : "border-gray-300"
-              } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm`}
-            />
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                value={form.confirmPassword}
+                onChange={handleChange}
+                onBlur={() => handleBlur("confirmPassword")}
+                placeholder="********"
+                className={`w-full mt-1 px-3 py-2.5 border ${
+                  errors.confirmPassword ? "border-red-500" : "border-gray-300"
+                } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm pr-10`}
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                {showConfirmPassword ? (
+                  <FaEyeSlash size={18} />
+                ) : (
+                  <FaEye size={18} />
+                )}
+              </button>
+            </div>
             {errors.confirmPassword && (
               <p className="text-red-500 text-xs mt-1">
                 {errors.confirmPassword}
@@ -227,7 +251,14 @@ const VendorRegistration = () => {
           <div className="flex items-start gap-2 mt-4">
             <input type="checkbox" id="terms" required className="mt-1" />
             <label htmlFor="terms" className="text-xs text-gray-600">
-              I agree to the Terms and Conditions and Privacy Policy
+              I agree to the{" "}
+              <button
+                type="button"
+                onClick={() => navigate("/privacypage")}
+                className="text-black font-medium underline hover:text-[#00d1ff]"
+              >
+                Terms and Conditions and Privacy Policy
+              </button>
             </label>
           </div>
 
