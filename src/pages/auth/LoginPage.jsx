@@ -1,7 +1,5 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FcGoogle } from "react-icons/fc";
-import { FaApple } from "react-icons/fa";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -12,7 +10,14 @@ const LoginPage = () => {
     e.preventDefault();
     if (email) {
       setIsEmailSubmitted(true);
-      // Here you would typically send verification email
+      // Dummy login - set a flag in localStorage to simulate being logged in
+      localStorage.setItem("ajani_dummy_login", "true");
+      localStorage.setItem("ajani_dummy_email", email);
+
+      // Redirect to home after 2 seconds to simulate email verification delay
+      setTimeout(() => {
+        navigate("/");
+      }, 2000);
     }
   };
 
@@ -29,11 +34,11 @@ const LoginPage = () => {
             />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            {isEmailSubmitted ? "Check your email" : "Log in to Ajani"}
+            {isEmailSubmitted ? "Welcome to Ajani" : "Log in to Ajani"}
           </h2>
           {isEmailSubmitted ? (
             <p className="mt-2 text-sm text-gray-600">
-              We sent a login link to <strong>{email}</strong>
+              Logging you in as <strong>{email}</strong>
             </p>
           ) : (
             <p className="mt-2 text-sm text-gray-600">
@@ -45,17 +50,30 @@ const LoginPage = () => {
         {isEmailSubmitted ? (
           <div className="text-center space-y-4">
             <div className="p-4 bg-blue-50 rounded-lg">
+              <div className="flex justify-center mb-4">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg
+                    className="w-6 h-6 text-green-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+              </div>
               <p className="text-sm text-gray-700">
-                Check your inbox for the login link. Click it to access your
-                account.
+                You're now logged in! Redirecting you to the homepage...
               </p>
             </div>
-            <button
-              onClick={() => setIsEmailSubmitted(false)}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-            >
-              Use a different email
-            </button>
+            <div className="flex justify-center">
+              <div className="w-12 h-1 bg-blue-600 rounded-full animate-pulse"></div>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleEmailSubmit} className="space-y-6">
@@ -85,7 +103,7 @@ const LoginPage = () => {
               type="submit"
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
-              Continue
+              Continue with Email
             </button>
 
             {/* Divider */}
@@ -94,26 +112,48 @@ const LoginPage = () => {
                 <div className="w-full border-t border-gray-300"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">or</span>
+                <span className="px-2 bg-white text-gray-500">
+                  Other options coming soon
+                </span>
               </div>
             </div>
 
-            {/* Social Login Buttons */}
+            {/* Simple Alternative Options */}
             <div className="space-y-4">
               <button
                 type="button"
-                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors"
+                onClick={() => {
+                  localStorage.setItem("ajani_dummy_login", "true");
+                  localStorage.setItem(
+                    "ajani_dummy_email",
+                    "guest@example.com"
+                  );
+                  navigate("/");
+                }}
+                className="w-full flex items-center justify-center gap-3 bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors border border-gray-200"
               >
-                <FcGoogle className="w-5 h-5" />
-                Continue with Google
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                Continue as Guest
               </button>
 
               <button
                 type="button"
-                className="w-full flex items-center justify-center gap-3 bg-black hover:bg-gray-800 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+                onClick={() => navigate("/register")}
+                className="w-full border-2 border-blue-600 text-blue-600 hover:bg-blue-50 font-medium py-3 px-4 rounded-lg transition-colors"
               >
-                <FaApple className="w-5 h-5" />
-                Continue with Apple
+                Create New Account
               </button>
             </div>
           </form>
@@ -130,13 +170,8 @@ const LoginPage = () => {
               Sign up
             </button>
           </p>
-          <p>
-            By clicking "Continue" above, you agree to our{" "}
-            <button className="text-blue-600 hover:text-blue-800">Terms</button>{" "}
-            and{" "}
-            <button className="text-blue-600 hover:text-blue-800">
-              Privacy Policy
-            </button>
+          <p className="text-xs">
+            This is a demo login. No actual authentication is implemented yet.
           </p>
         </div>
       </div>

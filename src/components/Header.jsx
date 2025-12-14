@@ -3,17 +3,26 @@ import { useNavigate } from "react-router-dom";
 import Logo from "../assets/Logos/logo5.png";
 import { MdOutlineChat } from "react-icons/md";
 import { RiNotification2Fill } from "react-icons/ri";
-import { PiUserCircleFill } from "react-icons/pi";
-import { useAuth } from "../hook/useAuth";
-import { supabase } from "../lib/supabase";
 
 // Main Header Component
-const Header = ({ onAuthToast }) => {
+const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
   const navigate = useNavigate();
-  const { user } = useAuth();
   const profileDropdownRef = useRef(null);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+
+  // Check login status on mount
+  useEffect(() => {
+    const dummyLogin = localStorage.getItem("ajani_dummy_login");
+    const dummyEmail = localStorage.getItem("ajani_dummy_email");
+
+    if (dummyLogin === "true") {
+      setIsLoggedIn(true);
+      setUserEmail(dummyEmail || "Guest User");
+    }
+  }, []);
 
   // Prevent body scrolling when mobile menu is open
   useEffect(() => {
@@ -44,16 +53,14 @@ const Header = ({ onAuthToast }) => {
   };
 
   // Handle sign out
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      onAuthToast?.("Successfully signed out");
-      setIsProfileDropdownOpen(false);
-      setIsMenuOpen(false);
-    } catch (error) {
-      console.error("Sign out error:", error);
-      onAuthToast?.("Error signing out", "error");
-    }
+  const handleSignOut = () => {
+    localStorage.removeItem("ajani_dummy_login");
+    localStorage.removeItem("ajani_dummy_email");
+    setIsLoggedIn(false);
+    setUserEmail("");
+    navigate("/");
+    setIsProfileDropdownOpen(false);
+    setIsMenuOpen(false);
   };
 
   // Handle click outside profile dropdown
@@ -86,10 +93,10 @@ const Header = ({ onAuthToast }) => {
       id: "Price Insights",
       action: () => scrollToSection("Price Insights"),
     },
-    { label: user ? "Our Blog" : "Blog", id: "Blog", action: handleBlogClick },
+    { label: "Blog", id: "Blog", action: handleBlogClick },
   ];
 
-  // Additional items for logged-in users (text only, no icons)
+  // Additional navigation items for logged in users
   const loggedInNavItems = [
     { label: "Chat with Assistant", onClick: () => navigate("/chat") },
     { label: "List Your Business", onClick: () => navigate("/add-business") },
@@ -135,7 +142,7 @@ const Header = ({ onAuthToast }) => {
                 </button>
               ))}
 
-              {user &&
+              {isLoggedIn &&
                 loggedInNavItems.map((item, index) => (
                   <button
                     key={index}
@@ -149,18 +156,22 @@ const Header = ({ onAuthToast }) => {
 
             {/* Right section */}
             <div className="flex items-center gap-2 lg:gap-6 h-full">
-              {user && (
+              {isLoggedIn ? (
                 <>
+                  {/* Chat button - styled like user icon */}
                   <button
                     onClick={() => navigate("/chat")}
-                    className="text-2xl hover:text-[#00d1ff] transition-colors p-1 cursor-pointer"
+                    className="text-2xl hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer"
+                    title="Chat"
                   >
                     <MdOutlineChat />
                   </button>
 
+                  {/* Notifications button - styled like user icon */}
                   <button
                     onClick={() => navigate("/notifications")}
-                    className="text-2xl hover:text-[#00d1ff] transition-colors p-1 cursor-pointer"
+                    className="text-2xl hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer"
+                    title="Notifications"
                   >
                     <RiNotification2Fill />
                   </button>
@@ -174,18 +185,64 @@ const Header = ({ onAuthToast }) => {
                       onClick={() =>
                         setIsProfileDropdownOpen(!isProfileDropdownOpen)
                       }
-                      className="text-2xl hover:text-[#00d1ff] transition-colors p-1 cursor-pointer"
+                      className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-blue-50 transition-colors cursor-pointer"
+                      title="Profile"
                     >
-                      <PiUserCircleFill />
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-medium text-sm">
+                        {userEmail.charAt(0).toUpperCase()}
+                      </div>
                     </button>
 
                     {isProfileDropdownOpen && (
                       <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-1001 border border-gray-200 cursor-default">
                         <div className="px-4 py-3 border-b border-gray-100 cursor-default">
                           <p className="text-sm font-medium text-gray-900 cursor-default">
-                            {user.email}
+                            {userEmail}
                           </p>
                         </div>
+                        <button
+                          onClick={() => {
+                            navigate("/chat");
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
+                        >
+                          <MdOutlineChat className="w-4 h-4" />
+                          <span className="cursor-pointer">Chat</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigate("/notifications");
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
+                        >
+                          <RiNotification2Fill className="w-4 h-4" />
+                          <span className="cursor-pointer">Notifications</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigate("/add-business");
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M12 4v16m8-8H4"
+                            />
+                          </svg>
+                          <span className="cursor-pointer">List Business</span>
+                        </button>
+                        <div className="h-px bg-gray-100 my-1"></div>
                         <button
                           onClick={handleSignOut}
                           className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer"
@@ -209,10 +266,8 @@ const Header = ({ onAuthToast }) => {
                     )}
                   </div>
                 </>
-              )}
-
-              {/* Fixed Login | Register UI - Original design, hidden on mobile */}
-              {!user && (
+              ) : (
+                /* Show Login/Register buttons when NOT logged in */
                 <div className="hidden lg:flex items-center gap-1.5">
                   {/* Log in button - Blue pill */}
                   <button
@@ -360,7 +415,7 @@ const Header = ({ onAuthToast }) => {
             ))}
 
             {/* Additional items for logged-in users */}
-            {user &&
+            {isLoggedIn &&
               loggedInNavItems.map((item, index) => (
                 <button
                   key={`logged-in-${index}`}
@@ -384,7 +439,7 @@ const Header = ({ onAuthToast }) => {
               ))}
 
             {/* Divider - Only show if user is logged in */}
-            {user && (
+            {isLoggedIn && (
               <div
                 className="h-px bg-gray-200 my-2 transition-all duration-300"
                 style={{
@@ -398,8 +453,91 @@ const Header = ({ onAuthToast }) => {
               ></div>
             )}
 
-            {/* Authentication buttons for mobile - Only show if NOT logged in */}
-            {!user && (
+            {/* Authentication buttons - Show based on login status */}
+            {isLoggedIn ? (
+              <>
+                {/* Mobile user info */}
+                <div
+                  className="px-4 py-3 bg-white rounded-lg mb-4 cursor-default transition-all duration-300"
+                  style={{
+                    transitionDelay: isMenuOpen
+                      ? `${
+                          (baseNavItems.length + loggedInNavItems.length + 1) *
+                          50
+                        }ms`
+                      : "0ms",
+                    opacity: isMenuOpen ? 1 : 0,
+                    transform: isMenuOpen
+                      ? "translateX(0)"
+                      : "translateX(-20px)",
+                  }}
+                >
+                  <p className="text-sm font-medium text-gray-900 cursor-default">
+                    {userEmail}
+                  </p>
+                </div>
+
+                {/* Mobile navigation for logged-in users */}
+                <button
+                  onClick={() => handleMobileNavigate("/chat")}
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  style={{
+                    transitionDelay: isMenuOpen
+                      ? `${
+                          (baseNavItems.length + loggedInNavItems.length + 2) *
+                          50
+                        }ms`
+                      : "0ms",
+                    opacity: isMenuOpen ? 1 : 0,
+                    transform: isMenuOpen
+                      ? "translateX(0)"
+                      : "translateX(-20px)",
+                  }}
+                >
+                  Chat Assistant
+                </button>
+                <button
+                  onClick={() => handleMobileNavigate("/notifications")}
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  style={{
+                    transitionDelay: isMenuOpen
+                      ? `${
+                          (baseNavItems.length + loggedInNavItems.length + 3) *
+                          50
+                        }ms`
+                      : "0ms",
+                    opacity: isMenuOpen ? 1 : 0,
+                    transform: isMenuOpen
+                      ? "translateX(0)"
+                      : "translateX(-20px)",
+                  }}
+                >
+                  Notifications
+                </button>
+
+                {/* Sign Out button */}
+                <button
+                  onClick={() => {
+                    handleSignOut();
+                  }}
+                  className="block w-full text-left py-3 px-4 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  style={{
+                    transitionDelay: isMenuOpen
+                      ? `${
+                          (baseNavItems.length + loggedInNavItems.length + 4) *
+                          50
+                        }ms`
+                      : "0ms",
+                    opacity: isMenuOpen ? 1 : 0,
+                    transform: isMenuOpen
+                      ? "translateX(0)"
+                      : "translateX(-20px)",
+                  }}
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
               <>
                 {/* Divider before authentication buttons */}
                 <div
@@ -444,124 +582,6 @@ const Header = ({ onAuthToast }) => {
                   }}
                 >
                   Register
-                </button>
-              </>
-            )}
-
-            {/* User info and sign out for logged-in users */}
-            {user && (
-              <>
-                {/* Mobile user info */}
-                <div
-                  className="px-4 py-3 bg-white rounded-lg mb-4 cursor-default transition-all duration-300"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 1) *
-                          50
-                        }ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
-                >
-                  <p className="text-sm font-medium text-gray-900 cursor-default">
-                    {user.email}
-                  </p>
-                </div>
-
-                {/* Mobile navigation for logged-in users */}
-                <button
-                  onClick={() => handleMobileNavigate("/chat")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 2) *
-                          50
-                        }ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
-                >
-                  Chat Assistant
-                </button>
-                <button
-                  onClick={() => handleMobileNavigate("/notifications")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 3) *
-                          50
-                        }ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
-                >
-                  Notifications
-                </button>
-                <button
-                  onClick={() => handleMobileNavigate("/add-business")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 4) *
-                          50
-                        }ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
-                >
-                  List Your Business
-                </button>
-
-                {/* Divider before sign out */}
-                <div
-                  className="h-px bg-gray-200 my-2 transition-all duration-300"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 5) *
-                          50
-                        }ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                  }}
-                ></div>
-
-                {/* Sign Out button */}
-                <button
-                  onClick={() => {
-                    handleSignOut();
-                  }}
-                  className="block w-full text-left py-3 px-4 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 6) *
-                          50
-                        }ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
-                >
-                  Sign Out
                 </button>
               </>
             )}

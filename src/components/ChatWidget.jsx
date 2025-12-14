@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Toaster, toast } from "react-hot-toast";
-import { useAuth } from "../hook/useAuth";
 import Logo1 from "../assets/Logos/logo6.png";
 import Logo8 from "../assets/Logos/logo8.png";
 import { SlArrowDown } from "react-icons/sl";
@@ -9,15 +8,15 @@ import { FiSend } from "react-icons/fi";
 import { IoReload, IoTrash } from "react-icons/io5";
 
 const ChatWidget = ({ isOpen, onClose }) => {
-  const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [connectionError, setConnectionError] = useState(false);
 
+  // Generate unique session IDs for anonymous users
   const session = useRef({
-    user_id: user?.id || `user_${Math.random().toString(36).substring(2, 10)}`,
+    user_id: `user_${Math.random().toString(36).substring(2, 10)}`,
     session_id: `session_${Math.random().toString(36).substring(2, 10)}`,
   }).current;
 
@@ -44,7 +43,7 @@ const ChatWidget = ({ isOpen, onClose }) => {
             body: payload,
             user_session: session,
             timestamp: new Date().toISOString(),
-            user: user ? { id: user.id, email: user.email } : null,
+            user: null, // Removed user auth data
           }),
           signal: controller.signal,
         });
