@@ -38,6 +38,11 @@ const Header = ({ onAuthToast }) => {
     }
   };
 
+  // Handle external blog link
+  const handleBlogClick = () => {
+    window.open("https://blog.ajani.ai", "_blank", "noopener,noreferrer");
+  };
+
   // Handle sign out
   const handleSignOut = async () => {
     try {
@@ -70,10 +75,18 @@ const Header = ({ onAuthToast }) => {
 
   // Base navigation items - always visible
   const baseNavItems = [
-    { label: "Home", id: "Home" },
-    { label: "Categories", id: "Categories" },
-    { label: "Price Insights", id: "Price Insights" },
-    { label: user ? "Our Blog" : "Blog", id: "Blog" },
+    { label: "Home", id: "Home", action: () => scrollToSection("Home") },
+    {
+      label: "Categories",
+      id: "Categories",
+      action: () => scrollToSection("Categories"),
+    },
+    {
+      label: "Price Insights",
+      id: "Price Insights",
+      action: () => scrollToSection("Price Insights"),
+    },
+    { label: user ? "Our Blog" : "Blog", id: "Blog", action: handleBlogClick },
   ];
 
   // Additional items for logged-in users (text only, no icons)
@@ -115,7 +128,7 @@ const Header = ({ onAuthToast }) => {
               {baseNavItems.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => scrollToSection(item.id)}
+                  onClick={item.action}
                   className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer"
                 >
                   {item.label}
@@ -331,8 +344,10 @@ const Header = ({ onAuthToast }) => {
                 key={item.id}
                 className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
                 onClick={() => {
-                  scrollToSection(item.id);
-                  setTimeout(() => setIsMenuOpen(false), 400);
+                  item.action();
+                  if (item.id !== "Blog") {
+                    setTimeout(() => setIsMenuOpen(false), 400);
+                  }
                 }}
                 style={{
                   transitionDelay: isMenuOpen ? `${index * 50}ms` : "0ms",
