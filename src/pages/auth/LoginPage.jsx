@@ -1,7 +1,7 @@
 // src/pages/auth/LoginPage.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaEye, FaEyeSlash, FaTimes } from "react-icons/fa";
 import Logo from "../../assets/Logos/logo5.png";
 
 const LoginPage = () => {
@@ -146,9 +146,28 @@ const LoginPage = () => {
     if (error) setError("");
   };
 
+  const handleCancel = () => {
+    // Navigate back or to home if no history
+    const hasPreviousPage = window.history.length > 1;
+    if (hasPreviousPage) {
+      navigate(-1);
+    } else {
+      navigate("/");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-2xl shadow-lg">
+      <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-2xl shadow-lg relative">
+        {/* Cancel/Close Button - Top Left */}
+        <button
+          onClick={handleCancel}
+          className="absolute -top-2 -left-2 sm:top-2 sm:left-2 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors z-10"
+          aria-label="Close"
+        >
+          <FaTimes size={20} />
+        </button>
+
         {/* Logo */}
         <div className="text-center">
           {/* Logo */}
@@ -186,7 +205,7 @@ const LoginPage = () => {
               value={form.email}
               onChange={handleChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d37f] focus:border-[#00d37f] transition-colors"
-              placeholder="gamil@example.com"
+              placeholder="Email Address"
             />
           </div>
 
