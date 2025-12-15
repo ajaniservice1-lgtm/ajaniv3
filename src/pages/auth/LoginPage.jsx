@@ -187,7 +187,7 @@ const LoginPage = () => {
               value={form.email}
               onChange={handleChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d37f] focus:border-[#00d37f] transition-colors"
-              placeholder="you@example.com"
+              placeholder="gamil@example.com"
             />
           </div>
 

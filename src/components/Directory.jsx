@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { MdFavoriteBorder } from "react-icons/md";
 import { FaGreaterThan, FaLessThan } from "react-icons/fa";
 import { PiSliders } from "react-icons/pi";
@@ -414,81 +414,67 @@ const useGoogleSheet = (sheetId, apiKey) => {
   return { data: Array.isArray(data) ? data : [], loading, error };
 };
 
-// ---------------- BusinessCard Component ----------------
-const BusinessCard = ({ item, category, isMobile }) => {
-  const images = getCardImages(item);
-  const navigate = useNavigate();
-  const location = useLocation();
+// Custom hook for tracking favorite status
+const useIsFavorite = (itemId) => {
   const [isFavorite, setIsFavorite] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Check if this item is already saved on mount and when location changes
-  useEffect(() => {
-    const checkIfFavorite = () => {
+  const checkFavoriteStatus = useCallback(() => {
+    try {
       const saved = JSON.parse(
         localStorage.getItem("userSavedListings") || "[]"
       );
-      const isAlreadySaved = saved.some(
-        (savedItem) => savedItem.id === item.id
-      );
+      const isAlreadySaved = saved.some((savedItem) => savedItem.id === itemId);
       setIsFavorite(isAlreadySaved);
+    } catch (error) {
+      console.error("Error checking favorite status:", error);
+      setIsFavorite(false);
+    }
+  }, [itemId]);
+
+  useEffect(() => {
+    // Initial check
+    checkFavoriteStatus();
+
+    // Create a custom event listener
+    const handleSavedListingsChange = () => {
+      checkFavoriteStatus();
     };
 
-    checkIfFavorite();
-
-    // Listen for savedListingsUpdated events from other components
-    const handleSavedListingsUpdated = () => {
-      checkIfFavorite();
+    // Listen for storage events
+    const handleStorageChange = (e) => {
+      if (e.key === "userSavedListings") {
+        checkFavoriteStatus();
+      }
     };
 
-    window.addEventListener("savedListingsUpdated", handleSavedListingsUpdated);
+    // Add event listeners
+    window.addEventListener("savedListingsUpdated", handleSavedListingsChange);
+    window.addEventListener("storage", handleStorageChange);
+
+    // Poll for changes (fallback)
+    const pollInterval = setInterval(checkFavoriteStatus, 1000);
 
     return () => {
       window.removeEventListener(
         "savedListingsUpdated",
-        handleSavedListingsUpdated
+        handleSavedListingsChange
       );
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(pollInterval);
     };
-  }, [item.id, location]);
+  }, [itemId, checkFavoriteStatus]);
 
-  // Also check for pending saves after login
-  useEffect(() => {
-    const pendingSaveItem = JSON.parse(
-      localStorage.getItem("pendingSaveItem") || "null"
-    );
+  return isFavorite;
+};
 
-    if (pendingSaveItem && pendingSaveItem.id === item.id) {
-      // Clear the pending save
-      localStorage.removeItem("pendingSaveItem");
+// ---------------- BusinessCard Component ----------------
+const BusinessCard = ({ item, category, isMobile }) => {
+  const images = getCardImages(item);
+  const navigate = useNavigate();
+  const [isProcessing, setIsProcessing] = useState(false);
 
-      // Get existing saved listings
-      const saved = JSON.parse(
-        localStorage.getItem("userSavedListings") || "[]"
-      );
-
-      // Check if already saved (to avoid duplicates)
-      const isAlreadySaved = saved.some(
-        (savedItem) => savedItem.id === item.id
-      );
-
-      if (!isAlreadySaved) {
-        // Add to saved listings
-        const updated = [...saved, pendingSaveItem];
-        localStorage.setItem("userSavedListings", JSON.stringify(updated));
-        setIsFavorite(true);
-
-        // Show success message
-        showToast("Added to saved listings!", "success");
-
-        // Dispatch event
-        window.dispatchEvent(
-          new CustomEvent("savedListingsUpdated", {
-            detail: { action: "added", item: pendingSaveItem },
-          })
-        );
-      }
-    }
-  }, [item.id]);
+  // Use custom hook for favorite status
+  const isFavorite = useIsFavorite(item.id);
 
   const formatPrice = (n) => {
     if (!n) return "–";
@@ -613,7 +599,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
     [isMobile, businessName]
   );
 
-  // FIXED: handleFavoriteClick function with proper state management
+  // Handle favorite click - optimized with immediate feedback
   const handleFavoriteClick = useCallback(
     async (e) => {
       e.stopPropagation();
@@ -621,57 +607,56 @@ const BusinessCard = ({ item, category, isMobile }) => {
       // Prevent multiple clicks while processing
       if (isProcessing) return;
 
+      // Immediately show loading state
       setIsProcessing(true);
 
-      // Check if user is signed in
-      const isLoggedIn = localStorage.getItem("ajani_dummy_login") === "true";
-
-      // If not logged in, show login prompt and redirect to login page
-      if (!isLoggedIn) {
-        // Show login prompt toast
-        showToast("Please login to save listings", "info");
-
-        // Store the current URL to redirect back after login
-        const currentPath = window.location.pathname;
-        localStorage.setItem("redirectAfterLogin", currentPath);
-
-        // Store the item details to save after login
-        const itemToSaveAfterLogin = {
-          id: item.id,
-          name: businessName,
-          price: priceText,
-          perText: perText,
-          rating: parseFloat(rating),
-          tag: "Guest Favorite",
-          image: images[0] || FALLBACK_IMAGES.default,
-          category: capitalizeFirst(category) || "Business",
-          location: locationText,
-          originalData: {
-            price_from: item.price_from,
-            area: item.area,
-            rating: item.rating,
-            description: item.description,
-            amenities: item.amenities,
-            contact: item.contact,
-          },
-        };
-
-        localStorage.setItem(
-          "pendingSaveItem",
-          JSON.stringify(itemToSaveAfterLogin)
-        );
-
-        // Redirect to login page after a short delay
-        setTimeout(() => {
-          navigate("/login");
-          setIsProcessing(false);
-        }, 800);
-
-        return;
-      }
-
-      // User is logged in, proceed with bookmarking
       try {
+        // Check if user is signed in
+        const isLoggedIn = localStorage.getItem("ajani_dummy_login") === "true";
+
+        // If not logged in, show login prompt and redirect to login page
+        if (!isLoggedIn) {
+          showToast("Please login to save listings", "info");
+
+          // Store the current URL to redirect back after login
+          localStorage.setItem("redirectAfterLogin", window.location.pathname);
+
+          // Store the item details to save after login
+          const itemToSaveAfterLogin = {
+            id: item.id,
+            name: businessName,
+            price: priceText,
+            perText: perText,
+            rating: parseFloat(rating),
+            tag: "Guest Favorite",
+            image: images[0] || FALLBACK_IMAGES.default,
+            category: capitalizeFirst(category) || "Business",
+            location: locationText,
+            originalData: {
+              price_from: item.price_from,
+              area: item.area,
+              rating: item.rating,
+              description: item.description,
+              amenities: item.amenities,
+              contact: item.contact,
+            },
+          };
+
+          localStorage.setItem(
+            "pendingSaveItem",
+            JSON.stringify(itemToSaveAfterLogin)
+          );
+
+          // Redirect to login page after a short delay
+          setTimeout(() => {
+            navigate("/login");
+            setIsProcessing(false);
+          }, 800);
+
+          return;
+        }
+
+        // User is logged in, proceed with bookmarking
         // Get existing saved listings from localStorage
         const saved = JSON.parse(
           localStorage.getItem("userSavedListings") || "[]"
@@ -686,9 +671,6 @@ const BusinessCard = ({ item, category, isMobile }) => {
           // REMOVE FROM SAVED
           const updated = saved.filter((savedItem) => savedItem.id !== item.id);
           localStorage.setItem("userSavedListings", JSON.stringify(updated));
-
-          // Immediately update UI state
-          setIsFavorite(false);
 
           // Show toast notification
           showToast("Removed from saved listings", "info");
@@ -725,9 +707,6 @@ const BusinessCard = ({ item, category, isMobile }) => {
           const updated = [...saved, listingToSave];
           localStorage.setItem("userSavedListings", JSON.stringify(updated));
 
-          // Immediately update UI state
-          setIsFavorite(true);
-
           // Show toast notification
           showToast("Added to saved listings!", "success");
 
@@ -759,6 +738,44 @@ const BusinessCard = ({ item, category, isMobile }) => {
       navigate,
     ]
   );
+
+  // Check for pending saves after login
+  useEffect(() => {
+    const pendingSaveItem = JSON.parse(
+      localStorage.getItem("pendingSaveItem") || "null"
+    );
+
+    if (pendingSaveItem && pendingSaveItem.id === item.id) {
+      // Clear the pending save
+      localStorage.removeItem("pendingSaveItem");
+
+      // Get existing saved listings
+      const saved = JSON.parse(
+        localStorage.getItem("userSavedListings") || "[]"
+      );
+
+      // Check if already saved (to avoid duplicates)
+      const isAlreadySaved = saved.some(
+        (savedItem) => savedItem.id === item.id
+      );
+
+      if (!isAlreadySaved) {
+        // Add to saved listings
+        const updated = [...saved, pendingSaveItem];
+        localStorage.setItem("userSavedListings", JSON.stringify(updated));
+
+        // Show success message
+        showToast("Added to saved listings!", "success");
+
+        // Dispatch event
+        window.dispatchEvent(
+          new CustomEvent("savedListingsUpdated", {
+            detail: { action: "added", item: pendingSaveItem },
+          })
+        );
+      }
+    }
+  }, [item.id, showToast]);
 
   return (
     <div
@@ -796,17 +813,18 @@ const BusinessCard = ({ item, category, isMobile }) => {
           </span>
         </div>
 
-        {/* Heart icon - Updated with loading state */}
+        {/* Heart icon - Optimized with immediate visual feedback */}
         <button
           onClick={handleFavoriteClick}
           disabled={isProcessing}
-          className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 ${
+          className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 ${
             isFavorite
               ? "bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
               : "bg-white/90 hover:bg-white backdrop-blur-sm"
           } ${isProcessing ? "opacity-70 cursor-not-allowed" : ""}`}
           title={isFavorite ? "Remove from saved" : "Add to saved"}
           aria-label={isFavorite ? "Remove from saved" : "Save this listing"}
+          aria-pressed={isFavorite}
         >
           {isProcessing ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -1196,7 +1214,6 @@ const Directory = () => {
   const [activeFilters] = useState({});
 
   const navigate = useNavigate();
-  const location = useLocation();
 
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
   const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;

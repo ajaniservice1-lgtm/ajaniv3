@@ -147,7 +147,7 @@ const VendorRegistration = () => {
               value={form.email}
               onChange={handleChange}
               onBlur={() => handleBlur("email")}
-              placeholder="example@business.com"
+              placeholder="Email Address"
               className={`w-full mt-1 px-3 py-2.5 border ${
                 errors.email ? "border-red-500" : "border-gray-300"
               } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm`}
@@ -168,7 +168,7 @@ const VendorRegistration = () => {
               value={form.phone}
               onChange={handleChange}
               onBlur={() => handleBlur("phone")}
-              placeholder="+234 812 345 6789"
+              placeholder="Phone Number"
               className={`w-full mt-1 px-3 py-2.5 border ${
                 errors.phone ? "border-red-500" : "border-gray-300"
               } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm`}
