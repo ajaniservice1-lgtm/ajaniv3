@@ -19,19 +19,19 @@ const RegisterChoicePage = () => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      {/* Header with Cancel Button Only */}
-      <div className="p-4 sm:p-6">
-        <button
-          onClick={handleCancel}
-          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
-          aria-label="Close"
-        >
-          <FaTimes size={20} />
-        </button>
-      </div>
+      {/* Content with right-aligned close button */}
+      <div className="flex flex-col items-center px-4 py-6 sm:py-8 md:py-12">
+        {/* Close Button - Top Right */}
+        <div className="w-full max-w-4xl flex justify-end mb-2">
+          <button
+            onClick={handleCancel}
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+            aria-label="Close"
+          >
+            <FaTimes size={20} />
+          </button>
+        </div>
 
-      {/* Content */}
-      <div className="flex flex-col items-center px-4 py-4 sm:py-6 md:py-12">
         {/* Logo positioned close to heading */}
         <div className="mb-4">
           <img
@@ -42,11 +42,14 @@ const RegisterChoicePage = () => {
         </div>
 
         {/* Heading */}
-        <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 text-center mb-10">
+        <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 text-center mb-2">
           Join Ajani as a user or vendor
         </h2>
 
-        
+        {/* Subheading */}
+        <p className="text-gray-600 text-center text-sm sm:text-base mb-8">
+          Choose how you want to experience Ajani
+        </p>
 
         {/* Choices */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

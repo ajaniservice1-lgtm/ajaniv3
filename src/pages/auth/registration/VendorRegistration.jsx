@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaArrowRight, FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaArrowRight, FaEye, FaEyeSlash, FaTimes } from "react-icons/fa";
 import Logo from "../../../assets/Logos/logo5.png";
 
 const VendorRegistration = () => {
@@ -56,6 +56,16 @@ const VendorRegistration = () => {
     setTouched({ ...touched, [field]: true });
   };
 
+  const handleCancel = () => {
+    // Navigate back or to home if no history
+    const hasPreviousPage = window.history.length > 1;
+    if (hasPreviousPage) {
+      navigate(-1);
+    } else {
+      navigate("/");
+    }
+  };
+
   const handleNext = (e) => {
     e.preventDefault();
 
@@ -75,7 +85,16 @@ const VendorRegistration = () => {
 
   return (
     <div className="min-h-screen w-full bg-white flex items-center justify-center p-4 sm:p-6 md:p-8 font-manrope">
-      <div className="w-full max-w-md sm:max-w-lg p-6 sm:p-8 rounded-xl shadow-lg bg-white">
+      <div className="w-full max-w-md sm:max-w-lg p-6 sm:p-8 rounded-xl shadow-lg bg-white relative">
+        {/* Cancel/Close Button - Top Right */}
+        <button
+          onClick={handleCancel}
+          className="absolute -top-2 -right-2 sm:top-2 sm:right-2 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors z-10"
+          aria-label="Close"
+        >
+          <FaTimes size={20} />
+        </button>
+
         {/* Logo */}
         <div className="flex justify-center mb-4">
           <img src={Logo} alt="Ajani Logo" className="h-auto w-30" />

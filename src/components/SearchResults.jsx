@@ -1,6 +1,6 @@
 // src/components/SearchResults.jsx
-import React, { useState, useEffect, useRef } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faStar,
@@ -231,18 +231,67 @@ const getCardImages = (item) => {
   return [FALLBACK_IMAGES.default];
 };
 
+// Custom hook for tracking favorite status
+const useIsFavorite = (itemId) => {
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  const checkFavoriteStatus = useCallback(() => {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem("userSavedListings") || "[]"
+      );
+      const isAlreadySaved = saved.some((savedItem) => savedItem.id === itemId);
+      setIsFavorite(isAlreadySaved);
+    } catch (error) {
+      console.error("Error checking favorite status:", error);
+      setIsFavorite(false);
+    }
+  }, [itemId]);
+
+  useEffect(() => {
+    // Initial check
+    checkFavoriteStatus();
+
+    // Create a custom event listener
+    const handleSavedListingsChange = () => {
+      checkFavoriteStatus();
+    };
+
+    // Listen for storage events
+    const handleStorageChange = (e) => {
+      if (e.key === "userSavedListings") {
+        checkFavoriteStatus();
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener("savedListingsUpdated", handleSavedListingsChange);
+    window.addEventListener("storage", handleStorageChange);
+
+    // Poll for changes (fallback)
+    const pollInterval = setInterval(checkFavoriteStatus, 1000);
+
+    return () => {
+      window.removeEventListener(
+        "savedListingsUpdated",
+        handleSavedListingsChange
+      );
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(pollInterval);
+    };
+  }, [itemId, checkFavoriteStatus]);
+
+  return isFavorite;
+};
+
 // ---------------- SearchResultBusinessCard Component ----------------
 const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   const images = getCardImages(item);
   const navigate = useNavigate();
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Check if this item is already saved on mount
-  useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
-    const isAlreadySaved = saved.some((savedItem) => savedItem.id === item.id);
-    setIsFavorite(isAlreadySaved);
-  }, [item.id]);
+  // Use custom hook for favorite status
+  const isFavorite = useIsFavorite(item.id);
 
   const formatPrice = (n) => {
     if (!n) return "–";
@@ -253,41 +302,12 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
     });
   };
 
-  // FIXED: Proper price text based on category
   const getPriceText = () => {
     const priceFrom = item.price_from || item.price || "0";
     const formattedPrice = formatPrice(priceFrom);
-
-    // Categories that show "for 2 nights"
-    const nightlyCategories = [
-      "hotel",
-      "hostel",
-      "shortlet",
-      "apartment",
-      "cabin",
-      "condo",
-      "resort",
-      "inn",
-      "motel",
-    ];
-
-    if (nightlyCategories.some((cat) => category.toLowerCase().includes(cat))) {
-      return `₦${formattedPrice}`;
-    }
-
-    // Other categories show "per guest" or "per meal"
-    if (
-      category.toLowerCase().includes("restaurant") ||
-      category.toLowerCase().includes("food") ||
-      category.toLowerCase().includes("cafe")
-    ) {
-      return `₦${formattedPrice}`;
-    }
-
     return `₦${formattedPrice}`;
   };
 
-  // Get the per text (for 2 nights, per guest, per meal)
   const getPerText = () => {
     const nightlyCategories = [
       "hotel",
@@ -318,7 +338,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
 
   const priceText = getPriceText();
   const perText = getPerText();
-  const location = item.area || item.location || "Ibadan";
+  const locationText = item.area || item.location || "Ibadan";
   const rating = item.rating || "4.9";
   const businessName = item.name || "Business Name";
 
@@ -331,30 +351,31 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   };
 
   // Toast Notification Function
-  const showToast = (message, type = "success") => {
-    // Remove any existing toast
-    const existingToast = document.getElementById("toast-notification");
-    if (existingToast) {
-      existingToast.remove();
-    }
+  const showToast = useCallback(
+    (message, type = "success") => {
+      // Remove any existing toast
+      const existingToast = document.getElementById("toast-notification");
+      if (existingToast) {
+        existingToast.remove();
+      }
 
-    // Create toast element
-    const toast = document.createElement("div");
-    toast.id = "toast-notification";
-    toast.className = `fixed z-50 px-4 py-3 rounded-lg shadow-lg border ${
-      type === "success"
-        ? "bg-green-50 border-green-200 text-green-800"
-        : "bg-blue-50 border-blue-200 text-blue-800"
-    }`;
+      // Create toast element
+      const toast = document.createElement("div");
+      toast.id = "toast-notification";
+      toast.className = `fixed z-[9999] px-4 py-3 rounded-lg shadow-lg border ${
+        type === "success"
+          ? "bg-green-50 border-green-200 text-green-800"
+          : "bg-blue-50 border-blue-200 text-blue-800"
+      }`;
 
-    // Position toast lower - 15px for mobile, 15px for desktop
-    toast.style.top = isMobile ? "15px" : "15px";
-    toast.style.right = "15px";
-    toast.style.maxWidth = "320px";
-    toast.style.animation = "slideInRight 0.3s ease-out forwards";
+      // Position toast
+      toast.style.top = isMobile ? "15px" : "15px";
+      toast.style.right = "15px";
+      toast.style.maxWidth = "320px";
+      toast.style.animation = "slideInRight 0.3s ease-out forwards";
 
-    // Toast content
-    toast.innerHTML = `
+      // Toast content
+      toast.innerHTML = `
       <div class="flex items-start gap-3">
         <div class="${
           type === "success" ? "text-green-600" : "text-blue-600"
@@ -370,89 +391,211 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
           <p class="text-sm opacity-80 mt-1">${businessName}</p>
         </div>
         <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70 transition-opacity">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
         </button>
       </div>
     `;
 
-    // Add to DOM
-    document.body.appendChild(toast);
+      // Add to DOM
+      document.body.appendChild(toast);
 
-    // Auto remove after 3 seconds
-    setTimeout(() => {
-      toast.style.animation = "slideOutRight 0.3s ease-in forwards";
+      // Auto remove after 3 seconds
       setTimeout(() => {
         if (toast.parentElement) {
-          toast.remove();
+          toast.style.animation = "slideOutRight 0.3s ease-in forwards";
+          setTimeout(() => {
+            if (toast.parentElement) {
+              toast.remove();
+            }
+          }, 300);
         }
-      }, 300);
-    }, 3000);
-  };
+      }, 3000);
+    },
+    [isMobile, businessName]
+  );
 
-  // Full handleFavoriteClick Function (saves to saved listings)
-  const handleFavoriteClick = (e) => {
-    e.stopPropagation(); // Prevent card click when clicking heart
+  // Handle favorite click - optimized with immediate feedback
+  const handleFavoriteClick = useCallback(
+    async (e) => {
+      e.stopPropagation();
 
-    // Get existing saved listings from localStorage
-    const saved = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
+      // Prevent multiple clicks while processing
+      if (isProcessing) return;
 
-    // Check if this item is already saved
-    const isAlreadySaved = saved.some((savedItem) => savedItem.id === item.id);
+      // Immediately show loading state
+      setIsProcessing(true);
 
-    if (isAlreadySaved) {
-      // REMOVE FROM SAVED
-      const updated = saved.filter((savedItem) => savedItem.id !== item.id);
-      localStorage.setItem("userSavedListings", JSON.stringify(updated));
-      setIsFavorite(false); // Update React state
+      try {
+        // Check if user is signed in
+        const isLoggedIn = localStorage.getItem("ajani_dummy_login") === "true";
 
-      // Show toast notification
-      showToast("Removed from saved listings", "info");
+        // If not logged in, show login prompt and redirect to login page
+        if (!isLoggedIn) {
+          showToast("Please login to save listings", "info");
 
-      // Dispatch event for other components
-      window.dispatchEvent(
-        new CustomEvent("savedListingsUpdated", {
-          detail: { action: "removed", itemId: item.id },
-        })
+          // Store the current URL to redirect back after login
+          localStorage.setItem(
+            "redirectAfterLogin",
+            window.location.pathname + window.location.search
+          );
+
+          // Store the item details to save after login
+          const itemToSaveAfterLogin = {
+            id: item.id,
+            name: businessName,
+            price: priceText,
+            perText: perText,
+            rating: parseFloat(rating),
+            tag: "Guest Favorite",
+            image: images[0] || FALLBACK_IMAGES.default,
+            category: capitalizeFirst(category) || "Business",
+            location: locationText,
+            originalData: {
+              price_from: item.price_from,
+              area: item.area,
+              rating: item.rating,
+              description: item.description,
+              amenities: item.amenities,
+              contact: item.contact,
+            },
+          };
+
+          localStorage.setItem(
+            "pendingSaveItem",
+            JSON.stringify(itemToSaveAfterLogin)
+          );
+
+          // Redirect to login page after a short delay
+          setTimeout(() => {
+            navigate("/login");
+            setIsProcessing(false);
+          }, 800);
+
+          return;
+        }
+
+        // User is logged in, proceed with bookmarking
+        // Get existing saved listings from localStorage
+        const saved = JSON.parse(
+          localStorage.getItem("userSavedListings") || "[]"
+        );
+
+        // Check if this item is already saved
+        const isAlreadySaved = saved.some(
+          (savedItem) => savedItem.id === item.id
+        );
+
+        if (isAlreadySaved) {
+          // REMOVE FROM SAVED
+          const updated = saved.filter((savedItem) => savedItem.id !== item.id);
+          localStorage.setItem("userSavedListings", JSON.stringify(updated));
+
+          // Show toast notification
+          showToast("Removed from saved listings", "info");
+
+          // Dispatch event for other components
+          window.dispatchEvent(
+            new CustomEvent("savedListingsUpdated", {
+              detail: { action: "removed", itemId: item.id },
+            })
+          );
+        } else {
+          // ADD TO SAVED
+          const listingToSave = {
+            id: item.id || `listing_${Date.now()}`,
+            name: businessName,
+            price: priceText,
+            perText: perText,
+            rating: parseFloat(rating),
+            tag: "Guest Favorite",
+            image: images[0] || FALLBACK_IMAGES.default,
+            category: capitalizeFirst(category) || "Business",
+            location: locationText,
+            savedDate: new Date().toISOString().split("T")[0],
+            originalData: {
+              price_from: item.price_from,
+              area: item.area,
+              rating: item.rating,
+              description: item.description,
+              amenities: item.amenities,
+              contact: item.contact,
+            },
+          };
+
+          const updated = [...saved, listingToSave];
+          localStorage.setItem("userSavedListings", JSON.stringify(updated));
+
+          // Show toast notification
+          showToast("Added to saved listings!", "success");
+
+          // Dispatch event for other components
+          window.dispatchEvent(
+            new CustomEvent("savedListingsUpdated", {
+              detail: { action: "added", item: listingToSave },
+            })
+          );
+        }
+      } catch (error) {
+        console.error("Error saving/removing favorite:", error);
+        showToast("Something went wrong. Please try again.", "info");
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [
+      isProcessing,
+      item,
+      businessName,
+      priceText,
+      perText,
+      rating,
+      images,
+      category,
+      locationText,
+      showToast,
+      navigate,
+    ]
+  );
+
+  // Check for pending saves after login
+  useEffect(() => {
+    const pendingSaveItem = JSON.parse(
+      localStorage.getItem("pendingSaveItem") || "null"
+    );
+
+    if (pendingSaveItem && pendingSaveItem.id === item.id) {
+      // Clear the pending save
+      localStorage.removeItem("pendingSaveItem");
+
+      // Get existing saved listings
+      const saved = JSON.parse(
+        localStorage.getItem("userSavedListings") || "[]"
       );
-    } else {
-      // ADD TO SAVED
-      const listingToSave = {
-        id: item.id || `listing_${Date.now()}`,
-        name: businessName,
-        price: priceText,
-        perText: perText,
-        rating: parseFloat(rating),
-        tag: "Guest Favorite",
-        image: images[0] || FALLBACK_IMAGES.default,
-        category: capitalizeFirst(category) || "Business",
-        location: location,
-        savedDate: new Date().toISOString().split("T")[0],
-        // Keep original data
-        originalData: {
-          price_from: item.price_from,
-          area: item.area,
-          rating: item.rating,
-          description: item.description,
-          amenities: item.amenities,
-          contact: item.contact,
-        },
-      };
 
-      const updated = [...saved, listingToSave];
-      localStorage.setItem("userSavedListings", JSON.stringify(updated));
-      setIsFavorite(true); // Update React state
-
-      // Show toast notification
-      showToast("Added to saved listings!", "success");
-
-      // Dispatch event for other components
-      window.dispatchEvent(
-        new CustomEvent("savedListingsUpdated", {
-          detail: { action: "added", item: listingToSave },
-        })
+      // Check if already saved (to avoid duplicates)
+      const isAlreadySaved = saved.some(
+        (savedItem) => savedItem.id === item.id
       );
+
+      if (!isAlreadySaved) {
+        // Add to saved listings
+        const updated = [...saved, pendingSaveItem];
+        localStorage.setItem("userSavedListings", JSON.stringify(updated));
+
+        // Show success message
+        showToast("Added to saved listings!", "success");
+
+        // Dispatch event
+        window.dispatchEvent(
+          new CustomEvent("savedListingsUpdated", {
+            detail: { action: "added", item: pendingSaveItem },
+          })
+        );
+      }
     }
-  };
+  }, [item.id, showToast]);
 
   return (
     <div
@@ -478,7 +621,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
           className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
           onError={(e) => {
             e.currentTarget.src = FALLBACK_IMAGES.default;
-            e.currentTarget.onerror = null; // Prevent infinite loop
+            e.currentTarget.onerror = null;
           }}
           loading="lazy"
         />
@@ -490,18 +633,22 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
           </span>
         </div>
 
-        {/* Heart icon - Updated with better styling */}
+        {/* Heart icon - Optimized with immediate visual feedback */}
         <button
           onClick={handleFavoriteClick}
-          className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 ${
+          disabled={isProcessing}
+          className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 ${
             isFavorite
               ? "bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
               : "bg-white/90 hover:bg-white backdrop-blur-sm"
-          }`}
+          } ${isProcessing ? "opacity-70 cursor-not-allowed" : ""}`}
           title={isFavorite ? "Remove from saved" : "Add to saved"}
           aria-label={isFavorite ? "Remove from saved" : "Save this listing"}
+          aria-pressed={isFavorite}
         >
-          {isFavorite ? (
+          {isProcessing ? (
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          ) : isFavorite ? (
             <svg
               className="w-4 h-4 text-white"
               fill="currentColor"
@@ -533,7 +680,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
 
         <div className="text-gray-600">
           <p className={`${isMobile ? "text-[9px]" : "text-xs"} line-clamp-1`}>
-            {location}
+            {locationText}
           </p>
         </div>
 
@@ -567,7 +714,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
                 ${isMobile ? "text-[9px]" : "text-xs"}
               `}
             >
-              {/* BLACK STAR */}
               <FontAwesomeIcon
                 icon={faStar}
                 className={`${isMobile ? "text-[9px]" : "text-xs"} text-black`}
@@ -586,13 +732,13 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
             </span>
           </div>
 
-          {/* Saved indicator badge - Shows "Saved" when favorited */}
-          {isFavorite && (
+          {/* Saved indicator badge */}
+          {isFavorite && !isProcessing && (
             <span className="inline-flex items-center gap-1 text-[10px] text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
               <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fillRule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 011.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
                   clipRule="evenodd"
                 />
               </svg>
@@ -1212,9 +1358,9 @@ const MobileSearchModal = ({
         initial={{ opacity: 0, y: 0 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 0 }}
-        transition={{ 
+        transition={{
           duration: 0.2,
-          ease: "easeOut"
+          ease: "easeOut",
         }}
         className="absolute inset-0 bg-white flex flex-col"
         ref={modalRef}
@@ -2152,8 +2298,6 @@ const FilterSidebar = ({
               maxWidth: "100vw",
             }}
           >
-          
-
             {sidebarContent}
           </div>
 
