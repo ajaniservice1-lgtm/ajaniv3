@@ -1,30 +1,55 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Icon from "../../assets/Logos/logo1.png";
+import { FaTimes } from "react-icons/fa";
+import Icon from "../../assets/Logos/logo5.png";
 
 const RegisterChoicePage = () => {
   const navigate = useNavigate();
   const [selected, setSelected] = useState(null);
 
+  const handleCancel = () => {
+    // Navigate back or to home if no history
+    const hasPreviousPage = window.history.length > 1;
+    if (hasPreviousPage) {
+      navigate(-1);
+    } else {
+      navigate("/");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      {/* Logo */}
-      {/* <div className="p-4">
-        <img
-          src={Icon}
-          alt="Ajani Logo"
-          className="h-5 w-auto object-contain cursor-pointer" // reduced size
-        />
-      </div> */}
+      {/* Header with Cancel Button Only */}
+      <div className="p-4 sm:p-6">
+        <button
+          onClick={handleCancel}
+          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+          aria-label="Close"
+        >
+          <FaTimes size={20} />
+        </button>
+      </div>
 
       {/* Content */}
-      <div className="flex flex-col items-center px-4 py-25 md:py-40">
-        <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 text-center">
-          Join Ajani as a useer or vendor
+      <div className="flex flex-col items-center px-4 py-4 sm:py-6 md:py-12">
+        {/* Logo positioned close to heading */}
+        <div className="mb-4">
+          <img
+            src={Icon}
+            alt="Ajani Logo"
+            className="h-10 w-auto object-contain mx-auto"
+          />
+        </div>
+
+        {/* Heading */}
+        <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 text-center mb-10">
+          Join Ajani as a user or vendor
         </h2>
 
+        
+
         {/* Choices */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Client */}
           <button
             onClick={() => setSelected("client")}
@@ -65,6 +90,9 @@ const RegisterChoicePage = () => {
             <h3 className="mt-5 text-lg font-medium text-gray-900">
               I'm a user to buy
             </h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Find and book verified vendors, save favorites, write reviews
+            </p>
           </button>
 
           {/* Vendor */}
@@ -107,6 +135,9 @@ const RegisterChoicePage = () => {
             <h3 className="mt-5 text-lg font-medium text-gray-900">
               I'm a vendor for listing
             </h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Showcase your business, get verified, connect with customers
+            </p>
           </button>
         </div>
 
