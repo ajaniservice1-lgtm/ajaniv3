@@ -11,7 +11,6 @@ const HomePage = lazy(() => import("./pages/HomePage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
-const VendorPage = lazy(() => import("./pages/VendorPage"));
 const CategoryResults = lazy(() => import("./pages/CategoryResults"));
 const SearchResults = lazy(() => import("./components/SearchResults"));
 
@@ -99,7 +98,6 @@ function App() {
                   <Route path="/contact" element={<ContactPage />} />
 
                   {/* Dynamic vendor pages */}
-                  <Route path="/vendor/:slug" element={<VendorPage />} />
                   <Route path="/vendor-detail/:id" element={<VendorDetail />} />
 
                   {/* Category pages */}
