@@ -1,5 +1,5 @@
 // src/pages/CategoryResults.jsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -26,7 +26,7 @@ import { PiSliders } from "react-icons/pi";
 import { motion } from "framer-motion";
 import { createPortal } from "react-dom";
 
-// Import your Google Sheets hook
+// Google Sheets hook
 const useGoogleSheet = (sheetId, apiKey) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -189,19 +189,6 @@ const getLocationBreakdown = (listings) => {
     .sort((a, b) => b.count - a.count);
 };
 
-// Helper function to get category breakdown by location
-const getCategoryBreakdownByLocation = (listings) => {
-  const categoryCounts = {};
-  listings.forEach((item) => {
-    const category = getCategoryDisplayName(item.category || "other.other");
-    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-  });
-
-  return Object.entries(categoryCounts)
-    .map(([category, count]) => ({ category, count }))
-    .sort((a, b) => b.count - a.count);
-};
-
 // Helper function to get category breakdown for a specific location
 const getCategoryBreakdownForLocation = (listings, targetLocation) => {
   const filteredListings = listings.filter((item) => {
@@ -230,18 +217,67 @@ const getCategoryIcon = (category) => {
   return faFilter;
 };
 
+// Custom hook for tracking favorite status
+const useIsFavorite = (itemId) => {
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  const checkFavoriteStatus = useCallback(() => {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem("userSavedListings") || "[]"
+      );
+      const isAlreadySaved = saved.some((savedItem) => savedItem.id === itemId);
+      setIsFavorite(isAlreadySaved);
+    } catch (error) {
+      console.error("Error checking favorite status:", error);
+      setIsFavorite(false);
+    }
+  }, [itemId]);
+
+  useEffect(() => {
+    // Initial check
+    checkFavoriteStatus();
+
+    // Create a custom event listener
+    const handleSavedListingsChange = () => {
+      checkFavoriteStatus();
+    };
+
+    // Listen for storage events
+    const handleStorageChange = (e) => {
+      if (e.key === "userSavedListings") {
+        checkFavoriteStatus();
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener("savedListingsUpdated", handleSavedListingsChange);
+    window.addEventListener("storage", handleStorageChange);
+
+    // Poll for changes (fallback)
+    const pollInterval = setInterval(checkFavoriteStatus, 1000);
+
+    return () => {
+      window.removeEventListener(
+        "savedListingsUpdated",
+        handleSavedListingsChange
+      );
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(pollInterval);
+    };
+  }, [itemId, checkFavoriteStatus]);
+
+  return isFavorite;
+};
+
 // ================== ENHANCED BUSINESS CARD WITH FAVORITES ==================
 const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   const images = getCardImages(item);
   const navigate = useNavigate();
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Check if this item is already saved on mount
-  useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
-    const isAlreadySaved = saved.some((savedItem) => savedItem.id === item.id);
-    setIsFavorite(isAlreadySaved);
-  }, [item.id]);
+  // Use custom hook for favorite status
+  const isFavorite = useIsFavorite(item.id);
 
   const formatPrice = (n) => {
     if (!n) return "–";
@@ -252,41 +288,12 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
     });
   };
 
-  // Proper price text based on category
   const getPriceText = () => {
     const priceFrom = item.price_from || item.price || "0";
     const formattedPrice = formatPrice(priceFrom);
-
-    // Categories that show "for 2 nights"
-    const nightlyCategories = [
-      "hotel",
-      "hostel",
-      "shortlet",
-      "apartment",
-      "cabin",
-      "condo",
-      "resort",
-      "inn",
-      "motel",
-    ];
-
-    if (nightlyCategories.some((cat) => category.toLowerCase().includes(cat))) {
-      return `₦${formattedPrice}`;
-    }
-
-    // Other categories show "per guest" or "per meal"
-    if (
-      category.toLowerCase().includes("restaurant") ||
-      category.toLowerCase().includes("food") ||
-      category.toLowerCase().includes("cafe")
-    ) {
-      return `₦${formattedPrice}`;
-    }
-
     return `₦${formattedPrice}`;
   };
 
-  // Get the per text (for 2 nights, per guest, per meal)
   const getPerText = () => {
     const nightlyCategories = [
       "hotel",
@@ -317,7 +324,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
 
   const priceText = getPriceText();
   const perText = getPerText();
-  const location = item.area || item.location || "Ibadan";
+  const locationText = item.area || item.location || "Ibadan";
   const rating = item.rating || "4.9";
   const businessName = item.name || "Business Name";
 
@@ -330,30 +337,31 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   };
 
   // Toast Notification Function
-  const showToast = (message, type = "success") => {
-    // Remove any existing toast
-    const existingToast = document.getElementById("toast-notification");
-    if (existingToast) {
-      existingToast.remove();
-    }
+  const showToast = useCallback(
+    (message, type = "success") => {
+      // Remove any existing toast
+      const existingToast = document.getElementById("toast-notification");
+      if (existingToast) {
+        existingToast.remove();
+      }
 
-    // Create toast element
-    const toast = document.createElement("div");
-    toast.id = "toast-notification";
-    toast.className = `fixed z-50 px-4 py-3 rounded-lg shadow-lg border ${
-      type === "success"
-        ? "bg-green-50 border-green-200 text-green-800"
-        : "bg-blue-50 border-blue-200 text-blue-800"
-    }`;
+      // Create toast element
+      const toast = document.createElement("div");
+      toast.id = "toast-notification";
+      toast.className = `fixed z-[9999] px-4 py-3 rounded-lg shadow-lg border ${
+        type === "success"
+          ? "bg-green-50 border-green-200 text-green-800"
+          : "bg-blue-50 border-blue-200 text-blue-800"
+      }`;
 
-    // Position toast lower - 15px for mobile, 15px for desktop
-    toast.style.top = isMobile ? "15px" : "15px";
-    toast.style.right = "15px";
-    toast.style.maxWidth = "320px";
-    toast.style.animation = "slideInRight 0.3s ease-out forwards";
+      // Position toast
+      toast.style.top = isMobile ? "15px" : "15px";
+      toast.style.right = "15px";
+      toast.style.maxWidth = "320px";
+      toast.style.animation = "slideInRight 0.3s ease-out forwards";
 
-    // Toast content
-    toast.innerHTML = `
+      // Toast content
+      toast.innerHTML = `
       <div class="flex items-start gap-3">
         <div class="${
           type === "success" ? "text-green-600" : "text-blue-600"
@@ -369,89 +377,211 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
           <p class="text-sm opacity-80 mt-1">${businessName}</p>
         </div>
         <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70 transition-opacity">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
         </button>
       </div>
     `;
 
-    // Add to DOM
-    document.body.appendChild(toast);
+      // Add to DOM
+      document.body.appendChild(toast);
 
-    // Auto remove after 3 seconds
-    setTimeout(() => {
-      toast.style.animation = "slideOutRight 0.3s ease-in forwards";
+      // Auto remove after 3 seconds
       setTimeout(() => {
         if (toast.parentElement) {
-          toast.remove();
+          toast.style.animation = "slideOutRight 0.3s ease-in forwards";
+          setTimeout(() => {
+            if (toast.parentElement) {
+              toast.remove();
+            }
+          }, 300);
         }
-      }, 300);
-    }, 3000);
-  };
+      }, 3000);
+    },
+    [isMobile, businessName]
+  );
 
-  // Full handleFavoriteClick Function (saves to saved listings)
-  const handleFavoriteClick = (e) => {
-    e.stopPropagation(); // Prevent card click when clicking heart
+  // Handle favorite click - optimized with immediate feedback
+  const handleFavoriteClick = useCallback(
+    async (e) => {
+      e.stopPropagation();
 
-    // Get existing saved listings from localStorage
-    const saved = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
+      // Prevent multiple clicks while processing
+      if (isProcessing) return;
 
-    // Check if this item is already saved
-    const isAlreadySaved = saved.some((savedItem) => savedItem.id === item.id);
+      // Immediately show loading state
+      setIsProcessing(true);
 
-    if (isAlreadySaved) {
-      // REMOVE FROM SAVED
-      const updated = saved.filter((savedItem) => savedItem.id !== item.id);
-      localStorage.setItem("userSavedListings", JSON.stringify(updated));
-      setIsFavorite(false); // Update React state
+      try {
+        // Check if user is signed in
+        const isLoggedIn = localStorage.getItem("ajani_dummy_login") === "true";
 
-      // Show toast notification
-      showToast("Removed from saved listings", "info");
+        // If not logged in, show login prompt and redirect to login page
+        if (!isLoggedIn) {
+          showToast("Please login to save listings", "info");
 
-      // Dispatch event for other components
-      window.dispatchEvent(
-        new CustomEvent("savedListingsUpdated", {
-          detail: { action: "removed", itemId: item.id },
-        })
+          // Store the current URL to redirect back after login
+          localStorage.setItem(
+            "redirectAfterLogin",
+            window.location.pathname + window.location.search
+          );
+
+          // Store the item details to save after login
+          const itemToSaveAfterLogin = {
+            id: item.id,
+            name: businessName,
+            price: priceText,
+            perText: perText,
+            rating: parseFloat(rating),
+            tag: "Guest Favorite",
+            image: images[0] || FALLBACK_IMAGES.default,
+            category: capitalizeFirst(category) || "Business",
+            location: locationText,
+            originalData: {
+              price_from: item.price_from,
+              area: item.area,
+              rating: item.rating,
+              description: item.description,
+              amenities: item.amenities,
+              contact: item.contact,
+            },
+          };
+
+          localStorage.setItem(
+            "pendingSaveItem",
+            JSON.stringify(itemToSaveAfterLogin)
+          );
+
+          // Redirect to login page after a short delay
+          setTimeout(() => {
+            navigate("/login");
+            setIsProcessing(false);
+          }, 800);
+
+          return;
+        }
+
+        // User is logged in, proceed with bookmarking
+        // Get existing saved listings from localStorage
+        const saved = JSON.parse(
+          localStorage.getItem("userSavedListings") || "[]"
+        );
+
+        // Check if this item is already saved
+        const isAlreadySaved = saved.some(
+          (savedItem) => savedItem.id === item.id
+        );
+
+        if (isAlreadySaved) {
+          // REMOVE FROM SAVED
+          const updated = saved.filter((savedItem) => savedItem.id !== item.id);
+          localStorage.setItem("userSavedListings", JSON.stringify(updated));
+
+          // Show toast notification
+          showToast("Removed from saved listings", "info");
+
+          // Dispatch event for other components
+          window.dispatchEvent(
+            new CustomEvent("savedListingsUpdated", {
+              detail: { action: "removed", itemId: item.id },
+            })
+          );
+        } else {
+          // ADD TO SAVED
+          const listingToSave = {
+            id: item.id || `listing_${Date.now()}`,
+            name: businessName,
+            price: priceText,
+            perText: perText,
+            rating: parseFloat(rating),
+            tag: "Guest Favorite",
+            image: images[0] || FALLBACK_IMAGES.default,
+            category: capitalizeFirst(category) || "Business",
+            location: locationText,
+            savedDate: new Date().toISOString().split("T")[0],
+            originalData: {
+              price_from: item.price_from,
+              area: item.area,
+              rating: item.rating,
+              description: item.description,
+              amenities: item.amenities,
+              contact: item.contact,
+            },
+          };
+
+          const updated = [...saved, listingToSave];
+          localStorage.setItem("userSavedListings", JSON.stringify(updated));
+
+          // Show toast notification
+          showToast("Added to saved listings!", "success");
+
+          // Dispatch event for other components
+          window.dispatchEvent(
+            new CustomEvent("savedListingsUpdated", {
+              detail: { action: "added", item: listingToSave },
+            })
+          );
+        }
+      } catch (error) {
+        console.error("Error saving/removing favorite:", error);
+        showToast("Something went wrong. Please try again.", "info");
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [
+      isProcessing,
+      item,
+      businessName,
+      priceText,
+      perText,
+      rating,
+      images,
+      category,
+      locationText,
+      showToast,
+      navigate,
+    ]
+  );
+
+  // Check for pending saves after login
+  useEffect(() => {
+    const pendingSaveItem = JSON.parse(
+      localStorage.getItem("pendingSaveItem") || "null"
+    );
+
+    if (pendingSaveItem && pendingSaveItem.id === item.id) {
+      // Clear the pending save
+      localStorage.removeItem("pendingSaveItem");
+
+      // Get existing saved listings
+      const saved = JSON.parse(
+        localStorage.getItem("userSavedListings") || "[]"
       );
-    } else {
-      // ADD TO SAVED
-      const listingToSave = {
-        id: item.id || `listing_${Date.now()}`,
-        name: businessName,
-        price: priceText,
-        perText: perText,
-        rating: parseFloat(rating),
-        tag: "Guest Favorite",
-        image: images[0] || FALLBACK_IMAGES.default,
-        category: capitalizeFirst(category) || "Business",
-        location: location,
-        savedDate: new Date().toISOString().split("T")[0],
-        // Keep original data
-        originalData: {
-          price_from: item.price_from,
-          area: item.area,
-          rating: item.rating,
-          description: item.description,
-          amenities: item.amenities,
-          contact: item.contact,
-        },
-      };
 
-      const updated = [...saved, listingToSave];
-      localStorage.setItem("userSavedListings", JSON.stringify(updated));
-      setIsFavorite(true); // Update React state
-
-      // Show toast notification
-      showToast("Added to saved listings!", "success");
-
-      // Dispatch event for other components
-      window.dispatchEvent(
-        new CustomEvent("savedListingsUpdated", {
-          detail: { action: "added", item: listingToSave },
-        })
+      // Check if already saved (to avoid duplicates)
+      const isAlreadySaved = saved.some(
+        (savedItem) => savedItem.id === item.id
       );
+
+      if (!isAlreadySaved) {
+        // Add to saved listings
+        const updated = [...saved, pendingSaveItem];
+        localStorage.setItem("userSavedListings", JSON.stringify(updated));
+
+        // Show success message
+        showToast("Added to saved listings!", "success");
+
+        // Dispatch event
+        window.dispatchEvent(
+          new CustomEvent("savedListingsUpdated", {
+            detail: { action: "added", item: pendingSaveItem },
+          })
+        );
+      }
     }
-  };
+  }, [item.id, showToast]);
 
   return (
     <div
@@ -477,7 +607,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
           className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
           onError={(e) => {
             e.currentTarget.src = FALLBACK_IMAGES.default;
-            e.currentTarget.onerror = null; // Prevent infinite loop
+            e.currentTarget.onerror = null;
           }}
           loading="lazy"
         />
@@ -489,18 +619,22 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
           </span>
         </div>
 
-        {/* Heart icon - Updated with better styling */}
+        {/* Heart icon - Optimized with immediate visual feedback */}
         <button
           onClick={handleFavoriteClick}
-          className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 ${
+          disabled={isProcessing}
+          className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 ${
             isFavorite
               ? "bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
               : "bg-white/90 hover:bg-white backdrop-blur-sm"
-          }`}
+          } ${isProcessing ? "opacity-70 cursor-not-allowed" : ""}`}
           title={isFavorite ? "Remove from saved" : "Add to saved"}
           aria-label={isFavorite ? "Remove from saved" : "Save this listing"}
+          aria-pressed={isFavorite}
         >
-          {isFavorite ? (
+          {isProcessing ? (
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          ) : isFavorite ? (
             <svg
               className="w-4 h-4 text-white"
               fill="currentColor"
@@ -532,7 +666,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
 
         <div className="text-gray-600">
           <p className={`${isMobile ? "text-[9px]" : "text-xs"} line-clamp-1`}>
-            {location}
+            {locationText}
           </p>
         </div>
 
@@ -566,7 +700,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
                 ${isMobile ? "text-[9px]" : "text-xs"}
               `}
             >
-              {/* BLACK STAR */}
               <FontAwesomeIcon
                 icon={faStar}
                 className={`${isMobile ? "text-[9px]" : "text-xs"} text-black`}
@@ -585,8 +718,8 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
             </span>
           </div>
 
-          {/* Saved indicator badge - Shows "Saved" when favorited */}
-          {isFavorite && (
+          {/* Saved indicator badge */}
+          {isFavorite && !isProcessing && (
             <span className="inline-flex items-center gap-1 text-[10px] text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
               <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
                 <path
@@ -638,24 +771,27 @@ const CategoryBreakdownBadges = ({ categories }) => {
   );
 };
 
-// ================== MOBILE SEARCH MODAL ==================
-const MobileSearchModal = ({
+// ================== DESKTOP SEARCH SUGGESTIONS ==================
+const DesktopSearchSuggestions = ({
   searchQuery,
   listings,
   onSuggestionClick,
   onClose,
-  onTyping,
   isVisible,
 }) => {
-  const [inputValue, setInputValue] = useState(searchQuery);
-  const modalRef = useRef(null);
-  const inputRef = useRef(null);
-  const navigate = useNavigate();
+  const suggestionsRef = useRef(null);
+  const [modalStyle, setModalStyle] = useState({
+    top: "40px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    width: "100%",
+    maxWidth: "600px",
+  });
 
   const suggestions = React.useMemo(() => {
-    if (!inputValue.trim() || !listings.length) return [];
+    if (!searchQuery.trim() || !listings.length) return [];
 
-    const query = inputValue.toLowerCase().trim();
+    const query = searchQuery.toLowerCase().trim();
     const suggestions = [];
 
     const uniqueCategories = [
@@ -724,411 +860,6 @@ const MobileSearchModal = ({
           description: `Search ${
             locationListings.length
           } places in ${getLocationDisplayName(location)}`,
-          categories: categoryBreakdown,
-          action: `/search-results?location=${encodeURIComponent(location)}`,
-        };
-      })
-      .sort((a, b) => b.count - a.count);
-
-    const allSuggestions = [...categoryMatches, ...locationMatches];
-
-    return allSuggestions
-      .sort((a, b) => {
-        const aExact = a.title.toLowerCase() === query;
-        const bExact = b.title.toLowerCase() === query;
-        if (aExact && !bExact) return -1;
-        if (!aExact && bExact) return 1;
-
-        const aStartsWith = a.title.toLowerCase().startsWith(query);
-        const bStartsWith = b.title.toLowerCase().startsWith(query);
-        if (aStartsWith && !bStartsWith) return -1;
-        if (!aStartsWith && bStartsWith) return 1;
-
-        return b.count - a.count;
-      })
-      .slice(0, 6);
-  }, [inputValue, listings]);
-
-  const handleInputChange = (e) => {
-    const value = e.target.value;
-    setInputValue(value);
-    onTyping(value);
-  };
-
-  const handleClearInput = () => {
-    setInputValue("");
-    onTyping("");
-    inputRef.current?.focus();
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && inputValue.trim()) {
-      navigate(`/search-results?q=${encodeURIComponent(inputValue.trim())}`);
-      onClose();
-    }
-  };
-
-  useEffect(() => {
-    if (isVisible && inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
-    }
-  }, [isVisible]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (modalRef.current && !modalRef.current.contains(event.target)) {
-        onClose();
-      }
-    };
-
-    if (isVisible) {
-      document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("touchstart", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
-    };
-  }, [isVisible, onClose]);
-
-  useEffect(() => {
-    if (isVisible) {
-      document.body.classList.add("modal-open");
-      document.body.style.overflow = "hidden";
-      document.documentElement.style.overflow = "hidden";
-    } else {
-      document.body.classList.remove("modal-open");
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
-    }
-
-    return () => {
-      document.body.classList.remove("modal-open");
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
-    };
-  }, [isVisible]);
-
-  useEffect(() => {
-    const handleEscapeKey = (e) => {
-      if (e.key === "Escape" && isVisible) {
-        onClose();
-      }
-    };
-
-    if (isVisible) {
-      window.addEventListener("keydown", handleEscapeKey);
-    }
-
-    return () => {
-      window.removeEventListener("keydown", handleEscapeKey);
-    };
-  }, [isVisible, onClose]);
-
-  if (!isVisible) return null;
-
-  return createPortal(
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15, ease: "easeOut" }}
-      className="fixed inset-0 z-[1000000]"
-      style={{
-        zIndex: 1000000,
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        width: "100%",
-        height: "100%",
-      }}
-    >
-      {/* Quick fade-in full screen white background */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.15 }}
-        className="absolute inset-0 bg-white"
-      />
-
-      {/* Modal Content */}
-      <motion.div
-        initial={{ opacity: 0, y: 0 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 0 }}
-        transition={{ 
-          duration: 0.2,
-          ease: "easeOut"
-        }}
-        className="absolute inset-0 bg-white flex flex-col"
-        ref={modalRef}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          width: "100%",
-          height: "100%",
-          overflow: "hidden",
-        }}
-      >
-        {/* Header with search bar */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 shadow-sm z-10">
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-bold text-gray-900">Search</h2>
-              <button
-                onClick={onClose}
-                className="text-gray-600 hover:text-gray-900 font-medium px-3 py-1"
-                aria-label="Close search"
-              >
-                Cancel
-              </button>
-            </div>
-
-            <div className="flex items-center bg-gray-100 rounded-full px-4 py-3">
-              <FontAwesomeIcon icon={faSearch} className="text-gray-500" />
-              <input
-                ref={inputRef}
-                type="text"
-                className="flex-1 bg-transparent ml-3 py-1 outline-none font-manrope text-base placeholder:text-gray-500"
-                value={inputValue}
-                onChange={handleInputChange}
-                onKeyPress={handleKeyPress}
-                placeholder="Search by area, category, or name..."
-                autoFocus
-              />
-              {inputValue && (
-                <button
-                  onClick={handleClearInput}
-                  className="text-gray-500 hover:text-gray-700 p-1"
-                  aria-label="Clear search"
-                >
-                  <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto pb-4">
-          {inputValue.trim() ? (
-            <>
-              <div className="sticky top-0 p-4 border-b border-gray-100 bg-gray-50 z-10">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                    Quick search suggestions
-                  </span>
-                  {suggestions.length > 0 && (
-                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                      {suggestions.length} suggestions
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {suggestions.length > 0 ? (
-                <div className="divide-y divide-gray-100">
-                  {suggestions.map((suggestion, index) => (
-                    <div
-                      key={index}
-                      className="p-4 hover:bg-blue-50 active:bg-blue-100 cursor-pointer transition-colors group"
-                      onClick={() => {
-                        onSuggestionClick(suggestion.action);
-                        onClose();
-                      }}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                            <FontAwesomeIcon
-                              icon={
-                                suggestion.type === "category"
-                                  ? faFilter
-                                  : faMapMarkerAlt
-                              }
-                              className={`text-sm ${
-                                suggestion.type === "category"
-                                  ? "text-blue-600"
-                                  : "text-green-600"
-                              }`}
-                            />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-sm font-bold text-gray-900">
-                                {suggestion.title}
-                              </h3>
-                              <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
-                                {suggestion.count}{" "}
-                                {suggestion.count === 1 ? "place" : "places"}
-                              </span>
-                            </div>
-                            <p className="text-xs text-gray-600 mt-1">
-                              {suggestion.description}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-gray-400 group-hover:text-blue-500 transition-colors">
-                          <FontAwesomeIcon
-                            icon={faChevronRight}
-                            className="text-sm"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Category Breakdown for Location Suggestions */}
-                      {suggestion.type === "location" &&
-                        suggestion.categories &&
-                        suggestion.categories.length > 0 && (
-                          <div className="ml-12 mt-3">
-                            <CategoryBreakdownBadges
-                              categories={suggestion.categories}
-                            />
-                          </div>
-                        )}
-
-                      <div className="ml-12 mt-3">
-                        <span className="text-xs text-blue-600 font-medium">
-                          Tap to view all results →
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-8 text-center">
-                  <FontAwesomeIcon
-                    icon={faSearch}
-                    className="h-12 w-12 mx-auto mb-4 text-gray-300"
-                  />
-                  <p className="text-lg font-medium text-gray-700 mb-2">
-                    No matches found
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Try searching with different keywords
-                  </p>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="p-8 text-center">
-              <FontAwesomeIcon
-                icon={faSearch}
-                className="h-16 w-16 mx-auto mb-6 text-gray-300"
-              />
-              <p className="text-xl font-medium text-gray-700 mb-2">
-                Start typing to search
-              </p>
-              <p className="text-sm text-gray-500">
-                Search for categories, locations, or places in Ibadan
-              </p>
-            </div>
-          )}
-        </div>
-      </motion.div>
-    </motion.div>,
-    document.body
-  );
-};
-
-// ================== DESKTOP SEARCH SUGGESTIONS ==================
-const DesktopSearchSuggestions = ({
-  searchQuery,
-  listings,
-  onSuggestionClick,
-  onClose,
-  isVisible,
-}) => {
-  const suggestionsRef = useRef(null);
-  const [modalStyle, setModalStyle] = useState({
-    top: "40px",
-    left: "50%",
-    transform: "translateX(-50%)",
-    width: "100%",
-    maxWidth: "600px",
-  });
-
-  const suggestions = React.useMemo(() => {
-    if (!searchQuery.trim() || !listings.length) return [];
-
-    const query = searchQuery.toLowerCase().trim();
-    const suggestions = [];
-
-    const uniqueCategories = [
-      ...new Set(
-        listings
-          .map((item) => item.category)
-          .filter((cat) => cat && cat.trim() !== "")
-          .map((cat) => cat.trim())
-      ),
-    ];
-
-    const uniqueLocations = [
-      ...new Set(
-        listings
-          .map((item) => item.area)
-          .filter((loc) => loc && loc.trim() !== "")
-          .map((loc) => loc.trim())
-      ),
-    ];
-
-    const categoryMatches = uniqueCategories
-      .filter((category) => {
-        const displayName = getCategoryDisplayName(category).toLowerCase();
-        return displayName.includes(query);
-      })
-      .map((category) => {
-        const categoryListings = listings.filter(
-          (item) =>
-            item.category &&
-            item.category.toLowerCase() === category.toLowerCase()
-        );
-
-        return {
-          type: "category",
-          title: getCategoryDisplayName(category),
-          count: categoryListings.length,
-          description: `Search ${
-            categoryListings.length
-          } ${getCategoryDisplayName(category).toLowerCase()} places`,
-          categoryValue: category,
-          action: `/search-results?category=${encodeURIComponent(category)}`,
-        };
-      })
-      .sort((a, b) => b.count - a.count);
-
-    const locationMatches = uniqueLocations
-      .filter((location) => {
-        const displayName = getLocationDisplayName(location).toLowerCase();
-        return displayName.includes(query);
-      })
-      .map((location) => {
-        const locationListings = listings.filter(
-          (item) =>
-            item.area && item.area.toLowerCase() === location.toLowerCase()
-        );
-        const categoryBreakdown = getCategoryBreakdownForLocation(
-          listings,
-          location
-        );
-
-        return {
-          type: "location",
-          title: getLocationDisplayName(location),
-          count: locationListings.length,
-          description: `Search ${
-            locationListings.length
-          } places in ${getLocationDisplayName(location)}`,
-          locationValue: location,
           categories: categoryBreakdown,
           action: `/search-results?location=${encodeURIComponent(location)}`,
         };
@@ -1389,6 +1120,409 @@ const DesktopSearchSuggestions = ({
   );
 };
 
+// ================== MOBILE SEARCH MODAL ==================
+const MobileSearchModal = ({
+  searchQuery,
+  listings,
+  onSuggestionClick,
+  onClose,
+  onTyping,
+  isVisible,
+  categoryTitle,
+}) => {
+  const [inputValue, setInputValue] = useState(searchQuery);
+  const modalRef = useRef(null);
+  const inputRef = useRef(null);
+  const navigate = useNavigate();
+
+  const suggestions = React.useMemo(() => {
+    if (!inputValue.trim() || !listings.length) return [];
+
+    const query = inputValue.toLowerCase().trim();
+    const suggestions = [];
+
+    const uniqueCategories = [
+      ...new Set(
+        listings
+          .map((item) => item.category)
+          .filter((cat) => cat && cat.trim() !== "")
+          .map((cat) => cat.trim())
+      ),
+    ];
+
+    const uniqueLocations = [
+      ...new Set(
+        listings
+          .map((item) => item.area)
+          .filter((loc) => loc && loc.trim() !== "")
+          .map((loc) => loc.trim())
+      ),
+    ];
+
+    const categoryMatches = uniqueCategories
+      .filter((category) => {
+        const displayName = getCategoryDisplayName(category).toLowerCase();
+        return displayName.includes(query);
+      })
+      .map((category) => {
+        const categoryListings = listings.filter(
+          (item) =>
+            item.category &&
+            item.category.toLowerCase() === category.toLowerCase()
+        );
+        const locationBreakdown = getLocationBreakdown(categoryListings);
+
+        return {
+          type: "category",
+          title: getCategoryDisplayName(category),
+          count: categoryListings.length,
+          description: `Search ${
+            categoryListings.length
+          } ${getCategoryDisplayName(category).toLowerCase()} places`,
+          locations: locationBreakdown,
+          action: `/search-results?category=${encodeURIComponent(category)}`,
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    const locationMatches = uniqueLocations
+      .filter((location) => {
+        const displayName = getLocationDisplayName(location).toLowerCase();
+        return displayName.includes(query);
+      })
+      .map((location) => {
+        const locationListings = listings.filter(
+          (item) =>
+            item.area && item.area.toLowerCase() === location.toLowerCase()
+        );
+        const categoryBreakdown = getCategoryBreakdownForLocation(
+          listings,
+          location
+        );
+
+        return {
+          type: "location",
+          title: getLocationDisplayName(location),
+          count: locationListings.length,
+          description: `Search ${
+            locationListings.length
+          } places in ${getLocationDisplayName(location)}`,
+          categories: categoryBreakdown,
+          action: `/search-results?location=${encodeURIComponent(location)}`,
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    const allSuggestions = [...categoryMatches, ...locationMatches];
+
+    return allSuggestions
+      .sort((a, b) => {
+        const aExact = a.title.toLowerCase() === query;
+        const bExact = b.title.toLowerCase() === query;
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+
+        const aStartsWith = a.title.toLowerCase().startsWith(query);
+        const bStartsWith = b.title.toLowerCase().startsWith(query);
+        if (aStartsWith && !bStartsWith) return -1;
+        if (!aStartsWith && bStartsWith) return 1;
+
+        return b.count - a.count;
+      })
+      .slice(0, 6);
+  }, [inputValue, listings]);
+
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setInputValue(value);
+    onTyping(value);
+  };
+
+  const handleClearInput = () => {
+    setInputValue("");
+    onTyping("");
+    inputRef.current?.focus();
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && inputValue.trim()) {
+      navigate(`/search-results?q=${encodeURIComponent(inputValue.trim())}`);
+      onClose();
+    }
+  };
+
+  useEffect(() => {
+    if (isVisible && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [isVisible]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+
+    if (isVisible) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [isVisible, onClose]);
+
+  useEffect(() => {
+    if (isVisible) {
+      document.body.classList.add("modal-open");
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+    } else {
+      document.body.classList.remove("modal-open");
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    }
+
+    return () => {
+      document.body.classList.remove("modal-open");
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    };
+  }, [isVisible]);
+
+  useEffect(() => {
+    const handleEscapeKey = (e) => {
+      if (e.key === "Escape" && isVisible) {
+        onClose();
+      }
+    };
+
+    if (isVisible) {
+      window.addEventListener("keydown", handleEscapeKey);
+    }
+
+    return () => {
+      window.removeEventListener("keydown", handleEscapeKey);
+    };
+  }, [isVisible, onClose]);
+
+  if (!isVisible) return null;
+
+  return createPortal(
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
+      className="fixed inset-0 z-[1000000]"
+      style={{
+        zIndex: 1000000,
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: "100%",
+        height: "100%",
+      }}
+    >
+      {/* Quick fade-in full screen white background */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
+        className="absolute inset-0 bg-white"
+      />
+
+      {/* Modal Content */}
+      <motion.div
+        initial={{ opacity: 0, y: 0 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 0 }}
+        transition={{
+          duration: 0.2,
+          ease: "easeOut",
+        }}
+        className="absolute inset-0 bg-white flex flex-col"
+        ref={modalRef}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: "100%",
+          height: "100%",
+          overflow: "hidden",
+        }}
+      >
+        {/* Header with search bar */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 shadow-sm z-10">
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-gray-900">Search</h2>
+              <button
+                onClick={onClose}
+                className="text-gray-600 hover:text-gray-900 font-medium px-3 py-1"
+                aria-label="Close search"
+              >
+                Cancel
+              </button>
+            </div>
+
+            <div className="flex items-center bg-gray-100 rounded-full px-4 py-3">
+              <FontAwesomeIcon icon={faSearch} className="text-gray-500" />
+              <input
+                ref={inputRef}
+                type="text"
+                className="flex-1 bg-transparent ml-3 py-1 outline-none font-manrope text-base placeholder:text-gray-500"
+                value={inputValue}
+                onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
+                placeholder={`Search ${categoryTitle || "places"} in Ibadan...`}
+                autoFocus
+              />
+              {inputValue && (
+                <button
+                  onClick={handleClearInput}
+                  className="text-gray-500 hover:text-gray-700 p-1"
+                  aria-label="Clear search"
+                >
+                  <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto pb-4">
+          {inputValue.trim() ? (
+            <>
+              <div className="sticky top-0 p-4 border-b border-gray-100 bg-gray-50 z-10">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                    Quick search suggestions
+                  </span>
+                  {suggestions.length > 0 && (
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                      {suggestions.length} suggestions
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {suggestions.length > 0 ? (
+                <div className="divide-y divide-gray-100">
+                  {suggestions.map((suggestion, index) => (
+                    <div
+                      key={index}
+                      className="p-4 hover:bg-blue-50 active:bg-blue-100 cursor-pointer transition-colors group"
+                      onClick={() => {
+                        onSuggestionClick(suggestion.action);
+                        onClose();
+                      }}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                            <FontAwesomeIcon
+                              icon={
+                                suggestion.type === "category"
+                                  ? faFilter
+                                  : faMapMarkerAlt
+                              }
+                              className={`text-sm ${
+                                suggestion.type === "category"
+                                  ? "text-blue-600"
+                                  : "text-green-600"
+                              }`}
+                            />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-sm font-bold text-gray-900">
+                                {suggestion.title}
+                              </h3>
+                              <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
+                                {suggestion.count}{" "}
+                                {suggestion.count === 1 ? "place" : "places"}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-600 mt-1">
+                              {suggestion.description}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-gray-400 group-hover:text-blue-500 transition-colors">
+                          <FontAwesomeIcon
+                            icon={faChevronRight}
+                            className="text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Category Breakdown for Location Suggestions */}
+                      {suggestion.type === "location" &&
+                        suggestion.categories &&
+                        suggestion.categories.length > 0 && (
+                          <div className="ml-12 mt-3">
+                            <CategoryBreakdownBadges
+                              categories={suggestion.categories}
+                            />
+                          </div>
+                        )}
+
+                      <div className="ml-12 mt-3">
+                        <span className="text-xs text-blue-600 font-medium">
+                          Tap to view all results →
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center">
+                  <FontAwesomeIcon
+                    icon={faSearch}
+                    className="h-12 w-12 mx-auto mb-4 text-gray-300"
+                  />
+                  <p className="text-lg font-medium text-gray-700 mb-2">
+                    No matches found
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Try searching with different keywords
+                  </p>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="p-8 text-center">
+              <FontAwesomeIcon
+                icon={faSearch}
+                className="h-16 w-16 mx-auto mb-6 text-gray-300"
+              />
+              <p className="text-xl font-medium text-gray-700 mb-2">
+                Start typing to search
+              </p>
+              <p className="text-sm text-gray-500">
+                Search for categories, locations, or places in Ibadan
+              </p>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>,
+    document.body
+  );
+};
+
 // ================== ENHANCED FILTER SIDEBAR (SEARCHABLE) - REAL-TIME FILTERING ==================
 const FilterSidebar = ({
   onFilterChange,
@@ -1480,7 +1614,6 @@ const FilterSidebar = ({
       const hasLocationFilters = updatedFilters.locations.length > 0;
 
       // For categories, we need to handle multiple selections
-      // We'll use category1, category2, etc. for multiple categories
       let categoryParams = [];
 
       if (hasCategoryFilters) {
@@ -1510,8 +1643,8 @@ const FilterSidebar = ({
 
       onDynamicFilterApply({
         filters: updatedFilters,
-        categories: categoryParams, // Pass array of categories
-        locations: locationParams, // Pass array of locations
+        categories: categoryParams,
+        locations: locationParams,
         keepSearchQuery: currentSearchQuery,
       });
     }
@@ -1592,7 +1725,6 @@ const FilterSidebar = ({
     <div
       className={`space-y-6 ${isMobileModal ? "px-0" : ""}`}
       style={{
-        // Ensure content stretches to screen edges on mobile
         marginLeft: isMobileModal ? "-1rem" : "0",
         marginRight: isMobileModal ? "-1rem" : "0",
         paddingLeft: isMobileModal ? "1rem" : "0",
@@ -1617,7 +1749,7 @@ const FilterSidebar = ({
         </div>
       )}
 
-      {/* LOCATION SECTION WITH SEARCH - Reduced padding */}
+      {/* LOCATION SECTION */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("location")}
@@ -1746,136 +1878,7 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* CATEGORY SECTION WITH SEARCH - Reduced padding */}
-      <div className="border-b pb-4">
-        <button
-          onClick={() => toggleSection("category")}
-          className="w-full flex justify-between items-center mb-3"
-        >
-          <div className="flex items-center gap-2">
-            <FontAwesomeIcon icon={faFilter} className="text-green-500" />
-            <h4 className="font-semibold text-gray-900 text-base">Category</h4>
-            {filters.categories.length > 0 && (
-              <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full">
-                {filters.categories.length}
-              </span>
-            )}
-          </div>
-          <FontAwesomeIcon
-            icon={expandedSections.category ? faChevronUp : faChevronDown}
-            className="text-gray-400"
-          />
-        </button>
-
-        {expandedSections.category && (
-          <>
-            <div className="mb-3">
-              <div className="relative mb-3">
-                <FontAwesomeIcon
-                  icon={faSearch}
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"
-                />
-                <input
-                  type="text"
-                  placeholder="Search categories..."
-                  value={categorySearch}
-                  onChange={(e) => setCategorySearch(e.target.value)}
-                  className="w-full pl-10 pr-8 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                  style={{
-                    width: isMobileModal ? "100%" : "100%",
-                    fontSize: isMobileModal ? "14px" : "inherit",
-                    paddingLeft: isMobileModal ? "2.5rem" : "2.5rem",
-                    paddingRight: isMobileModal ? "2rem" : "2rem",
-                  }}
-                />
-                {categorySearch && (
-                  <button
-                    onClick={() => setCategorySearch("")}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    <FontAwesomeIcon icon={faTimes} className="text-sm" />
-                  </button>
-                )}
-              </div>
-              <div className="flex justify-between mb-2">
-                <button
-                  onClick={handleSelectAllCategories}
-                  className="text-sm text-green-600 hover:text-green-700 font-medium"
-                >
-                  {filters.categories.length ===
-                  uniqueCategoryDisplayNames.length
-                    ? "Clear All Categories"
-                    : "Select All Categories"}
-                </button>
-                <span className="text-xs text-gray-500">
-                  {filteredCategoryDisplayNames.length} categories
-                </span>
-              </div>
-            </div>
-            <div className="max-h-52 overflow-y-auto pr-1">
-              {filteredCategoryDisplayNames.length === 0 ? (
-                <div className="text-center py-4 text-gray-500 text-sm">
-                  No categories found matching "{categorySearch}"
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-2">
-                  {filteredCategoryDisplayNames.map((category, index) => (
-                    <label
-                      key={index}
-                      className="flex items-center space-x-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
-                      style={{
-                        paddingLeft: isMobileModal ? "0.25rem" : "0.5rem",
-                        paddingRight: isMobileModal ? "0.25rem" : "0.5rem",
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={filters.categories.includes(category)}
-                        onChange={() => handleCategoryChange(category)}
-                        className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 transition-colors"
-                        style={{
-                          transform: isMobileModal ? "scale(1.1)" : "scale(1)",
-                          marginRight: isMobileModal ? "0.5rem" : "0.25rem",
-                        }}
-                      />
-                      <span
-                        className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
-                          filters.categories.includes(category)
-                            ? "text-green-700 font-medium"
-                            : "text-gray-700"
-                        }`}
-                        style={{
-                          fontSize: isMobileModal ? "14px" : "inherit",
-                          flex: 1,
-                        }}
-                      >
-                        {category}
-                      </span>
-                      {filters.categories.includes(category) && (
-                        <FontAwesomeIcon
-                          icon={faCheck}
-                          className="text-sm text-green-600"
-                        />
-                      )}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-            {filters.categories.length > 0 && (
-              <div className="mt-3 p-2 bg-green-50 rounded-lg">
-                <p className="text-xs text-green-800">
-                  Selected: {filters.categories.slice(0, 3).join(", ")}
-                  {filters.categories.length > 3 &&
-                    ` +${filters.categories.length - 3} more`}
-                </p>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* PRICE RANGE SECTION - Reduced padding */}
+      {/* PRICE RANGE SECTION */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("price")}
@@ -1963,7 +1966,7 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* RATING SECTION - Reduced padding */}
+      {/* RATING SECTION */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("rating")}
@@ -2051,7 +2054,7 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* SORTING SECTION - Reduced padding */}
+      {/* SORTING SECTION */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("sort")}
@@ -2121,7 +2124,7 @@ const FilterSidebar = ({
     </div>
   );
 
-  // Mobile Modal - Fullscreen with NO duplicate header
+  // Mobile Modal
   if (isMobileModal) {
     return createPortal(
       <motion.div
@@ -2142,7 +2145,6 @@ const FilterSidebar = ({
         }}
       >
         <div className="h-full overflow-y-auto w-full">
-          {/* Main content with increased width */}
           <div
             className="pt-5"
             style={{
@@ -2151,12 +2153,9 @@ const FilterSidebar = ({
               maxWidth: "100vw",
             }}
           >
-          
-
             {sidebarContent}
           </div>
 
-          {/* Mobile Action Buttons - Wider and closer to screen edges */}
           <div
             className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]"
             style={{
@@ -2181,7 +2180,7 @@ const FilterSidebar = ({
     );
   }
 
-  // Desktop Modal - Fullscreen
+  // Desktop Modal
   if (isDesktopModal) {
     return createPortal(
       <motion.div
@@ -2225,7 +2224,6 @@ const FilterSidebar = ({
           <div className="container mx-auto px-4 py-6 max-w-4xl">
             {sidebarContent}
 
-            {/* Modal Action Buttons - Changed to Apply Filter */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg mt-8">
               <button
                 onClick={onClose}
@@ -2242,10 +2240,63 @@ const FilterSidebar = ({
     );
   }
 
-  // Regular sidebar (not modal) - No Apply/Reset buttons, real-time filtering
+  // Regular sidebar
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit">
       {sidebarContent}
+    </div>
+  );
+};
+
+// ================== FILTER PILL ==================
+const FilterPill = ({ type, label, value, onRemove }) => {
+  const getPillColor = (type) => {
+    switch (type) {
+      case "location":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "category":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "price":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "rating":
+        return "bg-purple-100 text-purple-800 border-purple-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  const getIcon = (type) => {
+    switch (type) {
+      case "location":
+        return faMapMarkerAlt;
+      case "category":
+        return faFilter;
+      case "price":
+        return faDollarSign;
+      case "rating":
+        return faStar;
+      default:
+        return faFilter;
+    }
+  };
+
+  return (
+    <div
+      className={`inline-flex items-center gap-2 px-3 py-2 rounded-full border ${getPillColor(
+        type
+      )} text-sm`}
+    >
+      <FontAwesomeIcon icon={getIcon(type)} className="text-xs" />
+      <span>
+        {label}: {value}
+      </span>
+      <button
+        onClick={onRemove}
+        className="ml-1 hover:opacity-70 transition-opacity"
+        aria-label={`Remove ${label} filter`}
+      >
+        ×
+      </button>
     </div>
   );
 };
@@ -2344,7 +2395,7 @@ const CategoryResults = () => {
     }
   }, [listings, category]);
 
-  // Initialize filters from URL parameters - HANDLES MULTIPLE LOCATIONS AND CATEGORIES
+  // Initialize filters from URL parameters
   useEffect(() => {
     if (!listings.length) return;
 
@@ -2357,7 +2408,7 @@ const CategoryResults = () => {
       amenities: [],
     };
 
-    // Collect all location parameters (location, location2, location3, etc.)
+    // Collect all location parameters
     const locationParams = [];
     for (const [key, value] of searchParams.entries()) {
       if (key.startsWith("location")) {
@@ -2368,7 +2419,7 @@ const CategoryResults = () => {
       }
     }
 
-    // Collect all category parameters (category, category2, category3, etc.)
+    // Collect all category parameters
     const categoryParams = [];
     for (const [key, value] of searchParams.entries()) {
       if (key.startsWith("category")) {
@@ -2381,19 +2432,19 @@ const CategoryResults = () => {
 
     // Set locations from URL params
     if (locationParams.length > 0) {
-      initialFilters.locations = [...new Set(locationParams)]; // Remove duplicates
+      initialFilters.locations = [...new Set(locationParams)];
     }
 
     // Set categories from URL params
     if (categoryParams.length > 0) {
-      initialFilters.categories = [...new Set(categoryParams)]; // Remove duplicates
+      initialFilters.categories = [...new Set(categoryParams)];
     }
 
     setActiveFilters(initialFilters);
     setFiltersInitialized(true);
   }, [listings.length, searchParams.toString()]);
 
-  // FIXED: Correct filter logic for exact area filtering with MULTIPLE LOCATIONS AND CATEGORIES
+  // Filter logic
   const applyFilters = (listingsToFilter, filters) => {
     // First filter by category
     const categorySlug = category.toLowerCase();
@@ -2475,7 +2526,7 @@ const CategoryResults = () => {
       }
     }
 
-    // Apply locations from URL if present - MULTIPLE LOCATIONS SUPPORT
+    // Apply locations from URL
     if (locationParams.length > 0) {
       filtered = filtered.filter((item) => {
         const itemLocation = getLocationDisplayName(item.area || "");
@@ -2485,7 +2536,7 @@ const CategoryResults = () => {
       });
     }
 
-    // Apply categories from URL if present - MULTIPLE CATEGORIES SUPPORT
+    // Apply categories from URL
     if (categoryParams.length > 0) {
       filtered = filtered.filter((item) => {
         const itemCategory = getCategoryDisplayName(item.category || "");
@@ -2495,24 +2546,13 @@ const CategoryResults = () => {
       });
     }
 
-    // Apply filter panel locations - show items ONLY in selected locations
+    // Apply filter panel locations
     if (filters.locations.length > 0) {
       filtered = filtered.filter((item) => {
         const itemLocation = getLocationDisplayName(item.area || "");
         return filters.locations.some(
           (selectedLocation) =>
             itemLocation.toLowerCase() === selectedLocation.toLowerCase()
-        );
-      });
-    }
-
-    // Apply filter panel categories - show items ONLY in selected categories
-    if (filters.categories.length > 0) {
-      filtered = filtered.filter((item) => {
-        const itemCategory = getCategoryDisplayName(item.category || "");
-        return filters.categories.some(
-          (selectedCategory) =>
-            itemCategory.toLowerCase() === selectedCategory.toLowerCase()
         );
       });
     }
@@ -2576,7 +2616,7 @@ const CategoryResults = () => {
     category,
   ]);
 
-  // FIXED: Handle multiple locations AND categories in URL parameters
+  // Handle dynamic filter application
   const handleDynamicFilterApply = ({
     filters,
     categories = [],
@@ -2597,7 +2637,7 @@ const CategoryResults = () => {
       }
     }
 
-    // Add categories to params - allow multiple with category, category2, category3, etc.
+    // Add categories to params
     categories.forEach((category, index) => {
       if (index === 0) {
         params.set("category", category);
@@ -2790,16 +2830,8 @@ const CategoryResults = () => {
       return `${categoriesText} in Ibadan`;
     } else if (locationParams.length > 0) {
       return `${categoryTitle} in ${locationParams.join(", ")}`;
-    } else if (
-      activeFilters.locations.length > 0 ||
-      activeFilters.categories.length > 0
-    ) {
-      const parts = [];
-      if (activeFilters.categories.length > 0)
-        parts.push(activeFilters.categories.join(", "));
-      if (activeFilters.locations.length > 0)
-        parts.push(activeFilters.locations.join(", "));
-      return `${categoryTitle} in ${parts.join(" • ")}`;
+    } else if (activeFilters.locations.length > 0) {
+      return `${categoryTitle} in ${activeFilters.locations.join(", ")}`;
     } else {
       return `${categoryTitle} in Ibadan`;
     }
@@ -2851,17 +2883,9 @@ const CategoryResults = () => {
       return `Discover amazing ${categoryTitle.toLowerCase()} in ${locationParams.join(
         ", "
       )}, Ibadan. Find top-rated places, compare prices, and book directly.`;
-    } else if (
-      activeFilters.locations.length > 0 ||
-      activeFilters.categories.length > 0
-    ) {
-      const parts = [];
-      if (activeFilters.categories.length > 0)
-        parts.push(activeFilters.categories.join(", "));
-      if (activeFilters.locations.length > 0)
-        parts.push(activeFilters.locations.join(", "));
-      return `Discover amazing ${categoryTitle.toLowerCase()} in ${parts.join(
-        " • "
+    } else if (activeFilters.locations.length > 0) {
+      return `Discover amazing ${categoryTitle.toLowerCase()} in ${activeFilters.locations.join(
+        ", "
       )}, Ibadan. Find top-rated places, compare prices, and book directly.`;
     } else {
       return `Find the best ${categoryTitle.toLowerCase()} in Ibadan. Browse prices, reviews, and book directly.`;
@@ -3045,7 +3069,6 @@ const CategoryResults = () => {
             onClose={() => setShowDesktopFilters(false)}
             isDesktopModal={true}
             isInitialized={filtersInitialized}
-            categoryTitle={categoryTitle}
           />
         )}
 
@@ -3061,7 +3084,6 @@ const CategoryResults = () => {
             onClose={() => setShowMobileFilters(false)}
             isMobileModal={true}
             isInitialized={filtersInitialized}
-            categoryTitle={categoryTitle}
           />
         )}
 
@@ -3078,14 +3100,13 @@ const CategoryResults = () => {
                 currentFilters={activeFilters}
                 currentSearchQuery={searchQuery}
                 isInitialized={filtersInitialized}
-                categoryTitle={categoryTitle}
               />
             </div>
           )}
 
           {/* Results Content */}
           <div className="lg:w-3/4" ref={resultsRef}>
-            {/* Page Header with Filter Button - REMOVED DESKTOP FILTER BUTTON */}
+            {/* Page Header with Filter Button */}
             <div className="mb-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex-1 flex items-center gap-3">
@@ -3124,54 +3145,15 @@ const CategoryResults = () => {
                     </button>
                   )}
 
-                  {/* Title and Count - Moved to single line with sort */}
-                  <div className="flex-1 flex items-center justify-between">
-                    <div>
-                      <h1 className="text-xl font-bold text-[#00065A] mb-1">
-                        {getPageTitle()}
-                      </h1>
-                      <p className="text-sm text-gray-600">
-                        {filteredCount}{" "}
-                        {filteredCount === 1 ? "place" : "places"} found
-                      </p>
-                    </div>
-
-                    {/* Desktop Sort Dropdown - At far right, clean minimal design */}
-                    {!isMobile && (
-                      <div className="flex items-center">
-                        <div className="relative">
-                          <select
-                            value={activeFilters.sortBy}
-                            onChange={(e) => {
-                              const updatedFilters = {
-                                ...activeFilters,
-                                sortBy: e.target.value,
-                              };
-                              handleFilterChange(updatedFilters);
-                            }}
-                            className="appearance-none bg-transparent text-sm font-medium text-gray-600 hover:text-gray-900 focus:outline-none cursor-pointer pr-6"
-                          >
-                            <option value="relevance">
-                              Sort by: Relevance
-                            </option>
-                            <option value="price_low">
-                              Price: Low to High
-                            </option>
-                            <option value="price_high">
-                              Price: High to Low
-                            </option>
-                            <option value="rating">Highest Rated</option>
-                            <option value="name">Name: A to Z</option>
-                          </select>
-                          <div className="absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                            <FontAwesomeIcon
-                              icon={faChevronDown}
-                              className="text-gray-500 text-xs"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                  {/* Title and Count */}
+                  <div className="flex-1">
+                    <h1 className="text-xl font-bold text-[#00065A] mb-1">
+                      {getPageTitle()}
+                    </h1>
+                    <p className="text-sm text-gray-600">
+                      {filteredCount} {filteredCount === 1 ? "place" : "places"}{" "}
+                      found
+                    </p>
                   </div>
                 </div>
 

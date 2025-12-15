@@ -243,7 +243,7 @@ const LoginPage = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-[#00d37f] hover:bg-[#02be72] text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full hover:bg-[#06EAFC] bg-[#6cff] text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? "Logging in..." : "Log In"}
           </button>
@@ -287,7 +287,7 @@ const LoginPage = () => {
           <button
             type="button"
             onClick={() => navigate("/register")}
-            className="w-full border-2 border-[#00d37f] text-[#00d37f] hover:bg-[#00d37f]/5 font-medium py-3 px-4 rounded-lg transition-colors"
+            className="w-full border-2 border-[#6cff] text-[#6cff] hover:bg-[#6cff]/5 font-medium py-3 px-4 rounded-lg transition-colors"
           >
             Create New Account
           </button>
@@ -299,7 +299,7 @@ const LoginPage = () => {
             Forgot your password?{" "}
             <button
               onClick={() => alert("Password reset feature coming soon!")}
-              className="text-[#00d37f] hover:text-[#02be72] font-medium"
+              className="text-[#6cff] hover:text-[#6cff] font-medium"
             >
               Reset here
             </button>
