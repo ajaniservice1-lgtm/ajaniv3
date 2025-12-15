@@ -42,7 +42,6 @@ const RegisterChoicePage = () => {
           />
         </div>
 
-
         {/* Subheading */}
         <p className="text-gray-600 text-center text-base sm:text-lg mb-10 max-w-md">
           Choose how you want to experience Ajani
@@ -84,13 +83,6 @@ const RegisterChoicePage = () => {
                 insight across Ibadan
               </p>
             </div>
-
-            {/* Next Arrow - Positioned at bottom */}
-            <div className="absolute bottom-5 lg:bottom-8 left-5 lg:left-8 right-5 lg:right-8 pt-4 lg:pt-6 border-t border-gray-200">
-              <span className="text-green-600 font-semibold text-sm lg:text-lg">
-                Next →
-              </span>
-            </div>
           </div>
 
           {/* Vendor/Business Owner Card */}
@@ -126,13 +118,6 @@ const RegisterChoicePage = () => {
                 List my business receive booking, chat with customer, and grow
                 your visibility on Ajani
               </p>
-            </div>
-
-            {/* Next Arrow - Positioned at bottom */}
-            <div className="absolute bottom-5 lg:bottom-8 left-5 lg:left-8 right-5 lg:right-8 pt-4 lg:pt-6 border-t border-gray-200">
-              <span className="text-green-600 font-semibold text-sm lg:text-lg">
-                Next →
-              </span>
             </div>
           </div>
         </div>
