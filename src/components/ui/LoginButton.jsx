@@ -5,14 +5,11 @@ import {
   FiLogOut,
   FiUser as FiUserProfile,
 } from "react-icons/fi";
-import AuthModal from "./AuthModal";
-import { useAuth } from "../../hook/useAuth";
-import { supabase } from "../../lib/supabase";
+
 import { useModal } from "../../context/ModalContext";
 
 
 export default function LoginButton({ onAuthToast }) {
-  const { user, loading } = useAuth();
   const { openModal, closeModal } = useModal();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);

@@ -1,10 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../../hook/useAuth";
 
 const UserCompleteProfile = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   const handleComplete = () => {
     // Here you would save the profile data
