@@ -138,7 +138,7 @@ const UserProcess4 = () => {
 
           <div className="text-right">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-              My Reviews
+              
             </h1>
             <p className="text-sm text-gray-600 mt-1">
               {userReviews.length}{" "}

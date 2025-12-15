@@ -3,25 +3,59 @@ import { useNavigate } from "react-router-dom";
 import Logo from "../assets/Logos/logo5.png";
 import { MdOutlineChat } from "react-icons/md";
 import { RiNotification2Fill } from "react-icons/ri";
+import { FiUser, FiHeart, FiSettings, FiLogOut } from "react-icons/fi";
 
 // Main Header Component
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState("");
+  const [userProfile, setUserProfile] = useState(null);
   const navigate = useNavigate();
   const profileDropdownRef = useRef(null);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
   // Check login status on mount
   useEffect(() => {
-    const dummyLogin = localStorage.getItem("ajani_dummy_login");
-    const dummyEmail = localStorage.getItem("ajani_dummy_email");
+    const checkLoginStatus = () => {
+      const dummyLogin = localStorage.getItem("ajani_dummy_login");
+      const dummyEmail = localStorage.getItem("ajani_dummy_email");
+      const profile = localStorage.getItem("userProfile");
 
-    if (dummyLogin === "true") {
-      setIsLoggedIn(true);
-      setUserEmail(dummyEmail || "Guest User");
-    }
+      if (dummyLogin === "true") {
+        setIsLoggedIn(true);
+        setUserEmail(dummyEmail || "Guest User");
+
+        if (profile) {
+          try {
+            setUserProfile(JSON.parse(profile));
+          } catch (error) {
+            console.error("Error parsing user profile:", error);
+          }
+        }
+      } else {
+        setIsLoggedIn(false);
+        setUserEmail("");
+        setUserProfile(null);
+      }
+    };
+
+    checkLoginStatus();
+
+    // Listen for login/logout events
+    const handleStorageChange = () => {
+      checkLoginStatus();
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    // Also check periodically
+    const interval = setInterval(checkLoginStatus, 1000);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
 
   // Prevent body scrolling when mobile menu is open
@@ -58,6 +92,7 @@ const Header = () => {
     localStorage.removeItem("ajani_dummy_email");
     setIsLoggedIn(false);
     setUserEmail("");
+    setUserProfile(null);
     navigate("/");
     setIsProfileDropdownOpen(false);
     setIsMenuOpen(false);
@@ -108,6 +143,51 @@ const Header = () => {
     setIsMenuOpen(false);
   };
 
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (userProfile?.firstName && userProfile?.lastName) {
+      return `${userProfile.firstName.charAt(0)}${userProfile.lastName.charAt(
+        0
+      )}`.toUpperCase();
+    }
+    if (userEmail) {
+      return userEmail.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
+
+  // Get saved listings count
+  const [savedCount, setSavedCount] = useState(0);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      const saved = JSON.parse(
+        localStorage.getItem("userSavedListings") || "[]"
+      );
+      setSavedCount(saved.length);
+
+      // Listen for updates to saved listings
+      const handleSavedListingsUpdate = () => {
+        const updated = JSON.parse(
+          localStorage.getItem("userSavedListings") || "[]"
+        );
+        setSavedCount(updated.length);
+      };
+
+      window.addEventListener(
+        "savedListingsUpdated",
+        handleSavedListingsUpdate
+      );
+
+      return () => {
+        window.removeEventListener(
+          "savedListingsUpdated",
+          handleSavedListingsUpdate
+        );
+      };
+    }
+  }, [isLoggedIn]);
+
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-[1000] bg-[#F7F7FA] border-b-2 font-manrope border-[#00d1ff] h-16 cursor-default">
@@ -121,7 +201,6 @@ const Header = () => {
                 }}
                 className="flex items-center gap-2 cursor-pointer"
               >
-                {/* Main header logo - h-7 w-20 */}
                 <img
                   src={Logo}
                   alt="Ajani Logo"
@@ -158,7 +237,21 @@ const Header = () => {
             <div className="flex items-center gap-2 lg:gap-6 h-full">
               {isLoggedIn ? (
                 <>
-                  {/* Chat button - styled like user icon */}
+                  {/* Saved Listings button */}
+                  <button
+                    onClick={() => navigate("/saved")}
+                    className="relative text-2xl hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer"
+                    title="Saved Listings"
+                  >
+                    <FiHeart />
+                    {savedCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {savedCount > 9 ? "9+" : savedCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Chat button */}
                   <button
                     onClick={() => navigate("/chat")}
                     className="text-2xl hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer"
@@ -167,7 +260,7 @@ const Header = () => {
                     <MdOutlineChat />
                   </button>
 
-                  {/* Notifications button - styled like user icon */}
+                  {/* Notifications button */}
                   <button
                     onClick={() => navigate("/notifications")}
                     className="text-2xl hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer"
@@ -188,18 +281,67 @@ const Header = () => {
                       className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-blue-50 transition-colors cursor-pointer"
                       title="Profile"
                     >
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-medium text-sm">
-                        {userEmail.charAt(0).toUpperCase()}
-                      </div>
+                      {userProfile?.image ? (
+                        <img
+                          src={userProfile.image}
+                          alt="Profile"
+                          className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.style.display = "none";
+                            e.target.parentElement.innerHTML = `
+                              <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                                ${getUserInitials()}
+                              </div>
+                            `;
+                          }}
+                        />
+                      ) : (
+                        <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                          {getUserInitials()}
+                        </div>
+                      )}
                     </button>
 
                     {isProfileDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-1001 border border-gray-200 cursor-default">
+                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-1001 border border-gray-200 cursor-default">
+                        {/* User info */}
                         <div className="px-4 py-3 border-b border-gray-100 cursor-default">
                           <p className="text-sm font-medium text-gray-900 cursor-default">
+                            {userProfile?.fullName || userEmail}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1 cursor-default">
                             {userEmail}
                           </p>
                         </div>
+
+                        {/* Profile link */}
+                        <button
+                          onClick={() => {
+                            navigate("/profile");
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
+                        >
+                          <FiUser className="w-4 h-4" />
+                          <span className="cursor-pointer">My Profile</span>
+                        </button>
+
+                        {/* Saved listings link */}
+                        <button
+                          onClick={() => {
+                            navigate("/saved");
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
+                        >
+                          <FiHeart className="w-4 h-4" />
+                          <span className="cursor-pointer">
+                            Saved Listings {savedCount > 0 && `(${savedCount})`}
+                          </span>
+                        </button>
+
+                        {/* Chat link */}
                         <button
                           onClick={() => {
                             navigate("/chat");
@@ -208,8 +350,10 @@ const Header = () => {
                           className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
                         >
                           <MdOutlineChat className="w-4 h-4" />
-                          <span className="cursor-pointer">Chat</span>
+                          <span className="cursor-pointer">Chat Assistant</span>
                         </button>
+
+                        {/* Notifications link */}
                         <button
                           onClick={() => {
                             navigate("/notifications");
@@ -220,6 +364,8 @@ const Header = () => {
                           <RiNotification2Fill className="w-4 h-4" />
                           <span className="cursor-pointer">Notifications</span>
                         </button>
+
+                        {/* List business link */}
                         <button
                           onClick={() => {
                             navigate("/add-business");
@@ -242,24 +388,27 @@ const Header = () => {
                           </svg>
                           <span className="cursor-pointer">List Business</span>
                         </button>
+
+                        {/* Settings link */}
+                        <button
+                          onClick={() => {
+                            alert("Settings feature coming soon!");
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
+                        >
+                          <FiSettings className="w-4 h-4" />
+                          <span className="cursor-pointer">Settings</span>
+                        </button>
+
                         <div className="h-px bg-gray-100 my-1"></div>
+
+                        {/* Sign out */}
                         <button
                           onClick={handleSignOut}
                           className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer"
                         >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                            />
-                          </svg>
+                          <FiLogOut className="w-4 h-4" />
                           <span className="cursor-pointer">Sign Out</span>
                         </button>
                       </div>
@@ -269,7 +418,6 @@ const Header = () => {
               ) : (
                 /* Show Login/Register buttons when NOT logged in */
                 <div className="hidden lg:flex items-center gap-1.5">
-                  {/* Log in button - Blue pill */}
                   <button
                     onClick={() => navigate("/login")}
                     className="py-2.5 px-5 text-sm font-normal bg-[#06EAFC] hover:bg-[#6cf5ff] duration-300 rounded-full transition-colors shadow-sm cursor-pointer"
@@ -277,10 +425,8 @@ const Header = () => {
                     Log in
                   </button>
 
-                  {/* Divider */}
                   <div className="w-px h-5 bg-gray-400 font-bold"></div>
 
-                  {/* Register button - Outline */}
                   <button
                     onClick={() => navigate("/register")}
                     className="py-2.5 px-4 text-sm font-normal border-3 border-[#06EAFC] rounded-full transition-colors shadow-sm cursor-pointer"
@@ -290,13 +436,12 @@ const Header = () => {
                 </div>
               )}
 
-              {/* Mobile menu button - Changes to close button when menu is open */}
+              {/* Mobile menu button */}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="lg:hidden text-gray-900 text-2xl p-1 ml-2 cursor-pointer hover:text-[#00d1ff] transition-colors"
               >
                 {isMenuOpen ? (
-                  // Close icon (X)
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-6 w-6"
@@ -312,7 +457,6 @@ const Header = () => {
                     />
                   </svg>
                 ) : (
-                  // Hamburger menu icon
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-6 w-6"
@@ -334,13 +478,12 @@ const Header = () => {
         </div>
       </header>
 
-      {/* MOBILE MENU - Ultra high z-index to ensure it covers everything */}
+      {/* MOBILE MENU */}
       <div
         className={`fixed inset-0 z-[100000] md:hidden ${
           isMenuOpen ? "" : "pointer-events-none"
         }`}
       >
-        {/* Backdrop with highest z-index - Slower fade */}
         <div
           className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-[100000] transition-all duration-500 ease-out ${
             isMenuOpen
@@ -350,7 +493,6 @@ const Header = () => {
           onClick={() => setIsMenuOpen(false)}
         />
 
-        {/* Mobile menu content with ultra high z-index - Slower slide animation */}
         <div
           className={`fixed left-0 top-0 w-full h-screen bg-[#e6f2ff] flex flex-col z-[100001] transform transition-all duration-500 ease-out ${
             isMenuOpen
@@ -360,7 +502,6 @@ const Header = () => {
         >
           <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-[#f2f9ff] rounded-lg shadow-sm mt-1 mx-2 cursor-default transition-all duration-300 delay-100">
             <div className="flex items-center gap-2 cursor-pointer">
-              {/* Mobile slide menu logo - NOW SAME SIZE as main header logo: h-7 w-20 */}
               <img
                 src={Logo}
                 alt="Ajani Logo"
@@ -393,7 +534,7 @@ const Header = () => {
           </div>
 
           <nav className="flex-1 p-4 space-y-2 text-sm overflow-y-auto">
-            {/* Base navigation items with staggered animations */}
+            {/* Base navigation items */}
             {baseNavItems.map((item, index) => (
               <button
                 key={item.id}
@@ -473,18 +614,67 @@ const Header = () => {
                   }}
                 >
                   <p className="text-sm font-medium text-gray-900 cursor-default">
+                    {userProfile?.fullName || userEmail}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1 cursor-default">
                     {userEmail}
                   </p>
                 </div>
 
                 {/* Mobile navigation for logged-in users */}
                 <button
-                  onClick={() => handleMobileNavigate("/chat")}
+                  onClick={() => handleMobileNavigate("/profile")}
                   className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
                           (baseNavItems.length + loggedInNavItems.length + 2) *
+                          50
+                        }ms`
+                      : "0ms",
+                    opacity: isMenuOpen ? 1 : 0,
+                    transform: isMenuOpen
+                      ? "translateX(0)"
+                      : "translateX(-20px)",
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <FiUser className="w-4 h-4" />
+                    <span>My Profile</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => handleMobileNavigate("/saved")}
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  style={{
+                    transitionDelay: isMenuOpen
+                      ? `${
+                          (baseNavItems.length + loggedInNavItems.length + 3) *
+                          50
+                        }ms`
+                      : "0ms",
+                    opacity: isMenuOpen ? 1 : 0,
+                    transform: isMenuOpen
+                      ? "translateX(0)"
+                      : "translateX(-20px)",
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <FiHeart className="w-4 h-4" />
+                    <span>
+                      Saved Listings {savedCount > 0 && `(${savedCount})`}
+                    </span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => handleMobileNavigate("/chat")}
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  style={{
+                    transitionDelay: isMenuOpen
+                      ? `${
+                          (baseNavItems.length + loggedInNavItems.length + 4) *
                           50
                         }ms`
                       : "0ms",
@@ -502,7 +692,7 @@ const Header = () => {
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 3) *
+                          (baseNavItems.length + loggedInNavItems.length + 5) *
                           50
                         }ms`
                       : "0ms",
@@ -524,7 +714,7 @@ const Header = () => {
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 4) *
+                          (baseNavItems.length + loggedInNavItems.length + 6) *
                           50
                         }ms`
                       : "0ms",
@@ -539,7 +729,6 @@ const Header = () => {
               </>
             ) : (
               <>
-                {/* Divider before authentication buttons */}
                 <div
                   className="h-px bg-gray-200 my-2 transition-all duration-300"
                   style={{
@@ -550,7 +739,6 @@ const Header = () => {
                   }}
                 ></div>
 
-                {/* Log In button */}
                 <button
                   onClick={() => handleMobileNavigate("/login")}
                   className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
@@ -567,7 +755,6 @@ const Header = () => {
                   Log In
                 </button>
 
-                {/* Register button */}
                 <button
                   onClick={() => handleMobileNavigate("/register")}
                   className="block w-full text-left py-3 px-4 hover:bg-blue-50 text-black rounded-lg font-normal whitespace-nowrap text-sm cursor-pointer transition-all duration-300 transform hover:translate-x-1"

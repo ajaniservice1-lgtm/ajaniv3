@@ -1,10 +1,10 @@
 // src/components/Directory.jsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { MdFavoriteBorder } from "react-icons/md";
 import { FaGreaterThan, FaLessThan } from "react-icons/fa";
 import { PiSliders } from "react-icons/pi";
@@ -418,13 +418,76 @@ const useGoogleSheet = (sheetId, apiKey) => {
 const BusinessCard = ({ item, category, isMobile }) => {
   const images = getCardImages(item);
   const navigate = useNavigate();
+  const location = useLocation();
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Check if this item is already saved on mount
+  // Check if this item is already saved on mount and when location changes
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
-    const isAlreadySaved = saved.some((savedItem) => savedItem.id === item.id);
-    setIsFavorite(isAlreadySaved);
+    const checkIfFavorite = () => {
+      const saved = JSON.parse(
+        localStorage.getItem("userSavedListings") || "[]"
+      );
+      const isAlreadySaved = saved.some(
+        (savedItem) => savedItem.id === item.id
+      );
+      setIsFavorite(isAlreadySaved);
+    };
+
+    checkIfFavorite();
+
+    // Listen for savedListingsUpdated events from other components
+    const handleSavedListingsUpdated = () => {
+      checkIfFavorite();
+    };
+
+    window.addEventListener("savedListingsUpdated", handleSavedListingsUpdated);
+
+    return () => {
+      window.removeEventListener(
+        "savedListingsUpdated",
+        handleSavedListingsUpdated
+      );
+    };
+  }, [item.id, location]);
+
+  // Also check for pending saves after login
+  useEffect(() => {
+    const pendingSaveItem = JSON.parse(
+      localStorage.getItem("pendingSaveItem") || "null"
+    );
+
+    if (pendingSaveItem && pendingSaveItem.id === item.id) {
+      // Clear the pending save
+      localStorage.removeItem("pendingSaveItem");
+
+      // Get existing saved listings
+      const saved = JSON.parse(
+        localStorage.getItem("userSavedListings") || "[]"
+      );
+
+      // Check if already saved (to avoid duplicates)
+      const isAlreadySaved = saved.some(
+        (savedItem) => savedItem.id === item.id
+      );
+
+      if (!isAlreadySaved) {
+        // Add to saved listings
+        const updated = [...saved, pendingSaveItem];
+        localStorage.setItem("userSavedListings", JSON.stringify(updated));
+        setIsFavorite(true);
+
+        // Show success message
+        showToast("Added to saved listings!", "success");
+
+        // Dispatch event
+        window.dispatchEvent(
+          new CustomEvent("savedListingsUpdated", {
+            detail: { action: "added", item: pendingSaveItem },
+          })
+        );
+      }
+    }
   }, [item.id]);
 
   const formatPrice = (n) => {
@@ -436,41 +499,12 @@ const BusinessCard = ({ item, category, isMobile }) => {
     });
   };
 
-  // FIXED: Proper price text based on category
   const getPriceText = () => {
     const priceFrom = item.price_from || item.price || "0";
     const formattedPrice = formatPrice(priceFrom);
-
-    // Categories that show "for 2 nights"
-    const nightlyCategories = [
-      "hotel",
-      "hostel",
-      "shortlet",
-      "apartment",
-      "cabin",
-      "condo",
-      "resort",
-      "inn",
-      "motel",
-    ];
-
-    if (nightlyCategories.some((cat) => category.toLowerCase().includes(cat))) {
-      return `₦${formattedPrice}`;
-    }
-
-    // Other categories show "per guest" or "per meal"
-    if (
-      category.toLowerCase().includes("restaurant") ||
-      category.toLowerCase().includes("food") ||
-      category.toLowerCase().includes("cafe")
-    ) {
-      return `₦${formattedPrice}`;
-    }
-
     return `₦${formattedPrice}`;
   };
 
-  // Get the per text (for 2 nights, per guest, per meal)
   const getPerText = () => {
     const nightlyCategories = [
       "hotel",
@@ -501,7 +535,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
 
   const priceText = getPriceText();
   const perText = getPerText();
-  const location = item.area || item.location || "Ibadan";
+  const locationText = item.area || item.location || "Ibadan";
   const rating = item.rating || "4.9";
   const businessName = item.name || "Business Name";
 
@@ -514,30 +548,31 @@ const BusinessCard = ({ item, category, isMobile }) => {
   };
 
   // Toast Notification Function
-  const showToast = (message, type = "success") => {
-    // Remove any existing toast
-    const existingToast = document.getElementById("toast-notification");
-    if (existingToast) {
-      existingToast.remove();
-    }
+  const showToast = useCallback(
+    (message, type = "success") => {
+      // Remove any existing toast
+      const existingToast = document.getElementById("toast-notification");
+      if (existingToast) {
+        existingToast.remove();
+      }
 
-    // Create toast element
-    const toast = document.createElement("div");
-    toast.id = "toast-notification";
-    toast.className = `fixed z-50 px-4 py-3 rounded-lg shadow-lg border ${
-      type === "success"
-        ? "bg-green-50 border-green-200 text-green-800"
-        : "bg-blue-50 border-blue-200 text-blue-800"
-    }`;
+      // Create toast element
+      const toast = document.createElement("div");
+      toast.id = "toast-notification";
+      toast.className = `fixed z-[9999] px-4 py-3 rounded-lg shadow-lg border ${
+        type === "success"
+          ? "bg-green-50 border-green-200 text-green-800"
+          : "bg-blue-50 border-blue-200 text-blue-800"
+      }`;
 
-    // Position toast lower - 15px for mobile, 15px for desktop
-    toast.style.top = isMobile ? "15px" : "15px";
-    toast.style.right = "15px";
-    toast.style.maxWidth = "320px";
-    toast.style.animation = "slideInRight 0.3s ease-out forwards";
+      // Position toast
+      toast.style.top = isMobile ? "15px" : "15px";
+      toast.style.right = "15px";
+      toast.style.maxWidth = "320px";
+      toast.style.animation = "slideInRight 0.3s ease-out forwards";
 
-    // Toast content
-    toast.innerHTML = `
+      // Toast content
+      toast.innerHTML = `
       <div class="flex items-start gap-3">
         <div class="${
           type === "success" ? "text-green-600" : "text-blue-600"
@@ -553,91 +588,177 @@ const BusinessCard = ({ item, category, isMobile }) => {
           <p class="text-sm opacity-80 mt-1">${businessName}</p>
         </div>
         <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70 transition-opacity">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
         </button>
       </div>
     `;
 
-    // Add to DOM
-    document.body.appendChild(toast);
+      // Add to DOM
+      document.body.appendChild(toast);
 
-    // Auto remove after 3 seconds
-    setTimeout(() => {
-      toast.style.animation = "slideOutRight 0.3s ease-in forwards";
+      // Auto remove after 3 seconds
       setTimeout(() => {
         if (toast.parentElement) {
-          toast.remove();
+          toast.style.animation = "slideOutRight 0.3s ease-in forwards";
+          setTimeout(() => {
+            if (toast.parentElement) {
+              toast.remove();
+            }
+          }, 300);
         }
-      }, 300);
-    }, 3000);
-  };
+      }, 3000);
+    },
+    [isMobile, businessName]
+  );
 
-  // Full handleFavoriteClick Function
-  const handleFavoriteClick = (e) => {
-    e.stopPropagation(); // Prevent card click when clicking heart
+  // FIXED: handleFavoriteClick function with proper state management
+  const handleFavoriteClick = useCallback(
+    async (e) => {
+      e.stopPropagation();
 
-    // Get existing saved listings from localStorage
-    const saved = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
+      // Prevent multiple clicks while processing
+      if (isProcessing) return;
 
-    // Check if this item is already saved
-    const isAlreadySaved = saved.some((savedItem) => savedItem.id === item.id);
+      setIsProcessing(true);
 
-    if (isAlreadySaved) {
-      // REMOVE FROM SAVED
-      const updated = saved.filter((savedItem) => savedItem.id !== item.id);
-      localStorage.setItem("userSavedListings", JSON.stringify(updated));
-      setIsFavorite(false); // Update React state
+      // Check if user is signed in
+      const isLoggedIn = localStorage.getItem("ajani_dummy_login") === "true";
 
-      // Show toast notification
-      showToast("Removed from saved listings", "info");
+      // If not logged in, show login prompt and redirect to login page
+      if (!isLoggedIn) {
+        // Show login prompt toast
+        showToast("Please login to save listings", "info");
 
-      // Dispatch event for other components
-      window.dispatchEvent(
-        new CustomEvent("savedListingsUpdated", {
-          detail: { action: "removed", itemId: item.id },
-        })
-      );
-    } else {
-      // ADD TO SAVED
-      const listingToSave = {
-        id: item.id || `listing_${Date.now()}`,
-        name: businessName,
-        price: priceText,
-        perText: perText,
-        rating: parseFloat(rating),
-        tag: "Guest Favorite",
-        image: images[0] || FALLBACK_IMAGES.default,
-        category: capitalizeFirst(category) || "Business",
-        location: location,
-        savedDate: new Date().toISOString().split("T")[0],
-        // Keep original data
-        originalData: {
-          price_from: item.price_from,
-          area: item.area,
-          rating: item.rating,
-          description: item.description,
-          amenities: item.amenities,
-          contact: item.contact,
-        },
-      };
+        // Store the current URL to redirect back after login
+        const currentPath = window.location.pathname;
+        localStorage.setItem("redirectAfterLogin", currentPath);
 
-      const updated = [...saved, listingToSave];
-      localStorage.setItem("userSavedListings", JSON.stringify(updated));
-      setIsFavorite(true); // Update React state
+        // Store the item details to save after login
+        const itemToSaveAfterLogin = {
+          id: item.id,
+          name: businessName,
+          price: priceText,
+          perText: perText,
+          rating: parseFloat(rating),
+          tag: "Guest Favorite",
+          image: images[0] || FALLBACK_IMAGES.default,
+          category: capitalizeFirst(category) || "Business",
+          location: locationText,
+          originalData: {
+            price_from: item.price_from,
+            area: item.area,
+            rating: item.rating,
+            description: item.description,
+            amenities: item.amenities,
+            contact: item.contact,
+          },
+        };
 
-      // Show toast notification
-      showToast("Added to saved listings!", "success");
+        localStorage.setItem(
+          "pendingSaveItem",
+          JSON.stringify(itemToSaveAfterLogin)
+        );
 
-      // Dispatch event for other components
-      window.dispatchEvent(
-        new CustomEvent("savedListingsUpdated", {
-          detail: { action: "added", item: listingToSave },
-        })
-      );
-    }
-  };
+        // Redirect to login page after a short delay
+        setTimeout(() => {
+          navigate("/login");
+          setIsProcessing(false);
+        }, 800);
 
- 
+        return;
+      }
+
+      // User is logged in, proceed with bookmarking
+      try {
+        // Get existing saved listings from localStorage
+        const saved = JSON.parse(
+          localStorage.getItem("userSavedListings") || "[]"
+        );
+
+        // Check if this item is already saved
+        const isAlreadySaved = saved.some(
+          (savedItem) => savedItem.id === item.id
+        );
+
+        if (isAlreadySaved) {
+          // REMOVE FROM SAVED
+          const updated = saved.filter((savedItem) => savedItem.id !== item.id);
+          localStorage.setItem("userSavedListings", JSON.stringify(updated));
+
+          // Immediately update UI state
+          setIsFavorite(false);
+
+          // Show toast notification
+          showToast("Removed from saved listings", "info");
+
+          // Dispatch event for other components
+          window.dispatchEvent(
+            new CustomEvent("savedListingsUpdated", {
+              detail: { action: "removed", itemId: item.id },
+            })
+          );
+        } else {
+          // ADD TO SAVED
+          const listingToSave = {
+            id: item.id || `listing_${Date.now()}`,
+            name: businessName,
+            price: priceText,
+            perText: perText,
+            rating: parseFloat(rating),
+            tag: "Guest Favorite",
+            image: images[0] || FALLBACK_IMAGES.default,
+            category: capitalizeFirst(category) || "Business",
+            location: locationText,
+            savedDate: new Date().toISOString().split("T")[0],
+            originalData: {
+              price_from: item.price_from,
+              area: item.area,
+              rating: item.rating,
+              description: item.description,
+              amenities: item.amenities,
+              contact: item.contact,
+            },
+          };
+
+          const updated = [...saved, listingToSave];
+          localStorage.setItem("userSavedListings", JSON.stringify(updated));
+
+          // Immediately update UI state
+          setIsFavorite(true);
+
+          // Show toast notification
+          showToast("Added to saved listings!", "success");
+
+          // Dispatch event for other components
+          window.dispatchEvent(
+            new CustomEvent("savedListingsUpdated", {
+              detail: { action: "added", item: listingToSave },
+            })
+          );
+        }
+      } catch (error) {
+        console.error("Error saving/removing favorite:", error);
+        showToast("Something went wrong. Please try again.", "info");
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [
+      isProcessing,
+      item,
+      businessName,
+      priceText,
+      perText,
+      rating,
+      images,
+      category,
+      locationText,
+      showToast,
+      navigate,
+    ]
+  );
 
   return (
     <div
@@ -663,7 +784,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
           className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
           onError={(e) => {
             e.currentTarget.src = FALLBACK_IMAGES.default;
-            e.currentTarget.onerror = null; // Prevent infinite loop
+            e.currentTarget.onerror = null;
           }}
           loading="lazy"
         />
@@ -675,18 +796,21 @@ const BusinessCard = ({ item, category, isMobile }) => {
           </span>
         </div>
 
-        {/* Heart icon - Updated with better styling */}
+        {/* Heart icon - Updated with loading state */}
         <button
           onClick={handleFavoriteClick}
+          disabled={isProcessing}
           className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 ${
             isFavorite
               ? "bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
               : "bg-white/90 hover:bg-white backdrop-blur-sm"
-          }`}
+          } ${isProcessing ? "opacity-70 cursor-not-allowed" : ""}`}
           title={isFavorite ? "Remove from saved" : "Add to saved"}
           aria-label={isFavorite ? "Remove from saved" : "Save this listing"}
         >
-          {isFavorite ? (
+          {isProcessing ? (
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          ) : isFavorite ? (
             <svg
               className="w-4 h-4 text-white"
               fill="currentColor"
@@ -702,8 +826,6 @@ const BusinessCard = ({ item, category, isMobile }) => {
             <MdFavoriteBorder className="text-[#00d1ff] w-4 h-4" />
           )}
         </button>
-
-      
       </div>
 
       {/* Text Content */}
@@ -719,9 +841,8 @@ const BusinessCard = ({ item, category, isMobile }) => {
         </h3>
 
         <div className=" text-gray-600">
-         
           <p className={`${isMobile ? "text-[9px]" : "text-xs"} line-clamp-1`}>
-            {location}
+            {locationText}
           </p>
         </div>
 
@@ -782,8 +903,8 @@ const BusinessCard = ({ item, category, isMobile }) => {
             </span>
           </div>
 
-          {/* Saved indicator badge */}
-          {isFavorite && (
+          {/* Saved indicator badge - Only show when actually saved */}
+          {isFavorite && !isProcessing && (
             <span className="inline-flex items-center gap-1 text-[10px] text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
               <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
                 <path
@@ -917,10 +1038,6 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
     const hasScrollRight =
       Math.ceil(scrollLeft + clientWidth) < Math.floor(scrollWidth) - 5;
     setCanScrollRight(hasScrollRight);
-
-    console.log(
-      `Section: ${sectionId}, Left: ${hasScrollLeft}, Right: ${hasScrollRight}, scrollLeft: ${scrollLeft}, clientWidth: ${clientWidth}, scrollWidth: ${scrollWidth}`
-    );
   };
 
   // Initialize and add scroll listener
@@ -1079,6 +1196,7 @@ const Directory = () => {
   const [activeFilters] = useState({});
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
   const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
@@ -1179,11 +1297,6 @@ const Directory = () => {
     });
   });
 
-  
-
-
-
-
   // Handle category button click
   const handleCategoryButtonClick = (category) => {
     navigate(`/category/${category}`);
@@ -1191,7 +1304,6 @@ const Directory = () => {
 
   if (error)
     return (
-      // REMOVED: All positioning and z-index from error state
       <section id="directory" className="bg-white py-6 font-manrope">
         <div className="max-w-8xl mx-auto px-2 sm:px-4 lg:px-6">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
@@ -1202,7 +1314,6 @@ const Directory = () => {
     );
 
   return (
-    // CRITICAL CHANGE: Removed ALL positioning and z-index
     <section id="directory" className="bg-white py-3 font-manrope">
       <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
         {/* Header - More compact with better mobile spacing */}
@@ -1238,7 +1349,7 @@ const Directory = () => {
                     handleCategoryButtonClick(e.target.value);
                   }
                 }}
-                className="md:px-2 md:py-1.5 p-2.5 border border-gray-300 rounded-lg font-medium text-[12px] lg:text-[12px] bg-gray-300 focus:ring-1 focus:ring-[#06EAFC]   focus:border-[#06EAFC] flex-1"
+                className="md:px-2 md:py-1.5 p-2.5 border border-gray-300 rounded-lg font-medium text-[12px] lg:text-[12px] bg-gray-300 focus:ring-1 focus:ring-[#06EAFC] focus:border-[#06EAFC] flex-1"
               >
                 <option value="">Categories</option>
                 {getPopularCategories().map((category) => (
@@ -1297,15 +1408,15 @@ const Directory = () => {
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }
-        .line-clamp-2 {
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
         .line-clamp-1 {
           display: -webkit-box;
           -webkit-line-clamp: 1;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
         }

@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ChatProvider } from "./context/ChatContext";
 import TrackingWrapper from "./components/TrackingWrapper";
 import LocalBusinessSchema from "./components/LocalBusinessSchema";
@@ -30,6 +30,7 @@ const UserProcess1 = lazy(() =>
 const UserProcess2 = lazy(() =>
   import("./pages/auth/registration/UserProcess2")
 );
+// FIXED: UserProcess3 should be the personalization step, not SavedListingsPage
 const UserProcess3 = lazy(() =>
   import("./pages/auth/registration/UserProcess3")
 );
@@ -57,6 +58,10 @@ const VendorCompleteProfile = lazy(() =>
   import("./pages/auth/registration/VendorCompleteProfile")
 );
 
+// PROTECTED ROUTES (Require Login)
+const SavedListingsPage = lazy(() => import("./pages/SavedListingsPage"));
+const UserProfilePage = lazy(() => import("./pages/UserProfilePage"));
+
 // Loading component with animated dots
 const LoadingDots = () => {
   return (
@@ -76,6 +81,53 @@ const LoadingDots = () => {
   );
 };
 
+// ========== AUTH UTILITY FUNCTIONS ==========
+export const checkLoginStatus = () => {
+  return localStorage.getItem("ajani_dummy_login") === "true";
+};
+
+export const getUserEmail = () => {
+  return localStorage.getItem("ajani_dummy_email") || null;
+};
+
+export const logoutUser = () => {
+  localStorage.removeItem("ajani_dummy_login");
+  localStorage.removeItem("ajani_dummy_email");
+  localStorage.removeItem("userSavedListings");
+  localStorage.removeItem("pendingSaveItem");
+  localStorage.removeItem("redirectAfterLogin");
+};
+
+export const loginUser = (email) => {
+  localStorage.setItem("ajani_dummy_login", "true");
+  localStorage.setItem("ajani_dummy_email", email);
+};
+
+// ========== PROTECTED ROUTE COMPONENT ==========
+const ProtectedRoute = ({ children }) => {
+  const isAuthenticated = checkLoginStatus();
+
+  if (!isAuthenticated) {
+    // Store the current URL for redirect after login
+    localStorage.setItem("redirectAfterLogin", window.location.pathname);
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+};
+
+// ========== PUBLIC ROUTE COMPONENT (Redirects if already logged in) ==========
+const PublicRoute = ({ children }) => {
+  const isAuthenticated = checkLoginStatus();
+
+  if (isAuthenticated) {
+    // If already logged in, redirect to home
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
+
 function App() {
   return (
     <>
@@ -89,6 +141,8 @@ function App() {
             <TrackingWrapper>
               <Suspense fallback={<LoadingDots />}>
                 <Routes>
+                  {/* ========== PUBLIC ROUTES ========== */}
+
                   {/* Home Page */}
                   <Route path="/" element={<HomePage />} />
 
@@ -109,40 +163,81 @@ function App() {
                   {/* Search Results Page */}
                   <Route path="/search-results" element={<SearchResults />} />
 
-                  {/* ========== AUTHENTICATION ROUTES ========== */}
+                  {/* ========== AUTHENTICATION ROUTES (Public Only) ========== */}
 
-                  {/* Login Page */}
-                  <Route path="/login" element={<LoginPage />} />
+                  {/* Login Page - Redirects if already logged in */}
+                  <Route
+                    path="/login"
+                    element={
+                      <PublicRoute>
+                        <LoginPage />
+                      </PublicRoute>
+                    }
+                  />
 
                   {/* Registration Choice Page */}
-                  <Route path="/register" element={<RegisterChoicePage />} />
+                  <Route
+                    path="/register"
+                    element={
+                      <PublicRoute>
+                        <RegisterChoicePage />
+                      </PublicRoute>
+                    }
+                  />
 
                   {/* ========== USER REGISTRATION FLOW ========== */}
 
                   {/* User Registration Entry */}
-                  <Route path="/register/user" element={<UserRegistration />} />
+                  <Route
+                    path="/register/user"
+                    element={
+                      <PublicRoute>
+                        <UserRegistration />
+                      </PublicRoute>
+                    }
+                  />
 
                   {/* User Process Steps */}
                   <Route
                     path="/register/user/process1"
-                    element={<UserProcess1 />}
+                    element={
+                      <PublicRoute>
+                        <UserProcess1 />
+                      </PublicRoute>
+                    }
                   />
                   <Route
                     path="/register/user/process2"
-                    element={<UserProcess2 />}
+                    element={
+                      <PublicRoute>
+                        <UserProcess2 />
+                      </PublicRoute>
+                    }
                   />
                   <Route
                     path="/register/user/process3"
-                    element={<UserProcess3 />}
+                    element={
+                      <PublicRoute>
+                        <UserProcess3 />
+                      </PublicRoute>
+                    }
                   />
                   <Route
                     path="/register/user/process4"
-                    element={<UserProcess4 />}
+                    element={
+                      <PublicRoute>
+                        <UserProcess4 />
+                      </PublicRoute>
+                    }
                   />
                   {/* User Complete Profile */}
                   <Route
                     path="/register/user/complete-profile"
-                    element={<UserCompleteProfile />}
+                    element={
+                      <PublicRoute>
+                        <UserCompleteProfile />
+                      </PublicRoute>
+                    }
                   />
 
                   {/* ========== VENDOR REGISTRATION FLOW ========== */}
@@ -150,27 +245,69 @@ function App() {
                   {/* Vendor Registration Entry */}
                   <Route
                     path="/register/vendor"
-                    element={<VendorRegistration />}
+                    element={
+                      <PublicRoute>
+                        <VendorRegistration />
+                      </PublicRoute>
+                    }
                   />
 
                   {/* Vendor Process Steps */}
                   <Route
                     path="/register/vendor/process1"
-                    element={<VendorProcess1 />}
+                    element={
+                      <PublicRoute>
+                        <VendorProcess1 />
+                      </PublicRoute>
+                    }
                   />
                   <Route
                     path="/register/vendor/process2"
-                    element={<VendorProcess2 />}
+                    element={
+                      <PublicRoute>
+                        <VendorProcess2 />
+                      </PublicRoute>
+                    }
                   />
                   <Route
                     path="/register/vendor/process3"
-                    element={<VendorProcess3 />}
+                    element={
+                      <PublicRoute>
+                        <VendorProcess3 />
+                      </PublicRoute>
+                    }
                   />
 
                   {/* Vendor Complete Profile */}
                   <Route
                     path="/register/vendor/complete-profile"
-                    element={<VendorCompleteProfile />}
+                    element={
+                      <PublicRoute>
+                        <VendorCompleteProfile />
+                      </PublicRoute>
+                    }
+                  />
+
+                  {/* ========== PROTECTED ROUTES (Require Login) ========== */}
+
+                  {/* Saved Listings Page - PROTECTED */}
+                  <Route
+                    path="/saved"
+                    element={
+                      <ProtectedRoute>
+                        <SavedListingsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* User Profile Page - PROTECTED */}
+                  <Route
+                    path="/profile"
+                    element={
+                      <ProtectedRoute>
+                        <UserProfilePage />
+                      </ProtectedRoute>
+                    }
                   />
 
                   {/* ========== 404 PAGE ========== */}

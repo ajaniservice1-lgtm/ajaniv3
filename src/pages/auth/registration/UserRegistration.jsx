@@ -1,3 +1,4 @@
+// src/pages/auth/registration/UserRegistration.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaArrowRight, FaEye, FaEyeSlash } from "react-icons/fa";
@@ -49,14 +50,50 @@ const UserRegistration = () => {
     e.preventDefault();
 
     if (validateForm()) {
-      const userData = {
-        ...form,
-        fullName: `${form.firstName} ${form.lastName}`,
+      // Create complete user profile with password
+      const userProfile = {
+        id: Date.now().toString(),
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        fullName: `${form.firstName.trim()} ${form.lastName.trim()}`,
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+        password: form.password, // Save password (in real app, this would be hashed)
         registrationDate: new Date().toISOString(),
+        memberSince: new Date().toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        }),
+        about:
+          "Welcome to Ajani! Start exploring verified vendors and share your experiences.",
+        image: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          form.firstName + " " + form.lastName
+        )}&background=random`,
+        stats: {
+          vendorsSaved: 0,
+          reviewsWritten: 0,
+          bookingsMade: 0,
+        },
       };
 
-      localStorage.setItem("tempUserData", JSON.stringify(userData));
-      navigate("/register/user/process1", { state: userData });
+      // Save user profile to localStorage
+      localStorage.setItem("userProfile", JSON.stringify(userProfile));
+
+      // Also save to a users list for future login checks
+      const users = JSON.parse(localStorage.getItem("ajani_users") || "[]");
+      users.push({
+        email: form.email,
+        password: form.password,
+        profileId: userProfile.id,
+      });
+      localStorage.setItem("ajani_users", JSON.stringify(users));
+
+      // Auto-login after registration
+      localStorage.setItem("ajani_dummy_login", "true");
+      localStorage.setItem("ajani_dummy_email", form.email);
+
+      // Navigate to next step
+      navigate("/register/user/process1", { state: userProfile });
     }
   };
 
@@ -240,7 +277,7 @@ const UserRegistration = () => {
               type="submit"
               className="bg-[#00d37f] text-white flex items-center gap-2 px-6 py-3 rounded-lg shadow-md hover:bg-[#02be72] transition"
             >
-              Done <FaArrowRight size={14} />
+              Continue <FaArrowRight size={14} />
             </button>
           </div>
         </form>
