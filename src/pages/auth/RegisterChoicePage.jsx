@@ -2,13 +2,14 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaTimes } from "react-icons/fa";
 import Icon from "../../assets/Logos/logo5.png";
+import Ilu1 from "../../assets/Illustration/undraw_online-groceries_n03y.png";
+import Ilu2 from "../../assets/Illustration/undraw_shopping-app_b80f.png";
 
 const RegisterChoicePage = () => {
   const navigate = useNavigate();
   const [selected, setSelected] = useState(null);
 
   const handleCancel = () => {
-    // Navigate back or to home if no history
     const hasPreviousPage = window.history.length > 1;
     if (hasPreviousPage) {
       navigate(-1);
@@ -19,161 +20,157 @@ const RegisterChoicePage = () => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      {/* Content with right-aligned close button */}
-      <div className="flex flex-col items-center px-4 py-6 sm:py-8 md:py-12">
-        {/* Close Button - Top Right */}
-        <div className="w-full max-w-4xl flex justify-end mb-2">
-          <button
-            onClick={handleCancel}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
-            aria-label="Close"
-          >
-            <FaTimes size={20} />
-          </button>
-        </div>
+      {/* Close Button - Top Right */}
+      <div className="w-full flex justify-end p-4 sm:p-6">
+        <button
+          onClick={handleCancel}
+          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+          aria-label="Close"
+        >
+          <FaTimes size={24} />
+        </button>
+      </div>
 
-        {/* Logo positioned close to heading */}
-        <div className="mb-4">
+      {/* Main Content Container */}
+      <div className="flex flex-col items-center px-4 pb-8 flex-grow">
+        {/* Logo */}
+        <div className="mb-6">
           <img
             src={Icon}
             alt="Ajani Logo"
-            className="h-10 w-auto object-contain mx-auto"
+            className="h-12 w-auto object-contain"
           />
         </div>
 
-        {/* Heading */}
-        <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 text-center mb-2">
-          Join Ajani as a user or vendor
-        </h2>
 
         {/* Subheading */}
-        <p className="text-gray-600 text-center text-sm sm:text-base mb-8">
+        <p className="text-gray-600 text-center text-base sm:text-lg mb-10 max-w-md">
           Choose how you want to experience Ajani
         </p>
 
-        {/* Choices */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Client */}
-          <button
+        {/* Choices Container with exact dimensions */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 w-full max-w-4xl px-4">
+          {/* Buyer/Explorer Card */}
+          <div
             onClick={() => setSelected("client")}
-            className={`p-5 w-72 md:w-80 border rounded-xl text-left transition-all duration-200 bg-white
+            className={`relative bg-white cursor-pointer transition-all duration-200 mx-auto
               ${
                 selected === "client"
-                  ? "border-black shadow-sm"
-                  : "border-gray-300 hover:border-black"
-              }`}
+                  ? "border-green-500 border-4"
+                  : "border-gray-200"
+              }
+              /* Mobile dimensions */
+              w-[233.7px] h-[311.82px] rounded-[22.41px] border-[3px]
+              /* LG dimensions */
+              lg:w-[397.98px] lg:h-[531px] lg:rounded-[38.16px] lg:border-2
+              ${selected === "client" ? "shadow-lg" : "hover:shadow-md"}`}
           >
-            <div className="flex justify-between items-center">
-              <svg
-                className="w-6 h-6 text-gray-700"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2H8a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                />
-              </svg>
-
-              <div
-                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center
-                  ${
-                    selected === "client" ? "border-black" : "border-gray-400"
-                  }`}
-              >
-                {selected === "client" && (
-                  <div className="w-3 h-3 bg-black rounded-full"></div>
-                )}
-              </div>
+            {/* Illustration */}
+            <div className="flex justify-center mt-6 lg:mt-12 mb-4 lg:mb-8 px-4">
+              <img
+                src={Ilu1}
+                alt="Buyer Illustration"
+                className="h-32 lg:h-56 w-auto object-contain"
+              />
             </div>
 
-            <h3 className="mt-5 text-lg font-medium text-gray-900">
-              I'm a user to buy
-            </h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Find and book verified vendors, save favorites, write reviews
-            </p>
-          </button>
+            {/* Content Container */}
+            <div className="px-5 lg:px-8 space-y-3 lg:space-y-6">
+              <h2 className="text-xl lg:text-3xl font-bold text-gray-900 leading-tight">
+                Buyer / Explorer
+              </h2>
+              <p className="text-gray-600 text-xs lg:text-sm leading-relaxed">
+                Discover hotels, restaurants, local vendors, events and price
+                insight across Ibadan
+              </p>
+            </div>
 
-          {/* Vendor */}
-          <button
+            {/* Next Arrow - Positioned at bottom */}
+            <div className="absolute bottom-5 lg:bottom-8 left-5 lg:left-8 right-5 lg:right-8 pt-4 lg:pt-6 border-t border-gray-200">
+              <span className="text-green-600 font-semibold text-sm lg:text-lg">
+                Next →
+              </span>
+            </div>
+          </div>
+
+          {/* Vendor/Business Owner Card */}
+          <div
             onClick={() => setSelected("vendor")}
-            className={`p-5 w-72 md:w-80 border rounded-xl text-left transition-all duration-200 bg-white
+            className={`relative bg-white cursor-pointer transition-all duration-200 mx-auto
               ${
                 selected === "vendor"
-                  ? "border-black shadow-sm"
-                  : "border-gray-300 hover:border-black"
-              }`}
+                  ? "border-green-500 border-4"
+                  : "border-gray-200"
+              }
+              /* Mobile dimensions */
+              w-[233.7px] h-[311.82px] rounded-[22.41px] border-[3px]
+              /* LG dimensions */
+              lg:w-[397.98px] lg:h-[531px] lg:rounded-[38.16px] lg:border-2
+              ${selected === "vendor" ? "shadow-lg" : "hover:shadow-md"}`}
           >
-            <div className="flex justify-between items-center">
-              <svg
-                className="w-6 h-6 text-gray-700"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-
-              <div
-                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center
-                  ${
-                    selected === "vendor" ? "border-black" : "border-gray-400"
-                  }`}
-              >
-                {selected === "vendor" && (
-                  <div className="w-3 h-3 bg-black rounded-full"></div>
-                )}
-              </div>
+            {/* Illustration */}
+            <div className="flex justify-center mt-6 lg:mt-12 mb-4 lg:mb-8 px-4">
+              <img
+                src={Ilu2}
+                alt="Vendor Illustration"
+                className="h-32 lg:h-56 w-auto object-contain"
+              />
             </div>
 
-            <h3 className="mt-5 text-lg font-medium text-gray-900">
-              I'm a vendor for listing
-            </h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Showcase your business, get verified, connect with customers
-            </p>
-          </button>
+            {/* Content Container */}
+            <div className="px-5 lg:px-8 space-y-3 lg:space-y-6">
+              <h2 className="text-xl lg:text-3xl font-bold text-gray-900 leading-tight">
+                Vendor / Business Owner
+              </h2>
+              <p className="text-gray-600 text-xs lg:text-sm leading-relaxed">
+                List my business receive booking, chat with customer, and grow
+                your visibility on Ajani
+              </p>
+            </div>
+
+            {/* Next Arrow - Positioned at bottom */}
+            <div className="absolute bottom-5 lg:bottom-8 left-5 lg:left-8 right-5 lg:right-8 pt-4 lg:pt-6 border-t border-gray-200">
+              <span className="text-green-600 font-semibold text-sm lg:text-lg">
+                Next →
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Main Button */}
-        <button
-          disabled={!selected}
-          onClick={() =>
-            navigate(
-              selected === "client" ? "/register/user" : "/register/vendor"
-            )
-          }
-          className={`mt-10 w-72 md:w-80 py-3 rounded-lg font-medium transition-all
-            ${
-              selected
-                ? "bg-black text-white hover:bg-gray-900"
-                : "bg-gray-200 text-gray-400 cursor-not-allowed"
-            }`}
-        >
-          {!selected && "Create Account"}
-          {selected === "client" && "Join as user"}
-          {selected === "vendor" && "Apply as vendor"}
-        </button>
-
-        {/* Login */}
-        <p className="mt-4 text-sm text-gray-700">
-          Already have an account?{" "}
+        {/* Dynamic Continue Button */}
+        <div className="mt-8 lg:mt-12 w-full max-w-md px-4">
           <button
-            onClick={() => navigate("/login")}
-            className="text-green-600 hover:underline font-medium"
+            disabled={!selected}
+            onClick={() =>
+              navigate(
+                selected === "client" ? "/register/user" : "/register/vendor"
+              )
+            }
+            className={`w-full py-3 lg:py-4 px-6 rounded-xl font-semibold text-base lg:text-lg transition-all duration-200
+              ${
+                selected === "client"
+                  ? "bg-green-600 text-white hover:bg-green-700 shadow-md hover:shadow-lg"
+                  : selected === "vendor"
+                  ? "bg-green-600 text-white hover:bg-green-700 shadow-md hover:shadow-lg"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              }`}
           >
-            Log In
+            {!selected && "Create Account"}
+            {selected === "client" && "Join as Buyer"}
+            {selected === "vendor" && "Apply as Vendor"}
           </button>
-        </p>
+
+          {/* Login Link */}
+          <p className="mt-6 text-center text-gray-600 text-sm lg:text-base">
+            Already have an account?{" "}
+            <button
+              onClick={() => navigate("/login")}
+              className="text-green-600 hover:text-green-700 font-semibold underline"
+            >
+              Log In
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );
