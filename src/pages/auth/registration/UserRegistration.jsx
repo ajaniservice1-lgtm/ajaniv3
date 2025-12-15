@@ -2,59 +2,38 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaArrowRight, FaEye, FaEyeSlash, FaTimes } from "react-icons/fa";
 import Logo from "../../../assets/Logos/logo5.png";
+import * as yup from "yup";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import axiosInstance from "../../../lib/axios";
+
+const schema = yup.object().shape({
+  firstName: yup.string().required(),
+  lastName: yup.string().required(),
+  email: yup.string().email("enter a valid email").required("enter your email"),
+  phone: yup.string().required(),
+  password: yup.string().required().min(8, "must be 8 characters long"),
+  confirmPassword: yup
+    .string()
+    .required()
+    .oneOf([yup.ref("password")], "password must match"),
+  role: yup.string().required().default("user"),
+});
 
 const UserRegistration = () => {
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: "",
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isDirty },
+  } = useForm({
+    resolver: yupResolver(schema),
   });
 
-  const [errors, setErrors] = useState({});
-  const [touched, setTouched] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!form.firstName.trim()) newErrors.firstName = "First name is required";
-    if (!form.lastName.trim()) newErrors.lastName = "Last name is required";
-    if (!form.email.trim()) newErrors.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(form.email))
-      newErrors.email = "Email is invalid";
-    if (!form.phone.trim()) newErrors.phone = "Phone number is required";
-    else if (!/^[+]?[\d\s\-()]+$/.test(form.phone.replace(/\s/g, "")))
-      newErrors.phone = "Phone number is invalid";
-    if (!form.password) newErrors.password = "Password is required";
-    else if (form.password.length < 8)
-      newErrors.password = "Password must be at least 8 characters";
-    else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(form.password))
-      newErrors.password =
-        "Password must contain uppercase, lowercase and number";
-    if (form.password !== form.confirmPassword)
-      newErrors.confirmPassword = "Passwords do not match";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-    // Clear error for this field when user starts typing
-    if (errors[e.target.name]) {
-      setErrors({ ...errors, [e.target.name]: "" });
-    }
-  };
-
-  const handleBlur = (field) => {
-    setTouched({ ...touched, [field]: true });
-  };
 
   const handleCancel = () => {
     // Navigate back or to home if no history
@@ -66,54 +45,13 @@ const UserRegistration = () => {
     }
   };
 
-  const handleNext = (e) => {
-    e.preventDefault();
-
-    if (validateForm()) {
-      // Create complete user profile with password
-      const userProfile = {
-        id: Date.now().toString(),
-        firstName: form.firstName.trim(),
-        lastName: form.lastName.trim(),
-        fullName: `${form.firstName.trim()} ${form.lastName.trim()}`,
-        phone: form.phone.trim(),
-        email: form.email.trim(),
-        password: form.password, // Save password (in real app, this would be hashed)
-        registrationDate: new Date().toISOString(),
-        memberSince: new Date().toLocaleDateString("en-US", {
-          month: "long",
-          year: "numeric",
-        }),
-        about:
-          "Welcome to Ajani! Start exploring verified vendors and share your experiences.",
-        image: `https://ui-avatars.com/api/?name=${encodeURIComponent(
-          form.firstName + " " + form.lastName
-        )}&background=random`,
-        stats: {
-          vendorsSaved: 0,
-          reviewsWritten: 0,
-          bookingsMade: 0,
-        },
-      };
-
-      // Save user profile to localStorage
-      localStorage.setItem("userProfile", JSON.stringify(userProfile));
-
-      // Also save to a users list for future login checks
-      const users = JSON.parse(localStorage.getItem("ajani_users") || "[]");
-      users.push({
-        email: form.email,
-        password: form.password,
-        profileId: userProfile.id,
-      });
-      localStorage.setItem("ajani_users", JSON.stringify(users));
-
-      // Auto-login after registration
-      localStorage.setItem("ajani_dummy_login", "true");
-      localStorage.setItem("ajani_dummy_email", form.email);
-
-      // Navigate to next step
-      navigate("/register/user/process1", { state: userProfile });
+  const handleNext = async (data) => {
+    try {
+      const res = await axiosInstance.post("/auth/register", data);
+      console.log(res);
+      reset();
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -148,7 +86,7 @@ const UserRegistration = () => {
         <div className="w-full border-t border-[#00d1ff] mt-4 mb-6"></div>
 
         {/* Form */}
-        <form onSubmit={handleNext} className="space-y-4">
+        <form onSubmit={handleSubmit(handleNext)} className="space-y-4">
           {/* First & Last Name */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -157,17 +95,18 @@ const UserRegistration = () => {
               </label>
               <input
                 type="text"
+                {...register("firstName")}
+                id="firstName"
                 name="firstName"
-                value={form.firstName}
-                onChange={handleChange}
-                onBlur={() => handleBlur("firstName")}
                 placeholder="Enter first name"
                 className={`w-full mt-1 px-3 py-2.5 border ${
                   errors.firstName ? "border-red-500" : "border-gray-300"
                 } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm`}
               />
               {errors.firstName && (
-                <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.firstName.message}
+                </p>
               )}
             </div>
 
@@ -177,17 +116,18 @@ const UserRegistration = () => {
               </label>
               <input
                 type="text"
+                {...register("lastName")}
+                id="lastName"
                 name="lastName"
-                value={form.lastName}
-                onChange={handleChange}
-                onBlur={() => handleBlur("lastName")}
                 placeholder="Enter last name"
                 className={`w-full mt-1 px-3 py-2.5 border ${
                   errors.lastName ? "border-red-500" : "border-gray-300"
                 } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm`}
               />
               {errors.lastName && (
-                <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.lastName.message}
+                </p>
               )}
             </div>
           </div>
@@ -198,16 +138,17 @@ const UserRegistration = () => {
             <input
               type="email"
               name="email"
-              value={form.email}
-              onChange={handleChange}
-              onBlur={() => handleBlur("email")}
+              {...register("email")}
+              id="email"
               placeholder="Email Address"
               className={`w-full mt-1 px-3 py-2.5 border ${
                 errors.email ? "border-red-500" : "border-gray-300"
               } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm`}
             />
             {errors.email && (
-              <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {errors.email.message}
+              </p>
             )}
           </div>
 
@@ -219,16 +160,17 @@ const UserRegistration = () => {
             <input
               type="tel"
               name="phone"
-              value={form.phone}
-              onChange={handleChange}
-              onBlur={() => handleBlur("phone")}
+              {...register("phone")}
+              id="phone"
               placeholder="Phone Number"
               className={`w-full mt-1 px-3 py-2.5 border ${
                 errors.phone ? "border-red-500" : "border-gray-300"
               } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm`}
             />
             {errors.phone && (
-              <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {errors.phone.message}
+              </p>
             )}
           </div>
 
@@ -241,9 +183,8 @@ const UserRegistration = () => {
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
-                value={form.password}
-                onChange={handleChange}
-                onBlur={() => handleBlur("password")}
+                {...register("password")}
+                id="password"
                 placeholder="********"
                 className={`w-full mt-1 px-3 py-2.5 border ${
                   errors.password ? "border-red-500" : "border-gray-300"
@@ -258,11 +199,10 @@ const UserRegistration = () => {
               </button>
             </div>
             {errors.password && (
-              <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {errors.password.message}
+              </p>
             )}
-            <p className="text-xs text-gray-500 mt-1">
-              Must be at least 8 characters with uppercase, lowercase and number
-            </p>
           </div>
 
           {/* Confirm Password */}
@@ -274,9 +214,8 @@ const UserRegistration = () => {
               <input
                 type={showConfirmPassword ? "text" : "password"}
                 name="confirmPassword"
-                value={form.confirmPassword}
-                onChange={handleChange}
-                onBlur={() => handleBlur("confirmPassword")}
+                {...register("confirmPassword")}
+                id="confirmPassword"
                 placeholder="********"
                 className={`w-full mt-1 px-3 py-2.5 border ${
                   errors.confirmPassword ? "border-red-500" : "border-gray-300"
@@ -296,7 +235,7 @@ const UserRegistration = () => {
             </div>
             {errors.confirmPassword && (
               <p className="text-red-500 text-xs mt-1">
-                {errors.confirmPassword}
+                {errors.confirmPassword.message}
               </p>
             )}
           </div>
@@ -332,6 +271,7 @@ const UserRegistration = () => {
           <div className="flex justify-end mt-3">
             <button
               type="submit"
+              disabled={!isDirty}
               className="bg-[#00d37f] text-white flex items-center gap-2 px-5 py-2.5 rounded-lg shadow-md hover:bg-[#02be72] transition text-sm font-medium"
             >
               Next <FaArrowRight size={12} />
