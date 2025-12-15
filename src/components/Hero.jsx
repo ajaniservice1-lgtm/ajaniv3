@@ -1138,12 +1138,17 @@ const Hero = () => {
               </div>
             </div>
 
-            {/* Category Icons - UPDATED WITH SERVICES */}
+            {/* Category Icons - FIXED MOBILE LAYOUT */}
             <div className="w-full">
-              <div className="flex flex-wrap justify-center gap-2  max-w-3xl mx-auto">
-                {["Hotel", "Tourism", "Shortlet", "Restaurant", "Services"].map(
-                  // ADDED SERVICES
-                  (category) => (
+              <div className="w-full max-w-md md:max-w-md mx-auto">
+                <div className="flex justify-between items-center">
+                  {[
+                    "Hotel",
+                    "Tourism",
+                    "Shortlet",
+                    "Restaurant",
+                    "Services",
+                  ].map((category) => (
                     <motion.div
                       key={category}
                       whileHover={{ scale: 1.05 }}
@@ -1151,7 +1156,7 @@ const Hero = () => {
                       className="group cursor-pointer flex flex-col items-center"
                       onClick={() => handleCategoryClick(category)}
                     >
-                      {/* Square Container - Compact */}
+                      {/* Square Container - Perfectly sized for mobile */}
                       <div className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16">
                         <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-teal-50 rounded-xl transform group-hover:scale-105 transition-transform duration-300"></div>
                         <div className="relative w-full h-full p-1">
@@ -1170,12 +1175,12 @@ const Hero = () => {
                           </div>
                         </div>
                       </div>
-                      <p className="mt-1 text-xs font-semibold text-gray-700 group-hover:text-blue-600 transition-colors duration-200 text-center">
+                      <p className="mt-1 text-xs font-semibold text-gray-700 group-hover:text-blue-600 transition-colors duration-200 text-center whitespace-nowrap">
                         {category}
                       </p>
                     </motion.div>
-                  )
-                )}
+                  ))}
+                </div>
               </div>
             </div>
           </div>
