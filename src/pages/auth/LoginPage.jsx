@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import Logo from "../../assets/Logos/logo5.png";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -150,13 +151,11 @@ const LoginPage = () => {
       <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-2xl shadow-lg">
         {/* Logo */}
         <div className="text-center">
-          <div className="flex justify-center mb-6">
-            <img
-              src="/assets/Logos/logo5.png"
-              alt="Ajani Logo"
-              className="h-10 w-40 object-contain"
-            />
+          {/* Logo */}
+          <div className="flex justify-center mb-4">
+            <img src={Logo} alt="Ajani Logo" className="h-auto w-30" />
           </div>
+
           <h2 className="text-2xl font-bold text-gray-900">Log in to Ajani</h2>
           <p className="text-gray-600 mt-2 text-sm">
             Enter your credentials to access your account
