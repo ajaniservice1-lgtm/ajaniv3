@@ -857,8 +857,9 @@ const VendorDetail = () => {
         <div className="md:hidden fixed top-16 left-0 z-50">
           <button
             onClick={() => navigate(-1)}
-            className="w-10 h-10 flex items-center justify-center"
+            className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 rounded-full transition-all duration-200 cursor-pointer"
             aria-label="Go back"
+            style={{ cursor: "pointer" }}
           >
             <FontAwesomeIcon
               icon={faArrowLeft}
@@ -869,7 +870,11 @@ const VendorDetail = () => {
 
         {/* Breadcrumb */}
         <nav className="flex items-center space-x-2 text-xs text-gray-600 mb-4 md:mb-6 px-4 sm:px-2 md:px-0 font-manrope justify-center">
-          <Link to="/" className="hover:text-[#06EAFC] transition-colors">
+          <Link
+            to="/"
+            className="hover:text-[#06EAFC] transition-colors hover:underline"
+            style={{ cursor: "pointer" }}
+          >
             Home
           </Link>
           <span>/</span>
@@ -877,7 +882,8 @@ const VendorDetail = () => {
             to={`/category/${vendor.category
               ?.toLowerCase()
               .replace(/\s+/g, "-")}`}
-            className="hover:text-[#06EAFC] transition-colors"
+            className="hover:text-[#06EAFC] transition-colors hover:underline"
+            style={{ cursor: "pointer" }}
           >
             {categoryDisplay}
           </Link>
@@ -890,7 +896,7 @@ const VendorDetail = () => {
         {/* Single Column Layout */}
         <div className="space-y-4 md:space-y-8">
           {/* Header Info */}
-          <div className="px-4 sm:px-2 md:px-4 lg:px-8 py-4 md:py-8 bg-white rounded-xl md:rounded-2xl mx-0 md:mx-0">
+          <div className="px-4 sm:px-2 md:px-4 lg:px-8 py-4 md:py-8 bg-white rounded-xl md:rounded-2xl mx-0 md:mx-0 hover:shadow-lg transition-shadow duration-300">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6">
               {/* Left: Name and Info */}
               <div className="flex-1">
@@ -899,38 +905,38 @@ const VendorDetail = () => {
                   <h1 className="text-lg md:text-xl lg:text-3xl font-bold text-gray-900 font-manrope line-clamp-2">
                     {vendor.name}
                   </h1>
-                  <VscVerifiedFilled className="text-green-500 text-base md:text-xl" />
+                  <VscVerifiedFilled className="text-green-500 text-base md:text-xl hover:scale-110 transition-transform duration-200" />
                 </div>
 
                 <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 lg:gap-8">
                   {/* Category */}
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-700 font-medium py-1 font-manrope text-xs md:text-sm">
+                    <span className="text-gray-700 font-medium py-1 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200">
                       {categoryDisplay}
                     </span>
                   </div>
 
                   {/* Rating with SINGLE star */}
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 hover:scale-105 transition-transform duration-200">
                       <FontAwesomeIcon
                         icon={faStar}
-                        className="text-yellow-400 text-xs md:text-sm"
+                        className="text-yellow-400 text-xs md:text-sm hover:text-yellow-500 transition-colors duration-200"
                       />
                     </div>
-                    <span className="font-bold text-gray-900 font-manrope text-xs md:text-sm">
+                    <span className="font-bold text-gray-900 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200">
                       {formattedRating}
                     </span>
-                    <span className="text-gray-600 font-manrope text-xs md:text-sm">
+                    <span className="text-gray-600 font-manrope text-xs md:text-sm hover:text-gray-800 transition-colors duration-200">
                       ({reviewCount} Reviews)
                     </span>
                   </div>
 
                   {/* Area with location icon */}
-                  <div className="flex items-center gap-2 text-gray-700 font-manrope text-xs md:text-sm">
+                  <div className="flex items-center gap-2 text-gray-700 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200">
                     <FontAwesomeIcon
                       icon={faMapMarkerAlt}
-                      className="text-gray-500 text-xs md:text-sm"
+                      className="text-gray-500 text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200"
                     />
                     <span className="truncate max-w-[150px] md:max-w-none">
                       {area}
@@ -943,35 +949,51 @@ const VendorDetail = () => {
               <div className="flex flex-col items-end gap-2 md:gap-4 mt-2 md:mt-0">
                 <div className="flex gap-4 md:gap-6 items-center">
                   {/* Share button first */}
-                  <div className="flex items-center gap-1 md:gap-2">
-                    <button className="w-8 h-8 md:w-10 md:h-10 bg-white border border-gray-200 md:border-2 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors">
-                      <RiShare2Line className="text-gray-600 text-base md:text-xl" />
+                  <div className="flex items-center gap-1 md:gap-2 group relative">
+                    <button
+                      className="w-8 h-8 md:w-10 md:h-10 bg-white border border-gray-200 md:border-2 rounded-full flex items-center justify-center hover:bg-gray-50 hover:scale-110 hover:shadow-md transition-all duration-300 cursor-pointer group"
+                      style={{ cursor: "pointer" }}
+                    >
+                      <RiShare2Line className="text-gray-600 text-base md:text-xl group-hover:text-[#06EAFC] transition-colors duration-300" />
                     </button>
-                    <span className="text-gray-600 text-xs md:text-sm font-manrope hidden md:inline">
+                    <span className="text-gray-600 text-xs md:text-sm font-manrope hidden md:inline group-hover:text-[#06EAFC] transition-colors duration-300">
                       Share
                     </span>
+                    {/* Share tooltip */}
+                    <div className="absolute -top-10 right-0 bg-gray-800 text-white text-xs py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-10">
+                      Share this vendor
+                      <div className="absolute -bottom-1 right-3 w-2 h-2 bg-gray-800 rotate-45"></div>
+                    </div>
                   </div>
 
                   {/* Save/Bookmark button with login requirement */}
-                  <div className="flex items-center gap-1 md:gap-2">
+                  <div className="flex items-center gap-1 md:gap-2 group relative">
                     <button
                       onClick={handleBookmarkClick}
                       disabled={isProcessing}
-                      className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors border md:border-2 ${
-                        isSaved
-                          ? "bg-gradient-to-br from-red-500 to-pink-500 border-red-200 hover:from-red-600 hover:to-pink-600"
-                          : "bg-white border-gray-200 hover:bg-gray-50"
-                      } ${isProcessing ? "opacity-70 cursor-not-allowed" : ""}`}
+                      className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-300 border md:border-2 cursor-pointer group
+                        ${
+                          isSaved
+                            ? "bg-gradient-to-br from-red-500 to-pink-500 border-red-200 hover:from-red-600 hover:to-pink-600 hover:scale-110 hover:shadow-lg"
+                            : "bg-white border-gray-200 hover:bg-gray-50 hover:scale-110 hover:shadow-md"
+                        } ${
+                        isProcessing
+                          ? "opacity-70 cursor-not-allowed"
+                          : "cursor-pointer"
+                      }`}
                       title={isSaved ? "Remove from saved" : "Add to saved"}
                       aria-label={
                         isSaved ? "Remove from saved" : "Save this vendor"
                       }
+                      style={{
+                        cursor: isProcessing ? "not-allowed" : "pointer",
+                      }}
                     >
                       {isProcessing ? (
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       ) : isSaved ? (
                         <svg
-                          className="w-5 h-5 text-white"
+                          className="w-5 h-5 text-white group-hover:scale-110 transition-transform duration-300"
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >
@@ -982,16 +1004,21 @@ const VendorDetail = () => {
                           />
                         </svg>
                       ) : (
-                        <CiBookmark className="text-base md:text-xl text-gray-600" />
+                        <CiBookmark className="text-base md:text-xl text-gray-600 group-hover:text-[#06EAFC] group-hover:scale-110 transition-all duration-300" />
                       )}
                     </button>
-                    <span className="text-gray-600 text-xs md:text-sm font-manrope hidden md:inline">
+                    <span className="text-gray-600 text-xs md:text-sm font-manrope hidden md:inline group-hover:text-[#06EAFC] transition-colors duration-300">
                       {isProcessing
                         ? "Processing..."
                         : isSaved
                         ? "Saved"
                         : "Save"}
                     </span>
+                    {/* Bookmark tooltip */}
+                    <div className="absolute -top-10 right-0 bg-gray-800 text-white text-xs py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-10">
+                      {isSaved ? "Remove from saved" : "Save this vendor"}
+                      <div className="absolute -bottom-1 right-3 w-2 h-2 bg-gray-800 rotate-45"></div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1011,27 +1038,29 @@ const VendorDetail = () => {
                 <img
                   src={images[activeImageIndex]}
                   alt={`${vendor.name} - Image ${activeImageIndex + 1}`}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                 />
 
                 {/* Prev Button */}
                 <button
                   onClick={prevImage}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white hover:scale-110 hover:shadow-lg transition-all duration-300 cursor-pointer"
+                  style={{ cursor: "pointer" }}
                 >
-                  <IoIosArrowBack className="text-gray-800 text-lg" />
+                  <IoIosArrowBack className="text-gray-800 text-lg hover:text-[#06EAFC] transition-colors duration-300" />
                 </button>
 
                 {/* Next Button */}
                 <button
                   onClick={nextImage}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white hover:scale-110 hover:shadow-lg transition-all duration-300 cursor-pointer"
+                  style={{ cursor: "pointer" }}
                 >
-                  <IoIosArrowForward className="text-gray-800 text-lg" />
+                  <IoIosArrowForward className="text-gray-800 text-lg hover:text-[#06EAFC] transition-colors duration-300" />
                 </button>
 
                 {/* Counter */}
-                <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-manrope backdrop-blur-sm">
+                <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-manrope backdrop-blur-sm hover:bg-black/80 transition-colors duration-300">
                   {activeImageIndex + 1}/{images.length}
                 </div>
               </div>
@@ -1042,16 +1071,17 @@ const VendorDetail = () => {
                   <button
                     key={index}
                     onClick={() => setActiveImageIndex(index)}
-                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${
+                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 hover:scale-105 hover:shadow-md transition-all duration-300 cursor-pointer ${
                       index === activeImageIndex
                         ? "border-blue-500"
-                        : "border-transparent"
+                        : "border-transparent hover:border-blue-300"
                     }`}
+                    style={{ cursor: "pointer" }}
                   >
                     <img
                       src={img}
                       alt={`Thumbnail ${index + 1}`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
                     />
                   </button>
                 ))}
@@ -1065,7 +1095,12 @@ const VendorDetail = () => {
               {/* LEFT COLUMN */}
               <div className="flex flex-col gap-4">
                 {images.slice(1, 3).map((img, i) => (
-                  <button key={i} onClick={() => setActiveImageIndex(i + 1)}>
+                  <button
+                    key={i}
+                    onClick={() => setActiveImageIndex(i + 1)}
+                    className="hover:scale-105 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer"
+                    style={{ cursor: "pointer" }}
+                  >
                     <img
                       src={img}
                       style={{
@@ -1074,13 +1109,14 @@ const VendorDetail = () => {
                         borderRadius: "20px",
                         objectFit: "cover",
                       }}
+                      className="hover:scale-110 transition-transform duration-500"
                     />
                   </button>
                 ))}
               </div>
 
               {/* CENTER LARGE IMAGE */}
-              <div className="relative">
+              <div className="relative group">
                 <img
                   src={images[activeImageIndex]}
                   style={{
@@ -1089,26 +1125,29 @@ const VendorDetail = () => {
                     borderRadius: "20px",
                     objectFit: "cover",
                   }}
+                  className="group-hover:scale-105 transition-transform duration-500"
                 />
 
                 {/* Prev Button */}
                 <button
                   onClick={prevImage}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-md"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white hover:scale-110 hover:shadow-xl transition-all duration-300 cursor-pointer"
+                  style={{ cursor: "pointer" }}
                 >
-                  <IoIosArrowBack className="text-gray-800 text-xl" />
+                  <IoIosArrowBack className="text-gray-800 text-xl hover:text-[#06EAFC] transition-colors duration-300" />
                 </button>
 
                 {/* Next Button */}
                 <button
                   onClick={nextImage}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-md"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white hover:scale-110 hover:shadow-xl transition-all duration-300 cursor-pointer"
+                  style={{ cursor: "pointer" }}
                 >
-                  <IoIosArrowForward className="text-gray-800 text-xl" />
+                  <IoIosArrowForward className="text-gray-800 text-xl hover:text-[#06EAFC] transition-colors duration-300" />
                 </button>
 
                 {/* Counter */}
-                <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-manrope">
+                <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-manrope hover:bg-black/80 transition-colors duration-300">
                   {activeImageIndex + 1}/{images.length}
                 </div>
               </div>
@@ -1116,7 +1155,12 @@ const VendorDetail = () => {
               {/* RIGHT COLUMN */}
               <div className="flex flex-col gap-4">
                 {images.slice(3, 5).map((img, i) => (
-                  <button key={i} onClick={() => setActiveImageIndex(i + 3)}>
+                  <button
+                    key={i}
+                    onClick={() => setActiveImageIndex(i + 3)}
+                    className="hover:scale-105 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer"
+                    style={{ cursor: "pointer" }}
+                  >
                     <img
                       src={img}
                       style={{
@@ -1125,6 +1169,7 @@ const VendorDetail = () => {
                         borderRadius: "20px",
                         objectFit: "cover",
                       }}
+                      className="hover:scale-110 transition-transform duration-500"
                     />
                   </button>
                 ))}
@@ -1134,21 +1179,23 @@ const VendorDetail = () => {
 
           {/* Price Range Section */}
           <div className="px-0 md:px-0">
-            <div className="text-center bg-white py-4 md:py-6 mx-0 md:mx-0">
-              <p className="text-[#00065A] font-manrope text-base md:text-xl font-bold mb-2 md:text-start px-4 sm:px-2 md:px-0">
+            <div className="text-center bg-white py-4 md:py-6 mx-0 md:mx-0 hover:shadow-md transition-shadow duration-300 rounded-xl">
+              <p className="text-[#00065A] font-manrope text-base md:text-xl font-bold mb-2 md:text-start px-4 sm:px-2 md:px-0 hover:text-[#06EAFC] transition-colors duration-300">
                 Price Range
               </p>
               <div className="flex md:justify-start flex-col md:flex-row items-center justify-center gap-1 md:gap-3 px-4 sm:px-2 md:px-0">
-                <div className="flex items-center gap-1 md:gap-2">
-                  <span className="text-xl md:text-2xl text-gray-900 font-manrope font-bold">
+                <div className="flex items-center gap-1 md:gap-2 hover:scale-105 transition-transform duration-300">
+                  <span className="text-xl md:text-2xl text-gray-900 font-manrope font-bold hover:text-[#06EAFC] transition-colors duration-300">
                     ₦{formatPrice(priceRange.from)}
                   </span>
-                  <span className="text-gray-500 text-xl">-</span>
-                  <span className="text-xl md:text-2xl text-gray-900 font-manrope font-bold">
+                  <span className="text-gray-500 text-xl hover:text-gray-700 transition-colors duration-300">
+                    -
+                  </span>
+                  <span className="text-xl md:text-2xl text-gray-900 font-manrope font-bold hover:text-[#06EAFC] transition-colors duration-300">
                     ₦{formatPrice(priceRange.to)}
                   </span>
                 </div>
-                <span className="text-gray-600 text-sm md:text-base mt-1 md:mt-0 md:ml-3">
+                <span className="text-gray-600 text-sm md:text-base mt-1 md:mt-0 md:ml-3 hover:text-gray-800 transition-colors duration-300">
                   per night
                 </span>
               </div>
@@ -1157,54 +1204,138 @@ const VendorDetail = () => {
 
           {/* Action Icons Bar */}
           <div className="flex justify-center px-0 md:px-0">
-            <div className="w-full md:w-[600px] h-14 md:h-16 bg-gray-200 rounded-none md:rounded-3xl flex items-center justify-between px-4 md:px-12 mx-0 md:mx-0">
-              {/* Call Button with login check */}
+            <div className="w-full md:w-[600px] h-14 md:h-16 bg-gray-200 rounded-none md:rounded-3xl flex items-center justify-between px-4 md:px-12 mx-0 md:mx-0 hover:shadow-lg transition-all duration-300 hover:bg-gray-300/50">
+              {/* Call Button with login check and enhanced hover effects */}
               <button
                 onClick={handleCallClick}
-                className="flex flex-col items-center hover:opacity-80 transition-opacity px-2"
+                className="flex flex-col items-center transition-all duration-300 px-2 group relative"
+                style={{ cursor: "pointer" }}
               >
-                <FaPhone size={24} color="#000" />
-                <span className="text-xs mt-1 font-manrope">Call</span>
+                <div className="relative">
+                  {/* Animated ring effect on hover */}
+                  <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-blue-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
+
+                  {/* Icon with color change on hover */}
+                  <FaPhone
+                    size={24}
+                    className="text-gray-700 group-hover:text-blue-600 transition-all duration-300 transform group-hover:scale-110"
+                  />
+                </div>
+
+                {/* Text with underline effect on hover */}
+                <span className="text-xs mt-1 font-manrope text-gray-700 group-hover:text-blue-600 transition-colors duration-300 relative">
+                  Call
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 group-hover:w-full transition-all duration-300"></span>
+                </span>
+
+                {/* Tooltip on hover */}
+                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-10">
+                  {checkLoginStatus() ? "Call vendor" : "Login to call"}
+                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
+                </div>
               </button>
 
-              {/* Chat Button */}
+              {/* Chat Button with enhanced hover effects */}
               <button
                 onClick={() => showToast("Chat feature coming soon!", "info")}
-                className="flex flex-col items-center hover:opacity-80 transition-opacity px-2"
+                className="flex flex-col items-center transition-all duration-300 px-2 group relative"
+                style={{ cursor: "pointer" }}
               >
-                <IoChatbubbleEllipsesOutline size={24} color="#000" />
-                <span className="text-xs mt-1 font-manrope">Chat</span>
+                <div className="relative">
+                  {/* Animated ring effect on hover */}
+                  <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-green-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
+
+                  {/* Icon with color change on hover */}
+                  <IoChatbubbleEllipsesOutline
+                    size={24}
+                    className="text-gray-700 group-hover:text-green-600 transition-all duration-300 transform group-hover:scale-110"
+                  />
+                </div>
+
+                {/* Text with underline effect on hover */}
+                <span className="text-xs mt-1 font-manrope text-gray-700 group-hover:text-green-600 transition-colors duration-300 relative">
+                  Chat
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 group-hover:w-full transition-all duration-300"></span>
+                </span>
+
+                {/* Tooltip on hover */}
+                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-10">
+                  Chat with vendor
+                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
+                </div>
               </button>
 
-              {/* Booking Button with login check */}
+              {/* Booking Button with login check and enhanced hover effects */}
               <button
                 onClick={handleBookingClick}
-                className="flex flex-col items-center hover:opacity-80 transition-opacity px-2"
+                className="flex flex-col items-center transition-all duration-300 px-2 group relative"
+                style={{ cursor: "pointer" }}
               >
-                <FaBookOpen size={24} color="#000" />
-                <span className="text-xs mt-1 font-manrope">Book</span>
+                <div className="relative">
+                  {/* Animated ring effect on hover */}
+                  <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-purple-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
+
+                  {/* Icon with color change on hover */}
+                  <FaBookOpen
+                    size={24}
+                    className="text-gray-700 group-hover:text-purple-600 transition-all duration-300 transform group-hover:scale-110"
+                  />
+                </div>
+
+                {/* Text with underline effect on hover */}
+                <span className="text-xs mt-1 font-manrope text-gray-700 group-hover:text-purple-600 transition-colors duration-300 relative">
+                  Book
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-600 group-hover:w-full transition-all duration-300"></span>
+                </span>
+
+                {/* Tooltip on hover */}
+                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-10">
+                  {checkLoginStatus() ? "Make a booking" : "Login to book"}
+                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
+                </div>
               </button>
 
-              {/* Map Button */}
+              {/* Map Button with enhanced hover effects */}
               <button
                 onClick={() => showToast("Map feature coming soon!", "info")}
-                className="flex flex-col items-center hover:opacity-80 transition-opacity px-2"
+                className="flex flex-col items-center transition-all duration-300 px-2 group relative"
+                style={{ cursor: "pointer" }}
               >
-                <HiLocationMarker size={24} color="#000" />
-                <span className="text-xs mt-1 font-manrope">Map</span>
+                <div className="relative">
+                  {/* Animated ring effect on hover */}
+                  <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-red-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
+
+                  {/* Icon with color change on hover */}
+                  <HiLocationMarker
+                    size={24}
+                    className="text-gray-700 group-hover:text-red-600 transition-all duration-300 transform group-hover:scale-110"
+                  />
+                </div>
+
+                {/* Text with underline effect on hover */}
+                <span className="text-xs mt-1 font-manrope text-gray-700 group-hover:text-red-600 transition-colors duration-300 relative">
+                  Map
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-red-600 group-hover:w-full transition-all duration-300"></span>
+                </span>
+
+                {/* Tooltip on hover */}
+                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-10">
+                  View on map
+                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
+                </div>
               </button>
             </div>
           </div>
 
           {/* About and Features Section */}
-          <section className="w-full bg-[#F7F7FA] rounded-none md:rounded-3xl">
+          <section className="w-full bg-[#F7F7FA] rounded-none md:rounded-3xl hover:shadow-lg transition-shadow duration-300">
             <div className="px-4 sm:px-4 md:px-6 lg:px-8 py-6 md:py-8">
               {/* About Section */}
               <div className="mb-8 md:mb-12">
-                <h2 className="text-lg md:text-xl font-bold text-[#06F49F] mb-3 md:mb-4 font-manrope">
+                <h2 className="text-lg md:text-xl font-bold text-[#06F49F] mb-3 md:mb-4 font-manrope hover:text-[#05d9eb] transition-colors duration-300">
                   About
                 </h2>
-                <p className="text-gray-700 leading-relaxed text-sm md:text-base font-manrope">
+                <p className="text-gray-700 leading-relaxed text-sm md:text-base font-manrope hover:text-gray-800 transition-colors duration-300">
                   {vendor.description ||
                     vendor.short_desc ||
                     "Sunrise Premium Hotel offers a blend of comfort, modern amenities, and warm hospitality in the heart of Ibadan. Designed for both business and leisure travelers, the hotel provides a peaceful stay with quick access to major city landmarks."}
@@ -1214,8 +1345,8 @@ const VendorDetail = () => {
               {/* What They Do & Features Side by Side */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
                 {/* What They Do Section */}
-                <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6">
-                  <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-4 md:mb-6 font-manrope">
+                <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
+                  <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-4 md:mb-6 font-manrope hover:text-[#06EAFC] transition-colors duration-300">
                     What They Do
                   </h3>
                   <div className="space-y-3 md:space-y-4">
@@ -1223,15 +1354,16 @@ const VendorDetail = () => {
                       (service, index) => (
                         <div
                           key={index}
-                          className="flex items-start gap-3 md:gap-4"
+                          className="flex items-start gap-3 md:gap-4 hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
+                          style={{ cursor: "pointer" }}
                         >
-                          <div className="flex-shrink-0 mt-0.5 md:mt-1">
+                          <div className="flex-shrink-0 mt-0.5 md:mt-1 group-hover:scale-110 transition-transform duration-300">
                             <FaRegCircleCheck
                               size={18}
-                              className="text-[#06EAFC]"
+                              className="text-[#06EAFC] group-hover:text-[#05d9eb] transition-colors duration-300"
                             />
                           </div>
-                          <span className="text-gray-700 font-manrope leading-relaxed text-sm md:text-sm">
+                          <span className="text-gray-700 font-manrope leading-relaxed text-sm md:text-sm group-hover:text-gray-900 transition-colors duration-300">
                             {service}
                           </span>
                         </div>
@@ -1241,8 +1373,8 @@ const VendorDetail = () => {
                 </div>
 
                 {/* Key Features Section */}
-                <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6">
-                  <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-4 md:mb-6 font-manrope">
+                <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
+                  <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-4 md:mb-6 font-manrope hover:text-[#06EAFC] transition-colors duration-300">
                     Key Features
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
@@ -1256,15 +1388,16 @@ const VendorDetail = () => {
                     ).map((feature, index) => (
                       <div
                         key={index}
-                        className="flex items-center gap-2 md:gap-3"
+                        className="flex items-center gap-2 md:gap-3 hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
+                        style={{ cursor: "pointer" }}
                       >
-                        <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center">
+                        <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                           <FontAwesomeIcon
                             icon={feature.icon}
-                            className="text-sm md:text-base text-gray-900"
+                            className="text-sm md:text-base text-gray-900 group-hover:text-[#06EAFC] transition-colors duration-300"
                           />
                         </div>
-                        <span className="font-medium text-gray-900 font-manrope text-xs md:text-sm">
+                        <span className="font-medium text-gray-900 font-manrope text-xs md:text-sm group-hover:text-gray-700 transition-colors duration-300">
                           {feature.name}
                         </span>
                       </div>
@@ -1276,12 +1409,12 @@ const VendorDetail = () => {
           </section>
 
           {/* Reviews Section */}
-          <section className="bg-[#F7F7FA] rounded-none md:rounded-3xl shadow-sm md:shadow-lg p-4 md:p-8 mx-0 md:mx-0">
+          <section className="bg-[#F7F7FA] rounded-none md:rounded-3xl shadow-sm md:shadow-lg p-4 md:p-8 mx-0 md:mx-0 hover:shadow-xl transition-shadow duration-300">
             <div className="flex items-center justify-between mb-4 md:mb-6">
-              <h2 className="text-lg md:text-xl font-bold text-[#06F49F] font-manrope">
+              <h2 className="text-lg md:text-xl font-bold text-[#06F49F] font-manrope hover:text-[#05d9eb] transition-colors duration-300">
                 Reviews
               </h2>
-              <span className="text-gray-600 font-manrope text-xs md:text-sm">
+              <span className="text-gray-600 font-manrope text-xs md:text-sm hover:text-gray-800 transition-colors duration-300">
                 {reviewCount} reviews
               </span>
             </div>
@@ -1291,21 +1424,22 @@ const VendorDetail = () => {
               {reviews.map((review) => (
                 <div
                   key={review.id}
-                  className="bg-white rounded-xl p-4 border border-gray-200 hover:border-gray-300 transition-colors"
+                  className="bg-white rounded-xl p-4 border border-gray-200 hover:border-gray-300 hover:shadow-lg hover:scale-[1.02] transition-all duration-300 cursor-pointer group"
+                  style={{ cursor: "pointer" }}
                 >
                   {/* Review Header with Profile */}
                   <div className="flex items-start justify-between mb-3 md:mb-4">
                     <div className="flex items-center gap-3">
                       {/* Profile Image */}
-                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center overflow-hidden">
+                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center overflow-hidden group-hover:scale-110 transition-transform duration-300">
                         {review.profileImage ? (
                           <img
                             src={review.profileImage}
                             alt={review.name}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
                         ) : (
-                          <span className="text-base md:text-lg font-bold text-blue-600">
+                          <span className="text-base md:text-lg font-bold text-blue-600 group-hover:text-[#06EAFC] transition-colors duration-300">
                             {review.name.charAt(0)}
                           </span>
                         )}
@@ -1313,7 +1447,7 @@ const VendorDetail = () => {
 
                       {/* Name and Rating */}
                       <div>
-                        <h4 className="font-bold text-gray-900 text-sm md:text-base font-manrope">
+                        <h4 className="font-bold text-gray-900 text-sm md:text-base font-manrope group-hover:text-[#06EAFC] transition-colors duration-300">
                           {review.name}
                         </h4>
                         <div className="flex items-center gap-1 mt-0.5 md:mt-1">
@@ -1323,15 +1457,15 @@ const VendorDetail = () => {
                               <FontAwesomeIcon
                                 key={i}
                                 icon={faStar}
-                                className={`text-xs md:text-sm ${
+                                className={`text-xs md:text-sm hover:scale-110 transition-transform duration-300 ${
                                   i < Math.floor(review.rating)
-                                    ? "text-yellow-400"
+                                    ? "text-yellow-400 group-hover:text-yellow-500"
                                     : "text-gray-300"
                                 }`}
                               />
                             ))}
                           </div>
-                          <span className="text-gray-700 font-medium ml-1 text-xs md:text-sm">
+                          <span className="text-gray-700 font-medium ml-1 text-xs md:text-sm group-hover:text-gray-900 transition-colors duration-300">
                             {review.rating}.0
                           </span>
                         </div>
@@ -1340,7 +1474,7 @@ const VendorDetail = () => {
                   </div>
 
                   {/* Review Text */}
-                  <p className="text-gray-700 leading-relaxed font-manrope text-xs md:text-sm line-clamp-3 md:line-clamp-none">
+                  <p className="text-gray-700 leading-relaxed font-manrope text-xs md:text-sm line-clamp-3 md:line-clamp-none group-hover:text-gray-800 transition-colors duration-300">
                     {review.comment}
                   </p>
                 </div>
@@ -1350,7 +1484,10 @@ const VendorDetail = () => {
             {/* Load More Reviews Button */}
             {reviewCount > 4 && (
               <div className="text-center mt-6 md:mt-8">
-                <button className="px-4 py-2 md:px-6 md:py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors font-manrope text-sm">
+                <button
+                  className="px-4 py-2 md:px-6 md:py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 hover:text-gray-900 hover:border-gray-400 hover:scale-105 hover:shadow-md transition-all duration-300 font-manrope text-sm cursor-pointer"
+                  style={{ cursor: "pointer" }}
+                >
                   Load More Reviews
                 </button>
               </div>
@@ -1359,11 +1496,11 @@ const VendorDetail = () => {
 
           {/* Location Map */}
           <div className="p-0 md:p-8 mx-0 md:mx-0">
-            <h3 className="text-lg font-bold text-gray-900 mb-3 md:mb-4 font-manrope px-4 sm:px-4 md:px-0">
+            <h3 className="text-lg font-bold text-gray-900 mb-3 md:mb-4 font-manrope px-4 sm:px-4 md:px-0 hover:text-[#06EAFC] transition-colors duration-300">
               Location
             </h3>
 
-            <div className="relative rounded-none md:rounded-2xl overflow-hidden h-64 md:h-96">
+            <div className="relative rounded-none md:rounded-2xl overflow-hidden h-64 md:h-96 group hover:shadow-xl transition-shadow duration-300">
               {vendor.lat && vendor.long ? (
                 <iframe
                   src={`https://www.openstreetmap.org/export/embed.html?bbox=${
@@ -1373,24 +1510,24 @@ const VendorDetail = () => {
                   }%2C${parseFloat(vendor.lat) + 0.01}&layer=mapnik&marker=${
                     vendor.lat
                   }%2C${vendor.long}`}
-                  className="w-full h-full border-0"
+                  className="w-full h-full border-0 group-hover:scale-105 transition-transform duration-500"
                   title="Location Map"
                   loading="lazy"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-blue-50 to-gray-100 flex items-center justify-center">
+                <div className="w-full h-full bg-gradient-to-br from-blue-50 to-gray-100 flex items-center justify-center group-hover:bg-gradient-to-br group-hover:from-blue-100 group-hover:to-gray-200 transition-all duration-500">
                   <div className="text-center">
-                    <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                    <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4 group-hover:scale-110 group-hover:bg-blue-200 transition-all duration-300">
                       <FontAwesomeIcon
                         icon={faMapMarkerAlt}
-                        className="text-blue-600 text-lg md:text-xl"
+                        className="text-blue-600 text-lg md:text-xl group-hover:text-[#06EAFC] transition-colors duration-300"
                       />
                     </div>
-                    <p className="text-gray-700 font-medium font-manrope text-sm">
+                    <p className="text-gray-700 font-medium font-manrope text-sm group-hover:text-gray-900 transition-colors duration-300">
                       {area}
                     </p>
-                    <p className="text-gray-500 text-xs mt-2 font-manrope">
+                    <p className="text-gray-500 text-xs mt-2 font-manrope group-hover:text-gray-600 transition-colors duration-300">
                       No coordinates available
                     </p>
                   </div>
@@ -1398,19 +1535,19 @@ const VendorDetail = () => {
               )}
 
               {/* Location Info Card */}
-              <div className="absolute top-3 left-3 md:top-4 md:left-4 bg-white/90 backdrop-blur-sm rounded-xl p-3 md:p-4 shadow-lg max-w-[180px] md:max-w-xs">
+              <div className="absolute top-3 left-3 md:top-4 md:left-4 bg-white/90 backdrop-blur-sm rounded-xl p-3 md:p-4 shadow-lg max-w-[180px] md:max-w-xs group-hover:bg-white group-hover:scale-105 transition-all duration-300 hover:shadow-xl">
                 <div className="flex items-center gap-2 md:gap-3">
-                  <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-200 group-hover:scale-110 transition-all duration-300">
                     <FontAwesomeIcon
                       icon={faMapMarkerAlt}
-                      className="text-blue-600 text-sm md:text-base"
+                      className="text-blue-600 text-sm md:text-base group-hover:text-[#06EAFC] transition-colors duration-300"
                     />
                   </div>
                   <div>
-                    <h4 className="font-bold text-gray-900 font-manrope text-xs md:text-sm line-clamp-1">
+                    <h4 className="font-bold text-gray-900 font-manrope text-xs md:text-sm line-clamp-1 group-hover:text-[#06EAFC] transition-colors duration-300">
                       {vendor.name}
                     </h4>
-                    <p className="text-gray-600 text-xs font-manrope line-clamp-1">
+                    <p className="text-gray-600 text-xs font-manrope line-clamp-1 group-hover:text-gray-700 transition-colors duration-300">
                       {area}
                     </p>
                   </div>
@@ -1426,9 +1563,13 @@ const VendorDetail = () => {
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 bg-gray-900 text-white py-3 rounded-xl font-semibold hover:bg-gray-800 transition-colors font-manrope text-sm flex items-center justify-center gap-2"
+                className="flex-1 bg-gray-900 text-white py-3 rounded-xl font-semibold hover:bg-gray-800 hover:scale-105 hover:shadow-lg transition-all duration-300 font-manrope text-sm flex items-center justify-center gap-2 cursor-pointer"
+                style={{ cursor: "pointer" }}
               >
-                <FontAwesomeIcon icon={faMapMarkerAlt} />
+                <FontAwesomeIcon
+                  icon={faMapMarkerAlt}
+                  className="hover:scale-110 transition-transform duration-300"
+                />
                 Open in Google Maps
               </a>
               {vendor.lat && vendor.long && (
@@ -1436,9 +1577,13 @@ const VendorDetail = () => {
                   href={`https://www.openstreetmap.org/#map=15/${vendor.lat}/${vendor.long}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors font-manrope text-sm flex items-center justify-center gap-2"
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 hover:scale-105 hover:shadow-lg transition-all duration-300 font-manrope text-sm flex items-center justify-center gap-2 cursor-pointer"
+                  style={{ cursor: "pointer" }}
                 >
-                  <FontAwesomeIcon icon={faMapMarkerAlt} />
+                  <FontAwesomeIcon
+                    icon={faMapMarkerAlt}
+                    className="hover:scale-110 transition-transform duration-300"
+                  />
                   Open in OSM
                 </a>
               )}
