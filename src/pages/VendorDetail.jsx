@@ -120,6 +120,14 @@ const VendorDetail = () => {
   // Find the specific vendor by ID
   const vendor = listings.find((item) => item.id === id);
 
+  // Check if vendor exists - if not, redirect to 404
+  useEffect(() => {
+    if (!loading && !error && id && !vendor) {
+      // Vendor not found, redirect to 404
+      navigate("/404", { replace: true });
+    }
+  }, [loading, error, id, vendor, navigate]);
+
   // Check if vendor is already saved on mount
   useEffect(() => {
     if (vendor) {
@@ -474,7 +482,59 @@ const VendorDetail = () => {
     [isMobile, vendor?.name]
   );
 
-  // Handle bookmark click with login requirement
+  // Check login status
+  const checkLoginStatus = () => {
+    return localStorage.getItem("ajani_dummy_login") === "true";
+  };
+
+  // Handle Call Button Click
+  const handleCallClick = () => {
+    const isLoggedIn = checkLoginStatus();
+
+    if (!isLoggedIn) {
+      showToast("Please login to view contact information", "info");
+
+      // Store current URL for redirect after login
+      localStorage.setItem("redirectAfterLogin", window.location.pathname);
+
+      // Redirect to login page
+      setTimeout(() => {
+        navigate("/login");
+      }, 800);
+      return;
+    }
+
+    // User is logged in, show phone number or make call
+    if (vendor?.contact) {
+      window.location.href = `tel:${vendor.contact}`;
+    } else {
+      showToast("No contact information available", "info");
+    }
+  };
+
+  // Handle Booking Button Click
+  const handleBookingClick = () => {
+    const isLoggedIn = checkLoginStatus();
+
+    if (!isLoggedIn) {
+      showToast("Please login to make a booking", "info");
+
+      // Store current URL for redirect after login
+      localStorage.setItem("redirectAfterLogin", window.location.pathname);
+
+      // Redirect to login page
+      setTimeout(() => {
+        navigate("/login");
+      }, 800);
+      return;
+    }
+
+    // User is logged in, proceed with booking
+    showToast("Booking feature coming soon!", "info");
+    // You can add your booking logic here
+  };
+
+  // Handle Bookmark click with login requirement
   const handleBookmarkClick = useCallback(
     async (e) => {
       e?.stopPropagation();
@@ -486,7 +546,7 @@ const VendorDetail = () => {
 
       try {
         // Check if user is signed in
-        const isLoggedIn = localStorage.getItem("ajani_dummy_login") === "true";
+        const isLoggedIn = checkLoginStatus();
 
         // If not logged in, show login prompt and redirect to login page
         if (!isLoggedIn) {
@@ -742,30 +802,9 @@ const VendorDetail = () => {
     );
   }
 
-  if (error || !vendor) {
-    return (
-      <div className="min-h-screen bg-gray-50 font-manrope">
-        <Header />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="text-center py-12">
-            <div className="bg-white rounded-xl p-8 max-w-md mx-auto">
-              <i className="fas fa-exclamation-triangle text-3xl text-gray-300 mb-4 block"></i>
-              <h3 className="text-lg text-gray-800 mb-2">Vendor Not Found</h3>
-              <p className="text-gray-600 mb-4">
-                The vendor you're looking for doesn't exist.
-              </p>
-              <button
-                onClick={() => navigate(-1)}
-                className="bg-[#06EAFC] text-white px-6 py-2 rounded-lg hover:bg-[#05d9eb] transition-colors font-manrope"
-              >
-                Go Back
-              </button>
-            </div>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
+  // If vendor not found and not loading, return null (will redirect to 404)
+  if (!vendor) {
+    return null;
   }
 
   // Get data from Google Sheets
@@ -1119,19 +1158,38 @@ const VendorDetail = () => {
           {/* Action Icons Bar */}
           <div className="flex justify-center px-0 md:px-0">
             <div className="w-full md:w-[600px] h-14 md:h-16 bg-gray-200 rounded-none md:rounded-3xl flex items-center justify-between px-4 md:px-12 mx-0 md:mx-0">
-              <button className="flex flex-col items-center hover:opacity-80 transition-opacity px-2">
+              {/* Call Button with login check */}
+              <button
+                onClick={handleCallClick}
+                className="flex flex-col items-center hover:opacity-80 transition-opacity px-2"
+              >
                 <FaPhone size={24} color="#000" />
                 <span className="text-xs mt-1 font-manrope">Call</span>
               </button>
-              <button className="flex flex-col items-center hover:opacity-80 transition-opacity px-2">
+
+              {/* Chat Button */}
+              <button
+                onClick={() => showToast("Chat feature coming soon!", "info")}
+                className="flex flex-col items-center hover:opacity-80 transition-opacity px-2"
+              >
                 <IoChatbubbleEllipsesOutline size={24} color="#000" />
                 <span className="text-xs mt-1 font-manrope">Chat</span>
               </button>
-              <button className="flex flex-col items-center hover:opacity-80 transition-opacity px-2">
+
+              {/* Booking Button with login check */}
+              <button
+                onClick={handleBookingClick}
+                className="flex flex-col items-center hover:opacity-80 transition-opacity px-2"
+              >
                 <FaBookOpen size={24} color="#000" />
                 <span className="text-xs mt-1 font-manrope">Book</span>
               </button>
-              <button className="flex flex-col items-center hover:opacity-80 transition-opacity px-2">
+
+              {/* Map Button */}
+              <button
+                onClick={() => showToast("Map feature coming soon!", "info")}
+                className="flex flex-col items-center hover:opacity-80 transition-opacity px-2"
+              >
                 <HiLocationMarker size={24} color="#000" />
                 <span className="text-xs mt-1 font-manrope">Map</span>
               </button>
