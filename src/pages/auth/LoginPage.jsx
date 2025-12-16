@@ -108,39 +108,6 @@ const LoginPage = () => {
     }
   };
 
-  const handleGuestLogin = () => {
-    // Set as guest user
-    localStorage.setItem("ajani_dummy_login", "true");
-    localStorage.setItem("ajani_dummy_email", "guest@example.com");
-
-    const guestProfile = {
-      id: "guest_" + Date.now(),
-      firstName: "Guest",
-      lastName: "User",
-      fullName: "Guest User",
-      email: "guest@example.com",
-      phone: "",
-      memberSince: new Date().toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-      }),
-      about: "Guest user exploring Ajani",
-      image: "https://ui-avatars.com/api/?name=Guest+User&background=random",
-      stats: {
-        vendorsSaved: 0,
-        reviewsWritten: 0,
-        bookingsMade: 0,
-      },
-    };
-
-    localStorage.setItem("userProfile", JSON.stringify(guestProfile));
-
-    const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
-    localStorage.removeItem("redirectAfterLogin");
-
-    navigate(redirectUrl);
-  };
-
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     if (error) setError("");
@@ -154,6 +121,10 @@ const LoginPage = () => {
     } else {
       navigate("/");
     }
+  };
+
+  const handleResetPassword = () => {
+    navigate("/reset-password");
   };
 
   return (
@@ -249,57 +220,12 @@ const LoginPage = () => {
           </button>
         </form>
 
-        {/* Divider */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">
-              Or continue with
-            </span>
-          </div>
-        </div>
-
-        {/* Alternative Options */}
-        <div className="space-y-3">
-          <button
-            type="button"
-            onClick={handleGuestLogin}
-            className="w-full flex items-center justify-center gap-3 bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors border border-gray-200"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-              />
-            </svg>
-            Continue as Guest
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navigate("/register")}
-            className="w-full border-2 border-[#6cff] text-[#6cff] hover:bg-[#6cff]/5 font-medium py-3 px-4 rounded-lg transition-colors"
-          >
-            Create New Account
-          </button>
-        </div>
-
-        {/* Footer Links */}
-        <div className="text-center text-sm text-gray-600 pt-4 border-t">
+        <div className="text-center text-sm text-gray-600 pt-4">
           <p>
             Forgot your password?{" "}
             <button
-              onClick={() => alert("Password reset feature coming soon!")}
-              className="text-[#6cff] hover:text-[#6cff] font-medium"
+              onClick={handleResetPassword}
+              className="text-[#6cff] hover:text-[#06EAFC] font-medium"
             >
               Reset here
             </button>

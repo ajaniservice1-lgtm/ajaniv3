@@ -123,11 +123,11 @@ const Header = () => {
       id: "Categories",
       action: () => scrollToSection("Categories"),
     },
-    {
-      label: "Price Insights",
-      id: "Price Insights",
-      action: () => scrollToSection("Price Insights"),
-    },
+    // {
+    //   label: "Price Insights",
+    //   id: "Price Insights",
+    //   action: () => scrollToSection("Price Insights"),
+    // },
     { label: "Blog", id: "Blog", action: handleBlogClick },
   ];
 

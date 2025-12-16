@@ -16,6 +16,7 @@ const SearchResults = lazy(() => import("./components/SearchResults"));
 
 // Authentication Pages
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
+const ResetPasswordPage = lazy(() => import("./pages/auth/ResetPasswordPage")); // ADDED
 const RegisterChoicePage = lazy(() =>
   import("./pages/auth/RegisterChoicePage")
 );
@@ -171,6 +172,16 @@ function App() {
                     element={
                       <PublicRoute>
                         <LoginPage />
+                      </PublicRoute>
+                    }
+                  />
+
+                  {/* Reset Password Page - ADDED */}
+                  <Route
+                    path="/reset-password"
+                    element={
+                      <PublicRoute>
+                        <ResetPasswordPage />
                       </PublicRoute>
                     }
                   />
