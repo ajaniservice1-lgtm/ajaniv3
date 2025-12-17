@@ -25,7 +25,7 @@ import { MdFavoriteBorder } from "react-icons/md";
 import { PiSliders } from "react-icons/pi";
 import { motion } from "framer-motion";
 import { createPortal } from "react-dom";
-import BackButton from "../components/BackButton"
+import BackButton from "../components/BackButton";
 
 // Google Sheets hook
 const useGoogleSheet = (sheetId, apiKey) => {
@@ -2978,18 +2978,20 @@ const CategoryResults = () => {
         image="https://ajani.ai/images/category-og.jpg"
       />
 
-      {/* <Header /> */}
-
+      <div className="hidden md:block">
+        <Header />
+      </div>
       {/* FIXED: Removed mt-16 from main container to start content at the top */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 md:mt-15">
         {/* Fixed Search Bar Container with Back Button */}
-        <div className="z-30 py-4 md:py-6 relative" style={{ zIndex: 100 }}>
+        <div className="z-30 py-4 md:py-6 relative" style={{ zIndex: 50 }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-3">
-              {/* Back Button */}
-              <BackButton />
+              {/* Back Button - Show only on mobile */}
+              <BackButton className="md:hidden" />
 
               <div className="flex-1">
+                {/* Rest of your content */}
                 <div className="flex justify-center">
                   <div
                     className="w-full max-w-md relative"
