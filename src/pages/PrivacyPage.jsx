@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import Meta from "../components/Meta"; // ✅ Import Meta
+import Meta from "../components/Meta";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
@@ -19,16 +19,19 @@ const PrivacyPage = () => {
       />
 
       <Header />
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8 font-rubik">
-        <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
-          {/* Header */}
-          <div className="bg-[#101828] text-white p-8 text-center">
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
-              Privacy Policy
-            </h1>
-            <p className="mt-2 text-blue-100">Effective Date: October 2025</p>
-          </div>
 
+      {/* Hero Section — EXACT SAME AS ABOUT & TERMS */}
+      <section className="mx-auto mb-8 max-w-4xl rounded-xl bg-[#6cff] px-6 py-12 text-center shadow-lg">
+        <h1 className="text-3xl font-bold tracking-tight text-[#00065A] mt-5">
+          Privacy Policy
+        </h1>
+        <p className="mt-2 text-sm text-[#00065A]">
+          Effective Date: October 2025
+        </p>
+      </section>
+
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 px-4 sm:px-6 lg:px-8 font-rubik">
+        <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
           {/* Content */}
           <div className="p-6 md:p-8 prose prose-blue max-w-none">
             <div className="mb-8">
@@ -47,7 +50,6 @@ const PrivacyPage = () => {
               </p>
             </div>
 
-            {/* Sections */}
             <section className="space-y-6">
               <h2 className="text-xl font-bold text-gray-900 mt-8">
                 1. Information We Collect
@@ -81,210 +83,104 @@ const PrivacyPage = () => {
               </p>
               <ul className="list-disc pl-5 space-y-2 text-gray-700">
                 <li>
-                  <strong>Consent:</strong> When you give Ajani permission to
-                  collect and use your data (e.g., location tracking).
+                  <strong>Consent:</strong> When you give Ajani permission.
                 </li>
                 <li>
-                  <strong>Contractual Necessity:</strong> When data is required
-                  to provide you with Ajani services.
+                  <strong>Contractual Necessity:</strong> To provide services.
                 </li>
                 <li>
-                  <strong>Legal Obligation:</strong> When processing is required
-                  by law.
+                  <strong>Legal Obligation:</strong> Required by law.
                 </li>
                 <li>
-                  <strong>Legitimate Interest:</strong> For improving Ajani,
-                  preventing fraud, or ensuring system security.
+                  <strong>Legitimate Interest:</strong> Security and
+                  improvement.
                 </li>
               </ul>
 
               <h2 className="text-xl font-bold text-gray-900 mt-8">
                 3. How We Use Your Information
               </h2>
-              <p className="text-gray-700">Ajani uses your data to:</p>
               <ul className="list-disc pl-5 space-y-2 text-gray-700">
-                <li>
-                  Provide personalized search results and service
-                  recommendations.
-                </li>
-                <li>
-                  Enable business owners to list and manage their services.
-                </li>
-                <li>Improve the accuracy and efficiency of Ajani responses.</li>
-                <li>
-                  Communicate updates, promotions, and important service
-                  notices.
-                </li>
-                <li>Comply with legal and regulatory requirements.</li>
+                <li>Personalized recommendations.</li>
+                <li>Business listings and management.</li>
+                <li>Improve AI accuracy.</li>
+                <li>Service communications.</li>
+                <li>Legal compliance.</li>
               </ul>
 
               <h2 className="text-xl font-bold text-gray-900 mt-8">
                 4. Sharing of Information
               </h2>
-              <p className="text-gray-700">
-                Ajani does not sell personal information. However, data may be
-                shared in these cases:
-              </p>
               <ul className="list-disc pl-5 space-y-2 text-gray-700">
-                <li>With businesses when you request to contact them.</li>
-                <li>
-                  With service providers (e.g., hosting, analytics, messaging
-                  platforms).
-                </li>
-                <li>
-                  With regulators, law enforcement, or authorities where legally
-                  required.
-                </li>
-                <li>
-                  With affiliates in the event of a merger, acquisition, or
-                  restructuring.
-                </li>
+                <li>With businesses you contact.</li>
+                <li>With service providers.</li>
+                <li>With authorities when required.</li>
+                <li>With affiliates during restructuring.</li>
               </ul>
 
               <h2 className="text-xl font-bold text-gray-900 mt-8">
                 5. Cross-Border Data Transfers
               </h2>
-              <p className="text-gray-700">
-                If Ajani transfers your data outside Nigeria, such transfers
-                will only be made to countries that:
-              </p>
               <ul className="list-disc pl-5 space-y-2 text-gray-700">
-                <li>
-                  The Nigerian Data Protection Commission (NDPC) has recognized
-                  as providing adequate protection, or
-                </li>
-                <li>With your explicit consent, or</li>
-                <li>
-                  Under legally binding agreements that ensure your data is
-                  protected.
-                </li>
+                <li>Adequate-protection countries.</li>
+                <li>Your explicit consent.</li>
+                <li>Binding legal agreements.</li>
               </ul>
 
               <h2 className="text-xl font-bold text-gray-900 mt-8">
                 6. Data Retention
               </h2>
               <ul className="list-disc pl-5 space-y-2 text-gray-700">
-                <li>
-                  We retain personal information only for as long as necessary
-                  to fulfill the purposes outlined in this policy.
-                </li>
-                <li>
-                  Interaction data may be anonymized for research and
-                  performance improvement.
-                </li>
-                <li>You can request deletion of your data at any time.</li>
+                <li>Only as long as necessary.</li>
+                <li>Anonymized interaction data.</li>
+                <li>Deletion upon request.</li>
               </ul>
 
               <h2 className="text-xl font-bold text-gray-900 mt-8">
                 7. Security of Data
               </h2>
               <p className="text-gray-700">
-                We adopt organizational, technical, and physical safeguards to
-                protect your data against loss, misuse, unauthorized access,
-                disclosure, or destruction. In line with NDPR, Ajani will notify
-                the NDPC and affected individuals within 72 hours in the event
-                of a significant data breach.
+                Ajani applies technical and organizational safeguards and will
+                notify NDPC within 72 hours of significant breaches.
               </p>
 
               <h2 className="text-xl font-bold text-gray-900 mt-8">
                 8. Your Rights Under NDPR
               </h2>
-              <p className="text-gray-700">
-                As a data subject in Nigeria, you have the right to:
-              </p>
               <ul className="list-disc pl-5 space-y-2 text-gray-700">
-                <li>
-                  <strong>Access:</strong> Request copies of the personal data
-                  Ajani holds about you.
-                </li>
-                <li>
-                  <strong>Rectification:</strong> Correct incomplete or
-                  inaccurate data.
-                </li>
-                <li>
-                  <strong>Erasure (“Right to be Forgotten”):</strong> Request
-                  deletion of your personal data.
-                </li>
-                <li>
-                  <strong>Data Portability:</strong> Request your data in a
-                  structured, machine-readable format.
-                </li>
-                <li>
-                  <strong>Consent Withdrawal:</strong> Withdraw your consent at
-                  any time.
-                </li>
-                <li>
-                  <strong>Objection:</strong> Object to certain types of
-                  processing, including direct marketing.
-                </li>
+                <li>Access</li>
+                <li>Rectification</li>
+                <li>Erasure</li>
+                <li>Data Portability</li>
+                <li>Consent Withdrawal</li>
+                <li>Objection</li>
               </ul>
-              <p className="text-gray-700 mt-3">
-                To exercise these rights, please contact us at{" "}
-                <a
-                  href="mailto:info@ajani.com"
-                  className="text-blue-600 hover:underline"
-                >
-                  info@ajani.com
-                </a>
-                .
-              </p>
 
               <h2 className="text-xl font-bold text-gray-900 mt-8">
                 9. Children’s Privacy
               </h2>
               <p className="text-gray-700">
-                Ajani does not knowingly collect personal information from
-                children under 13 years old. If such data is collected
-                inadvertently, it will be deleted immediately.
+                Ajani does not knowingly collect data from children under 13.
               </p>
 
               <h2 className="text-xl font-bold text-gray-900 mt-8">
                 10. Changes to this Privacy Policy
               </h2>
               <p className="text-gray-700">
-                We may update this Privacy Policy from time to time in
-                compliance with NDPR and other applicable laws. Updates will be
-                posted with a new effective date.
+                Updates will be posted with a new effective date.
               </p>
 
               <h2 className="text-xl font-bold text-gray-900 mt-8">
                 11. Contact Us
               </h2>
-              <p className="text-gray-700">
-                For questions, complaints, or to exercise your NDPR rights,
-                please contact:
-              </p>
               <div className="mt-3 p-4 bg-blue-50 rounded-lg border border-blue-100">
                 <p className="font-medium text-gray-900">
                   Ajani Data Protection Officer (DPO)
                 </p>
-                <p className="text-gray-700">
-                  Email:{" "}
-                  <a
-                    href="mailto:info@ajani.com"
-                    className="text-blue-600 hover:underline"
-                  >
-                    info@ajani.com
-                  </a>
-                </p>
-                <p className="text-gray-700">
-                  Phone:{" "}
-                  <a
-                    href="tel:+08022662256"
-                    className="text-blue-600 hover:underline"
-                  >
-                    08022662256
-                  </a>
-                </p>
-                <p className="text-gray-700">
-                  Address: 7, Oluyoro Street, Bodija, Ibadan, Nigeria
-                </p>
+                <p>Email: info@ajani.com</p>
+                <p>Phone: 08022662256</p>
+                <p>Address: 7, Oluyoro Street, Bodija, Ibadan, Nigeria</p>
               </div>
-              <p className="text-gray-700 mt-4">
-                If you are not satisfied with our response, you have the right
-                to lodge a complaint directly with the{" "}
-                <strong>Nigeria Data Protection Commission (NDPC)</strong>.
-              </p>
             </section>
           </div>
 
@@ -296,6 +192,7 @@ const PrivacyPage = () => {
           </div>
         </div>
       </div>
+
       <Footer />
     </>
   );

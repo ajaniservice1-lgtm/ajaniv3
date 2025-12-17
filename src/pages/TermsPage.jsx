@@ -14,19 +14,19 @@ const TermsPage = () => {
       <Header />
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-[#0B1220] to-[#111827]">
+      <section className="bg-[#6cff]">
         <div className="mx-auto max-w-6xl px-4 py-16 text-center">
-          <h1 className="text-4xl font-bold text-white md:text-5xl">
+          <h1 className="text-4xl font-bold text-[#00065A] md:text-5xl">
             Terms of Service
           </h1>
-          <p className="mt-3 text-gray-300">Last Updated: December 16, 2025</p>
+          <p className="mt-3 text-[#00065A]">Last Updated: December 16, 2025</p>
         </div>
       </section>
 
       {/* Content Section */}
       <section className="bg-gray-50">
         <div className="mx-auto max-w-5xl px-4 py-12">
-          <div className="space-y-8 rounded-xl border border-gray-100 bg-white p-6 leading-relaxed text-gray-700 shadow-sm md:p-10">
+          <div className="space-y-8 rounded-xl border border-gray-100 font-manrope bg-white p-6 leading-relaxed text-gray-700 shadow-sm md:p-10">
             <p>
               Welcome to <strong>Ajani.ai</strong> ("Ajani", "we", "our", or
               "us"). These Terms of Service ("Terms") govern your access to and

@@ -15,9 +15,11 @@ const AboutAjani = () => {
 
       <main className="min-h-screen bg-slate-100 px-4 py-10">
         {/* Hero Section */}
-        <section className="mx-auto mb-8 max-w-4xl rounded-xl bg-gradient-to-br from-slate-900 to-slate-950 px-6 py-12 text-center text-white shadow-lg">
-          <h1 className="text-3xl font-bold tracking-tight">About Ajani</h1>
-          <p className="mt-2 text-sm text-slate-300">Founder &amp; CEO</p>
+        <section className="mx-auto mb-8 max-w-4xl rounded-xl bg-[#6cff] px-6 py-12 text-center text-white shadow-lg">
+          <h1 className="text-3xl font-bold tracking-tight text-[#00065A]">
+            About Ajani
+          </h1>
+          <p className="mt-2 text-sm text-[#00065A]">Founder &amp; CEO</p>
         </section>
 
         {/* Content Card */}
@@ -81,12 +83,10 @@ const AboutAjani = () => {
             </p>
           </div>
 
-          {/* Logo */}
-          <img
-            src={Ajani}
-            alt="Ajani Logo"
-            className="mt-6 h-auto w-24 md:w-48"
-          />
+          {/* Logo — LAST ELEMENT */}
+          <div className="mt-8 flex justify-end">
+            <img src={Ajani} alt="Ajani Logo" className="h-auto w-40 md:w-56" />
+          </div>
         </section>
       </main>
 
