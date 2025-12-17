@@ -13,6 +13,7 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [pendingSaveConfirm, setPendingSaveConfirm] = useState(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -50,48 +51,25 @@ const LoginPage = () => {
         const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
         localStorage.removeItem("redirectAfterLogin");
 
-        setIsLoading(false);
-
         // Check for pending save item
         const pendingSave = localStorage.getItem("pendingSaveItem");
         if (pendingSave) {
           try {
             const pendingItem = JSON.parse(pendingSave);
-            const saved = JSON.parse(
-              localStorage.getItem("userSavedListings") || "[]"
-            );
-
-            // Check if already saved
-            const isAlreadySaved = saved.some(
-              (item) => item.id === pendingItem.id
-            );
-
-            if (!isAlreadySaved) {
-              const updatedSaved = [
-                ...saved,
-                {
-                  ...pendingItem,
-                  savedDate: new Date().toISOString().split("T")[0],
-                },
-              ];
-              localStorage.setItem(
-                "userSavedListings",
-                JSON.stringify(updatedSaved)
-              );
-
-              // Dispatch event for other components
-              window.dispatchEvent(
-                new CustomEvent("savedListingsUpdated", {
-                  detail: { action: "added", item: pendingItem },
-                })
-              );
-            }
-
-            localStorage.removeItem("pendingSaveItem");
+            // Show confirmation dialog instead of auto-saving
+            setPendingSaveConfirm({
+              item: pendingItem,
+              redirectUrl: redirectUrl,
+            });
+            setIsLoading(false);
+            return;
           } catch (err) {
             console.error("Error processing pending save:", err);
+            localStorage.removeItem("pendingSaveItem");
           }
         }
+
+        setIsLoading(false);
 
         // Redirect after short delay
         setTimeout(() => {
@@ -102,7 +80,7 @@ const LoginPage = () => {
         setIsLoading(false);
       }
     } else {
-      // No user found, check if we should allow guest login
+      // No user found
       setError("No account found. Please register first.");
       setIsLoading(false);
     }
@@ -114,6 +92,9 @@ const LoginPage = () => {
   };
 
   const handleCancel = () => {
+    // Clear any pending save when user cancels
+    localStorage.removeItem("pendingSaveItem");
+
     // Navigate back or to home if no history
     const hasPreviousPage = window.history.length > 1;
     if (hasPreviousPage) {
@@ -124,7 +105,60 @@ const LoginPage = () => {
   };
 
   const handleResetPassword = () => {
+    // Clear pending save when navigating to reset password
+    localStorage.removeItem("pendingSaveItem");
     navigate("/reset-password");
+  };
+
+  const handleSkipSave = () => {
+    // User doesn't want to save the listing
+    localStorage.removeItem("pendingSaveItem");
+    setPendingSaveConfirm(null);
+
+    if (pendingSaveConfirm?.redirectUrl) {
+      navigate(pendingSaveConfirm.redirectUrl);
+    } else {
+      navigate("/");
+    }
+  };
+
+  const handleConfirmSave = () => {
+    // User wants to save the listing
+    if (pendingSaveConfirm?.item) {
+      const saved = JSON.parse(
+        localStorage.getItem("userSavedListings") || "[]"
+      );
+      const isAlreadySaved = saved.some(
+        (item) => item.id === pendingSaveConfirm.item.id
+      );
+
+      if (!isAlreadySaved) {
+        const updatedSaved = [
+          ...saved,
+          {
+            ...pendingSaveConfirm.item,
+            savedDate: new Date().toISOString().split("T")[0],
+          },
+        ];
+        localStorage.setItem("userSavedListings", JSON.stringify(updatedSaved));
+
+        // Dispatch event for other components
+        window.dispatchEvent(
+          new CustomEvent("savedListingsUpdated", {
+            detail: { action: "added", item: pendingSaveConfirm.item },
+          })
+        );
+      }
+    }
+
+    localStorage.removeItem("pendingSaveItem");
+    setPendingSaveConfirm(null);
+
+    if (pendingSaveConfirm?.redirectUrl) {
+      navigate(pendingSaveConfirm.redirectUrl);
+    } else {
+      navigate("/");
+    }
   };
 
   return (
@@ -232,6 +266,75 @@ const LoginPage = () => {
           </p>
         </div>
       </div>
+
+      {/* Pending Save Confirmation Modal */}
+      {pendingSaveConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full animate-fadeIn">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              Save this listing?
+            </h3>
+            <div className="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
+              <img
+                src={pendingSaveConfirm.item.image}
+                alt={pendingSaveConfirm.item.name}
+                className="w-12 h-12 rounded-lg object-cover"
+                onError={(e) => {
+                  e.currentTarget.src =
+                    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80";
+                  e.currentTarget.onerror = null;
+                }}
+              />
+              <div className="flex-1">
+                <p className="font-medium text-gray-900">
+                  {pendingSaveConfirm.item.name}
+                </p>
+                <p className="text-sm text-gray-600">
+                  {pendingSaveConfirm.item.location}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {pendingSaveConfirm.item.price}{" "}
+                  {pendingSaveConfirm.item.perText}
+                </p>
+              </div>
+            </div>
+            <p className="text-gray-600 mb-6">
+              Would you like to save this listing to your favorites?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleSkipSave}
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+              >
+                Skip
+              </button>
+              <button
+                onClick={handleConfirmSave}
+                className="flex-1 px-4 py-3 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors font-medium"
+              >
+                Save Listing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 };

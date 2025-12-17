@@ -25,6 +25,7 @@ import { MdFavoriteBorder } from "react-icons/md";
 import { PiSliders } from "react-icons/pi";
 import { motion } from "framer-motion";
 import { createPortal } from "react-dom";
+import BackButton from "../components/BackButton"
 
 // Google Sheets hook
 const useGoogleSheet = (sheetId, apiKey) => {
@@ -417,7 +418,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
         // Check if user is signed in
         const isLoggedIn = localStorage.getItem("ajani_dummy_login") === "true";
 
-        // If not logged in, show login prompt and redirect to login page
+        // If not logged in, show login prompt
         if (!isLoggedIn) {
           showToast("Please login to save listings", "info");
 
@@ -2721,47 +2722,47 @@ const CategoryResults = () => {
     setShowMobileSearchModal(false);
   };
 
-  // const toggleDesktopFilters = () => {
-  //   setShowDesktopFilters(!showDesktopFilters);
-  //   setShowDesktopSearchSuggestions(false);
-  // };
+  const toggleDesktopFilters = () => {
+    setShowDesktopFilters(!showDesktopFilters);
+    setShowDesktopSearchSuggestions(false);
+  };
 
   // Real-time filter change handler
   const handleFilterChange = (newFilters) => {
     setActiveFilters(newFilters);
   };
 
-  // const removeFilter = (type, value = null) => {
-  //   setActiveFilters((prev) => {
-  //     const newFilters = { ...prev };
+  const removeFilter = (type, value = null) => {
+    setActiveFilters((prev) => {
+      const newFilters = { ...prev };
 
-  //     switch (type) {
-  //       case "location":
-  //         newFilters.locations = value
-  //           ? prev.locations.filter((l) => l !== value)
-  //           : [];
-  //         break;
-  //       case "category":
-  //         newFilters.categories = value
-  //           ? prev.categories.filter((c) => c !== value)
-  //           : [];
-  //         break;
-  //       case "price":
-  //         newFilters.priceRange = { min: "", max: "" };
-  //         break;
-  //       case "rating":
-  //         newFilters.ratings = value
-  //           ? prev.ratings.filter((r) => r !== value)
-  //           : [];
-  //         break;
-  //       case "sort":
-  //         newFilters.sortBy = "relevance";
-  //         break;
-  //     }
+      switch (type) {
+        case "location":
+          newFilters.locations = value
+            ? prev.locations.filter((l) => l !== value)
+            : [];
+          break;
+        case "category":
+          newFilters.categories = value
+            ? prev.categories.filter((c) => c !== value)
+            : [];
+          break;
+        case "price":
+          newFilters.priceRange = { min: "", max: "" };
+          break;
+        case "rating":
+          newFilters.ratings = value
+            ? prev.ratings.filter((r) => r !== value)
+            : [];
+          break;
+        case "sort":
+          newFilters.sortBy = "relevance";
+          break;
+      }
 
-  //     return newFilters;
-  //   });
-  // };
+      return newFilters;
+    });
+  };
 
   const clearAllFilters = () => {
     const resetFilters = {
@@ -2981,65 +2982,67 @@ const CategoryResults = () => {
 
       {/* FIXED: Removed mt-16 from main container to start content at the top */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-        {/* Fixed Search Bar Container - Adjusted for mobile */}
+        {/* Fixed Search Bar Container with Back Button */}
         <div className="z-30 py-4 md:py-6 relative" style={{ zIndex: 100 }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-center">
-              <div
-                className="w-full max-w-md relative"
-                ref={searchContainerRef}
-              >
-                <form onSubmit={handleSearchSubmit}>
-                  <div className="flex items-center">
-                    <div className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-40">
-                      <div className="pl-3 sm:pl-4 text-gray-500">
-                        <FontAwesomeIcon icon={faSearch} className="h-4 w-4" />
+            <div className="flex items-center gap-3">
+              {/* Back Button */}
+              <BackButton />
+
+              <div className="flex-1">
+                <div className="flex justify-center">
+                  <div
+                    className="w-full max-w-md relative"
+                    ref={searchContainerRef}
+                  >
+                    <form onSubmit={handleSearchSubmit}>
+                      <div className="flex items-center">
+                        <div className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-40">
+                          <div className="pl-3 sm:pl-4 text-gray-500">
+                            <FontAwesomeIcon
+                              icon={faSearch}
+                              className="h-4 w-4"
+                            />
+                          </div>
+                          <input
+                            type="text"
+                            placeholder={`Search ${categoryTitle} in Ibadan...`}
+                            value={localSearchQuery}
+                            onChange={(e) => handleSearchChange(e.target.value)}
+                            onFocus={handleSearchFocus}
+                            className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope"
+                            autoFocus={false}
+                            aria-label="Search input"
+                            role="searchbox"
+                          />
+                          {localSearchQuery && (
+                            <button
+                              type="button"
+                              onClick={handleClearSearch}
+                              className="p-1 mr-2 text-gray-500 hover:text-gray-700"
+                              aria-label="Clear search"
+                            >
+                              <FontAwesomeIcon
+                                icon={faTimes}
+                                className="h-4 w-4"
+                              />
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="ml-2">
+                          <button
+                            type="submit"
+                            className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope"
+                            aria-label="Perform search"
+                          >
+                            Search
+                          </button>
+                        </div>
                       </div>
-                      <input
-                        type="text"
-                        placeholder={`Search ${categoryTitle} in Ibadan...`}
-                        value={localSearchQuery}
-                        onChange={(e) => handleSearchChange(e.target.value)}
-                        onFocus={handleSearchFocus}
-                        className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope"
-                        autoFocus={false}
-                        aria-label="Search input"
-                        role="searchbox"
-                      />
-                      {localSearchQuery && (
-                        <button
-                          type="button"
-                          onClick={handleClearSearch}
-                          className="p-1 mr-2 text-gray-500 hover:text-gray-700"
-                          aria-label="Clear search"
-                        >
-                          <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="ml-2">
-                      <button
-                        type="submit"
-                        className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope"
-                        aria-label="Perform search"
-                      >
-                        Search
-                      </button>
-                    </div>
+                    </form>
                   </div>
-
-                  {/* Desktop Search Suggestions */}
-                  {!isMobile && showDesktopSearchSuggestions && (
-                    <DesktopSearchSuggestions
-                      searchQuery={localSearchQuery}
-                      listings={listings}
-                      onSuggestionClick={handleSuggestionClick}
-                      onClose={() => setShowDesktopSearchSuggestions(false)}
-                      isVisible={showDesktopSearchSuggestions}
-                    />
-                  )}
-                </form>
+                </div>
               </div>
             </div>
           </div>
