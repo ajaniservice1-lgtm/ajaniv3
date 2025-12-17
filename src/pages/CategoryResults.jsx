@@ -106,6 +106,18 @@ const capitalizeFirst = (str) => {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 };
 
+// Helper function to get subcategory (word after the dot)
+const getSubcategory = (category) => {
+  if (!category) return "";
+
+  const parts = category.split(".");
+  if (parts.length > 1) {
+    return parts.slice(1).join(".").trim();
+  }
+
+  return category.trim();
+};
+
 // FALLBACK IMAGES
 const FALLBACK_IMAGES = {
   hotel:
@@ -1039,6 +1051,8 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   const locationText = item.area || item.location || "Ibadan";
   const rating = item.rating || "4.9";
   const businessName = item.name || "Business Name";
+  // FIX: Get subcategory (word after the dot)
+  const subcategory = getSubcategory(category);
 
   const handleCardClick = () => {
     if (item.id) {
@@ -1135,7 +1149,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
             rating: parseFloat(rating),
             tag: "Guest Favorite",
             image: images[0] || FALLBACK_IMAGES.default,
-            category: capitalizeFirst(category) || "Business",
+            category: subcategory || capitalizeFirst(category) || "Business",
             location: locationText,
             originalData: {
               price_from: item.price_from,
@@ -1188,7 +1202,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
             rating: parseFloat(rating),
             tag: "Guest Favorite",
             image: images[0] || FALLBACK_IMAGES.default,
-            category: capitalizeFirst(category) || "Business",
+            category: subcategory || capitalizeFirst(category) || "Business",
             location: locationText,
             savedDate: new Date().toISOString().split("T")[0],
             originalData: {
@@ -1228,6 +1242,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
       rating,
       images,
       category,
+      subcategory,
       locationText,
       showToast,
       navigate,
@@ -1384,10 +1399,10 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
 
           {/* Bottom row: Category tag and Saved indicator */}
           <div className="flex items-center justify-between mt-auto pt-2">
-            {/* Category tag */}
+            {/* Category tag - FIX: Show subcategory */}
             <div>
               <span className="inline-block text-[10px] text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
-                {capitalizeFirst(category)}
+                {subcategory || capitalizeFirst(category)}
               </span>
             </div>
 
@@ -1438,7 +1453,7 @@ const CategoryBreakdownBadges = ({ categories }) => {
               className="text-xs text-gray-600"
             />
             <span className="text-xs font-medium text-gray-700">
-              {category}
+              {getSubcategory(category)}
             </span>
             <span className="text-xs font-bold text-blue-600">({count})</span>
           </div>
@@ -2249,6 +2264,11 @@ const FilterSidebar = ({
 
 // ================== MAIN CATEGORY RESULTS COMPONENT ==================
 const CategoryResults = () => {
+  // ✅ Always scroll to top on page entry
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, []);
+
   const { category } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -2296,21 +2316,23 @@ const CategoryResults = () => {
   // CRITICAL FIX: Scroll to top on component mount and when params change
   useEffect(() => {
     const scrollToTop = () => {
-      const searchSection = document.getElementById("search-section");
-      if (searchSection) {
-        searchSection.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-          inline: "nearest",
-        });
-      } else {
+      // For mobile: scroll to very top (search bar)
+      // For desktop: scroll to header
+      if (isMobile) {
         window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+      } else {
+        const header = document.querySelector("header");
+        if (header) {
+          header.scrollIntoView({ behavior: "smooth" });
+        } else {
+          window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+        }
       }
     };
 
     const timer = setTimeout(scrollToTop, 100);
     return () => clearTimeout(timer);
-  }, [location.pathname, location.search]);
+  }, [location.pathname, location.search, isMobile]);
 
   // Track search bar position for suggestions
   useEffect(() => {

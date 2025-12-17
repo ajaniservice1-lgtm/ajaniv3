@@ -1,17 +1,22 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
 const TermsPage = () => {
+  // ✅ Always start page from top on entry
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, []);
+
   return (
     <>
-      {/* Your existing site header */}
+      {/* Site Header */}
       <Header />
 
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-[#0B1220] to-[#111827]">
-        <div className="max-w-6xl mx-auto px-4 py-16 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-white">
+        <div className="mx-auto max-w-6xl px-4 py-16 text-center">
+          <h1 className="text-4xl font-bold text-white md:text-5xl">
             Terms of Service
           </h1>
           <p className="mt-3 text-gray-300">Last Updated: December 16, 2025</p>
@@ -20,8 +25,8 @@ const TermsPage = () => {
 
       {/* Content Section */}
       <section className="bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 py-12">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-10 space-y-8 text-gray-700 leading-relaxed">
+        <div className="mx-auto max-w-5xl px-4 py-12">
+          <div className="space-y-8 rounded-xl border border-gray-100 bg-white p-6 leading-relaxed text-gray-700 shadow-sm md:p-10">
             <p>
               Welcome to <strong>Ajani.ai</strong> ("Ajani", "we", "our", or
               "us"). These Terms of Service ("Terms") govern your access to and
@@ -37,7 +42,7 @@ const TermsPage = () => {
 
             {/* Section 1 */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 1. Acceptance of Terms
               </h2>
               <p>
@@ -51,10 +56,10 @@ const TermsPage = () => {
 
             {/* Section 2 */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 2. Description of Services
               </h2>
-              <ul className="list-disc pl-6 space-y-2">
+              <ul className="list-disc space-y-2 pl-6">
                 <li>
                   Discover local businesses, vendors, and service providers.
                 </li>
@@ -70,10 +75,10 @@ const TermsPage = () => {
 
             {/* Section 3 */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                3. Accuracy of Information & AI Disclaimer
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
+                3. Accuracy of Information &amp; AI Disclaimer
               </h2>
-              <ul className="list-disc pl-6 space-y-2">
+              <ul className="list-disc space-y-2 pl-6">
                 <li>
                   <strong>No Guarantee of Accuracy:</strong> AI-generated or
                   third-party data may be outdated or inaccurate.
@@ -91,10 +96,10 @@ const TermsPage = () => {
 
             {/* Section 4 */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 4. User Accounts
               </h2>
-              <ul className="list-disc pl-6 space-y-2">
+              <ul className="list-disc space-y-2 pl-6">
                 <li>
                   You are responsible for securing your login credentials.
                 </li>
@@ -105,10 +110,10 @@ const TermsPage = () => {
 
             {/* Section 5 */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 5. Business Owners and Vendors
               </h2>
-              <ul className="list-disc pl-6 space-y-2">
+              <ul className="list-disc space-y-2 pl-6">
                 <li>Businesses must pass verification checks.</li>
                 <li>
                   Submitted content may be displayed for marketing and listings.
@@ -119,7 +124,7 @@ const TermsPage = () => {
 
             {/* Section 6 */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 6. Third-Party Services
               </h2>
               <p>
@@ -131,10 +136,10 @@ const TermsPage = () => {
 
             {/* Section 7 */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 7. Prohibited Use
               </h2>
-              <ul className="list-disc pl-6 space-y-2">
+              <ul className="list-disc space-y-2 pl-6">
                 <li>Illegal activities or misuse of the Platform.</li>
                 <li>Reverse engineering or data scraping.</li>
                 <li>Harassment, abuse, or malicious content.</li>
@@ -143,7 +148,7 @@ const TermsPage = () => {
 
             {/* Section 8 */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 8. Privacy and Data Protection
               </h2>
               <p>
@@ -154,7 +159,7 @@ const TermsPage = () => {
 
             {/* Section 9 */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 9. Intellectual Property
               </h2>
               <p>
@@ -165,7 +170,7 @@ const TermsPage = () => {
 
             {/* Section 10 */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 10. Limitation of Liability
               </h2>
               <p>
@@ -177,7 +182,7 @@ const TermsPage = () => {
 
             {/* Section 11 */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 11. Indemnification
               </h2>
               <p>
@@ -188,7 +193,7 @@ const TermsPage = () => {
 
             {/* Section 12 */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 12. Modifications to Terms
               </h2>
               <p>
@@ -199,7 +204,7 @@ const TermsPage = () => {
 
             {/* Section 13 */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 13. Governing Law
               </h2>
               <p>
@@ -210,18 +215,24 @@ const TermsPage = () => {
 
             {/* Contact */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 Contact Us
               </h2>
               <p>
                 Email:{" "}
-                <a href="mailto:info@ajani.ai" className="text-[#06EAFC]">
+                <a
+                  href="mailto:info@ajani.ai"
+                  className="font-medium text-[#06EAFC]"
+                >
                   info@ajani.ai
                 </a>
               </p>
               <p>
                 Website:{" "}
-                <a href="https://www.ajani.ai" className="text-[#06EAFC]">
+                <a
+                  href="https://www.ajani.ai"
+                  className="font-medium text-[#06EAFC]"
+                >
                   www.ajani.ai
                 </a>
               </p>
@@ -230,7 +241,7 @@ const TermsPage = () => {
         </div>
       </section>
 
-      {/* Your existing site footer */}
+      {/* Site Footer */}
       <Footer />
     </>
   );
