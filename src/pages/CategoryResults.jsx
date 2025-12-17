@@ -760,6 +760,7 @@ const FilterSidebar = ({
   currentSearchQuery = "",
   onDynamicFilterApply,
   isInitialized,
+  isMobile,
 }) => {
   const [localFilters, setLocalFilters] = useState(
     currentFilters || {
@@ -842,6 +843,7 @@ const FilterSidebar = ({
     }
   }, [currentFilters, isInitialized]);
 
+  // Updated filter handlers with immediate application for desktop non-modal
   const handleLocationChange = (location) => {
     const updatedFilters = {
       ...localFilters,
@@ -850,6 +852,11 @@ const FilterSidebar = ({
         : [...localFilters.locations, location],
     };
     setLocalFilters(updatedFilters);
+
+    // For desktop non-modal, apply immediately
+    if (!isMobileModal && !isDesktopModal && !isMobile) {
+      onFilterChange(updatedFilters);
+    }
   };
 
   const handleCategoryChange = (category) => {
@@ -860,6 +867,11 @@ const FilterSidebar = ({
         : [...localFilters.categories, category],
     };
     setLocalFilters(updatedFilters);
+
+    // For desktop non-modal, apply immediately
+    if (!isMobileModal && !isDesktopModal && !isMobile) {
+      onFilterChange(updatedFilters);
+    }
   };
 
   const handleRatingChange = (stars) => {
@@ -870,6 +882,11 @@ const FilterSidebar = ({
         : [...localFilters.ratings, stars],
     };
     setLocalFilters(updatedFilters);
+
+    // For desktop non-modal, apply immediately
+    if (!isMobileModal && !isDesktopModal && !isMobile) {
+      onFilterChange(updatedFilters);
+    }
   };
 
   const handlePriceChange = (field, value) => {
@@ -881,6 +898,11 @@ const FilterSidebar = ({
       },
     };
     setLocalFilters(updatedFilters);
+
+    // For desktop non-modal, apply immediately
+    if (!isMobileModal && !isDesktopModal && !isMobile) {
+      onFilterChange(updatedFilters);
+    }
   };
 
   const handleSelectAllLocations = () => {
@@ -892,6 +914,11 @@ const FilterSidebar = ({
           : [...uniqueLocationDisplayNames],
     };
     setLocalFilters(updatedFilters);
+
+    // For desktop non-modal, apply immediately
+    if (!isMobileModal && !isDesktopModal && !isMobile) {
+      onFilterChange(updatedFilters);
+    }
   };
 
   const handleSelectAllCategories = () => {
@@ -903,9 +930,14 @@ const FilterSidebar = ({
           : [...uniqueCategoryDisplayNames],
     };
     setLocalFilters(updatedFilters);
+
+    // For desktop non-modal, apply immediately
+    if (!isMobileModal && !isDesktopModal && !isMobile) {
+      onFilterChange(updatedFilters);
+    }
   };
 
-  // Apply filters when user clicks Apply button
+  // Apply filters when user clicks Apply button (for modals only)
   const handleApplyFilters = () => {
     // Apply the local filters to the main component
     onFilterChange(localFilters);
@@ -1284,6 +1316,11 @@ const FilterSidebar = ({
                       priceRange: { min: "", max: "" },
                     };
                     setLocalFilters(updatedFilters);
+
+                    // For desktop non-modal, apply immediately
+                    if (!isMobileModal && !isDesktopModal && !isMobile) {
+                      onFilterChange(updatedFilters);
+                    }
                   }}
                   className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
@@ -1364,6 +1401,11 @@ const FilterSidebar = ({
                       ratings: [],
                     };
                     setLocalFilters(updatedFilters);
+
+                    // For desktop non-modal, apply immediately
+                    if (!isMobileModal && !isDesktopModal && !isMobile) {
+                      onFilterChange(updatedFilters);
+                    }
                   }}
                   className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
@@ -1500,7 +1542,7 @@ const FilterSidebar = ({
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit">
       {renderSidebarContent()}
-      {/* REMOVE Apply button for desktop */}
+      {/* REMOVE Apply button for desktop - filters apply immediately */}
     </div>
   );
 };
@@ -1955,13 +1997,12 @@ const CategoryResults = () => {
     setShowDesktopFilters(!showDesktopFilters);
   };
 
-  // Filter change handler - UPDATED: Now called immediately for LG screens
+  // Filter change handler - UPDATED: Now applies immediately for desktop/LG screens
   const handleFilterChange = (newFilters) => {
     setActiveFilters(newFilters);
 
-    // For mobile, we need to call onDynamicFilterApply to update URL
-    // For desktop, filters apply immediately through the useEffect
-    if (isMobile) {
+    // For desktop, apply filters immediately by updating URL
+    if (!isMobile) {
       const hasCategoryFilters = newFilters.categories.length > 0;
       const hasLocationFilters = newFilters.locations.length > 0;
 
@@ -1994,6 +2035,13 @@ const CategoryResults = () => {
         params.set("q", searchQuery);
       }
 
+      // Clear previous category parameters
+      for (const [key] of params.entries()) {
+        if (key.startsWith("category")) {
+          params.delete(key);
+        }
+      }
+
       // Add categories to params
       categoryParams.forEach((category, index) => {
         if (index === 0) {
@@ -2002,6 +2050,13 @@ const CategoryResults = () => {
           params.set(`category${index + 1}`, category);
         }
       });
+
+      // Clear previous location parameters
+      for (const [key] of params.entries()) {
+        if (key.startsWith("location")) {
+          params.delete(key);
+        }
+      }
 
       // Add locations to params
       locationParams.forEach((location, index) => {
@@ -2346,6 +2401,7 @@ const CategoryResults = () => {
             onClose={() => setShowDesktopFilters(false)}
             isDesktopModal={true}
             isInitialized={filtersInitialized}
+            isMobile={isMobile}
           />
         )}
 
@@ -2364,6 +2420,7 @@ const CategoryResults = () => {
             onClose={handleMobileFilterApply}
             isMobileModal={true}
             isInitialized={filtersInitialized}
+            isMobile={isMobile}
           />
         )}
 
@@ -2389,6 +2446,7 @@ const CategoryResults = () => {
                 currentFilters={activeFilters}
                 currentSearchQuery={searchQuery}
                 isInitialized={filtersInitialized}
+                isMobile={isMobile}
               />
             </div>
           )}

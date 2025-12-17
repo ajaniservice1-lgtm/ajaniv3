@@ -782,6 +782,7 @@ const FilterSidebar = ({
   currentSearchQuery = "",
   onDynamicFilterApply,
   isInitialized,
+  isMobile,
 }) => {
   const [localFilters, setLocalFilters] = useState(
     currentFilters || {
@@ -864,6 +865,7 @@ const FilterSidebar = ({
     }
   }, [currentFilters, isInitialized]);
 
+  // Updated filter handlers with immediate application for desktop non-modal
   const handleLocationChange = (location) => {
     const updatedFilters = {
       ...localFilters,
@@ -872,6 +874,11 @@ const FilterSidebar = ({
         : [...localFilters.locations, location],
     };
     setLocalFilters(updatedFilters);
+
+    // For desktop non-modal, apply immediately
+    if (!isMobileModal && !isDesktopModal && !isMobile) {
+      onFilterChange(updatedFilters);
+    }
   };
 
   const handleCategoryChange = (category) => {
@@ -882,6 +889,11 @@ const FilterSidebar = ({
         : [...localFilters.categories, category],
     };
     setLocalFilters(updatedFilters);
+
+    // For desktop non-modal, apply immediately
+    if (!isMobileModal && !isDesktopModal && !isMobile) {
+      onFilterChange(updatedFilters);
+    }
   };
 
   const handleRatingChange = (stars) => {
@@ -892,6 +904,11 @@ const FilterSidebar = ({
         : [...localFilters.ratings, stars],
     };
     setLocalFilters(updatedFilters);
+
+    // For desktop non-modal, apply immediately
+    if (!isMobileModal && !isDesktopModal && !isMobile) {
+      onFilterChange(updatedFilters);
+    }
   };
 
   const handlePriceChange = (field, value) => {
@@ -903,6 +920,11 @@ const FilterSidebar = ({
       },
     };
     setLocalFilters(updatedFilters);
+
+    // For desktop non-modal, apply immediately
+    if (!isMobileModal && !isDesktopModal && !isMobile) {
+      onFilterChange(updatedFilters);
+    }
   };
 
   const handleSelectAllLocations = () => {
@@ -914,6 +936,11 @@ const FilterSidebar = ({
           : [...uniqueLocationDisplayNames],
     };
     setLocalFilters(updatedFilters);
+
+    // For desktop non-modal, apply immediately
+    if (!isMobileModal && !isDesktopModal && !isMobile) {
+      onFilterChange(updatedFilters);
+    }
   };
 
   const handleSelectAllCategories = () => {
@@ -925,9 +952,14 @@ const FilterSidebar = ({
           : [...uniqueCategoryDisplayNames],
     };
     setLocalFilters(updatedFilters);
+
+    // For desktop non-modal, apply immediately
+    if (!isMobileModal && !isDesktopModal && !isMobile) {
+      onFilterChange(updatedFilters);
+    }
   };
 
-  // Apply filters when user clicks Apply button
+  // Apply filters when user clicks Apply button (for modals only)
   const handleApplyFilters = () => {
     // Apply the local filters to the main component
     onFilterChange(localFilters);
@@ -1305,6 +1337,11 @@ const FilterSidebar = ({
                       priceRange: { min: "", max: "" },
                     };
                     setLocalFilters(updatedFilters);
+
+                    // For desktop non-modal, apply immediately
+                    if (!isMobileModal && !isDesktopModal && !isMobile) {
+                      onFilterChange(updatedFilters);
+                    }
                   }}
                   className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
@@ -1385,6 +1422,11 @@ const FilterSidebar = ({
                       ratings: [],
                     };
                     setLocalFilters(updatedFilters);
+
+                    // For desktop non-modal, apply immediately
+                    if (!isMobileModal && !isDesktopModal && !isMobile) {
+                      onFilterChange(updatedFilters);
+                    }
                   }}
                   className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
@@ -1520,17 +1562,11 @@ const FilterSidebar = ({
     );
   }
 
-  // Regular sidebar (not modal)
+  // Regular sidebar (not modal) - NO APPLY BUTTON for desktop
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit">
       {sidebarContent}
-      <button
-        onClick={handleApplyFilters}
-        className="w-full mt-6 px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2"
-      >
-        <FontAwesomeIcon icon={faCheck} />
-        Apply Filter
-      </button>
+      {/* NO Apply button for desktop - filters apply immediately */}
     </div>
   );
 };
@@ -2155,9 +2191,78 @@ const SearchResults = () => {
     setShowDesktopFilters(!showDesktopFilters);
   };
 
-  // Filter change handler - only called when Apply Filter is clicked
+  // Filter change handler - applies immediately for desktop
   const handleFilterChange = (newFilters) => {
     setActiveFilters(newFilters);
+
+    // For desktop, apply filters immediately by updating URL
+    if (!isMobile) {
+      const hasCategoryFilters = newFilters.categories.length > 0;
+      const hasLocationFilters = newFilters.locations.length > 0;
+
+      let categoryParams = [];
+      if (hasCategoryFilters) {
+        newFilters.categories.forEach((catDisplayName) => {
+          const selectedCategory = allCategories.find(
+            (cat) => getCategoryDisplayName(cat) === catDisplayName
+          );
+          if (selectedCategory) {
+            categoryParams.push(selectedCategory);
+          }
+        });
+      }
+
+      let locationParams = [];
+      if (hasLocationFilters) {
+        newFilters.locations.forEach((locDisplayName) => {
+          const selectedLocation = allLocations.find(
+            (loc) => getLocationDisplayName(loc) === locDisplayName
+          );
+          if (selectedLocation) {
+            locationParams.push(selectedLocation);
+          }
+        });
+      }
+
+      const params = new URLSearchParams();
+      if (searchQuery) {
+        params.set("q", searchQuery);
+      }
+
+      // Clear previous category parameters
+      for (const [key] of params.entries()) {
+        if (key.startsWith("category")) {
+          params.delete(key);
+        }
+      }
+
+      // Add categories to params
+      categoryParams.forEach((category, index) => {
+        if (index === 0) {
+          params.set("category", category);
+        } else {
+          params.set(`category${index + 1}`, category);
+        }
+      });
+
+      // Clear previous location parameters
+      for (const [key] of params.entries()) {
+        if (key.startsWith("location")) {
+          params.delete(key);
+        }
+      }
+
+      // Add locations to params
+      locationParams.forEach((location, index) => {
+        if (index === 0) {
+          params.set("location", location);
+        } else {
+          params.set(`location${index + 1}`, location);
+        }
+      });
+
+      setSearchParams(params);
+    }
   };
 
   const clearAllFilters = () => {
@@ -2494,6 +2599,7 @@ const SearchResults = () => {
             onClose={() => setShowDesktopFilters(false)}
             isDesktopModal={true}
             isInitialized={filtersInitialized}
+            isMobile={isMobile}
           />
         )}
 
@@ -2512,6 +2618,7 @@ const SearchResults = () => {
             onClose={handleMobileFilterApply}
             isMobileModal={true}
             isInitialized={filtersInitialized}
+            isMobile={isMobile}
           />
         )}
 
@@ -2537,6 +2644,7 @@ const SearchResults = () => {
                 currentFilters={activeFilters}
                 currentSearchQuery={searchQuery}
                 isInitialized={filtersInitialized}
+                isMobile={isMobile}
               />
             </div>
           )}
