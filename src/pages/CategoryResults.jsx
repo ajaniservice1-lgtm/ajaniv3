@@ -661,6 +661,7 @@ const MobileSearchModal = ({
   const modalRef = useRef(null);
   const inputRef = useRef(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
 
   // Check if mobile
   useEffect(() => {
@@ -692,7 +693,7 @@ const MobileSearchModal = ({
   // Handle suggestion click
   const handleSuggestionClick = (action) => {
     onSuggestionClick(action);
-    onClose();
+    handleClose();
   };
 
   // Handle key press
@@ -701,8 +702,17 @@ const MobileSearchModal = ({
       const params = new URLSearchParams();
       params.append("q", inputValue.trim());
       onSuggestionClick(`/search-results?${params.toString()}`);
-      onClose();
+      handleClose();
     }
+  };
+
+  // Handle close with animation
+  const handleClose = () => {
+    setIsExiting(true);
+    setTimeout(() => {
+      onClose();
+      setIsExiting(false);
+    }, 200);
   };
 
   // Focus input when modal opens
@@ -733,26 +743,39 @@ const MobileSearchModal = ({
   }, [searchQuery]);
 
   // Don't render if not visible
-  if (!isVisible) return null;
+  if (!isVisible && !isExiting) return null;
 
   return createPortal(
     <>
-      {/* Backdrop */}
+      {/* Backdrop with fade animation */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9990] animate-fadeIn"
-        onClick={onClose}
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-[9990] ${
+          isExiting ? "animate-fadeOutSharp" : "animate-fadeInSharp"
+        }`}
+        onClick={handleClose}
+        style={{
+          opacity: isExiting ? 0 : 1,
+          transition: "opacity 0.2s ease-out",
+        }}
       />
 
-      {/* Modal Content */}
+      {/* Modal Content with fade animation */}
       <div
         ref={modalRef}
-        className="fixed inset-0 bg-white z-[9991] animate-slideInUp flex flex-col"
+        className={`fixed inset-0 bg-white z-[9991] ${
+          isExiting ? "animate-fadeOutSharp" : "animate-fadeInSharp"
+        } flex flex-col`}
+        style={{
+          opacity: isExiting ? 0 : 1,
+          transform: isExiting ? "translateY(-10px)" : "translateY(0)",
+          transition: "opacity 0.2s ease-out, transform 0.2s ease-out",
+        }}
       >
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
           <div className="flex items-center gap-3">
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="text-gray-600 hover:text-gray-900 p-2 rounded-full hover:bg-gray-100"
             >
               <FontAwesomeIcon icon={faChevronLeft} className="w-5 h-5" />
@@ -905,7 +928,7 @@ const MobileSearchModal = ({
                       const params = new URLSearchParams();
                       params.append("q", inputValue.trim());
                       onSuggestionClick(`/search-results?${params.toString()}`);
-                      onClose();
+                      handleClose();
                     }}
                     className="w-full p-4 bg-gradient-to-r from-blue-500 to-teal-400 hover:from-blue-600 hover:to-teal-500 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
                   >
@@ -945,7 +968,7 @@ const MobileSearchModal = ({
                       const params = new URLSearchParams();
                       params.append("q", inputValue.trim());
                       onSuggestionClick(`/search-results?${params.toString()}`);
-                      onClose();
+                      handleClose();
                     }}
                     className="px-6 py-3 bg-blue-500 text-white font-medium rounded-full hover:bg-blue-600 transition-colors"
                   >
@@ -2408,7 +2431,7 @@ const CategoryResults = () => {
     }
   }, [showMobileFilters]);
 
-  // Initialize listings and filter by category
+  // FIXED: Initialize listings and extract ALL categories and locations from entire dataset
   useEffect(() => {
     if (listings.length > 0) {
       const categorySlug = category.toLowerCase();
@@ -2448,15 +2471,18 @@ const CategoryResults = () => {
         return itemCategory.includes(categorySlug);
       });
 
-      // Extract unique locations and categories
-      const locations = [
-        ...new Set(filtered.map((item) => item.area).filter(Boolean)),
+      // Extract unique locations from ALL listings, not just filtered
+      const allLocationsFromData = [
+        ...new Set(listings.map((item) => item.area).filter(Boolean)),
       ];
-      const categories = [
-        ...new Set(filtered.map((item) => item.category).filter(Boolean)),
+
+      // Extract unique categories from ALL listings, not just filtered
+      const allCategoriesFromData = [
+        ...new Set(listings.map((item) => item.category).filter(Boolean)),
       ];
-      setAllLocations(locations);
-      setAllCategories(categories);
+
+      setAllLocations(allLocationsFromData);
+      setAllCategories(allCategoriesFromData);
     }
   }, [listings, category]);
 
@@ -2809,67 +2835,43 @@ const CategoryResults = () => {
 
     // For desktop, apply filters immediately by updating URL
     if (!isMobile) {
-      const hasCategoryFilters = newFilters.categories.length > 0;
-      const hasLocationFilters = newFilters.locations.length > 0;
-
-      let categoryParams = [];
-      if (hasCategoryFilters) {
-        newFilters.categories.forEach((catDisplayName) => {
-          const selectedCategory = allCategories.find(
-            (cat) => getCategoryDisplayName(cat) === catDisplayName
-          );
-          if (selectedCategory) {
-            categoryParams.push(selectedCategory);
-          }
-        });
-      }
-
-      let locationParams = [];
-      if (hasLocationFilters) {
-        newFilters.locations.forEach((locDisplayName) => {
-          const selectedLocation = allLocations.find(
-            (loc) => getLocationDisplayName(loc) === locDisplayName
-          );
-          if (selectedLocation) {
-            locationParams.push(selectedLocation);
-          }
-        });
-      }
-
       const params = new URLSearchParams();
       if (searchQuery) {
         params.set("q", searchQuery);
       }
 
-      // Clear previous category parameters
-      for (const [key] of params.entries()) {
-        if (key.startsWith("category")) {
+      // Clear previous parameters
+      for (const [key] of searchParams.entries()) {
+        if (key.startsWith("category") || key.startsWith("location")) {
           params.delete(key);
         }
       }
 
-      // Add categories to params
-      categoryParams.forEach((category, index) => {
-        if (index === 0) {
-          params.set("category", category);
-        } else {
-          params.set(`category${index + 1}`, category);
+      // Add new category filters
+      newFilters.categories.forEach((categoryDisplayName, index) => {
+        const selectedCategory = allCategories.find(
+          (cat) => getCategoryDisplayName(cat) === categoryDisplayName
+        );
+        if (selectedCategory) {
+          if (index === 0) {
+            params.set("category", selectedCategory);
+          } else {
+            params.set(`category${index + 1}`, selectedCategory);
+          }
         }
       });
 
-      // Clear previous location parameters
-      for (const [key] of params.entries()) {
-        if (key.startsWith("location")) {
-          params.delete(key);
-        }
-      }
-
-      // Add locations to params
-      locationParams.forEach((location, index) => {
-        if (index === 0) {
-          params.set("location", location);
-        } else {
-          params.set(`location${index + 1}`, location);
+      // Add new location filters
+      newFilters.locations.forEach((locationDisplayName, index) => {
+        const selectedLocation = allLocations.find(
+          (loc) => getLocationDisplayName(loc) === locationDisplayName
+        );
+        if (selectedLocation) {
+          if (index === 0) {
+            params.set("location", selectedLocation);
+          } else {
+            params.set(`location${index + 1}`, selectedLocation);
+          }
         }
       });
 
@@ -3684,6 +3686,29 @@ const CategoryResults = () => {
           }
         }
 
+        /* NEW: Sharp fade animations */
+        @keyframes fadeInSharp {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes fadeOutSharp {
+          from {
+            opacity: 1;
+            transform: translateY(0);
+          }
+          to {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+        }
+
         .animate-slideInUp {
           animation: slideInUp 0.3s ease-out;
         }
@@ -3694,6 +3719,14 @@ const CategoryResults = () => {
 
         .animate-scaleIn {
           animation: scaleIn 0.2s ease-out;
+        }
+
+        .animate-fadeInSharp {
+          animation: fadeInSharp 0.2s ease-out forwards;
+        }
+
+        .animate-fadeOutSharp {
+          animation: fadeOutSharp 0.2s ease-in forwards;
         }
 
         /* Smooth transitions */

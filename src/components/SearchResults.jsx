@@ -681,6 +681,16 @@ const MobileSearchModal = ({
   const [inputValue, setInputValue] = useState(searchQuery);
   const modalRef = useRef(null);
   const inputRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
+
+  // Check if mobile
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Generate suggestions with breakdowns
   const suggestions = useMemo(() => {
@@ -704,7 +714,7 @@ const MobileSearchModal = ({
   // Handle suggestion click
   const handleSuggestionClick = (action) => {
     onSuggestionClick(action);
-    onClose();
+    handleClose();
   };
 
   // Handle key press
@@ -713,8 +723,17 @@ const MobileSearchModal = ({
       const params = new URLSearchParams();
       params.append("q", inputValue.trim());
       onSuggestionClick(`/search-results?${params.toString()}`);
-      onClose();
+      handleClose();
     }
+  };
+
+  // Handle close with animation
+  const handleClose = () => {
+    setIsExiting(true);
+    setTimeout(() => {
+      onClose();
+      setIsExiting(false);
+    }, 200);
   };
 
   // Focus input when modal opens
@@ -745,26 +764,39 @@ const MobileSearchModal = ({
   }, [searchQuery]);
 
   // Don't render if not visible
-  if (!isVisible) return null;
+  if (!isVisible && !isExiting) return null;
 
   return createPortal(
     <>
-      {/* Backdrop */}
+      {/* Backdrop with fade animation */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9990] animate-fadeIn"
-        onClick={onClose}
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-[9990] ${
+          isExiting ? "animate-fadeOutSharp" : "animate-fadeInSharp"
+        }`}
+        onClick={handleClose}
+        style={{
+          opacity: isExiting ? 0 : 1,
+          transition: "opacity 0.2s ease-out",
+        }}
       />
 
-      {/* Modal Content */}
+      {/* Modal Content with fade animation */}
       <div
         ref={modalRef}
-        className="fixed inset-0 bg-white z-[9991] animate-slideInUp flex flex-col"
+        className={`fixed inset-0 bg-white z-[9991] ${
+          isExiting ? "animate-fadeOutSharp" : "animate-fadeInSharp"
+        } flex flex-col`}
+        style={{
+          opacity: isExiting ? 0 : 1,
+          transform: isExiting ? "translateY(-10px)" : "translateY(0)",
+          transition: "opacity 0.2s ease-out, transform 0.2s ease-out",
+        }}
       >
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
           <div className="flex items-center gap-3">
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="text-gray-600 hover:text-gray-900 p-2 rounded-full hover:bg-gray-100"
             >
               <FontAwesomeIcon icon={faChevronLeft} className="w-5 h-5" />
@@ -917,7 +949,7 @@ const MobileSearchModal = ({
                       const params = new URLSearchParams();
                       params.append("q", inputValue.trim());
                       onSuggestionClick(`/search-results?${params.toString()}`);
-                      onClose();
+                      handleClose();
                     }}
                     className="w-full p-4 bg-gradient-to-r from-blue-500 to-teal-400 hover:from-blue-600 hover:to-teal-500 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
                   >
@@ -957,7 +989,7 @@ const MobileSearchModal = ({
                       const params = new URLSearchParams();
                       params.append("q", inputValue.trim());
                       onSuggestionClick(`/search-results?${params.toString()}`);
-                      onClose();
+                      handleClose();
                     }}
                     className="px-6 py-3 bg-blue-500 text-white font-medium rounded-full hover:bg-blue-600 transition-colors"
                   >
@@ -2554,6 +2586,7 @@ const SearchResults = () => {
   const searchContainerRef = useRef(null);
   const filterButtonRef = useRef(null);
   const resultsRef = useRef(null);
+  const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
 
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
   const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
@@ -2642,16 +2675,21 @@ const SearchResults = () => {
     }
   }, [showMobileFilters]);
 
+  // FIXED: Extract ALL locations and categories from entire dataset
   useEffect(() => {
     if (listings.length > 0) {
-      const locations = [
+      // Extract unique locations from ALL listings, not just filtered
+      const allLocationsFromData = [
         ...new Set(listings.map((item) => item.area).filter(Boolean)),
       ];
-      const categories = [
+
+      // Extract unique categories from ALL listings, not just filtered
+      const allCategoriesFromData = [
         ...new Set(listings.map((item) => item.category).filter(Boolean)),
       ];
-      setAllLocations(locations);
-      setAllCategories(categories);
+
+      setAllLocations(allLocationsFromData);
+      setAllCategories(allCategoriesFromData);
     }
   }, [listings]);
 
@@ -2885,9 +2923,13 @@ const SearchResults = () => {
     }
   };
 
-  // Handle search focus - show suggestions
+  // Handle search focus - show suggestions or open mobile modal
   const handleSearchFocus = () => {
-    if (!isMobile && localSearchQuery.trim().length > 0) {
+    if (isMobile) {
+      // On mobile, open the fullscreen modal
+      setShowMobileSearchModal(true);
+    } else if (localSearchQuery.trim().length > 0) {
+      // On desktop, show suggestions if there's text
       setShowSuggestions(true);
     }
   };
@@ -2896,6 +2938,7 @@ const SearchResults = () => {
   const handleClearSearch = () => {
     setLocalSearchQuery("");
     setShowSuggestions(false);
+    setShowMobileSearchModal(false);
     const params = new URLSearchParams();
     // Preserve filter parameters when clearing search
     for (const [key, value] of searchParams.entries()) {
@@ -2970,6 +3013,7 @@ const SearchResults = () => {
       params.set("q", localSearchQuery.trim());
       setSearchParams(params);
       setShowSuggestions(false);
+      setShowMobileSearchModal(false);
     }
   };
 
@@ -2987,67 +3031,43 @@ const SearchResults = () => {
 
     // For desktop, apply filters immediately by updating URL
     if (!isMobile) {
-      const hasCategoryFilters = newFilters.categories.length > 0;
-      const hasLocationFilters = newFilters.locations.length > 0;
-
-      let categoryParams = [];
-      if (hasCategoryFilters) {
-        newFilters.categories.forEach((catDisplayName) => {
-          const selectedCategory = allCategories.find(
-            (cat) => getCategoryDisplayName(cat) === catDisplayName
-          );
-          if (selectedCategory) {
-            categoryParams.push(selectedCategory);
-          }
-        });
-      }
-
-      let locationParams = [];
-      if (hasLocationFilters) {
-        newFilters.locations.forEach((locDisplayName) => {
-          const selectedLocation = allLocations.find(
-            (loc) => getLocationDisplayName(loc) === locDisplayName
-          );
-          if (selectedLocation) {
-            locationParams.push(selectedLocation);
-          }
-        });
-      }
-
       const params = new URLSearchParams();
       if (searchQuery) {
         params.set("q", searchQuery);
       }
 
-      // Clear previous category parameters
-      for (const [key] of params.entries()) {
-        if (key.startsWith("category")) {
+      // Clear previous parameters
+      for (const [key] of searchParams.entries()) {
+        if (key.startsWith("category") || key.startsWith("location")) {
           params.delete(key);
         }
       }
 
-      // Add categories to params
-      categoryParams.forEach((category, index) => {
-        if (index === 0) {
-          params.set("category", category);
-        } else {
-          params.set(`category${index + 1}`, category);
+      // Add new category filters
+      newFilters.categories.forEach((categoryDisplayName, index) => {
+        const selectedCategory = allCategories.find(
+          (cat) => getCategoryDisplayName(cat) === categoryDisplayName
+        );
+        if (selectedCategory) {
+          if (index === 0) {
+            params.set("category", selectedCategory);
+          } else {
+            params.set(`category${index + 1}`, selectedCategory);
+          }
         }
       });
 
-      // Clear previous location parameters
-      for (const [key] of params.entries()) {
-        if (key.startsWith("location")) {
-          params.delete(key);
-        }
-      }
-
-      // Add locations to params
-      locationParams.forEach((location, index) => {
-        if (index === 0) {
-          params.set("location", location);
-        } else {
-          params.set(`location${index + 1}`, location);
+      // Add new location filters
+      newFilters.locations.forEach((locationDisplayName, index) => {
+        const selectedLocation = allLocations.find(
+          (loc) => getLocationDisplayName(loc) === locationDisplayName
+        );
+        if (selectedLocation) {
+          if (index === 0) {
+            params.set("location", selectedLocation);
+          } else {
+            params.set(`location${index + 1}`, selectedLocation);
+          }
         }
       });
 
@@ -3060,6 +3080,7 @@ const SearchResults = () => {
     (url) => {
       navigate(url);
       setShowSuggestions(false);
+      setShowMobileSearchModal(false);
     },
     [navigate]
   );
@@ -3293,17 +3314,14 @@ const SearchResults = () => {
       >
         {/* Fixed Search Bar Container with Back Button */}
         <div
-          className={`
-            relative 
-            ${isMobile ? "sticky top-0 bg-gray-50 z-50 pt-4 pb-3" : "z-30 py-6"}
-          `}
+          className="z-30 py-4 md:py-6 relative"
           style={{
-            zIndex: isMobile ? 50 : 50,
+            zIndex: 50,
             width: "100%",
             marginLeft: "0",
             marginRight: "0",
-            paddingLeft: isMobile ? "0" : "0",
-            paddingRight: isMobile ? "0" : "0",
+            paddingLeft: "0",
+            paddingRight: "0",
           }}
           id="search-section"
         >
@@ -3314,8 +3332,8 @@ const SearchResults = () => {
             }}
           >
             <div className="flex items-center gap-3">
-              {/* Back Button */}
-              <BackButton className={isMobile ? "flex" : "hidden"} />
+              {/* Back Button - Show only on mobile */}
+              <BackButton className="md:hidden" />
 
               <div className="flex-1">
                 <div className="flex justify-center">
@@ -3397,14 +3415,14 @@ const SearchResults = () => {
         )}
 
         {/* Mobile Search Modal */}
-        {isMobile && showSuggestions && (
+        {isMobile && (
           <MobileSearchModal
             searchQuery={localSearchQuery}
             listings={listings}
             onSuggestionClick={handleSuggestionClick}
-            onClose={() => setShowSuggestions(false)}
+            onClose={() => setShowMobileSearchModal(false)}
             onTyping={handleSearchChange}
-            isVisible={showSuggestions}
+            isVisible={showMobileSearchModal}
           />
         )}
 
@@ -3493,6 +3511,7 @@ const SearchResults = () => {
                       onClick={toggleMobileFilters}
                       className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm"
                       aria-label="Open filters"
+                      ref={filterButtonRef}
                     >
                       <div className="relative">
                         <PiSliders className="text-gray-600 text-lg" />
@@ -3833,6 +3852,28 @@ const SearchResults = () => {
         }
 
         /* Animation for search suggestions */
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+
+        @keyframes slideOutRight {
+          from {
+            transform: translateX(0);
+            opacity: 1;
+          }
+          to {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+        }
+
         @keyframes slideInUp {
           from {
             transform: translateY(100%);
@@ -3864,6 +3905,29 @@ const SearchResults = () => {
           }
         }
 
+        /* NEW: Sharp fade animations */
+        @keyframes fadeInSharp {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes fadeOutSharp {
+          from {
+            opacity: 1;
+            transform: translateY(0);
+          }
+          to {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+        }
+
         .animate-slideInUp {
           animation: slideInUp 0.3s ease-out;
         }
@@ -3874,6 +3938,14 @@ const SearchResults = () => {
 
         .animate-scaleIn {
           animation: scaleIn 0.2s ease-out;
+        }
+
+        .animate-fadeInSharp {
+          animation: fadeInSharp 0.2s ease-out forwards;
+        }
+
+        .animate-fadeOutSharp {
+          animation: fadeOutSharp 0.2s ease-in forwards;
         }
 
         /* Additional styles for mobile */
@@ -3921,4 +3993,3 @@ const SearchResults = () => {
 };
 
 export default SearchResults;
-
