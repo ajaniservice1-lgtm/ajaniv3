@@ -1299,73 +1299,8 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* SORTING SECTION */}
-      <div className="border-b pb-4">
-        <button
-          onClick={() => toggleSection("sort")}
-          className="w-full flex justify-between items-center mb-3"
-        >
-          <div className="flex items-center gap-2">
-            <FontAwesomeIcon icon={faFilter} className="text-purple-500" />
-            <h4 className="font-semibold text-gray-900 text-base">Sort By</h4>
-            {filters.sortBy !== "relevance" && (
-              <span className="bg-purple-100 text-purple-600 text-xs px-2 py-1 rounded-full">
-                Active
-              </span>
-            )}
-          </div>
-          <FontAwesomeIcon
-            icon={expandedSections.sort ? faChevronUp : faChevronDown}
-            className="text-gray-400"
-          />
-        </button>
-
-        {expandedSections.sort && (
-          <div className="space-y-2">
-            {[
-              { value: "relevance", label: "Relevance" },
-              { value: "price_low", label: "Price: Low to High" },
-              { value: "price_high", label: "Price: High to Low" },
-              { value: "rating", label: "Highest Rated" },
-              { value: "name", label: "Name: A to Z" },
-            ].map((option) => (
-              <label
-                key={option.value}
-                className="flex items-center space-x-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
-                style={{
-                  paddingLeft: isMobileModal ? "0.25rem" : "0.5rem",
-                  paddingRight: isMobileModal ? "0.25rem" : "0.5rem",
-                }}
-              >
-                <input
-                  type="radio"
-                  name="sortBy"
-                  checked={filters.sortBy === option.value}
-                  onChange={() => handleSortChange(option.value)}
-                  className="w-4 h-4 rounded-full border-gray-300 text-purple-600 focus:ring-purple-500 transition-colors"
-                  style={{
-                    transform: isMobileModal ? "scale(1.1)" : "scale(1)",
-                    marginRight: isMobileModal ? "0.5rem" : "0.25rem",
-                  }}
-                />
-                <span
-                  className={`text-sm group-hover:text-[#06EAFC] transition-colors ${
-                    filters.sortBy === option.value
-                      ? "text-purple-700 font-medium"
-                      : "text-gray-700"
-                  }`}
-                  style={{
-                    fontSize: isMobileModal ? "14px" : "inherit",
-                    flex: 1,
-                  }}
-                >
-                  {option.label}
-                </span>
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* SORTING SECTION - REMOVED FROM FILTER SIDEBAR */}
+      {/* This section has been removed as requested */}
     </div>
   );
 
@@ -1535,7 +1470,15 @@ const CategoryResults = () => {
 
   // CRITICAL FIX 1: Scroll to top on component mount and when params change
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" });
+    // Scroll to the top of the search bar section
+    const searchSection = document.querySelector(
+      ".sticky.top-0.bg-gray-50, .relative.z-50"
+    );
+    if (searchSection) {
+      searchSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }, [location.pathname, location.search]);
 
   // Initialize listings and filter by category
@@ -2127,8 +2070,19 @@ const CategoryResults = () => {
       </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 md:mt-15">
-        {/* Fixed Search Bar Container with Back Button */}
-        <div className="z-30 py-4 md:py-6 relative" style={{ zIndex: 50 }}>
+        {/* Fixed Search Bar Container with Back Button - Increased width for mobile */}
+        <div
+          className="z-30 py-4 md:py-6 relative"
+          style={{
+            zIndex: 50,
+            width: isMobile ? "calc(100% + 2rem)" : "100%",
+            marginLeft: isMobile ? "-1rem" : "0",
+            marginRight: isMobile ? "-1rem" : "0",
+            paddingLeft: isMobile ? "1rem" : "0",
+            paddingRight: isMobile ? "1rem" : "0",
+          }}
+          id="search-section"
+        >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-3">
               {/* Back Button - Show only on mobile */}
@@ -2139,10 +2093,18 @@ const CategoryResults = () => {
                   <div
                     className="w-full max-w-md relative"
                     ref={searchContainerRef}
+                    style={{
+                      width: isMobile ? "100%" : "100%",
+                    }}
                   >
                     <form onSubmit={handleSearchSubmit}>
                       <div className="flex items-center">
-                        <div className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-40">
+                        <div
+                          className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-40"
+                          style={{
+                            width: isMobile ? "100%" : "100%",
+                          }}
+                        >
                           <div className="pl-3 sm:pl-4 text-gray-500">
                             <FontAwesomeIcon
                               icon={faSearch}
@@ -2158,6 +2120,9 @@ const CategoryResults = () => {
                             autoFocus={false}
                             aria-label="Search input"
                             role="searchbox"
+                            style={{
+                              width: isMobile ? "100%" : "100%",
+                            }}
                           />
                           {localSearchQuery && (
                             <button
@@ -2222,8 +2187,17 @@ const CategoryResults = () => {
           />
         )}
 
-        {/* Main Content Layout */}
-        <div className="flex flex-col lg:flex-row gap-6">
+        {/* Main Content Layout - Increased width for mobile */}
+        <div
+          className="flex flex-col lg:flex-row gap-6"
+          style={{
+            width: isMobile ? "calc(100% + 2rem)" : "100%",
+            marginLeft: isMobile ? "-1rem" : "0",
+            marginRight: isMobile ? "-1rem" : "0",
+            paddingLeft: isMobile ? "1rem" : "0",
+            paddingRight: isMobile ? "1rem" : "0",
+          }}
+        >
           {/* Desktop Filter Sidebar */}
           {!isMobile && filtersInitialized && (
             <div className="lg:w-1/4">
@@ -2239,9 +2213,15 @@ const CategoryResults = () => {
             </div>
           )}
 
-          {/* Results Content */}
-          <div className="lg:w-3/4" ref={resultsRef}>
-            {/* Page Header with Filter Button */}
+          {/* Results Content - Increased width for mobile */}
+          <div
+            className="lg:w-3/4"
+            ref={resultsRef}
+            style={{
+              width: isMobile ? "100%" : "100%",
+            }}
+          >
+            {/* Page Header with Filter Button and Sort Dropdown on LG */}
             <div className="mb-4 md:mb-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:gap-4">
                 <div className="flex-1 flex items-center gap-3">
@@ -2292,41 +2272,96 @@ const CategoryResults = () => {
                   </div>
                 </div>
 
-                {/* Sort By Dropdown - Only on mobile */}
-                {isMobile && filtersInitialized && (
-                  <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <select
-                        value={activeFilters.sortBy}
-                        onChange={(e) => {
-                          const updatedFilters = {
-                            ...activeFilters,
-                            sortBy: e.target.value,
-                          };
-                          handleFilterChange(updatedFilters);
-                        }}
-                        className="appearance-none px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-8"
-                      >
-                        <option value="relevance">Sort by: Relevance</option>
-                        <option value="price_low">Price: Low to High</option>
-                        <option value="price_high">Price: High to Low</option>
-                        <option value="rating">Highest Rated</option>
-                        <option value="name">Name: A to Z</option>
-                      </select>
-                      <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                        <FontAwesomeIcon
-                          icon={faChevronDown}
-                          className="text-gray-500 text-xs"
-                        />
-                      </div>
+                {/* Sort By Dropdown - Only on mobile and LG screens */}
+                {(isMobile || window.innerWidth >= 1024) &&
+                  filtersInitialized && (
+                    <div className="flex items-center gap-2">
+                      {/* LG Screen: Sort dropdown at far right edge, no background */}
+                      {!isMobile && (
+                        <div className="relative">
+                          <select
+                            value={activeFilters.sortBy}
+                            onChange={(e) => {
+                              const updatedFilters = {
+                                ...activeFilters,
+                                sortBy: e.target.value,
+                              };
+                              handleFilterChange(updatedFilters);
+                            }}
+                            className="appearance-none px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-0 cursor-pointer pr-8 bg-transparent border-0"
+                            style={{
+                              background: "transparent",
+                              border: "none",
+                              boxShadow: "none",
+                            }}
+                          >
+                            <option value="relevance">
+                              Sort by: Relevance
+                            </option>
+                            <option value="price_low">
+                              Price: Low to High
+                            </option>
+                            <option value="price_high">
+                              Price: High to Low
+                            </option>
+                            <option value="rating">Highest Rated</option>
+                            <option value="name">Name: A to Z</option>
+                          </select>
+                          <div className="absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                            <FontAwesomeIcon
+                              icon={faChevronDown}
+                              className="text-gray-500 text-xs"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Mobile: Regular dropdown */}
+                      {isMobile && filtersInitialized && (
+                        <div className="relative">
+                          <select
+                            value={activeFilters.sortBy}
+                            onChange={(e) => {
+                              const updatedFilters = {
+                                ...activeFilters,
+                                sortBy: e.target.value,
+                              };
+                              handleFilterChange(updatedFilters);
+                            }}
+                            className="appearance-none px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-8"
+                          >
+                            <option value="relevance">
+                              Sort by: Relevance
+                            </option>
+                            <option value="price_low">
+                              Price: Low to High
+                            </option>
+                            <option value="price_high">
+                              Price: High to Low
+                            </option>
+                            <option value="rating">Highest Rated</option>
+                            <option value="name">Name: A to Z</option>
+                          </select>
+                          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                            <FontAwesomeIcon
+                              icon={faChevronDown}
+                              className="text-gray-500 text-xs"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
             </div>
 
-            {/* Results Display */}
-            <div className="space-y-4 md:space-y-6">
+            {/* Results Display - Increased width for mobile */}
+            <div
+              className="space-y-4 md:space-y-6"
+              style={{
+                width: isMobile ? "100%" : "100%",
+              }}
+            >
               {filteredCount === 0 && filtersInitialized && (
                 <div className="text-center py-8 md:py-12 bg-white rounded-xl border border-gray-200">
                   <FontAwesomeIcon
@@ -2377,6 +2412,9 @@ const CategoryResults = () => {
                         <div
                           key={rowIndex}
                           className="flex overflow-x-auto scrollbar-hide gap-2 pb-3"
+                          style={{
+                            width: isMobile ? "100%" : "100%",
+                          }}
                         >
                           {currentListings
                             .slice(rowIndex * 5, (rowIndex + 1) * 5)
@@ -2392,7 +2430,12 @@ const CategoryResults = () => {
                       ))}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div
+                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                      style={{
+                        width: isMobile ? "100%" : "100%",
+                      }}
+                    >
                       {currentListings.map((listing, index) => (
                         <SearchResultBusinessCard
                           key={listing.id || index}
@@ -2548,6 +2591,19 @@ const CategoryResults = () => {
 
         ::-webkit-scrollbar-thumb:hover {
           background: #a1a1a1;
+        }
+
+        /* LG screen sort dropdown styling */
+        @media (min-width: 1024px) {
+          select.bg-transparent {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
+
+          select.bg-transparent:hover {
+            color: #00065a;
+          }
         }
       `}</style>
     </div>
