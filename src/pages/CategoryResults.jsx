@@ -748,28 +748,35 @@ const MobileSearchModal = ({
             >
               <FontAwesomeIcon icon={faChevronLeft} className="w-5 h-5" />
             </button>
-            <div className="flex-1 relative">
-              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                <FontAwesomeIcon icon={faSearch} className="w-4 h-4" />
+            <div className="flex-1 relative flex justify-center">
+              <div
+                className="w-full"
+                style={{ width: isMobile ? "100%" : "30%", maxWidth: "600px" }}
+              >
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                    <FontAwesomeIcon icon={faSearch} className="w-4 h-4" />
+                  </div>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    className="w-full pl-10 pr-10 py-3 bg-gray-100 rounded-full border-0 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-900"
+                    value={inputValue}
+                    onChange={handleInputChange}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Search by area, category, or name..."
+                    autoFocus
+                  />
+                  {inputValue && (
+                    <button
+                      onClick={handleClearInput}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               </div>
-              <input
-                ref={inputRef}
-                type="text"
-                className="w-full pl-10 pr-10 py-3 bg-gray-100 rounded-full border-0 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-900"
-                value={inputValue}
-                onChange={handleInputChange}
-                onKeyPress={handleKeyPress}
-                placeholder="Search by area, category, or name..."
-                autoFocus
-              />
-              {inputValue && (
-                <button
-                  onClick={handleClearInput}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
-                </button>
-              )}
             </div>
           </div>
         </div>
