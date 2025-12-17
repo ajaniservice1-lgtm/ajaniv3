@@ -304,9 +304,14 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   const images = getCardImages(item);
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
-
-  // Use custom hook for favorite status
+  const [imageHeight, setImageHeight] = useState(170);
   const isFavorite = useIsFavorite(item.id);
+  const cardRef = useRef(null);
+
+  // Set consistent height based on device
+  useEffect(() => {
+    setImageHeight(isMobile ? 150 : 170);
+  }, [isMobile]);
 
   const formatPrice = (n) => {
     if (!n) return "–";
@@ -368,13 +373,11 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   // Toast Notification Function
   const showToast = useCallback(
     (message, type = "success") => {
-      // Remove any existing toast
       const existingToast = document.getElementById("toast-notification");
       if (existingToast) {
         existingToast.remove();
       }
 
-      // Create toast element
       const toast = document.createElement("div");
       toast.id = "toast-notification";
       toast.className = `fixed z-[9999] px-4 py-3 rounded-lg shadow-lg border ${
@@ -383,13 +386,11 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
           : "bg-blue-50 border-blue-200 text-blue-800"
       }`;
 
-      // Position toast
       toast.style.top = isMobile ? "15px" : "15px";
       toast.style.right = "15px";
       toast.style.maxWidth = "320px";
       toast.style.animation = "slideInRight 0.3s ease-out forwards";
 
-      // Toast content
       toast.innerHTML = `
       <div class="flex items-start gap-3">
         <div class="${
@@ -413,10 +414,8 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
       </div>
     `;
 
-      // Add to DOM
       document.body.appendChild(toast);
 
-      // Auto remove after 3 seconds
       setTimeout(() => {
         if (toast.parentElement) {
           toast.style.animation = "slideOutRight 0.3s ease-in forwards";
@@ -436,27 +435,20 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
     async (e) => {
       e.stopPropagation();
 
-      // Prevent multiple clicks while processing
       if (isProcessing) return;
-
-      // Immediately show loading state
       setIsProcessing(true);
 
       try {
-        // Check if user is signed in
         const isLoggedIn = localStorage.getItem("ajani_dummy_login") === "true";
 
-        // If not logged in, show login prompt
         if (!isLoggedIn) {
           showToast("Please login to save listings", "info");
 
-          // Store the current URL to redirect back after login
           localStorage.setItem(
             "redirectAfterLogin",
             window.location.pathname + window.location.search
           );
 
-          // Store the item details to save after login
           const itemToSaveAfterLogin = {
             id: item.id,
             name: businessName,
@@ -482,7 +474,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
             JSON.stringify(itemToSaveAfterLogin)
           );
 
-          // Redirect to login page after a short delay
           setTimeout(() => {
             navigate("/login");
             setIsProcessing(false);
@@ -491,7 +482,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
           return;
         }
 
-        // User is logged in, proceed with bookmarking
         const saved = JSON.parse(
           localStorage.getItem("userSavedListings") || "[]"
         );
@@ -501,7 +491,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
         );
 
         if (isAlreadySaved) {
-          // REMOVE FROM SAVED
           const updated = saved.filter((savedItem) => savedItem.id !== item.id);
           localStorage.setItem("userSavedListings", JSON.stringify(updated));
 
@@ -513,7 +502,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
             })
           );
         } else {
-          // ADD TO SAVED
           const listingToSave = {
             id: item.id || `listing_${Date.now()}`,
             name: businessName,
@@ -575,28 +563,22 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
     );
 
     if (pendingSaveItem && pendingSaveItem.id === item.id) {
-      // Clear the pending save
       localStorage.removeItem("pendingSaveItem");
 
-      // Get existing saved listings
       const saved = JSON.parse(
         localStorage.getItem("userSavedListings") || "[]"
       );
 
-      // Check if already saved (to avoid duplicates)
       const isAlreadySaved = saved.some(
         (savedItem) => savedItem.id === item.id
       );
 
       if (!isAlreadySaved) {
-        // Add to saved listings
         const updated = [...saved, pendingSaveItem];
         localStorage.setItem("userSavedListings", JSON.stringify(updated));
 
-        // Show success message
         showToast("Added to saved listings!", "success");
 
-        // Dispatch event
         window.dispatchEvent(
           new CustomEvent("savedListingsUpdated", {
             detail: { action: "added", item: pendingSaveItem },
@@ -608,26 +590,37 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
 
   return (
     <div
+      ref={cardRef}
       className={`
         bg-white rounded-xl overflow-hidden flex-shrink-0 
-        font-manrope relative group
+        font-manrope relative group flex flex-col h-full
         ${isMobile ? "w-[165px]" : "w-full"} 
         transition-all duration-200 cursor-pointer 
         hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
       `}
       onClick={handleCardClick}
+      style={{
+        height: isMobile ? '280px' : '320px',
+      }}
     >
       {/* Image */}
       <div
-        className={`
-          relative overflow-hidden rounded-xl 
-          ${isMobile ? "w-full h-[150px]" : "w-full h-[170px]"}
-        `}
+        className="relative overflow-hidden rounded-xl flex-shrink-0"
+        style={{
+          height: `${imageHeight}px`,
+          minHeight: `${imageHeight}px`,
+          maxHeight: `${imageHeight}px`,
+        }}
       >
         <img
           src={images[0]}
           alt={businessName}
           className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
+          style={{
+            height: '100%',
+            width: '100%',
+            objectFit: 'cover'
+          }}
           onError={(e) => {
             e.currentTarget.src = FALLBACK_IMAGES.default;
             e.currentTarget.onerror = null;
@@ -676,84 +669,67 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
       </div>
 
       {/* Text Content */}
-      <div className={`${isMobile ? "p-1.5" : "p-2.5"} flex flex-col gap-0.5`}>
-        <h3
-          className={`
-            font-semibold text-gray-900 
-            leading-tight line-clamp-2 
-            ${isMobile ? "text-xs" : "text-sm"}
-          `}
-        >
+      <div className={`flex-1 ${isMobile ? "p-1.5" : "p-2.5"} flex flex-col`}>
+        <h3 className="font-semibold text-gray-900 leading-tight line-clamp-2 text-xs md:text-sm mb-1 flex-shrink-0">
           {businessName}
         </h3>
 
-        <div className="text-gray-600">
-          <p className={`${isMobile ? "text-[9px]" : "text-xs"} line-clamp-1`}>
-            {locationText}
-          </p>
-        </div>
-
-        {/* Combined Price, Per Text, and Ratings on same line */}
-        <div className="flex items-center justify-between mt-1">
-          <div className="flex items-center gap-1 flex-wrap">
-            {/* Price and Per Text */}
-            <div className="flex items-baseline gap-1">
-              <span
-                className={`${
-                  isMobile ? "text-xs" : "text-xs"
-                } font-manrope text-gray-900`}
-              >
-                {priceText}
-              </span>
-              <span
-                className={`${
-                  isMobile ? "text-[9px]" : "text-xs"
-                } text-gray-600`}
-              >
-                {perText}
-              </span>
-            </div>
-          </div>
-
-          {/* Ratings on the right */}
-          <div className="flex items-center gap-1">
-            <div
-              className={`
-                flex items-center gap-1 text-gray-800 
-                ${isMobile ? "text-[9px]" : "text-xs"}
-              `}
-            >
-              <FontAwesomeIcon
-                icon={faStar}
-                className={`${isMobile ? "text-[9px]" : "text-xs"} text-black`}
-              />
-              <span className="font-semibold text-black">{rating}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom row: Category tag and Saved indicator */}
-        <div className="flex items-center justify-between mt-1">
-          {/* Category tag */}
+        <div className="flex-1 flex flex-col justify-between">
           <div>
-            <span className="inline-block text-[10px] text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
-              {capitalizeFirst(category)}
-            </span>
+            <p className="text-gray-600 text-[9px] md:text-xs line-clamp-1 mb-2">
+              {locationText}
+            </p>
+
+            {/* Combined Price, Per Text, and Ratings on same line */}
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1 flex-wrap">
+                {/* Price and Per Text */}
+                <div className="flex items-baseline gap-1">
+                  <span className="text-xs md:text-xs font-manrope text-gray-900">
+                    {priceText}
+                  </span>
+                  <span className="text-[9px] md:text-xs text-gray-600">
+                    {perText}
+                  </span>
+                </div>
+              </div>
+
+              {/* Ratings on the right */}
+              <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 text-gray-800 text-[9px] md:text-xs">
+                  <FontAwesomeIcon
+                    icon={faStar}
+                    className="text-black"
+                  />
+                  <span className="font-semibold text-black">{rating}</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Saved indicator badge */}
-          {isFavorite && !isProcessing && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
-              <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Saved
-            </span>
-          )}
+          {/* Bottom row: Category tag and Saved indicator */}
+          <div className="flex items-center justify-between mt-auto pt-2">
+            {/* Category tag */}
+            <div>
+              <span className="inline-block text-[10px] text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
+                {capitalizeFirst(category)}
+              </span>
+            </div>
+
+            {/* Saved indicator badge */}
+            {isFavorite && !isProcessing && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Saved
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -767,7 +743,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
 const CategoryBreakdownBadges = ({ categories }) => {
   if (!categories || categories.length === 0) return null;
 
-  // Limit to top 3 categories for display
   const topCategories = categories.slice(0, 3);
 
   return (
@@ -1571,7 +1546,7 @@ const FilterSidebar = ({
 
   const [expandedSections, setExpandedSections] = useState({
     location: true,
-    category: true,
+    category: false, // Start collapsed
     price: true,
     rating: true,
     amenities: false,
@@ -1580,6 +1555,7 @@ const FilterSidebar = ({
 
   const [locationSearch, setLocationSearch] = useState("");
   const [categorySearch, setCategorySearch] = useState("");
+  const [showCategorySection, setShowCategorySection] = useState(false);
 
   const uniqueLocationDisplayNames = React.useMemo(() => {
     const locations = [
@@ -1618,10 +1594,24 @@ const FilterSidebar = ({
     }));
   };
 
+  // Show category section when location is selected
+  useEffect(() => {
+    if (filters.locations.length > 0) {
+      setShowCategorySection(true);
+      if (!expandedSections.category) {
+        setExpandedSections(prev => ({ ...prev, category: true }));
+      }
+    }
+  }, [filters.locations.length, expandedSections.category]);
+
   // Sync filters when currentFilters prop changes
   useEffect(() => {
     if (isInitialized && currentFilters) {
       setFilters(currentFilters);
+      // Show category section if locations are selected
+      if (currentFilters.locations.length > 0) {
+        setShowCategorySection(true);
+      }
     }
   }, [currentFilters, isInitialized]);
 
@@ -1635,11 +1625,8 @@ const FilterSidebar = ({
       const hasCategoryFilters = updatedFilters.categories.length > 0;
       const hasLocationFilters = updatedFilters.locations.length > 0;
 
-      // For categories, we need to handle multiple selections
       let categoryParams = [];
-
       if (hasCategoryFilters) {
-        // Map display names back to original category values
         updatedFilters.categories.forEach((catDisplayName) => {
           const selectedCategory = allCategories.find(
             (cat) => getCategoryDisplayName(cat) === catDisplayName
@@ -1650,7 +1637,6 @@ const FilterSidebar = ({
         });
       }
 
-      // For locations
       let locationParams = [];
       if (hasLocationFilters) {
         updatedFilters.locations.forEach((locDisplayName) => {
@@ -1743,14 +1729,20 @@ const FilterSidebar = ({
     applyFiltersImmediately(updatedFilters);
   };
 
+  const handleApplyAndClose = () => {
+    if (onClose) {
+      onClose();
+    }
+  };
+
   const sidebarContent = (
     <div
       className={`space-y-6 ${isMobileModal ? "px-0" : ""}`}
       style={{
-        marginLeft: isMobileModal ? "-1rem" : "0",
-        marginRight: isMobileModal ? "-1rem" : "0",
-        paddingLeft: isMobileModal ? "1rem" : "0",
-        paddingRight: isMobileModal ? "1rem" : "0",
+        marginLeft: isMobileModal ? "0" : "0",
+        marginRight: isMobileModal ? "0" : "0",
+        paddingLeft: isMobileModal ? "0.75rem" : "0",
+        paddingRight: isMobileModal ? "0.75rem" : "0",
       }}
     >
       {(isMobileModal || isDesktopModal) && (
@@ -1762,7 +1754,7 @@ const FilterSidebar = ({
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleApplyAndClose}
             className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl"
             aria-label="Close filters"
           >
@@ -1806,12 +1798,6 @@ const FilterSidebar = ({
                   value={locationSearch}
                   onChange={(e) => setLocationSearch(e.target.value)}
                   className="w-full pl-10 pr-8 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  style={{
-                    width: isMobileModal ? "100%" : "100%",
-                    fontSize: isMobileModal ? "14px" : "inherit",
-                    paddingLeft: isMobileModal ? "2.5rem" : "2.5rem",
-                    paddingRight: isMobileModal ? "2rem" : "2rem",
-                  }}
                 />
                 {locationSearch && (
                   <button
@@ -1848,20 +1834,12 @@ const FilterSidebar = ({
                     <label
                       key={index}
                       className="flex items-center space-x-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
-                      style={{
-                        paddingLeft: isMobileModal ? "0.25rem" : "0.5rem",
-                        paddingRight: isMobileModal ? "0.25rem" : "0.5rem",
-                      }}
                     >
                       <input
                         type="checkbox"
                         checked={filters.locations.includes(location)}
                         onChange={() => handleLocationChange(location)}
                         className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
-                        style={{
-                          transform: isMobileModal ? "scale(1.1)" : "scale(1)",
-                          marginRight: isMobileModal ? "0.5rem" : "0.25rem",
-                        }}
                       />
                       <span
                         className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
@@ -1870,7 +1848,6 @@ const FilterSidebar = ({
                             : "text-gray-700"
                         }`}
                         style={{
-                          fontSize: isMobileModal ? "14px" : "inherit",
                           flex: 1,
                         }}
                       >
@@ -1900,134 +1877,121 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* CATEGORY SECTION WITH SEARCH */}
-      <div className="border-b pb-4">
-        <button
-          onClick={() => toggleSection("category")}
-          className="w-full flex justify-between items-center mb-3"
-        >
-          <div className="flex items-center gap-2">
-            <FontAwesomeIcon icon={faFilter} className="text-green-500" />
-            <h4 className="font-semibold text-gray-900 text-base">Category</h4>
-            {filters.categories.length > 0 && (
-              <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full">
-                {filters.categories.length}
-              </span>
-            )}
-          </div>
-          <FontAwesomeIcon
-            icon={expandedSections.category ? faChevronUp : faChevronDown}
-            className="text-gray-400"
-          />
-        </button>
-
-        {expandedSections.category && (
-          <>
-            <div className="mb-3">
-              <div className="relative mb-3">
-                <FontAwesomeIcon
-                  icon={faSearch}
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"
-                />
-                <input
-                  type="text"
-                  placeholder="Search categories..."
-                  value={categorySearch}
-                  onChange={(e) => setCategorySearch(e.target.value)}
-                  className="w-full pl-10 pr-8 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                  style={{
-                    width: isMobileModal ? "100%" : "100%",
-                    fontSize: isMobileModal ? "14px" : "inherit",
-                    paddingLeft: isMobileModal ? "2.5rem" : "2.5rem",
-                    paddingRight: isMobileModal ? "2rem" : "2rem",
-                  }}
-                />
-                {categorySearch && (
-                  <button
-                    onClick={() => setCategorySearch("")}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    <FontAwesomeIcon icon={faTimes} className="text-sm" />
-                  </button>
-                )}
-              </div>
-              <div className="flex justify-between mb-2">
-                <button
-                  onClick={handleSelectAllCategories}
-                  className="text-sm text-green-600 hover:text-green-700 font-medium"
-                >
-                  {filters.categories.length ===
-                  uniqueCategoryDisplayNames.length
-                    ? "Clear All Categories"
-                    : "Select All Categories"}
-                </button>
-                <span className="text-xs text-gray-500">
-                  {filteredCategoryDisplayNames.length} categories
+      {/* CATEGORY SECTION WITH SEARCH - Show after location selection */}
+      {(showCategorySection || filters.categories.length > 0) && (
+        <div className="border-b pb-4">
+          <button
+            onClick={() => toggleSection("category")}
+            className="w-full flex justify-between items-center mb-3"
+          >
+            <div className="flex items-center gap-2">
+              <FontAwesomeIcon icon={faFilter} className="text-green-500" />
+              <h4 className="font-semibold text-gray-900 text-base">Category</h4>
+              {filters.categories.length > 0 && (
+                <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full">
+                  {filters.categories.length}
                 </span>
-              </div>
-            </div>
-            <div className="max-h-52 overflow-y-auto pr-1">
-              {filteredCategoryDisplayNames.length === 0 ? (
-                <div className="text-center py-4 text-gray-500 text-sm">
-                  No categories found matching "{categorySearch}"
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-2">
-                  {filteredCategoryDisplayNames.map((category, index) => (
-                    <label
-                      key={index}
-                      className="flex items-center space-x-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
-                      style={{
-                        paddingLeft: isMobileModal ? "0.25rem" : "0.5rem",
-                        paddingRight: isMobileModal ? "0.25rem" : "0.5rem",
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={filters.categories.includes(category)}
-                        onChange={() => handleCategoryChange(category)}
-                        className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 transition-colors"
-                        style={{
-                          transform: isMobileModal ? "scale(1.1)" : "scale(1)",
-                          marginRight: isMobileModal ? "0.5rem" : "0.25rem",
-                        }}
-                      />
-                      <span
-                        className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
-                          filters.categories.includes(category)
-                            ? "text-green-700 font-medium"
-                            : "text-gray-700"
-                        }`}
-                        style={{
-                          fontSize: isMobileModal ? "14px" : "inherit",
-                          flex: 1,
-                        }}
-                      >
-                        {category}
-                      </span>
-                      {filters.categories.includes(category) && (
-                        <FontAwesomeIcon
-                          icon={faCheck}
-                          className="text-sm text-green-600"
-                        />
-                      )}
-                    </label>
-                  ))}
-                </div>
               )}
             </div>
-            {filters.categories.length > 0 && (
-              <div className="mt-3 p-2 bg-green-50 rounded-lg">
-                <p className="text-xs text-green-800">
-                  Selected: {filters.categories.slice(0, 3).join(", ")}
-                  {filters.categories.length > 3 &&
-                    ` +${filters.categories.length - 3} more`}
-                </p>
+            <FontAwesomeIcon
+              icon={expandedSections.category ? faChevronUp : faChevronDown}
+              className="text-gray-400"
+            />
+          </button>
+
+          {expandedSections.category && (
+            <>
+              <div className="mb-3">
+                <div className="relative mb-3">
+                  <FontAwesomeIcon
+                    icon={faSearch}
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Search categories..."
+                    value={categorySearch}
+                    onChange={(e) => setCategorySearch(e.target.value)}
+                    className="w-full pl-10 pr-8 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  />
+                  {categorySearch && (
+                    <button
+                      onClick={() => setCategorySearch("")}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <FontAwesomeIcon icon={faTimes} className="text-sm" />
+                    </button>
+                  )}
+                </div>
+                <div className="flex justify-between mb-2">
+                  <button
+                    onClick={handleSelectAllCategories}
+                    className="text-sm text-green-600 hover:text-green-700 font-medium"
+                  >
+                    {filters.categories.length ===
+                    uniqueCategoryDisplayNames.length
+                      ? "Clear All Categories"
+                      : "Select All Categories"}
+                  </button>
+                  <span className="text-xs text-gray-500">
+                    {filteredCategoryDisplayNames.length} categories
+                  </span>
+                </div>
               </div>
-            )}
-          </>
-        )}
-      </div>
+              <div className="max-h-52 overflow-y-auto pr-1">
+                {filteredCategoryDisplayNames.length === 0 ? (
+                  <div className="text-center py-4 text-gray-500 text-sm">
+                    No categories found matching "{categorySearch}"
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2">
+                    {filteredCategoryDisplayNames.map((category, index) => (
+                      <label
+                        key={index}
+                        className="flex items-center space-x-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={filters.categories.includes(category)}
+                          onChange={() => handleCategoryChange(category)}
+                          className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 transition-colors"
+                        />
+                        <span
+                          className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
+                            filters.categories.includes(category)
+                              ? "text-green-700 font-medium"
+                              : "text-gray-700"
+                          }`}
+                          style={{
+                            flex: 1,
+                          }}
+                        >
+                          {category}
+                        </span>
+                        {filters.categories.includes(category) && (
+                          <FontAwesomeIcon
+                            icon={faCheck}
+                            className="text-sm text-green-600"
+                          />
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {filters.categories.length > 0 && (
+                <div className="mt-3 p-2 bg-green-50 rounded-lg">
+                  <p className="text-xs text-green-800">
+                    Selected: {filters.categories.slice(0, 3).join(", ")}
+                    {filters.categories.length > 3 &&
+                      ` +${filters.categories.length - 3} more`}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {/* PRICE RANGE SECTION */}
       <div className="border-b pb-4">
@@ -2069,9 +2033,6 @@ const FilterSidebar = ({
                     value={filters.priceRange.min}
                     onChange={(e) => handlePriceChange("min", e.target.value)}
                     className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    style={{
-                      fontSize: isMobileModal ? "14px" : "inherit",
-                    }}
                   />
                 </div>
               </div>
@@ -2090,9 +2051,6 @@ const FilterSidebar = ({
                     value={filters.priceRange.max}
                     onChange={(e) => handlePriceChange("max", e.target.value)}
                     className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    style={{
-                      fontSize: isMobileModal ? "14px" : "inherit",
-                    }}
                   />
                 </div>
               </div>
@@ -2146,20 +2104,12 @@ const FilterSidebar = ({
               <label
                 key={stars}
                 className="flex items-center space-x-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
-                style={{
-                  paddingLeft: isMobileModal ? "0.25rem" : "0.5rem",
-                  paddingRight: isMobileModal ? "0.25rem" : "0.5rem",
-                }}
               >
                 <input
                   type="checkbox"
                   checked={filters.ratings.includes(stars)}
                   onChange={() => handleRatingChange(stars)}
                   className="w-4 h-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500 transition-colors"
-                  style={{
-                    transform: isMobileModal ? "scale(1.1)" : "scale(1)",
-                    marginRight: isMobileModal ? "0.5rem" : "0.25rem",
-                  }}
                 />
                 <div className="flex items-center space-x-2">
                   <div className="flex">
@@ -2206,7 +2156,6 @@ const FilterSidebar = ({
       </div>
 
       {/* SORTING SECTION - REMOVED FROM FILTER SIDEBAR */}
-      {/* This section has been removed as requested */}
     </div>
   );
 
@@ -2230,13 +2179,13 @@ const FilterSidebar = ({
           maxWidth: "100vw",
         }}
       >
-        <div className="h-full overflow-y-auto w-full">
-          {/* Main content with increased width */}
+        <div className="h-full overflow-y-auto w-full" style={{ paddingLeft: '0', paddingRight: '0' }}>
+          {/* Main content with minimal padding */}
           <div
             className="pt-5"
             style={{
-              paddingLeft: "1rem",
-              paddingRight: "1rem",
+              paddingLeft: "0.75rem",
+              paddingRight: "0.75rem",
               maxWidth: "100vw",
             }}
           >
@@ -2247,12 +2196,12 @@ const FilterSidebar = ({
           <div
             className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]"
             style={{
-              paddingLeft: "1rem",
-              paddingRight: "1rem",
+              paddingLeft: "0.75rem",
+              paddingRight: "0.75rem",
             }}
           >
             <button
-              onClick={onClose}
+              onClick={handleApplyAndClose}
               className="w-full px-4 py-3.5 text-base font-bold bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2 shadow-lg"
               style={{
                 fontSize: "16px",
@@ -2300,7 +2249,7 @@ const FilterSidebar = ({
                   </p>
                 </div>
                 <button
-                  onClick={onClose}
+                  onClick={handleApplyAndClose}
                   className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl"
                   aria-label="Close filters"
                 >
@@ -2315,7 +2264,7 @@ const FilterSidebar = ({
             {/* Modal Action Buttons */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg mt-8">
               <button
-                onClick={onClose}
+                onClick={handleApplyAndClose}
                 className="w-full px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2"
               >
                 <FontAwesomeIcon icon={faCheck} />
@@ -2479,12 +2428,12 @@ const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
           ref={containerRef}
           id={sectionId}
           className={`flex overflow-x-auto scrollbar-hide scroll-smooth ${
-            isMobile ? "gap-1" : "gap-2"
+            isMobile ? "gap-1 pl-0" : "gap-2"
           }`}
           style={{
             scrollbarWidth: "none",
             msOverflowStyle: "none",
-            paddingRight: "16px",
+            paddingRight: "8px",
           }}
         >
           {items.map((item, index) => (
@@ -2496,7 +2445,7 @@ const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
             />
           ))}
           {/* Spacer for last card visibility */}
-          <div className="flex-shrink-0" style={{ width: "16px" }}></div>
+          <div className="flex-shrink-0" style={{ width: "8px" }}></div>
         </div>
       </div>
     </section>
@@ -2602,16 +2551,39 @@ const SearchResults = () => {
 
   // CRITICAL FIX 1: Scroll to top on component mount and when search params change
   useEffect(() => {
-    // Scroll to the top of the search bar section
-    const searchSection = document.querySelector(
-      ".sticky.top-0.bg-gray-50, .relative.z-50"
-    );
-    if (searchSection) {
-      searchSection.scrollIntoView({ behavior: "smooth", block: "start" });
-    } else {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+    const scrollToTop = () => {
+      const searchSection = document.getElementById("search-section");
+      if (searchSection) {
+        searchSection.scrollIntoView({ 
+          behavior: "smooth", 
+          block: "start",
+          inline: "nearest"
+        });
+      } else {
+        window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+      }
+    };
+
+    const timer = setTimeout(scrollToTop, 100);
+    return () => clearTimeout(timer);
   }, [location.pathname, location.search]);
+
+  // Handle mobile filter apply with auto-scroll
+  const handleMobileFilterApply = useCallback(() => {
+    if (showMobileFilters) {
+      setShowMobileFilters(false);
+      
+      setTimeout(() => {
+        const searchSection = document.getElementById("search-section");
+        if (searchSection) {
+          searchSection.scrollIntoView({ 
+            behavior: "smooth", 
+            block: "start" 
+          });
+        }
+      }, 300);
+    }
+  }, [showMobileFilters]);
 
   useEffect(() => {
     if (listings.length > 0) {
@@ -3173,26 +3145,19 @@ const SearchResults = () => {
     startIndex + ITEMS_PER_PAGE
   );
 
-  if (loading) {
+  // CRITICAL FIX: Loading state for mobile (hide header)
+  if (loading && isMobile) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="hidden md:block">
-          <Header />
-        </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 pt-32">
-          <div className="flex space-x-1 justify-center">
-            <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"></div>
-            <div
-              className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"
-              style={{ animationDelay: "0.1s" }}
-            ></div>
-            <div
-              className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"
-              style={{ animationDelay: "0.2s" }}
-            ></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        {/* Only show three dots animation */}
+        <div className="flex flex-col items-center">
+          <div className="flex space-x-1 mb-4">
+            <div className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce"></div>
+            <div className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+            <div className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
           </div>
+          <p className="text-sm text-gray-600">Loading results...</p>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -3227,8 +3192,11 @@ const SearchResults = () => {
         <Header />
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 md:mt-14">
-        {/* Fixed Search Bar Container with Back Button - Increased width for mobile */}
+      <main className="pb-8 md:mt-14" style={{
+        paddingLeft: isMobile ? '0.75rem' : '0',
+        paddingRight: isMobile ? '0.75rem' : '0',
+      }}>
+        {/* Fixed Search Bar Container with Back Button - Minimal padding for mobile */}
         <div
           className={`
             relative 
@@ -3236,15 +3204,18 @@ const SearchResults = () => {
           `}
           style={{
             zIndex: isMobile ? 50 : 50,
-            width: isMobile ? "calc(100% + 2rem)" : "100%",
-            marginLeft: isMobile ? "-1rem" : "0",
-            marginRight: isMobile ? "-1rem" : "0",
-            paddingLeft: isMobile ? "1rem" : "0",
-            paddingRight: isMobile ? "1rem" : "0",
+            width: "100%",
+            marginLeft: "0",
+            marginRight: "0",
+            paddingLeft: isMobile ? "0" : "0",
+            paddingRight: isMobile ? "0" : "0",
           }}
           id="search-section"
         >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div style={{
+            paddingLeft: isMobile ? '0' : '0',
+            paddingRight: isMobile ? '0' : '0',
+          }}>
             <div className="flex items-center gap-3">
               {/* Back Button */}
               <BackButton className={isMobile ? "flex" : "hidden"} />
@@ -3252,10 +3223,10 @@ const SearchResults = () => {
               <div className="flex-1">
                 <div className="flex justify-center">
                   <div
-                    className="w-full max-w-md relative"
+                    className="w-full relative"
                     ref={searchContainerRef}
                     style={{
-                      width: isMobile ? "100%" : "100%",
+                      width: "100%",
                     }}
                   >
                     <form onSubmit={handleSearchSubmit}>
@@ -3263,7 +3234,7 @@ const SearchResults = () => {
                         <div
                           className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-40"
                           style={{
-                            width: isMobile ? "100%" : "100%",
+                            width: "100%",
                           }}
                         >
                           <div className="pl-3 sm:pl-4 text-gray-500">
@@ -3283,7 +3254,7 @@ const SearchResults = () => {
                             aria-label="Search input"
                             role="searchbox"
                             style={{
-                              width: isMobile ? "100%" : "100%",
+                              width: "100%",
                             }}
                           />
                           {localSearchQuery && (
@@ -3361,26 +3332,29 @@ const SearchResults = () => {
         {isMobile && showMobileFilters && (
           <FilterSidebar
             onFilterChange={handleFilterChange}
-            onDynamicFilterApply={handleDynamicFilterApply}
+            onDynamicFilterApply={(data) => {
+              handleDynamicFilterApply(data);
+              handleMobileFilterApply();
+            }}
             allLocations={allLocations}
             allCategories={allCategories}
             currentFilters={activeFilters}
             currentSearchQuery={searchQuery}
-            onClose={() => setShowMobileFilters(false)}
+            onClose={handleMobileFilterApply}
             isMobileModal={true}
             isInitialized={filtersInitialized}
           />
         )}
 
-        {/* Main Content Layout - Increased width for mobile */}
+        {/* Main Content Layout - Minimal padding for mobile */}
         <div
           className="flex flex-col lg:flex-row gap-6"
           style={{
-            width: isMobile ? "calc(100% + 2rem)" : "100%",
-            marginLeft: isMobile ? "-1rem" : "0",
-            marginRight: isMobile ? "-1rem" : "0",
-            paddingLeft: isMobile ? "1rem" : "0",
-            paddingRight: isMobile ? "1rem" : "0",
+            width: "100%",
+            marginLeft: "0",
+            marginRight: "0",
+            paddingLeft: "0",
+            paddingRight: "0",
           }}
         >
           {/* Desktop Filter Sidebar */}
@@ -3398,16 +3372,18 @@ const SearchResults = () => {
             </div>
           )}
 
-          {/* Results Content - Increased width for mobile */}
+          {/* Results Content - Minimal padding for mobile */}
           <div
             className="lg:w-3/4"
             ref={resultsRef}
             style={{
-              width: isMobile ? "100%" : "100%",
+              width: "100%",
+              paddingLeft: isMobile ? '0' : '0',
+              paddingRight: isMobile ? '0' : '0',
             }}
           >
             {/* Page Header with Filter Button and Sort Dropdown on LG */}
-            <div className="mb-6">
+            <div className="mb-6" style={{ paddingLeft: '0', paddingRight: '0' }}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex-1 flex items-center gap-3">
                   {/* Mobile filter button */}
@@ -3539,11 +3515,13 @@ const SearchResults = () => {
               </div>
             </div>
 
-            {/* Results Display - Increased width for mobile */}
+            {/* Results Display - Minimal padding for mobile */}
             <div
               className="space-y-6"
               style={{
-                width: isMobile ? "100%" : "100%",
+                width: "100%",
+                paddingLeft: "0",
+                paddingRight: "0",
               }}
             >
               {filteredCount === 0 && filtersInitialized && (
@@ -3602,7 +3580,7 @@ const SearchResults = () => {
                   })() ? (
                     <>
                       {isMobile ? (
-                        <div className="space-y-4">
+                        <div className="space-y-4" style={{ paddingLeft: '0', paddingRight: '0' }}>
                           {Array.from({
                             length: Math.ceil(currentListings.length / 5),
                           }).map((_, rowIndex) => (
@@ -3610,7 +3588,9 @@ const SearchResults = () => {
                               key={rowIndex}
                               className="flex overflow-x-auto scrollbar-hide gap-2 pb-4"
                               style={{
-                                width: isMobile ? "100%" : "100%",
+                                width: "100%",
+                                paddingLeft: '0',
+                                paddingRight: '8px',
                               }}
                             >
                               {currentListings
@@ -3630,7 +3610,7 @@ const SearchResults = () => {
                         <div
                           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
                           style={{
-                            width: isMobile ? "100%" : "100%",
+                            width: "100%",
                           }}
                         >
                           {currentListings.map((listing, index) => (
@@ -3758,6 +3738,12 @@ const SearchResults = () => {
             z-index: 50;
             background: #f9fafb;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          }
+          
+          /* Reduced padding for mobile */
+          main {
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
           }
         }
 
