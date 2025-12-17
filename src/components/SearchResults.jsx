@@ -18,6 +18,7 @@ import {
   faBed,
   faHome,
   faCalendarWeek,
+  faArrowLeft,
 } from "@fortawesome/free-solid-svg-icons";
 import { motion } from "framer-motion";
 import { PiSliders } from "react-icons/pi";
@@ -27,6 +28,33 @@ import Header from "./Header";
 import Footer from "./Footer";
 import Meta from "./Meta";
 import { createPortal } from "react-dom";
+
+// BackButton Component
+const BackButton = ({ className = "", onClick }) => {
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    if (onClick) {
+      onClick();
+    } else {
+      if (window.history.length > 1) {
+        navigate(-1);
+      } else {
+        navigate("/");
+      }
+    }
+  };
+
+  return (
+    <button
+      onClick={handleBack}
+      className={`flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors active:scale-95 ${className}`}
+      aria-label="Go back"
+    >
+      <FontAwesomeIcon icon={faArrowLeft} className="text-gray-700 text-lg" />
+    </button>
+  );
+};
 
 // Add capitalizeFirst function at the top
 const capitalizeFirst = (str) => {
@@ -163,19 +191,6 @@ const getLocationBreakdown = (listings) => {
 
   return Object.entries(locationCounts)
     .map(([location, count]) => ({ location, count }))
-    .sort((a, b) => b.count - a.count);
-};
-
-// Helper function to get category breakdown by location
-const getCategoryBreakdownByLocation = (listings) => {
-  const categoryCounts = {};
-  listings.forEach((item) => {
-    const category = getCategoryDisplayName(item.category || "other.other");
-    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-  });
-
-  return Object.entries(categoryCounts)
-    .map(([category, count]) => ({ category, count }))
     .sort((a, b) => b.count - a.count);
 };
 
@@ -416,7 +431,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
     [isMobile, businessName]
   );
 
-  // Handle favorite click - optimized with immediate feedback
+  // Handle favorite click
   const handleFavoriteClick = useCallback(
     async (e) => {
       e.stopPropagation();
@@ -431,7 +446,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
         // Check if user is signed in
         const isLoggedIn = localStorage.getItem("ajani_dummy_login") === "true";
 
-        // If not logged in, show login prompt and redirect to login page
+        // If not logged in, show login prompt
         if (!isLoggedIn) {
           showToast("Please login to save listings", "info");
 
@@ -477,12 +492,10 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
         }
 
         // User is logged in, proceed with bookmarking
-        // Get existing saved listings from localStorage
         const saved = JSON.parse(
           localStorage.getItem("userSavedListings") || "[]"
         );
 
-        // Check if this item is already saved
         const isAlreadySaved = saved.some(
           (savedItem) => savedItem.id === item.id
         );
@@ -492,10 +505,8 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
           const updated = saved.filter((savedItem) => savedItem.id !== item.id);
           localStorage.setItem("userSavedListings", JSON.stringify(updated));
 
-          // Show toast notification
           showToast("Removed from saved listings", "info");
 
-          // Dispatch event for other components
           window.dispatchEvent(
             new CustomEvent("savedListingsUpdated", {
               detail: { action: "removed", itemId: item.id },
@@ -527,10 +538,8 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
           const updated = [...saved, listingToSave];
           localStorage.setItem("userSavedListings", JSON.stringify(updated));
 
-          // Show toast notification
           showToast("Added to saved listings!", "success");
 
-          // Dispatch event for other components
           window.dispatchEvent(
             new CustomEvent("savedListingsUpdated", {
               detail: { action: "added", item: listingToSave },
@@ -633,7 +642,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
           </span>
         </div>
 
-        {/* Heart icon - Optimized with immediate visual feedback */}
+        {/* Heart icon */}
         <button
           onClick={handleFavoriteClick}
           disabled={isProcessing}
@@ -1536,7 +1545,7 @@ const MobileSearchModal = ({
   );
 };
 
-// ================== ENHANCED FILTER SIDEBAR (SEARCHABLE) - REAL-TIME FILTERING ==================
+// ================== ENHANCED FILTER SIDEBAR ==================
 const FilterSidebar = ({
   onFilterChange,
   allLocations,
@@ -1627,7 +1636,6 @@ const FilterSidebar = ({
       const hasLocationFilters = updatedFilters.locations.length > 0;
 
       // For categories, we need to handle multiple selections
-      // We'll use category1, category2, etc. for multiple categories
       let categoryParams = [];
 
       if (hasCategoryFilters) {
@@ -1657,8 +1665,8 @@ const FilterSidebar = ({
 
       onDynamicFilterApply({
         filters: updatedFilters,
-        categories: categoryParams, // Pass array of categories
-        locations: locationParams, // Pass array of locations
+        categories: categoryParams,
+        locations: locationParams,
         keepSearchQuery: currentSearchQuery,
       });
     }
@@ -1739,7 +1747,6 @@ const FilterSidebar = ({
     <div
       className={`space-y-6 ${isMobileModal ? "px-0" : ""}`}
       style={{
-        // Ensure content stretches to screen edges on mobile
         marginLeft: isMobileModal ? "-1rem" : "0",
         marginRight: isMobileModal ? "-1rem" : "0",
         paddingLeft: isMobileModal ? "1rem" : "0",
@@ -1764,7 +1771,7 @@ const FilterSidebar = ({
         </div>
       )}
 
-      {/* LOCATION SECTION WITH SEARCH - Reduced padding */}
+      {/* LOCATION SECTION WITH SEARCH */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("location")}
@@ -1893,7 +1900,7 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* CATEGORY SECTION WITH SEARCH - Reduced padding */}
+      {/* CATEGORY SECTION WITH SEARCH */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("category")}
@@ -2022,7 +2029,7 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* PRICE RANGE SECTION - Reduced padding */}
+      {/* PRICE RANGE SECTION */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("price")}
@@ -2110,7 +2117,7 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* RATING SECTION - Reduced padding */}
+      {/* RATING SECTION */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("rating")}
@@ -2198,7 +2205,7 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* SORTING SECTION - Reduced padding */}
+      {/* SORTING SECTION */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("sort")}
@@ -2268,7 +2275,7 @@ const FilterSidebar = ({
     </div>
   );
 
-  // Mobile Modal - Fullscreen with NO duplicate header
+  // Mobile Modal - Fullscreen
   if (isMobileModal) {
     return createPortal(
       <motion.div
@@ -2301,7 +2308,7 @@ const FilterSidebar = ({
             {sidebarContent}
           </div>
 
-          {/* Mobile Action Buttons - Wider and closer to screen edges */}
+          {/* Mobile Action Buttons */}
           <div
             className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]"
             style={{
@@ -2370,7 +2377,7 @@ const FilterSidebar = ({
           <div className="container mx-auto px-4 py-6 max-w-4xl">
             {sidebarContent}
 
-            {/* Modal Action Buttons - Changed to Apply Filter */}
+            {/* Modal Action Buttons */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg mt-8">
               <button
                 onClick={onClose}
@@ -2387,7 +2394,7 @@ const FilterSidebar = ({
     );
   }
 
-  // Regular sidebar (not modal) - No Apply/Reset buttons, real-time filtering
+  // Regular sidebar (not modal)
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit">
       {sidebarContent}
@@ -2422,10 +2429,7 @@ const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
     const container = containerRef.current;
     const { scrollLeft, scrollWidth, clientWidth } = container;
 
-    // Show left arrow if scrolled past the start
     setShowLeftArrow(scrollLeft > 0);
-
-    // Show right arrow if not at the end (with a small buffer)
     const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 10;
     setShowRightArrow(!isAtEnd);
   };
@@ -2434,10 +2438,8 @@ const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
   useEffect(() => {
     const container = containerRef.current;
     if (container) {
-      checkScrollPosition(); // Initial check
+      checkScrollPosition();
       container.addEventListener("scroll", checkScrollPosition);
-
-      // Also check on resize
       window.addEventListener("resize", checkScrollPosition);
 
       return () => {
@@ -2445,14 +2447,14 @@ const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
         window.removeEventListener("resize", checkScrollPosition);
       };
     }
-  }, [items.length, isMobile]); // Re-run when items or mobile state changes
+  }, [items.length, isMobile]);
 
   const scrollSection = (direction) => {
     const container = containerRef.current;
     if (!container) return;
 
-    const cardWidth = isMobile ? 165 + 4 : 210 + 8; // Card width + gap
-    const cardsToScroll = isMobile ? 3 : 3; // Number of cards to scroll at once
+    const cardWidth = isMobile ? 165 + 4 : 210 + 8;
+    const cardsToScroll = isMobile ? 3 : 3;
     const scrollAmount = cardWidth * cardsToScroll;
 
     const newPosition =
@@ -2465,7 +2467,6 @@ const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
       behavior: "smooth",
     });
 
-    // Check position after a short delay to ensure smooth transition
     setTimeout(checkScrollPosition, 300);
   };
 
@@ -2502,7 +2503,7 @@ const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
           </button>
         </div>
         <div className="flex gap-1">
-          {/* Left arrow - active when not at start */}
+          {/* Left arrow */}
           <button
             onClick={() => scrollSection("prev")}
             className={`w-6 h-6 rounded-full flex items-center justify-center transition-all shadow-sm ${
@@ -2519,7 +2520,7 @@ const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
             />
           </button>
 
-          {/* Right arrow - active when not at end */}
+          {/* Right arrow */}
           <button
             onClick={() => scrollSection("next")}
             className={`w-6 h-6 rounded-full flex items-center justify-center transition-all shadow-sm ${
@@ -2624,6 +2625,7 @@ const FilterPill = ({ type, label, value, onRemove }) => {
 const SearchResults = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const searchQuery = searchParams.get("q") || "";
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -2663,6 +2665,11 @@ const SearchResults = () => {
     error,
   } = useGoogleSheet(SHEET_ID, API_KEY);
 
+  // CRITICAL FIX 1: Scroll to top on component mount and when search params change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [location.pathname, location.search]);
+
   useEffect(() => {
     if (listings.length > 0) {
       const locations = [
@@ -2689,7 +2696,7 @@ const SearchResults = () => {
     setLocalSearchQuery(searchQuery);
   }, [searchQuery]);
 
-  // Initialize filters from URL parameters - HANDLES MULTIPLE LOCATIONS AND CATEGORIES
+  // Initialize filters from URL parameters
   useEffect(() => {
     if (!listings.length) return;
 
@@ -2702,7 +2709,7 @@ const SearchResults = () => {
       amenities: [],
     };
 
-    // Collect all location parameters (location, location2, location3, etc.)
+    // Collect all location parameters
     const locationParams = [];
     for (const [key, value] of searchParams.entries()) {
       if (key.startsWith("location")) {
@@ -2713,7 +2720,7 @@ const SearchResults = () => {
       }
     }
 
-    // Collect all category parameters (category, category2, category3, etc.)
+    // Collect all category parameters
     const categoryParams = [];
     for (const [key, value] of searchParams.entries()) {
       if (key.startsWith("category")) {
@@ -2726,19 +2733,19 @@ const SearchResults = () => {
 
     // Set locations from URL params
     if (locationParams.length > 0) {
-      initialFilters.locations = [...new Set(locationParams)]; // Remove duplicates
+      initialFilters.locations = [...new Set(locationParams)];
     }
 
     // Set categories from URL params
     if (categoryParams.length > 0) {
-      initialFilters.categories = [...new Set(categoryParams)]; // Remove duplicates
+      initialFilters.categories = [...new Set(categoryParams)];
     }
 
     setActiveFilters(initialFilters);
     setFiltersInitialized(true);
   }, [listings.length, searchParams.toString()]);
 
-  // FIXED: Correct filter logic for exact area filtering with MULTIPLE LOCATIONS AND CATEGORIES
+  // Filter logic
   const applyFilters = (listingsToFilter, filters) => {
     let filtered = [...listingsToFilter];
 
@@ -2784,7 +2791,7 @@ const SearchResults = () => {
       }
     }
 
-    // Apply locations from URL if present - MULTIPLE LOCATIONS SUPPORT
+    // Apply locations from URL
     if (locationParams.length > 0) {
       filtered = filtered.filter((item) => {
         const itemLocation = getLocationDisplayName(item.area || "");
@@ -2794,7 +2801,7 @@ const SearchResults = () => {
       });
     }
 
-    // Apply categories from URL if present - MULTIPLE CATEGORIES SUPPORT
+    // Apply categories from URL
     if (categoryParams.length > 0) {
       filtered = filtered.filter((item) => {
         const itemCategory = getCategoryDisplayName(item.category || "");
@@ -2804,7 +2811,7 @@ const SearchResults = () => {
       });
     }
 
-    // Apply filter panel locations - show items ONLY in selected locations
+    // Apply filter panel locations
     if (filters.locations.length > 0) {
       filtered = filtered.filter((item) => {
         const itemLocation = getLocationDisplayName(item.area || "");
@@ -2815,7 +2822,7 @@ const SearchResults = () => {
       });
     }
 
-    // Apply filter panel categories - show items ONLY in selected categories
+    // Apply filter panel categories
     if (filters.categories.length > 0) {
       filtered = filtered.filter((item) => {
         const itemCategory = getCategoryDisplayName(item.category || "");
@@ -2896,7 +2903,7 @@ const SearchResults = () => {
     filtersInitialized,
   ]);
 
-  // FIXED: Handle multiple locations AND categories in URL parameters
+  // Handle dynamic filter application
   const handleDynamicFilterApply = ({
     filters,
     categories = [],
@@ -2917,7 +2924,7 @@ const SearchResults = () => {
       }
     }
 
-    // Add categories to params - allow multiple with category, category2, category3, etc.
+    // Add categories to params
     categories.forEach((category, index) => {
       if (index === 0) {
         params.set("category", category);
@@ -2944,7 +2951,6 @@ const SearchResults = () => {
 
     // Update URL
     setSearchParams(params);
-    // Update filters state
     setActiveFilters(filters);
   };
 
@@ -2975,11 +2981,25 @@ const SearchResults = () => {
     }
   };
 
+  // CRITICAL FIX 2: Prevent image width change when clearing search on desktop
   const handleClearSearch = () => {
     setLocalSearchQuery("");
     const params = new URLSearchParams();
+    // Preserve filter parameters when clearing search
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith("location") || key.startsWith("category")) {
+        params.set(key, value);
+      }
+    }
     setSearchParams(params);
     setShowDesktopSearchSuggestions(false);
+    // Fix: Don't trigger unnecessary re-renders that affect image width
+    setTimeout(() => {
+      const searchInput = document.querySelector('input[role="searchbox"]');
+      if (searchInput) {
+        searchInput.focus();
+      }
+    }, 50);
   };
 
   const handleSearchFocus = () => {
@@ -3264,74 +3284,87 @@ const SearchResults = () => {
         <Header />
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-        {/* Fixed Search Bar Container - Updated for mobile */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 md:mt-14">
+        {/* Fixed Search Bar Container with Back Button */}
         <div
           className={`
             relative 
             ${isMobile ? "sticky top-0 bg-gray-50 z-50 pt-4 pb-3" : "z-30 py-6"}
           `}
           style={{
-            zIndex: isMobile ? 50 : 100,
+            zIndex: isMobile ? 50 : 50,
           }}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-center">
-              <div
-                className="w-full max-w-md relative"
-                ref={searchContainerRef}
-              >
-                <form onSubmit={handleSearchSubmit}>
-                  <div className="flex items-center">
-                    <div className="flex items-center bg-gray-200 lg:mt-20 rounded-full shadow-sm w-full relative z-40">
-                      <div className="pl-3 sm:pl-4 text-gray-500">
-                        <FontAwesomeIcon icon={faSearch} className="h-4 w-4" />
+            <div className="flex items-center gap-3">
+              {/* Back Button */}
+              <BackButton className={isMobile ? "flex" : "hidden"} />
+
+              <div className="flex-1">
+                <div className="flex justify-center">
+                  <div
+                    className="w-full max-w-md relative"
+                    ref={searchContainerRef}
+                  >
+                    <form onSubmit={handleSearchSubmit}>
+                      <div className="flex items-center">
+                        <div className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-40">
+                          <div className="pl-3 sm:pl-4 text-gray-500">
+                            <FontAwesomeIcon
+                              icon={faSearch}
+                              className="h-4 w-4"
+                            />
+                          </div>
+                          <input
+                            type="text"
+                            placeholder="Search by area, category, or name..."
+                            value={localSearchQuery}
+                            onChange={(e) => handleSearchChange(e.target.value)}
+                            onFocus={handleSearchFocus}
+                            className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope"
+                            autoFocus={false}
+                            aria-label="Search input"
+                            role="searchbox"
+                          />
+                          {localSearchQuery && (
+                            <button
+                              type="button"
+                              onClick={handleClearSearch}
+                              className="p-1 mr-2 text-gray-500 hover:text-gray-700 transition-colors"
+                              aria-label="Clear search"
+                            >
+                              <FontAwesomeIcon
+                                icon={faTimes}
+                                className="h-4 w-4"
+                              />
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="ml-2">
+                          <button
+                            type="submit"
+                            className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope"
+                            aria-label="Perform search"
+                          >
+                            Search
+                          </button>
+                        </div>
                       </div>
-                      <input
-                        type="text"
-                        placeholder="Search by area, category, or name..."
-                        value={localSearchQuery}
-                        onChange={(e) => handleSearchChange(e.target.value)}
-                        onFocus={handleSearchFocus}
-                        className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope"
-                        autoFocus={false}
-                        aria-label="Search input"
-                        role="searchbox"
-                      />
-                      {localSearchQuery && (
-                        <button
-                          type="button"
-                          onClick={handleClearSearch}
-                          className="p-1 mr-2 text-gray-500  hover:text-gray-700"
-                          aria-label="Clear search"
-                        >
-                          <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
-                        </button>
+
+                      {/* Desktop Search Suggestions */}
+                      {!isMobile && showDesktopSearchSuggestions && (
+                        <DesktopSearchSuggestions
+                          searchQuery={localSearchQuery}
+                          listings={listings}
+                          onSuggestionClick={handleSuggestionClick}
+                          onClose={() => setShowDesktopSearchSuggestions(false)}
+                          isVisible={showDesktopSearchSuggestions}
+                        />
                       )}
-                    </div>
-
-                    <div className="ml-2">
-                      <button
-                        type="submit"
-                        className="bg-[#06EAFC] lg:mt-20 hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope"
-                        aria-label="Perform search"
-                      >
-                        Search
-                      </button>
-                    </div>
+                    </form>
                   </div>
-
-                  {/* Desktop Search Suggestions */}
-                  {!isMobile && showDesktopSearchSuggestions && (
-                    <DesktopSearchSuggestions
-                      searchQuery={localSearchQuery}
-                      listings={listings}
-                      onSuggestionClick={handleSuggestionClick}
-                      onClose={() => setShowDesktopSearchSuggestions(false)}
-                      isVisible={showDesktopSearchSuggestions}
-                    />
-                  )}
-                </form>
+                </div>
               </div>
             </div>
           </div>
@@ -3381,7 +3414,7 @@ const SearchResults = () => {
 
         {/* Main Content Layout */}
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Desktop Filter Sidebar - Always visible on desktop */}
+          {/* Desktop Filter Sidebar */}
           {!isMobile && filtersInitialized && (
             <div className="lg:w-1/4">
               <FilterSidebar
@@ -3402,7 +3435,7 @@ const SearchResults = () => {
             <div className="mb-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex-1 flex items-center gap-3">
-                  {/* Mobile filter button - Show only on mobile */}
+                  {/* Mobile filter button */}
                   {isMobile && filtersInitialized && (
                     <button
                       onClick={toggleMobileFilters}
@@ -3494,7 +3527,6 @@ const SearchResults = () => {
 
               {filteredCount > 0 && filtersInitialized && (
                 <>
-                  {/* Show results based on URL parameters */}
                   {searchQuery ||
                   (() => {
                     // Check if there are any location or category parameters
@@ -3619,8 +3651,20 @@ const SearchResults = () => {
 
       <Footer />
 
-      {/* Custom scrollbar hiding */}
-      <style jsx>{`
+      {/* Custom styles */}
+      <style jsx global>{`
+        /* Ensure scroll to top works properly */
+        html {
+          scroll-behavior: smooth;
+        }
+
+        /* Fix for image width stability */
+        img {
+          max-width: 100%;
+          height: auto;
+          display: block;
+        }
+
         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
@@ -3637,15 +3681,37 @@ const SearchResults = () => {
 
         /* Additional styles for mobile */
         @media (max-width: 767px) {
-          /* Ensure search bar stays on top */
           .sticky {
             position: sticky;
             top: 0;
             left: 0;
             right: 0;
             z-index: 50;
-            background: #f9fafb; /* gray-50 */
+            background: #f9fafb;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          }
+        }
+
+        /* Animation for search suggestions */
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+
+        @keyframes slideOutRight {
+          from {
+            transform: translateX(0);
+            opacity: 1;
+          }
+          to {
+            transform: translateX(100%);
+            opacity: 0;
           }
         }
       `}</style>
