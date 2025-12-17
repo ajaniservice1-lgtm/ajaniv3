@@ -660,6 +660,15 @@ const MobileSearchModal = ({
   const [inputValue, setInputValue] = useState(searchQuery);
   const modalRef = useRef(null);
   const inputRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if mobile
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Generate suggestions with breakdowns
   const suggestions = useMemo(() => {
@@ -2310,6 +2319,7 @@ const CategoryResults = () => {
   const searchContainerRef = useRef(null);
   const filterButtonRef = useRef(null);
   const resultsRef = useRef(null);
+  const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
 
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
   const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
@@ -2692,9 +2702,13 @@ const CategoryResults = () => {
     }
   };
 
-  // Handle search focus - show suggestions
+  // Handle search focus - show suggestions or open mobile modal
   const handleSearchFocus = () => {
-    if (!isMobile && localSearchQuery.trim().length > 0) {
+    if (isMobile) {
+      // On mobile, open the fullscreen modal
+      setShowMobileSearchModal(true);
+    } else if (localSearchQuery.trim().length > 0) {
+      // On desktop, show suggestions if there's text
       setShowSuggestions(true);
     }
   };
@@ -2777,6 +2791,7 @@ const CategoryResults = () => {
       params.set("q", localSearchQuery.trim());
       setSearchParams(params);
       setShowSuggestions(false);
+      setShowMobileSearchModal(false);
     }
   };
 
@@ -2867,6 +2882,7 @@ const CategoryResults = () => {
     (url) => {
       navigate(url);
       setShowSuggestions(false);
+      setShowMobileSearchModal(false);
     },
     [navigate]
   );
@@ -3127,6 +3143,9 @@ const CategoryResults = () => {
                     ref={searchContainerRef}
                     style={{
                       width: "100%",
+                      maxWidth: isMobile ? "100%" : "30%",
+                      margin: isMobile ? "0" : "0 auto",
+                      justifyContent: isMobile ? "flex-start" : "center",
                     }}
                   >
                     <form onSubmit={handleSearchSubmit}>
@@ -3203,14 +3222,14 @@ const CategoryResults = () => {
         )}
 
         {/* Mobile Search Modal */}
-        {isMobile && showSuggestions && (
+        {isMobile && (
           <MobileSearchModal
             searchQuery={localSearchQuery}
             listings={listings}
             onSuggestionClick={handleSuggestionClick}
-            onClose={() => setShowSuggestions(false)}
+            onClose={() => setShowMobileSearchModal(false)}
             onTyping={handleSearchChange}
-            isVisible={showSuggestions}
+            isVisible={showMobileSearchModal}
           />
         )}
 
