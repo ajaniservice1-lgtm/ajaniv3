@@ -22,6 +22,7 @@ import {
   faBed,
   faHome,
   faCalendarWeek,
+  faArrowLeft,
 } from "@fortawesome/free-solid-svg-icons";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
@@ -760,7 +761,7 @@ const FilterSidebar = ({
   onDynamicFilterApply,
   isInitialized,
 }) => {
-  const [filters, setFilters] = useState(
+  const [localFilters, setLocalFilters] = useState(
     currentFilters || {
       locations: [],
       categories: [],
@@ -823,36 +824,99 @@ const FilterSidebar = ({
 
   // Show category section when location is selected
   useEffect(() => {
-    if (filters.locations.length > 0) {
+    if (localFilters.locations.length > 0) {
       setShowCategorySection(true);
       if (!expandedSections.category) {
         setExpandedSections((prev) => ({ ...prev, category: true }));
       }
     }
-  }, [filters.locations.length, expandedSections.category]);
+  }, [localFilters.locations.length, expandedSections.category]);
 
-  // Sync filters when currentFilters prop changes
+  // Sync local filters when currentFilters prop changes
   useEffect(() => {
     if (isInitialized && currentFilters) {
-      setFilters(currentFilters);
+      setLocalFilters(currentFilters);
       if (currentFilters.locations.length > 0) {
         setShowCategorySection(true);
       }
     }
   }, [currentFilters, isInitialized]);
 
-  // Real-time filter application
-  const applyFiltersImmediately = (updatedFilters) => {
-    setFilters(updatedFilters);
-    onFilterChange(updatedFilters);
+  const handleLocationChange = (location) => {
+    const updatedFilters = {
+      ...localFilters,
+      locations: localFilters.locations.includes(location)
+        ? localFilters.locations.filter((l) => l !== location)
+        : [...localFilters.locations, location],
+    };
+    setLocalFilters(updatedFilters);
+  };
+
+  const handleCategoryChange = (category) => {
+    const updatedFilters = {
+      ...localFilters,
+      categories: localFilters.categories.includes(category)
+        ? localFilters.categories.filter((c) => c !== category)
+        : [...localFilters.categories, category],
+    };
+    setLocalFilters(updatedFilters);
+  };
+
+  const handleRatingChange = (stars) => {
+    const updatedFilters = {
+      ...localFilters,
+      ratings: localFilters.ratings.includes(stars)
+        ? localFilters.ratings.filter((s) => s !== stars)
+        : [...localFilters.ratings, stars],
+    };
+    setLocalFilters(updatedFilters);
+  };
+
+  const handlePriceChange = (field, value) => {
+    const updatedFilters = {
+      ...localFilters,
+      priceRange: {
+        ...localFilters.priceRange,
+        [field]: value,
+      },
+    };
+    setLocalFilters(updatedFilters);
+  };
+
+  const handleSelectAllLocations = () => {
+    const updatedFilters = {
+      ...localFilters,
+      locations:
+        localFilters.locations.length === uniqueLocationDisplayNames.length
+          ? []
+          : [...uniqueLocationDisplayNames],
+    };
+    setLocalFilters(updatedFilters);
+  };
+
+  const handleSelectAllCategories = () => {
+    const updatedFilters = {
+      ...localFilters,
+      categories:
+        localFilters.categories.length === uniqueCategoryDisplayNames.length
+          ? []
+          : [...uniqueCategoryDisplayNames],
+    };
+    setLocalFilters(updatedFilters);
+  };
+
+  // Apply filters when user clicks Apply button
+  const handleApplyFilters = () => {
+    // Apply the local filters to the main component
+    onFilterChange(localFilters);
 
     if (onDynamicFilterApply) {
-      const hasCategoryFilters = updatedFilters.categories.length > 0;
-      const hasLocationFilters = updatedFilters.locations.length > 0;
+      const hasCategoryFilters = localFilters.categories.length > 0;
+      const hasLocationFilters = localFilters.locations.length > 0;
 
       let categoryParams = [];
       if (hasCategoryFilters) {
-        updatedFilters.categories.forEach((catDisplayName) => {
+        localFilters.categories.forEach((catDisplayName) => {
           const selectedCategory = allCategories.find(
             (cat) => getCategoryDisplayName(cat) === catDisplayName
           );
@@ -864,7 +928,7 @@ const FilterSidebar = ({
 
       let locationParams = [];
       if (hasLocationFilters) {
-        updatedFilters.locations.forEach((locDisplayName) => {
+        localFilters.locations.forEach((locDisplayName) => {
           const selectedLocation = allLocations.find(
             (loc) => getLocationDisplayName(loc) === locDisplayName
           );
@@ -875,92 +939,21 @@ const FilterSidebar = ({
       }
 
       onDynamicFilterApply({
-        filters: updatedFilters,
+        filters: localFilters,
         categories: categoryParams,
         locations: locationParams,
         keepSearchQuery: currentSearchQuery,
       });
     }
-  };
 
-  const handleLocationChange = (location) => {
-    const updatedFilters = {
-      ...filters,
-      locations: filters.locations.includes(location)
-        ? filters.locations.filter((l) => l !== location)
-        : [...filters.locations, location],
-    };
-    applyFiltersImmediately(updatedFilters);
-  };
-
-  const handleCategoryChange = (category) => {
-    const updatedFilters = {
-      ...filters,
-      categories: filters.categories.includes(category)
-        ? filters.categories.filter((c) => c !== category)
-        : [...filters.categories, category],
-    };
-    applyFiltersImmediately(updatedFilters);
-  };
-
-  const handleRatingChange = (stars) => {
-    const updatedFilters = {
-      ...filters,
-      ratings: filters.ratings.includes(stars)
-        ? filters.ratings.filter((s) => s !== stars)
-        : [...filters.ratings, stars],
-    };
-    applyFiltersImmediately(updatedFilters);
-  };
-
-  const handlePriceChange = (field, value) => {
-    const updatedFilters = {
-      ...filters,
-      priceRange: {
-        ...filters.priceRange,
-        [field]: value,
-      },
-    };
-    applyFiltersImmediately(updatedFilters);
-  };
-
-  const handleSortChange = (value) => {
-    const updatedFilters = {
-      ...filters,
-      sortBy: value,
-    };
-    applyFiltersImmediately(updatedFilters);
-  };
-
-  const handleSelectAllLocations = () => {
-    const updatedFilters = {
-      ...filters,
-      locations:
-        filters.locations.length === uniqueLocationDisplayNames.length
-          ? []
-          : [...uniqueLocationDisplayNames],
-    };
-    applyFiltersImmediately(updatedFilters);
-  };
-
-  const handleSelectAllCategories = () => {
-    const updatedFilters = {
-      ...filters,
-      categories:
-        filters.categories.length === uniqueCategoryDisplayNames.length
-          ? []
-          : [...uniqueCategoryDisplayNames],
-    };
-    applyFiltersImmediately(updatedFilters);
-  };
-
-  const handleApplyAndClose = () => {
+    // Close the modal if it's open
     if (onClose) {
       onClose();
     }
   };
 
-  const sidebarContent = (
+  // FIX: Create a separate function for sidebar content to avoid hook inconsistencies
+  const renderSidebarContent = () => (
     <div
       className={`space-y-6 ${isMobileModal ? "px-0" : ""}`}
       style={{
@@ -979,7 +972,7 @@ const FilterSidebar = ({
             </p>
           </div>
           <button
-            onClick={handleApplyAndClose}
+            onClick={onClose}
             className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl"
             aria-label="Close filters"
           >
@@ -997,9 +990,9 @@ const FilterSidebar = ({
           <div className="flex items-center gap-2">
             <FontAwesomeIcon icon={faMapMarkerAlt} className="text-blue-500" />
             <h4 className="font-semibold text-gray-900 text-base">Location</h4>
-            {filters.locations.length > 0 && (
+            {localFilters.locations.length > 0 && (
               <span className="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full">
-                {filters.locations.length}
+                {localFilters.locations.length}
               </span>
             )}
           </div>
@@ -1038,7 +1031,7 @@ const FilterSidebar = ({
                   onClick={handleSelectAllLocations}
                   className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  {filters.locations.length ===
+                  {localFilters.locations.length ===
                   uniqueLocationDisplayNames.length
                     ? "Clear All Locations"
                     : "Select All Locations"}
@@ -1062,13 +1055,13 @@ const FilterSidebar = ({
                     >
                       <input
                         type="checkbox"
-                        checked={filters.locations.includes(location)}
+                        checked={localFilters.locations.includes(location)}
                         onChange={() => handleLocationChange(location)}
                         className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
                       />
                       <span
                         className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
-                          filters.locations.includes(location)
+                          localFilters.locations.includes(location)
                             ? "text-blue-700 font-medium"
                             : "text-gray-700"
                         }`}
@@ -1078,7 +1071,7 @@ const FilterSidebar = ({
                       >
                         {location}
                       </span>
-                      {filters.locations.includes(location) && (
+                      {localFilters.locations.includes(location) && (
                         <FontAwesomeIcon
                           icon={faCheck}
                           className="text-sm text-blue-600"
@@ -1089,12 +1082,12 @@ const FilterSidebar = ({
                 </div>
               )}
             </div>
-            {filters.locations.length > 0 && (
+            {localFilters.locations.length > 0 && (
               <div className="mt-3 p-2 bg-blue-50 rounded-lg">
                 <p className="text-xs text-blue-800">
-                  Selected: {filters.locations.slice(0, 3).join(", ")}
-                  {filters.locations.length > 3 &&
-                    ` +${filters.locations.length - 3} more`}
+                  Selected: {localFilters.locations.slice(0, 3).join(", ")}
+                  {localFilters.locations.length > 3 &&
+                    ` +${localFilters.locations.length - 3} more`}
                 </p>
               </div>
             )}
@@ -1103,7 +1096,7 @@ const FilterSidebar = ({
       </div>
 
       {/* CATEGORY SECTION - Show after location selection */}
-      {(showCategorySection || filters.categories.length > 0) && (
+      {(showCategorySection || localFilters.categories.length > 0) && (
         <div className="border-b pb-4">
           <button
             onClick={() => toggleSection("category")}
@@ -1114,9 +1107,9 @@ const FilterSidebar = ({
               <h4 className="font-semibold text-gray-900 text-base">
                 Category
               </h4>
-              {filters.categories.length > 0 && (
+              {localFilters.categories.length > 0 && (
                 <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full">
-                  {filters.categories.length}
+                  {localFilters.categories.length}
                 </span>
               )}
             </div>
@@ -1155,7 +1148,7 @@ const FilterSidebar = ({
                     onClick={handleSelectAllCategories}
                     className="text-sm text-green-600 hover:text-green-700 font-medium"
                   >
-                    {filters.categories.length ===
+                    {localFilters.categories.length ===
                     uniqueCategoryDisplayNames.length
                       ? "Clear All Categories"
                       : "Select All Categories"}
@@ -1179,13 +1172,13 @@ const FilterSidebar = ({
                       >
                         <input
                           type="checkbox"
-                          checked={filters.categories.includes(category)}
+                          checked={localFilters.categories.includes(category)}
                           onChange={() => handleCategoryChange(category)}
                           className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 transition-colors"
                         />
                         <span
                           className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
-                            filters.categories.includes(category)
+                            localFilters.categories.includes(category)
                               ? "text-green-700 font-medium"
                               : "text-gray-700"
                           }`}
@@ -1195,7 +1188,7 @@ const FilterSidebar = ({
                         >
                           {category}
                         </span>
-                        {filters.categories.includes(category) && (
+                        {localFilters.categories.includes(category) && (
                           <FontAwesomeIcon
                             icon={faCheck}
                             className="text-sm text-green-600"
@@ -1206,12 +1199,12 @@ const FilterSidebar = ({
                   </div>
                 )}
               </div>
-              {filters.categories.length > 0 && (
+              {localFilters.categories.length > 0 && (
                 <div className="mt-3 p-2 bg-green-50 rounded-lg">
                   <p className="text-xs text-green-800">
-                    Selected: {filters.categories.slice(0, 3).join(", ")}
-                    {filters.categories.length > 3 &&
-                      ` +${filters.categories.length - 3} more`}
+                    Selected: {localFilters.categories.slice(0, 3).join(", ")}
+                    {localFilters.categories.length > 3 &&
+                      ` +${localFilters.categories.length - 3} more`}
                   </p>
                 </div>
               )}
@@ -1231,7 +1224,7 @@ const FilterSidebar = ({
             <h4 className="font-semibold text-gray-900 text-base">
               Price Range
             </h4>
-            {(filters.priceRange.min || filters.priceRange.max) && (
+            {(localFilters.priceRange.min || localFilters.priceRange.max) && (
               <span className="bg-yellow-100 text-yellow-600 text-xs px-2 py-1 rounded-full">
                 Set
               </span>
@@ -1257,7 +1250,7 @@ const FilterSidebar = ({
                   <input
                     type="number"
                     placeholder="2,500"
-                    value={filters.priceRange.min}
+                    value={localFilters.priceRange.min}
                     onChange={(e) => handlePriceChange("min", e.target.value)}
                     className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   />
@@ -1275,22 +1268,22 @@ const FilterSidebar = ({
                   <input
                     type="number"
                     placeholder="50,000"
-                    value={filters.priceRange.max}
+                    value={localFilters.priceRange.max}
                     onChange={(e) => handlePriceChange("max", e.target.value)}
                     className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   />
                 </div>
               </div>
             </div>
-            {(filters.priceRange.min || filters.priceRange.max) && (
+            {(localFilters.priceRange.min || localFilters.priceRange.max) && (
               <div className="flex justify-center">
                 <button
                   onClick={() => {
                     const updatedFilters = {
-                      ...filters,
+                      ...localFilters,
                       priceRange: { min: "", max: "" },
                     };
-                    applyFiltersImmediately(updatedFilters);
+                    setLocalFilters(updatedFilters);
                   }}
                   className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
@@ -1313,9 +1306,9 @@ const FilterSidebar = ({
             <h4 className="font-semibold text-gray-900 text-base">
               Minimum Rating
             </h4>
-            {filters.ratings.length > 0 && (
+            {localFilters.ratings.length > 0 && (
               <span className="bg-yellow-100 text-yellow-600 text-xs px-2 py-1 rounded-full">
-                {filters.ratings.length}
+                {localFilters.ratings.length}
               </span>
             )}
           </div>
@@ -1334,7 +1327,7 @@ const FilterSidebar = ({
               >
                 <input
                   type="checkbox"
-                  checked={filters.ratings.includes(stars)}
+                  checked={localFilters.ratings.includes(stars)}
                   onChange={() => handleRatingChange(stars)}
                   className="w-4 h-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500 transition-colors"
                 />
@@ -1352,7 +1345,7 @@ const FilterSidebar = ({
                   </div>
                   <span
                     className={`text-sm group-hover:text-[#06EAFC] transition-colors ${
-                      filters.ratings.includes(stars)
+                      localFilters.ratings.includes(stars)
                         ? "text-yellow-700 font-medium"
                         : "text-gray-700"
                     }`}
@@ -1362,15 +1355,15 @@ const FilterSidebar = ({
                 </div>
               </label>
             ))}
-            {filters.ratings.length > 0 && (
+            {localFilters.ratings.length > 0 && (
               <div className="flex justify-center mt-2">
                 <button
                   onClick={() => {
                     const updatedFilters = {
-                      ...filters,
+                      ...localFilters,
                       ratings: [],
                     };
-                    applyFiltersImmediately(updatedFilters);
+                    setLocalFilters(updatedFilters);
                   }}
                   className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
@@ -1381,8 +1374,6 @@ const FilterSidebar = ({
           </div>
         )}
       </div>
-
-      {/* SORTING SECTION - REMOVED FROM FILTER SIDEBAR */}
     </div>
   );
 
@@ -1418,7 +1409,7 @@ const FilterSidebar = ({
               maxWidth: "100vw",
             }}
           >
-            {sidebarContent}
+            {renderSidebarContent()}
           </div>
 
           <div
@@ -1429,7 +1420,7 @@ const FilterSidebar = ({
             }}
           >
             <button
-              onClick={handleApplyAndClose}
+              onClick={handleApplyFilters}
               className="w-full px-4 py-3.5 text-base font-bold bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2 shadow-lg"
               style={{
                 fontSize: "16px",
@@ -1477,7 +1468,7 @@ const FilterSidebar = ({
                   </p>
                 </div>
                 <button
-                  onClick={handleApplyAndClose}
+                  onClick={onClose}
                   className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl"
                   aria-label="Close filters"
                 >
@@ -1487,11 +1478,11 @@ const FilterSidebar = ({
             </div>
           </div>
           <div className="container mx-auto px-4 py-6 max-w-4xl">
-            {sidebarContent}
+            {renderSidebarContent()}
 
             <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg mt-8">
               <button
-                onClick={handleApplyAndClose}
+                onClick={handleApplyFilters}
                 className="w-full px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2"
               >
                 <FontAwesomeIcon icon={faCheck} />
@@ -1505,10 +1496,11 @@ const FilterSidebar = ({
     );
   }
 
-  // Regular sidebar
+  // Regular sidebar (for desktop only - without Apply button)
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit">
-      {sidebarContent}
+      {renderSidebarContent()}
+      {/* REMOVE Apply button for desktop */}
     </div>
   );
 };
@@ -1553,7 +1545,7 @@ const CategoryResults = () => {
     error,
   } = useGoogleSheet(SHEET_ID, API_KEY);
 
-  // CRITICAL FIX 1: Scroll to top on component mount and when params change
+  // CRITICAL FIX: Scroll to top on component mount and when params change
   useEffect(() => {
     const scrollToTop = () => {
       const searchSection = document.getElementById("search-section");
@@ -1588,29 +1580,6 @@ const CategoryResults = () => {
       }, 300);
     }
   }, [showMobileFilters]);
-
-  // CRITICAL FIX: Loading state for mobile (hide header)
-  if (loading && isMobile) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        {/* Only show three dots animation */}
-        <div className="flex flex-col items-center">
-          <div className="flex space-x-1 mb-4">
-            <div className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce"></div>
-            <div
-              className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce"
-              style={{ animationDelay: "0.1s" }}
-            ></div>
-            <div
-              className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce"
-              style={{ animationDelay: "0.2s" }}
-            ></div>
-          </div>
-          <p className="text-sm text-gray-600">Loading results...</p>
-        </div>
-      </div>
-    );
-  }
 
   // Initialize listings and filter by category
   useEffect(() => {
@@ -1713,7 +1682,7 @@ const CategoryResults = () => {
     setFiltersInitialized(true);
   }, [listings.length, searchParams.toString()]);
 
-  // Filter logic
+  // Filter logic - updated to apply filters immediately on LG screens
   const applyFilters = (listingsToFilter, filters) => {
     // First filter by category
     const categorySlug = category.toLowerCase();
@@ -1815,7 +1784,7 @@ const CategoryResults = () => {
       });
     }
 
-    // Apply filter panel locations
+    // Apply filter panel locations - UPDATED: Apply immediately for LG screens
     if (filters.locations.length > 0) {
       filtered = filtered.filter((item) => {
         const itemLocation = getLocationDisplayName(item.area || "");
@@ -1826,7 +1795,18 @@ const CategoryResults = () => {
       });
     }
 
-    // Apply price range
+    // Apply filter panel categories - UPDATED: Apply immediately for LG screens
+    if (filters.categories.length > 0) {
+      filtered = filtered.filter((item) => {
+        const itemCategory = getCategoryDisplayName(item.category || "");
+        return filters.categories.some(
+          (selectedCategory) =>
+            itemCategory.toLowerCase() === selectedCategory.toLowerCase()
+        );
+      });
+    }
+
+    // Apply price range - UPDATED: Apply immediately for LG screens
     if (filters.priceRange.min || filters.priceRange.max) {
       const min = Number(filters.priceRange.min) || 0;
       const max = Number(filters.priceRange.max) || Infinity;
@@ -1836,7 +1816,7 @@ const CategoryResults = () => {
       });
     }
 
-    // Apply ratings
+    // Apply ratings - UPDATED: Apply immediately for LG screens
     if (filters.ratings.length > 0) {
       filtered = filtered.filter((item) => {
         const rating = Number(item.rating) || 0;
@@ -1844,7 +1824,7 @@ const CategoryResults = () => {
       });
     }
 
-    // Apply sorting
+    // Apply sorting - UPDATED: Apply immediately for LG screens
     if (filters.sortBy && filters.sortBy !== "relevance") {
       filtered = [...filtered].sort((a, b) => {
         switch (filters.sortBy) {
@@ -1867,7 +1847,7 @@ const CategoryResults = () => {
     setCurrentPage(1);
   };
 
-  // Apply filters whenever any dependency changes
+  // Apply filters whenever any dependency changes - UPDATED: Include activeFilters
   useEffect(() => {
     if (!listings.length || !filtersInitialized) {
       setFilteredListings([]);
@@ -1940,7 +1920,6 @@ const CategoryResults = () => {
     setLocalSearchQuery(value);
   };
 
-  // CRITICAL FIX 2: Prevent image width change when clearing search
   const handleClearSearch = () => {
     setLocalSearchQuery("");
     const params = new URLSearchParams();
@@ -1976,9 +1955,65 @@ const CategoryResults = () => {
     setShowDesktopFilters(!showDesktopFilters);
   };
 
-  // Real-time filter change handler
+  // Filter change handler - UPDATED: Now called immediately for LG screens
   const handleFilterChange = (newFilters) => {
     setActiveFilters(newFilters);
+
+    // For mobile, we need to call onDynamicFilterApply to update URL
+    // For desktop, filters apply immediately through the useEffect
+    if (isMobile) {
+      const hasCategoryFilters = newFilters.categories.length > 0;
+      const hasLocationFilters = newFilters.locations.length > 0;
+
+      let categoryParams = [];
+      if (hasCategoryFilters) {
+        newFilters.categories.forEach((catDisplayName) => {
+          const selectedCategory = allCategories.find(
+            (cat) => getCategoryDisplayName(cat) === catDisplayName
+          );
+          if (selectedCategory) {
+            categoryParams.push(selectedCategory);
+          }
+        });
+      }
+
+      let locationParams = [];
+      if (hasLocationFilters) {
+        newFilters.locations.forEach((locDisplayName) => {
+          const selectedLocation = allLocations.find(
+            (loc) => getLocationDisplayName(loc) === locDisplayName
+          );
+          if (selectedLocation) {
+            locationParams.push(selectedLocation);
+          }
+        });
+      }
+
+      const params = new URLSearchParams();
+      if (searchQuery) {
+        params.set("q", searchQuery);
+      }
+
+      // Add categories to params
+      categoryParams.forEach((category, index) => {
+        if (index === 0) {
+          params.set("category", category);
+        } else {
+          params.set(`category${index + 1}`, category);
+        }
+      });
+
+      // Add locations to params
+      locationParams.forEach((location, index) => {
+        if (index === 0) {
+          params.set("location", location);
+        } else {
+          params.set(`location${index + 1}`, location);
+        }
+      });
+
+      setSearchParams(params);
+    }
   };
 
   const clearAllFilters = () => {
@@ -2150,24 +2185,25 @@ const CategoryResults = () => {
     startIndex + ITEMS_PER_PAGE
   );
 
-  if (loading) {
+  // CRITICAL FIX: Loading state for mobile (hide header)
+  if (loading && isMobile) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="flex space-x-1 justify-center">
-            <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        {/* Only show three dots animation */}
+        <div className="flex flex-col items-center">
+          <div className="flex space-x-1 mb-4">
+            <div className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce"></div>
             <div
-              className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"
+              className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce"
               style={{ animationDelay: "0.1s" }}
             ></div>
             <div
-              className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"
+              className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce"
               style={{ animationDelay: "0.2s" }}
             ></div>
           </div>
+          <p className="text-sm text-gray-600">Loading results...</p>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -2202,11 +2238,11 @@ const CategoryResults = () => {
       <main
         className="pb-8 md:mt-15"
         style={{
-          paddingLeft: isMobile ? "0.75rem" : "0",
-          paddingRight: isMobile ? "0.75rem" : "0",
+          paddingLeft: isMobile ? "0.75rem" : "1rem",
+          paddingRight: isMobile ? "0.75rem" : "1rem",
         }}
       >
-        {/* Fixed Search Bar Container with Back Button - Minimal padding for mobile */}
+        {/* Fixed Search Bar Container with Back Button */}
         <div
           className="z-30 py-4 md:py-6 relative"
           style={{
@@ -2331,7 +2367,7 @@ const CategoryResults = () => {
           />
         )}
 
-        {/* Main Content Layout - Minimal padding for mobile */}
+        {/* Main Content Layout */}
         <div
           className="flex flex-col lg:flex-row gap-6"
           style={{
@@ -2342,7 +2378,7 @@ const CategoryResults = () => {
             paddingRight: "0",
           }}
         >
-          {/* Desktop Filter Sidebar */}
+          {/* Desktop Filter Sidebar - WITHOUT Apply button */}
           {!isMobile && filtersInitialized && (
             <div className="lg:w-1/4">
               <FilterSidebar
@@ -2357,7 +2393,7 @@ const CategoryResults = () => {
             </div>
           )}
 
-          {/* Results Content - Minimal padding for mobile */}
+          {/* Results Content */}
           <div
             className="lg:w-3/4"
             ref={resultsRef}
@@ -2504,7 +2540,7 @@ const CategoryResults = () => {
               </div>
             </div>
 
-            {/* Results Display - Minimal padding for mobile */}
+            {/* Results Display */}
             <div
               className="space-y-4 md:space-y-6"
               style={{
@@ -2762,16 +2798,19 @@ const CategoryResults = () => {
           }
         }
 
-        /* Reduced padding for mobile */
+        /* Mobile specific styles */
         @media (max-width: 767px) {
           main {
             padding-left: 0.75rem !important;
             padding-right: 0.75rem !important;
           }
+        }
 
-          /* Ensure cards touch edges on mobile */
-          .overflow-x-auto {
-            padding-left: 0 !important;
+        /* LG screen padding */
+        @media (min-width: 768px) {
+          main {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
           }
         }
       `}</style>

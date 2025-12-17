@@ -600,7 +600,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
       `}
       onClick={handleCardClick}
       style={{
-        height: isMobile ? '280px' : '320px',
+        height: isMobile ? "280px" : "320px",
       }}
     >
       {/* Image */}
@@ -617,9 +617,9 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
           alt={businessName}
           className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
           style={{
-            height: '100%',
-            width: '100%',
-            objectFit: 'cover'
+            height: "100%",
+            width: "100%",
+            objectFit: "cover",
           }}
           onError={(e) => {
             e.currentTarget.src = FALLBACK_IMAGES.default;
@@ -697,10 +697,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
               {/* Ratings on the right */}
               <div className="flex items-center gap-1">
                 <div className="flex items-center gap-1 text-gray-800 text-[9px] md:text-xs">
-                  <FontAwesomeIcon
-                    icon={faStar}
-                    className="text-black"
-                  />
+                  <FontAwesomeIcon icon={faStar} className="text-black" />
                   <span className="font-semibold text-black">{rating}</span>
                 </div>
               </div>
@@ -719,7 +716,11 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
             {/* Saved indicator badge */}
             {isFavorite && !isProcessing && (
               <span className="inline-flex items-center gap-1 text-[10px] text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
-                <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
+                <svg
+                  className="w-2 h-2"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
                   <path
                     fillRule="evenodd"
                     d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -769,757 +770,6 @@ const CategoryBreakdownBadges = ({ categories }) => {
   );
 };
 
-// ================== DESKTOP SEARCH SUGGESTIONS ==================
-const DesktopSearchSuggestions = ({
-  searchQuery,
-  listings,
-  onSuggestionClick,
-  onClose,
-  isVisible,
-}) => {
-  const suggestionsRef = useRef(null);
-  const [modalStyle, setModalStyle] = useState({
-    top: "40px",
-    left: "50%",
-    transform: "translateX(-50%)",
-    width: "100%",
-    maxWidth: "600px",
-  });
-
-  const suggestions = React.useMemo(() => {
-    if (!searchQuery.trim() || !listings.length) return [];
-
-    const query = searchQuery.toLowerCase().trim();
-    const suggestions = [];
-
-    const uniqueCategories = [
-      ...new Set(
-        listings
-          .map((item) => item.category)
-          .filter((cat) => cat && cat.trim() !== "")
-          .map((cat) => cat.trim())
-      ),
-    ];
-
-    const uniqueLocations = [
-      ...new Set(
-        listings
-          .map((item) => item.area)
-          .filter((loc) => loc && loc.trim() !== "")
-          .map((loc) => loc.trim())
-      ),
-    ];
-
-    const categoryMatches = uniqueCategories
-      .filter((category) => {
-        const displayName = getCategoryDisplayName(category).toLowerCase();
-        return displayName.includes(query);
-      })
-      .map((category) => {
-        const categoryListings = listings.filter(
-          (item) =>
-            item.category &&
-            item.category.toLowerCase() === category.toLowerCase()
-        );
-        const locationBreakdown = getLocationBreakdown(categoryListings);
-
-        return {
-          type: "category",
-          title: getCategoryDisplayName(category),
-          count: categoryListings.length,
-          description: `Search ${
-            categoryListings.length
-          } ${getCategoryDisplayName(category).toLowerCase()} places`,
-          locations: locationBreakdown,
-          action: `/search-results?category=${encodeURIComponent(category)}`,
-        };
-      })
-      .sort((a, b) => b.count - a.count);
-
-    const locationMatches = uniqueLocations
-      .filter((location) => {
-        const displayName = getLocationDisplayName(location).toLowerCase();
-        return displayName.includes(query);
-      })
-      .map((location) => {
-        const locationListings = listings.filter(
-          (item) =>
-            item.area && item.area.toLowerCase() === location.toLowerCase()
-        );
-        const categoryBreakdown = getCategoryBreakdownForLocation(
-          listings,
-          location
-        );
-
-        return {
-          type: "location",
-          title: getLocationDisplayName(location),
-          count: locationListings.length,
-          description: `Search ${
-            locationListings.length
-          } places in ${getLocationDisplayName(location)}`,
-          categories: categoryBreakdown,
-          action: `/search-results?location=${encodeURIComponent(location)}`,
-        };
-      })
-      .sort((a, b) => b.count - a.count);
-
-    const allSuggestions = [...categoryMatches, ...locationMatches];
-
-    return allSuggestions
-      .sort((a, b) => {
-        const aExact = a.title.toLowerCase() === query;
-        const bExact = b.title.toLowerCase() === query;
-        if (aExact && !bExact) return -1;
-        if (!aExact && bExact) return 1;
-
-        const aStartsWith = a.title.toLowerCase().startsWith(query);
-        const bStartsWith = b.title.toLowerCase().startsWith(query);
-        if (aStartsWith && !bStartsWith) return -1;
-        if (!aStartsWith && bStartsWith) return 1;
-
-        return b.count - a.count;
-      })
-      .slice(0, 6);
-  }, [searchQuery, listings]);
-
-  // Dynamic positioning effect
-  useEffect(() => {
-    if (isVisible) {
-      const searchInput = document.querySelector('input[role="searchbox"]');
-      if (searchInput) {
-        const rect = searchInput.getBoundingClientRect();
-        const searchContainer = searchInput.closest(".flex.items-center");
-
-        let newStyle = {
-          top: `${rect.bottom + window.scrollY + 10}px`,
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "100%",
-          maxWidth: "600px",
-        };
-
-        if (searchContainer) {
-          const containerRect = searchContainer.getBoundingClientRect();
-          newStyle.width = `${containerRect.width}px`;
-          newStyle.left = `${rect.left}px`;
-          newStyle.transform = "translateX(0)";
-        }
-
-        setModalStyle(newStyle);
-      }
-    }
-  }, [isVisible, searchQuery]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        suggestionsRef.current &&
-        !suggestionsRef.current.contains(event.target)
-      ) {
-        onClose();
-      }
-    };
-
-    if (isVisible) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isVisible, onClose]);
-
-  useEffect(() => {
-    const handleEscapeKey = (e) => {
-      if (e.key === "Escape" && isVisible) {
-        onClose();
-      }
-    };
-
-    if (isVisible) {
-      window.addEventListener("keydown", handleEscapeKey);
-    }
-
-    return () => {
-      window.removeEventListener("keydown", handleEscapeKey);
-    };
-  }, [isVisible, onClose]);
-
-  // Handle window resize
-  useEffect(() => {
-    const handleResize = () => {
-      if (isVisible) {
-        const searchInput = document.querySelector('input[role="searchbox"]');
-        if (searchInput) {
-          const rect = searchInput.getBoundingClientRect();
-          const searchContainer = searchInput.closest(".flex.items-center");
-
-          let newStyle = {
-            top: `${rect.bottom + window.scrollY + 10}px`,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "100%",
-            maxWidth: "600px",
-          };
-
-          if (searchContainer) {
-            const containerRect = searchContainer.getBoundingClientRect();
-            newStyle.width = `${containerRect.width}px`;
-            newStyle.left = `${rect.left}px`;
-            newStyle.transform = "translateX(0)";
-          }
-
-          setModalStyle(newStyle);
-        }
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [isVisible]);
-
-  // Handle scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      if (isVisible) {
-        const searchInput = document.querySelector('input[role="searchbox"]');
-        if (searchInput) {
-          const rect = searchInput.getBoundingClientRect();
-          setModalStyle((prev) => ({
-            ...prev,
-            top: `${rect.bottom + window.scrollY + 10}px`,
-          }));
-        }
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [isVisible]);
-
-  if (!isVisible || !searchQuery.trim() || suggestions.length === 0)
-    return null;
-
-  return createPortal(
-    <div
-      ref={suggestionsRef}
-      className="fixed z-[999998] pointer-events-none"
-      style={{
-        zIndex: 999998,
-        position: "fixed",
-        ...modalStyle,
-      }}
-    >
-      <div
-        className="absolute inset-0 bg-black/20 pointer-events-auto"
-        onClick={onClose}
-        style={{
-          backdropFilter: "blur(2px)",
-          borderRadius: "12px",
-        }}
-      />
-
-      <div
-        className="relative bg-white rounded-xl shadow-2xl border border-gray-200 pointer-events-auto max-h-[70vh] overflow-y-auto"
-        style={{
-          zIndex: 999999,
-          boxShadow:
-            "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-        }}
-      >
-        <div className="sticky top-0 p-4 border-b border-gray-100 bg-gray-50 z-10">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-              Quick search suggestions
-            </span>
-            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-              {suggestions.length} suggestions
-            </span>
-          </div>
-        </div>
-
-        <div className="divide-y divide-gray-100">
-          {suggestions.map((suggestion, index) => (
-            <div
-              key={index}
-              className="p-4 hover:bg-blue-50 cursor-pointer transition-colors group"
-              onClick={() => {
-                onSuggestionClick(suggestion.action);
-                onClose();
-              }}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                    <FontAwesomeIcon
-                      icon={
-                        suggestion.type === "category"
-                          ? faFilter
-                          : faMapMarkerAlt
-                      }
-                      className={`text-sm ${
-                        suggestion.type === "category"
-                          ? "text-blue-600"
-                          : "text-green-600"
-                      }`}
-                    />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-gray-900">
-                        {suggestion.title}
-                      </h3>
-                      <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
-                        {suggestion.count}{" "}
-                        {suggestion.count === 1 ? "place" : "places"}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600 mt-1">
-                      {suggestion.description}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-gray-400 group-hover:text-blue-500 transition-colors">
-                  <FontAwesomeIcon icon={faChevronRight} className="text-sm" />
-                </div>
-              </div>
-
-              {/* Category Breakdown for Location Suggestions */}
-              {suggestion.type === "location" &&
-                suggestion.categories &&
-                suggestion.categories.length > 0 && (
-                  <div className="ml-12 mt-3">
-                    <CategoryBreakdownBadges
-                      categories={suggestion.categories}
-                    />
-                  </div>
-                )}
-
-              <div className="ml-12 mt-3">
-                <span className="text-xs text-blue-600 font-medium">
-                  Click to view all results →
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="sticky bottom-0 p-4 bg-gray-50 border-t border-gray-100">
-          <p className="text-xs text-gray-500 text-center">
-            Press{" "}
-            <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-xs">ESC</kbd>{" "}
-            to close • Click any suggestion to view detailed results
-          </p>
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-};
-
-// ================== MOBILE SEARCH MODAL ==================
-const MobileSearchModal = ({
-  searchQuery,
-  listings,
-  onSuggestionClick,
-  onClose,
-  onTyping,
-  isVisible,
-}) => {
-  const [inputValue, setInputValue] = useState(searchQuery);
-  const modalRef = useRef(null);
-  const inputRef = useRef(null);
-  const navigate = useNavigate();
-
-  const suggestions = React.useMemo(() => {
-    if (!inputValue.trim() || !listings.length) return [];
-
-    const query = inputValue.toLowerCase().trim();
-    const suggestions = [];
-
-    const uniqueCategories = [
-      ...new Set(
-        listings
-          .map((item) => item.category)
-          .filter((cat) => cat && cat.trim() !== "")
-          .map((cat) => cat.trim())
-      ),
-    ];
-
-    const uniqueLocations = [
-      ...new Set(
-        listings
-          .map((item) => item.area)
-          .filter((loc) => loc && loc.trim() !== "")
-          .map((loc) => loc.trim())
-      ),
-    ];
-
-    const categoryMatches = uniqueCategories
-      .filter((category) => {
-        const displayName = getCategoryDisplayName(category).toLowerCase();
-        return displayName.includes(query);
-      })
-      .map((category) => {
-        const categoryListings = listings.filter(
-          (item) =>
-            item.category &&
-            item.category.toLowerCase() === category.toLowerCase()
-        );
-        const locationBreakdown = getLocationBreakdown(categoryListings);
-
-        return {
-          type: "category",
-          title: getCategoryDisplayName(category),
-          count: categoryListings.length,
-          description: `Search ${
-            categoryListings.length
-          } ${getCategoryDisplayName(category).toLowerCase()} places`,
-          locations: locationBreakdown,
-          action: `/search-results?category=${encodeURIComponent(category)}`,
-        };
-      })
-      .sort((a, b) => b.count - a.count);
-
-    const locationMatches = uniqueLocations
-      .filter((location) => {
-        const displayName = getLocationDisplayName(location).toLowerCase();
-        return displayName.includes(query);
-      })
-      .map((location) => {
-        const locationListings = listings.filter(
-          (item) =>
-            item.area && item.area.toLowerCase() === location.toLowerCase()
-        );
-        const categoryBreakdown = getCategoryBreakdownForLocation(
-          listings,
-          location
-        );
-
-        return {
-          type: "location",
-          title: getLocationDisplayName(location),
-          count: locationListings.length,
-          description: `Search ${
-            locationListings.length
-          } places in ${getLocationDisplayName(location)}`,
-          categories: categoryBreakdown,
-          action: `/search-results?location=${encodeURIComponent(location)}`,
-        };
-      })
-      .sort((a, b) => b.count - a.count);
-
-    const allSuggestions = [...categoryMatches, ...locationMatches];
-
-    return allSuggestions
-      .sort((a, b) => {
-        const aExact = a.title.toLowerCase() === query;
-        const bExact = b.title.toLowerCase() === query;
-        if (aExact && !bExact) return -1;
-        if (!aExact && bExact) return 1;
-
-        const aStartsWith = a.title.toLowerCase().startsWith(query);
-        const bStartsWith = b.title.toLowerCase().startsWith(query);
-        if (aStartsWith && !bStartsWith) return -1;
-        if (!aStartsWith && bStartsWith) return 1;
-
-        return b.count - a.count;
-      })
-      .slice(0, 6);
-  }, [inputValue, listings]);
-
-  const handleInputChange = (e) => {
-    const value = e.target.value;
-    setInputValue(value);
-    onTyping(value);
-  };
-
-  const handleClearInput = () => {
-    setInputValue("");
-    onTyping("");
-    inputRef.current?.focus();
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && inputValue.trim()) {
-      navigate(`/search-results?q=${encodeURIComponent(inputValue.trim())}`);
-      onClose();
-    }
-  };
-
-  useEffect(() => {
-    if (isVisible && inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
-    }
-  }, [isVisible]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (modalRef.current && !modalRef.current.contains(event.target)) {
-        onClose();
-      }
-    };
-
-    if (isVisible) {
-      document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("touchstart", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
-    };
-  }, [isVisible, onClose]);
-
-  useEffect(() => {
-    if (isVisible) {
-      document.body.classList.add("modal-open");
-      document.body.style.overflow = "hidden";
-      document.documentElement.style.overflow = "hidden";
-    } else {
-      document.body.classList.remove("modal-open");
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
-    }
-
-    return () => {
-      document.body.classList.remove("modal-open");
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
-    };
-  }, [isVisible]);
-
-  useEffect(() => {
-    const handleEscapeKey = (e) => {
-      if (e.key === "Escape" && isVisible) {
-        onClose();
-      }
-    };
-
-    if (isVisible) {
-      window.addEventListener("keydown", handleEscapeKey);
-    }
-
-    return () => {
-      window.removeEventListener("keydown", handleEscapeKey);
-    };
-  }, [isVisible, onClose]);
-
-  if (!isVisible) return null;
-
-  return createPortal(
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15, ease: "easeOut" }}
-      className="fixed inset-0 z-[1000000]"
-      style={{
-        zIndex: 1000000,
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        width: "100%",
-        height: "100%",
-      }}
-    >
-      {/* Quick fade-in full screen white background */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.15 }}
-        className="absolute inset-0 bg-white"
-      />
-
-      {/* Modal Content */}
-      <motion.div
-        initial={{ opacity: 0, y: 0 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 0 }}
-        transition={{
-          duration: 0.2,
-          ease: "easeOut",
-        }}
-        className="absolute inset-0 bg-white flex flex-col"
-        ref={modalRef}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          width: "100%",
-          height: "100%",
-          overflow: "hidden",
-        }}
-      >
-        {/* Header with search bar */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 shadow-sm z-10">
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-bold text-gray-900">Search</h2>
-              <button
-                onClick={onClose}
-                className="text-gray-600 hover:text-gray-900 font-medium px-3 py-1"
-                aria-label="Close search"
-              >
-                Cancel
-              </button>
-            </div>
-
-            <div className="flex items-center bg-gray-100 rounded-full px-4 py-3">
-              <FontAwesomeIcon icon={faSearch} className="text-gray-500" />
-              <input
-                ref={inputRef}
-                type="text"
-                className="flex-1 bg-transparent ml-3 py-1 outline-none font-manrope text-base placeholder:text-gray-500"
-                value={inputValue}
-                onChange={handleInputChange}
-                onKeyPress={handleKeyPress}
-                placeholder="Search by area, category, or name..."
-                autoFocus
-              />
-              {inputValue && (
-                <button
-                  onClick={handleClearInput}
-                  className="text-gray-500 hover:text-gray-700 p-1"
-                  aria-label="Clear search"
-                >
-                  <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto pb-4">
-          {inputValue.trim() ? (
-            <>
-              <div className="sticky top-0 p-4 border-b border-gray-100 bg-gray-50 z-10">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                    Quick search suggestions
-                  </span>
-                  {suggestions.length > 0 && (
-                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                      {suggestions.length} suggestions
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {suggestions.length > 0 ? (
-                <div className="divide-y divide-gray-100">
-                  {suggestions.map((suggestion, index) => (
-                    <div
-                      key={index}
-                      className="p-4 hover:bg-blue-50 active:bg-blue-100 cursor-pointer transition-colors group"
-                      onClick={() => {
-                        onSuggestionClick(suggestion.action);
-                        onClose();
-                      }}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                            <FontAwesomeIcon
-                              icon={
-                                suggestion.type === "category"
-                                  ? faFilter
-                                  : faMapMarkerAlt
-                              }
-                              className={`text-sm ${
-                                suggestion.type === "category"
-                                  ? "text-blue-600"
-                                  : "text-green-600"
-                              }`}
-                            />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-sm font-bold text-gray-900">
-                                {suggestion.title}
-                              </h3>
-                              <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
-                                {suggestion.count}{" "}
-                                {suggestion.count === 1 ? "place" : "places"}
-                              </span>
-                            </div>
-                            <p className="text-xs text-gray-600 mt-1">
-                              {suggestion.description}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-gray-400 group-hover:text-blue-500 transition-colors">
-                          <FontAwesomeIcon
-                            icon={faChevronRight}
-                            className="text-sm"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Category Breakdown for Location Suggestions */}
-                      {suggestion.type === "location" &&
-                        suggestion.categories &&
-                        suggestion.categories.length > 0 && (
-                          <div className="ml-12 mt-3">
-                            <CategoryBreakdownBadges
-                              categories={suggestion.categories}
-                            />
-                          </div>
-                        )}
-
-                      <div className="ml-12 mt-3">
-                        <span className="text-xs text-blue-600 font-medium">
-                          Tap to view all results →
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-8 text-center">
-                  <FontAwesomeIcon
-                    icon={faSearch}
-                    className="h-12 w-12 mx-auto mb-4 text-gray-300"
-                  />
-                  <p className="text-lg font-medium text-gray-700 mb-2">
-                    No matches found
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Try searching with different keywords
-                  </p>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="p-8 text-center">
-              <FontAwesomeIcon
-                icon={faSearch}
-                className="h-16 w-16 mx-auto mb-6 text-gray-300"
-              />
-              <p className="text-xl font-medium text-gray-700 mb-2">
-                Start typing to search
-              </p>
-              <p className="text-sm text-gray-500">
-                Search for categories, locations, or places in Ibadan
-              </p>
-            </div>
-          )}
-        </div>
-      </motion.div>
-    </motion.div>,
-    document.body
-  );
-};
-
 // ================== ENHANCED FILTER SIDEBAR ==================
 const FilterSidebar = ({
   onFilterChange,
@@ -1533,7 +783,7 @@ const FilterSidebar = ({
   onDynamicFilterApply,
   isInitialized,
 }) => {
-  const [filters, setFilters] = useState(
+  const [localFilters, setLocalFilters] = useState(
     currentFilters || {
       locations: [],
       categories: [],
@@ -1546,7 +796,7 @@ const FilterSidebar = ({
 
   const [expandedSections, setExpandedSections] = useState({
     location: true,
-    category: false, // Start collapsed
+    category: false,
     price: true,
     rating: true,
     amenities: false,
@@ -1596,38 +846,99 @@ const FilterSidebar = ({
 
   // Show category section when location is selected
   useEffect(() => {
-    if (filters.locations.length > 0) {
+    if (localFilters.locations.length > 0) {
       setShowCategorySection(true);
       if (!expandedSections.category) {
-        setExpandedSections(prev => ({ ...prev, category: true }));
+        setExpandedSections((prev) => ({ ...prev, category: true }));
       }
     }
-  }, [filters.locations.length, expandedSections.category]);
+  }, [localFilters.locations.length, expandedSections.category]);
 
-  // Sync filters when currentFilters prop changes
+  // Sync local filters when currentFilters prop changes
   useEffect(() => {
     if (isInitialized && currentFilters) {
-      setFilters(currentFilters);
-      // Show category section if locations are selected
+      setLocalFilters(currentFilters);
       if (currentFilters.locations.length > 0) {
         setShowCategorySection(true);
       }
     }
   }, [currentFilters, isInitialized]);
 
-  // Real-time filter application
-  const applyFiltersImmediately = (updatedFilters) => {
-    setFilters(updatedFilters);
-    onFilterChange(updatedFilters);
+  const handleLocationChange = (location) => {
+    const updatedFilters = {
+      ...localFilters,
+      locations: localFilters.locations.includes(location)
+        ? localFilters.locations.filter((l) => l !== location)
+        : [...localFilters.locations, location],
+    };
+    setLocalFilters(updatedFilters);
+  };
 
-    // Update URL if needed
+  const handleCategoryChange = (category) => {
+    const updatedFilters = {
+      ...localFilters,
+      categories: localFilters.categories.includes(category)
+        ? localFilters.categories.filter((c) => c !== category)
+        : [...localFilters.categories, category],
+    };
+    setLocalFilters(updatedFilters);
+  };
+
+  const handleRatingChange = (stars) => {
+    const updatedFilters = {
+      ...localFilters,
+      ratings: localFilters.ratings.includes(stars)
+        ? localFilters.ratings.filter((s) => s !== stars)
+        : [...localFilters.ratings, stars],
+    };
+    setLocalFilters(updatedFilters);
+  };
+
+  const handlePriceChange = (field, value) => {
+    const updatedFilters = {
+      ...localFilters,
+      priceRange: {
+        ...localFilters.priceRange,
+        [field]: value,
+      },
+    };
+    setLocalFilters(updatedFilters);
+  };
+
+  const handleSelectAllLocations = () => {
+    const updatedFilters = {
+      ...localFilters,
+      locations:
+        localFilters.locations.length === uniqueLocationDisplayNames.length
+          ? []
+          : [...uniqueLocationDisplayNames],
+    };
+    setLocalFilters(updatedFilters);
+  };
+
+  const handleSelectAllCategories = () => {
+    const updatedFilters = {
+      ...localFilters,
+      categories:
+        localFilters.categories.length === uniqueCategoryDisplayNames.length
+          ? []
+          : [...uniqueCategoryDisplayNames],
+    };
+    setLocalFilters(updatedFilters);
+  };
+
+  // Apply filters when user clicks Apply button
+  const handleApplyFilters = () => {
+    // Apply the local filters to the main component
+    onFilterChange(localFilters);
+
     if (onDynamicFilterApply) {
-      const hasCategoryFilters = updatedFilters.categories.length > 0;
-      const hasLocationFilters = updatedFilters.locations.length > 0;
+      const hasCategoryFilters = localFilters.categories.length > 0;
+      const hasLocationFilters = localFilters.locations.length > 0;
 
       let categoryParams = [];
       if (hasCategoryFilters) {
-        updatedFilters.categories.forEach((catDisplayName) => {
+        localFilters.categories.forEach((catDisplayName) => {
           const selectedCategory = allCategories.find(
             (cat) => getCategoryDisplayName(cat) === catDisplayName
           );
@@ -1639,7 +950,7 @@ const FilterSidebar = ({
 
       let locationParams = [];
       if (hasLocationFilters) {
-        updatedFilters.locations.forEach((locDisplayName) => {
+        localFilters.locations.forEach((locDisplayName) => {
           const selectedLocation = allLocations.find(
             (loc) => getLocationDisplayName(loc) === locDisplayName
           );
@@ -1650,86 +961,14 @@ const FilterSidebar = ({
       }
 
       onDynamicFilterApply({
-        filters: updatedFilters,
+        filters: localFilters,
         categories: categoryParams,
         locations: locationParams,
         keepSearchQuery: currentSearchQuery,
       });
     }
-  };
 
-  const handleLocationChange = (location) => {
-    const updatedFilters = {
-      ...filters,
-      locations: filters.locations.includes(location)
-        ? filters.locations.filter((l) => l !== location)
-        : [...filters.locations, location],
-    };
-    applyFiltersImmediately(updatedFilters);
-  };
-
-  const handleCategoryChange = (category) => {
-    const updatedFilters = {
-      ...filters,
-      categories: filters.categories.includes(category)
-        ? filters.categories.filter((c) => c !== category)
-        : [...filters.categories, category],
-    };
-    applyFiltersImmediately(updatedFilters);
-  };
-
-  const handleRatingChange = (stars) => {
-    const updatedFilters = {
-      ...filters,
-      ratings: filters.ratings.includes(stars)
-        ? filters.ratings.filter((s) => s !== stars)
-        : [...filters.ratings, stars],
-    };
-    applyFiltersImmediately(updatedFilters);
-  };
-
-  const handlePriceChange = (field, value) => {
-    const updatedFilters = {
-      ...filters,
-      priceRange: {
-        ...filters.priceRange,
-        [field]: value,
-      },
-    };
-    applyFiltersImmediately(updatedFilters);
-  };
-
-  const handleSortChange = (value) => {
-    const updatedFilters = {
-      ...filters,
-      sortBy: value,
-    };
-    applyFiltersImmediately(updatedFilters);
-  };
-
-  const handleSelectAllLocations = () => {
-    const updatedFilters = {
-      ...filters,
-      locations:
-        filters.locations.length === uniqueLocationDisplayNames.length
-          ? []
-          : [...uniqueLocationDisplayNames],
-    };
-    applyFiltersImmediately(updatedFilters);
-  };
-
-  const handleSelectAllCategories = () => {
-    const updatedFilters = {
-      ...filters,
-      categories:
-        filters.categories.length === uniqueCategoryDisplayNames.length
-          ? []
-          : [...uniqueCategoryDisplayNames],
-    };
-    applyFiltersImmediately(updatedFilters);
-  };
-
-  const handleApplyAndClose = () => {
+    // Close the modal if it's open
     if (onClose) {
       onClose();
     }
@@ -1754,7 +993,7 @@ const FilterSidebar = ({
             </p>
           </div>
           <button
-            onClick={handleApplyAndClose}
+            onClick={onClose}
             className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl"
             aria-label="Close filters"
           >
@@ -1772,9 +1011,9 @@ const FilterSidebar = ({
           <div className="flex items-center gap-2">
             <FontAwesomeIcon icon={faMapMarkerAlt} className="text-blue-500" />
             <h4 className="font-semibold text-gray-900 text-base">Location</h4>
-            {filters.locations.length > 0 && (
+            {localFilters.locations.length > 0 && (
               <span className="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full">
-                {filters.locations.length}
+                {localFilters.locations.length}
               </span>
             )}
           </div>
@@ -1813,7 +1052,7 @@ const FilterSidebar = ({
                   onClick={handleSelectAllLocations}
                   className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  {filters.locations.length ===
+                  {localFilters.locations.length ===
                   uniqueLocationDisplayNames.length
                     ? "Clear All Locations"
                     : "Select All Locations"}
@@ -1837,13 +1076,13 @@ const FilterSidebar = ({
                     >
                       <input
                         type="checkbox"
-                        checked={filters.locations.includes(location)}
+                        checked={localFilters.locations.includes(location)}
                         onChange={() => handleLocationChange(location)}
                         className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
                       />
                       <span
                         className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
-                          filters.locations.includes(location)
+                          localFilters.locations.includes(location)
                             ? "text-blue-700 font-medium"
                             : "text-gray-700"
                         }`}
@@ -1853,7 +1092,7 @@ const FilterSidebar = ({
                       >
                         {location}
                       </span>
-                      {filters.locations.includes(location) && (
+                      {localFilters.locations.includes(location) && (
                         <FontAwesomeIcon
                           icon={faCheck}
                           className="text-sm text-blue-600"
@@ -1864,12 +1103,12 @@ const FilterSidebar = ({
                 </div>
               )}
             </div>
-            {filters.locations.length > 0 && (
+            {localFilters.locations.length > 0 && (
               <div className="mt-3 p-2 bg-blue-50 rounded-lg">
                 <p className="text-xs text-blue-800">
-                  Selected: {filters.locations.slice(0, 3).join(", ")}
-                  {filters.locations.length > 3 &&
-                    ` +${filters.locations.length - 3} more`}
+                  Selected: {localFilters.locations.slice(0, 3).join(", ")}
+                  {localFilters.locations.length > 3 &&
+                    ` +${localFilters.locations.length - 3} more`}
                 </p>
               </div>
             )}
@@ -1878,7 +1117,7 @@ const FilterSidebar = ({
       </div>
 
       {/* CATEGORY SECTION WITH SEARCH - Show after location selection */}
-      {(showCategorySection || filters.categories.length > 0) && (
+      {(showCategorySection || localFilters.categories.length > 0) && (
         <div className="border-b pb-4">
           <button
             onClick={() => toggleSection("category")}
@@ -1886,10 +1125,12 @@ const FilterSidebar = ({
           >
             <div className="flex items-center gap-2">
               <FontAwesomeIcon icon={faFilter} className="text-green-500" />
-              <h4 className="font-semibold text-gray-900 text-base">Category</h4>
-              {filters.categories.length > 0 && (
+              <h4 className="font-semibold text-gray-900 text-base">
+                Category
+              </h4>
+              {localFilters.categories.length > 0 && (
                 <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full">
-                  {filters.categories.length}
+                  {localFilters.categories.length}
                 </span>
               )}
             </div>
@@ -1928,7 +1169,7 @@ const FilterSidebar = ({
                     onClick={handleSelectAllCategories}
                     className="text-sm text-green-600 hover:text-green-700 font-medium"
                   >
-                    {filters.categories.length ===
+                    {localFilters.categories.length ===
                     uniqueCategoryDisplayNames.length
                       ? "Clear All Categories"
                       : "Select All Categories"}
@@ -1952,13 +1193,13 @@ const FilterSidebar = ({
                       >
                         <input
                           type="checkbox"
-                          checked={filters.categories.includes(category)}
+                          checked={localFilters.categories.includes(category)}
                           onChange={() => handleCategoryChange(category)}
                           className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 transition-colors"
                         />
                         <span
                           className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
-                            filters.categories.includes(category)
+                            localFilters.categories.includes(category)
                               ? "text-green-700 font-medium"
                               : "text-gray-700"
                           }`}
@@ -1968,7 +1209,7 @@ const FilterSidebar = ({
                         >
                           {category}
                         </span>
-                        {filters.categories.includes(category) && (
+                        {localFilters.categories.includes(category) && (
                           <FontAwesomeIcon
                             icon={faCheck}
                             className="text-sm text-green-600"
@@ -1979,12 +1220,12 @@ const FilterSidebar = ({
                   </div>
                 )}
               </div>
-              {filters.categories.length > 0 && (
+              {localFilters.categories.length > 0 && (
                 <div className="mt-3 p-2 bg-green-50 rounded-lg">
                   <p className="text-xs text-green-800">
-                    Selected: {filters.categories.slice(0, 3).join(", ")}
-                    {filters.categories.length > 3 &&
-                      ` +${filters.categories.length - 3} more`}
+                    Selected: {localFilters.categories.slice(0, 3).join(", ")}
+                    {localFilters.categories.length > 3 &&
+                      ` +${localFilters.categories.length - 3} more`}
                   </p>
                 </div>
               )}
@@ -2004,7 +1245,7 @@ const FilterSidebar = ({
             <h4 className="font-semibold text-gray-900 text-base">
               Price Range
             </h4>
-            {(filters.priceRange.min || filters.priceRange.max) && (
+            {(localFilters.priceRange.min || localFilters.priceRange.max) && (
               <span className="bg-yellow-100 text-yellow-600 text-xs px-2 py-1 rounded-full">
                 Set
               </span>
@@ -2030,7 +1271,7 @@ const FilterSidebar = ({
                   <input
                     type="number"
                     placeholder="2,500"
-                    value={filters.priceRange.min}
+                    value={localFilters.priceRange.min}
                     onChange={(e) => handlePriceChange("min", e.target.value)}
                     className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   />
@@ -2048,22 +1289,22 @@ const FilterSidebar = ({
                   <input
                     type="number"
                     placeholder="50,000"
-                    value={filters.priceRange.max}
+                    value={localFilters.priceRange.max}
                     onChange={(e) => handlePriceChange("max", e.target.value)}
                     className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   />
                 </div>
               </div>
             </div>
-            {(filters.priceRange.min || filters.priceRange.max) && (
+            {(localFilters.priceRange.min || localFilters.priceRange.max) && (
               <div className="flex justify-center">
                 <button
                   onClick={() => {
                     const updatedFilters = {
-                      ...filters,
+                      ...localFilters,
                       priceRange: { min: "", max: "" },
                     };
-                    applyFiltersImmediately(updatedFilters);
+                    setLocalFilters(updatedFilters);
                   }}
                   className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
@@ -2086,9 +1327,9 @@ const FilterSidebar = ({
             <h4 className="font-semibold text-gray-900 text-base">
               Minimum Rating
             </h4>
-            {filters.ratings.length > 0 && (
+            {localFilters.ratings.length > 0 && (
               <span className="bg-yellow-100 text-yellow-600 text-xs px-2 py-1 rounded-full">
-                {filters.ratings.length}
+                {localFilters.ratings.length}
               </span>
             )}
           </div>
@@ -2107,7 +1348,7 @@ const FilterSidebar = ({
               >
                 <input
                   type="checkbox"
-                  checked={filters.ratings.includes(stars)}
+                  checked={localFilters.ratings.includes(stars)}
                   onChange={() => handleRatingChange(stars)}
                   className="w-4 h-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500 transition-colors"
                 />
@@ -2125,7 +1366,7 @@ const FilterSidebar = ({
                   </div>
                   <span
                     className={`text-sm group-hover:text-[#06EAFC] transition-colors ${
-                      filters.ratings.includes(stars)
+                      localFilters.ratings.includes(stars)
                         ? "text-yellow-700 font-medium"
                         : "text-gray-700"
                     }`}
@@ -2135,15 +1376,15 @@ const FilterSidebar = ({
                 </div>
               </label>
             ))}
-            {filters.ratings.length > 0 && (
+            {localFilters.ratings.length > 0 && (
               <div className="flex justify-center mt-2">
                 <button
                   onClick={() => {
                     const updatedFilters = {
-                      ...filters,
+                      ...localFilters,
                       ratings: [],
                     };
-                    applyFiltersImmediately(updatedFilters);
+                    setLocalFilters(updatedFilters);
                   }}
                   className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
@@ -2154,8 +1395,6 @@ const FilterSidebar = ({
           </div>
         )}
       </div>
-
-      {/* SORTING SECTION - REMOVED FROM FILTER SIDEBAR */}
     </div>
   );
 
@@ -2179,7 +1418,10 @@ const FilterSidebar = ({
           maxWidth: "100vw",
         }}
       >
-        <div className="h-full overflow-y-auto w-full" style={{ paddingLeft: '0', paddingRight: '0' }}>
+        <div
+          className="h-full overflow-y-auto w-full"
+          style={{ paddingLeft: "0", paddingRight: "0" }}
+        >
           {/* Main content with minimal padding */}
           <div
             className="pt-5"
@@ -2201,7 +1443,7 @@ const FilterSidebar = ({
             }}
           >
             <button
-              onClick={handleApplyAndClose}
+              onClick={handleApplyFilters}
               className="w-full px-4 py-3.5 text-base font-bold bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2 shadow-lg"
               style={{
                 fontSize: "16px",
@@ -2249,7 +1491,7 @@ const FilterSidebar = ({
                   </p>
                 </div>
                 <button
-                  onClick={handleApplyAndClose}
+                  onClick={onClose}
                   className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl"
                   aria-label="Close filters"
                 >
@@ -2264,7 +1506,7 @@ const FilterSidebar = ({
             {/* Modal Action Buttons */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg mt-8">
               <button
-                onClick={handleApplyAndClose}
+                onClick={handleApplyFilters}
                 className="w-full px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2"
               >
                 <FontAwesomeIcon icon={faCheck} />
@@ -2282,6 +1524,13 @@ const FilterSidebar = ({
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit">
       {sidebarContent}
+      <button
+        onClick={handleApplyFilters}
+        className="w-full mt-6 px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2"
+      >
+        <FontAwesomeIcon icon={faCheck} />
+        Apply Filter
+      </button>
     </div>
   );
 };
@@ -2512,7 +1761,6 @@ const SearchResults = () => {
   const location = useLocation();
 
   const searchQuery = searchParams.get("q") || "";
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState({
     locations: [],
     categories: [],
@@ -2533,9 +1781,6 @@ const SearchResults = () => {
   const [filteredCount, setFilteredCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
-  const [showDesktopSearchSuggestions, setShowDesktopSearchSuggestions] =
-    useState(false);
-  const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
   const searchContainerRef = useRef(null);
   const filterButtonRef = useRef(null);
   const resultsRef = useRef(null);
@@ -2554,10 +1799,10 @@ const SearchResults = () => {
     const scrollToTop = () => {
       const searchSection = document.getElementById("search-section");
       if (searchSection) {
-        searchSection.scrollIntoView({ 
-          behavior: "smooth", 
+        searchSection.scrollIntoView({
+          behavior: "smooth",
           block: "start",
-          inline: "nearest"
+          inline: "nearest",
         });
       } else {
         window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
@@ -2572,13 +1817,13 @@ const SearchResults = () => {
   const handleMobileFilterApply = useCallback(() => {
     if (showMobileFilters) {
       setShowMobileFilters(false);
-      
+
       setTimeout(() => {
         const searchSection = document.getElementById("search-section");
         if (searchSection) {
-          searchSection.scrollIntoView({ 
-            behavior: "smooth", 
-            block: "start" 
+          searchSection.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
           });
         }
       }, 300);
@@ -2869,31 +2114,8 @@ const SearchResults = () => {
     setActiveFilters(filters);
   };
 
-  const handleSuggestionClick = (url) => {
-    const urlObj = new URL(url, window.location.origin);
-    const params = new URLSearchParams(urlObj.search);
-    setSearchParams(params);
-    setShowMobileSearchModal(false);
-    setShowDesktopSearchSuggestions(false);
-    setLocalSearchQuery("");
-  };
-
   const handleSearchChange = (value) => {
     setLocalSearchQuery(value);
-    if (!isMobile) {
-      setShowDesktopSearchSuggestions(true);
-    }
-  };
-
-  const handleSearchSubmit = (e) => {
-    e?.preventDefault();
-    if (localSearchQuery.trim()) {
-      const params = new URLSearchParams();
-      params.set("q", localSearchQuery.trim());
-      setSearchParams(params);
-      setShowMobileSearchModal(false);
-      setShowDesktopSearchSuggestions(false);
-    }
   };
 
   // CRITICAL FIX 2: Prevent image width change when clearing search on desktop
@@ -2907,7 +2129,6 @@ const SearchResults = () => {
       }
     }
     setSearchParams(params);
-    setShowDesktopSearchSuggestions(false);
     // Fix: Don't trigger unnecessary re-renders that affect image width
     setTimeout(() => {
       const searchInput = document.querySelector('input[role="searchbox"]');
@@ -2917,65 +2138,26 @@ const SearchResults = () => {
     }, 50);
   };
 
-  const handleSearchFocus = () => {
-    if (isMobile) {
-      setShowMobileSearchModal(true);
-      if (showMobileFilters) {
-        setShowMobileFilters(false);
-      }
-    } else {
-      setShowDesktopSearchSuggestions(true);
-      if (showDesktopFilters) {
-        setShowDesktopFilters(false);
-      }
+  const handleSearchSubmit = (e) => {
+    e?.preventDefault();
+    if (localSearchQuery.trim()) {
+      const params = new URLSearchParams();
+      params.set("q", localSearchQuery.trim());
+      setSearchParams(params);
     }
   };
 
   const toggleMobileFilters = () => {
     setShowMobileFilters(!showMobileFilters);
-    setShowMobileSearchModal(false);
   };
 
   const toggleDesktopFilters = () => {
     setShowDesktopFilters(!showDesktopFilters);
-    setShowDesktopSearchSuggestions(false);
   };
 
-  // Real-time filter change handler
+  // Filter change handler - only called when Apply Filter is clicked
   const handleFilterChange = (newFilters) => {
     setActiveFilters(newFilters);
-  };
-
-  const removeFilter = (type, value = null) => {
-    setActiveFilters((prev) => {
-      const newFilters = { ...prev };
-
-      switch (type) {
-        case "location":
-          newFilters.locations = value
-            ? prev.locations.filter((l) => l !== value)
-            : [];
-          break;
-        case "category":
-          newFilters.categories = value
-            ? prev.categories.filter((c) => c !== value)
-            : [];
-          break;
-        case "price":
-          newFilters.priceRange = { min: "", max: "" };
-          break;
-        case "rating":
-          newFilters.ratings = value
-            ? prev.ratings.filter((r) => r !== value)
-            : [];
-          break;
-        case "sort":
-          newFilters.sortBy = "relevance";
-          break;
-      }
-
-      return newFilters;
-    });
   };
 
   const clearAllFilters = () => {
@@ -3153,8 +2335,14 @@ const SearchResults = () => {
         <div className="flex flex-col items-center">
           <div className="flex space-x-1 mb-4">
             <div className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce"></div>
-            <div className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
-            <div className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+            <div
+              className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce"
+              style={{ animationDelay: "0.1s" }}
+            ></div>
+            <div
+              className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce"
+              style={{ animationDelay: "0.2s" }}
+            ></div>
           </div>
           <p className="text-sm text-gray-600">Loading results...</p>
         </div>
@@ -3192,11 +2380,14 @@ const SearchResults = () => {
         <Header />
       </div>
 
-      <main className="pb-8 md:mt-14" style={{
-        paddingLeft: isMobile ? '0.75rem' : '0',
-        paddingRight: isMobile ? '0.75rem' : '0',
-      }}>
-        {/* Fixed Search Bar Container with Back Button - Minimal padding for mobile */}
+      <main
+        className="pb-8 md:mt-14"
+        style={{
+          paddingLeft: isMobile ? "0.75rem" : "1rem", // FIX: Add padding for LG screens
+          paddingRight: isMobile ? "0.75rem" : "1rem", // FIX: Add padding for LG screens
+        }}
+      >
+        {/* Fixed Search Bar Container with Back Button */}
         <div
           className={`
             relative 
@@ -3212,10 +2403,12 @@ const SearchResults = () => {
           }}
           id="search-section"
         >
-          <div style={{
-            paddingLeft: isMobile ? '0' : '0',
-            paddingRight: isMobile ? '0' : '0',
-          }}>
+          <div
+            style={{
+              paddingLeft: isMobile ? "0" : "0",
+              paddingRight: isMobile ? "0" : "0",
+            }}
+          >
             <div className="flex items-center gap-3">
               {/* Back Button */}
               <BackButton className={isMobile ? "flex" : "hidden"} />
@@ -3248,7 +2441,6 @@ const SearchResults = () => {
                             placeholder="Search by area, category, or name..."
                             value={localSearchQuery}
                             onChange={(e) => handleSearchChange(e.target.value)}
-                            onFocus={handleSearchFocus}
                             className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope"
                             autoFocus={false}
                             aria-label="Search input"
@@ -3282,17 +2474,6 @@ const SearchResults = () => {
                           </button>
                         </div>
                       </div>
-
-                      {/* Desktop Search Suggestions */}
-                      {!isMobile && showDesktopSearchSuggestions && (
-                        <DesktopSearchSuggestions
-                          searchQuery={localSearchQuery}
-                          listings={listings}
-                          onSuggestionClick={handleSuggestionClick}
-                          onClose={() => setShowDesktopSearchSuggestions(false)}
-                          isVisible={showDesktopSearchSuggestions}
-                        />
-                      )}
                     </form>
                   </div>
                 </div>
@@ -3300,18 +2481,6 @@ const SearchResults = () => {
             </div>
           </div>
         </div>
-
-        {/* Mobile Fullscreen Search Modal */}
-        {isMobile && (
-          <MobileSearchModal
-            searchQuery={localSearchQuery}
-            listings={listings}
-            onSuggestionClick={handleSuggestionClick}
-            onClose={() => setShowMobileSearchModal(false)}
-            onTyping={handleSearchChange}
-            isVisible={showMobileSearchModal}
-          />
-        )}
 
         {/* Desktop Filter Modal */}
         {!isMobile && showDesktopFilters && (
@@ -3346,7 +2515,7 @@ const SearchResults = () => {
           />
         )}
 
-        {/* Main Content Layout - Minimal padding for mobile */}
+        {/* Main Content Layout */}
         <div
           className="flex flex-col lg:flex-row gap-6"
           style={{
@@ -3372,18 +2541,21 @@ const SearchResults = () => {
             </div>
           )}
 
-          {/* Results Content - Minimal padding for mobile */}
+          {/* Results Content */}
           <div
             className="lg:w-3/4"
             ref={resultsRef}
             style={{
               width: "100%",
-              paddingLeft: isMobile ? '0' : '0',
-              paddingRight: isMobile ? '0' : '0',
+              paddingLeft: isMobile ? "0" : "0",
+              paddingRight: isMobile ? "0" : "0",
             }}
           >
             {/* Page Header with Filter Button and Sort Dropdown on LG */}
-            <div className="mb-6" style={{ paddingLeft: '0', paddingRight: '0' }}>
+            <div
+              className="mb-6"
+              style={{ paddingLeft: "0", paddingRight: "0" }}
+            >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex-1 flex items-center gap-3">
                   {/* Mobile filter button */}
@@ -3515,7 +2687,7 @@ const SearchResults = () => {
               </div>
             </div>
 
-            {/* Results Display - Minimal padding for mobile */}
+            {/* Results Display */}
             <div
               className="space-y-6"
               style={{
@@ -3580,7 +2752,10 @@ const SearchResults = () => {
                   })() ? (
                     <>
                       {isMobile ? (
-                        <div className="space-y-4" style={{ paddingLeft: '0', paddingRight: '0' }}>
+                        <div
+                          className="space-y-4"
+                          style={{ paddingLeft: "0", paddingRight: "0" }}
+                        >
                           {Array.from({
                             length: Math.ceil(currentListings.length / 5),
                           }).map((_, rowIndex) => (
@@ -3589,8 +2764,8 @@ const SearchResults = () => {
                               className="flex overflow-x-auto scrollbar-hide gap-2 pb-4"
                               style={{
                                 width: "100%",
-                                paddingLeft: '0',
-                                paddingRight: '8px',
+                                paddingLeft: "0",
+                                paddingRight: "8px",
                               }}
                             >
                               {currentListings
@@ -3739,34 +2914,11 @@ const SearchResults = () => {
             background: #f9fafb;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
           }
-          
+
           /* Reduced padding for mobile */
           main {
             padding-left: 0.75rem !important;
             padding-right: 0.75rem !important;
-          }
-        }
-
-        /* Animation for search suggestions */
-        @keyframes slideInRight {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-
-        @keyframes slideOutRight {
-          from {
-            transform: translateX(0);
-            opacity: 1;
-          }
-          to {
-            transform: translateX(100%);
-            opacity: 0;
           }
         }
 
@@ -3780,6 +2932,14 @@ const SearchResults = () => {
 
           select.bg-transparent:hover {
             color: #00065a;
+          }
+        }
+
+        /* LG screen padding */
+        @media (min-width: 768px) {
+          main {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
           }
         }
       `}</style>
