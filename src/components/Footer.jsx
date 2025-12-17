@@ -72,7 +72,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  to="/privacy-policy"
+                  to="/privacypage"
                   className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
                 >
                   Privacy Policy
@@ -80,7 +80,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  to="/terms-of-service"
+                  to="/termspage"
                   className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
                 >
                   Terms of Service
@@ -161,7 +161,7 @@ const Footer = () => {
           </a>
 
           <a
-            href="mailto:ajaniservice1@gmail.com"
+            href="mailto:info@ajani.ai"
             className="text-gray-600 hover:text-blue-600 transition-colors"
             aria-label="Email"
           >

@@ -1,20 +1,239 @@
-import Meta from "../components/Meta";
-import WorkInProgressBanner from "../components/WorkInProgressBanner";
+import React from "react";
 import Header from "../components/Header";
+import Footer from "../components/Footer";
 
-export default function TermsPage() {
+const TermsPage = () => {
   return (
-    <div className="p-6">
-      {/* SEO Meta Tags for Terms Page */}
-      <Meta
-        title="Terms & Conditions | Ajani Directory"
-        description="Read the Terms & Conditions for using Ajani Directory — your trusted local business directory in Nigeria."
-        url="https://ajani.ai/termspage"
-        image="https://res.cloudinary.com/debpabo0a/image/upload/v1762946675/v2rtjjuba042vvg9pqja.jpg"
-      />
-
+    <>
+      {/* Your existing site header */}
       <Header />
-      <WorkInProgressBanner />
-    </div>
+
+      {/* Hero Section */}
+      <section className="bg-gradient-to-r from-[#0B1220] to-[#111827]">
+        <div className="max-w-6xl mx-auto px-4 py-16 text-center">
+          <h1 className="text-4xl md:text-5xl font-bold text-white">
+            Terms of Service
+          </h1>
+          <p className="mt-3 text-gray-300">Last Updated: December 16, 2025</p>
+        </div>
+      </section>
+
+      {/* Content Section */}
+      <section className="bg-gray-50">
+        <div className="max-w-5xl mx-auto px-4 py-12">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-10 space-y-8 text-gray-700 leading-relaxed">
+            <p>
+              Welcome to <strong>Ajani.ai</strong> ("Ajani", "we", "our", or
+              "us"). These Terms of Service ("Terms") govern your access to and
+              use of our website, mobile application, WhatsApp chatbot
+              interface, and services (collectively, the "Platform").
+            </p>
+
+            <p>
+              By accessing or using Ajani.ai, you agree to be bound by these
+              Terms. If you do not agree to these Terms, you may not access or
+              use the Platform.
+            </p>
+
+            {/* Section 1 */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                1. Acceptance of Terms
+              </h2>
+              <p>
+                By creating an account, chatting with the Ajani digital
+                assistant, or accessing our directory, you confirm that you are
+                at least 18 years of age (or the age of legal majority in your
+                jurisdiction) and have the authority to enter into this
+                agreement.
+              </p>
+            </div>
+
+            {/* Section 2 */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                2. Description of Services
+              </h2>
+              <ul className="list-disc pl-6 space-y-2">
+                <li>
+                  Discover local businesses, vendors, and service providers.
+                </li>
+                <li>
+                  Access real-time price insights for commodities and services.
+                </li>
+                <li>Interact with an AI-powered chat interface.</li>
+                <li>
+                  Allow business owners to list and promote their services.
+                </li>
+              </ul>
+            </div>
+
+            {/* Section 3 */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                3. Accuracy of Information & AI Disclaimer
+              </h2>
+              <ul className="list-disc pl-6 space-y-2">
+                <li>
+                  <strong>No Guarantee of Accuracy:</strong> AI-generated or
+                  third-party data may be outdated or inaccurate.
+                </li>
+                <li>
+                  <strong>"As-Is" Information:</strong> Prices are estimates and
+                  may vary at point of sale.
+                </li>
+                <li>
+                  <strong>AI Hallucinations:</strong> Verify important details
+                  directly with vendors.
+                </li>
+              </ul>
+            </div>
+
+            {/* Section 4 */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                4. User Accounts
+              </h2>
+              <ul className="list-disc pl-6 space-y-2">
+                <li>
+                  You are responsible for securing your login credentials.
+                </li>
+                <li>You agree to provide accurate registration information.</li>
+                <li>We may suspend accounts that violate these Terms.</li>
+              </ul>
+            </div>
+
+            {/* Section 5 */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                5. Business Owners and Vendors
+              </h2>
+              <ul className="list-disc pl-6 space-y-2">
+                <li>Businesses must pass verification checks.</li>
+                <li>
+                  Submitted content may be displayed for marketing and listings.
+                </li>
+                <li>Illegal or prohibited services are not allowed.</li>
+              </ul>
+            </div>
+
+            {/* Section 6 */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                6. Third-Party Services
+              </h2>
+              <p>
+                Ajani.ai acts only as a directory. Transactions are strictly
+                between users and vendors, and Ajani.ai is not liable for
+                disputes.
+              </p>
+            </div>
+
+            {/* Section 7 */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                7. Prohibited Use
+              </h2>
+              <ul className="list-disc pl-6 space-y-2">
+                <li>Illegal activities or misuse of the Platform.</li>
+                <li>Reverse engineering or data scraping.</li>
+                <li>Harassment, abuse, or malicious content.</li>
+              </ul>
+            </div>
+
+            {/* Section 8 */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                8. Privacy and Data Protection
+              </h2>
+              <p>
+                Your use of Ajani.ai is governed by our Privacy Policy and
+                complies with the Nigeria Data Protection Regulation (NDPR).
+              </p>
+            </div>
+
+            {/* Section 9 */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                9. Intellectual Property
+              </h2>
+              <p>
+                All platform content and branding are the property of Ajani.ai
+                and protected by applicable laws.
+              </p>
+            </div>
+
+            {/* Section 10 */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                10. Limitation of Liability
+              </h2>
+              <p>
+                Ajani.ai shall not be liable for indirect or consequential
+                damages. Liability shall not exceed fees paid in the last 12
+                months.
+              </p>
+            </div>
+
+            {/* Section 11 */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                11. Indemnification
+              </h2>
+              <p>
+                You agree to indemnify Ajani.ai against claims arising from
+                misuse of the Platform.
+              </p>
+            </div>
+
+            {/* Section 12 */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                12. Modifications to Terms
+              </h2>
+              <p>
+                We may update these Terms at any time. Continued use means
+                acceptance of changes.
+              </p>
+            </div>
+
+            {/* Section 13 */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                13. Governing Law
+              </h2>
+              <p>
+                These Terms are governed by the laws of the Federal Republic of
+                Nigeria, with jurisdiction in Ibadan.
+              </p>
+            </div>
+
+            {/* Contact */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                Contact Us
+              </h2>
+              <p>
+                Email:{" "}
+                <a href="mailto:info@ajani.ai" className="text-[#06EAFC]">
+                  info@ajani.ai
+                </a>
+              </p>
+              <p>
+                Website:{" "}
+                <a href="https://www.ajani.ai" className="text-[#06EAFC]">
+                  www.ajani.ai
+                </a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Your existing site footer */}
+      <Footer />
+    </>
   );
-}
+};
+
+export default TermsPage;
