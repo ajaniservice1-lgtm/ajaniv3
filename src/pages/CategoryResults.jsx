@@ -2721,47 +2721,47 @@ const CategoryResults = () => {
     setShowMobileSearchModal(false);
   };
 
-  const toggleDesktopFilters = () => {
-    setShowDesktopFilters(!showDesktopFilters);
-    setShowDesktopSearchSuggestions(false);
-  };
+  // const toggleDesktopFilters = () => {
+  //   setShowDesktopFilters(!showDesktopFilters);
+  //   setShowDesktopSearchSuggestions(false);
+  // };
 
   // Real-time filter change handler
   const handleFilterChange = (newFilters) => {
     setActiveFilters(newFilters);
   };
 
-  const removeFilter = (type, value = null) => {
-    setActiveFilters((prev) => {
-      const newFilters = { ...prev };
+  // const removeFilter = (type, value = null) => {
+  //   setActiveFilters((prev) => {
+  //     const newFilters = { ...prev };
 
-      switch (type) {
-        case "location":
-          newFilters.locations = value
-            ? prev.locations.filter((l) => l !== value)
-            : [];
-          break;
-        case "category":
-          newFilters.categories = value
-            ? prev.categories.filter((c) => c !== value)
-            : [];
-          break;
-        case "price":
-          newFilters.priceRange = { min: "", max: "" };
-          break;
-        case "rating":
-          newFilters.ratings = value
-            ? prev.ratings.filter((r) => r !== value)
-            : [];
-          break;
-        case "sort":
-          newFilters.sortBy = "relevance";
-          break;
-      }
+  //     switch (type) {
+  //       case "location":
+  //         newFilters.locations = value
+  //           ? prev.locations.filter((l) => l !== value)
+  //           : [];
+  //         break;
+  //       case "category":
+  //         newFilters.categories = value
+  //           ? prev.categories.filter((c) => c !== value)
+  //           : [];
+  //         break;
+  //       case "price":
+  //         newFilters.priceRange = { min: "", max: "" };
+  //         break;
+  //       case "rating":
+  //         newFilters.ratings = value
+  //           ? prev.ratings.filter((r) => r !== value)
+  //           : [];
+  //         break;
+  //       case "sort":
+  //         newFilters.sortBy = "relevance";
+  //         break;
+  //     }
 
-      return newFilters;
-    });
-  };
+  //     return newFilters;
+  //   });
+  // };
 
   const clearAllFilters = () => {
     const resetFilters = {
@@ -2936,7 +2936,7 @@ const CategoryResults = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 pt-32">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="flex space-x-1 justify-center">
             <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"></div>
             <div
@@ -2958,7 +2958,7 @@ const CategoryResults = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 pt-32">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
             <p className="text-red-700 font-medium text-sm">{error}</p>
           </div>
@@ -2977,11 +2977,12 @@ const CategoryResults = () => {
         image="https://ajani.ai/images/category-og.jpg"
       />
 
-      <Header />
+      {/* <Header /> */}
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 mt-16">
-        {/* Fixed Search Bar Container */}
-        <div className="z-30 py-6 relative" style={{ zIndex: 100 }}>
+      {/* FIXED: Removed mt-16 from main container to start content at the top */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+        {/* Fixed Search Bar Container - Adjusted for mobile */}
+        <div className="z-30 py-4 md:py-6 relative" style={{ zIndex: 100 }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-center">
               <div
@@ -3106,9 +3107,9 @@ const CategoryResults = () => {
 
           {/* Results Content */}
           <div className="lg:w-3/4" ref={resultsRef}>
-            {/* Page Header with Filter Button */}
-            <div className="mb-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Page Header with Filter Button - Better mobile spacing */}
+            <div className="mb-4 md:mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:gap-4">
                 <div className="flex-1 flex items-center gap-3">
                   {/* Mobile filter button - Show only on mobile */}
                   {isMobile && filtersInitialized && (
@@ -3147,10 +3148,10 @@ const CategoryResults = () => {
 
                   {/* Title and Count */}
                   <div className="flex-1">
-                    <h1 className="text-xl font-bold text-[#00065A] mb-1">
+                    <h1 className="text-lg md:text-xl font-bold text-[#00065A] mb-1">
                       {getPageTitle()}
                     </h1>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-xs md:text-sm text-gray-600">
                       {filteredCount} {filteredCount === 1 ? "place" : "places"}{" "}
                       found
                     </p>
@@ -3170,7 +3171,7 @@ const CategoryResults = () => {
                           };
                           handleFilterChange(updatedFilters);
                         }}
-                        className="appearance-none px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-10"
+                        className="appearance-none px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-8"
                       >
                         <option value="relevance">Sort by: Relevance</option>
                         <option value="price_low">Price: Low to High</option>
@@ -3178,10 +3179,10 @@ const CategoryResults = () => {
                         <option value="rating">Highest Rated</option>
                         <option value="name">Name: A to Z</option>
                       </select>
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
                         <FontAwesomeIcon
                           icon={faChevronDown}
-                          className="text-gray-500 text-sm"
+                          className="text-gray-500 text-xs"
                         />
                       </div>
                     </div>
@@ -3190,26 +3191,26 @@ const CategoryResults = () => {
               </div>
             </div>
 
-            {/* Results Display */}
-            <div className="space-y-6">
+            {/* Results Display - Improved mobile spacing */}
+            <div className="space-y-4 md:space-y-6">
               {filteredCount === 0 && filtersInitialized && (
-                <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+                <div className="text-center py-8 md:py-12 bg-white rounded-xl border border-gray-200">
                   <FontAwesomeIcon
                     icon={faSearch}
-                    className="text-4xl text-gray-300 mb-4 block"
+                    className="text-3xl md:text-4xl text-gray-300 mb-3 md:mb-4 block"
                   />
-                  <h3 className="text-xl text-gray-800 mb-2">
+                  <h3 className="text-lg md:text-xl text-gray-800 mb-2">
                     No matching results found
                   </h3>
-                  <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                  <p className="text-gray-600 mb-4 max-w-md mx-auto px-4 text-sm md:text-base">
                     {searchQuery
                       ? `No ${categoryTitle.toLowerCase()} found for "${searchQuery}" with the selected filters.`
                       : `No ${categoryTitle.toLowerCase()} match your current filters.`}
                   </p>
-                  <div className="flex flex-wrap gap-2 justify-center">
+                  <div className="flex flex-wrap gap-2 justify-center px-4">
                     <button
                       onClick={clearAllFilters}
-                      className="bg-[#06EAFC] text-white px-6 py-2 rounded-lg hover:bg-[#05d9eb] transition-colors"
+                      className="bg-[#06EAFC] text-white px-4 py-2 rounded-lg hover:bg-[#05d9eb] transition-colors text-sm"
                     >
                       Clear All Filters
                     </button>
@@ -3221,12 +3222,12 @@ const CategoryResults = () => {
                           setShowDesktopFilters(true);
                         }
                       }}
-                      className="bg-white border border-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors text-sm"
                     >
                       Adjust Filters
                     </button>
                   </div>
-                  <p className="text-sm text-gray-500 mt-4">
+                  <p className="text-xs md:text-sm text-gray-500 mt-4 px-4">
                     Tip: Try selecting fewer filters or different combinations
                   </p>
                 </div>
@@ -3235,13 +3236,13 @@ const CategoryResults = () => {
               {filteredCount > 0 && filtersInitialized && (
                 <>
                   {isMobile ? (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {Array.from({
                         length: Math.ceil(currentListings.length / 5),
                       }).map((_, rowIndex) => (
                         <div
                           key={rowIndex}
-                          className="flex overflow-x-auto scrollbar-hide gap-2 pb-4"
+                          className="flex overflow-x-auto scrollbar-hide gap-2 pb-3"
                         >
                           {currentListings
                             .slice(rowIndex * 5, (rowIndex + 1) * 5)
@@ -3270,11 +3271,11 @@ const CategoryResults = () => {
                   )}
 
                   {totalPages > 1 && (
-                    <div className="flex justify-center items-center space-x-2 mt-8">
+                    <div className="flex justify-center items-center space-x-2 mt-6 md:mt-8">
                       <button
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
-                        className={`px-4 py-2 rounded-lg border ${
+                        className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg border text-sm ${
                           currentPage === 1
                             ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                             : "bg-white text-gray-700 hover:bg-gray-50"
@@ -3291,7 +3292,7 @@ const CategoryResults = () => {
                           <button
                             key={page}
                             onClick={() => handlePageChange(page)}
-                            className={`w-10 h-10 rounded-lg border ${
+                            className={`w-8 h-8 md:w-10 md:h-10 rounded-lg border text-sm ${
                               currentPage === page
                                 ? "bg-[#06EAFC] text-white border-[#06EAFC]"
                                 : "bg-white text-gray-700 hover:bg-gray-50"
@@ -3305,7 +3306,7 @@ const CategoryResults = () => {
                       <button
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
-                        className={`px-4 py-2 rounded-lg border ${
+                        className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg border text-sm ${
                           currentPage === totalPages
                             ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                             : "bg-white text-gray-700 hover:bg-gray-50"
@@ -3413,6 +3414,14 @@ const CategoryResults = () => {
 
         ::-webkit-scrollbar-thumb:hover {
           background: #a1a1a1;
+        }
+
+        /* Mobile-specific adjustments */
+        @media (max-width: 640px) {
+          .max-w-7xl {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+          }
         }
       `}</style>
     </div>

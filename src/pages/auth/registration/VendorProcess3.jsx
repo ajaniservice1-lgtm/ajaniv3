@@ -2,112 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
 import Logo from "../../../assets/Logos/logo5.png";
-import Lottie from "lottie-react";
+import LogoComplete from "../../../assets/Illustration/undraw_completed_0sqh.png"
 
-// Success animation
-const successAnimation = {
-  v: "5.9.1",
-  fr: 30,
-  ip: 0,
-  op: 75,
-  w: 500,
-  h: 500,
-  nm: "success",
-  ddd: 0,
-  assets: [],
-  layers: [
-    {
-      ddd: 0,
-      ind: 1,
-      ty: 4,
-      nm: "Circle Outline",
-      sr: 1,
-      ks: {
-        o: {
-          a: 1,
-          k: [
-            { t: 0, s: [0] },
-            { t: 15, s: [100] },
-          ],
-        },
-        r: { a: 0, k: 0 },
-        p: { a: 0, k: [250, 250, 0] },
-        a: { a: 0, k: [0, 0, 0] },
-        s: { a: 0, k: [0, 0, 100] },
-      },
-      shapes: [
-        {
-          ty: "el",
-          p: { a: 0, k: [0, 0] },
-          s: { a: 0, k: [300, 300] },
-          nm: "Ellipse Path",
-        },
-        {
-          ty: "st",
-          c: { a: 0, k: [0.0, 0.8, 0.5, 1] },
-          o: { a: 0, k: 100 },
-          w: { a: 0, k: 14 },
-          lc: 2,
-          lj: 2,
-          nm: "Stroke",
-        },
-      ],
-      ip: 0,
-      op: 75,
-      st: 0,
-      bm: 0,
-    },
-    {
-      ddd: 0,
-      ind: 2,
-      ty: 4,
-      nm: "Checkmark",
-      sr: 1,
-      ks: {
-        o: { a: 0, k: 0 },
-        r: {
-          a: 1,
-          k: [
-            { t: 0, s: [0] },
-            { t: 22, s: [0] },
-            { t: 45, s: [360] },
-          ],
-        },
-        p: { a: 0, k: [250, 250, 0] },
-        a: { a: 0, k: [0, 0, 0] },
-        s: { a: 0, k: [100, 100, 100] },
-      },
-      shapes: [
-        {
-          ty: "shape",
-          nm: "Check Path",
-          ks: {
-            a: 0,
-            k: {
-              i: [],
-              o: [],
-              v: [
-                [-65, 15],
-                [-15, 65],
-                [65, -45],
-              ],
-              c: false,
-            },
-          },
-          st: {
-            c: { a: 0, k: [0.0, 0.8, 0.5, 1] },
-            o: { a: 0, k: 100 },
-            w: { a: 0, k: 18 },
-          },
-        },
-      ],
-      ip: 0,
-      op: 75,
-      st: 15,
-      bm: 0,
-    },
-  ],
-};
+
 
 const VendorProcess3 = () => {
   const navigate = useNavigate();
@@ -229,20 +126,16 @@ const VendorProcess3 = () => {
         </div>
 
         {/* Success Message */}
-        <h1 className="text-xl sm:text-2xl font-bold text-center text-gray-900">
+        {/* <h1 className="text-xl sm:text-2xl font-bold text-center text-gray-900">
           {greeting}, {vendorData.firstName}!
-        </h1>
+        </h1> */}
         <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mt-2">
-          Registration Complete! 🎉
+          Registration Complete! 
         </h2>
 
-        {/* Lottie Animation */}
-        <div className="w-32 h-32 mx-auto mt-6 mb-6">
-          <Lottie
-            animationData={successAnimation}
-            loop={false}
-            autoplay={true}
-          />
+        {/* Logo */}
+        <div className="flex justify-center mb-6">
+          <img src={LogoComplete} alt="Ajani Logo" className="h-auto w-30" />
         </div>
 
         {/* Success Message */}
