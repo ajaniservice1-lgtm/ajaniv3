@@ -26,7 +26,39 @@ const FeaturedBanner = () => {
   const [showCursor, setShowCursor] = useState(true);
   const [isFocused, setIsFocused] = useState(false);
   const [showComingSoon, setShowComingSoon] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [messageHistory, setMessageHistory] = useState([
+    {
+      id: 1,
+      sender: "bot",
+      text: "Welcome to Wonderball! How can I help you today?",
+      timestamp: new Date(Date.now() - 300000).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    },
+    {
+      id: 2,
+      sender: "user",
+      text: "Hi can you help me to track my order?",
+      timestamp: new Date(Date.now() - 180000).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    },
+    {
+      id: 3,
+      sender: "bot",
+      text: "Sure, please hold on for a second. Retrieving account details...",
+      timestamp: new Date(Date.now() - 60000).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    },
+  ]);
+
   const inputRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   // Always blinking cursor effect in placeholder
   useEffect(() => {
@@ -34,6 +66,21 @@ const FeaturedBanner = () => {
       setShowCursor((prev) => !prev);
     }, 530);
     return () => clearInterval(cursorInterval);
+  }, []);
+
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
+    }
+  }, [messageHistory, showComingSoon]);
+
+  // Clear placeholder on mount
+  useEffect(() => {
+    if (inputRef.current && inputRef.current.textContent === "Message...") {
+      inputRef.current.textContent = "";
+    }
   }, []);
 
   // Animation variants
@@ -77,17 +124,35 @@ const FeaturedBanner = () => {
 
   const comingSoonVariants = {
     hidden: { opacity: 0, y: 10, scale: 0.95 },
-    visible: { opacity: 1, y: 0, scale: 1 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 25,
+      },
+    },
+  };
+
+  const messageVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.3,
+      },
+    },
   };
 
   const handleFocus = () => {
     setIsFocused(true);
     setIsTyping(true);
-    // Clear the placeholder text when focused
-    if (inputRef.current) {
-      if (inputRef.current.textContent === "Message...") {
-        inputRef.current.textContent = "";
-      }
+    // Clear placeholder text when focused
+    if (inputRef.current && inputRef.current.textContent === "Message...") {
+      inputRef.current.textContent = "";
     }
   };
 
@@ -101,21 +166,49 @@ const FeaturedBanner = () => {
   };
 
   const handleSend = () => {
-    if (
-      inputRef.current &&
-      inputRef.current.textContent.trim() &&
-      inputRef.current.textContent !== "Message..."
-    ) {
-      // Show "Coming Soon" message
-      setShowComingSoon(true);
+    const message = inputRef.current?.textContent?.trim();
 
-      // Reset message
-      inputRef.current.textContent = "Message...";
+    if (message && message !== "Message...") {
+      // Add user message to history
+      const newUserMessage = {
+        id: messageHistory.length + 1,
+        sender: "user",
+        text: message,
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
 
-      // Hide "Coming Soon" after 3 seconds
+      setMessageHistory((prev) => [...prev, newUserMessage]);
+      setIsSending(true);
+
+      // Simulate AI typing delay
       setTimeout(() => {
-        setShowComingSoon(false);
-      }, 3000);
+        // Show "Coming Soon" as bot response
+        setShowComingSoon(true);
+        setIsSending(false);
+
+        // Add coming soon message to history after a delay
+        setTimeout(() => {
+          const comingSoonMessage = {
+            id: messageHistory.length + 2,
+            sender: "bot",
+            text: "🚀 Feature Coming Soon! Chat functionality will be available soon!",
+            timestamp: new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+          };
+
+          setMessageHistory((prev) => [...prev, comingSoonMessage]);
+          setShowComingSoon(false);
+        }, 1000);
+
+        // Clear input
+        inputRef.current.textContent = "Message...";
+        setIsFocused(false);
+      }, 800);
     }
   };
 
@@ -126,9 +219,42 @@ const FeaturedBanner = () => {
     }
   };
 
+  const handleClearChat = () => {
+    setMessageHistory([
+      {
+        id: 1,
+        sender: "bot",
+        text: "Welcome to Wonderball! How can I help you today?",
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      },
+    ]);
+  };
+
+  const handleExampleQuestion = (question) => {
+    if (inputRef.current) {
+      inputRef.current.textContent = question;
+      inputRef.current.focus();
+      setIsFocused(true);
+      setIsTyping(true);
+    }
+  };
+
+  const exampleQuestions = [
+    "Where can I find the best restaurants?",
+    "How do I track my package?",
+    "What events are happening this weekend?",
+    "Find electronics stores near me",
+  ];
+
   return (
-    <section className="w-full bg-white py-20 font-manrope overflow-x-hidden">
-      <div className="lg:max-w-4xl mx-auto px-6">
+    <section
+      className="w-full bg-white py-20 font-manrope overflow-x-hidden"
+      id="chatbot"
+    >
+      <div className="lg:max-w-6xl mx-auto px-6">
         {/* Standalone H1 - Separate Animation */}
         <motion.div
           ref={h1Ref}
@@ -137,9 +263,13 @@ const FeaturedBanner = () => {
           variants={h1Variants}
           className="text-center mb-16"
         >
-          <h1 className="text-xl md:text-center text-start md:text-xl font-bold text-gray-900 drop-shadow-md">
-            Talk to Our <span className="text-[#06F49F]">Chatbot</span>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 drop-shadow-md">
+            Talk to Our <span className="text-[#06F49F]">AI Assistant</span>
           </h1>
+          <p className="text-gray-600 mt-4 max-w-2xl mx-auto">
+            Get instant answers about places, prices, vendors, and anything
+            around Ibadan.
+          </p>
         </motion.div>
 
         {/* Content Section - Left and Right aligned with separate animations */}
@@ -154,19 +284,23 @@ const FeaturedBanner = () => {
           >
             {/* Ask Ajani Button */}
             <button
-              className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-full font-medium text-gray-800 mb-10 transition-all duration-300 hover:scale-105 hover:shadow-md active:scale-95"
+              className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-full font-medium text-gray-800 mb-10 transition-all duration-300 hover:scale-105 hover:shadow-md active:scale-95 group"
               style={{
                 backdropFilter: "blur(100px)",
               }}
               onClick={() => {
                 inputRef.current?.focus();
+                window.scrollTo({
+                  top: document.getElementById("chatbot").offsetTop + 300,
+                  behavior: "smooth",
+                });
               }}
             >
-              <span className="text-blue-600 md:text-2xl text-xs font-semibold animate-pulse">
+              <span className="text-blue-600 md:text-2xl text-xs font-semibold animate-pulse group-hover:animate-spin">
                 +
               </span>
               Ask Ajani, your smart city assistant.
-              <span className="text-[8px] ml-3.5 animate-bounce">
+              <span className="text-[8px] ml-3.5 group-hover:translate-x-1 transition-transform">
                 <FaGreaterThan />
               </span>
             </button>
@@ -175,19 +309,64 @@ const FeaturedBanner = () => {
               Need something quick?
             </h2>
 
-            <p className="text-gray-600 md:text-lg text-[14px] leading-relaxed max-w-md">
+            <p className="text-gray-600 md:text-lg text-[14px] leading-relaxed max-w-md mb-8">
               Get instant answers, Ajani helps you find places, prices, vendors,
               and anything around Ibadan.
             </p>
 
-            {/* Typing hint */}
-            <div className="mt-8 p-4 bg-gradient-to-r from-cyan-50 to-green-50 rounded-xl border border-cyan-100">
-              <p className="text-sm text-gray-600 flex items-center gap-2">
-                <span className="text-cyan-500 font-semibold animate-pulse">
-                  💡 Click the message area below
+            {/* Example Questions */}
+            <div className="w-full max-w-md">
+              <h3 className="text-sm font-semibold text-gray-500 mb-3">
+                Try asking:
+              </h3>
+              <div className="flex flex-wrap gap-2 mb-8">
+                {exampleQuestions.map((question, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleExampleQuestion(question)}
+                    className="px-4 py-2 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-cyan-50 hover:to-green-50 border border-gray-200 hover:border-cyan-300 rounded-full text-sm text-gray-700 hover:text-gray-900 transition-all duration-300 hover:scale-[1.02] hover:shadow-md"
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Features List */}
+            <div className="space-y-4 max-w-md">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-r from-cyan-100 to-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-cyan-600 text-xs">✓</span>
+                </div>
+                <p className="text-gray-600 text-sm">24/7 instant responses</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-r from-cyan-100 to-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-cyan-600 text-xs">✓</span>
+                </div>
+                <p className="text-gray-600 text-sm">
+                  Local business recommendations
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-r from-cyan-100 to-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-cyan-600 text-xs">✓</span>
+                </div>
+                <p className="text-gray-600 text-sm">Real-time event updates</p>
+              </div>
+            </div>
+
+            {/* Coming Soon Badge */}
+            <div className="mt-12 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 max-w-md">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-blue-600 font-bold animate-pulse">
+                  🚀
                 </span>
-                <span className="text-gray-400">|</span>
-                <span className="text-gray-500">Watch the blinking cursor</span>
+                <h4 className="font-semibold text-blue-900">Coming Soon</h4>
+              </div>
+              <p className="text-blue-700 text-sm">
+                Full chat functionality with AI integration, voice commands, and
+                personalized recommendations will be available soon!
               </p>
             </div>
           </motion.div>
@@ -200,12 +379,12 @@ const FeaturedBanner = () => {
             variants={rightContentVariants}
             className="flex justify-center lg:justify-start"
           >
-            <div className="relative">
+            <div className="relative w-full max-w-md">
               {/* Outer container box with pulsing animation */}
               <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-green-400 rounded-2xl transform rotate-2 scale-105 opacity-20 animate-pulse"></div>
 
               {/* Chat card */}
-              <div className="relative bg-white border border-gray-200 shadow-xl rounded-2xl p-6 w-full max-w-sm mx-auto hover:shadow-2xl transition-shadow duration-300">
+              <div className="relative bg-white border border-gray-200 shadow-2xl rounded-2xl p-6 w-full hover:shadow-2xl transition-shadow duration-300">
                 {/* Chat Header */}
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 flex items-center justify-center text-white font-bold relative">
@@ -213,44 +392,111 @@ const FeaturedBanner = () => {
                     <img
                       src={Avater}
                       alt="Ajani Logo"
-                      className="w-full h-full object-cover rounded-full relative z-10"
+                      className="w-full h-full object-cover rounded-full relative z-10 border-2 border-white"
                     />
                   </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">Ajani</p>
-                    <p className="text-xs text-gray-500">Ai Agent</p>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-gray-900">
+                          Ajani AI Assistant
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Smart City Helper
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleClearChat}
+                        className="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition-colors"
+                      >
+                        Clear Chat
+                      </button>
+                    </div>
                   </div>
-                  <div className="ml-auto flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-xs text-green-600">Online</span>
+                    <span className="text-xs text-green-600 font-medium">
+                      Online
+                    </span>
                   </div>
                 </div>
 
-                {/* Chat Bubbles */}
-                <div className="space-y-6">
-                  {/* Ajani Chat */}
-                  <div>
-                    <p className="text-sm text-gray-500 mb-2">Ajani ai</p>
-                    <div className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-3 text-gray-700">
-                      Welcome to Wonderball! How can I help you today?
-                    </div>
+                {/* Chat Messages Container */}
+                <div
+                  ref={chatContainerRef}
+                  className="space-y-4 mb-6 max-h-80 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+                >
+                  {messageHistory.map((message) => (
+                    <motion.div
+                      key={message.id}
+                      initial="hidden"
+                      animate="visible"
+                      variants={messageVariants}
+                    >
+                      <div
+                        className={`flex ${
+                          message.sender === "user"
+                            ? "justify-end"
+                            : "justify-start"
+                        }`}
+                      >
+                        <div className="flex flex-col max-w-[80%]">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs text-gray-500">
+                              {message.sender === "bot" ? "Ajani AI" : "You"}
+                            </span>
+                            <span className="text-xs text-gray-400">•</span>
+                            <span className="text-xs text-gray-400">
+                              {message.timestamp}
+                            </span>
+                          </div>
+                          <div
+                            className={`rounded-xl p-3 ${
+                              message.sender === "bot"
+                                ? "bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 text-gray-700"
+                                : "bg-gradient-to-r from-[#0e2043] to-[#1a3b6d] text-white"
+                            }`}
+                          >
+                            {message.text}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
 
-                    {/* User Reply */}
-                    <div className="bg-gradient-to-r from-[#0e2043] to-[#1a3b6d] text-white rounded-xl p-3 mt-3 w-fit ml-auto text-sm shadow-lg">
-                      Hi can you help me to track my order?
-                    </div>
-                  </div>
-
-                  {/* Ajani follow-up */}
-                  <div>
-                    <p className="text-sm text-gray-500 mb-2">Ajani ai</p>
-                    <div className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-3 text-gray-700">
-                      Sure, please hold on for a second. <br />
-                      <span className="text-gray-500 text-sm">
-                        Retrieving account details...
-                      </span>
-                    </div>
-                  </div>
+                  {/* Typing Indicator */}
+                  {isSending && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex justify-start"
+                    >
+                      <div className="flex flex-col max-w-[80%]">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs text-gray-500">
+                            Ajani AI
+                          </span>
+                          <span className="text-xs text-gray-400">•</span>
+                          <span className="text-xs text-gray-400">
+                            typing...
+                          </span>
+                        </div>
+                        <div className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-3">
+                          <div className="flex space-x-1">
+                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                            <div
+                              className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                              style={{ animationDelay: "0.1s" }}
+                            ></div>
+                            <div
+                              className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                              style={{ animationDelay: "0.2s" }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
 
                   {/* "Coming Soon" Response */}
                   {showComingSoon && (
@@ -258,125 +504,187 @@ const FeaturedBanner = () => {
                       initial="hidden"
                       animate="visible"
                       variants={comingSoonVariants}
-                      className="mt-4"
                     >
-                      <p className="text-sm text-gray-500 mb-2">Ajani ai</p>
-                      <div className="bg-gradient-to-r from-cyan-50 to-green-50 border border-cyan-200 rounded-xl p-3 text-gray-700">
-                        <span className="font-semibold text-cyan-600">
-                          🚀 Feature Coming Soon!
-                        </span>
-                        <br />
-                        <span className="text-gray-600 text-sm">
-                          Chat functionality will be available soon! In the
-                          meantime, you can try typing and seeing the
-                          interactive preview.
-                        </span>
-                        <div className="mt-2 flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"></div>
-                          <div
-                            className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"
-                            style={{ animationDelay: "0.1s" }}
-                          ></div>
-                          <div
-                            className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"
-                            style={{ animationDelay: "0.2s" }}
-                          ></div>
+                      <div className="flex justify-start">
+                        <div className="flex flex-col max-w-[80%]">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs text-gray-500">
+                              Ajani AI
+                            </span>
+                            <span className="text-xs text-gray-400">•</span>
+                            <span className="text-xs text-gray-400">Now</span>
+                          </div>
+                          <div className="bg-gradient-to-r from-cyan-50 to-green-50 border border-cyan-200 rounded-xl p-3">
+                            <div className="flex items-start gap-2">
+                              <span className="text-cyan-600 text-lg mt-0.5">
+                                🚀
+                              </span>
+                              <div>
+                                <p className="font-semibold text-cyan-700">
+                                  Feature Coming Soon!
+                                </p>
+                                <p className="text-gray-600 text-sm mt-1">
+                                  Chat functionality will be available soon! In
+                                  the meantime, you can explore our demo
+                                  features.
+                                </p>
+                                <div className="mt-2 flex items-center gap-2">
+                                  <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"></div>
+                                  <div
+                                    className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"
+                                    style={{ animationDelay: "0.1s" }}
+                                  ></div>
+                                  <div
+                                    className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"
+                                    style={{ animationDelay: "0.2s" }}
+                                  ></div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </motion.div>
                   )}
                 </div>
 
-                {/* Message Input - Always showing blinking cursor */}
-                <div
-                  className={`mt-6 p-3 border-2 ${
-                    isFocused
-                      ? "border-cyan-400 shadow-cyan-100 shadow-inner"
-                      : "border-gray-300 hover:border-cyan-300"
-                  } bg-gradient-to-r from-gray-50 to-white rounded-xl flex items-center justify-between transition-all duration-300 hover:shadow-lg cursor-text`}
-                  onClick={() => inputRef.current?.focus()}
-                >
-                  <div className="flex-1 relative">
-                    {/* Placeholder text with blinking cursor */}
-                    <div
-                      ref={inputRef}
-                      contentEditable
-                      className="text-gray-400 text-sm outline-none min-h-[20px] w-full bg-transparent relative"
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                      onKeyDown={handleKeyDown}
-                      suppressContentEditableWarning={true}
-                    >
-                      Message...
-                    </div>
+                {/* Message Input */}
+                <div className="relative">
+                  <div
+                    className={`p-3 border-2 ${
+                      isFocused
+                        ? "border-cyan-400 shadow-cyan-100 shadow-inner"
+                        : "border-gray-300 hover:border-cyan-300"
+                    } bg-gradient-to-r from-gray-50 to-white rounded-xl flex items-center justify-between transition-all duration-300 hover:shadow-lg cursor-text`}
+                    onClick={() => {
+                      inputRef.current?.focus();
+                      if (
+                        inputRef.current &&
+                        inputRef.current.textContent === "Message..."
+                      ) {
+                        inputRef.current.textContent = "";
+                      }
+                    }}
+                  >
+                    <div className="flex-1 relative min-h-[24px]">
+                      <div
+                        ref={inputRef}
+                        contentEditable
+                        className="text-gray-800 text-sm outline-none w-full bg-transparent relative z-10 placeholder-gray-400"
+                        data-placeholder="Message..."
+                        onFocus={handleFocus}
+                        onBlur={handleBlur}
+                        onKeyDown={handleKeyDown}
+                        suppressContentEditableWarning={true}
+                      />
 
-                    {/* Always visible blinking cursor in placeholder */}
-                    {!isFocused &&
-                      showCursor &&
-                      inputRef.current?.textContent === "Message..." && (
-                        <div className="absolute left-[72px] top-1/2 transform -translate-y-1/2">
-                          <span className="w-0.5 h-4 bg-cyan-500 animate-pulse"></span>
+                      {/* Placeholder */}
+                      {!isFocused && inputRef.current?.textContent === "" && (
+                        <div className="absolute top-0 left-0 text-gray-400 text-sm pointer-events-none z-0">
+                          Message...
+                          {showCursor && (
+                            <span className="ml-0.5 w-0.5 h-4 bg-cyan-500 animate-pulse inline-block align-middle"></span>
+                          )}
                         </div>
                       )}
 
-                    {/* Blinking cursor when typing */}
-                    {isFocused && showCursor && (
-                      <div className="absolute left-0 top-1/2 transform -translate-y-1/2">
+                      {/* Typing cursor */}
+                      {isFocused && showCursor && (
                         <span
-                          className="w-0.5 h-4 bg-cyan-500 animate-pulse"
+                          className="absolute top-1/2 -translate-y-1/2 w-0.5 h-4 bg-cyan-500 animate-pulse"
                           style={{
-                            left: inputRef.current?.textContent.length * 7 || 0,
+                            left: `${Math.min(
+                              (inputRef.current?.textContent?.length || 0) *
+                                8.5,
+                              280
+                            )}px`,
                           }}
                         ></span>
-                      </div>
-                    )}
+                      )}
+                    </div>
+
+                    <button
+                      className={`ml-3 p-2.5 rounded-full transition-all duration-300 ${
+                        inputRef.current?.textContent?.trim() &&
+                        inputRef.current?.textContent !== "Message..."
+                          ? "bg-gradient-to-r from-cyan-500 to-green-500 hover:from-cyan-600 hover:to-green-600 shadow-lg hover:shadow-cyan-200 hover:scale-110 active:scale-95"
+                          : "bg-gray-300 cursor-not-allowed"
+                      } ${isSending ? "animate-pulse" : ""}`}
+                      onClick={handleSend}
+                      disabled={
+                        !inputRef.current?.textContent?.trim() ||
+                        inputRef.current?.textContent === "Message..." ||
+                        isSending
+                      }
+                    >
+                      {isSending ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <IoArrowUpSharp className="text-white text-lg" />
+                      )}
+                    </button>
                   </div>
 
-                  <button
-                    className={`ml-3 ${
-                      isFocused &&
-                      inputRef.current?.textContent.trim() &&
-                      inputRef.current?.textContent !== "Message..."
-                        ? "bg-gradient-to-r from-cyan-500 to-green-500 hover:from-cyan-600 hover:to-green-600 animate-bounce"
-                        : "bg-gray-300"
-                    } text-white p-2 rounded-full transition-all duration-300 hover:scale-110 active:scale-95`}
-                    onClick={handleSend}
-                    disabled={
-                      !isFocused ||
-                      !inputRef.current?.textContent.trim() ||
-                      inputRef.current?.textContent === "Message..."
-                    }
-                  >
-                    <IoArrowUpSharp />
-                  </button>
+                  {/* Input Hints */}
+                  <div className="mt-3 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1.5 text-cyan-600 font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span>
+                        Click to type your question
+                      </span>
+                    </div>
+                    <div className="text-gray-400 flex items-center gap-1.5">
+                      <span className="text-xs">Press</span>
+                      <kbd className="px-2 py-1 bg-gray-100 rounded text-xs border border-gray-300">
+                        Enter
+                      </kbd>
+                      <span className="text-xs">to send</span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Interactive hints */}
-                <div className="mt-4 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-4">
-                    <span className="flex items-center gap-1 text-cyan-600 font-semibold">
-                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span>
-                      Click here to type
-                    </span>
-                  </div>
-                  <div className="text-gray-400 flex items-center gap-1">
-                    <span className="animate-pulse">⌨️</span>
-                    <span>Start typing now</span>
+                {/* Features Preview */}
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                    Preview Features:
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-center p-2 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg">
+                      <div className="text-blue-600 text-lg mb-1">🤖</div>
+                      <p className="text-xs font-medium text-blue-800">
+                        AI Responses
+                      </p>
+                    </div>
+                    <div className="text-center p-2 bg-gradient-to-r from-green-50 to-green-100 rounded-lg">
+                      <div className="text-green-600 text-lg mb-1">📍</div>
+                      <p className="text-xs font-medium text-green-800">
+                        Local Search
+                      </p>
+                    </div>
+                    <div className="text-center p-2 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg">
+                      <div className="text-purple-600 text-lg mb-1">🎯</div>
+                      <p className="text-xs font-medium text-purple-800">
+                        Smart Suggestions
+                      </p>
+                    </div>
+                    <div className="text-center p-2 bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg">
+                      <div className="text-orange-600 text-lg mb-1">⚡</div>
+                      <p className="text-xs font-medium text-orange-800">
+                        Instant Help
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Arrow pointing to input */}
-                <div className="absolute -right-6 bottom-16 flex flex-col items-center">
+                {/* Interactive Arrow */}
+                <div className="absolute -right-6 bottom-32 hidden lg:flex flex-col items-center">
                   <div className="text-cyan-500 text-2xl animate-bounce">
                     👇
                   </div>
-                  <div className="text-xs text-cyan-600 font-semibold mt-1 whitespace-nowrap">
-                    Type here!
+                  <div className="text-xs text-cyan-600 font-semibold mt-1 whitespace-nowrap bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full border border-cyan-200">
+                    Try it now!
                   </div>
                 </div>
-
-                {/* Pulse effect around the entire chat */}
-                <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-cyan-400/0 via-cyan-400/10 to-green-400/0 animate-pulse pointer-events-none"></div>
               </div>
             </div>
           </motion.div>
@@ -387,18 +695,25 @@ const FeaturedBanner = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="mt-12 text-center"
+          className="mt-16 text-center"
         >
-          <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-cyan-50 to-green-50 rounded-full border border-cyan-200">
-            <span className="text-cyan-600 font-semibold animate-pulse">
+          <div className="inline-flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-cyan-50 via-white to-green-50 rounded-2xl border border-cyan-200 shadow-lg max-w-2xl mx-auto">
+            <span className="text-cyan-600 font-semibold animate-pulse text-xl">
               ⚡
             </span>
-            <span className="text-gray-700">
-              See the blinking cursor? Click and start typing!
-            </span>
-            <span className="text-gray-400 text-xs bg-white px-2 py-1 rounded-full">
-              Interactive
-            </span>
+            <div className="text-left">
+              <p className="text-gray-800 font-semibold">
+                Interactive AI Chat Demo
+              </p>
+              <p className="text-gray-600 text-sm mt-1">
+                Experience the preview of our upcoming AI assistant. Full
+                functionality coming soon!
+              </p>
+            </div>
+            <div className="flex items-center gap-2 ml-4">
+              <div className="w-2 h-2 bg-gradient-to-r from-cyan-500 to-green-500 rounded-full animate-pulse"></div>
+              <span className="text-xs text-gray-500">Live Preview</span>
+            </div>
           </div>
         </motion.div>
       </div>
