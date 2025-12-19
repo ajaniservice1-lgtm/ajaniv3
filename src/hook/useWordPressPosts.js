@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 export default function useWordPressPosts() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     async function fetchPosts() {
@@ -10,6 +11,10 @@ export default function useWordPressPosts() {
         const res = await fetch(
           "https://blog.ajani.ai/wp-json/wp/v2/posts?per_page=3&_embed"
         );
+
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
 
         const data = await res.json();
 
@@ -30,8 +35,10 @@ export default function useWordPressPosts() {
         }));
 
         setPosts(mapped);
+        setError(null);
       } catch (error) {
         console.error("WordPress fetch error:", error);
+        setError(error);
       } finally {
         setLoading(false);
       }
@@ -40,5 +47,5 @@ export default function useWordPressPosts() {
     fetchPosts();
   }, []);
 
-  return { posts, loading };
+  return { posts, loading, error };
 }

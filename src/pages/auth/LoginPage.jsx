@@ -180,7 +180,7 @@ const LoginPage = () => {
             <img src={Logo} alt="Ajani Logo" className="h-auto w-30" />
           </div>
 
-          <h2 className="text-2xl font-bold text-gray-900">Log in to Ajani</h2>
+          <h2 className="text-xl font-bold text-gray-900">Log in to Ajani</h2>
           <p className="text-gray-600 mt-2 text-sm">
             Enter your credentials to access your account
           </p>

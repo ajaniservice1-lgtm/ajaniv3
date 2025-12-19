@@ -3349,7 +3349,7 @@ const SearchResults = () => {
                         <div
                           className="flex items-center bg-gray-200 rounded-full shadow-sm relative z-40"
                           style={{
-                            width: isMobile ? "100%" : "30%",
+                            width: isMobile ? "100%" : "27%",
                           }}
                         >
                           <div className="pl-3 sm:pl-4 text-gray-500">

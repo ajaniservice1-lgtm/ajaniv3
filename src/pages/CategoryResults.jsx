@@ -3145,7 +3145,7 @@ const CategoryResults = () => {
                     ref={searchContainerRef}
                     style={{
                       width: "100%",
-                      maxWidth: isMobile ? "100%" : "30%",
+                      maxWidth: isMobile ? "100%" : "35%",
                       margin: isMobile ? "0" : "0 auto",
                       justifyContent: isMobile ? "flex-start" : "center",
                     }}

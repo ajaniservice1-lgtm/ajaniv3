@@ -28,7 +28,7 @@ const samplePosts = [
   },
 ];
 
-const FeaturedBanner = () => {
+const VendorForm = () => {
   const { posts, loading } = useWordPressPosts();
 
   // If WordPress API works → use posts
@@ -89,4 +89,4 @@ const FeaturedBanner = () => {
   );
 };
 
-export default FeaturedBanner;
+export default VendorForm;

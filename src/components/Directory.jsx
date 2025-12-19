@@ -1103,6 +1103,11 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
     navigate(`/category/${category}`);
   };
 
+  // Handle View All button click
+  const handleViewAllClick = () => {
+    navigate(`/category/${category}`);
+  };
+
   return (
     <section className="mb-4">
       <div className="flex justify-between items-center mb-2">
@@ -1195,6 +1200,16 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
           {/* Spacer for last card visibility */}
           <div className="flex-shrink-0" style={{ width: "16px" }}></div>
         </div>
+      </div>
+
+      {/* View All Button at the bottom - Centered */}
+      <div className="flex justify-center  mt-1 font-manrope">
+        <button
+          onClick={handleViewAllClick}
+          className="text-black bg-[#6cff] py-2.5 px-6 rounded-[10px] text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer"
+        >
+          View All
+        </button>
       </div>
     </section>
   );

@@ -15,16 +15,17 @@ const Header = () => {
   const profileDropdownRef = useRef(null);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
-  // Check login status on mount
+  // Check login status on mount - REMOVED DUMMY LOGIN LOGIC
   useEffect(() => {
     const checkLoginStatus = () => {
-      const dummyLogin = localStorage.getItem("ajani_dummy_login");
-      const dummyEmail = localStorage.getItem("ajani_dummy_email");
+      // Replace with your actual authentication logic
+      const token = localStorage.getItem("auth_token"); // Example: check for actual token
+      const userEmail = localStorage.getItem("user_email");
       const profile = localStorage.getItem("userProfile");
 
-      if (dummyLogin === "true") {
+      if (token) {
         setIsLoggedIn(true);
-        setUserEmail(dummyEmail || "Guest User");
+        setUserEmail(userEmail || "User");
 
         if (profile) {
           try {
@@ -49,12 +50,8 @@ const Header = () => {
 
     window.addEventListener("storage", handleStorageChange);
 
-    // Also check periodically
-    const interval = setInterval(checkLoginStatus, 1000);
-
     return () => {
       window.removeEventListener("storage", handleStorageChange);
-      clearInterval(interval);
     };
   }, []);
 
@@ -86,10 +83,13 @@ const Header = () => {
     window.open("https://blog.ajani.ai", "_blank", "noopener,noreferrer");
   };
 
-  // Handle sign out
+  // Handle sign out - UPDATED TO REMOVE DUMMY LOGIN
   const handleSignOut = () => {
-    localStorage.removeItem("ajani_dummy_login");
-    localStorage.removeItem("ajani_dummy_email");
+    // Clear actual authentication tokens
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user_email");
+    localStorage.removeItem("userProfile");
+
     setIsLoggedIn(false);
     setUserEmail("");
     setUserProfile(null);
@@ -129,6 +129,12 @@ const Header = () => {
     //   action: () => scrollToSection("Price Insights"),
     // },
     { label: "Blog", id: "Blog", action: handleBlogClick },
+    // ADDED "Hello" navigation item - EXAMPLE 1: Navigate to greeting page
+    {
+      label: "Hello",
+      id: "Hello",
+      action: () => navigate("/greeting"), // Navigates to /greeting route
+    },
   ];
 
   // Additional navigation items for logged in users
@@ -188,6 +194,40 @@ const Header = () => {
     }
   }, [isLoggedIn]);
 
+  // EXAMPLE 2: Custom onClick handler for "Hello" button
+  const handleHelloClick = () => {
+    // You can navigate to different pages based on conditions
+    if (isLoggedIn) {
+      // If logged in, navigate to user's dashboard
+      navigate("/dashboard");
+    } else {
+      // If not logged in, navigate to welcome page
+      navigate("/register/vendor/complete-profile");
+    }
+  };
+
+  // EXAMPLE 3: Navigate with parameters
+  const navigateWithParams = () => {
+    navigate("/greeting", {
+      state: {
+        message: "Hello from header!",
+        time: new Date().toLocaleTimeString(),
+      },
+    });
+  };
+
+  // EXAMPLE 4: Navigate and scroll
+  const navigateAndScroll = (path, elementId) => {
+    navigate(path);
+    // Wait for navigation to complete, then scroll
+    setTimeout(() => {
+      const element = document.getElementById(elementId);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 100);
+  };
+
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-[1000] bg-[#F7F7FA] border-b-2 font-manrope border-[#00d1ff] h-16 cursor-default">
@@ -231,6 +271,14 @@ const Header = () => {
                     {item.label}
                   </button>
                 ))}
+
+              {/* EXAMPLE: Additional "Hello" button with custom onClick */}
+              <button
+                onClick={handleHelloClick}
+                className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer"
+              >
+                Hello (Custom)
+              </button>
             </div>
 
             {/* Right section */}
@@ -579,6 +627,26 @@ const Header = () => {
                 </button>
               ))}
 
+            {/* EXAMPLE: Mobile "Hello" button */}
+            <button
+              onClick={() => {
+                navigate("/complete-profile");
+                setIsMenuOpen(false);
+              }}
+              className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+              style={{
+                transitionDelay: isMenuOpen
+                  ? `${
+                      (baseNavItems.length + loggedInNavItems.length + 1) * 50
+                    }ms`
+                  : "0ms",
+                opacity: isMenuOpen ? 1 : 0,
+                transform: isMenuOpen ? "translateX(0)" : "translateX(-20px)",
+              }}
+            >
+              Hello (Mobile)
+            </button>
+
             {/* Divider - Only show if user is logged in */}
             {isLoggedIn && (
               <div
@@ -586,7 +654,7 @@ const Header = () => {
                 style={{
                   transitionDelay: isMenuOpen
                     ? `${
-                        (baseNavItems.length + loggedInNavItems.length) * 50
+                        (baseNavItems.length + loggedInNavItems.length + 2) * 50
                       }ms`
                     : "0ms",
                   opacity: isMenuOpen ? 1 : 0,
@@ -603,7 +671,7 @@ const Header = () => {
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 1) *
+                          (baseNavItems.length + loggedInNavItems.length + 3) *
                           50
                         }ms`
                       : "0ms",
@@ -628,7 +696,7 @@ const Header = () => {
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 2) *
+                          (baseNavItems.length + loggedInNavItems.length + 4) *
                           50
                         }ms`
                       : "0ms",
@@ -650,7 +718,7 @@ const Header = () => {
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 3) *
+                          (baseNavItems.length + loggedInNavItems.length + 5) *
                           50
                         }ms`
                       : "0ms",
@@ -674,7 +742,7 @@ const Header = () => {
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 4) *
+                          (baseNavItems.length + loggedInNavItems.length + 6) *
                           50
                         }ms`
                       : "0ms",
@@ -692,7 +760,7 @@ const Header = () => {
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 5) *
+                          (baseNavItems.length + loggedInNavItems.length + 7) *
                           50
                         }ms`
                       : "0ms",
@@ -714,7 +782,7 @@ const Header = () => {
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 6) *
+                          (baseNavItems.length + loggedInNavItems.length + 8) *
                           50
                         }ms`
                       : "0ms",
@@ -733,7 +801,7 @@ const Header = () => {
                   className="h-px bg-gray-200 my-2 transition-all duration-300"
                   style={{
                     transitionDelay: isMenuOpen
-                      ? `${baseNavItems.length * 50}ms`
+                      ? `${(baseNavItems.length + 1) * 50}ms`
                       : "0ms",
                     opacity: isMenuOpen ? 1 : 0,
                   }}
@@ -744,7 +812,7 @@ const Header = () => {
                   className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
                   style={{
                     transitionDelay: isMenuOpen
-                      ? `${(baseNavItems.length + 1) * 50}ms`
+                      ? `${(baseNavItems.length + 2) * 50}ms`
                       : "0ms",
                     opacity: isMenuOpen ? 1 : 0,
                     transform: isMenuOpen
@@ -760,7 +828,7 @@ const Header = () => {
                   className="block w-full text-left py-3 px-4 hover:bg-blue-50 text-black rounded-lg font-normal whitespace-nowrap text-sm cursor-pointer transition-all duration-300 transform hover:translate-x-1"
                   style={{
                     transitionDelay: isMenuOpen
-                      ? `${(baseNavItems.length + 2) * 50}ms`
+                      ? `${(baseNavItems.length + 3) * 50}ms`
                       : "0ms",
                     opacity: isMenuOpen ? 1 : 0,
                     transform: isMenuOpen

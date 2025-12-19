@@ -157,6 +157,12 @@ function App() {
                   />
                   <Route path="/search-results" element={<SearchResults />} />
 
+                  {/* VENDOR PROFILE ROUTE - ADD THIS */}
+                  <Route
+                    path="/vendor-profile"
+                    element={<VendorCompleteProfile />}
+                  />
+
                   {/* AUTH */}
                   <Route
                     path="/login"
