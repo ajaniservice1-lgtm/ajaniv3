@@ -21,32 +21,32 @@ import {
   faLandmark,
   faHome,
   faTools,
+  faCalendar,
+  faUser,
 } from "@fortawesome/free-solid-svg-icons";
 import { createPortal } from "react-dom";
 
-// Direct image imports
+/* ---------------- IMAGES ---------------- */
 import hotelImg from "../assets/Logos/hotel.jpg";
 import tourismImg from "../assets/Logos/tourism.jpg";
 import eventsImg from "../assets/Logos/events.jpg";
 import restuarantImg from "../assets/Logos/restuarant.jpg";
 
-// FALLBACK IMAGES - INCLUDING SERVICES
+/* ---------------- FALLBACKS ---------------- */
 const FALLBACK_IMAGES = {
-  Hotel:
-    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop&q=80",
+  Hotel: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400",
   Restaurant:
-    "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400",
   Shortlet:
-    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop&q=80",
-  Tourism:
-    "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=300&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400",
+  Tourism: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400",
   Services:
-    "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=400&h=300&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=400",
 };
 
-// ===== HELPER FUNCTIONS =====
+/* ---------------- HELPER FUNCTIONS ---------------- */
 
-// Helper function to fetch Google Sheet data
+// Google Sheet Hook
 const useGoogleSheet = (sheetId, apiKey) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -102,7 +102,7 @@ const useGoogleSheet = (sheetId, apiKey) => {
   return { data: Array.isArray(data) ? data : [], loading, error };
 };
 
-// Helper function to safely get image source
+// Get category image
 const getCategoryImage = (category, fallback) => {
   try {
     switch (category) {
@@ -125,7 +125,7 @@ const getCategoryImage = (category, fallback) => {
   }
 };
 
-// Helper function to get category icon
+// Get category icon
 const getCategoryIcon = (category) => {
   const cat = category.toLowerCase();
   if (cat.includes("hotel")) return faBuilding;
@@ -136,7 +136,15 @@ const getCategoryIcon = (category) => {
   return faFilter;
 };
 
-// Helper functions for search
+// Format date
+const formatDateLabel = (date) =>
+  date.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+
+// Get category display name
 const getCategoryDisplayName = (category) => {
   if (!category || category === "All Categories") return "All Categories";
 
@@ -155,6 +163,7 @@ const getCategoryDisplayName = (category) => {
     .join(" ");
 };
 
+// Get location display name
 const getLocationDisplayName = (location) => {
   if (!location) return "All Locations";
 
@@ -173,7 +182,7 @@ const getLocationDisplayName = (location) => {
     .join(" ");
 };
 
-// Helper function to get category breakdown for listings
+// Get category breakdown
 const getCategoryBreakdown = (listings) => {
   const categoryCounts = {};
 
@@ -193,7 +202,7 @@ const getCategoryBreakdown = (listings) => {
     .sort((a, b) => b.count - a.count);
 };
 
-// Helper function to get location breakdown for listings
+// Get location breakdown
 const getLocationBreakdown = (listings) => {
   const locationCounts = {};
 
@@ -209,7 +218,7 @@ const getLocationBreakdown = (listings) => {
     .sort((a, b) => b.count - a.count);
 };
 
-// Helper function to generate search suggestions with breakdowns
+// Generate search suggestions
 const generateSearchSuggestions = (query, listings) => {
   if (!query.trim() || !listings.length) return [];
 
@@ -235,7 +244,7 @@ const generateSearchSuggestions = (query, listings) => {
     ),
   ];
 
-  // ===== CATEGORY SUGGESTIONS =====
+  // Category suggestions
   const categoryMatches = uniqueCategories
     .filter((category) => {
       const displayName = getCategoryDisplayName(category).toLowerCase();
@@ -251,7 +260,6 @@ const generateSearchSuggestions = (query, listings) => {
       const locationBreakdown = getLocationBreakdown(categoryListings);
       const totalPlaces = categoryListings.length;
 
-      // Get top 3 locations for this category
       const topLocations = locationBreakdown.slice(0, 3);
 
       return {
@@ -277,7 +285,7 @@ const generateSearchSuggestions = (query, listings) => {
     })
     .sort((a, b) => b.count - a.count);
 
-  // ===== LOCATION SUGGESTIONS =====
+  // Location suggestions
   const locationMatches = uniqueLocations
     .filter((location) => {
       const displayName = getLocationDisplayName(location).toLowerCase();
@@ -292,7 +300,6 @@ const generateSearchSuggestions = (query, listings) => {
       const categoryBreakdown = getCategoryBreakdown(locationListings);
       const totalPlaces = locationListings.length;
 
-      // Get top 4 categories for this location
       const topCategories = categoryBreakdown.slice(0, 4);
 
       return {
@@ -337,12 +344,12 @@ const generateSearchSuggestions = (query, listings) => {
       // Then by count
       return b.count - a.count;
     })
-    .slice(0, 8); // Show more results
+    .slice(0, 8);
 };
 
-// ===== COMPONENTS =====
+/* ---------------- COMPONENTS ---------------- */
 
-// Mobile Fullscreen Search Modal Component
+// Mobile Search Modal Component
 const MobileSearchModal = ({
   searchQuery,
   listings,
@@ -355,7 +362,7 @@ const MobileSearchModal = ({
   const modalRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Generate suggestions with breakdowns
+  // Generate suggestions
   const suggestions = useMemo(() => {
     return generateSearchSuggestions(inputValue, listings);
   }, [inputValue, listings]);
@@ -660,7 +667,6 @@ const MobileSearchModal = ({
                     "Ibadan",
                     "Shortlets",
                     "Tourism",
-                    "Services",
                   ].map((term) => (
                     <button
                       key={term}
@@ -695,7 +701,7 @@ const DesktopSearchSuggestions = ({
 }) => {
   const suggestionsRef = useRef(null);
 
-  // Generate suggestions with breakdowns
+  // Generate suggestions
   const suggestions = useMemo(() => {
     return generateSearchSuggestions(searchQuery, listings);
   }, [searchQuery, listings]);
@@ -723,12 +729,11 @@ const DesktopSearchSuggestions = ({
   if (!isVisible || !searchQuery.trim() || suggestions.length === 0)
     return null;
 
-  // Get the search container width from the search bar position
   const containerWidth = searchBarPosition?.width || 0;
 
   return createPortal(
     <>
-      {/* Semi-transparent backdrop - allows page content to be visible */}
+      {/* Semi-transparent backdrop */}
       <div
         className="fixed inset-0 bg-black/5 z-[9980] animate-fadeIn"
         onClick={onClose}
@@ -766,7 +771,7 @@ const DesktopSearchSuggestions = ({
           </div>
         </div>
 
-        {/* Suggestions List - Scrollable with max height */}
+        {/* Suggestions List */}
         <div
           className="overflow-y-auto"
           style={{ maxHeight: "calc(70vh - 48px)" }}
@@ -896,7 +901,7 @@ const DesktopSearchSuggestions = ({
   );
 };
 
-// Main Discover Ibadan Component
+/* ---------------- MAIN COMPONENT ---------------- */
 const DiscoverIbadan = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -912,11 +917,18 @@ const DiscoverIbadan = () => {
   const searchInputRef = useRef(null);
   const searchContainerRef = useRef(null);
 
+  /* ---- Dates (real-time) ---- */
+  const today = new Date();
+  const tomorrow = new Date(Date.now() + 86400000);
+
+  const [checkIn] = useState(today);
+  const [checkOut] = useState(tomorrow);
+
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
   const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
   const { data: listings = [], loading } = useGoogleSheet(SHEET_ID, API_KEY);
 
-  // Check for mobile view
+  /* ---------------- MOBILE CHECK ---------------- */
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
@@ -924,7 +936,7 @@ const DiscoverIbadan = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Track search bar position for suggestions - with real-time scroll updates
+  /* ---------------- SEARCH BAR POSITION TRACKING ---------------- */
   useEffect(() => {
     if (!searchContainerRef.current || isMobile) return;
 
@@ -964,7 +976,7 @@ const DiscoverIbadan = () => {
     };
   }, [isMobile, showSuggestions]);
 
-  // Handle search submission
+  /* ---------------- SEARCH HANDLERS ---------------- */
   const handleSearchSubmit = useCallback(() => {
     if (searchQuery.trim()) {
       const params = new URLSearchParams();
@@ -993,7 +1005,6 @@ const DiscoverIbadan = () => {
     [navigate]
   );
 
-  // Handle search change
   const handleSearchChange = useCallback(
     (value) => {
       setSearchQuery(value);
@@ -1012,14 +1023,12 @@ const DiscoverIbadan = () => {
     searchInputRef.current?.focus();
   }, []);
 
-  // Handle mobile search click
   const handleMobileSearchClick = useCallback(() => {
     if (isMobile) {
       setShowMobileModal(true);
     }
   }, [isMobile]);
 
-  // Handle search input focus
   const handleSearchFocus = useCallback(() => {
     if (isMobile) {
       handleMobileSearchClick();
@@ -1028,11 +1037,11 @@ const DiscoverIbadan = () => {
     }
   }, [isMobile, searchQuery, handleMobileSearchClick]);
 
-  // Smooth scroll to AiTopPicks section
+  /* ---------------- CATEGORY HANDLERS ---------------- */
   const scrollToAiTopPicks = useCallback(() => {
     const aiTopPicksSection = document.getElementById("toppicks");
     if (aiTopPicksSection) {
-      const offset = 80; // Adjust this value based on your header height
+      const offset = 80;
       const elementPosition = aiTopPicksSection.getBoundingClientRect().top;
       const offsetPosition = elementPosition + window.pageYOffset - offset;
 
@@ -1043,7 +1052,6 @@ const DiscoverIbadan = () => {
     }
   }, []);
 
-  // Handle category click - INCLUDING SERVICES
   const handleCategoryClick = (category) => {
     const categoryMap = {
       Hotel: "hotel",
@@ -1056,147 +1064,184 @@ const DiscoverIbadan = () => {
 
     if (categorySlug) {
       if (category === "Services") {
-        // For Services, scroll to AiTopPicks section
         scrollToAiTopPicks();
       } else {
-        // For other categories, navigate normally
         navigate(`/category/${categorySlug}`);
       }
     }
   };
 
   return (
-    <div className="min-h-screen bg-white font-manrope">
-      {/* Hero Section */}
-      <section
-        id="hero"
-        className="bg-[#F7F7FA] overflow-hidden min-h-[30vh] md:min-h-[35vh] lg:min-h-[40vh] flex items-start justify-center relative"
-      >
+    <div className="min-h-[50%] bg-[#F7F7FA] font-manrope">
+      <section className="pt-14 lg:pt-12 text-center bg-[#F7F7FA] overflow-hidden relative">
+        {/* Background Pattern */}
         <div
           className={`absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20`}
         ></div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-4 md:mt-6">
-          <div className="flex flex-col items-center text-center space-y-4 md:space-y-6">
-            {/* Hero Title */}
-            <div className="space-y-2 md:space-y-3 max-w-xl md:max-w-2xl w-full md:mt-12 mt-16">
-              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl font-bold text-gray-900 leading-tight">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-4 lg:py-4">
+          <div className="flex flex-col items-center text-center space-y-4 md:space-y-5 lg:space-y-4">
+            {/* Hero Title - INCREASED HEADING SIZES */}
+            <div className="space-y-1 md:space-y-2 max-w-xl md:max-w-2xl w-full mt-1 md:mt-2 lg:mt-1">
+              {/* INCREASED heading text size for lg and mobile */}
+              <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-3xl md:mt-4 leading-tight font-bold text-gray-900">
                 Discover{" "}
                 <span className="bg-gradient-to-r from-blue-600 to-teal-400 bg-clip-text text-transparent">
-                  Ibadan through AI & Local Stories
-                </span>
+                  Ibadan
+                </span>{" "}
+                through AI & Local Stories
               </h1>
-              <p className="text-sm sm:text-sm md:text-base text-gray-600 font-medium max-w-xl md:ml-14">
+              {/* INCREASED paragraph text size */}
+              <p className="text-base sm:text-lg md:text-xl lg:text-[16px] md:mt-3 text-gray-600 font-medium max-w-xl mx-auto px-2">
                 Your all-in-one local guide for hotels, food, events, vendors,
                 and market prices.
               </p>
             </div>
 
-            {/* Search Box Container */}
-            <div className="w-full max-w-md md:max-w-md mx-auto">
-              <div
-                ref={searchContainerRef}
-                className="bg-white rounded-xl p-6 shadow-lg"
-              >
-                <div className="flex flex-col gap-4">
-                  {/* Search Input */}
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            {/* UPDATED SEARCH BAR - MOBILE OPTIMIZED DESIGN */}
+            <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
+              <div ref={searchContainerRef} className="relative w-full">
+                {/* Main Search Card - COMPACT PADDING */}
+                <div className="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg border border-blue-100 p-3 sm:p-3 md:p-4">
+                  {/* Search Input Row - MOBILE FIRST DESIGN */}
+                  <div className="w-full">
+                    {/* Search Input - TOP POSITION */}
+                    <div className="mb-2 sm:mb-3">
+                      <div className="bg-gray-100 rounded-lg px-3 sm:px-3 py-2 sm:py-2 text-xs sm:text-xs flex items-center gap-2 hover:bg-gray-200 transition-colors duration-200">
+                        <FontAwesomeIcon
+                          icon={faSearch}
+                          className="text-gray-500 w-3 h-3 sm:w-3 sm:h-3"
+                        />
+                        <input
+                          ref={searchInputRef}
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => handleSearchChange(e.target.value)}
+                          onFocus={handleSearchFocus}
+                          onKeyPress={handleKeyPress}
+                          placeholder="Search by area, category, or name ..."
+                          className="bg-transparent outline-none w-full text-gray-700 placeholder-gray-500 text-xs sm:text-xs md:text-sm"
+                        />
+                        {searchQuery && (
+                          <button
+                            onClick={handleClearSearch}
+                            className="text-gray-400 hover:text-gray-600 transition-colors"
+                            aria-label="Clear search"
+                          >
+                            <FontAwesomeIcon
+                              icon={faTimes}
+                              className="w-3 h-3 sm:w-3 sm:h-3"
+                            />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Check-in & Check-out - SIDE BY SIDE */}
+                    <div className="grid grid-cols-2 gap-2 sm:gap-2 mb-2 sm:mb-3">
+                      {/* Check-in */}
+                      <div className="bg-gray-100 rounded-lg p-2 sm:p-2 text-left hover:bg-gray-200 transition-colors duration-200">
+                        <div className="text-xs text-gray-500 flex items-center gap-1 mb-0.5">
+                          <FontAwesomeIcon
+                            icon={faCalendar}
+                            className="w-3 h-3"
+                          />
+                          Check-in
+                        </div>
+                        <div className="text-xs sm:text-xs font-medium text-blue-600">
+                          {formatDateLabel(checkIn)}
+                        </div>
+                      </div>
+
+                      {/* Check-out */}
+                      <div className="bg-gray-100 rounded-lg p-2 sm:p-2 text-left hover:bg-gray-200 transition-colors duration-200">
+                        <div className="text-xs text-gray-500 flex items-center gap-1 mb-0.5">
+                          <FontAwesomeIcon
+                            icon={faCalendar}
+                            className="w-3 h-3"
+                          />
+                          Check-out
+                        </div>
+                        <div className="text-xs sm:text-xs font-medium text-blue-600">
+                          {formatDateLabel(checkOut)}
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      className="
+                    "
+                    ><p className="">hello</p></div>
+
+                    {/* Search Button - BELOW CHECK-IN/OUT */}
+                    <button
+                      onClick={handleSearchSubmit}
+                      className="w-full bg-gradient-to-r from-[#00E38C] to-teal-500 hover:from-[#00c97b] hover:to-teal-600 text-white font-semibold py-2 sm:py-2 px-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow flex items-center justify-center gap-2 whitespace-nowrap"
+                    >
                       <FontAwesomeIcon
                         icon={faSearch}
-                        className="h-4 w-4 text-gray-400"
+                        className="w-3 h-3 sm:w-3 sm:h-3"
                       />
-                    </div>
-                    <input
-                      ref={searchInputRef}
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => handleSearchChange(e.target.value)}
-                      onFocus={handleSearchFocus}
-                      onKeyPress={handleKeyPress}
-                      placeholder="Search by area, category, or name ..."
-                      className="w-full pl-9 pr-8 py-2 text-sm rounded-full border border-gray-300 bg-white shadow-sm hover:shadow transition-shadow duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      aria-label="Search businesses and locations in Ibadan"
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={handleClearSearch}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                        aria-label="Clear search"
-                      >
-                        <FontAwesomeIcon
-                          icon={faTimes}
-                          className="h-4 w-4 text-gray-400 hover:text-gray-600"
-                        />
-                      </button>
-                    )}
+                      <span className="text-xs sm:text-xs md:text-sm">
+                        Search
+                      </span>
+                    </button>
                   </div>
+                </div>
+              </div>
+            </div>
 
-                  {/* Category Icons - 5 CARDS INCLUDING SERVICES */}
-                  <div className="grid grid-cols-5 gap-4">
-                    {[
-                      "Hotel",
-                      "Tourism",
-                      "Shortlet",
-                      "Restaurant",
-                      "Services",
-                    ].map((category) => (
-                      <motion.div
-                        key={category}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="group cursor-pointer flex flex-col items-center"
-                        onClick={() => handleCategoryClick(category)}
-                      >
-                        {/* Square Container */}
-                        <div className="relative w-16 h-16">
-                          <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-teal-50 rounded-xl transform group-hover:scale-105 transition-transform duration-300"></div>
-                          <div className="relative w-full h-full p-1">
-                            <div className="w-full h-full overflow-hidden rounded-lg shadow-sm group-hover:shadow transition-all duration-300">
-                              <img
-                                src={getCategoryImage(
-                                  category,
-                                  FALLBACK_IMAGES[category]
-                                )}
-                                alt={category}
-                                className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
-                                onError={(e) => {
-                                  e.target.src = FALLBACK_IMAGES[category];
-                                }}
-                              />
-                            </div>
+            {/* Category Icons - MINIMAL GAP AND MARGINS */}
+            <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto mt-1 sm:mt-2 lg:mt-1">
+              <div className="flex justify-between items-center gap-2 sm:gap-3 lg:gap-3">
+                {["Hotel", "Tourism", "Shortlet", "Restaurant", "Services"].map(
+                  (category) => (
+                    <motion.div
+                      key={category}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="group cursor-pointer flex flex-col items-center"
+                      onClick={() => handleCategoryClick(category)}
+                    >
+                      {/* Square Container - COMPACT SIZE */}
+                      <div className="relative w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-12 lg:h-12">
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-teal-50 rounded-md sm:rounded-lg transform group-hover:scale-105 transition-transform duration-300"></div>
+                        <div className="relative w-full h-full p-0.5">
+                          <div className="w-full h-full overflow-hidden rounded-sm sm:rounded-md shadow-xs group-hover:shadow-xs transition-all duration-300">
+                            <img
+                              src={getCategoryImage(
+                                category,
+                                FALLBACK_IMAGES[category]
+                              )}
+                              alt={category}
+                              className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
+                              onError={(e) => {
+                                e.target.src = FALLBACK_IMAGES[category];
+                              }}
+                            />
                           </div>
                         </div>
-                        <p className="mt-2 text-xs font-semibold text-gray-700 group-hover:text-blue-600 transition-colors duration-200 text-center whitespace-nowrap">
-                          {category}
-                        </p>
-                      </motion.div>
-                    ))}
-                  </div>
-
-                  {/* Search Button */}
-                  <button
-                    onClick={handleSearchSubmit}
-                    className="bg-gradient-to-r from-[#06EAFC] to-teal-400 hover:from-[#08d7e6] hover:to-teal-500 font-semibold py-2 px-4 rounded-full shadow-sm hover:shadow transition-all duration-200 whitespace-nowrap text-sm flex items-center justify-center gap-1"
-                    aria-label="Search"
-                  >
-                    <FontAwesomeIcon icon={faSearch} className="w-3 h-3" />
-                    Search
-                  </button>
-                </div>
+                      </div>
+                      {/* Minimal text size and margin */}
+                      <p className="mt-0.5 text-[9px] xs:text-[10px] font-medium text-gray-700 group-hover:text-blue-600 transition-colors duration-200 text-center whitespace-nowrap">
+                        {category}
+                      </p>
+                    </motion.div>
+                  )
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Bottom gradient */}
-        <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent opacity-50"></div>
+        {/* REMOVED bottom gradient - separator will be right at the bottom */}
       </section>
 
-      {/* Green Separator Line */}
-      <div className="relative mb-4">
-        <div className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-green-400 mt-3 via-green-500 to-green-400 opacity-70"></div>
+      {/* Green Separator Line - AT THE EXACT BOTTOM OF HERO SECTION */}
+      <div className="relative">
+        <div className="absolute left-0 right-0 h-[1px] sm:h-[1px] bg-gradient-to-r from-green-400 via-green-500 to-green-400 opacity-70"></div>
       </div>
+
+      {/* REMOVED additional content section to keep hero ending at separator */}
 
       {/* Desktop Search Suggestions */}
       {!isMobile && (

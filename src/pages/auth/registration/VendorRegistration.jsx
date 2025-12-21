@@ -1,63 +1,159 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaArrowRight, FaEye, FaEyeSlash, FaTimes } from "react-icons/fa";
 import Logo from "../../../assets/Logos/logo5.png";
+import * as yup from "yup";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import axiosInstance from "../../../lib/axios";
+
+const schema = yup.object().shape({
+  firstName: yup.string().required("First name is required"),
+  lastName: yup.string().required("Last name is required"),
+  email: yup
+    .string()
+    .email("Enter a valid email")
+    .required("Email is required"),
+  phone: yup.string().required("Phone number is required"),
+  password: yup
+    .string()
+    .required("Password is required")
+    .min(8, "Password must be at least 8 characters")
+    .matches(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+    ),
+  confirmPassword: yup
+    .string()
+    .required("Confirm password is required")
+    .oneOf([yup.ref("password")], "Passwords must match"),
+  role: yup.string().default("vendor"), // Set default role to "vendor"
+});
+
+// Toast Notification Component (same as user registration)
+const ToastNotification = ({ message, onClose }) => {
+  return (
+    <div className="fixed top-4 right-4 z-50 animate-slideInRight">
+      <div className="bg-green-50 border border-green-200 rounded-lg shadow-lg p-4 max-w-sm">
+        <div className="flex items-start gap-3">
+          <div className="text-green-600 mt-0.5">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <p className="font-medium text-green-800">{message}</p>
+            <p className="text-sm text-green-600 mt-1">
+              Check your email for confirmation link
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-green-400 hover:text-green-600 transition-colors ml-2"
+            aria-label="Close notification"
+          >
+            <FaTimes size={16} />
+          </button>
+        </div>
+        <div className="mt-2 w-full bg-green-200 h-1 rounded-full overflow-hidden">
+          <div className="h-full bg-green-500 animate-progressBar"></div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const VendorRegistration = () => {
   const navigate = useNavigate();
-
-  const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: "",
-  });
-
-  const [errors, setErrors] = useState({});
-  const [touched, setTouched] = useState({});
+  const [showToast, setShowToast] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const validateForm = () => {
-    const newErrors = {};
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isDirty },
+  } = useForm({
+    resolver: yupResolver(schema),
+    defaultValues: {
+      role: "vendor", // Set default role
+    },
+  });
 
-    if (!form.firstName.trim()) newErrors.firstName = "First name is required";
-    if (!form.lastName.trim()) newErrors.lastName = "Last name is required";
-    if (!form.email.trim()) newErrors.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(form.email))
-      newErrors.email = "Email is invalid";
-    if (!form.phone.trim()) newErrors.phone = "Phone number is required";
-    else if (!/^[+]?[\d\s\-()]+$/.test(form.phone.replace(/\s/g, "")))
-      newErrors.phone = "Phone number is invalid";
-    if (!form.password) newErrors.password = "Password is required";
-    else if (form.password.length < 8)
-      newErrors.password = "Password must be at least 8 characters";
-    else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(form.password))
-      newErrors.password =
-        "Password must contain uppercase, lowercase and number";
-    if (form.password !== form.confirmPassword)
-      newErrors.confirmPassword = "Passwords do not match";
+  // Add CSS for animations
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.textContent = `
+      @keyframes slideInRight {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      
+      @keyframes slideOutRight {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+      }
+      
+      @keyframes progressBar {
+        from {
+          width: 100%;
+        }
+        to {
+          width: 0%;
+        }
+      }
+      
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      
+      .animate-slideInRight {
+        animation: slideInRight 0.3s ease-out forwards;
+      }
+      
+      .animate-slideOutRight {
+        animation: slideOutRight 0.3s ease-in forwards;
+      }
+      
+      .animate-progressBar {
+        animation: progressBar 5s linear forwards;
+      }
+      
+      .animate-spin {
+        animation: spin 1s linear infinite;
+      }
+    `;
+    document.head.appendChild(style);
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-    // Clear error for this field when user starts typing
-    if (errors[e.target.name]) {
-      setErrors({ ...errors, [e.target.name]: "" });
-    }
-  };
-
-  const handleBlur = (field) => {
-    setTouched({ ...touched, [field]: true });
-  };
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   const handleCancel = () => {
-    // Navigate back or to home if no history
     const hasPreviousPage = window.history.length > 1;
     if (hasPreviousPage) {
       navigate(-1);
@@ -66,25 +162,63 @@ const VendorRegistration = () => {
     }
   };
 
-  const handleNext = (e) => {
-    e.preventDefault();
+  const handleSubmitForm = async (data) => {
+    try {
+      setIsSubmitting(true);
 
-    if (validateForm()) {
-      // Store vendor data temporarily
+      // Include the vendor-specific data along with user data
       const vendorData = {
-        ...form,
-        fullName: `${form.firstName} ${form.lastName}`,
+        ...data,
+        fullName: `${data.firstName} ${data.lastName}`,
         registrationDate: new Date().toISOString(),
         vendorType: "business", // Default vendor type
       };
 
+      // Store temporary vendor data if still needed for the next step
       localStorage.setItem("tempVendorData", JSON.stringify(vendorData));
-      navigate("/register/vendor/process1", { state: vendorData });
+
+      // Send registration request to backend with role="vendor"
+      const response = await axiosInstance.post("/auth/register", {
+        ...data,
+        role: "vendor", // Explicitly set role to vendor
+      });
+
+      // Show success toast
+      setShowToast(true);
+
+      // Reset form
+      reset();
+
+      // Auto-hide toast after 5 seconds
+      setTimeout(() => {
+        setShowToast(false);
+        // Navigate to next step if needed
+        navigate("/register/vendor/process1", { state: vendorData });
+      }, 5000);
+    } catch (error) {
+      console.error("Registration error:", error);
+
+      // Show error message
+      alert(
+        error.response?.data?.message ||
+          error.response?.data?.error ||
+          "Registration failed. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className="min-h-screen w-full bg-white flex items-center justify-center p-4 sm:p-6 md:p-8 font-manrope">
+      {/* Toast Notification */}
+      {showToast && (
+        <ToastNotification
+          message="Vendor Registration Successful!"
+          onClose={() => setShowToast(false)}
+        />
+      )}
+
       <div className="w-full max-w-md sm:max-w-lg p-6 sm:p-8 rounded-xl shadow-lg bg-white relative">
         {/* Cancel/Close Button - Top Right */}
         <button
@@ -113,7 +247,10 @@ const VendorRegistration = () => {
         <div className="w-full border-t border-[#00d1ff] mt-4 mb-6"></div>
 
         {/* Form */}
-        <form onSubmit={handleNext} className="space-y-4">
+        <form onSubmit={handleSubmit(handleSubmitForm)} className="space-y-4">
+          {/* Hidden role field */}
+          <input type="hidden" {...register("role")} value="vendor" />
+
           {/* First & Last Name */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -122,17 +259,16 @@ const VendorRegistration = () => {
               </label>
               <input
                 type="text"
-                name="firstName"
-                value={form.firstName}
-                onChange={handleChange}
-                onBlur={() => handleBlur("firstName")}
+                {...register("firstName")}
                 placeholder="Enter first name"
                 className={`w-full mt-1 px-3 py-2.5 border ${
                   errors.firstName ? "border-red-500" : "border-gray-300"
                 } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm`}
               />
               {errors.firstName && (
-                <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.firstName.message}
+                </p>
               )}
             </div>
 
@@ -142,17 +278,16 @@ const VendorRegistration = () => {
               </label>
               <input
                 type="text"
-                name="lastName"
-                value={form.lastName}
-                onChange={handleChange}
-                onBlur={() => handleBlur("lastName")}
+                {...register("lastName")}
                 placeholder="Enter last name"
                 className={`w-full mt-1 px-3 py-2.5 border ${
                   errors.lastName ? "border-red-500" : "border-gray-300"
                 } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm`}
               />
               {errors.lastName && (
-                <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.lastName.message}
+                </p>
               )}
             </div>
           </div>
@@ -162,17 +297,16 @@ const VendorRegistration = () => {
             <label className="text-sm font-medium text-gray-700">Email *</label>
             <input
               type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              onBlur={() => handleBlur("email")}
+              {...register("email")}
               placeholder="Email Address"
               className={`w-full mt-1 px-3 py-2.5 border ${
                 errors.email ? "border-red-500" : "border-gray-300"
               } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm`}
             />
             {errors.email && (
-              <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {errors.email.message}
+              </p>
             )}
           </div>
 
@@ -183,17 +317,16 @@ const VendorRegistration = () => {
             </label>
             <input
               type="tel"
-              name="phone"
-              value={form.phone}
-              onChange={handleChange}
-              onBlur={() => handleBlur("phone")}
+              {...register("phone")}
               placeholder="Phone Number"
               className={`w-full mt-1 px-3 py-2.5 border ${
                 errors.phone ? "border-red-500" : "border-gray-300"
               } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm`}
             />
             {errors.phone && (
-              <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {errors.phone.message}
+              </p>
             )}
           </div>
 
@@ -205,10 +338,7 @@ const VendorRegistration = () => {
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
-                name="password"
-                value={form.password}
-                onChange={handleChange}
-                onBlur={() => handleBlur("password")}
+                {...register("password")}
                 placeholder="********"
                 className={`w-full mt-1 px-3 py-2.5 border ${
                   errors.password ? "border-red-500" : "border-gray-300"
@@ -223,7 +353,9 @@ const VendorRegistration = () => {
               </button>
             </div>
             {errors.password && (
-              <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {errors.password.message}
+              </p>
             )}
             <p className="text-xs text-gray-500 mt-1">
               Must be at least 8 characters with uppercase, lowercase and number
@@ -238,10 +370,7 @@ const VendorRegistration = () => {
             <div className="relative">
               <input
                 type={showConfirmPassword ? "text" : "password"}
-                name="confirmPassword"
-                value={form.confirmPassword}
-                onChange={handleChange}
-                onBlur={() => handleBlur("confirmPassword")}
+                {...register("confirmPassword")}
                 placeholder="********"
                 className={`w-full mt-1 px-3 py-2.5 border ${
                   errors.confirmPassword ? "border-red-500" : "border-gray-300"
@@ -261,7 +390,7 @@ const VendorRegistration = () => {
             </div>
             {errors.confirmPassword && (
               <p className="text-red-500 text-xs mt-1">
-                {errors.confirmPassword}
+                {errors.confirmPassword.message}
               </p>
             )}
           </div>
@@ -297,9 +426,19 @@ const VendorRegistration = () => {
           <div className="flex justify-end mt-3">
             <button
               type="submit"
-              className="bg-[#00d37f] text-white flex items-center gap-2 px-5 py-2.5 rounded-lg shadow-md hover:bg-[#02be72] transition text-sm font-medium"
+              disabled={!isDirty || isSubmitting}
+              className="bg-[#00d37f] text-white flex items-center gap-2 px-5 py-2.5 rounded-lg shadow-md hover:bg-[#02be72] transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Next <FaArrowRight size={12} />
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  Register <FaArrowRight size={12} />
+                </>
+              )}
             </button>
           </div>
         </form>
@@ -309,3 +448,4 @@ const VendorRegistration = () => {
 };
 
 export default VendorRegistration;
+
