@@ -28,7 +28,6 @@ const LoginPage = () => {
     register,
     handleSubmit,
     formState: { errors },
-    setValue,
   } = useForm({
     resolver: yupResolver(loginSchema),
   });
@@ -306,15 +305,30 @@ const LoginPage = () => {
         </form>
 
         <div className="text-center text-sm text-gray-600 pt-4">
-          <p>
-            Forgot your password?{" "}
-            <button
-              onClick={handleResetPassword}
-              className="text-[#6cff] hover:text-[#06EAFC] font-medium"
-            >
-              Reset here
-            </button>
-          </p>
+          <div className="mb-3">
+            <p>
+              Forgot your password?{" "}
+              <button
+                onClick={handleResetPassword}
+                className="text-[#6cff] hover:text-[#06EAFC] font-medium"
+              >
+                Reset here
+              </button>
+            </p>
+          </div>
+
+          {/* Don't have an account? Register here */}
+          <div className="pt-3 border-t border-gray-200">
+            <p>
+              Don't have an account?{" "}
+              <button
+                onClick={() => navigate("/register")}
+                className="text-[#6cff] hover:text-[#06EAFC] font-medium"
+              >
+                Register here
+              </button>
+            </p>
+          </div>
         </div>
       </div>
 
