@@ -1092,7 +1092,7 @@ const DiscoverIbadan = () => {
                 through AI & Local Stories
               </h1>
               {/* INCREASED paragraph text size */}
-              <p className="text-base sm:text-lg md:text-xl lg:text-[16px] md:mt-3 text-gray-600 font-medium max-w-xl mx-auto px-2">
+              <p className="text-[14.5px] sm:text-lg md:text-xl lg:text-[16px] md:mt-3 text-gray-600 font-medium max-w-xl mx-auto px-2">
                 Your all-in-one local guide for hotels, food, events, vendors,
                 and market prices.
               </p>
@@ -1106,8 +1106,11 @@ const DiscoverIbadan = () => {
                   {/* Search Input Row - MOBILE FIRST DESIGN */}
                   <div className="w-full">
                     {/* Search Input - TOP POSITION */}
-                    <div className="mb-2 sm:mb-3">
-                      <div className="bg-gray-100 rounded-lg px-3 sm:px-3 py-2 sm:py-2 text-xs sm:text-xs flex items-center gap-2 hover:bg-gray-200 transition-colors duration-200">
+                    <div className="mb-2 sm:mb-3 cursor-pointer">
+                      <div
+                        className="bg-gray-100 rounded-lg px-3 sm:px-3 py-1.5
+                       sm:py-2 text-xs sm:text-xs flex items-center gap-2 hover:bg-gray-200 transition-colors duration-200"
+                      >
                         <FontAwesomeIcon
                           icon={faSearch}
                           className="text-gray-500 w-3 h-3 sm:w-3 sm:h-3"
@@ -1120,12 +1123,12 @@ const DiscoverIbadan = () => {
                           onFocus={handleSearchFocus}
                           onKeyPress={handleKeyPress}
                           placeholder="Search by area, category, or name ..."
-                          className="bg-transparent outline-none w-full text-gray-700 placeholder-gray-500 text-xs sm:text-xs md:text-sm"
+                          className="bg-transparent outline-none w-full text-gray-700 placeholder-gray-500 text-xs sm:text-xs md:text-sm cursor-pointer"
                         />
                         {searchQuery && (
                           <button
                             onClick={handleClearSearch}
-                            className="text-gray-400 hover:text-gray-600 transition-colors"
+                            className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                             aria-label="Clear search"
                           >
                             <FontAwesomeIcon
@@ -1140,7 +1143,7 @@ const DiscoverIbadan = () => {
                     {/* Check-in & Check-out - SIDE BY SIDE */}
                     <div className="grid grid-cols-2 gap-2 sm:gap-2 mb-2 sm:mb-3">
                       {/* Check-in */}
-                      <div className="bg-gray-100 rounded-lg p-2 sm:p-2 text-left hover:bg-gray-200 transition-colors duration-200">
+                      <div className="bg-gray-100 rounded-lg p-2 sm:p-2 text-left hover:bg-gray-200 transition-colors duration-200 cursor-pointer">
                         <div className="text-xs text-gray-500 flex items-center gap-1 mb-0.5">
                           <FontAwesomeIcon
                             icon={faCalendar}
@@ -1154,7 +1157,7 @@ const DiscoverIbadan = () => {
                       </div>
 
                       {/* Check-out */}
-                      <div className="bg-gray-100 rounded-lg p-2 sm:p-2 text-left hover:bg-gray-200 transition-colors duration-200">
+                      <div className="bg-gray-100 rounded-lg p-2 sm:p-2 text-left hover:bg-gray-200 transition-colors duration-200 cursor-pointer">
                         <div className="text-xs text-gray-500 flex items-center gap-1 mb-0.5">
                           <FontAwesomeIcon
                             icon={faCalendar}
@@ -1167,24 +1170,38 @@ const DiscoverIbadan = () => {
                         </div>
                       </div>
                     </div>
-                    <div
-                      className="
-                    "
-                    ><p className="">hello</p></div>
 
-                    {/* Search Button - BELOW CHECK-IN/OUT */}
-                    <button
-                      onClick={handleSearchSubmit}
-                      className="w-full bg-gradient-to-r from-[#00E38C] to-teal-500 hover:from-[#00c97b] hover:to-teal-600 text-white font-semibold py-2 sm:py-2 px-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow flex items-center justify-center gap-2 whitespace-nowrap"
-                    >
-                      <FontAwesomeIcon
-                        icon={faSearch}
-                        className="w-3 h-3 sm:w-3 sm:h-3"
-                      />
-                      <span className="text-xs sm:text-xs md:text-sm">
-                        Search
-                      </span>
-                    </button>
+                    {/* Room & Guest Info with Profile Icon - SAME WIDTH AS OTHER ELEMENTS */}
+                    <div className="mb-2 sm:mb-3 w-full cursor-pointer">
+                      <div className="inline-flex w-full  items-center justify-start rounded-[10px] bg-gray-100 px-4 py-2 text-[12.5px] font-medium text-gray-500 hover:bg-gray-200 transition-colors duration-200">
+                        {/* Profile Icon at the start */}
+                        <FontAwesomeIcon
+                          icon={faUser}
+                          className="w-4 h-4 mr-2 text-gray-500"
+                        />
+                        <span>1 Room</span>
+                        <span className="mx-1 text-gray-500">•</span>
+                        <span>2 Adults</span>
+                        <span className="mx-1 text-gray-500">•</span>
+                        <span>0 Children</span>
+                      </div>
+                    </div>
+
+                    {/* Search Button - SAME WIDTH AS OTHER ELEMENTS */}
+                    <div className="w-full cursor-pointer">
+                      <button
+                        onClick={handleSearchSubmit}
+                        className="w-full bg-gradient-to-r from-[#00E38C] to-teal-500 hover:from-[#00c97b] hover:to-teal-600 text-white font-semibold py-2 sm:py-2 px-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
+                      >
+                        <FontAwesomeIcon
+                          icon={faSearch}
+                          className="w-3 h-3 sm:w-3 sm:h-3"
+                        />
+                        <span className="text-xs sm:text-xs md:text-sm">
+                          Search
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
