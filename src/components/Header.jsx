@@ -15,17 +15,16 @@ const Header = () => {
   const profileDropdownRef = useRef(null);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
-  // Check login status on mount - REMOVED DUMMY LOGIN LOGIC
+  // Check login status on mount
   useEffect(() => {
     const checkLoginStatus = () => {
-      // Replace with your actual authentication logic
-      const token = localStorage.getItem("auth_token"); // Example: check for actual token
+      const token = localStorage.getItem("auth_token");
       const userEmail = localStorage.getItem("user_email");
       const profile = localStorage.getItem("userProfile");
 
-      if (token) {
+      if (token && userEmail) {
         setIsLoggedIn(true);
-        setUserEmail(userEmail || "User");
+        setUserEmail(userEmail);
 
         if (profile) {
           try {
@@ -50,8 +49,17 @@ const Header = () => {
 
     window.addEventListener("storage", handleStorageChange);
 
+    // Also check when auth_token changes
+    const handleAuthChange = () => {
+      checkLoginStatus();
+    };
+
+    // Add custom event listener for auth changes
+    window.addEventListener("authChange", handleAuthChange);
+
     return () => {
       window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("authChange", handleAuthChange);
     };
   }, []);
 
@@ -83,12 +91,17 @@ const Header = () => {
     window.open("https://blog.ajani.ai", "_blank", "noopener,noreferrer");
   };
 
-  // Handle sign out - UPDATED TO REMOVE DUMMY LOGIN
+  // Handle sign out
   const handleSignOut = () => {
-    // Clear actual authentication tokens
+    // Clear authentication tokens
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_email");
     localStorage.removeItem("userProfile");
+    localStorage.removeItem("redirectAfterLogin");
+
+    // Dispatch events to update other components
+    window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new Event("authChange"));
 
     setIsLoggedIn(false);
     setUserEmail("");
@@ -123,17 +136,11 @@ const Header = () => {
       id: "Categories",
       action: () => scrollToSection("Categories"),
     },
-    // {
-    //   label: "Price Insights",
-    //   id: "Price Insights",
-    //   action: () => scrollToSection("Price Insights"),
-    // },
     { label: "Blog", id: "Blog", action: handleBlogClick },
-    // ADDED "Hello" navigation item - EXAMPLE 1: Navigate to greeting page
     {
       label: "Hello",
       id: "Hello",
-      action: () => navigate("/greeting"), // Navigates to /greeting route
+      action: () => navigate("/greeting"),
     },
   ];
 
@@ -194,40 +201,6 @@ const Header = () => {
     }
   }, [isLoggedIn]);
 
-  // EXAMPLE 2: Custom onClick handler for "Hello" button
-  const handleHelloClick = () => {
-    // You can navigate to different pages based on conditions
-    if (isLoggedIn) {
-      // If logged in, navigate to user's dashboard
-      navigate("/dashboard");
-    } else {
-      // If not logged in, navigate to welcome page
-      navigate("/register/vendor/complete-profile");
-    }
-  };
-
-  // EXAMPLE 3: Navigate with parameters
-  const navigateWithParams = () => {
-    navigate("/greeting", {
-      state: {
-        message: "Hello from header!",
-        time: new Date().toLocaleTimeString(),
-      },
-    });
-  };
-
-  // EXAMPLE 4: Navigate and scroll
-  const navigateAndScroll = (path, elementId) => {
-    navigate(path);
-    // Wait for navigation to complete, then scroll
-    setTimeout(() => {
-      const element = document.getElementById(elementId);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" });
-      }
-    }, 100);
-  };
-
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-[1000] bg-[#F7F7FA] border-b-2 font-manrope border-[#00d1ff] h-16 cursor-default">
@@ -271,14 +244,6 @@ const Header = () => {
                     {item.label}
                   </button>
                 ))}
-
-              {/* EXAMPLE: Additional "Hello" button with custom onClick */}
-              <button
-                onClick={handleHelloClick}
-                className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer"
-              >
-                Hello (Custom)
-              </button>
             </div>
 
             {/* Right section */}
@@ -356,7 +321,9 @@ const Header = () => {
                         {/* User info */}
                         <div className="px-4 py-3 border-b border-gray-100 cursor-default">
                           <p className="text-sm font-medium text-gray-900 cursor-default">
-                            {userProfile?.fullName || userEmail}
+                            {userProfile?.firstName
+                              ? `${userProfile.firstName} ${userProfile.lastName}`
+                              : userEmail}
                           </p>
                           <p className="text-xs text-gray-500 mt-1 cursor-default">
                             {userEmail}
@@ -627,26 +594,6 @@ const Header = () => {
                 </button>
               ))}
 
-            {/* EXAMPLE: Mobile "Hello" button */}
-            <button
-              onClick={() => {
-                navigate("/complete-profile");
-                setIsMenuOpen(false);
-              }}
-              className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
-              style={{
-                transitionDelay: isMenuOpen
-                  ? `${
-                      (baseNavItems.length + loggedInNavItems.length + 1) * 50
-                    }ms`
-                  : "0ms",
-                opacity: isMenuOpen ? 1 : 0,
-                transform: isMenuOpen ? "translateX(0)" : "translateX(-20px)",
-              }}
-            >
-              Hello (Mobile)
-            </button>
-
             {/* Divider - Only show if user is logged in */}
             {isLoggedIn && (
               <div
@@ -682,7 +629,9 @@ const Header = () => {
                   }}
                 >
                   <p className="text-sm font-medium text-gray-900 cursor-default">
-                    {userProfile?.fullName || userEmail}
+                    {userProfile?.firstName
+                      ? `${userProfile.firstName} ${userProfile.lastName}`
+                      : userEmail}
                   </p>
                   <p className="text-xs text-gray-500 mt-1 cursor-default">
                     {userEmail}

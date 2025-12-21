@@ -27,6 +27,7 @@ const FeaturedBanner = () => {
   const [isFocused, setIsFocused] = useState(false);
   const [showComingSoon, setShowComingSoon] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [showTryItArrow, setShowTryItArrow] = useState(true);
   const [messageHistory, setMessageHistory] = useState([
     {
       id: 1,
@@ -76,12 +77,33 @@ const FeaturedBanner = () => {
     }
   }, [messageHistory, showComingSoon]);
 
-  // Clear placeholder on mount
+  // Clear placeholder on mount and show arrow
   useEffect(() => {
     if (inputRef.current && inputRef.current.textContent === "Message...") {
       inputRef.current.textContent = "";
     }
+    setShowTryItArrow(true);
   }, []);
+
+  // Check input content to show/hide arrow
+  useEffect(() => {
+    const checkInputContent = () => {
+      if (inputRef.current) {
+        const hasContent =
+          inputRef.current.textContent.trim() !== "" &&
+          inputRef.current.textContent !== "Message...";
+        setShowTryItArrow(!hasContent && !isFocused);
+      }
+    };
+
+    // Check initially
+    checkInputContent();
+
+    // Set up interval to check input content
+    const interval = setInterval(checkInputContent, 100);
+
+    return () => clearInterval(interval);
+  }, [isFocused]);
 
   // Animation variants
   const h1Variants = {
@@ -154,6 +176,8 @@ const FeaturedBanner = () => {
     if (inputRef.current && inputRef.current.textContent === "Message...") {
       inputRef.current.textContent = "";
     }
+    // Hide arrow when focused (user starts typing)
+    setShowTryItArrow(false);
   };
 
   const handleBlur = () => {
@@ -162,6 +186,8 @@ const FeaturedBanner = () => {
     // Restore placeholder if empty
     if (inputRef.current && !inputRef.current.textContent.trim()) {
       inputRef.current.textContent = "Message...";
+      // Show arrow again if input is empty
+      setShowTryItArrow(true);
     }
   };
 
@@ -182,6 +208,8 @@ const FeaturedBanner = () => {
 
       setMessageHistory((prev) => [...prev, newUserMessage]);
       setIsSending(true);
+      // Hide arrow when sending
+      setShowTryItArrow(false);
 
       // Simulate AI typing delay
       setTimeout(() => {
@@ -208,6 +236,8 @@ const FeaturedBanner = () => {
         // Clear input
         inputRef.current.textContent = "Message...";
         setIsFocused(false);
+        // Show arrow again after clearing input
+        setShowTryItArrow(true);
       }, 800);
     }
   };
@@ -231,6 +261,8 @@ const FeaturedBanner = () => {
         }),
       },
     ]);
+    // Show arrow when clearing chat
+    setShowTryItArrow(true);
   };
 
   const handleExampleQuestion = (question) => {
@@ -239,6 +271,8 @@ const FeaturedBanner = () => {
       inputRef.current.focus();
       setIsFocused(true);
       setIsTyping(true);
+      // Hide arrow when example question is inserted
+      setShowTryItArrow(false);
     }
   };
 
@@ -550,6 +584,24 @@ const FeaturedBanner = () => {
 
                 {/* Message Input */}
                 <div className="relative">
+                  {/* Interactive Arrow - Positioned directly on the input box */}
+                  {showTryItArrow && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.3 }}
+                      className="absolute -top-7 left-1/2 transform -translate-x-1/2 flex flex-col items-center z-10"
+                    >
+                      <div className="text-cyan-500 text-xl animate-bounce">
+                        👇
+                      </div>
+                      <div className="text-xs text-cyan-600 font-semibold mt-0.5 whitespace-nowrap bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full border border-cyan-200 shadow-sm">
+                        Try it now!
+                      </div>
+                    </motion.div>
+                  )}
+
                   <div
                     className={`p-3 border-2 ${
                       isFocused
@@ -673,16 +725,6 @@ const FeaturedBanner = () => {
                         Instant Help
                       </p>
                     </div>
-                  </div>
-                </div>
-
-                {/* Interactive Arrow */}
-                <div className="absolute -right-6 bottom-32 hidden lg:flex flex-col items-center">
-                  <div className="text-cyan-500 text-2xl animate-bounce">
-                    👇
-                  </div>
-                  <div className="text-xs text-cyan-600 font-semibold mt-1 whitespace-nowrap bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full border border-cyan-200">
-                    Try it now!
                   </div>
                 </div>
               </div>

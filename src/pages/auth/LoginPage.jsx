@@ -1,55 +1,84 @@
-// src/pages/auth/LoginPage.jsx
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { FaEye, FaEyeSlash, FaTimes } from "react-icons/fa";
 import Logo from "../../assets/Logos/logo5.png";
+import * as yup from "yup";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import axiosInstance from "../../lib/axios";
+
+// Validation schema
+const loginSchema = yup.object().shape({
+  email: yup
+    .string()
+    .email("Enter a valid email")
+    .required("Email is required"),
+  password: yup.string().required("Password is required"),
+});
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
+  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [pendingSaveConfirm, setPendingSaveConfirm] = useState(null);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setError("");
-    setIsLoading(true);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+  } = useForm({
+    resolver: yupResolver(loginSchema),
+  });
 
-    // Get user data from localStorage
-    const userData = localStorage.getItem("userProfile");
+  // Check for email verification success message
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const verified = searchParams.get("verified");
 
-    if (!form.email || !form.password) {
-      setError("Please enter both email and password");
-      setIsLoading(false);
-      return;
+    if (verified === "true") {
+      // Clear any existing error
+      setError("");
+
+      // Optionally show success message
+      setTimeout(() => {
+        alert("Email verified successfully! You can now login.");
+        // Clear the query parameter
+        navigate("/login", { replace: true });
+      }, 100);
     }
+  }, [location, navigate]);
 
-    if (userData) {
-      try {
-        const user = JSON.parse(userData);
+  const onSubmit = async (data) => {
+    try {
+      setError("");
+      setIsLoading(true);
 
-        // Check if email matches
-        if (user.email !== form.email) {
-          setError("Email not found. Please register first.");
+      // Make API call to login
+      const response = await axiosInstance.post("/auth/login", {
+        email: data.email,
+        password: data.password,
+      });
+
+      if (response.data && response.data.success) {
+        const { token, user } = response.data;
+
+        // Store authentication data
+        localStorage.setItem("auth_token", token);
+        localStorage.setItem("user_email", user.email);
+        localStorage.setItem("userProfile", JSON.stringify(user));
+
+        // Check if user is verified
+        if (!user.isVerified) {
+          setError("Please verify your email before logging in.");
+          localStorage.removeItem("auth_token");
+          localStorage.removeItem("user_email");
+          localStorage.removeItem("userProfile");
           setIsLoading(false);
           return;
         }
-
-        // For demo purposes, accept any password if user exists
-        // In real app, you'd verify password hash here
-
-        // Set login status
-        localStorage.setItem("ajani_dummy_login", "true");
-        localStorage.setItem("ajani_dummy_email", form.email);
-
-        // Get redirect URL or default to home
-        const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
-        localStorage.removeItem("redirectAfterLogin");
 
         // Check for pending save item
         const pendingSave = localStorage.getItem("pendingSaveItem");
@@ -59,7 +88,7 @@ const LoginPage = () => {
             // Show confirmation dialog instead of auto-saving
             setPendingSaveConfirm({
               item: pendingItem,
-              redirectUrl: redirectUrl,
+              redirectUrl: "/", // Default redirect
             });
             setIsLoading(false);
             return;
@@ -69,26 +98,38 @@ const LoginPage = () => {
           }
         }
 
+        // Dispatch login event for header component
+        window.dispatchEvent(new Event("storage"));
+
+        // Get redirect URL or default to home
+        const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
+        localStorage.removeItem("redirectAfterLogin");
+
         setIsLoading(false);
 
         // Redirect after short delay
         setTimeout(() => {
           navigate(redirectUrl);
-        }, 1000);
-      } catch (err) {
-        setError("Error loading user data. Please try again.");
-        setIsLoading(false);
+        }, 500);
       }
-    } else {
-      // No user found
-      setError("No account found. Please register first.");
+    } catch (error) {
+      console.error("Login error:", error);
       setIsLoading(false);
-    }
-  };
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-    if (error) setError("");
+      let errorMessage = "Login failed. Please try again.";
+
+      if (error.response) {
+        if (error.response.status === 401) {
+          errorMessage = "Invalid email or password.";
+        } else if (error.response.status === 403) {
+          errorMessage = "Please verify your email before logging in.";
+        } else if (error.response.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+      }
+
+      setError(errorMessage);
+    }
   };
 
   const handleCancel = () => {
@@ -115,11 +156,10 @@ const LoginPage = () => {
     localStorage.removeItem("pendingSaveItem");
     setPendingSaveConfirm(null);
 
-    if (pendingSaveConfirm?.redirectUrl) {
-      navigate(pendingSaveConfirm.redirectUrl);
-    } else {
-      navigate("/");
-    }
+    // Navigate after login
+    const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
+    localStorage.removeItem("redirectAfterLogin");
+    navigate(redirectUrl);
   };
 
   const handleConfirmSave = () => {
@@ -154,11 +194,10 @@ const LoginPage = () => {
     localStorage.removeItem("pendingSaveItem");
     setPendingSaveConfirm(null);
 
-    if (pendingSaveConfirm?.redirectUrl) {
-      navigate(pendingSaveConfirm.redirectUrl);
-    } else {
-      navigate("/");
-    }
+    // Navigate after login
+    const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
+    localStorage.removeItem("redirectAfterLogin");
+    navigate(redirectUrl);
   };
 
   return (
@@ -175,7 +214,6 @@ const LoginPage = () => {
 
         {/* Logo */}
         <div className="text-center">
-          {/* Logo */}
           <div className="flex justify-center mb-4">
             <img src={Logo} alt="Ajani Logo" className="h-auto w-30" />
           </div>
@@ -192,7 +230,7 @@ const LoginPage = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Email Input */}
           <div>
             <label
@@ -203,15 +241,18 @@ const LoginPage = () => {
             </label>
             <input
               id="email"
-              name="email"
               type="email"
-              autoComplete="email"
-              required
-              value={form.email}
-              onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d37f] focus:border-[#00d37f] transition-colors"
+              {...register("email")}
+              className={`w-full px-4 py-3 border ${
+                errors.email ? "border-red-500" : "border-gray-300"
+              } rounded-lg focus:ring-2 focus:ring-[#00d37f] focus:border-[#00d37f] transition-colors`}
               placeholder="Email Address"
             />
+            {errors.email && (
+              <p className="text-red-500 text-xs mt-1">
+                {errors.email.message}
+              </p>
+            )}
           </div>
 
           {/* Password Input */}
@@ -225,13 +266,11 @@ const LoginPage = () => {
             <div className="relative">
               <input
                 id="password"
-                name="password"
                 type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                required
-                value={form.password}
-                onChange={handleChange}
-                className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d37f] focus:border-[#00d37f] transition-colors"
+                {...register("password")}
+                className={`w-full px-4 py-3 pr-10 border ${
+                  errors.password ? "border-red-500" : "border-gray-300"
+                } rounded-lg focus:ring-2 focus:ring-[#00d37f] focus:border-[#00d37f] transition-colors`}
                 placeholder="Enter your password"
               />
               <button
@@ -242,6 +281,11 @@ const LoginPage = () => {
                 {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
               </button>
             </div>
+            {errors.password && (
+              <p className="text-red-500 text-xs mt-1">
+                {errors.password.message}
+              </p>
+            )}
           </div>
 
           {/* Login Button */}
@@ -250,7 +294,14 @@ const LoginPage = () => {
             disabled={isLoading}
             className="w-full hover:bg-[#06EAFC] bg-[#6cff] text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? "Logging in..." : "Log In"}
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Logging in...
+              </span>
+            ) : (
+              "Log In"
+            )}
           </button>
         </form>
 
@@ -331,8 +382,21 @@ const LoginPage = () => {
           }
         }
 
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
         .animate-fadeIn {
           animation: fadeIn 0.3s ease-out;
+        }
+
+        .animate-spin {
+          animation: spin 1s linear infinite;
         }
       `}</style>
     </div>

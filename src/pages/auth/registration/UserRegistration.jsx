@@ -8,16 +8,22 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import axiosInstance from "../../../lib/axios";
 
 const schema = yup.object().shape({
-  firstName: yup.string().required(),
-  lastName: yup.string().required(),
-  email: yup.string().email("enter a valid email").required("enter your email"),
-  phone: yup.string().required(),
-  password: yup.string().required().min(8, "must be 8 characters long"),
+  firstName: yup.string().required("First name is required"),
+  lastName: yup.string().required("Last name is required"),
+  email: yup
+    .string()
+    .email("Enter a valid email")
+    .required("Email is required"),
+  phone: yup.string().required("Phone number is required"),
+  password: yup
+    .string()
+    .required("Password is required")
+    .min(8, "Password must be at least 8 characters"),
   confirmPassword: yup
     .string()
-    .required()
-    .oneOf([yup.ref("password")], "password must match"),
-  role: yup.string().required().default("user"),
+    .required("Confirm password is required")
+    .oneOf([yup.ref("password")], "Passwords must match"),
+  role: yup.string().default("user"),
 });
 
 // Toast Notification Component
@@ -69,78 +75,13 @@ const UserRegistration = () => {
     formState: { errors, isDirty },
   } = useForm({
     resolver: yupResolver(schema),
+    defaultValues: {
+      role: "user",
+    },
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  // Add CSS for animations
-  React.useEffect(() => {
-    // Add custom styles for animations
-    const style = document.createElement("style");
-    style.textContent = `
-      @keyframes slideInRight {
-        from {
-          transform: translateX(100%);
-          opacity: 0;
-        }
-        to {
-          transform: translateX(0);
-          opacity: 1;
-        }
-      }
-      
-      @keyframes slideOutRight {
-        from {
-          transform: translateX(0);
-          opacity: 1;
-        }
-        to {
-          transform: translateX(100%);
-          opacity: 0;
-        }
-      }
-      
-      @keyframes progressBar {
-        from {
-          width: 100%;
-        }
-        to {
-          width: 0%;
-        }
-      }
-      
-      @keyframes spin {
-        from {
-          transform: rotate(0deg);
-        }
-        to {
-          transform: rotate(360deg);
-        }
-      }
-      
-      .animate-slideInRight {
-        animation: slideInRight 0.3s ease-out forwards;
-      }
-      
-      .animate-slideOutRight {
-        animation: slideOutRight 0.3s ease-in forwards;
-      }
-      
-      .animate-progressBar {
-        animation: progressBar 5s linear forwards;
-      }
-      
-      .animate-spin {
-        animation: spin 1s linear infinite;
-      }
-    `;
-    document.head.appendChild(style);
-
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
 
   const handleCancel = () => {
     const hasPreviousPage = window.history.length > 1;
@@ -154,26 +95,59 @@ const UserRegistration = () => {
   const handleNext = async (data) => {
     try {
       setIsSubmitting(true);
-      const res = await axiosInstance.post("/auth/register", data);
 
-      // Show success toast
-      setShowToast(true);
+      // Prepare registration data
+      const registrationData = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
+        password: data.password,
+        role: data.role || "user",
+      };
 
-      // Reset form
-      reset();
+      // Send registration request
+      const res = await axiosInstance.post("/auth/register", registrationData);
 
-      // Auto-hide toast after 5 seconds
-      setTimeout(() => {
-        setShowToast(false);
-      }, 5000);
+      if (res.data && res.data.success) {
+        // Store user data temporarily for immediate login after email verification
+        const tempUserData = {
+          email: data.email,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          isVerified: false,
+        };
+
+        localStorage.setItem("tempUserData", JSON.stringify(tempUserData));
+
+        // Show success toast
+        setShowToast(true);
+
+        // Reset form
+        reset();
+
+        // Auto-hide toast after 5 seconds
+        setTimeout(() => {
+          setShowToast(false);
+          // Navigate to login page
+          navigate("/login");
+        }, 5000);
+      }
     } catch (error) {
-      console.log(error);
+      console.error("Registration error:", error);
 
-      // Show error message
-      alert(
-        error.response?.data?.message ||
-          "Registration failed. Please try again."
-      );
+      let errorMessage = "Registration failed. Please try again.";
+
+      if (error.response) {
+        if (error.response.status === 409) {
+          errorMessage =
+            "Email already exists. Please use a different email or login.";
+        } else if (error.response.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+      }
+
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -229,7 +203,6 @@ const UserRegistration = () => {
                 type="text"
                 {...register("firstName")}
                 id="firstName"
-                name="firstName"
                 placeholder="Enter first name"
                 className={`w-full mt-1 px-3 py-2.5 border ${
                   errors.firstName ? "border-red-500" : "border-gray-300"
@@ -250,7 +223,6 @@ const UserRegistration = () => {
                 type="text"
                 {...register("lastName")}
                 id="lastName"
-                name="lastName"
                 placeholder="Enter last name"
                 className={`w-full mt-1 px-3 py-2.5 border ${
                   errors.lastName ? "border-red-500" : "border-gray-300"
@@ -269,7 +241,6 @@ const UserRegistration = () => {
             <label className="text-sm font-medium text-gray-700">Email *</label>
             <input
               type="email"
-              name="email"
               {...register("email")}
               id="email"
               placeholder="Email Address"
@@ -291,7 +262,6 @@ const UserRegistration = () => {
             </label>
             <input
               type="tel"
-              name="phone"
               {...register("phone")}
               id="phone"
               placeholder="Phone Number"
@@ -314,7 +284,6 @@ const UserRegistration = () => {
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
-                name="password"
                 {...register("password")}
                 id="password"
                 placeholder="********"
@@ -345,7 +314,6 @@ const UserRegistration = () => {
             <div className="relative">
               <input
                 type={showConfirmPassword ? "text" : "password"}
-                name="confirmPassword"
                 {...register("confirmPassword")}
                 id="confirmPassword"
                 placeholder="********"
@@ -371,6 +339,9 @@ const UserRegistration = () => {
               </p>
             )}
           </div>
+
+          {/* Hidden role field */}
+          <input type="hidden" {...register("role")} />
 
           {/* Terms and Conditions */}
           <div className="flex items-start gap-2 mt-4">
@@ -420,6 +391,44 @@ const UserRegistration = () => {
           </div>
         </form>
       </div>
+
+      <style>{`
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOutRight {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(100%); opacity: 0; }
+        }
+        
+        @keyframes progressBar {
+          from { width: 100%; }
+          to { width: 0%; }
+        }
+        
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
+        .animate-slideInRight {
+          animation: slideInRight 0.3s ease-out forwards;
+        }
+        
+        .animate-slideOutRight {
+          animation: slideOutRight 0.3s ease-in forwards;
+        }
+        
+        .animate-progressBar {
+          animation: progressBar 5s linear forwards;
+        }
+        
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+      `}</style>
     </div>
   );
 };
