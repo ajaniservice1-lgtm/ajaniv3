@@ -54,6 +54,7 @@ const LoginPage = () => {
     try {
       setError("");
       setIsLoading(true);
+      console.log(data);
 
       // Make API call to login
       const response = await axiosInstance.post("/auth/login", {

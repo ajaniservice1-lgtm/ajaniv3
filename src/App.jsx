@@ -5,6 +5,8 @@ import TrackingWrapper from "./components/TrackingWrapper";
 import LocalBusinessSchema from "./components/LocalBusinessSchema";
 import { ModalProvider } from "./context/ModalContext";
 import VendorDetail from "./pages/VendorDetail";
+import { AdminLayout } from "./components/AdminLayout";
+import Overview from "./pages/admin/Overview";
 
 /* =======================
    LAZY-LOADED PAGES
@@ -95,19 +97,19 @@ const LoadingDots = () => (
 /* =======================
    AUTH UTILITIES
 ======================= */
-export const checkLoginStatus = () =>
+const checkLoginStatus = () =>
   localStorage.getItem("ajani_dummy_login") === "true";
 
-export const getUserEmail = () => localStorage.getItem("ajani_dummy_email");
+// export const getUserEmail = () => localStorage.getItem("ajani_dummy_email");
 
-export const loginUser = (email) => {
-  localStorage.setItem("ajani_dummy_login", "true");
-  localStorage.setItem("ajani_dummy_email", email);
-};
+// export const loginUser = (email) => {
+//   localStorage.setItem("ajani_dummy_login", "true");
+//   localStorage.setItem("ajani_dummy_email", email);
+// };
 
-export const logoutUser = () => {
-  localStorage.clear();
-};
+// export const logoutUser = () => {
+//   localStorage.clear();
+// };
 
 /* =======================
    ROUTE GUARDS
@@ -317,6 +319,13 @@ function App() {
                       </div>
                     }
                   />
+
+                  {/* AdminRoute */}
+                  <Route path="admincpanel" element={<AdminLayout />}>
+                    <Route index element={<Overview />} />
+                    <Route path="customers" element={<p>this is customer</p>} />
+                    <Route path="vendors" element={<p>this is vendors</p>} />
+                  </Route>
                 </Routes>
               </Suspense>
             </TrackingWrapper>

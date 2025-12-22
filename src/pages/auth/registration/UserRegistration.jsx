@@ -5,7 +5,7 @@ import Logo from "../../../assets/Logos/logo5.png";
 import * as yup from "yup";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import axiosInstance from "../../../lib/axios";
+import axiosInstance, { tokenStorage } from "../../../lib/axios";
 
 const schema = yup.object().shape({
   firstName: yup.string().required("First name is required"),
@@ -63,9 +63,46 @@ const ToastNotification = ({ message, onClose }) => {
   );
 };
 
+// Error Toast Notification Component
+const ErrorToastNotification = ({ message, onClose }) => {
+  return (
+    <div className="fixed top-4 right-4 z-50 animate-slideInRight">
+      <div className="bg-red-50 border border-red-200 rounded-lg shadow-lg p-4 max-w-sm">
+        <div className="flex items-start gap-3">
+          <div className="text-red-600 mt-0.5">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <p className="font-medium text-red-800">{message}</p>
+            <p className="text-sm text-red-600 mt-1">Please try again</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-red-400 hover:text-red-600 transition-colors ml-2"
+            aria-label="Close notification"
+          >
+            <FaTimes size={16} />
+          </button>
+        </div>
+        <div className="mt-2 w-full bg-red-200 h-1 rounded-full overflow-hidden">
+          <div className="h-full bg-red-500 animate-progressBar"></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const UserRegistration = () => {
   const navigate = useNavigate();
-  const [showToast, setShowToast] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [showErrorToast, setShowErrorToast] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -96,42 +133,23 @@ const UserRegistration = () => {
     try {
       setIsSubmitting(true);
 
-      // Prepare registration data
-      const registrationData = {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        phone: data.phone,
-        password: data.password,
-        role: data.role || "user",
-      };
-
       // Send registration request
-      const res = await axiosInstance.post("/auth/register", registrationData);
+      const res = await axiosInstance.post("/auth/register", data);
 
       if (res.data && res.data.success) {
-        // Store user data temporarily for immediate login after email verification
-        const tempUserData = {
-          email: data.email,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          isVerified: false,
-        };
-
-        localStorage.setItem("tempUserData", JSON.stringify(tempUserData));
+        tokenStorage.set(res.data.token, true);
 
         // Show success toast
-        setShowToast(true);
+        setShowSuccessToast(true);
 
-        // Reset form
+        // Clear input fields
         reset();
 
-        // Auto-hide toast after 5 seconds
+        // Redirect to homepage after 3 seconds
         setTimeout(() => {
-          setShowToast(false);
-          // Navigate to login page
-          navigate("/login");
-        }, 5000);
+          setShowSuccessToast(false);
+          navigate("/");
+        }, 3000);
       }
     } catch (error) {
       console.error("Registration error:", error);
@@ -147,7 +165,14 @@ const UserRegistration = () => {
         }
       }
 
-      alert(errorMessage);
+      // Show error toast
+      setErrorMessage(errorMessage);
+      setShowErrorToast(true);
+
+      // Auto-hide error toast after 5 seconds
+      setTimeout(() => {
+        setShowErrorToast(false);
+      }, 5000);
     } finally {
       setIsSubmitting(false);
     }
@@ -155,11 +180,19 @@ const UserRegistration = () => {
 
   return (
     <div className="min-h-screen w-full bg-white flex items-center justify-center p-4 sm:p-6 md:p-8 font-manrope">
-      {/* Toast Notification */}
-      {showToast && (
+      {/* Success Toast Notification */}
+      {showSuccessToast && (
         <ToastNotification
           message="Registration Successful!"
-          onClose={() => setShowToast(false)}
+          onClose={() => setShowSuccessToast(false)}
+        />
+      )}
+
+      {/* Error Toast Notification */}
+      {showErrorToast && (
+        <ErrorToastNotification
+          message={errorMessage}
+          onClose={() => setShowErrorToast(false)}
         />
       )}
 
