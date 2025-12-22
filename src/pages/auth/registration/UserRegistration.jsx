@@ -5,7 +5,7 @@ import Logo from "../../../assets/Logos/logo5.png";
 import * as yup from "yup";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import axiosInstance, { tokenStorage } from "../../../lib/axios";
+import axiosInstance from "../../../lib/axios";
 
 const schema = yup.object().shape({
   firstName: yup.string().required("First name is required"),
@@ -27,9 +27,30 @@ const schema = yup.object().shape({
 });
 
 // Toast Notification Component
-const ToastNotification = ({ message, onClose }) => {
+const ToastNotification = ({ message, onClose, subMessage = null }) => {
+  const [isVisible, setIsVisible] = useState(true);
+
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(() => {
+      onClose();
+    }, 300);
+  };
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      handleClose();
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <div className="fixed top-4 right-4 z-50 animate-slideInRight">
+    <div
+      className={`fixed top-4 right-4 z-50 transition-all duration-300 ${
+        isVisible ? "animate-slideInRight" : "animate-slideOutRight"
+      }`}
+    >
       <div className="bg-green-50 border border-green-200 rounded-lg shadow-lg p-4 max-w-sm">
         <div className="flex items-start gap-3">
           <div className="text-green-600 mt-0.5">
@@ -43,12 +64,12 @@ const ToastNotification = ({ message, onClose }) => {
           </div>
           <div className="flex-1">
             <p className="font-medium text-green-800">{message}</p>
-            <p className="text-sm text-green-600 mt-1">
-              Check your email for confirmation link
-            </p>
+            {subMessage && (
+              <p className="text-sm text-green-600 mt-1">{subMessage}</p>
+            )}
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-green-400 hover:text-green-600 transition-colors ml-2"
             aria-label="Close notification"
           >
@@ -65,8 +86,29 @@ const ToastNotification = ({ message, onClose }) => {
 
 // Error Toast Notification Component
 const ErrorToastNotification = ({ message, onClose }) => {
+  const [isVisible, setIsVisible] = useState(true);
+
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(() => {
+      onClose();
+    }, 300);
+  };
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      handleClose();
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <div className="fixed top-4 right-4 z-50 animate-slideInRight">
+    <div
+      className={`fixed top-4 right-4 z-50 transition-all duration-300 ${
+        isVisible ? "animate-slideInRight" : "animate-slideOutRight"
+      }`}
+    >
       <div className="bg-red-50 border border-red-200 rounded-lg shadow-lg p-4 max-w-sm">
         <div className="flex items-start gap-3">
           <div className="text-red-600 mt-0.5">
@@ -83,7 +125,7 @@ const ErrorToastNotification = ({ message, onClose }) => {
             <p className="text-sm text-red-600 mt-1">Please try again</p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-red-400 hover:text-red-600 transition-colors ml-2"
             aria-label="Close notification"
           >
@@ -98,18 +140,147 @@ const ErrorToastNotification = ({ message, onClose }) => {
   );
 };
 
+// Server Error Toast Notification Component
+const ServerErrorToastNotification = ({ message, onClose }) => {
+  const [isVisible, setIsVisible] = useState(true);
+
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(() => {
+      onClose();
+    }, 300);
+  };
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      handleClose();
+    }, 7000); // Longer duration for server errors
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div
+      className={`fixed top-4 right-4 z-50 transition-all duration-300 ${
+        isVisible ? "animate-slideInRight" : "animate-slideOutRight"
+      }`}
+    >
+      <div className="bg-orange-50 border border-orange-200 rounded-lg shadow-lg p-4 max-w-sm">
+        <div className="flex items-start gap-3">
+          <div className="text-orange-600 mt-0.5">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <p className="font-medium text-orange-800">{message}</p>
+            <p className="text-sm text-orange-600 mt-1">
+              Our servers are currently experiencing issues
+            </p>
+            <p className="text-xs text-orange-500 mt-2">
+              Please try again in a few minutes or contact support
+            </p>
+          </div>
+          <button
+            onClick={handleClose}
+            className="text-orange-400 hover:text-orange-600 transition-colors ml-2"
+            aria-label="Close notification"
+          >
+            <FaTimes size={16} />
+          </button>
+        </div>
+        <div className="mt-2 w-full bg-orange-200 h-1 rounded-full overflow-hidden">
+          <div className="h-full bg-orange-500 animate-progressBar"></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Verification Toast Notification Component
+const VerificationToastNotification = ({ email, onClose }) => {
+  const [isVisible, setIsVisible] = useState(true);
+
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(() => {
+      onClose();
+    }, 300);
+  };
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      handleClose();
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div
+      className={`fixed top-4 right-4 z-50 transition-all duration-300 ${
+        isVisible ? "animate-slideInRight" : "animate-slideOutRight"
+      }`}
+    >
+      <div className="bg-blue-50 border border-blue-200 rounded-lg shadow-lg p-4 max-w-sm">
+        <div className="flex items-start gap-3">
+          <div className="text-blue-600 mt-0.5">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <p className="font-medium text-blue-800">
+              Registration Successful!
+            </p>
+            <p className="text-sm text-blue-600 mt-1">
+              Please check <span className="font-medium">{email}</span> for
+              verification link
+            </p>
+            <p className="text-xs text-blue-500 mt-2">
+              Verify your email to complete registration and login
+            </p>
+          </div>
+          <button
+            onClick={handleClose}
+            className="text-blue-400 hover:text-blue-600 transition-colors ml-2"
+            aria-label="Close notification"
+          >
+            <FaTimes size={16} />
+          </button>
+        </div>
+        <div className="mt-2 w-full bg-blue-200 h-1 rounded-full overflow-hidden">
+          <div className="h-full bg-blue-500 animate-progressBar"></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const UserRegistration = () => {
   const navigate = useNavigate();
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [showVerificationToast, setShowVerificationToast] = useState(false);
   const [showErrorToast, setShowErrorToast] = useState(false);
+  const [showServerErrorToast, setShowServerErrorToast] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [serverErrorMessage, setServerErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
 
   const {
     register,
     handleSubmit,
     reset,
-    formState: { errors, isDirty },
+    formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -120,6 +291,19 @@ const UserRegistration = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // Debug API connection on component mount
+  React.useEffect(() => {
+    console.log("UserRegistration component mounted");
+    console.log("Axios base URL:", axiosInstance.defaults.baseURL);
+
+    // Check if we can access localStorage
+    console.log("LocalStorage available:", typeof localStorage !== "undefined");
+
+    // Check environment
+    console.log("Current environment:", import.meta.env.MODE);
+    console.log("API Base URL from env:", import.meta.env.VITE_API_BASE_URL);
+  }, []);
+
   const handleCancel = () => {
     const hasPreviousPage = window.history.length > 1;
     if (hasPreviousPage) {
@@ -129,66 +313,265 @@ const UserRegistration = () => {
     }
   };
 
-  const handleNext = async (data) => {
+  const handleRegistration = async (data) => {
     try {
       setIsSubmitting(true);
+      setErrorMessage("");
+      setServerErrorMessage("");
+      setRegisteredEmail("");
+
+      // Remove confirmPassword before sending to API
+      const { confirmPassword, ...registrationData } = data;
+
+      console.log("Registration data being sent:", registrationData);
+      console.log("Sending to URL:", "/auth/register");
 
       // Send registration request
-      const res = await axiosInstance.post("/auth/register", data);
+      const res = await axiosInstance.post("/auth/register", registrationData);
+
+      console.log("Registration response:", {
+        status: res.status,
+        statusText: res.statusText,
+        data: res.data,
+      });
 
       if (res.data && res.data.success) {
-        tokenStorage.set(res.data.token, true);
+        const { token, user } = res.data;
+        setRegisteredEmail(data.email);
 
-        // Show success toast
-        setShowSuccessToast(true);
+        // ✅ SCENARIO 1: Backend returns token and user (Auto-login)
+        if (token && user) {
+          // ✅ Store authentication data EXACTLY LIKE LOGIN
+          localStorage.setItem("auth_token", token);
+          localStorage.setItem("user_email", user.email);
+          localStorage.setItem("userProfile", JSON.stringify(user));
 
-        // Clear input fields
-        reset();
+          // ✅ Notify Header immediately
+          window.dispatchEvent(new Event("storage"));
+          window.dispatchEvent(new Event("authChange"));
 
-        // Redirect to homepage after 3 seconds
-        setTimeout(() => {
-          setShowSuccessToast(false);
-          navigate("/");
-        }, 3000);
+          // ✅ Show success toast
+          setShowSuccessToast(true);
+
+          // ✅ Clear form
+          reset();
+
+          // ✅ Redirect to home after toast
+          setTimeout(() => {
+            setShowSuccessToast(false);
+            navigate("/");
+          }, 2500);
+        }
+        // ✅ SCENARIO 2: Registration successful but needs email verification
+        else {
+          // Store email for verification reference
+          localStorage.setItem("pendingVerificationEmail", data.email);
+
+          // Show verification toast
+          setShowVerificationToast(true);
+
+          // Clear form
+          reset();
+
+          // Redirect to login page after toast
+          setTimeout(() => {
+            setShowVerificationToast(false);
+            navigate("/login");
+          }, 4000);
+        }
+      } else {
+        // Handle unexpected response format
+        const errorMsg =
+          res.data?.message ||
+          "Registration completed but received unexpected response.";
+        setErrorMessage(errorMsg);
+        setShowErrorToast(true);
       }
     } catch (error) {
-      console.error("Registration error:", error);
+      console.error("Registration error details:", {
+        name: error.name,
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.config?.data,
+        },
+      });
 
       let errorMessage = "Registration failed. Please try again.";
+      let isServerError = false;
 
       if (error.response) {
-        if (error.response.status === 409) {
+        // Server responded with error status
+        if (error.response.status === 500) {
+          isServerError = true;
           errorMessage =
-            "Email already exists. Please use a different email or login.";
+            "Server Error (500): Our servers are experiencing issues.";
+
+          // Log additional details for debugging
+          console.error("Server 500 Error Details:", {
+            data: error.response.data,
+            headers: error.response.headers,
+          });
+
+          // Check if there's a specific error message from server
+          if (error.response.data) {
+            if (typeof error.response.data === "string") {
+              errorMessage = `Server Error: ${error.response.data.substring(
+                0,
+                100
+              )}`;
+            } else if (error.response.data.message) {
+              errorMessage = `Server Error: ${error.response.data.message}`;
+            } else if (error.response.data.error) {
+              errorMessage = `Server Error: ${error.response.data.error}`;
+            }
+          }
+        } else if (error.response.status === 409) {
+          errorMessage =
+            "This email is already registered. Please use a different email or login.";
+        } else if (error.response.status === 400) {
+          errorMessage =
+            "Invalid registration data. Please check your information.";
+        } else if (error.response.status === 422) {
+          errorMessage = "Validation error. Please check all required fields.";
+        } else if (error.response.status === 401) {
+          errorMessage = "Authentication failed. Please try again.";
+        } else if (error.response.status === 403) {
+          errorMessage = "Registration not allowed. Please contact support.";
+        } else if (error.response.status === 404) {
+          errorMessage =
+            "Registration endpoint not found. Please contact support.";
         } else if (error.response.data?.message) {
           errorMessage = error.response.data.message;
+        } else if (error.response.data?.errors) {
+          // Handle validation errors from backend
+          const errors = error.response.data.errors;
+          errorMessage = errors
+            .map((err) => err.msg || err.message || err)
+            .join(", ");
+        } else if (error.response.data) {
+          // Try to stringify whatever data we got
+          try {
+            const dataStr = JSON.stringify(error.response.data);
+            errorMessage = `Server returned: ${dataStr.substring(0, 100)}${
+              dataStr.length > 100 ? "..." : ""
+            }`;
+          } catch (e) {
+            errorMessage = `Error ${error.response.status}: ${error.response.statusText}`;
+          }
+        } else {
+          errorMessage = `Error ${error.response.status}: ${error.response.statusText}`;
         }
+      } else if (error.request) {
+        // Request was made but no response received
+        console.error("No response received:", error.request);
+        isServerError = true;
+        errorMessage =
+          "Network error. Please check your internet connection and try again.";
+      } else {
+        // Something else happened
+        errorMessage = `Error: ${
+          error.message || "An unexpected error occurred"
+        }`;
       }
 
-      // Show error toast
-      setErrorMessage(errorMessage);
-      setShowErrorToast(true);
+      // Show appropriate toast
+      if (isServerError) {
+        setServerErrorMessage(errorMessage);
+        setShowServerErrorToast(true);
+      } else {
+        setErrorMessage(errorMessage);
+        setShowErrorToast(true);
+      }
 
-      // Auto-hide error toast after 5 seconds
-      setTimeout(() => {
-        setShowErrorToast(false);
-      }, 5000);
+      // If it's a server error, log additional info
+      if (error.response?.status === 500) {
+        console.warn(
+          "Server is experiencing issues. Please contact support if this continues."
+        );
+        console.warn("Error response data:", error.response?.data);
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // For testing only - simulate successful registration
+  const handleTestRegistration = async (data) => {
+    console.log("TEST MODE: Simulating registration for:", data.email);
+
+    setIsSubmitting(true);
+
+    // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    // Create test user data
+    const testUser = {
+      id: "test_" + Date.now(),
+      email: data.email,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phone: data.phone,
+      role: "user",
+      isVerified: true,
+      createdAt: new Date().toISOString(),
+    };
+
+    const testToken = "test_token_" + Date.now();
+
+    // Store authentication data
+    localStorage.setItem("auth_token", testToken);
+    localStorage.setItem("user_email", testUser.email);
+    localStorage.setItem("userProfile", JSON.stringify(testUser));
+
+    // Notify Header
+    window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new Event("authChange"));
+
+    setShowSuccessToast(true);
+    reset();
+
+    setTimeout(() => {
+      setShowSuccessToast(false);
+      navigate("/");
+    }, 2500);
+
+    setIsSubmitting(false);
+  };
+
   return (
     <div className="min-h-screen w-full bg-white flex items-center justify-center p-4 sm:p-6 md:p-8 font-manrope">
-      {/* Success Toast Notification */}
+      {/* Auto-Login Success Toast Notification */}
       {showSuccessToast && (
         <ToastNotification
           message="Registration Successful!"
+          subMessage="You have been automatically logged in"
           onClose={() => setShowSuccessToast(false)}
         />
       )}
 
-      {/* Error Toast Notification */}
+      {/* Email Verification Toast Notification */}
+      {showVerificationToast && registeredEmail && (
+        <VerificationToastNotification
+          email={registeredEmail}
+          onClose={() => setShowVerificationToast(false)}
+        />
+      )}
+
+      {/* Server Error Toast Notification */}
+      {showServerErrorToast && (
+        <ServerErrorToastNotification
+          message={serverErrorMessage}
+          onClose={() => setShowServerErrorToast(false)}
+        />
+      )}
+
+      {/* Regular Error Toast Notification */}
       {showErrorToast && (
         <ErrorToastNotification
           message={errorMessage}
@@ -205,6 +588,32 @@ const UserRegistration = () => {
         >
           <FaTimes size={20} />
         </button>
+
+        {/* Debug Info (only in development) */}
+        {import.meta.env.DEV && (
+          <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+            <p className="font-medium">Debug Info:</p>
+            <p>API Base: {axiosInstance.defaults.baseURL || "Not set"}</p>
+            <p>Environment: {import.meta.env.MODE}</p>
+            <button
+              onClick={() => {
+                const testData = {
+                  firstName: "Test",
+                  lastName: "User",
+                  email: `test${Date.now()}@test.com`,
+                  phone: "1234567890",
+                  password: "password123",
+                  confirmPassword: "password123",
+                  role: "user",
+                };
+                handleTestRegistration(testData);
+              }}
+              className="mt-1 px-2 py-1 bg-yellow-500 text-white text-xs rounded hover:bg-yellow-600"
+            >
+              Test Registration
+            </button>
+          </div>
+        )}
 
         {/* Logo */}
         <div className="flex justify-center mb-4">
@@ -225,7 +634,7 @@ const UserRegistration = () => {
         <div className="w-full border-t border-[#00d1ff] mt-4 mb-6"></div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(handleNext)} className="space-y-4">
+        <form onSubmit={handleSubmit(handleRegistration)} className="space-y-4">
           {/* First & Last Name */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -378,7 +787,12 @@ const UserRegistration = () => {
 
           {/* Terms and Conditions */}
           <div className="flex items-start gap-2 mt-4">
-            <input type="checkbox" id="terms" required className="mt-1" />
+            <input
+              type="checkbox"
+              id="terms"
+              required
+              className="mt-1 rounded border-gray-300 text-[#00d37f] focus:ring-[#00d37f]"
+            />
             <label htmlFor="terms" className="text-xs text-gray-600">
               I agree to the{" "}
               <button
@@ -403,11 +817,11 @@ const UserRegistration = () => {
             </button>
           </p>
 
-          {/* Button */}
+          {/* Registration Button */}
           <div className="flex justify-end mt-3">
             <button
               type="submit"
-              disabled={!isDirty || isSubmitting}
+              disabled={isSubmitting}
               className="bg-[#00d37f] text-white flex items-center gap-2 px-5 py-2.5 rounded-lg shadow-md hover:bg-[#02be72] transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
@@ -417,7 +831,7 @@ const UserRegistration = () => {
                 </>
               ) : (
                 <>
-                  Next <FaArrowRight size={12} />
+                  Register <FaArrowRight size={12} />
                 </>
               )}
             </button>

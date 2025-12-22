@@ -23,6 +23,7 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [pendingSaveConfirm, setPendingSaveConfirm] = useState(null);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const {
     register,
@@ -38,23 +39,30 @@ const LoginPage = () => {
     const verified = searchParams.get("verified");
 
     if (verified === "true") {
-      // Clear any existing error
-      setError("");
+      setSuccessMessage("Email verified successfully! You can now login.");
 
-      // Optionally show success message
+      // Clear the query parameter
       setTimeout(() => {
-        alert("Email verified successfully! You can now login.");
-        // Clear the query parameter
         navigate("/login", { replace: true });
-      }, 100);
+        setSuccessMessage("");
+      }, 3000);
+    }
+
+    // Check for registration success
+    const registeredEmail = localStorage.getItem("pendingVerificationEmail");
+    if (registeredEmail && !location.search.includes("verified=true")) {
+      setSuccessMessage(
+        `Registration successful! Please check ${registeredEmail} for verification link.`
+      );
+      localStorage.removeItem("pendingVerificationEmail");
     }
   }, [location, navigate]);
 
   const onSubmit = async (data) => {
     try {
       setError("");
+      setSuccessMessage("");
       setIsLoading(true);
-      console.log(data);
 
       // Make API call to login
       const response = await axiosInstance.post("/auth/login", {
@@ -65,20 +73,19 @@ const LoginPage = () => {
       if (response.data && response.data.success) {
         const { token, user } = response.data;
 
+        // Check if user is verified
+        if (!user.isVerified) {
+          setError(
+            "Please verify your email before logging in. Check your email for verification link."
+          );
+          setIsLoading(false);
+          return;
+        }
+
         // Store authentication data
         localStorage.setItem("auth_token", token);
         localStorage.setItem("user_email", user.email);
         localStorage.setItem("userProfile", JSON.stringify(user));
-
-        // Check if user is verified
-        if (!user.isVerified) {
-          setError("Please verify your email before logging in.");
-          localStorage.removeItem("auth_token");
-          localStorage.removeItem("user_email");
-          localStorage.removeItem("userProfile");
-          setIsLoading(false);
-          return;
-        }
 
         // Check for pending save item
         const pendingSave = localStorage.getItem("pendingSaveItem");
@@ -100,6 +107,7 @@ const LoginPage = () => {
 
         // Dispatch login event for header component
         window.dispatchEvent(new Event("storage"));
+        window.dispatchEvent(new Event("authChange"));
 
         // Get redirect URL or default to home
         const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
@@ -126,6 +134,8 @@ const LoginPage = () => {
         } else if (error.response.data?.message) {
           errorMessage = error.response.data.message;
         }
+      } else if (error.request) {
+        errorMessage = "Network error. Please check your connection.";
       }
 
       setError(errorMessage);
@@ -224,6 +234,14 @@ const LoginPage = () => {
           </p>
         </div>
 
+        {/* Success Message */}
+        {successMessage && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
+            {successMessage}
+          </div>
+        )}
+
+        {/* Error Message */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
             {error}
