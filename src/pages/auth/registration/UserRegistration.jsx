@@ -140,67 +140,6 @@ const ErrorToastNotification = ({ message, onClose }) => {
   );
 };
 
-// Server Error Toast Notification Component
-const ServerErrorToastNotification = ({ message, onClose }) => {
-  const [isVisible, setIsVisible] = useState(true);
-
-  const handleClose = () => {
-    setIsVisible(false);
-    setTimeout(() => {
-      onClose();
-    }, 300);
-  };
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      handleClose();
-    }, 7000); // Longer duration for server errors
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  return (
-    <div
-      className={`fixed top-4 right-4 z-50 transition-all duration-300 ${
-        isVisible ? "animate-slideInRight" : "animate-slideOutRight"
-      }`}
-    >
-      <div className="bg-orange-50 border border-orange-200 rounded-lg shadow-lg p-4 max-w-sm">
-        <div className="flex items-start gap-3">
-          <div className="text-orange-600 mt-0.5">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <p className="font-medium text-orange-800">{message}</p>
-            <p className="text-sm text-orange-600 mt-1">
-              Our servers are currently experiencing issues
-            </p>
-            <p className="text-xs text-orange-500 mt-2">
-              Please try again in a few minutes or contact support
-            </p>
-          </div>
-          <button
-            onClick={handleClose}
-            className="text-orange-400 hover:text-orange-600 transition-colors ml-2"
-            aria-label="Close notification"
-          >
-            <FaTimes size={16} />
-          </button>
-        </div>
-        <div className="mt-2 w-full bg-orange-200 h-1 rounded-full overflow-hidden">
-          <div className="h-full bg-orange-500 animate-progressBar"></div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // Verification Toast Notification Component
 const VerificationToastNotification = ({ email, onClose }) => {
   const [isVisible, setIsVisible] = useState(true);
@@ -270,9 +209,7 @@ const UserRegistration = () => {
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [showVerificationToast, setShowVerificationToast] = useState(false);
   const [showErrorToast, setShowErrorToast] = useState(false);
-  const [showServerErrorToast, setShowServerErrorToast] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [serverErrorMessage, setServerErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState("");
 
@@ -291,19 +228,6 @@ const UserRegistration = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Debug API connection on component mount
-  React.useEffect(() => {
-    console.log("UserRegistration component mounted");
-    console.log("Axios base URL:", axiosInstance.defaults.baseURL);
-
-    // Check if we can access localStorage
-    console.log("LocalStorage available:", typeof localStorage !== "undefined");
-
-    // Check environment
-    console.log("Current environment:", import.meta.env.MODE);
-    console.log("API Base URL from env:", import.meta.env.VITE_API_BASE_URL);
-  }, []);
-
   const handleCancel = () => {
     const hasPreviousPage = window.history.length > 1;
     if (hasPreviousPage) {
@@ -317,34 +241,41 @@ const UserRegistration = () => {
     try {
       setIsSubmitting(true);
       setErrorMessage("");
-      setServerErrorMessage("");
       setRegisteredEmail("");
 
       // Remove confirmPassword before sending to API
       const { confirmPassword, ...registrationData } = data;
 
-      console.log("Registration data being sent:", registrationData);
-      console.log("Sending to URL:", "/auth/register");
-
       // Send registration request
       const res = await axiosInstance.post("/auth/register", registrationData);
 
-      console.log("Registration response:", {
-        status: res.status,
-        statusText: res.statusText,
-        data: res.data,
-      });
+      console.log("Registration response:", res.data);
 
-      if (res.data && res.data.success) {
-        const { token, user } = res.data;
+      if (res.data && res.data.message) {
+        const { token, data: userData, message } = res.data;
         setRegisteredEmail(data.email);
 
-        // ✅ SCENARIO 1: Backend returns token and user (Auto-login)
-        if (token && user) {
+        // ✅ CHECK USER VERIFICATION STATUS
+        const isVerified = userData?.isVerified || false;
+
+        // ✅ SCENARIO 1: User is verified and has token (Auto-login)
+        if (isVerified && token && userData) {
           // ✅ Store authentication data EXACTLY LIKE LOGIN
           localStorage.setItem("auth_token", token);
-          localStorage.setItem("user_email", user.email);
-          localStorage.setItem("userProfile", JSON.stringify(user));
+          localStorage.setItem("user_email", userData.email);
+          localStorage.setItem(
+            "userProfile",
+            JSON.stringify({
+              id: userData._id,
+              email: userData.email,
+              firstName: userData.firstName,
+              lastName: userData.lastName,
+              phone: userData.phone,
+              role: userData.role,
+              isVerified: userData.isVerified,
+              profilePicture: userData.profilePicture,
+            })
+          );
 
           // ✅ Notify Header immediately
           window.dispatchEvent(new Event("storage"));
@@ -381,167 +312,37 @@ const UserRegistration = () => {
         }
       } else {
         // Handle unexpected response format
-        const errorMsg =
-          res.data?.message ||
-          "Registration completed but received unexpected response.";
-        setErrorMessage(errorMsg);
+        setErrorMessage(
+          "Registration completed but received unexpected response."
+        );
         setShowErrorToast(true);
       }
     } catch (error) {
-      console.error("Registration error details:", {
-        name: error.name,
-        message: error.message,
-        code: error.code,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          data: error.config?.data,
-        },
-      });
+      console.error("Registration error:", error);
 
       let errorMessage = "Registration failed. Please try again.";
-      let isServerError = false;
 
       if (error.response) {
-        // Server responded with error status
-        if (error.response.status === 500) {
-          isServerError = true;
-          errorMessage =
-            "Server Error (500): Our servers are experiencing issues.";
-
-          // Log additional details for debugging
-          console.error("Server 500 Error Details:", {
-            data: error.response.data,
-            headers: error.response.headers,
-          });
-
-          // Check if there's a specific error message from server
-          if (error.response.data) {
-            if (typeof error.response.data === "string") {
-              errorMessage = `Server Error: ${error.response.data.substring(
-                0,
-                100
-              )}`;
-            } else if (error.response.data.message) {
-              errorMessage = `Server Error: ${error.response.data.message}`;
-            } else if (error.response.data.error) {
-              errorMessage = `Server Error: ${error.response.data.error}`;
-            }
-          }
-        } else if (error.response.status === 409) {
+        if (error.response.status === 409) {
           errorMessage =
             "This email is already registered. Please use a different email or login.";
-        } else if (error.response.status === 400) {
-          errorMessage =
-            "Invalid registration data. Please check your information.";
-        } else if (error.response.status === 422) {
-          errorMessage = "Validation error. Please check all required fields.";
-        } else if (error.response.status === 401) {
-          errorMessage = "Authentication failed. Please try again.";
-        } else if (error.response.status === 403) {
-          errorMessage = "Registration not allowed. Please contact support.";
-        } else if (error.response.status === 404) {
-          errorMessage =
-            "Registration endpoint not found. Please contact support.";
         } else if (error.response.data?.message) {
           errorMessage = error.response.data.message;
         } else if (error.response.data?.errors) {
           // Handle validation errors from backend
           const errors = error.response.data.errors;
-          errorMessage = errors
-            .map((err) => err.msg || err.message || err)
-            .join(", ");
-        } else if (error.response.data) {
-          // Try to stringify whatever data we got
-          try {
-            const dataStr = JSON.stringify(error.response.data);
-            errorMessage = `Server returned: ${dataStr.substring(0, 100)}${
-              dataStr.length > 100 ? "..." : ""
-            }`;
-          } catch (e) {
-            errorMessage = `Error ${error.response.status}: ${error.response.statusText}`;
-          }
-        } else {
-          errorMessage = `Error ${error.response.status}: ${error.response.statusText}`;
+          errorMessage = errors.map((err) => err.msg || err.message).join(", ");
         }
       } else if (error.request) {
-        // Request was made but no response received
-        console.error("No response received:", error.request);
-        isServerError = true;
-        errorMessage =
-          "Network error. Please check your internet connection and try again.";
-      } else {
-        // Something else happened
-        errorMessage = `Error: ${
-          error.message || "An unexpected error occurred"
-        }`;
+        errorMessage = "Network error. Please check your connection.";
       }
 
-      // Show appropriate toast
-      if (isServerError) {
-        setServerErrorMessage(errorMessage);
-        setShowServerErrorToast(true);
-      } else {
-        setErrorMessage(errorMessage);
-        setShowErrorToast(true);
-      }
-
-      // If it's a server error, log additional info
-      if (error.response?.status === 500) {
-        console.warn(
-          "Server is experiencing issues. Please contact support if this continues."
-        );
-        console.warn("Error response data:", error.response?.data);
-      }
+      // Show error toast
+      setErrorMessage(errorMessage);
+      setShowErrorToast(true);
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  // For testing only - simulate successful registration
-  const handleTestRegistration = async (data) => {
-    console.log("TEST MODE: Simulating registration for:", data.email);
-
-    setIsSubmitting(true);
-
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // Create test user data
-    const testUser = {
-      id: "test_" + Date.now(),
-      email: data.email,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      phone: data.phone,
-      role: "user",
-      isVerified: true,
-      createdAt: new Date().toISOString(),
-    };
-
-    const testToken = "test_token_" + Date.now();
-
-    // Store authentication data
-    localStorage.setItem("auth_token", testToken);
-    localStorage.setItem("user_email", testUser.email);
-    localStorage.setItem("userProfile", JSON.stringify(testUser));
-
-    // Notify Header
-    window.dispatchEvent(new Event("storage"));
-    window.dispatchEvent(new Event("authChange"));
-
-    setShowSuccessToast(true);
-    reset();
-
-    setTimeout(() => {
-      setShowSuccessToast(false);
-      navigate("/");
-    }, 2500);
-
-    setIsSubmitting(false);
   };
 
   return (
@@ -563,15 +364,7 @@ const UserRegistration = () => {
         />
       )}
 
-      {/* Server Error Toast Notification */}
-      {showServerErrorToast && (
-        <ServerErrorToastNotification
-          message={serverErrorMessage}
-          onClose={() => setShowServerErrorToast(false)}
-        />
-      )}
-
-      {/* Regular Error Toast Notification */}
+      {/* Error Toast Notification */}
       {showErrorToast && (
         <ErrorToastNotification
           message={errorMessage}
@@ -588,32 +381,6 @@ const UserRegistration = () => {
         >
           <FaTimes size={20} />
         </button>
-
-        {/* Debug Info (only in development) */}
-        {import.meta.env.DEV && (
-          <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-            <p className="font-medium">Debug Info:</p>
-            <p>API Base: {axiosInstance.defaults.baseURL || "Not set"}</p>
-            <p>Environment: {import.meta.env.MODE}</p>
-            <button
-              onClick={() => {
-                const testData = {
-                  firstName: "Test",
-                  lastName: "User",
-                  email: `test${Date.now()}@test.com`,
-                  phone: "1234567890",
-                  password: "password123",
-                  confirmPassword: "password123",
-                  role: "user",
-                };
-                handleTestRegistration(testData);
-              }}
-              className="mt-1 px-2 py-1 bg-yellow-500 text-white text-xs rounded hover:bg-yellow-600"
-            >
-              Test Registration
-            </button>
-          </div>
-        )}
 
         {/* Logo */}
         <div className="flex justify-center mb-4">

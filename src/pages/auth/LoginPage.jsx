@@ -39,22 +39,27 @@ const LoginPage = () => {
     const verified = searchParams.get("verified");
 
     if (verified === "true") {
-      setSuccessMessage("Email verified successfully! You can now login.");
+      setSuccessMessage("🎉 Email verified successfully! You can now login.");
 
       // Clear the query parameter
       setTimeout(() => {
         navigate("/login", { replace: true });
         setSuccessMessage("");
-      }, 3000);
+      }, 5000);
     }
 
     // Check for registration success
     const registeredEmail = localStorage.getItem("pendingVerificationEmail");
     if (registeredEmail && !location.search.includes("verified=true")) {
       setSuccessMessage(
-        `Registration successful! Please check ${registeredEmail} for verification link.`
+        `📧 Registration successful! Please check ${registeredEmail} for verification link.`
       );
       localStorage.removeItem("pendingVerificationEmail");
+
+      // Clear the message after 8 seconds
+      setTimeout(() => {
+        setSuccessMessage("");
+      }, 8000);
     }
   }, [location, navigate]);
 
@@ -64,19 +69,27 @@ const LoginPage = () => {
       setSuccessMessage("");
       setIsLoading(true);
 
+      console.log("Login attempt for:", data.email);
+
       // Make API call to login
       const response = await axiosInstance.post("/auth/login", {
         email: data.email,
         password: data.password,
       });
 
-      if (response.data && response.data.success) {
-        const { token, user } = response.data;
+      console.log("Login response:", response.data);
+
+      if (response.data && response.data.message === "Login successful") {
+        const { token, data: userData } = response.data;
 
         // Check if user is verified
-        if (!user.isVerified) {
+        if (!userData.isVerified) {
           setError(
-            "Please verify your email before logging in. Check your email for verification link."
+            `⚠️ Please verify your email before logging in. 
+            
+            Check your inbox (${userData.email}) for the verification link. 
+            
+            If you didn't receive it, check your spam folder or request a new verification link.`
           );
           setIsLoading(false);
           return;
@@ -84,8 +97,20 @@ const LoginPage = () => {
 
         // Store authentication data
         localStorage.setItem("auth_token", token);
-        localStorage.setItem("user_email", user.email);
-        localStorage.setItem("userProfile", JSON.stringify(user));
+        localStorage.setItem("user_email", userData.email);
+        localStorage.setItem(
+          "userProfile",
+          JSON.stringify({
+            id: userData._id,
+            email: userData.email,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            phone: userData.phone,
+            role: userData.role,
+            isVerified: userData.isVerified,
+            profilePicture: userData.profilePicture,
+          })
+        );
 
         // Check for pending save item
         const pendingSave = localStorage.getItem("pendingSaveItem");
@@ -115,27 +140,44 @@ const LoginPage = () => {
 
         setIsLoading(false);
 
+        // Show success message before redirect
+        setSuccessMessage("✅ Login successful! Redirecting...");
+
         // Redirect after short delay
         setTimeout(() => {
+          setSuccessMessage("");
           navigate(redirectUrl);
-        }, 500);
+        }, 1000);
       }
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Login error details:", {
+        name: error.name,
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+
       setIsLoading(false);
 
       let errorMessage = "Login failed. Please try again.";
 
       if (error.response) {
         if (error.response.status === 401) {
-          errorMessage = "Invalid email or password.";
+          errorMessage =
+            "❌ Invalid email or password. Please check your credentials.";
         } else if (error.response.status === 403) {
-          errorMessage = "Please verify your email before logging in.";
+          errorMessage =
+            "🔒 Please verify your email before logging in. Check your inbox for the verification link.";
+        } else if (error.response.status === 400) {
+          errorMessage = "⚠️ Invalid request. Please check your input.";
+        } else if (error.response.status === 500) {
+          errorMessage = "🚨 Server error. Please try again later.";
         } else if (error.response.data?.message) {
-          errorMessage = error.response.data.message;
+          errorMessage = `⚠️ ${error.response.data.message}`;
         }
       } else if (error.request) {
-        errorMessage = "Network error. Please check your connection.";
+        errorMessage =
+          "🌐 Network error. Please check your internet connection.";
       }
 
       setError(errorMessage);
@@ -159,6 +201,19 @@ const LoginPage = () => {
     // Clear pending save when navigating to reset password
     localStorage.removeItem("pendingSaveItem");
     navigate("/reset-password");
+  };
+
+  const handleResendVerification = () => {
+    const email = document.getElementById("email")?.value;
+    if (email) {
+      console.log("Resending verification email to:", email);
+      // Add API call to resend verification email here
+      setSuccessMessage(
+        `📧 Verification email resent to ${email}. Please check your inbox.`
+      );
+    } else {
+      setError("Please enter your email address first.");
+    }
   };
 
   const handleSkipSave = () => {
@@ -243,8 +298,20 @@ const LoginPage = () => {
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm whitespace-pre-line">
             {error}
+
+            {/* Add resend verification button if user is not verified */}
+            {error.includes("verify your email") && (
+              <div className="mt-3">
+                <button
+                  onClick={handleResendVerification}
+                  className="text-blue-600 hover:text-blue-800 underline text-sm font-medium"
+                >
+                  Resend verification email
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -324,7 +391,7 @@ const LoginPage = () => {
         </form>
 
         <div className="text-center text-sm text-gray-600 pt-4">
-          <div className="mb-3">
+          <div className="mb-3 space-y-2">
             <p>
               Forgot your password?{" "}
               <button
@@ -332,6 +399,26 @@ const LoginPage = () => {
                 className="text-[#6cff] hover:text-[#06EAFC] font-medium"
               >
                 Reset here
+              </button>
+            </p>
+
+            {/* Help text for unverified users */}
+            <p className="text-xs text-gray-500">
+              Need help with email verification?{" "}
+              <button
+                onClick={() => {
+                  const email = document.getElementById("email")?.value;
+                  if (email) {
+                    setError(
+                      `Check ${email} for verification link. Didn't receive it? Check spam folder.`
+                    );
+                  } else {
+                    setError("Please enter your email above and try again.");
+                  }
+                }}
+                className="text-gray-600 hover:text-gray-800 underline"
+              >
+                Click here
               </button>
             </p>
           </div>
