@@ -1,42 +1,38 @@
 import React, { useEffect, useState, useRef } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  Home,
-  List,
-  Users,
-  BookOpen,
-  Settings,
-  Search,
-  Bell,
-  Star,
-  Trash2,
-  Edit2,
-  Eye,
-  Plus,
-  ChevronRight,
-  MapPin,
-  Package,
-  Calendar,
-  DollarSign,
-  CheckCircle,
-  MoreVertical,
-  Menu,
-  X,
-  TrendingUp,
-  TrendingDown,
-  Filter,
-  Download,
-  ChevronDown,
-  Mail,
-  Phone,
-  MessageSquare,
-  Image as ImageIcon,
-  Upload,
-  Camera,
-  XCircle,
-  Save,
-  User,
-} from "lucide-react";
-import Logo from "../../../assets/Logos/logo5.png";
+  faHome,
+  faList,
+  faUsers,
+  faBookOpen,
+  faCog,
+  faSearch,
+  faBell,
+  faStar,
+  faTrashAlt,
+  faEdit,
+  faEye,
+  faPlus,
+  faChevronRight,
+  faMapMarkerAlt,
+  faBox,
+  faCalendar,
+  faDollarSign,
+  faCheckCircle,
+  faBars,
+  faTimes,
+  faChevronDown,
+  faEnvelope,
+  faComment,
+  faUpload,
+  faCamera,
+  faTimesCircle,
+  faSave,
+} from "@fortawesome/free-solid-svg-icons";
+import Icon from "../../../assets/Logos/logo5.png";
+
+// Fallback logo in case the imported one doesn't work
+const FALLBACK_LOGO = "https://via.placeholder.com/40/3B82F6/FFFFFF?text=Q";
 
 /* ===============================
    LOCAL STORAGE KEYS
@@ -68,25 +64,27 @@ const defaultData = {
     ratingChange: "+0.5 from last month",
   },
 
-  // Recent Bookings
+  // Recent Bookings - Updated to match image
   recentBookings: [
     {
       id: 1,
-      customer: "Solo Fedipe Jr.",
+      customer: "Sola Fadipe Jr.",
       address: "Iron man street",
       product: "Hotel Booking",
-      amount: "#26,000",
+      amount: "#28,000",
       status: "Completed",
       time: "Today, 10:30 am",
+      orderId: "#290888890",
     },
     {
       id: 2,
       customer: "Bankole Johansson",
       address: "Bodija",
-      product: "Event Centre",
-      amount: "#06,000",
+      product: "Event booking",
+      amount: "#100,000",
       status: "Completed",
-      time: "Today, 10:33 am",
+      time: "Today, 10:30 am",
+      orderId: "#290888890",
     },
   ],
 
@@ -179,7 +177,7 @@ const defaultData = {
 /* ===============================
    SIDEBAR ITEM - Improved for mobile
 ================================ */
-const NavItem = ({ icon: Icon, label, active, onClick, badge }) => (
+const NavItem = ({ icon, label, active, onClick, badge }) => (
   <button
     onClick={onClick}
     className={`relative flex items-center justify-between px-4 lg:px-6 py-3 w-full text-sm transition-all duration-200
@@ -194,7 +192,7 @@ const NavItem = ({ icon: Icon, label, active, onClick, badge }) => (
       {active && (
         <span className="absolute left-0 top-0 h-full w-1 bg-blue-600 rounded-r-md" />
       )}
-      <Icon size={18} />
+      <FontAwesomeIcon icon={icon} size="sm" />
       <span className="font-medium">{label}</span>
     </div>
     {badge && (
@@ -206,9 +204,9 @@ const NavItem = ({ icon: Icon, label, active, onClick, badge }) => (
 );
 
 /* ===============================
-   STAT CARD COMPONENT - Responsive
+   STAT CARD COMPONENT - Fixed layout
 ================================ */
-const StatCard = ({ title, value, change, icon: Icon, color = "blue" }) => {
+const StatCard = ({ title, value, change, icon, color = "blue" }) => {
   const colors = {
     blue: { bg: "bg-blue-50", icon: "text-blue-600" },
     green: { bg: "bg-green-50", icon: "text-green-600" },
@@ -221,22 +219,97 @@ const StatCard = ({ title, value, change, icon: Icon, color = "blue" }) => {
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-4 lg:p-6 shadow-sm hover:shadow-md transition-shadow duration-300">
       <div className="flex items-start justify-between mb-3 lg:mb-4">
-        <div>
-          <h3 className="text-xl lg:text-2xl font-bold text-gray-900">
+        <div className="w-full">
+          {/* First line: Title */}
+          <p className="text-xs lg:text-sm text-gray-600 mb-2">{title}</p>
+          {/* Second line: Value */}
+          <h3 className="text-xl lg:text-2xl font-bold text-gray-900 mb-2">
             {value}
           </h3>
-          <p className="text-xs lg:text-sm text-gray-600 mt-1">{title}</p>
+          {/* Third line: Change */}
+          <div className="text-xs lg:text-sm text-green-600 font-medium">
+            {change}
+          </div>
         </div>
         <div className={`p-2 lg:p-3 rounded-xl ${currentColor.bg}`}>
-          <Icon size={18} className={currentColor.icon} />
+          <FontAwesomeIcon
+            icon={icon}
+            className={`text-lg ${currentColor.icon}`}
+          />
         </div>
-      </div>
-      <div className="text-xs lg:text-sm text-green-600 font-medium">
-        {change}
       </div>
     </div>
   );
 };
+
+/* ===============================
+   GLOBAL HEADER COMPONENT - Fixed to match requirements
+================================ */
+const GlobalHeader = ({ onSettingsClick }) => (
+  <div className="bg-white border-b border-gray-200 px-4 lg:px-8 py-3 lg:py-4 mb-6 lg:mb-8">
+    <div className="flex items-center justify-between">
+      {/* Left side - Brand name */}
+      <div className="flex items-center">
+        <span className="text-lg lg:text-xl font-bold text-gray-900">
+          Overview
+        </span>
+      </div>
+
+      {/* Right side - Search, Settings, Notification, Profile */}
+      <div className="flex items-center gap-3 lg:gap-4">
+        {/* Global Search - Moved to left of settings icon */}
+        <div className="relative hidden md:block">
+          <FontAwesomeIcon
+            icon={faSearch}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+          />
+          <input
+            type="text"
+            placeholder="Search globally..."
+            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm w-48 lg:w-64"
+          />
+        </div>
+
+        {/* Settings Icon */}
+        <button
+          onClick={onSettingsClick}
+          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          title="Settings"
+        >
+          <FontAwesomeIcon icon={faCog} />
+        </button>
+
+        {/* Notification Icon */}
+        <button className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+          <FontAwesomeIcon icon={faBell} />
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+            3
+          </span>
+        </button>
+
+        {/* Mobile search button */}
+        <button className="md:hidden p-2 text-gray-500 hover:text-gray-700">
+          <FontAwesomeIcon icon={faSearch} />
+        </button>
+
+        {/* Profile Image */}
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full overflow-hidden border-2 border-blue-500">
+            <img
+              src={defaultData.profile.avatar}
+              alt="Profile"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <FontAwesomeIcon
+            icon={faChevronDown}
+            className="text-gray-400 text-xs"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 /* ===============================
    MAIN COMPONENT
@@ -261,6 +334,7 @@ export default function VendorDashboard() {
     images: [],
   });
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [showGlobalSettings, setShowGlobalSettings] = useState(false);
   const fileInputRef = useRef(null);
   const profileImageRef = useRef(null);
 
@@ -268,6 +342,11 @@ export default function VendorDashboard() {
   useEffect(() => {
     localStorage.setItem(VENDOR_STORAGE_KEY, JSON.stringify(data));
   }, [data]);
+
+  /* Scroll to top on page load */
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   /* Add new listing */
   const handleAddListing = () => {
@@ -431,102 +510,119 @@ export default function VendorDashboard() {
   /* Overview View - Mobile responsive */
   const OverviewView = () => (
     <div className="space-y-6 lg:space-y-8">
-      {/* Search Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-        <div className="flex-1">
-          <h1 className="text-xl lg:text-2xl font-bold text-gray-900 mb-3 lg:mb-4">
-            Overview
-          </h1>
-          <div className="relative max-w-md">
-            <Search
-              size={18}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <input
-              type="text"
-              placeholder="Search for something"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Grid - Responsive */}
+      {/* Stats Grid - Responsive with fixed layout */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <StatCard
           title="Total Revenue"
           value={data.stats.totalRevenue}
           change={data.stats.revenueChange}
-          icon={DollarSign}
+          icon={faDollarSign}
           color="blue"
         />
         <StatCard
           title="Active Listing"
           value={data.stats.activeListings}
           change="from last month"
-          icon={Package}
+          icon={faBox}
           color="green"
         />
         <StatCard
           title="Total Booking"
           value={data.stats.totalBookings}
           change={data.stats.bookingChange}
-          icon={Calendar}
+          icon={faCalendar}
           color="purple"
         />
         <StatCard
           title="Average Rating"
           value={data.stats.averageRating}
           change={data.stats.ratingChange}
-          icon={Star}
+          icon={faStar}
           color="yellow"
         />
       </div>
 
-      {/* Recent Bookings - Mobile responsive */}
+      {/* Recent Bookings - Updated to match image */}
       <div className="bg-white border border-gray-200 rounded-2xl p-4 lg:p-6 shadow-sm">
-        <h2 className="text-lg lg:text-xl font-bold text-gray-900 mb-4 lg:mb-6">
-          Recent Bookings
-        </h2>
+        <div className="flex items-center justify-between mb-4 lg:mb-6">
+          <h2 className="text-lg lg:text-xl font-bold text-gray-900">
+            Recent Bookings
+          </h2>
+          <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+            View all
+          </button>
+        </div>
 
-        <div className="space-y-3 lg:space-y-4">
+        <div className="space-y-4 lg:space-y-6">
           {(data.recentBookings || []).map((booking) => (
             <div
               key={booking.id}
-              className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 lg:p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+              className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50 transition-colors"
             >
-              <div className="mb-2 sm:mb-0 sm:flex-1">
-                <h4 className="font-bold text-gray-900 text-sm lg:text-base">
-                  {booking.customer}
-                </h4>
-                <p className="text-xs lg:text-sm text-gray-600 mt-1">
-                  {booking.address}
-                </p>
+              {/* Top Section - Customer Info and Order ID */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                <div>
+                  <h4 className="font-bold text-gray-900 text-base lg:text-lg">
+                    {booking.customer}
+                  </h4>
+                  <div className="flex items-center gap-2 mt-1">
+                    <FontAwesomeIcon
+                      icon={faMapMarkerAlt}
+                      className="text-gray-400 text-sm"
+                    />
+                    <p className="text-gray-600 text-sm">{booking.address}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-gray-500 text-xs font-medium">Order ID</p>
+                  <p className="text-gray-900 font-semibold text-sm">
+                    {booking.orderId}
+                  </p>
+                </div>
               </div>
 
-              <div className="mb-2 sm:mb-0">
-                <p className="text-xs lg:text-sm text-gray-600">Product</p>
-                <p className="font-medium text-gray-900 text-sm lg:text-base">
-                  {booking.product}
-                </p>
+              {/* Middle Section - Product and Amount */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                <div className="flex-1">
+                  <p className="text-gray-500 text-xs font-medium mb-1">
+                    Product
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <FontAwesomeIcon icon={faBox} className="text-blue-600" />
+                    </div>
+                    <p className="font-semibold text-gray-900">
+                      {booking.product}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex-1">
+                  <p className="text-gray-500 text-xs font-medium mb-1">
+                    Amount
+                  </p>
+                  <p className="text-xl lg:text-2xl font-bold text-gray-900">
+                    {booking.amount}
+                  </p>
+                </div>
               </div>
 
-              <div className="mb-2 sm:mb-0">
-                <p className="text-xs lg:text-sm text-gray-600">Amount</p>
-                <p className="text-base lg:text-lg font-bold text-gray-900">
-                  {booking.amount}
-                </p>
-              </div>
+              {/* Bottom Section - Status and Time */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-200">
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium flex items-center gap-1">
+                    <FontAwesomeIcon icon={faCheckCircle} />
+                    {booking.status}
+                  </span>
+                  <span className="text-gray-900 font-medium text-sm">
+                    {booking.time}
+                  </span>
+                </div>
 
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 lg:gap-4">
-                <span className="px-2 lg:px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs lg:text-sm font-medium">
-                  {booking.status}
-                </span>
-                <span className="text-xs lg:text-sm font-medium text-gray-900">
-                  {booking.time}
-                </span>
+                <button className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1">
+                  View details
+                  <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+                </button>
               </div>
             </div>
           ))}
@@ -550,8 +646,8 @@ export default function VendorDashboard() {
       {/* Search Bar */}
       <div className="bg-white border border-gray-200 rounded-lg p-3 lg:p-4">
         <div className="relative">
-          <Search
-            size={18}
+          <FontAwesomeIcon
+            icon={faSearch}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
           />
           <input
@@ -619,9 +715,9 @@ export default function VendorDashboard() {
                 </td>
                 <td className="p-3 lg:p-4">
                   <div className="flex items-center gap-1">
-                    <Star
-                      size={14}
-                      className="text-yellow-400 fill-yellow-400"
+                    <FontAwesomeIcon
+                      icon={faStar}
+                      className="text-yellow-400"
                     />
                     <span className="font-medium text-sm lg:text-base">
                       {listing.rating}
@@ -640,7 +736,7 @@ export default function VendorDashboard() {
                       className="p-1 lg:p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
                       title="View"
                     >
-                      <Eye size={14} />
+                      <FontAwesomeIcon icon={faEye} />
                     </button>
                     <button
                       onClick={() => {
@@ -650,14 +746,14 @@ export default function VendorDashboard() {
                       className="p-1 lg:p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
                       title="Edit"
                     >
-                      <Edit2 size={14} />
+                      <FontAwesomeIcon icon={faEdit} />
                     </button>
                     <button
                       onClick={() => handleDeleteListing(listing.id)}
                       className="p-1 lg:p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-red-500"
                       title="Delete"
                     >
-                      <Trash2 size={14} />
+                      <FontAwesomeIcon icon={faTrashAlt} />
                     </button>
                   </div>
                 </td>
@@ -673,7 +769,7 @@ export default function VendorDashboard() {
           onClick={() => setShowAddListingModal(true)}
           className="flex items-center gap-2 bg-blue-600 text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm lg:text-base"
         >
-          <Plus size={18} />
+          <FontAwesomeIcon icon={faPlus} />
           Add Listing
         </button>
       </div>
@@ -694,8 +790,8 @@ export default function VendorDashboard() {
 
       {/* Search Bar */}
       <div className="relative max-w-md">
-        <Search
-          size={18}
+        <FontAwesomeIcon
+          icon={faSearch}
           className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
         />
         <input
@@ -749,7 +845,7 @@ export default function VendorDashboard() {
 
             <div className="mt-4 lg:mt-6 pt-4 lg:pt-6 border-t border-gray-200">
               <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-500">
-                <Mail size={12} />
+                <FontAwesomeIcon icon={faEnvelope} />
                 {customer.email}
               </div>
             </div>
@@ -773,8 +869,8 @@ export default function VendorDashboard() {
 
       {/* Search Bar */}
       <div className="relative max-w-md">
-        <Search
-          size={18}
+        <FontAwesomeIcon
+          icon={faSearch}
           className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
         />
         <input
@@ -877,7 +973,7 @@ export default function VendorDashboard() {
                 className="absolute bottom-0 right-0 p-1.5 lg:p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
                 title="Change photo"
               >
-                <Camera size={14} />
+                <FontAwesomeIcon icon={faCamera} />
               </button>
               <input
                 ref={profileImageRef}
@@ -1016,7 +1112,7 @@ export default function VendorDashboard() {
         <div className="space-y-3 lg:space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Mail size={16} className="text-gray-500" />
+              <FontAwesomeIcon icon={faEnvelope} className="text-gray-500" />
               <span className="text-gray-700 text-sm lg:text-base">Email</span>
             </div>
             <input
@@ -1029,7 +1125,7 @@ export default function VendorDashboard() {
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <MessageSquare size={16} className="text-gray-500" />
+              <FontAwesomeIcon icon={faComment} className="text-gray-500" />
               <span className="text-gray-700 text-sm lg:text-base">
                 Whatsapp
               </span>
@@ -1044,7 +1140,7 @@ export default function VendorDashboard() {
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Bell size={16} className="text-gray-500" />
+              <FontAwesomeIcon icon={faBell} className="text-gray-500" />
               <span className="text-gray-700 text-sm lg:text-base">
                 Promotional messages
               </span>
@@ -1056,6 +1152,78 @@ export default function VendorDashboard() {
               className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
             />
           </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  /* Global Settings Modal */
+  const GlobalSettingsModal = () => (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="p-4 lg:p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg lg:text-xl font-semibold">
+              Global Settings
+            </h3>
+            <button
+              onClick={() => setShowGlobalSettings(false)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
+          <div>
+            <h4 className="font-medium text-gray-900 mb-3">Language</h4>
+            <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm">
+              <option value="en">English</option>
+              <option value="fr">French</option>
+              <option value="es">Spanish</option>
+              <option value="de">German</option>
+            </select>
+          </div>
+
+          <div>
+            <h4 className="font-medium text-gray-900 mb-3">Timezone</h4>
+            <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm">
+              <option value="utc">UTC</option>
+              <option value="est">Eastern Time (EST)</option>
+              <option value="pst">Pacific Time (PST)</option>
+              <option value="cet">Central European Time (CET)</option>
+            </select>
+          </div>
+
+          <div>
+            <h4 className="font-medium text-gray-900 mb-3">Currency</h4>
+            <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm">
+              <option value="usd">USD ($)</option>
+              <option value="eur">EUR (€)</option>
+              <option value="gbp">GBP (£)</option>
+              <option value="ngn">NGN (₦)</option>
+            </select>
+          </div>
+
+          <div className="pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-700">Dark Mode</span>
+              <input
+                type="checkbox"
+                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 lg:p-6 border-t border-gray-200">
+          <button
+            onClick={() => setShowGlobalSettings(false)}
+            className="w-full px-4 lg:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+          >
+            Save Settings
+          </button>
         </div>
       </div>
     </div>
@@ -1090,7 +1258,7 @@ export default function VendorDashboard() {
                 }}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <X size={20} />
+                <FontAwesomeIcon icon={faTimes} />
               </button>
             </div>
           </div>
@@ -1129,7 +1297,7 @@ export default function VendorDashboard() {
                       }}
                       className="absolute top-1 lg:top-2 right-1 lg:right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      <XCircle size={12} />
+                      <FontAwesomeIcon icon={faTimesCircle} />
                     </button>
                   </div>
                 ))}
@@ -1141,8 +1309,8 @@ export default function VendorDashboard() {
                     <div className="animate-spin rounded-full h-6 w-6 lg:h-8 lg:w-8 border-b-2 border-blue-600"></div>
                   ) : (
                     <>
-                      <Upload
-                        size={20}
+                      <FontAwesomeIcon
+                        icon={faUpload}
                         className="text-gray-400 mb-1 lg:mb-2"
                       />
                       <span className="text-xs lg:text-sm text-gray-600">
@@ -1318,7 +1486,11 @@ export default function VendorDashboard() {
               onClick={editingListing ? handleUpdateListing : handleAddListing}
               className="px-4 lg:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
             >
-              {editingListing ? <Save size={16} /> : <Plus size={16} />}
+              {editingListing ? (
+                <FontAwesomeIcon icon={faSave} />
+              ) : (
+                <FontAwesomeIcon icon={faPlus} />
+              )}
               {editingListing ? "Update Listing" : "Add Listing"}
             </button>
           </div>
@@ -1334,7 +1506,11 @@ export default function VendorDashboard() {
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md"
       >
-        {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+        {isSidebarOpen ? (
+          <FontAwesomeIcon icon={faTimes} />
+        ) : (
+          <FontAwesomeIcon icon={faBars} />
+        )}
       </button>
 
       {/* Mobile Sidebar Backdrop */}
@@ -1355,23 +1531,20 @@ export default function VendorDashboard() {
         `}
         >
           <div className="px-4 lg:px-6 py-6 lg:py-8">
-            <div className="flex items-center gap-2 mb-6 lg:mb-8">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+            <div className="flex items-center gap-3 mb-6 lg:mb-8">
+              <div className="mb-6">
                 <img
-                  src={Logo}
-                  alt="Logo"
-                  className="w-full h-full object-contain"
+                  src={Icon}
+                  alt="Ajani Logo"
+                  className="h-12 w-auto object-contain"
                 />
               </div>
-              <h1 className="text-xl font-bold text-gray-900 hidden lg:block">
-                Dashboard
-              </h1>
             </div>
 
             <nav className="space-y-1">
               <NavItem
-                icon={Home}
-                label="Overview"
+                icon={faHome}
+                label="Dashboard"
                 active={view === "overview"}
                 onClick={() => {
                   setView("overview");
@@ -1379,7 +1552,7 @@ export default function VendorDashboard() {
                 }}
               />
               <NavItem
-                icon={List}
+                icon={faList}
                 label="Listing"
                 active={view === "listing"}
                 onClick={() => {
@@ -1388,7 +1561,7 @@ export default function VendorDashboard() {
                 }}
               />
               <NavItem
-                icon={Users}
+                icon={faUsers}
                 label="Customer"
                 active={view === "customer"}
                 onClick={() => {
@@ -1397,7 +1570,7 @@ export default function VendorDashboard() {
                 }}
               />
               <NavItem
-                icon={BookOpen}
+                icon={faBookOpen}
                 label="Booking"
                 active={view === "booking"}
                 onClick={() => {
@@ -1406,7 +1579,7 @@ export default function VendorDashboard() {
                 }}
               />
               <NavItem
-                icon={Settings}
+                icon={faCog}
                 label="Settings"
                 active={view === "settings"}
                 onClick={() => {
@@ -1419,49 +1592,24 @@ export default function VendorDashboard() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 px-3 sm:px-4 lg:px-8 py-6 lg:py-8">
-          {/* Top Bar - Mobile responsive */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 lg:gap-4 mb-6 lg:mb-8">
-            <div>
-              <h1 className="text-xl lg:text-2xl font-bold text-gray-900 capitalize">
-                {view === "overview" ? "Overview" : view}
-              </h1>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button className="relative p-2 text-gray-500 hover:text-gray-700">
-                <Bell size={20} />
-              </button>
-
-              <div className="relative">
-                <img
-                  src={data.profile?.avatar}
-                  alt="avatar"
-                  className="w-9 h-9 lg:w-10 lg:h-10 rounded-full border-2 border-blue-500 cursor-pointer"
-                  onClick={() => profileImageRef.current.click()}
-                />
-                <input
-                  ref={profileImageRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleProfileImageChange}
-                />
-              </div>
-            </div>
-          </div>
+        <main className="flex-1">
+          {/* Global Header - Fixed layout */}
+          <GlobalHeader onSettingsClick={() => setShowGlobalSettings(true)} />
 
           {/* Content based on view */}
-          {view === "overview" && <OverviewView />}
-          {view === "listing" && <ListingView />}
-          {view === "customer" && <CustomerView />}
-          {view === "booking" && <BookingView />}
-          {view === "settings" && <SettingsView />}
+          <div className="px-3 sm:px-4 lg:px-8 py-6 lg:py-8">
+            {view === "overview" && <OverviewView />}
+            {view === "listing" && <ListingView />}
+            {view === "customer" && <CustomerView />}
+            {view === "booking" && <BookingView />}
+            {view === "settings" && <SettingsView />}
+          </div>
         </main>
       </div>
 
       {/* Modals */}
       {showAddListingModal && <ListingModal />}
+      {showGlobalSettings && <GlobalSettingsModal />}
     </div>
   );
 }
