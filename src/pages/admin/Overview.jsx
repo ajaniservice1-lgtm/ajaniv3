@@ -1,5 +1,3 @@
-
-
 import {
   Users,
   Store,
@@ -8,7 +6,6 @@ import {
   DollarSign,
   TrendingUp,
 } from "lucide-react";
-
 
 import listingVilla from "../../assets/Logos/hotel.jpg";
 import listingLoft from "../../assets/Logos/hotel.jpg";
@@ -187,7 +184,7 @@ export const mockBookings = [
   },
 ];
 
-export const mockUsers= [
+export const mockUsers = [
   {
     id: "u1",
     name: "John Smith",
@@ -260,7 +257,6 @@ export const mockReviews = [
     createdAt: "2024-01-20",
   },
 ];
-
 
 const Overview = () => {
   const totalRevenue = mockBookings.reduce((sum, b) => sum + b.totalPrice, 0);

@@ -66,7 +66,7 @@ export function AdminLayout() {
           </button>
           <button className="w-full justify-start text-destructive hover:text-destructive">
             <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
+            Sign Ou
           </button>
         </div>
       </aside>
