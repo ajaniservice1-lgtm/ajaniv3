@@ -28,6 +28,10 @@ import {
   faCamera,
   faTimesCircle,
   faSave,
+  faPhone,
+  faEllipsisV,
+  faFilter,
+  faSort,
 } from "@fortawesome/free-solid-svg-icons";
 import Icon from "../../../assets/Logos/logo5.png";
 
@@ -88,59 +92,116 @@ const defaultData = {
     },
   ],
 
-  // Listings - FIXED: Added images array
+  // Listings - FIXED: Added images array with real hotel images
   listings: [
     {
       id: 1,
-      title: "Jogz Hotel and Suite",
-      location: "Mobile, 80 B location",
-      property: "Property",
-      price: "#28.000/night",
+      title: "Jazz Hotel and Suite",
+      location: "Lagos, Victoria Island",
+      property: "Luxury Hotel",
+      price: "#45,000/night",
       rating: 4.9,
       status: "Active",
       images: [
         "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop",
+        "https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=400&h=300&fit=crop",
       ],
     },
     {
       id: 2,
-      title: "Jogz Hotel and Suite",
-      location: "Mobile, 80 B location",
-      property: "Property",
-      price: "#28.000/night",
+      title: "Ocean View Resort",
+      location: "Calabar, Cross River",
+      property: "Beach Resort",
+      price: "#35,000/night",
       rating: 4.8,
       status: "Active",
       images: [
-        "https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=400&h=300&fit=crop",
+        "https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?w=400&h=300&fit=crop",
+        "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=300&fit=crop",
+      ],
+    },
+    {
+      id: 3,
+      title: "Mountain Retreat Lodge",
+      location: "Jos, Plateau State",
+      property: "Mountain Lodge",
+      price: "#28,000/night",
+      rating: 4.7,
+      status: "Active",
+      images: [
+        "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=300&fit=crop",
+        "https://images.unsplash.com/photo-1564501049418-3c27787d01e8?w=400&h=300&fit=crop",
       ],
     },
   ],
 
-  // Customers (From Ogiani image)
+  // Customers - Updated to match image with profile images
   customers: [
     {
       id: 1,
-      name: "Service Adeniyi for customer use",
-      email: "adeniyi@example.com",
+      name: "Samuel Rottmi",
+      email: "samuel@example.com",
+      phone: "+234 801 234 5678",
       bookings: 1,
       totalSpent: "#300k+",
       status: "Active",
+      profileImage: "https://randomuser.me/api/portraits/men/32.jpg",
+      joinDate: "2024-01-15",
     },
     {
       id: 2,
-      name: "Service Cafe for customer use",
-      email: "cafe@example.com",
+      name: "Sandra Adewuyi",
+      email: "sandra@example.com",
+      phone: "+234 802 345 6789",
       bookings: 1,
       totalSpent: "#300k+",
       status: "Active",
+      profileImage: "https://randomuser.me/api/portraits/women/26.jpg",
+      joinDate: "2024-02-20",
     },
     {
       id: 3,
       name: "Bankole Cole",
       email: "bankole@example.com",
+      phone: "+234 803 456 7890",
       bookings: 1,
-      totalSpent: "#30k+",
+      totalSpent: "#300k+",
       status: "Active",
+      profileImage: "https://randomuser.me/api/portraits/men/44.jpg",
+      joinDate: "2024-03-10",
+    },
+    {
+      id: 4,
+      name: "Service Cafe",
+      email: "cafe@example.com",
+      phone: "+234 804 567 8901",
+      bookings: 3,
+      totalSpent: "#500k+",
+      status: "Active",
+      profileImage: "https://randomuser.me/api/portraits/women/33.jpg",
+      joinDate: "2024-01-05",
+    },
+    {
+      id: 5,
+      name: "Service Adeniyi",
+      email: "adeniyi@example.com",
+      phone: "+234 805 678 9012",
+      bookings: 2,
+      totalSpent: "#400k+",
+      status: "Active",
+      profileImage: "https://randomuser.me/api/portraits/men/22.jpg",
+      joinDate: "2024-02-15",
+    },
+    {
+      id: 6,
+      name: "Chris Femton",
+      email: "chris@example.com",
+      phone: "+234 806 789 0123",
+      bookings: 1,
+      totalSpent: "#200k+",
+      status: "Inactive",
+      profileImage: "https://randomuser.me/api/portraits/men/18.jpg",
+      joinDate: "2024-03-25",
     },
   ],
 
@@ -166,7 +227,7 @@ const defaultData = {
     },
   ],
 
-  // Notifications settings
+  // Notifications settings - Updated for toggle buttons
   notifications: {
     email: true,
     whatsapp: true,
@@ -223,7 +284,7 @@ const StatCard = ({ title, value, change, icon, color = "blue" }) => {
           {/* First line: Title */}
           <p className="text-xs lg:text-sm text-gray-600 mb-2">{title}</p>
           {/* Second line: Value */}
-          <h3 className="text-xl lg:text-2xl font-bold text-gray-900 mb-2">
+          <h3 className="text-lg lg:text-2xl font-bold text-gray-900 mb-2">
             {value}
           </h3>
           {/* Third line: Change */}
@@ -243,22 +304,53 @@ const StatCard = ({ title, value, change, icon, color = "blue" }) => {
 };
 
 /* ===============================
-   GLOBAL HEADER COMPONENT - Fixed to match requirements
+   TOGGLE BUTTON COMPONENT - New component for notifications
+================================ */
+const ToggleButton = ({ enabled, onChange, label, icon }) => (
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-3">
+      <FontAwesomeIcon icon={icon} className="text-gray-500" />
+      <span className="text-gray-700 text-sm lg:text-base">{label}</span>
+    </div>
+    <button
+      onClick={onChange}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+        enabled ? "bg-blue-600" : "bg-gray-200"
+      }`}
+      role="switch"
+      aria-checked={enabled}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+          enabled ? "translate-x-6" : "translate-x-1"
+        }`}
+      />
+    </button>
+  </div>
+);
+
+/* ===============================
+   GLOBAL HEADER COMPONENT - Mobile responsive
 ================================ */
 const GlobalHeader = ({ onSettingsClick }) => (
-  <div className="bg-white border-b border-gray-200 px-4 lg:px-8 py-3 lg:py-4 mb-6 lg:mb-8">
+  <div className="bg-white border-b border-gray-200 px-4 lg:px-8 py-3 lg:py-4 mb-4 lg:mb-8">
     <div className="flex items-center justify-between">
-      {/* Left side - Brand name */}
-      <div className="flex items-center">
+      {/* Left side - Brand name with mobile menu */}
+      <div className="flex items-center gap-3">
         <span className="text-lg lg:text-xl font-bold text-gray-900">
           Overview
         </span>
       </div>
 
       {/* Right side - Search, Settings, Notification, Profile */}
-      <div className="flex items-center gap-3 lg:gap-4">
-        {/* Global Search - Moved to left of settings icon */}
-        <div className="relative hidden md:block">
+      <div className="flex items-center gap-2 lg:gap-4">
+        {/* Mobile search button */}
+        <button className="lg:hidden p-2 text-gray-500 hover:text-gray-700 rounded-lg">
+          <FontAwesomeIcon icon={faSearch} />
+        </button>
+
+        {/* Desktop Search */}
+        <div className="hidden lg:block relative">
           <FontAwesomeIcon
             icon={faSearch}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -287,11 +379,6 @@ const GlobalHeader = ({ onSettingsClick }) => (
           </span>
         </button>
 
-        {/* Mobile search button */}
-        <button className="md:hidden p-2 text-gray-500 hover:text-gray-700">
-          <FontAwesomeIcon icon={faSearch} />
-        </button>
-
         {/* Profile Image */}
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full overflow-hidden border-2 border-blue-500">
@@ -303,13 +390,122 @@ const GlobalHeader = ({ onSettingsClick }) => (
           </div>
           <FontAwesomeIcon
             icon={faChevronDown}
-            className="text-gray-400 text-xs"
+            className="text-gray-400 text-xs hidden lg:block"
           />
         </div>
       </div>
     </div>
   </div>
 );
+
+/* ===============================
+   MOBILE ACTION BAR COMPONENT
+================================ */
+const MobileActionBar = ({ view, onAddListing, onSearchClick }) => {
+  const getViewTitle = () => {
+    switch (view) {
+      case "overview": return "Dashboard";
+      case "listing": return "My Listings";
+      case "customer": return "Customers";
+      case "booking": return "Bookings";
+      case "settings": return "Settings";
+      default: return "Dashboard";
+    }
+  };
+
+  return (
+    <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 mb-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">{getViewTitle()}</h1>
+          <p className="text-xs text-gray-600">
+            {view === "overview" && "Overview of your business"}
+            {view === "listing" && "Manage your properties"}
+            {view === "customer" && "View and manage customers"}
+            {view === "booking" && "Manage bookings"}
+            {view === "settings" && "Account settings"}
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {view === "listing" && (
+            <button
+              onClick={onAddListing}
+              className="p-2 bg-blue-600 text-white rounded-lg"
+              title="Add Listing"
+            >
+              <FontAwesomeIcon icon={faPlus} />
+            </button>
+          )}
+          
+          <button
+            onClick={onSearchClick}
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+            title="Search"
+          >
+            <FontAwesomeIcon icon={faSearch} />
+          </button>
+          
+          <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg" title="More">
+            <FontAwesomeIcon icon={faEllipsisV} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ===============================
+   MOBILE SEARCH MODAL
+================================ */
+const MobileSearchModal = ({ isOpen, onClose, searchQuery, setSearchQuery, onSearch }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="lg:hidden fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-16">
+      <div className="bg-white w-full max-w-md mx-4 rounded-2xl">
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Search</h3>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+          </div>
+          
+          <div className="relative">
+            <FontAwesomeIcon
+              icon={faSearch}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+              autoFocus
+            />
+          </div>
+        </div>
+        
+        <div className="p-4">
+          <button
+            onClick={() => {
+              onSearch?.();
+              onClose();
+            }}
+            className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium"
+          >
+            Search Now
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 /* ===============================
    MAIN COMPONENT
@@ -335,6 +531,7 @@ export default function VendorDashboard() {
   });
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showGlobalSettings, setShowGlobalSettings] = useState(false);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const fileInputRef = useRef(null);
   const profileImageRef = useRef(null);
 
@@ -462,7 +659,7 @@ export default function VendorDashboard() {
     }
   };
 
-  /* Toggle notification */
+  /* Toggle notification - Updated for toggle buttons */
   const toggleNotification = (type) => {
     setData((prev) => ({
       ...prev,
@@ -509,9 +706,9 @@ export default function VendorDashboard() {
 
   /* Overview View - Mobile responsive */
   const OverviewView = () => (
-    <div className="space-y-6 lg:space-y-8">
-      {/* Stats Grid - Responsive with fixed layout */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+    <div className="space-y-4 lg:space-y-8">
+      {/* Stats Grid - Mobile responsive */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
         <StatCard
           title="Total Revenue"
           value={data.stats.totalRevenue}
@@ -542,38 +739,36 @@ export default function VendorDashboard() {
         />
       </div>
 
-      {/* Recent Bookings - Updated to match image */}
+      {/* Recent Bookings - Mobile responsive */}
       <div className="bg-white border border-gray-200 rounded-2xl p-4 lg:p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4 lg:mb-6">
-          <h2 className="text-lg lg:text-xl font-bold text-gray-900">
-            Recent Bookings
-          </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-900">Recent Bookings</h2>
           <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
             View all
           </button>
         </div>
 
-        <div className="space-y-4 lg:space-y-6">
+        <div className="space-y-4">
           {(data.recentBookings || []).map((booking) => (
             <div
               key={booking.id}
-              className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50 transition-colors"
+              className="border border-gray-200 rounded-xl p-3 lg:p-4 hover:bg-gray-50 transition-colors"
             >
               {/* Top Section - Customer Info and Order ID */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div className="flex flex-col gap-2 mb-3">
                 <div>
-                  <h4 className="font-bold text-gray-900 text-base lg:text-lg">
+                  <h4 className="font-bold text-gray-900 text-base">
                     {booking.customer}
                   </h4>
                   <div className="flex items-center gap-2 mt-1">
                     <FontAwesomeIcon
                       icon={faMapMarkerAlt}
-                      className="text-gray-400 text-sm"
+                      className="text-gray-400 text-xs"
                     />
-                    <p className="text-gray-600 text-sm">{booking.address}</p>
+                    <p className="text-gray-600 text-xs">{booking.address}</p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div>
                   <p className="text-gray-500 text-xs font-medium">Order ID</p>
                   <p className="text-gray-900 font-semibold text-sm">
                     {booking.orderId}
@@ -582,8 +777,8 @@ export default function VendorDashboard() {
               </div>
 
               {/* Middle Section - Product and Amount */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                <div className="flex-1">
+              <div className="flex flex-col gap-3 mb-3">
+                <div>
                   <p className="text-gray-500 text-xs font-medium mb-1">
                     Product
                   </p>
@@ -591,35 +786,35 @@ export default function VendorDashboard() {
                     <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
                       <FontAwesomeIcon icon={faBox} className="text-blue-600" />
                     </div>
-                    <p className="font-semibold text-gray-900">
+                    <p className="font-semibold text-gray-900 text-sm">
                       {booking.product}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex-1">
+                <div>
                   <p className="text-gray-500 text-xs font-medium mb-1">
                     Amount
                   </p>
-                  <p className="text-xl lg:text-2xl font-bold text-gray-900">
+                  <p className="text-lg lg:text-2xl font-bold text-gray-900">
                     {booking.amount}
                   </p>
                 </div>
               </div>
 
               {/* Bottom Section - Status and Time */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-gray-200">
                 <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium flex items-center gap-1">
-                    <FontAwesomeIcon icon={faCheckCircle} />
+                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium flex items-center gap-1">
+                    <FontAwesomeIcon icon={faCheckCircle} className="text-xs" />
                     {booking.status}
                   </span>
-                  <span className="text-gray-900 font-medium text-sm">
+                  <span className="text-gray-900 font-medium text-xs">
                     {booking.time}
                   </span>
                 </div>
 
-                <button className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1">
+                <button className="text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center gap-1">
                   View details
                   <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
                 </button>
@@ -633,18 +828,34 @@ export default function VendorDashboard() {
 
   /* Listing View - Mobile responsive */
   const ListingView = () => (
-    <div className="space-y-6 lg:space-y-8">
-      <div>
-        <h1 className="text-xl lg:text-2xl font-bold text-gray-900 mb-2">
-          My Listings
-        </h1>
-        <p className="text-sm lg:text-base text-gray-600">
-          Manage your properties and services
-        </p>
+    <div className="space-y-4 lg:space-y-8">
+      {/* Mobile Add Listing Button */}
+      <div className="lg:hidden">
+        <button
+          onClick={() => setShowAddListingModal(true)}
+          className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium flex items-center justify-center gap-2"
+        >
+          <FontAwesomeIcon icon={faPlus} />
+          Add New Listing
+        </button>
       </div>
 
-      {/* Search Bar */}
-      <div className="bg-white border border-gray-200 rounded-lg p-3 lg:p-4">
+      {/* Search and Filter - Mobile */}
+      <div className="lg:hidden bg-white border border-gray-200 rounded-xl p-3">
+        <div className="flex items-center gap-2">
+          <button className="flex-1 py-2 border border-gray-300 rounded-lg text-sm flex items-center justify-center gap-2">
+            <FontAwesomeIcon icon={faFilter} />
+            Filter
+          </button>
+          <button className="flex-1 py-2 border border-gray-300 rounded-lg text-sm flex items-center justify-center gap-2">
+            <FontAwesomeIcon icon={faSort} />
+            Sort
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop Search Bar */}
+      <div className="hidden lg:block bg-white border border-gray-200 rounded-lg p-4">
         <div className="relative">
           <FontAwesomeIcon
             icon={faSearch}
@@ -655,85 +866,151 @@ export default function VendorDashboard() {
             placeholder="Search Listings..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
           />
         </div>
       </div>
 
-      {/* Action Buttons - Mobile responsive */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <h2 className="text-base lg:text-lg font-semibold">Listing</h2>
+      {/* Action Buttons - Desktop */}
+      <div className="hidden lg:flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <h2 className="text-lg font-semibold">Listing</h2>
         <div className="flex gap-2">
-          <button className="px-3 lg:px-4 py-1.5 lg:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-xs lg:text-sm">
+          <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
             Customer
           </button>
-          <button className="px-3 lg:px-4 py-1.5 lg:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-xs lg:text-sm">
+          <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
             Booking
           </button>
         </div>
       </div>
 
-      {/* Listings Table - Mobile responsive */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
-        <table className="w-full min-w-[600px] lg:min-w-0">
+      {/* Listings Cards - Mobile */}
+      <div className="lg:hidden space-y-4">
+        {filteredListings.map((listing) => (
+          <div
+            key={listing.id}
+            className="bg-white border border-gray-200 rounded-2xl p-4 hover:shadow-md transition-shadow duration-300"
+          >
+            {/* Property Image and Basic Info */}
+            <div className="flex gap-3 mb-3">
+              <div className="w-20 h-20 flex-shrink-0">
+                <img
+                  src={listing.images?.[0] || "https://via.placeholder.com/100/3B82F6/FFFFFF?text=Hotel"}
+                  alt={listing.title}
+                  className="w-full h-full object-cover rounded-lg border border-gray-200"
+                />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-gray-900 text-base">
+                  {listing.title}
+                </h3>
+                <p className="text-gray-600 text-sm">{listing.location}</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <FontAwesomeIcon icon={faStar} className="text-yellow-400 text-xs" />
+                  <span className="font-medium text-sm">{listing.rating}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Details Row */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <p className="text-gray-500 text-xs">Price</p>
+                <p className="font-bold text-gray-900">{listing.price}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-xs">Status</p>
+                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                  {listing.status}
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between border-t border-gray-200 pt-3">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.open(listing.images?.[0], "_blank")}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                  title="View"
+                >
+                  <FontAwesomeIcon icon={faEye} />
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingListing(listing);
+                    setShowAddListingModal(true);
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                  title="Edit"
+                >
+                  <FontAwesomeIcon icon={faEdit} />
+                </button>
+                <button
+                  onClick={() => handleDeleteListing(listing.id)}
+                  className="p-2 hover:bg-gray-100 rounded-lg text-red-500"
+                  title="Delete"
+                >
+                  <FontAwesomeIcon icon={faTrashAlt} />
+                </button>
+              </div>
+              <button className="text-blue-600 text-sm font-medium">
+                View Details
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Listings Table - Desktop */}
+      <div className="hidden lg:block bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
+        <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="text-left p-3 lg:p-4 text-gray-600 font-medium text-xs lg:text-sm">
-                Property
-              </th>
-              <th className="text-left p-3 lg:p-4 text-gray-600 font-medium text-xs lg:text-sm">
-                Price
-              </th>
-              <th className="text-left p-3 lg:p-4 text-gray-600 font-medium text-xs lg:text-sm">
-                Rating
-              </th>
-              <th className="text-left p-3 lg:p-4 text-gray-600 font-medium text-xs lg:text-sm">
-                Status
-              </th>
-              <th className="text-left p-3 lg:p-4 text-gray-600 font-medium text-xs lg:text-sm">
-                Actions
-              </th>
+              <th className="text-left p-4 text-gray-600 font-medium text-sm">Property</th>
+              <th className="text-left p-4 text-gray-600 font-medium text-sm">Price</th>
+              <th className="text-left p-4 text-gray-600 font-medium text-sm">Rating</th>
+              <th className="text-left p-4 text-gray-600 font-medium text-sm">Status</th>
+              <th className="text-left p-4 text-gray-600 font-medium text-sm">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredListings.map((listing) => (
-              <tr key={listing.id} className="border-t border-gray-200">
-                <td className="p-3 lg:p-4">
-                  <div>
-                    <h4 className="font-semibold text-gray-900 text-sm lg:text-base">
-                      {listing.title}
-                    </h4>
-                    <p className="text-xs lg:text-sm text-gray-600">
-                      {listing.location}
-                    </p>
+              <tr key={listing.id} className="border-t border-gray-200 hover:bg-gray-50">
+                <td className="p-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 flex-shrink-0">
+                      <img
+                        src={listing.images?.[0] || "https://via.placeholder.com/100/3B82F6/FFFFFF?text=Hotel"}
+                        alt={listing.title}
+                        className="w-full h-full object-cover rounded-lg border border-gray-200"
+                      />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">{listing.title}</h4>
+                      <p className="text-sm text-gray-600">{listing.location}</p>
+                    </div>
                   </div>
                 </td>
-                <td className="p-3 lg:p-4">
-                  <p className="font-bold text-gray-900 text-sm lg:text-base">
-                    {listing.price}
-                  </p>
+                <td className="p-4">
+                  <p className="font-bold text-gray-900">{listing.price}</p>
                 </td>
-                <td className="p-3 lg:p-4">
+                <td className="p-4">
                   <div className="flex items-center gap-1">
-                    <FontAwesomeIcon
-                      icon={faStar}
-                      className="text-yellow-400"
-                    />
-                    <span className="font-medium text-sm lg:text-base">
-                      {listing.rating}
-                    </span>
+                    <FontAwesomeIcon icon={faStar} className="text-yellow-400" />
+                    <span className="font-medium">{listing.rating}</span>
                   </div>
                 </td>
-                <td className="p-3 lg:p-4">
-                  <span className="px-2 lg:px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs lg:text-sm font-medium">
+                <td className="p-4">
+                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
                     {listing.status}
                   </span>
                 </td>
-                <td className="p-3 lg:p-4">
-                  <div className="flex items-center gap-1 lg:gap-2">
+                <td className="p-4">
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => window.open(listing.images?.[0], "_blank")}
-                      className="p-1 lg:p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                      className="p-1.5 hover:bg-gray-100 rounded-lg"
                       title="View"
                     >
                       <FontAwesomeIcon icon={faEye} />
@@ -743,14 +1020,14 @@ export default function VendorDashboard() {
                         setEditingListing(listing);
                         setShowAddListingModal(true);
                       }}
-                      className="p-1 lg:p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                      className="p-1.5 hover:bg-gray-100 rounded-lg"
                       title="Edit"
                     >
                       <FontAwesomeIcon icon={faEdit} />
                     </button>
                     <button
                       onClick={() => handleDeleteListing(listing.id)}
-                      className="p-1 lg:p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-red-500"
+                      className="p-1.5 hover:bg-gray-100 rounded-lg text-red-500"
                       title="Delete"
                     >
                       <FontAwesomeIcon icon={faTrashAlt} />
@@ -763,112 +1040,241 @@ export default function VendorDashboard() {
         </table>
       </div>
 
-      {/* Add Listing Button - Mobile responsive */}
-      <div className="flex justify-end">
+      {/* Desktop Add Listing Button */}
+      <div className="hidden lg:flex justify-end">
         <button
-          onClick={() => setShowAddListingModal(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm lg:text-base"
+          onClick={() => {
+            setEditingListing(null);
+            setNewListing({
+              title: "",
+              location: "",
+              property: "",
+              price: "",
+              description: "",
+              images: [],
+            });
+            setShowAddListingModal(true);
+          }}
+          className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
         >
           <FontAwesomeIcon icon={faPlus} />
           Add Listing
         </button>
       </div>
+
+      {/* No Listings Message */}
+      {filteredListings.length === 0 && (
+        <div className="text-center py-8">
+          <div className="text-gray-400 mb-4">
+            <FontAwesomeIcon icon={faList} size="3x" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No listings found</h3>
+          <p className="text-gray-600 mb-4">Try adjusting your search or add a new listing</p>
+          <button
+            onClick={() => setShowAddListingModal(true)}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium"
+          >
+            Add Your First Listing
+          </button>
+        </div>
+      )}
     </div>
   );
 
   /* Customer View - Mobile responsive */
   const CustomerView = () => (
-    <div className="space-y-6 lg:space-y-8">
-      <div>
-        <h1 className="text-xl lg:text-2xl font-bold text-gray-900 mb-2">
-          Customers
-        </h1>
-        <p className="text-sm lg:text-base text-gray-600">
-          View and manage your customer relationships.
-        </p>
+    <div className="space-y-4 lg:space-y-8">
+      {/* Mobile Search Bar */}
+      <div className="lg:hidden bg-white border border-gray-200 rounded-xl p-3">
+        <div className="relative">
+          <FontAwesomeIcon
+            icon={faSearch}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+          />
+          <input
+            type="text"
+            placeholder="Search customers..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+          />
+        </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative max-w-md">
-        <FontAwesomeIcon
-          icon={faSearch}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-        />
-        <input
-          type="text"
-          placeholder="Search name"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
-        />
+      {/* Desktop Search */}
+      <div className="hidden lg:block">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="flex-1">
+              <div className="relative">
+                <FontAwesomeIcon
+                  icon={faSearch}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="text"
+                  placeholder="Search name"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                Search
+              </button>
+              <button className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+                Clear
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Action Buttons - Mobile responsive */}
-      <div className="flex gap-2">
-        <button className="px-3 lg:px-4 py-1.5 lg:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-xs lg:text-sm">
-          Listing
-        </button>
-        <button className="px-3 lg:px-4 py-1.5 lg:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs lg:text-sm">
-          Search name
-        </button>
+      {/* Mobile Filter Buttons */}
+      <div className="lg:hidden">
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm whitespace-nowrap">
+            All Customers
+          </button>
+          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm whitespace-nowrap">
+            Active
+          </button>
+          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm whitespace-nowrap">
+            Recent
+          </button>
+          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm whitespace-nowrap">
+            Top Spenders
+          </button>
+        </div>
       </div>
 
       {/* Customers Grid - Mobile responsive */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-6">
         {filteredCustomers.map((customer) => (
           <div
             key={customer.id}
             className="bg-white border border-gray-200 rounded-2xl p-4 lg:p-6 hover:shadow-md transition-shadow duration-300"
           >
-            <h3 className="font-bold text-gray-900 text-base lg:text-lg mb-3 lg:mb-4">
-              {customer.name}
-            </h3>
-
-            <div className="space-y-3 lg:space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600 text-sm lg:text-base">
-                  Booking
-                </span>
-                <span className="font-semibold text-sm lg:text-base">
-                  {customer.bookings}
-                </span>
+            {/* Customer Info with Profile Image */}
+            <div className="flex items-start gap-3 lg:gap-4 mb-4">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-full overflow-hidden border-2 border-blue-100 flex-shrink-0">
+                <img
+                  src={customer.profileImage}
+                  alt={customer.name}
+                  className="w-full h-full object-cover"
+                />
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600 text-sm lg:text-base">
-                  Total Spent
-                </span>
-                <span className="font-bold text-green-600 text-sm lg:text-base">
-                  {customer.totalSpent}
-                </span>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-gray-900 text-base lg:text-lg mb-1 truncate">
+                  {customer.name}
+                </h3>
+                <div className="flex items-center gap-2 text-gray-600 text-xs lg:text-sm mb-1">
+                  <FontAwesomeIcon icon={faEnvelope} className="text-gray-400 flex-shrink-0" />
+                  <span className="truncate">{customer.email}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-600 text-xs lg:text-sm">
+                  <FontAwesomeIcon icon={faPhone} className="text-gray-400 flex-shrink-0" />
+                  <span className="truncate">{customer.phone}</span>
+                </div>
+              </div>
+              <span className={`px-2 lg:px-3 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
+                customer.status === "Active" 
+                  ? "bg-green-100 text-green-800" 
+                  : "bg-gray-100 text-gray-800"
+              }`}>
+                {customer.status}
+              </span>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-gray-200 my-3 lg:my-4"></div>
+
+            {/* Stats Section */}
+            <div className="grid grid-cols-2 gap-3 lg:gap-4">
+              <div className="text-center">
+                <div className="mb-2">
+                  <div className="inline-block px-3 py-1 bg-blue-50 rounded-full">
+                    <span className="text-blue-600 font-bold text-base lg:text-xl">
+                      {customer.bookings}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-gray-600 text-xs lg:text-sm font-medium">Bookings</p>
+              </div>
+              
+              <div className="text-center">
+                <div className="mb-2">
+                  <div className="inline-block px-3 py-1 bg-green-50 rounded-full">
+                    <span className="text-green-600 font-bold text-base lg:text-xl">
+                      {customer.totalSpent}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-gray-600 text-xs lg:text-sm font-medium">Total Spent</p>
               </div>
             </div>
 
-            <div className="mt-4 lg:mt-6 pt-4 lg:pt-6 border-t border-gray-200">
-              <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-500">
-                <FontAwesomeIcon icon={faEnvelope} />
-                {customer.email}
+            {/* Action Buttons */}
+            <div className="mt-4 lg:mt-6 pt-3 lg:pt-6 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <button className="text-blue-600 hover:text-blue-800 text-xs lg:text-sm font-medium flex items-center gap-1">
+                  View Profile
+                  <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+                </button>
+                <div className="flex items-center gap-1 lg:gap-2">
+                  <button className="p-1.5 lg:p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+                    <FontAwesomeIcon icon={faEnvelope} className="text-xs lg:text-sm" />
+                  </button>
+                  <button className="p-1.5 lg:p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+                    <FontAwesomeIcon icon={faPhone} className="text-xs lg:text-sm" />
+                  </button>
+                  <button className="p-1.5 lg:p-2 hover:bg-gray-100 rounded-lg transition-colors text-blue-600">
+                    <FontAwesomeIcon icon={faEye} className="text-xs lg:text-sm" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* No Results Message */}
+      {filteredCustomers.length === 0 && (
+        <div className="text-center py-8">
+          <div className="text-gray-400 mb-4">
+            <FontAwesomeIcon icon={faUsers} size="3x" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No customers found</h3>
+          <p className="text-gray-600">Try adjusting your search terms</p>
+        </div>
+      )}
     </div>
   );
 
   /* Booking View - Mobile responsive */
   const BookingView = () => (
-    <div className="space-y-6 lg:space-y-8">
-      <div>
-        <h1 className="text-xl lg:text-2xl font-bold text-gray-900 mb-2">
-          Bookings
-        </h1>
-        <p className="text-sm lg:text-base text-gray-600">
-          Manage your booking requests and reservations
-        </p>
+    <div className="space-y-4 lg:space-y-8">
+      {/* Mobile Search Bar */}
+      <div className="lg:hidden">
+        <div className="relative">
+          <FontAwesomeIcon
+            icon={faSearch}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+          />
+          <input
+            type="text"
+            placeholder="Search bookings..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+          />
+        </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative max-w-md">
+      {/* Desktop Search */}
+      <div className="hidden lg:block relative max-w-md">
         <FontAwesomeIcon
           icon={faSearch}
           className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -878,25 +1284,43 @@ export default function VendorDashboard() {
           placeholder="Search name"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
         />
       </div>
 
-      {/* Action Buttons - Mobile responsive */}
-      <div className="flex flex-wrap gap-2">
-        <button className="px-3 lg:px-4 py-1.5 lg:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-xs lg:text-sm">
+      {/* Mobile Filter Buttons */}
+      <div className="lg:hidden">
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm whitespace-nowrap">
+            All Bookings
+          </button>
+          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm whitespace-nowrap">
+            Completed
+          </button>
+          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm whitespace-nowrap">
+            Pending
+          </button>
+          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm whitespace-nowrap">
+            Cancelled
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop Action Buttons */}
+      <div className="hidden lg:flex flex-wrap gap-2">
+        <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
           Customer
         </button>
-        <button className="px-3 lg:px-4 py-1.5 lg:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-xs lg:text-sm">
+        <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
           Booking
         </button>
-        <button className="px-3 lg:px-4 py-1.5 lg:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-xs lg:text-sm">
+        <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
           Setting
         </button>
       </div>
 
       {/* Booking Cards - Mobile responsive */}
-      <div className="space-y-4 lg:space-y-6">
+      <div className="space-y-3 lg:space-y-6">
         {filteredBookings.map((booking) => (
           <div
             key={booking.id}
@@ -911,7 +1335,7 @@ export default function VendorDashboard() {
                   {booking.address}
                 </p>
               </div>
-              <span className="px-2 lg:px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs lg:text-sm font-medium">
+              <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs lg:text-sm font-medium self-start lg:self-auto">
                 {booking.status}
               </span>
             </div>
@@ -935,6 +1359,23 @@ export default function VendorDashboard() {
               <p className="text-gray-600 text-xs lg:text-sm">Time</p>
               <p className="font-medium text-sm lg:text-base">{booking.time}</p>
             </div>
+
+            {/* Mobile Actions */}
+            <div className="lg:hidden mt-4 pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <button className="text-blue-600 text-sm font-medium">
+                  View Details
+                </button>
+                <div className="flex items-center gap-2">
+                  <button className="p-2 hover:bg-gray-100 rounded-lg">
+                    <FontAwesomeIcon icon={faEdit} />
+                  </button>
+                  <button className="p-2 hover:bg-gray-100 rounded-lg">
+                    <FontAwesomeIcon icon={faTrashAlt} className="text-red-500" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -943,16 +1384,7 @@ export default function VendorDashboard() {
 
   /* Settings View - Mobile responsive */
   const SettingsView = () => (
-    <div className="space-y-6 lg:space-y-8">
-      <div>
-        <h1 className="text-xl lg:text-2xl font-bold text-gray-900 mb-2">
-          Settings
-        </h1>
-        <p className="text-sm lg:text-base text-gray-600">
-          Manage your account and preferences
-        </p>
-      </div>
-
+    <div className="space-y-4 lg:space-y-8">
       {/* Edit Profile Section */}
       <div className="bg-white border border-gray-200 rounded-2xl p-4 lg:p-6">
         <h2 className="text-base lg:text-lg font-semibold text-gray-900 mb-4 lg:mb-6">
@@ -961,19 +1393,19 @@ export default function VendorDashboard() {
 
         <div className="space-y-4 lg:space-y-6">
           {/* Profile Image */}
-          <div className="flex items-center gap-3 lg:gap-4 mb-4 lg:mb-6">
+          <div className="flex flex-col items-center gap-4 mb-4 lg:mb-6">
             <div className="relative">
               <img
                 src={data.profile?.avatar}
                 alt={data.profile?.fullName}
-                className="w-16 h-16 lg:w-20 lg:h-20 rounded-full object-cover border-4 border-white shadow-lg"
+                className="w-20 h-20 lg:w-24 lg:h-24 rounded-full object-cover border-4 border-white shadow-lg"
               />
               <button
                 onClick={() => profileImageRef.current.click()}
                 className="absolute bottom-0 right-0 p-1.5 lg:p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
                 title="Change photo"
               >
-                <FontAwesomeIcon icon={faCamera} />
+                <FontAwesomeIcon icon={faCamera} className="text-sm" />
               </button>
               <input
                 ref={profileImageRef}
@@ -982,6 +1414,10 @@ export default function VendorDashboard() {
                 className="hidden"
                 onChange={handleProfileImageChange}
               />
+            </div>
+            <div className="text-center">
+              <h3 className="font-bold text-gray-900">{data.profile?.fullName}</h3>
+              <p className="text-gray-600 text-sm">{data.profile?.email}</p>
             </div>
           </div>
 
@@ -1003,7 +1439,7 @@ export default function VendorDashboard() {
                     },
                   }))
                 }
-                className="w-full px-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
                 placeholder="Customer Femi"
               />
             </div>
@@ -1024,7 +1460,7 @@ export default function VendorDashboard() {
                     },
                   }))
                 }
-                className="w-full px-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
                 placeholder="chrisfemton@gmail.com"
               />
             </div>
@@ -1045,7 +1481,7 @@ export default function VendorDashboard() {
                     },
                   }))
                 }
-                className="w-full px-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
                 placeholder="Charlene Femi"
               />
             </div>
@@ -1066,7 +1502,7 @@ export default function VendorDashboard() {
                     },
                   }))
                 }
-                className="w-full px-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
                 placeholder="Lagos"
               />
             </div>
@@ -1089,7 +1525,7 @@ export default function VendorDashboard() {
                 }))
               }
               rows={3}
-              className="w-full px-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
             />
             <div className="mt-2 lg:mt-3 bg-blue-50 rounded-xl p-3 lg:p-4">
               <p className="text-sm text-gray-700 leading-relaxed">
@@ -1109,136 +1545,42 @@ export default function VendorDashboard() {
           How do you want to receive messages from Clients
         </p>
 
-        <div className="space-y-3 lg:space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <FontAwesomeIcon icon={faEnvelope} className="text-gray-500" />
-              <span className="text-gray-700 text-sm lg:text-base">Email</span>
-            </div>
-            <input
-              type="checkbox"
-              checked={data.notifications?.email || false}
-              onChange={() => toggleNotification("email")}
-              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <FontAwesomeIcon icon={faComment} className="text-gray-500" />
-              <span className="text-gray-700 text-sm lg:text-base">
-                Whatsapp
-              </span>
-            </div>
-            <input
-              type="checkbox"
-              checked={data.notifications?.whatsapp || false}
-              onChange={() => toggleNotification("whatsapp")}
-              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <FontAwesomeIcon icon={faBell} className="text-gray-500" />
-              <span className="text-gray-700 text-sm lg:text-base">
-                Promotional messages
-              </span>
-            </div>
-            <input
-              type="checkbox"
-              checked={data.notifications?.promotionalMessages || false}
-              onChange={() => toggleNotification("promotionalMessages")}
-              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-            />
-          </div>
+        <div className="space-y-4 lg:space-y-6">
+          <ToggleButton
+            enabled={data.notifications?.email || false}
+            onChange={() => toggleNotification("email")}
+            label="Email"
+            icon={faEnvelope}
+          />
+          
+          <ToggleButton
+            enabled={data.notifications?.whatsapp || false}
+            onChange={() => toggleNotification("whatsapp")}
+            label="Whatsapp"
+            icon={faComment}
+          />
+          
+          <ToggleButton
+            enabled={data.notifications?.promotionalMessages || false}
+            onChange={() => toggleNotification("promotionalMessages")}
+            label="Promotional messages"
+            icon={faBell}
+          />
         </div>
       </div>
     </div>
   );
 
-  /* Global Settings Modal */
-  const GlobalSettingsModal = () => (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="p-4 lg:p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg lg:text-xl font-semibold">
-              Global Settings
-            </h3>
-            <button
-              onClick={() => setShowGlobalSettings(false)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <FontAwesomeIcon icon={faTimes} />
-            </button>
-          </div>
-        </div>
-
-        <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
-          <div>
-            <h4 className="font-medium text-gray-900 mb-3">Language</h4>
-            <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm">
-              <option value="en">English</option>
-              <option value="fr">French</option>
-              <option value="es">Spanish</option>
-              <option value="de">German</option>
-            </select>
-          </div>
-
-          <div>
-            <h4 className="font-medium text-gray-900 mb-3">Timezone</h4>
-            <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm">
-              <option value="utc">UTC</option>
-              <option value="est">Eastern Time (EST)</option>
-              <option value="pst">Pacific Time (PST)</option>
-              <option value="cet">Central European Time (CET)</option>
-            </select>
-          </div>
-
-          <div>
-            <h4 className="font-medium text-gray-900 mb-3">Currency</h4>
-            <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm">
-              <option value="usd">USD ($)</option>
-              <option value="eur">EUR (€)</option>
-              <option value="gbp">GBP (£)</option>
-              <option value="ngn">NGN (₦)</option>
-            </select>
-          </div>
-
-          <div className="pt-4 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-700">Dark Mode</span>
-              <input
-                type="checkbox"
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4 lg:p-6 border-t border-gray-200">
-          <button
-            onClick={() => setShowGlobalSettings(false)}
-            className="w-full px-4 lg:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-          >
-            Save Settings
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  /* Add/Edit Listing Modal - FIXED the image map error */
+  /* Add/Edit Listing Modal - Mobile optimized */
   const ListingModal = () => {
-    // Safely get images array
     const images =
       (editingListing ? editingListing.images : newListing.images) || [];
 
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-          <div className="p-4 lg:p-6 border-b border-gray-200">
+      <div className="fixed inset-0 bg-black/50 flex items-start lg:items-center justify-center z-50 p-0 lg:p-4 overflow-y-auto">
+        <div className="bg-white w-full lg:max-w-2xl lg:rounded-2xl lg:max-h-[90vh] lg:overflow-y-auto min-h-screen lg:min-h-0">
+          {/* Mobile Header */}
+          <div className="sticky top-0 bg-white border-b border-gray-200 p-4 lg:p-6 z-10">
             <div className="flex items-center justify-between">
               <h3 className="text-lg lg:text-xl font-semibold">
                 {editingListing ? "Edit Listing" : "Add New Listing"}
@@ -1264,7 +1606,7 @@ export default function VendorDashboard() {
           </div>
 
           <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
-            {/* Images Upload - FIXED: Safe mapping */}
+            {/* Images Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2 lg:mb-3">
                 Listing Images
@@ -1275,8 +1617,13 @@ export default function VendorDashboard() {
                     <img
                       src={image}
                       alt={`Listing ${index + 1}`}
-                      className="w-full h-24 lg:h-32 object-cover rounded-lg"
+                      className="w-full h-24 lg:h-32 object-cover rounded-lg border border-gray-200"
                     />
+                    {index === 0 && (
+                      <span className="absolute top-1 left-1 px-2 py-1 bg-blue-600 text-white text-xs rounded">
+                        Main
+                      </span>
+                    )}
                     <button
                       onClick={() => {
                         if (editingListing) {
@@ -1349,8 +1696,8 @@ export default function VendorDashboard() {
                         })
                       : setNewListing({ ...newListing, title: e.target.value })
                   }
-                  className="w-full px-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
-                  placeholder="e.g., Jogz Hotel and Suite"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                  placeholder="e.g., Jazz Hotel and Suite"
                 />
               </div>
 
@@ -1376,8 +1723,8 @@ export default function VendorDashboard() {
                           location: e.target.value,
                         })
                   }
-                  className="w-full px-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
-                  placeholder="e.g., Mobile, 80 B location"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                  placeholder="e.g., Lagos, Victoria Island"
                 />
               </div>
 
@@ -1402,7 +1749,7 @@ export default function VendorDashboard() {
                           property: e.target.value,
                         })
                   }
-                  className="w-full px-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
                 >
                   <option value="">Select Property Type</option>
                   <option value="Hotel">Hotel</option>
@@ -1430,8 +1777,8 @@ export default function VendorDashboard() {
                         })
                       : setNewListing({ ...newListing, price: e.target.value })
                   }
-                  className="w-full px-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
-                  placeholder="e.g., #28,000/night"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                  placeholder="e.g., #45,000/night"
                 />
               </div>
             </div>
@@ -1458,46 +1805,120 @@ export default function VendorDashboard() {
                       })
                 }
                 rows={3}
-                className="w-full px-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
                 placeholder="Describe your listing..."
               />
             </div>
           </div>
 
-          <div className="p-4 lg:p-6 border-t border-gray-200 flex items-center justify-end gap-2 lg:gap-3">
-            <button
-              onClick={() => {
-                setShowAddListingModal(false);
-                setEditingListing(null);
-                setNewListing({
-                  title: "",
-                  location: "",
-                  property: "",
-                  price: "",
-                  description: "",
-                  images: [],
-                });
-              }}
-              className="px-4 lg:px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={editingListing ? handleUpdateListing : handleAddListing}
-              className="px-4 lg:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
-            >
-              {editingListing ? (
-                <FontAwesomeIcon icon={faSave} />
-              ) : (
-                <FontAwesomeIcon icon={faPlus} />
-              )}
-              {editingListing ? "Update Listing" : "Add Listing"}
-            </button>
+          {/* Mobile Footer - Sticky at bottom */}
+          <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 lg:p-6">
+            <div className="flex flex-col sm:flex-row items-center gap-2 lg:gap-3">
+              <button
+                onClick={() => {
+                  setShowAddListingModal(false);
+                  setEditingListing(null);
+                  setNewListing({
+                    title: "",
+                    location: "",
+                    property: "",
+                    price: "",
+                    description: "",
+                    images: [],
+                  });
+                }}
+                className="w-full sm:flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={editingListing ? handleUpdateListing : handleAddListing}
+                className="w-full sm:flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+              >
+                {editingListing ? (
+                  <FontAwesomeIcon icon={faSave} />
+                ) : (
+                  <FontAwesomeIcon icon={faPlus} />
+                )}
+                {editingListing ? "Update Listing" : "Add Listing"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
     );
   };
+
+  /* Global Settings Modal */
+  const GlobalSettingsModal = () => (
+    <div className="fixed inset-0 bg-black/50 flex items-start lg:items-center justify-center z-50 p-0 lg:p-4">
+      <div className="bg-white w-full lg:max-w-md lg:rounded-2xl lg:max-h-[90vh] lg:overflow-y-auto min-h-screen lg:min-h-0">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 lg:p-6 z-10">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg lg:text-xl font-semibold">
+              Global Settings
+            </h3>
+            <button
+              onClick={() => setShowGlobalSettings(false)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
+          <div>
+            <h4 className="font-medium text-gray-900 mb-3">Language</h4>
+            <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm">
+              <option value="en">English</option>
+              <option value="fr">French</option>
+              <option value="es">Spanish</option>
+              <option value="de">German</option>
+            </select>
+          </div>
+
+          <div>
+            <h4 className="font-medium text-gray-900 mb-3">Timezone</h4>
+            <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm">
+              <option value="utc">UTC</option>
+              <option value="est">Eastern Time (EST)</option>
+              <option value="pst">Pacific Time (PST)</option>
+              <option value="cet">Central European Time (CET)</option>
+            </select>
+          </div>
+
+          <div>
+            <h4 className="font-medium text-gray-900 mb-3">Currency</h4>
+            <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm">
+              <option value="usd">USD ($)</option>
+              <option value="eur">EUR (€)</option>
+              <option value="gbp">GBP (£)</option>
+              <option value="ngn">NGN (₦)</option>
+            </select>
+          </div>
+
+          <div className="pt-4 border-t border-gray-200">
+            <ToggleButton
+              enabled={false}
+              onChange={() => {}}
+              label="Dark Mode"
+              icon={faCog}
+            />
+          </div>
+        </div>
+
+        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 lg:p-6">
+          <button
+            onClick={() => setShowGlobalSettings(false)}
+            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+          >
+            Save Settings
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1516,7 +1937,7 @@ export default function VendorDashboard() {
       {/* Mobile Sidebar Backdrop */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -1525,79 +1946,112 @@ export default function VendorDashboard() {
         {/* Sidebar - Mobile responsive */}
         <aside
           className={`
-          fixed lg:static top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-50 lg:z-auto
+          fixed lg:static top-0 left-0 h-full w-64 lg:w-72 bg-white border-r border-gray-200 z-50 lg:z-auto
           transform transition-transform duration-300 ease-in-out lg:translate-x-0
           ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          lg:min-h-screen
         `}
         >
-          <div className="px-4 lg:px-6 py-6 lg:py-8">
-            <div className="flex items-center gap-3 mb-6 lg:mb-8">
-              <div className="mb-6">
-                <img
-                  src={Icon}
-                  alt="Ajani Logo"
-                  className="h-12 w-auto object-contain"
-                />
+          <div className="h-full flex flex-col">
+            <div className="px-4 lg:px-6 py-6 lg:py-8 flex-shrink-0">
+              <div className="flex items-center gap-3 mb-6 lg:mb-8">
+                <div className="mb-6">
+                  <img
+                    src={Icon}
+                    alt="Ajani Logo"
+                    className="h-12 w-auto object-contain"
+                  />
+                </div>
               </div>
+
+              <nav className="space-y-1">
+                <NavItem
+                  icon={faHome}
+                  label="Dashboard"
+                  active={view === "overview"}
+                  onClick={() => {
+                    setView("overview");
+                    setIsSidebarOpen(false);
+                  }}
+                />
+                <NavItem
+                  icon={faList}
+                  label="Listing"
+                  active={view === "listing"}
+                  onClick={() => {
+                    setView("listing");
+                    setIsSidebarOpen(false);
+                  }}
+                />
+                <NavItem
+                  icon={faUsers}
+                  label="Customer"
+                  active={view === "customer"}
+                  onClick={() => {
+                    setView("customer");
+                    setIsSidebarOpen(false);
+                  }}
+                />
+                <NavItem
+                  icon={faBookOpen}
+                  label="Booking"
+                  active={view === "booking"}
+                  onClick={() => {
+                    setView("booking");
+                    setIsSidebarOpen(false);
+                  }}
+                />
+                <NavItem
+                  icon={faCog}
+                  label="Settings"
+                  active={view === "settings"}
+                  onClick={() => {
+                    setView("settings");
+                    setIsSidebarOpen(false);
+                  }}
+                />
+              </nav>
             </div>
 
-            <nav className="space-y-1">
-              <NavItem
-                icon={faHome}
-                label="Dashboard"
-                active={view === "overview"}
-                onClick={() => {
-                  setView("overview");
-                  setIsSidebarOpen(false);
-                }}
-              />
-              <NavItem
-                icon={faList}
-                label="Listing"
-                active={view === "listing"}
-                onClick={() => {
-                  setView("listing");
-                  setIsSidebarOpen(false);
-                }}
-              />
-              <NavItem
-                icon={faUsers}
-                label="Customer"
-                active={view === "customer"}
-                onClick={() => {
-                  setView("customer");
-                  setIsSidebarOpen(false);
-                }}
-              />
-              <NavItem
-                icon={faBookOpen}
-                label="Booking"
-                active={view === "booking"}
-                onClick={() => {
-                  setView("booking");
-                  setIsSidebarOpen(false);
-                }}
-              />
-              <NavItem
-                icon={faCog}
-                label="Settings"
-                active={view === "settings"}
-                onClick={() => {
-                  setView("settings");
-                  setIsSidebarOpen(false);
-                }}
-              />
-            </nav>
+            <div className="flex-grow"></div>
+
+            {/* Bottom Section - User Profile in Sidebar */}
+            <div className="px-4 lg:px-6 py-4 lg:py-6 border-t border-gray-200 mt-auto">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full overflow-hidden border-2 border-blue-500">
+                  <img
+                    src={data.profile?.avatar}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900 text-sm">
+                    {data.profile?.fullName}
+                  </p>
+                  <p className="text-gray-500 text-xs">
+                    {data.profile?.email}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1">
-          {/* Global Header - Fixed layout */}
+        <main className="flex-1 w-full lg:w-auto">
+          {/* Global Header */}
           <GlobalHeader onSettingsClick={() => setShowGlobalSettings(true)} />
 
+          {/* Mobile Action Bar */}
+          <MobileActionBar 
+            view={view} 
+            onAddListing={() => setShowAddListingModal(true)}
+            onSearchClick={() => setShowMobileSearch(true)}
+          />
+
           {/* Content based on view */}
-          <div className="px-3 sm:px-4 lg:px-8 py-6 lg:py-8">
+          <div className="px-3 sm:px-4 lg:px-8 pb-6 lg:py-8">
             {view === "overview" && <OverviewView />}
             {view === "listing" && <ListingView />}
             {view === "customer" && <CustomerView />}
@@ -1606,6 +2060,14 @@ export default function VendorDashboard() {
           </div>
         </main>
       </div>
+
+      {/* Mobile Search Modal */}
+      <MobileSearchModal
+        isOpen={showMobileSearch}
+        onClose={() => setShowMobileSearch(false)}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+      />
 
       {/* Modals */}
       {showAddListingModal && <ListingModal />}
