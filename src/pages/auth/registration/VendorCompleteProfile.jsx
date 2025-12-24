@@ -241,7 +241,7 @@ const defaultData = {
 const NavItem = ({ icon, label, active, onClick, badge }) => (
   <button
     onClick={onClick}
-    className={`relative flex items-center justify-between px-4 lg:px-6 py-3 w-full text-sm transition-all duration-200
+    className={`relative flex items-center justify-between px-4 lg:px-6 py-3 w-full text-sm transition-all duration-200 cursor-pointer lg:cursor-pointer
       ${
         active
           ? "text-blue-600 font-semibold bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200"
@@ -278,7 +278,7 @@ const StatCard = ({ title, value, change, icon, color = "blue" }) => {
   const currentColor = colors[color];
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-4 lg:p-6 shadow-sm hover:shadow-md transition-shadow duration-300">
+    <div className="bg-white border border-gray-200 rounded-2xl p-4 lg:p-6 shadow-sm hover:shadow-md transition-shadow duration-300 cursor-default">
       <div className="flex items-start justify-between mb-3 lg:mb-4">
         <div className="w-full">
           {/* First line: Title */}
@@ -307,23 +307,23 @@ const StatCard = ({ title, value, change, icon, color = "blue" }) => {
    TOGGLE BUTTON COMPONENT - New component for notifications
 ================================ */
 const ToggleButton = ({ enabled, onChange, label, icon }) => (
-  <div className="flex items-center justify-between">
+  <div className="flex items-center justify-between cursor-pointer lg:cursor-pointer">
     <div className="flex items-center gap-3">
       <FontAwesomeIcon icon={icon} className="text-gray-500" />
       <span className="text-gray-700 text-sm lg:text-base">{label}</span>
     </div>
     <button
       onClick={onChange}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-        enabled ? "bg-blue-600" : "bg-gray-200"
-      }`}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer lg:cursor-pointer
+        ${enabled ? "bg-blue-600" : "bg-gray-200"}
+      `}
       role="switch"
       aria-checked={enabled}
     >
       <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-          enabled ? "translate-x-6" : "translate-x-1"
-        }`}
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform cursor-pointer lg:cursor-pointer
+          ${enabled ? "translate-x-6" : "translate-x-1"}
+        `}
       />
     </button>
   </div>
@@ -333,7 +333,7 @@ const ToggleButton = ({ enabled, onChange, label, icon }) => (
    GLOBAL HEADER COMPONENT - Mobile responsive
 ================================ */
 const GlobalHeader = ({ onSettingsClick }) => (
-  <div className="bg-white border-b border-gray-200 px-4 lg:px-8 py-3 lg:py-4 mb-4 lg:mb-8">
+  <div className="bg-white border-b border-gray-200 px-4 lg:px-8 py-3 lg:py-4 mb-4 lg:mb-8 cursor-default">
     <div className="flex items-center justify-between">
       {/* Left side - Brand name with mobile menu */}
       <div className="flex items-center gap-3">
@@ -345,7 +345,7 @@ const GlobalHeader = ({ onSettingsClick }) => (
       {/* Right side - Search, Settings, Notification, Profile */}
       <div className="flex items-center gap-2 lg:gap-4">
         {/* Mobile search button */}
-        <button className="lg:hidden p-2 text-gray-500 hover:text-gray-700 rounded-lg">
+        <button className="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer lg:cursor-pointer">
           <FontAwesomeIcon icon={faSearch} />
         </button>
 
@@ -358,21 +358,21 @@ const GlobalHeader = ({ onSettingsClick }) => (
           <input
             type="text"
             placeholder="Search globally..."
-            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm w-48 lg:w-64"
+            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm w-48 lg:w-64 cursor-text"
           />
         </div>
 
         {/* Settings Icon */}
         <button
           onClick={onSettingsClick}
-          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer lg:cursor-pointer"
           title="Settings"
         >
           <FontAwesomeIcon icon={faCog} />
         </button>
 
         {/* Notification Icon */}
-        <button className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+        <button className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer lg:cursor-pointer">
           <FontAwesomeIcon icon={faBell} />
           <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
             3
@@ -380,7 +380,7 @@ const GlobalHeader = ({ onSettingsClick }) => (
         </button>
 
         {/* Profile Image */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 cursor-pointer lg:cursor-pointer">
           <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full overflow-hidden border-2 border-blue-500">
             <img
               src={defaultData.profile.avatar}
@@ -404,17 +404,23 @@ const GlobalHeader = ({ onSettingsClick }) => (
 const MobileActionBar = ({ view, onAddListing, onSearchClick }) => {
   const getViewTitle = () => {
     switch (view) {
-      case "overview": return "Dashboard";
-      case "listing": return "My Listings";
-      case "customer": return "Customers";
-      case "booking": return "Bookings";
-      case "settings": return "Settings";
-      default: return "Dashboard";
+      case "overview":
+        return "Dashboard";
+      case "listing":
+        return "My Listings";
+      case "customer":
+        return "Customers";
+      case "booking":
+        return "Bookings";
+      case "settings":
+        return "Settings";
+      default:
+        return "Dashboard";
     }
   };
 
   return (
-    <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 mb-4">
+    <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 mb-4 cursor-default">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">{getViewTitle()}</h1>
@@ -426,27 +432,30 @@ const MobileActionBar = ({ view, onAddListing, onSearchClick }) => {
             {view === "settings" && "Account settings"}
           </p>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {view === "listing" && (
             <button
               onClick={onAddListing}
-              className="p-2 bg-blue-600 text-white rounded-lg"
+              className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer lg:cursor-pointer"
               title="Add Listing"
             >
               <FontAwesomeIcon icon={faPlus} />
             </button>
           )}
-          
+
           <button
             onClick={onSearchClick}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer lg:cursor-pointer"
             title="Search"
           >
             <FontAwesomeIcon icon={faSearch} />
           </button>
-          
-          <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg" title="More">
+
+          <button
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer lg:cursor-pointer"
+            title="More"
+          >
             <FontAwesomeIcon icon={faEllipsisV} />
           </button>
         </div>
@@ -458,23 +467,29 @@ const MobileActionBar = ({ view, onAddListing, onSearchClick }) => {
 /* ===============================
    MOBILE SEARCH MODAL
 ================================ */
-const MobileSearchModal = ({ isOpen, onClose, searchQuery, setSearchQuery, onSearch }) => {
+const MobileSearchModal = ({
+  isOpen,
+  onClose,
+  searchQuery,
+  setSearchQuery,
+  onSearch,
+}) => {
   if (!isOpen) return null;
 
   return (
-    <div className="lg:hidden fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-16">
+    <div className="lg:hidden fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-16 cursor-default">
       <div className="bg-white w-full max-w-md mx-4 rounded-2xl">
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Search</h3>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer lg:cursor-pointer"
             >
               <FontAwesomeIcon icon={faTimes} />
             </button>
           </div>
-          
+
           <div className="relative">
             <FontAwesomeIcon
               icon={faSearch}
@@ -485,19 +500,19 @@ const MobileSearchModal = ({ isOpen, onClose, searchQuery, setSearchQuery, onSea
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none cursor-text"
               autoFocus
             />
           </div>
         </div>
-        
+
         <div className="p-4">
           <button
             onClick={() => {
               onSearch?.();
               onClose();
             }}
-            className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium"
+            className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors cursor-pointer lg:cursor-pointer"
           >
             Search Now
           </button>
@@ -706,7 +721,7 @@ export default function VendorDashboard() {
 
   /* Overview View - Mobile responsive */
   const OverviewView = () => (
-    <div className="space-y-4 lg:space-y-8">
+    <div className="space-y-4 lg:space-y-8 cursor-default">
       {/* Stats Grid - Mobile responsive */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
         <StatCard
@@ -740,10 +755,10 @@ export default function VendorDashboard() {
       </div>
 
       {/* Recent Bookings - Mobile responsive */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-4 lg:p-6 shadow-sm">
+      <div className="bg-white border border-gray-200 rounded-2xl p-4 lg:p-6 shadow-sm hover:shadow-md transition-shadow duration-300 cursor-default">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-900">Recent Bookings</h2>
-          <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+          <button className="text-blue-600 hover:text-blue-800 text-sm font-medium cursor-pointer lg:cursor-pointer">
             View all
           </button>
         </div>
@@ -752,7 +767,7 @@ export default function VendorDashboard() {
           {(data.recentBookings || []).map((booking) => (
             <div
               key={booking.id}
-              className="border border-gray-200 rounded-xl p-3 lg:p-4 hover:bg-gray-50 transition-colors"
+              className="border border-gray-200 rounded-xl p-3 lg:p-4 hover:bg-gray-50 transition-colors cursor-default"
             >
               {/* Top Section - Customer Info and Order ID */}
               <div className="flex flex-col gap-2 mb-3">
@@ -805,7 +820,7 @@ export default function VendorDashboard() {
               {/* Bottom Section - Status and Time */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-gray-200">
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium flex items-center gap-1">
+                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium flex items-center gap-1 cursor-default">
                     <FontAwesomeIcon icon={faCheckCircle} className="text-xs" />
                     {booking.status}
                   </span>
@@ -814,7 +829,7 @@ export default function VendorDashboard() {
                   </span>
                 </div>
 
-                <button className="text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center gap-1">
+                <button className="text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center gap-1 cursor-pointer lg:cursor-pointer">
                   View details
                   <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
                 </button>
@@ -828,12 +843,12 @@ export default function VendorDashboard() {
 
   /* Listing View - Mobile responsive */
   const ListingView = () => (
-    <div className="space-y-4 lg:space-y-8">
+    <div className="space-y-4 lg:space-y-8 cursor-default">
       {/* Mobile Add Listing Button */}
       <div className="lg:hidden">
         <button
           onClick={() => setShowAddListingModal(true)}
-          className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium flex items-center justify-center gap-2"
+          className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors cursor-pointer lg:cursor-pointer"
         >
           <FontAwesomeIcon icon={faPlus} />
           Add New Listing
@@ -841,13 +856,13 @@ export default function VendorDashboard() {
       </div>
 
       {/* Search and Filter - Mobile */}
-      <div className="lg:hidden bg-white border border-gray-200 rounded-xl p-3">
+      <div className="lg:hidden bg-white border border-gray-200 rounded-xl p-3 hover:shadow-sm transition-shadow duration-300 cursor-default">
         <div className="flex items-center gap-2">
-          <button className="flex-1 py-2 border border-gray-300 rounded-lg text-sm flex items-center justify-center gap-2">
+          <button className="flex-1 py-2 border border-gray-300 rounded-lg text-sm flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors cursor-pointer lg:cursor-pointer">
             <FontAwesomeIcon icon={faFilter} />
             Filter
           </button>
-          <button className="flex-1 py-2 border border-gray-300 rounded-lg text-sm flex items-center justify-center gap-2">
+          <button className="flex-1 py-2 border border-gray-300 rounded-lg text-sm flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors cursor-pointer lg:cursor-pointer">
             <FontAwesomeIcon icon={faSort} />
             Sort
           </button>
@@ -855,7 +870,7 @@ export default function VendorDashboard() {
       </div>
 
       {/* Desktop Search Bar */}
-      <div className="hidden lg:block bg-white border border-gray-200 rounded-lg p-4">
+      <div className="hidden lg:block bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow duration-300 cursor-default">
         <div className="relative">
           <FontAwesomeIcon
             icon={faSearch}
@@ -866,19 +881,19 @@ export default function VendorDashboard() {
             placeholder="Search Listings..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm cursor-text"
           />
         </div>
       </div>
 
       {/* Action Buttons - Desktop */}
-      <div className="hidden lg:flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+      <div className="hidden lg:flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 cursor-default">
         <h2 className="text-lg font-semibold">Listing</h2>
         <div className="flex gap-2">
-          <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+          <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm cursor-pointer lg:cursor-pointer">
             Customer
           </button>
-          <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+          <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm cursor-pointer lg:cursor-pointer">
             Booking
           </button>
         </div>
@@ -889,13 +904,16 @@ export default function VendorDashboard() {
         {filteredListings.map((listing) => (
           <div
             key={listing.id}
-            className="bg-white border border-gray-200 rounded-2xl p-4 hover:shadow-md transition-shadow duration-300"
+            className="bg-white border border-gray-200 rounded-2xl p-4 hover:shadow-md transition-shadow duration-300 cursor-default"
           >
             {/* Property Image and Basic Info */}
             <div className="flex gap-3 mb-3">
-              <div className="w-20 h-20 flex-shrink-0">
+              <div className="w-20 h-20 flex-shrink-0 cursor-pointer lg:cursor-pointer">
                 <img
-                  src={listing.images?.[0] || "https://via.placeholder.com/100/3B82F6/FFFFFF?text=Hotel"}
+                  src={
+                    listing.images?.[0] ||
+                    "https://via.placeholder.com/100/3B82F6/FFFFFF?text=Hotel"
+                  }
                   alt={listing.title}
                   className="w-full h-full object-cover rounded-lg border border-gray-200"
                 />
@@ -906,7 +924,10 @@ export default function VendorDashboard() {
                 </h3>
                 <p className="text-gray-600 text-sm">{listing.location}</p>
                 <div className="flex items-center gap-1 mt-1">
-                  <FontAwesomeIcon icon={faStar} className="text-yellow-400 text-xs" />
+                  <FontAwesomeIcon
+                    icon={faStar}
+                    className="text-yellow-400 text-xs"
+                  />
                   <span className="font-medium text-sm">{listing.rating}</span>
                 </div>
               </div>
@@ -920,7 +941,7 @@ export default function VendorDashboard() {
               </div>
               <div>
                 <p className="text-gray-500 text-xs">Status</p>
-                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium cursor-default">
                   {listing.status}
                 </span>
               </div>
@@ -931,7 +952,7 @@ export default function VendorDashboard() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => window.open(listing.images?.[0], "_blank")}
-                  className="p-2 hover:bg-gray-100 rounded-lg"
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer lg:cursor-pointer"
                   title="View"
                 >
                   <FontAwesomeIcon icon={faEye} />
@@ -941,20 +962,20 @@ export default function VendorDashboard() {
                     setEditingListing(listing);
                     setShowAddListingModal(true);
                   }}
-                  className="p-2 hover:bg-gray-100 rounded-lg"
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer lg:cursor-pointer"
                   title="Edit"
                 >
                   <FontAwesomeIcon icon={faEdit} />
                 </button>
                 <button
                   onClick={() => handleDeleteListing(listing.id)}
-                  className="p-2 hover:bg-gray-100 rounded-lg text-red-500"
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-red-500 cursor-pointer lg:cursor-pointer"
                   title="Delete"
                 >
                   <FontAwesomeIcon icon={faTrashAlt} />
                 </button>
               </div>
-              <button className="text-blue-600 text-sm font-medium">
+              <button className="text-blue-600 hover:text-blue-800 text-sm font-medium cursor-pointer lg:cursor-pointer">
                 View Details
               </button>
             </div>
@@ -963,46 +984,71 @@ export default function VendorDashboard() {
       </div>
 
       {/* Listings Table - Desktop */}
-      <div className="hidden lg:block bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
+      <div className="hidden lg:block bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 cursor-default">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="text-left p-4 text-gray-600 font-medium text-sm">Property</th>
-              <th className="text-left p-4 text-gray-600 font-medium text-sm">Price</th>
-              <th className="text-left p-4 text-gray-600 font-medium text-sm">Rating</th>
-              <th className="text-left p-4 text-gray-600 font-medium text-sm">Status</th>
-              <th className="text-left p-4 text-gray-600 font-medium text-sm">Actions</th>
+              <th className="text-left p-4 text-gray-600 font-medium text-sm cursor-default">
+                Property
+              </th>
+              <th className="text-left p-4 text-gray-600 font-medium text-sm cursor-default">
+                Price
+              </th>
+              <th className="text-left p-4 text-gray-600 font-medium text-sm cursor-default">
+                Rating
+              </th>
+              <th className="text-left p-4 text-gray-600 font-medium text-sm cursor-default">
+                Status
+              </th>
+              <th className="text-left p-4 text-gray-600 font-medium text-sm cursor-default">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
             {filteredListings.map((listing) => (
-              <tr key={listing.id} className="border-t border-gray-200 hover:bg-gray-50">
+              <tr
+                key={listing.id}
+                className="border-t border-gray-200 hover:bg-gray-50 transition-colors cursor-default"
+              >
                 <td className="p-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 flex-shrink-0">
+                    <div className="w-16 h-16 flex-shrink-0 cursor-pointer lg:cursor-pointer">
                       <img
-                        src={listing.images?.[0] || "https://via.placeholder.com/100/3B82F6/FFFFFF?text=Hotel"}
+                        src={
+                          listing.images?.[0] ||
+                          "https://via.placeholder.com/100/3B82F6/FFFFFF?text=Hotel"
+                        }
                         alt={listing.title}
-                        className="w-full h-full object-cover rounded-lg border border-gray-200"
+                        className="w-full h-full object-cover rounded-lg border border-gray-200 hover:opacity-90 transition-opacity"
                       />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-900">{listing.title}</h4>
-                      <p className="text-sm text-gray-600">{listing.location}</p>
+                      <h4 className="font-semibold text-gray-900 hover:text-blue-600 transition-colors cursor-pointer lg:cursor-pointer">
+                        {listing.title}
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        {listing.location}
+                      </p>
                     </div>
                   </div>
                 </td>
                 <td className="p-4">
-                  <p className="font-bold text-gray-900">{listing.price}</p>
+                  <p className="font-bold text-gray-900 cursor-default">
+                    {listing.price}
+                  </p>
                 </td>
                 <td className="p-4">
-                  <div className="flex items-center gap-1">
-                    <FontAwesomeIcon icon={faStar} className="text-yellow-400" />
+                  <div className="flex items-center gap-1 cursor-default">
+                    <FontAwesomeIcon
+                      icon={faStar}
+                      className="text-yellow-400"
+                    />
                     <span className="font-medium">{listing.rating}</span>
                   </div>
                 </td>
                 <td className="p-4">
-                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium cursor-default">
                     {listing.status}
                   </span>
                 </td>
@@ -1010,7 +1056,7 @@ export default function VendorDashboard() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => window.open(listing.images?.[0], "_blank")}
-                      className="p-1.5 hover:bg-gray-100 rounded-lg"
+                      className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer lg:cursor-pointer"
                       title="View"
                     >
                       <FontAwesomeIcon icon={faEye} />
@@ -1020,14 +1066,14 @@ export default function VendorDashboard() {
                         setEditingListing(listing);
                         setShowAddListingModal(true);
                       }}
-                      className="p-1.5 hover:bg-gray-100 rounded-lg"
+                      className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer lg:cursor-pointer"
                       title="Edit"
                     >
                       <FontAwesomeIcon icon={faEdit} />
                     </button>
                     <button
                       onClick={() => handleDeleteListing(listing.id)}
-                      className="p-1.5 hover:bg-gray-100 rounded-lg text-red-500"
+                      className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-red-500 cursor-pointer lg:cursor-pointer"
                       title="Delete"
                     >
                       <FontAwesomeIcon icon={faTrashAlt} />
@@ -1055,7 +1101,7 @@ export default function VendorDashboard() {
             });
             setShowAddListingModal(true);
           }}
-          className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium cursor-pointer lg:cursor-pointer"
         >
           <FontAwesomeIcon icon={faPlus} />
           Add Listing
@@ -1064,15 +1110,19 @@ export default function VendorDashboard() {
 
       {/* No Listings Message */}
       {filteredListings.length === 0 && (
-        <div className="text-center py-8">
+        <div className="text-center py-8 cursor-default">
           <div className="text-gray-400 mb-4">
             <FontAwesomeIcon icon={faList} size="3x" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No listings found</h3>
-          <p className="text-gray-600 mb-4">Try adjusting your search or add a new listing</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            No listings found
+          </h3>
+          <p className="text-gray-600 mb-4">
+            Try adjusting your search or add a new listing
+          </p>
           <button
             onClick={() => setShowAddListingModal(true)}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors cursor-pointer lg:cursor-pointer"
           >
             Add Your First Listing
           </button>
@@ -1083,9 +1133,9 @@ export default function VendorDashboard() {
 
   /* Customer View - Mobile responsive */
   const CustomerView = () => (
-    <div className="space-y-4 lg:space-y-8">
+    <div className="space-y-4 lg:space-y-8 cursor-default">
       {/* Mobile Search Bar */}
-      <div className="lg:hidden bg-white border border-gray-200 rounded-xl p-3">
+      <div className="lg:hidden bg-white border border-gray-200 rounded-xl p-3 hover:shadow-sm transition-shadow duration-300 cursor-default">
         <div className="relative">
           <FontAwesomeIcon
             icon={faSearch}
@@ -1096,14 +1146,14 @@ export default function VendorDashboard() {
             placeholder="Search customers..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm cursor-text"
           />
         </div>
       </div>
 
       {/* Desktop Search */}
       <div className="hidden lg:block">
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-300 cursor-default">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div className="flex-1">
               <div className="relative">
@@ -1116,15 +1166,15 @@ export default function VendorDashboard() {
                   placeholder="Search name"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm cursor-text"
                 />
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+              <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium cursor-pointer lg:cursor-pointer">
                 Search
               </button>
-              <button className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+              <button className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium cursor-pointer lg:cursor-pointer">
                 Clear
               </button>
             </div>
@@ -1135,16 +1185,16 @@ export default function VendorDashboard() {
       {/* Mobile Filter Buttons */}
       <div className="lg:hidden">
         <div className="flex gap-2 overflow-x-auto pb-2">
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm whitespace-nowrap">
+          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm whitespace-nowrap hover:bg-blue-700 transition-colors cursor-pointer lg:cursor-pointer">
             All Customers
           </button>
-          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm whitespace-nowrap">
+          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm whitespace-nowrap hover:bg-gray-50 transition-colors cursor-pointer lg:cursor-pointer">
             Active
           </button>
-          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm whitespace-nowrap">
+          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm whitespace-nowrap hover:bg-gray-50 transition-colors cursor-pointer lg:cursor-pointer">
             Recent
           </button>
-          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm whitespace-nowrap">
+          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm whitespace-nowrap hover:bg-gray-50 transition-colors cursor-pointer lg:cursor-pointer">
             Top Spenders
           </button>
         </div>
@@ -1155,35 +1205,45 @@ export default function VendorDashboard() {
         {filteredCustomers.map((customer) => (
           <div
             key={customer.id}
-            className="bg-white border border-gray-200 rounded-2xl p-4 lg:p-6 hover:shadow-md transition-shadow duration-300"
+            className="bg-white border border-gray-200 rounded-2xl p-4 lg:p-6 hover:shadow-md transition-shadow duration-300 cursor-default"
           >
             {/* Customer Info with Profile Image */}
             <div className="flex items-start gap-3 lg:gap-4 mb-4">
-              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-full overflow-hidden border-2 border-blue-100 flex-shrink-0">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-full overflow-hidden border-2 border-blue-100 flex-shrink-0 cursor-pointer lg:cursor-pointer">
                 <img
                   src={customer.profileImage}
                   alt={customer.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-gray-900 text-base lg:text-lg mb-1 truncate">
+                <h3 className="font-bold text-gray-900 text-base lg:text-lg mb-1 truncate hover:text-blue-600 transition-colors cursor-pointer lg:cursor-pointer">
                   {customer.name}
                 </h3>
                 <div className="flex items-center gap-2 text-gray-600 text-xs lg:text-sm mb-1">
-                  <FontAwesomeIcon icon={faEnvelope} className="text-gray-400 flex-shrink-0" />
-                  <span className="truncate">{customer.email}</span>
+                  <FontAwesomeIcon
+                    icon={faEnvelope}
+                    className="text-gray-400 flex-shrink-0"
+                  />
+                  <span className="truncate cursor-text">{customer.email}</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600 text-xs lg:text-sm">
-                  <FontAwesomeIcon icon={faPhone} className="text-gray-400 flex-shrink-0" />
-                  <span className="truncate">{customer.phone}</span>
+                  <FontAwesomeIcon
+                    icon={faPhone}
+                    className="text-gray-400 flex-shrink-0"
+                  />
+                  <span className="truncate cursor-text">{customer.phone}</span>
                 </div>
               </div>
-              <span className={`px-2 lg:px-3 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
-                customer.status === "Active" 
-                  ? "bg-green-100 text-green-800" 
-                  : "bg-gray-100 text-gray-800"
-              }`}>
+              <span
+                className={`px-2 lg:px-3 py-1 rounded-full text-xs font-medium flex-shrink-0 cursor-default
+                ${
+                  customer.status === "Active"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-gray-100 text-gray-800"
+                }
+              `}
+              >
                 {customer.status}
               </span>
             </div>
@@ -1192,46 +1252,59 @@ export default function VendorDashboard() {
             <div className="border-t border-gray-200 my-3 lg:my-4"></div>
 
             {/* Stats Section */}
-            <div className="grid grid-cols-2 gap-3 lg:gap-4">
+            <div className="grid grid-cols-2 gap-3 lg:gap-4 cursor-default">
               <div className="text-center">
                 <div className="mb-2">
-                  <div className="inline-block px-3 py-1 bg-blue-50 rounded-full">
+                  <div className="inline-block px-3 py-1 bg-blue-50 rounded-full hover:bg-blue-100 transition-colors cursor-pointer lg:cursor-pointer">
                     <span className="text-blue-600 font-bold text-base lg:text-xl">
                       {customer.bookings}
                     </span>
                   </div>
                 </div>
-                <p className="text-gray-600 text-xs lg:text-sm font-medium">Bookings</p>
+                <p className="text-gray-600 text-xs lg:text-sm font-medium">
+                  Bookings
+                </p>
               </div>
-              
+
               <div className="text-center">
                 <div className="mb-2">
-                  <div className="inline-block px-3 py-1 bg-green-50 rounded-full">
+                  <div className="inline-block px-3 py-1 bg-green-50 rounded-full hover:bg-green-100 transition-colors cursor-pointer lg:cursor-pointer">
                     <span className="text-green-600 font-bold text-base lg:text-xl">
                       {customer.totalSpent}
                     </span>
                   </div>
                 </div>
-                <p className="text-gray-600 text-xs lg:text-sm font-medium">Total Spent</p>
+                <p className="text-gray-600 text-xs lg:text-sm font-medium">
+                  Total Spent
+                </p>
               </div>
             </div>
 
             {/* Action Buttons */}
             <div className="mt-4 lg:mt-6 pt-3 lg:pt-6 border-t border-gray-200">
               <div className="flex items-center justify-between">
-                <button className="text-blue-600 hover:text-blue-800 text-xs lg:text-sm font-medium flex items-center gap-1">
+                <button className="text-blue-600 hover:text-blue-800 text-xs lg:text-sm font-medium flex items-center gap-1 cursor-pointer lg:cursor-pointer">
                   View Profile
                   <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
                 </button>
                 <div className="flex items-center gap-1 lg:gap-2">
-                  <button className="p-1.5 lg:p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
-                    <FontAwesomeIcon icon={faEnvelope} className="text-xs lg:text-sm" />
+                  <button className="p-1.5 lg:p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 cursor-pointer lg:cursor-pointer">
+                    <FontAwesomeIcon
+                      icon={faEnvelope}
+                      className="text-xs lg:text-sm"
+                    />
                   </button>
-                  <button className="p-1.5 lg:p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
-                    <FontAwesomeIcon icon={faPhone} className="text-xs lg:text-sm" />
+                  <button className="p-1.5 lg:p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 cursor-pointer lg:cursor-pointer">
+                    <FontAwesomeIcon
+                      icon={faPhone}
+                      className="text-xs lg:text-sm"
+                    />
                   </button>
-                  <button className="p-1.5 lg:p-2 hover:bg-gray-100 rounded-lg transition-colors text-blue-600">
-                    <FontAwesomeIcon icon={faEye} className="text-xs lg:text-sm" />
+                  <button className="p-1.5 lg:p-2 hover:bg-gray-100 rounded-lg transition-colors text-blue-600 cursor-pointer lg:cursor-pointer">
+                    <FontAwesomeIcon
+                      icon={faEye}
+                      className="text-xs lg:text-sm"
+                    />
                   </button>
                 </div>
               </div>
@@ -1242,11 +1315,13 @@ export default function VendorDashboard() {
 
       {/* No Results Message */}
       {filteredCustomers.length === 0 && (
-        <div className="text-center py-8">
+        <div className="text-center py-8 cursor-default">
           <div className="text-gray-400 mb-4">
             <FontAwesomeIcon icon={faUsers} size="3x" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No customers found</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            No customers found
+          </h3>
           <p className="text-gray-600">Try adjusting your search terms</p>
         </div>
       )}
@@ -1255,7 +1330,7 @@ export default function VendorDashboard() {
 
   /* Booking View - Mobile responsive */
   const BookingView = () => (
-    <div className="space-y-4 lg:space-y-8">
+    <div className="space-y-4 lg:space-y-8 cursor-default">
       {/* Mobile Search Bar */}
       <div className="lg:hidden">
         <div className="relative">
@@ -1268,7 +1343,7 @@ export default function VendorDashboard() {
             placeholder="Search bookings..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm cursor-text"
           />
         </div>
       </div>
@@ -1284,23 +1359,23 @@ export default function VendorDashboard() {
           placeholder="Search name"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm cursor-text"
         />
       </div>
 
       {/* Mobile Filter Buttons */}
       <div className="lg:hidden">
         <div className="flex gap-2 overflow-x-auto pb-2">
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm whitespace-nowrap">
+          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm whitespace-nowrap hover:bg-blue-700 transition-colors cursor-pointer lg:cursor-pointer">
             All Bookings
           </button>
-          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm whitespace-nowrap">
+          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm whitespace-nowrap hover:bg-gray-50 transition-colors cursor-pointer lg:cursor-pointer">
             Completed
           </button>
-          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm whitespace-nowrap">
+          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm whitespace-nowrap hover:bg-gray-50 transition-colors cursor-pointer lg:cursor-pointer">
             Pending
           </button>
-          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm whitespace-nowrap">
+          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm whitespace-nowrap hover:bg-gray-50 transition-colors cursor-pointer lg:cursor-pointer">
             Cancelled
           </button>
         </div>
@@ -1308,13 +1383,13 @@ export default function VendorDashboard() {
 
       {/* Desktop Action Buttons */}
       <div className="hidden lg:flex flex-wrap gap-2">
-        <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+        <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm cursor-pointer lg:cursor-pointer">
           Customer
         </button>
-        <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+        <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm cursor-pointer lg:cursor-pointer">
           Booking
         </button>
-        <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+        <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm cursor-pointer lg:cursor-pointer">
           Setting
         </button>
       </div>
@@ -1324,23 +1399,23 @@ export default function VendorDashboard() {
         {filteredBookings.map((booking) => (
           <div
             key={booking.id}
-            className="bg-white border border-gray-200 rounded-2xl p-4 lg:p-6 hover:shadow-md transition-shadow duration-300"
+            className="bg-white border border-gray-200 rounded-2xl p-4 lg:p-6 hover:shadow-md transition-shadow duration-300 cursor-default"
           >
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-4 mb-3 lg:mb-4">
               <div>
-                <h3 className="font-bold text-gray-900 text-base lg:text-lg">
+                <h3 className="font-bold text-gray-900 text-base lg:text-lg hover:text-blue-600 transition-colors cursor-pointer lg:cursor-pointer">
                   {booking.customer}
                 </h3>
                 <p className="text-sm lg:text-base text-gray-600">
                   {booking.address}
                 </p>
               </div>
-              <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs lg:text-sm font-medium self-start lg:self-auto">
+              <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs lg:text-sm font-medium self-start lg:self-auto cursor-default">
                 {booking.status}
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4 cursor-default">
               <div>
                 <p className="text-gray-600 text-xs lg:text-sm">Service</p>
                 <p className="font-semibold text-sm lg:text-base">
@@ -1363,15 +1438,15 @@ export default function VendorDashboard() {
             {/* Mobile Actions */}
             <div className="lg:hidden mt-4 pt-4 border-t border-gray-200">
               <div className="flex items-center justify-between">
-                <button className="text-blue-600 text-sm font-medium">
+                <button className="text-blue-600 hover:text-blue-800 text-sm font-medium cursor-pointer lg:cursor-pointer">
                   View Details
                 </button>
                 <div className="flex items-center gap-2">
-                  <button className="p-2 hover:bg-gray-100 rounded-lg">
+                  <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer lg:cursor-pointer">
                     <FontAwesomeIcon icon={faEdit} />
                   </button>
-                  <button className="p-2 hover:bg-gray-100 rounded-lg">
-                    <FontAwesomeIcon icon={faTrashAlt} className="text-red-500" />
+                  <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-red-500 cursor-pointer lg:cursor-pointer">
+                    <FontAwesomeIcon icon={faTrashAlt} />
                   </button>
                 </div>
               </div>
@@ -1384,9 +1459,9 @@ export default function VendorDashboard() {
 
   /* Settings View - Mobile responsive */
   const SettingsView = () => (
-    <div className="space-y-4 lg:space-y-8">
+    <div className="space-y-4 lg:space-y-8 cursor-default">
       {/* Edit Profile Section */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-4 lg:p-6">
+      <div className="bg-white border border-gray-200 rounded-2xl p-4 lg:p-6 hover:shadow-sm transition-shadow duration-300 cursor-default">
         <h2 className="text-base lg:text-lg font-semibold text-gray-900 mb-4 lg:mb-6">
           Edit Profile
         </h2>
@@ -1398,11 +1473,11 @@ export default function VendorDashboard() {
               <img
                 src={data.profile?.avatar}
                 alt={data.profile?.fullName}
-                className="w-20 h-20 lg:w-24 lg:h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                className="w-20 h-20 lg:w-24 lg:h-24 rounded-full object-cover border-4 border-white shadow-lg hover:opacity-90 transition-opacity cursor-pointer lg:cursor-pointer"
               />
               <button
                 onClick={() => profileImageRef.current.click()}
-                className="absolute bottom-0 right-0 p-1.5 lg:p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
+                className="absolute bottom-0 right-0 p-1.5 lg:p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors cursor-pointer lg:cursor-pointer"
                 title="Change photo"
               >
                 <FontAwesomeIcon icon={faCamera} className="text-sm" />
@@ -1416,7 +1491,9 @@ export default function VendorDashboard() {
               />
             </div>
             <div className="text-center">
-              <h3 className="font-bold text-gray-900">{data.profile?.fullName}</h3>
+              <h3 className="font-bold text-gray-900">
+                {data.profile?.fullName}
+              </h3>
               <p className="text-gray-600 text-sm">{data.profile?.email}</p>
             </div>
           </div>
@@ -1424,7 +1501,7 @@ export default function VendorDashboard() {
           {/* Form Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2 cursor-default">
                 Your Name
               </label>
               <input
@@ -1439,13 +1516,13 @@ export default function VendorDashboard() {
                     },
                   }))
                 }
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm cursor-text"
                 placeholder="Customer Femi"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2 cursor-default">
                 Email
               </label>
               <input
@@ -1460,13 +1537,13 @@ export default function VendorDashboard() {
                     },
                   }))
                 }
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm cursor-text"
                 placeholder="chrisfemton@gmail.com"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2 cursor-default">
                 User Name
               </label>
               <input
@@ -1481,13 +1558,13 @@ export default function VendorDashboard() {
                     },
                   }))
                 }
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm cursor-text"
                 placeholder="Charlene Femi"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2 cursor-default">
                 City
               </label>
               <input
@@ -1502,7 +1579,7 @@ export default function VendorDashboard() {
                     },
                   }))
                 }
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm cursor-text"
                 placeholder="Lagos"
               />
             </div>
@@ -1510,7 +1587,7 @@ export default function VendorDashboard() {
 
           {/* Bio Section */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2 cursor-default">
               Bio
             </label>
             <textarea
@@ -1525,9 +1602,9 @@ export default function VendorDashboard() {
                 }))
               }
               rows={3}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm cursor-text"
             />
-            <div className="mt-2 lg:mt-3 bg-blue-50 rounded-xl p-3 lg:p-4">
+            <div className="mt-2 lg:mt-3 bg-blue-50 rounded-xl p-3 lg:p-4 cursor-default">
               <p className="text-sm text-gray-700 leading-relaxed">
                 {data.profile?.bio}
               </p>
@@ -1537,7 +1614,7 @@ export default function VendorDashboard() {
       </div>
 
       {/* Notifications Section */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-4 lg:p-6">
+      <div className="bg-white border border-gray-200 rounded-2xl p-4 lg:p-6 hover:shadow-sm transition-shadow duration-300 cursor-default">
         <h2 className="text-base lg:text-lg font-semibold text-gray-900 mb-2">
           Notifications
         </h2>
@@ -1552,14 +1629,14 @@ export default function VendorDashboard() {
             label="Email"
             icon={faEnvelope}
           />
-          
+
           <ToggleButton
             enabled={data.notifications?.whatsapp || false}
             onChange={() => toggleNotification("whatsapp")}
             label="Whatsapp"
             icon={faComment}
           />
-          
+
           <ToggleButton
             enabled={data.notifications?.promotionalMessages || false}
             onChange={() => toggleNotification("promotionalMessages")}
@@ -1577,8 +1654,8 @@ export default function VendorDashboard() {
       (editingListing ? editingListing.images : newListing.images) || [];
 
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-start lg:items-center justify-center z-50 p-0 lg:p-4 overflow-y-auto">
-        <div className="bg-white w-full lg:max-w-2xl lg:rounded-2xl lg:max-h-[90vh] lg:overflow-y-auto min-h-screen lg:min-h-0">
+      <div className="fixed inset-0 bg-black/50 flex items-start lg:items-center justify-center z-50 p-0 lg:p-4 overflow-y-auto cursor-default">
+        <div className="bg-white w-full lg:max-w-2xl lg:rounded-2xl lg:max-h-[90vh] lg:overflow-y-auto min-h-screen lg:min-h-0 hover:shadow-xl transition-shadow duration-300">
           {/* Mobile Header */}
           <div className="sticky top-0 bg-white border-b border-gray-200 p-4 lg:p-6 z-10">
             <div className="flex items-center justify-between">
@@ -1598,7 +1675,7 @@ export default function VendorDashboard() {
                     images: [],
                   });
                 }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer lg:cursor-pointer"
               >
                 <FontAwesomeIcon icon={faTimes} />
               </button>
@@ -1608,7 +1685,7 @@ export default function VendorDashboard() {
           <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
             {/* Images Upload */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 lg:mb-3">
+              <label className="block text-sm font-medium text-gray-700 mb-2 lg:mb-3 cursor-default">
                 Listing Images
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 lg:gap-4 mb-3 lg:mb-4">
@@ -1617,10 +1694,10 @@ export default function VendorDashboard() {
                     <img
                       src={image}
                       alt={`Listing ${index + 1}`}
-                      className="w-full h-24 lg:h-32 object-cover rounded-lg border border-gray-200"
+                      className="w-full h-24 lg:h-32 object-cover rounded-lg border border-gray-200 hover:opacity-90 transition-opacity cursor-pointer lg:cursor-pointer"
                     />
                     {index === 0 && (
-                      <span className="absolute top-1 left-1 px-2 py-1 bg-blue-600 text-white text-xs rounded">
+                      <span className="absolute top-1 left-1 px-2 py-1 bg-blue-600 text-white text-xs rounded cursor-default">
                         Main
                       </span>
                     )}
@@ -1642,7 +1719,7 @@ export default function VendorDashboard() {
                           }));
                         }
                       }}
-                      className="absolute top-1 lg:top-2 right-1 lg:right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 lg:top-2 right-1 lg:right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer lg:cursor-pointer"
                     >
                       <FontAwesomeIcon icon={faTimesCircle} />
                     </button>
@@ -1650,7 +1727,7 @@ export default function VendorDashboard() {
                 ))}
                 <button
                   onClick={() => fileInputRef.current.click()}
-                  className="w-full h-24 lg:h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                  className="w-full h-24 lg:h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors cursor-pointer lg:cursor-pointer"
                 >
                   {uploadingImage ? (
                     <div className="animate-spin rounded-full h-6 w-6 lg:h-8 lg:w-8 border-b-2 border-blue-600"></div>
@@ -1680,7 +1757,7 @@ export default function VendorDashboard() {
             {/* Form Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 cursor-default">
                   Title *
                 </label>
                 <input
@@ -1696,13 +1773,13 @@ export default function VendorDashboard() {
                         })
                       : setNewListing({ ...newListing, title: e.target.value })
                   }
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm cursor-text"
                   placeholder="e.g., Jazz Hotel and Suite"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 cursor-default">
                   Location *
                 </label>
                 <input
@@ -1723,13 +1800,13 @@ export default function VendorDashboard() {
                           location: e.target.value,
                         })
                   }
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm cursor-text"
                   placeholder="e.g., Lagos, Victoria Island"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 cursor-default">
                   Property Type
                 </label>
                 <select
@@ -1749,7 +1826,7 @@ export default function VendorDashboard() {
                           property: e.target.value,
                         })
                   }
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm cursor-pointer lg:cursor-pointer"
                 >
                   <option value="">Select Property Type</option>
                   <option value="Hotel">Hotel</option>
@@ -1761,7 +1838,7 @@ export default function VendorDashboard() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 cursor-default">
                   Price *
                 </label>
                 <input
@@ -1777,14 +1854,14 @@ export default function VendorDashboard() {
                         })
                       : setNewListing({ ...newListing, price: e.target.value })
                   }
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm cursor-text"
                   placeholder="e.g., #45,000/night"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2 cursor-default">
                 Description
               </label>
               <textarea
@@ -1805,7 +1882,7 @@ export default function VendorDashboard() {
                       })
                 }
                 rows={3}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm cursor-text"
                 placeholder="Describe your listing..."
               />
             </div>
@@ -1827,13 +1904,15 @@ export default function VendorDashboard() {
                     images: [],
                   });
                 }}
-                className="w-full sm:flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                className="w-full sm:flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium cursor-pointer lg:cursor-pointer"
               >
                 Cancel
               </button>
               <button
-                onClick={editingListing ? handleUpdateListing : handleAddListing}
-                className="w-full sm:flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                onClick={
+                  editingListing ? handleUpdateListing : handleAddListing
+                }
+                className="w-full sm:flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center gap-2 cursor-pointer lg:cursor-pointer"
               >
                 {editingListing ? (
                   <FontAwesomeIcon icon={faSave} />
@@ -1851,8 +1930,8 @@ export default function VendorDashboard() {
 
   /* Global Settings Modal */
   const GlobalSettingsModal = () => (
-    <div className="fixed inset-0 bg-black/50 flex items-start lg:items-center justify-center z-50 p-0 lg:p-4">
-      <div className="bg-white w-full lg:max-w-md lg:rounded-2xl lg:max-h-[90vh] lg:overflow-y-auto min-h-screen lg:min-h-0">
+    <div className="fixed inset-0 bg-black/50 flex items-start lg:items-center justify-center z-50 p-0 lg:p-4 cursor-default">
+      <div className="bg-white w-full lg:max-w-md lg:rounded-2xl lg:max-h-[90vh] lg:overflow-y-auto min-h-screen lg:min-h-0 hover:shadow-xl transition-shadow duration-300">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 lg:p-6 z-10">
           <div className="flex items-center justify-between">
             <h3 className="text-lg lg:text-xl font-semibold">
@@ -1860,7 +1939,7 @@ export default function VendorDashboard() {
             </h3>
             <button
               onClick={() => setShowGlobalSettings(false)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer lg:cursor-pointer"
             >
               <FontAwesomeIcon icon={faTimes} />
             </button>
@@ -1869,8 +1948,10 @@ export default function VendorDashboard() {
 
         <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
           <div>
-            <h4 className="font-medium text-gray-900 mb-3">Language</h4>
-            <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm">
+            <h4 className="font-medium text-gray-900 mb-3 cursor-default">
+              Language
+            </h4>
+            <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm cursor-pointer lg:cursor-pointer">
               <option value="en">English</option>
               <option value="fr">French</option>
               <option value="es">Spanish</option>
@@ -1879,8 +1960,10 @@ export default function VendorDashboard() {
           </div>
 
           <div>
-            <h4 className="font-medium text-gray-900 mb-3">Timezone</h4>
-            <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm">
+            <h4 className="font-medium text-gray-900 mb-3 cursor-default">
+              Timezone
+            </h4>
+            <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm cursor-pointer lg:cursor-pointer">
               <option value="utc">UTC</option>
               <option value="est">Eastern Time (EST)</option>
               <option value="pst">Pacific Time (PST)</option>
@@ -1889,8 +1972,10 @@ export default function VendorDashboard() {
           </div>
 
           <div>
-            <h4 className="font-medium text-gray-900 mb-3">Currency</h4>
-            <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm">
+            <h4 className="font-medium text-gray-900 mb-3 cursor-default">
+              Currency
+            </h4>
+            <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm cursor-pointer lg:cursor-pointer">
               <option value="usd">USD ($)</option>
               <option value="eur">EUR (€)</option>
               <option value="gbp">GBP (£)</option>
@@ -1911,7 +1996,7 @@ export default function VendorDashboard() {
         <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 lg:p-6">
           <button
             onClick={() => setShowGlobalSettings(false)}
-            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium cursor-pointer lg:cursor-pointer"
           >
             Save Settings
           </button>
@@ -1921,11 +2006,11 @@ export default function VendorDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 cursor-default">
       {/* Mobile Menu Button */}
       <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md hover:bg-gray-50 transition-colors cursor-pointer lg:cursor-pointer"
       >
         {isSidebarOpen ? (
           <FontAwesomeIcon icon={faTimes} />
@@ -1937,29 +2022,30 @@ export default function VendorDashboard() {
       {/* Mobile Sidebar Backdrop */}
       {isSidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          className="lg:hidden fixed inset-0 bg-black/50 z-40 cursor-pointer lg:cursor-pointer"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       <div className="flex">
-        {/* Sidebar - Mobile responsive */}
+        {/* Sidebar - FIXED: Fixed position on desktop, non-scrollable */}
         <aside
           className={`
-          fixed lg:static top-0 left-0 h-full w-64 lg:w-72 bg-white border-r border-gray-200 z-50 lg:z-auto
+          fixed lg:fixed top-0 left-0 h-full w-64 lg:w-72 bg-white border-r border-gray-200 z-50 lg:z-40
           transform transition-transform duration-300 ease-in-out lg:translate-x-0
           ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:min-h-screen
+          lg:min-h-screen lg:overflow-y-auto
         `}
+          style={{ height: "100vh" }}
         >
           <div className="h-full flex flex-col">
             <div className="px-4 lg:px-6 py-6 lg:py-8 flex-shrink-0">
               <div className="flex items-center gap-3 mb-6 lg:mb-8">
-                <div className="mb-6">
+                <div className="mb-6 cursor-pointer lg:cursor-pointer">
                   <img
                     src={Icon}
                     alt="Ajani Logo"
-                    className="h-12 w-auto object-contain"
+                    className="h-12 w-auto object-contain hover:opacity-90 transition-opacity"
                   />
                 </div>
               </div>
@@ -2016,41 +2102,39 @@ export default function VendorDashboard() {
             <div className="flex-grow"></div>
 
             {/* Bottom Section - User Profile in Sidebar */}
-            <div className="px-4 lg:px-6 py-4 lg:py-6 border-t border-gray-200 mt-auto">
+            <div className="px-4 lg:px-6 py-4 lg:py-6 border-t border-gray-200 mt-auto hover:bg-gray-50 transition-colors cursor-pointer lg:cursor-pointer">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full overflow-hidden border-2 border-blue-500">
                   <img
                     src={data.profile?.avatar}
                     alt="Profile"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                   />
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-gray-900 text-sm">
+                  <p className="font-medium text-gray-900 text-sm hover:text-blue-600 transition-colors">
                     {data.profile?.fullName}
                   </p>
-                  <p className="text-gray-500 text-xs">
-                    {data.profile?.email}
-                  </p>
+                  <p className="text-gray-500 text-xs">{data.profile?.email}</p>
                 </div>
               </div>
             </div>
           </div>
         </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 w-full lg:w-auto">
+        {/* Main Content - FIXED: Scrollable area only on the right side */}
+        <main className="flex-1 w-full lg:w-auto lg:ml-64 lg:ml-72 lg:overflow-y-auto lg:h-screen">
           {/* Global Header */}
           <GlobalHeader onSettingsClick={() => setShowGlobalSettings(true)} />
 
           {/* Mobile Action Bar */}
-          <MobileActionBar 
-            view={view} 
+          <MobileActionBar
+            view={view}
             onAddListing={() => setShowAddListingModal(true)}
             onSearchClick={() => setShowMobileSearch(true)}
           />
 
-          {/* Content based on view */}
+          {/* Content based on view - This is the scrollable area on desktop */}
           <div className="px-3 sm:px-4 lg:px-8 pb-6 lg:py-8">
             {view === "overview" && <OverviewView />}
             {view === "listing" && <ListingView />}

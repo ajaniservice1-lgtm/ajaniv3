@@ -15,7 +15,7 @@ const HomePage = lazy(() => import("./pages/HomePage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
-const AboutAjani = lazy(() => import("./pages/AboutAjani")); // ✅ FIXED
+const AboutAjani = lazy(() => import("./pages/AboutAjani"));
 const CategoryResults = lazy(() => import("./pages/CategoryResults"));
 const SearchResults = lazy(() => import("./components/SearchResults"));
 
@@ -27,6 +27,7 @@ const ResetPasswordPage = lazy(() => import("./pages/auth/ResetPasswordPage"));
 const RegisterChoicePage = lazy(() =>
   import("./pages/auth/RegisterChoicePage")
 );
+const VerifyOTPPage = lazy(() => import("./pages/auth/VerifyOTPPage"));
 
 /* =======================
    USER REGISTRATION FLOW
@@ -97,35 +98,68 @@ const LoadingDots = () => (
 /* =======================
    AUTH UTILITIES
 ======================= */
-const checkLoginStatus = () =>
-  localStorage.getItem("ajani_dummy_login") === "true";
+const checkAuthStatus = () => {
+  const token = localStorage.getItem("auth_token");
+  const userProfile = localStorage.getItem("userProfile");
+  return !!token && !!userProfile;
+};
 
-// export const getUserEmail = () => localStorage.getItem("ajani_dummy_email");
+const getUserEmail = () => localStorage.getItem("user_email");
 
-// export const loginUser = (email) => {
-//   localStorage.setItem("ajani_dummy_login", "true");
-//   localStorage.setItem("ajani_dummy_email", email);
-// };
-
-// export const logoutUser = () => {
-//   localStorage.clear();
-// };
+const isUserVerified = () => {
+  try {
+    const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+    return profile?.isVerified || false;
+  } catch {
+    return false;
+  }
+};
 
 /* =======================
    ROUTE GUARDS
 ======================= */
-const ProtectedRoute = ({ children }) => {
-  if (!checkLoginStatus()) {
+const ProtectedRoute = ({ children, requireVerification = true }) => {
+  const isAuthenticated = checkAuthStatus();
+  const isVerified = isUserVerified();
+
+  if (!isAuthenticated) {
     localStorage.setItem("redirectAfterLogin", window.location.pathname);
     return <Navigate to="/login" replace />;
   }
+
+  if (requireVerification && !isVerified) {
+    return <Navigate to="/verify-otp" replace />;
+  }
+
   return children;
 };
 
 const PublicRoute = ({ children }) => {
-  if (checkLoginStatus()) {
+  const isAuthenticated = checkAuthStatus();
+  const isVerified = isUserVerified();
+
+  if (isAuthenticated && isVerified) {
     return <Navigate to="/" replace />;
   }
+
+  return children;
+};
+
+const OTPRoute = ({ children }) => {
+  const isAuthenticated = checkAuthStatus();
+  const isVerified = isUserVerified();
+  const hasPendingEmail = localStorage.getItem("pendingVerificationEmail");
+
+  // If user is already verified, redirect to home
+  if (isAuthenticated && isVerified) {
+    return <Navigate to="/" replace />;
+  }
+
+  // If no pending email and not authenticated, redirect to register
+  if (!hasPendingEmail && !isAuthenticated) {
+    return <Navigate to="/register" replace />;
+  }
+
   return children;
 };
 
@@ -159,7 +193,7 @@ function App() {
                   />
                   <Route path="/search-results" element={<SearchResults />} />
 
-                  {/* VENDOR PROFILE ROUTE - ADD THIS */}
+                  {/* VENDOR PROFILE ROUTE */}
                   <Route
                     path="/vendor-profile"
                     element={<VendorCompleteProfile />}
@@ -188,6 +222,16 @@ function App() {
                       <PublicRoute>
                         <RegisterChoicePage />
                       </PublicRoute>
+                    }
+                  />
+
+                  {/* OTP VERIFICATION ROUTE */}
+                  <Route
+                    path="/verify-otp"
+                    element={
+                      <OTPRoute>
+                        <VerifyOTPPage />
+                      </OTPRoute>
                     }
                   />
 
@@ -283,7 +327,7 @@ function App() {
                     }
                   />
 
-                  {/* PROTECTED */}
+                  {/* PROTECTED ROUTES */}
                   <Route
                     path="/saved"
                     element={
@@ -320,7 +364,7 @@ function App() {
                     }
                   />
 
-                  {/* AdminRoute */}
+                  {/* Admin Routes */}
                   <Route path="admincpanel" element={<AdminLayout />}>
                     <Route index element={<Overview />} />
                     <Route path="customers" element={<p>this is customer</p>} />

@@ -205,8 +205,8 @@ const ServerErrorToastNotification = ({ message, onClose }) => {
   );
 };
 
-// Verification Toast Notification Component
-const VerificationToastNotification = ({ email, onClose }) => {
+// Registration Success Toast (for OTP verification)
+const RegistrationSuccessToast = ({ email, onClose }) => {
   const [isVisible, setIsVisible] = useState(true);
 
   const handleClose = () => {
@@ -219,7 +219,7 @@ const VerificationToastNotification = ({ email, onClose }) => {
   React.useEffect(() => {
     const timer = setTimeout(() => {
       handleClose();
-    }, 5000);
+    }, 4000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -246,11 +246,10 @@ const VerificationToastNotification = ({ email, onClose }) => {
               Vendor Registration Successful!
             </p>
             <p className="text-sm text-blue-600 mt-1">
-              Please check <span className="font-medium">{email}</span> for
-              verification link
+              OTP sent to <span className="font-medium">{email}</span>
             </p>
             <p className="text-xs text-blue-500 mt-2">
-              Verify your email to complete vendor registration and login
+              Redirecting to OTP verification...
             </p>
           </div>
           <button
@@ -269,10 +268,93 @@ const VerificationToastNotification = ({ email, onClose }) => {
   );
 };
 
+// Duplicate Email Error Toast Component
+const DuplicateEmailToast = ({ email, onClose }) => {
+  const [isVisible, setIsVisible] = useState(true);
+
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(() => {
+      onClose();
+    }, 300);
+  };
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      handleClose();
+    }, 6000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleLoginRedirect = () => {
+    onClose();
+    window.location.href = "/login";
+  };
+
+  return (
+    <div
+      className={`fixed top-4 right-4 z-50 transition-all duration-300 ${
+        isVisible ? "animate-slideInRight" : "animate-slideOutRight"
+      }`}
+    >
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg shadow-lg p-4 max-w-sm">
+        <div className="flex items-start gap-3">
+          <div className="text-yellow-600 mt-0.5">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <p className="font-medium text-yellow-800">
+              Email Already Registered
+            </p>
+            <p className="text-sm text-yellow-700 mt-1">
+              <span className="font-medium">{email}</span> is already in use.
+            </p>
+            <p className="text-xs text-yellow-600 mt-2">
+              Please use a different email address or login to your existing
+              account.
+            </p>
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={handleLoginRedirect}
+                className="text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-medium py-1.5 px-3 rounded transition-colors"
+              >
+                Go to Login
+              </button>
+              <button
+                onClick={handleClose}
+                className="text-xs border border-yellow-300 hover:bg-yellow-50 text-yellow-700 font-medium py-1.5 px-3 rounded transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+          <button
+            onClick={handleClose}
+            className="text-yellow-400 hover:text-yellow-600 transition-colors ml-2"
+            aria-label="Close notification"
+          >
+            <FaTimes size={16} />
+          </button>
+        </div>
+        <div className="mt-2 w-full bg-yellow-200 h-1 rounded-full overflow-hidden">
+          <div className="h-full bg-yellow-500 animate-progressBar"></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const VendorRegistration = () => {
   const navigate = useNavigate();
   const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [showVerificationToast, setShowVerificationToast] = useState(false);
+  const [showRegistrationToast, setShowRegistrationToast] = useState(false);
   const [showErrorToast, setShowErrorToast] = useState(false);
   const [showServerErrorToast, setShowServerErrorToast] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -333,7 +415,7 @@ const VendorRegistration = () => {
         // ✅ CHECK USER VERIFICATION STATUS
         const isVerified = userData?.isVerified || false;
 
-        // ✅ SCENARIO 1: Vendor is verified and has token (Auto-login)
+        // ✅ SCENARIO 1: Vendor is verified and has token (Auto-login - rare case)
         if (isVerified && token && userData) {
           // ✅ Store authentication data EXACTLY LIKE LOGIN
           localStorage.setItem("auth_token", token);
@@ -370,22 +452,40 @@ const VendorRegistration = () => {
             navigate("/vendor/dashboard");
           }, 2500);
         }
-        // ✅ SCENARIO 2: Registration successful but needs email verification
+        // ✅ SCENARIO 2: Registration successful - needs OTP verification (COMMON CASE)
         else {
-          // Store email for verification reference
+          // Store email for OTP verification
           localStorage.setItem("pendingVerificationEmail", data.email);
 
-          // Show verification toast
-          setShowVerificationToast(true);
+          // Store user data temporarily for verification
+          localStorage.setItem(
+            "pendingVendorData",
+            JSON.stringify({
+              email: data.email,
+              firstName: data.firstName,
+              lastName: data.lastName,
+              phone: data.phone,
+              role: "vendor",
+            })
+          );
+
+          // Show registration success toast
+          setShowRegistrationToast(true);
 
           // Clear form
           reset();
 
-          // Redirect to login page after toast
+          // Redirect to OTP verification page after short delay
           setTimeout(() => {
-            setShowVerificationToast(false);
-            navigate("/login");
-          }, 4000);
+            setShowRegistrationToast(false);
+            navigate("/verify-otp", {
+              state: {
+                email: data.email,
+                fromRegistration: true,
+                userType: "vendor",
+              },
+            });
+          }, 1500);
         }
       } else {
         // Handle unexpected response format
@@ -440,8 +540,14 @@ const VendorRegistration = () => {
             }
           }
         } else if (error.response.status === 409) {
+          // Specific toast for duplicate email
           errorMessage =
             "This email is already registered. Please use a different email or login.";
+          setRegisteredEmail(data.email);
+          setErrorMessage(errorMessage);
+          setShowErrorToast(true);
+          setIsSubmitting(false);
+          return;
         } else if (error.response.status === 400) {
           errorMessage =
             "Invalid registration data. Please check your information.";
@@ -493,17 +599,9 @@ const VendorRegistration = () => {
       if (isServerError) {
         setServerErrorMessage(errorMessage);
         setShowServerErrorToast(true);
-      } else {
+      } else if (!errorMessage.includes("already registered")) {
         setErrorMessage(errorMessage);
         setShowErrorToast(true);
-      }
-
-      // If it's a server error, log additional info
-      if (error.response?.status === 500) {
-        console.warn(
-          "Server is experiencing issues. Please contact support if this continues."
-        );
-        console.warn("Error response data:", error.response?.data);
       }
     } finally {
       setIsSubmitting(false);
@@ -512,7 +610,7 @@ const VendorRegistration = () => {
 
   return (
     <div className="min-h-screen w-full bg-white flex items-center justify-center p-4 sm:p-6 md:p-8 font-manrope">
-      {/* Auto-Login Success Toast Notification */}
+      {/* Auto-Login Success Toast Notification (rare case) */}
       {showSuccessToast && (
         <ToastNotification
           message="Vendor Registration Successful!"
@@ -521,11 +619,11 @@ const VendorRegistration = () => {
         />
       )}
 
-      {/* Email Verification Toast Notification */}
-      {showVerificationToast && registeredEmail && (
-        <VerificationToastNotification
+      {/* Registration Success Toast (OTP verification) */}
+      {showRegistrationToast && registeredEmail && (
+        <RegistrationSuccessToast
           email={registeredEmail}
-          onClose={() => setShowVerificationToast(false)}
+          onClose={() => setShowRegistrationToast(false)}
         />
       )}
 
@@ -537,13 +635,23 @@ const VendorRegistration = () => {
         />
       )}
 
-      {/* Regular Error Toast Notification */}
-      {showErrorToast && (
+      {/* Generic Error Toast Notification */}
+      {showErrorToast && !errorMessage.includes("already registered") && (
         <ErrorToastNotification
           message={errorMessage}
           onClose={() => setShowErrorToast(false)}
         />
       )}
+
+      {/* Duplicate Email Toast Notification */}
+      {showErrorToast &&
+        errorMessage.includes("already registered") &&
+        registeredEmail && (
+          <DuplicateEmailToast
+            email={registeredEmail}
+            onClose={() => setShowErrorToast(false)}
+          />
+        )}
 
       <div className="w-full max-w-md sm:max-w-lg p-6 sm:p-8 rounded-xl shadow-lg bg-white relative">
         {/* Cancel/Close Button - Top Right */}

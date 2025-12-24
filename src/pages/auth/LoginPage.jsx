@@ -16,6 +16,87 @@ const loginSchema = yup.object().shape({
   password: yup.string().required("Password is required"),
 });
 
+// Toast Notification Component for Login
+const LoginToastNotification = ({ message, onClose, type = "success" }) => {
+  const [isVisible, setIsVisible] = useState(true);
+
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(() => {
+      onClose();
+    }, 300);
+  };
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      handleClose();
+    }, 4000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const bgColor = type === "success" ? "bg-green-50" : "bg-blue-50";
+  const borderColor =
+    type === "success" ? "border-green-200" : "border-blue-200";
+  const textColor = type === "success" ? "text-green-800" : "text-blue-800";
+  const progressColor = type === "success" ? "bg-green-500" : "bg-blue-500";
+  const iconColor = type === "success" ? "text-green-600" : "text-blue-600";
+
+  return (
+    <div
+      className={`fixed top-4 right-4 z-50 transition-all duration-300 ${
+        isVisible ? "animate-slideInRight" : "animate-slideOutRight"
+      }`}
+    >
+      <div
+        className={`${bgColor} border ${borderColor} rounded-lg shadow-lg p-4 max-w-sm`}
+      >
+        <div className="flex items-start gap-3">
+          <div className={`${iconColor} mt-0.5`}>
+            {type === "success" ? (
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            )}
+          </div>
+          <div className="flex-1">
+            <p className={`font-medium ${textColor}`}>{message}</p>
+          </div>
+          <button
+            onClick={handleClose}
+            className={`${iconColor} hover:${
+              type === "success" ? "text-green-600" : "text-blue-600"
+            } transition-colors ml-2`}
+            aria-label="Close notification"
+          >
+            <FaTimes size={16} />
+          </button>
+        </div>
+        <div
+          className={`mt-2 w-full ${progressColor} bg-opacity-30 h-1 rounded-full overflow-hidden`}
+        >
+          <div
+            className={`h-full ${progressColor} animate-progressBar`}
+            style={{ animationDuration: "4s" }}
+          ></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -24,6 +105,9 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const [pendingSaveConfirm, setPendingSaveConfirm] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState("success");
 
   const {
     register,
@@ -40,19 +124,37 @@ const LoginPage = () => {
 
     if (verified === "true") {
       setSuccessMessage("🎉 Email verified successfully! You can now login.");
+      setToastMessage("🎉 Email verified successfully! You can now login.");
+      setToastType("success");
+      setShowToast(true);
 
       // Clear the query parameter
       setTimeout(() => {
         navigate("/login", { replace: true });
         setSuccessMessage("");
+        setShowToast(false);
       }, 5000);
+    }
+
+    // Check for OTP verification redirect
+    const fromOTP = location.state?.fromOTP;
+    if (fromOTP) {
+      setSuccessMessage("✅ OTP verification successful! Please login.");
+      setToastMessage("✅ OTP verification successful! Please login.");
+      setToastType("success");
+      setShowToast(true);
+
+      setTimeout(() => {
+        setSuccessMessage("");
+        setShowToast(false);
+      }, 4000);
     }
 
     // Check for registration success
     const registeredEmail = localStorage.getItem("pendingVerificationEmail");
     if (registeredEmail && !location.search.includes("verified=true")) {
       setSuccessMessage(
-        `📧 Registration successful! Please check ${registeredEmail} for verification link.`
+        `📧 Registration successful! Please check ${registeredEmail} for verification.`
       );
       localStorage.removeItem("pendingVerificationEmail");
 
@@ -140,12 +242,14 @@ const LoginPage = () => {
 
         setIsLoading(false);
 
-        // Show success message before redirect
-        setSuccessMessage("✅ Login successful! Redirecting...");
+        // Show success toast
+        setToastMessage("✅ Login successful! Redirecting...");
+        setToastType("success");
+        setShowToast(true);
 
         // Redirect after short delay
         setTimeout(() => {
-          setSuccessMessage("");
+          setShowToast(false);
           navigate(redirectUrl);
         }, 1000);
       }
@@ -203,14 +307,23 @@ const LoginPage = () => {
     navigate("/reset-password");
   };
 
-  const handleResendVerification = () => {
+  const handleResendVerification = async () => {
     const email = document.getElementById("email")?.value;
     if (email) {
-      console.log("Resending verification email to:", email);
-      // Add API call to resend verification email here
-      setSuccessMessage(
-        `📧 Verification email resent to ${email}. Please check your inbox.`
-      );
+      try {
+        console.log("Resending verification email to:", email);
+        // Add API call to resend verification email here
+        // Example: await axiosInstance.post("/auth/resend-verification", { email });
+
+        setSuccessMessage(
+          `📧 Verification email resent to ${email}. Please check your inbox.`
+        );
+        setToastMessage(`📧 Verification email sent to ${email}`);
+        setToastType("success");
+        setShowToast(true);
+      } catch (error) {
+        setError("Failed to resend verification email. Please try again.");
+      }
     } else {
       setError("Please enter your email address first.");
     }
@@ -267,6 +380,15 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
+      {/* Toast Notification */}
+      {showToast && (
+        <LoginToastNotification
+          message={toastMessage}
+          type={toastType}
+          onClose={() => setShowToast(false)}
+        />
+      )}
+
       <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-2xl shadow-lg relative">
         {/* Cancel/Close Button - Top Right */}
         <button
@@ -511,12 +633,55 @@ const LoginPage = () => {
           }
         }
 
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+
+        @keyframes slideOutRight {
+          from {
+            transform: translateX(0);
+            opacity: 1;
+          }
+          to {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+        }
+
+        @keyframes progressBar {
+          from {
+            width: 100%;
+          }
+          to {
+            width: 0%;
+          }
+        }
+
         .animate-fadeIn {
           animation: fadeIn 0.3s ease-out;
         }
 
         .animate-spin {
           animation: spin 1s linear infinite;
+        }
+
+        .animate-slideInRight {
+          animation: slideInRight 0.3s ease-out forwards;
+        }
+
+        .animate-slideOutRight {
+          animation: slideOutRight 0.3s ease-in forwards;
+        }
+
+        .animate-progressBar {
+          animation: progressBar linear forwards;
         }
       `}</style>
     </div>
