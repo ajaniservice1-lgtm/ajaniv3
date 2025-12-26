@@ -15,53 +15,81 @@ const Header = () => {
   const profileDropdownRef = useRef(null);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
-  // Check login status on mount
-  useEffect(() => {
-    const checkLoginStatus = () => {
-      const token = localStorage.getItem("auth_token");
-      const userEmail = localStorage.getItem("user_email");
-      const profile = localStorage.getItem("userProfile");
+  // Enhanced auth check function
+  const checkLoginStatus = () => {
+    // Check multiple possible token storage locations
+    const token =
+      localStorage.getItem("auth_token") ||
+      JSON.parse(localStorage.getItem("auth-storage") || "{}")?.state?.token;
+    const userEmail = localStorage.getItem("user_email");
+    const profile = localStorage.getItem("userProfile");
 
-      if (token && userEmail) {
-        setIsLoggedIn(true);
-        setUserEmail(userEmail);
+    console.log("Header auth check:", { token, userEmail, profile });
 
-        if (profile) {
-          try {
-            setUserProfile(JSON.parse(profile));
-          } catch (error) {
-            console.error("Error parsing user profile:", error);
+    if (token && userEmail) {
+      setIsLoggedIn(true);
+      setUserEmail(userEmail);
+
+      if (profile) {
+        try {
+          const parsedProfile = JSON.parse(profile);
+          setUserProfile(parsedProfile);
+
+          // Also ensure isVerified is true for logged in users
+          if (!parsedProfile.isVerified) {
+            console.warn("User profile found but not verified");
           }
+        } catch (error) {
+          console.error("Error parsing user profile:", error);
         }
-      } else {
-        setIsLoggedIn(false);
-        setUserEmail("");
-        setUserProfile(null);
       }
-    };
+    } else {
+      setIsLoggedIn(false);
+      setUserEmail("");
+      setUserProfile(null);
+    }
+  };
 
+  // Check login status on mount and when window gains focus
+  useEffect(() => {
     checkLoginStatus();
 
-    // Listen for login/logout events
+    // Listen for storage changes (from OTP verification)
     const handleStorageChange = () => {
+      console.log("Storage changed, checking auth status");
       checkLoginStatus();
     };
 
     window.addEventListener("storage", handleStorageChange);
 
-    // Also check when auth_token changes
-    const handleAuthChange = () => {
+    // Listen for custom auth events (from OTP verification)
+    window.addEventListener("authChange", handleStorageChange);
+    window.addEventListener("loginSuccess", handleStorageChange);
+
+    // Check when window gains focus (in case auth happened in another tab)
+    const handleFocus = () => {
       checkLoginStatus();
     };
 
-    // Add custom event listener for auth changes
-    window.addEventListener("authChange", handleAuthChange);
+    window.addEventListener("focus", handleFocus);
+
+    // Set up polling to check auth status more reliably
+    const authCheckInterval = setInterval(() => {
+      const token = localStorage.getItem("auth_token");
+      if (token && !isLoggedIn) {
+        console.log("Token found via polling, updating login state");
+        checkLoginStatus();
+      }
+    }, 1000); // Check every second
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("authChange", handleAuthChange);
+      window.removeEventListener("authChange", handleStorageChange);
+      window.removeEventListener("loginSuccess", handleStorageChange);
+      window.removeEventListener("focus", handleFocus);
+      clearInterval(authCheckInterval);
     };
-  }, []);
+  }, [isLoggedIn]);
 
   // Prevent body scrolling when mobile menu is open
   useEffect(() => {
@@ -91,24 +119,34 @@ const Header = () => {
     window.open("https://blog.ajani.ai", "_blank", "noopener,noreferrer");
   };
 
-  // Handle sign out
+  // Enhanced sign out function
   const handleSignOut = () => {
-    // Clear authentication tokens
+    console.log("Signing out...");
+
+    // Clear all authentication tokens
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_email");
     localStorage.removeItem("userProfile");
+    localStorage.removeItem("auth-storage");
     localStorage.removeItem("redirectAfterLogin");
+
+    // Clear session storage too
+    sessionStorage.removeItem("auth_token");
+    sessionStorage.removeItem("user_email");
 
     // Dispatch events to update other components
     window.dispatchEvent(new Event("storage"));
-    window.dispatchEvent(new Event("authChange"));
+    window.dispatchEvent(new CustomEvent("logout"));
 
     setIsLoggedIn(false);
     setUserEmail("");
     setUserProfile(null);
-    navigate("/");
     setIsProfileDropdownOpen(false);
     setIsMenuOpen(false);
+
+    // Force reload to ensure clean state
+    navigate("/");
+    window.location.reload(); // Force reload to clear any cached state
   };
 
   // Handle click outside profile dropdown
@@ -198,8 +236,21 @@ const Header = () => {
           handleSavedListingsUpdate
         );
       };
+    } else {
+      setSavedCount(0);
     }
   }, [isLoggedIn]);
+
+  // Debug: Log current auth state
+  useEffect(() => {
+    console.log("Current Header State:", {
+      isLoggedIn,
+      userEmail,
+      userProfile,
+      authToken: localStorage.getItem("auth_token"),
+      userProfileStorage: localStorage.getItem("userProfile"),
+    });
+  }, [isLoggedIn, userEmail, userProfile]);
 
   return (
     <>
@@ -250,6 +301,12 @@ const Header = () => {
             <div className="flex items-center gap-2 lg:gap-6 h-full">
               {isLoggedIn ? (
                 <>
+                  {/* Debug indicator (remove in production) */}
+                  <div className="hidden lg:flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span>Logged in as {userEmail?.split("@")[0]}</span>
+                  </div>
+
                   {/* Saved Listings button */}
                   <button
                     onClick={() => navigate("/saved")}
@@ -294,9 +351,9 @@ const Header = () => {
                       className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-blue-50 transition-colors cursor-pointer"
                       title="Profile"
                     >
-                      {userProfile?.image ? (
+                      {userProfile?.profilePicture ? (
                         <img
-                          src={userProfile.image}
+                          src={userProfile.profilePicture}
                           alt="Profile"
                           className="w-8 h-8 rounded-full object-cover border border-gray-200"
                           onError={(e) => {
@@ -328,6 +385,12 @@ const Header = () => {
                           <p className="text-xs text-gray-500 mt-1 cursor-default">
                             {userEmail}
                           </p>
+                          <div className="flex items-center gap-1 mt-1">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-xs text-green-600">
+                              Verified
+                            </span>
+                          </div>
                         </div>
 
                         {/* Profile link */}
@@ -636,6 +699,10 @@ const Header = () => {
                   <p className="text-xs text-gray-500 mt-1 cursor-default">
                     {userEmail}
                   </p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-xs text-green-600">Verified</span>
+                  </div>
                 </div>
 
                 {/* Mobile navigation for logged-in users */}

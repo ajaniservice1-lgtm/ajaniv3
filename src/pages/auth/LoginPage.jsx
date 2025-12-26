@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FaEye, FaEyeSlash, FaTimes } from "react-icons/fa";
+import { FaEye, FaEyeSlash, FaTimes, FaSync } from "react-icons/fa";
 import Logo from "../../assets/Logos/logo5.png";
 import * as yup from "yup";
 import { useForm } from "react-hook-form";
@@ -108,16 +108,22 @@ const LoginPage = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("success");
+  const [retryCount, setRetryCount] = useState(0);
+  const [showTroubleshoot, setShowTroubleshoot] = useState(false);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
+    watch,
   } = useForm({
     resolver: yupResolver(loginSchema),
   });
 
-  // Check for email verification success message
+  const email = watch("email");
+
+  // Check for email verification success message and pre-fill email
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const verified = searchParams.get("verified");
@@ -136,13 +142,23 @@ const LoginPage = () => {
       }, 5000);
     }
 
-    // Check for OTP verification redirect
+    // Check for OTP verification redirect - pre-fill email
     const fromOTP = location.state?.fromOTP;
-    if (fromOTP) {
+    const verifiedEmail = location.state?.verifiedEmail;
+
+    if (fromOTP && verifiedEmail) {
       setSuccessMessage("✅ OTP verification successful! Please login.");
       setToastMessage("✅ OTP verification successful! Please login.");
       setToastType("success");
       setShowToast(true);
+
+      // Pre-fill the email field
+      setValue("email", verifiedEmail);
+
+      // Focus on password field
+      setTimeout(() => {
+        document.getElementById("password")?.focus();
+      }, 100);
 
       setTimeout(() => {
         setSuccessMessage("");
@@ -156,6 +172,8 @@ const LoginPage = () => {
       setSuccessMessage(
         `📧 Registration successful! Please check ${registeredEmail} for verification.`
       );
+      // Pre-fill the email field
+      setValue("email", registeredEmail);
       localStorage.removeItem("pendingVerificationEmail");
 
       // Clear the message after 8 seconds
@@ -163,15 +181,55 @@ const LoginPage = () => {
         setSuccessMessage("");
       }, 8000);
     }
-  }, [location, navigate]);
+
+    // Check for password reset success
+    const resetSuccess = location.state?.resetSuccess;
+    if (resetSuccess) {
+      setSuccessMessage(
+        "✅ Password reset successful! You can now login with your new password."
+      );
+      setToastMessage("✅ Password reset successful!");
+      setToastType("success");
+      setShowToast(true);
+
+      setTimeout(() => {
+        setSuccessMessage("");
+        setShowToast(false);
+      }, 4000);
+    }
+
+    // Clear any stale auth data
+    const checkAuthState = () => {
+      const token = localStorage.getItem("auth_token");
+      const userProfile = localStorage.getItem("userProfile");
+
+      if (!token || !userProfile) {
+        // Clear any stale auth data
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user_email");
+        localStorage.removeItem("userProfile");
+        localStorage.removeItem("auth-storage");
+      }
+    };
+
+    checkAuthState();
+  }, [location, navigate, setValue]);
 
   const onSubmit = async (data) => {
     try {
       setError("");
       setSuccessMessage("");
       setIsLoading(true);
+      setShowTroubleshoot(false);
 
       console.log("Login attempt for:", data.email);
+      console.log("Clearing any existing auth data...");
+
+      // Clear any existing auth data before attempting new login
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("user_email");
+      localStorage.removeItem("userProfile");
+      localStorage.removeItem("auth-storage");
 
       // Make API call to login
       const response = await axiosInstance.post("/auth/login", {
@@ -184,6 +242,9 @@ const LoginPage = () => {
       if (response.data && response.data.message === "Login successful") {
         const { token, data: userData } = response.data;
 
+        console.log("Login successful, user data:", userData);
+        console.log("User verification status:", userData.isVerified);
+
         // Check if user is verified
         if (!userData.isVerified) {
           setError(
@@ -194,6 +255,7 @@ const LoginPage = () => {
             If you didn't receive it, check your spam folder or request a new verification link.`
           );
           setIsLoading(false);
+          setRetryCount(0);
           return;
         }
 
@@ -210,9 +272,23 @@ const LoginPage = () => {
             phone: userData.phone,
             role: userData.role,
             isVerified: userData.isVerified,
+            isActive: userData.isActive,
             profilePicture: userData.profilePicture,
+            createdAt: userData.createdAt,
+            updatedAt: userData.updatedAt,
           })
         );
+
+        // Also store in auth-storage for compatibility
+        const authStorage = {
+          state: { token: token },
+          version: 0,
+        };
+        localStorage.setItem("auth-storage", JSON.stringify(authStorage));
+
+        console.log("Auth data stored successfully");
+        console.log("auth_token:", localStorage.getItem("auth_token"));
+        console.log("userProfile:", localStorage.getItem("userProfile"));
 
         // Check for pending save item
         const pendingSave = localStorage.getItem("pendingSaveItem");
@@ -235,22 +311,42 @@ const LoginPage = () => {
         // Dispatch login event for header component
         window.dispatchEvent(new Event("storage"));
         window.dispatchEvent(new Event("authChange"));
+        window.dispatchEvent(
+          new CustomEvent("loginSuccess", {
+            detail: {
+              email: userData.email,
+              token: token,
+              userProfile: userData,
+            },
+          })
+        );
 
         // Get redirect URL or default to home
         const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
         localStorage.removeItem("redirectAfterLogin");
 
         setIsLoading(false);
+        setRetryCount(0);
 
         // Show success toast
         setToastMessage("✅ Login successful! Redirecting...");
         setToastType("success");
         setShowToast(true);
 
+        console.log("Will redirect to:", redirectUrl);
+
         // Redirect after short delay
         setTimeout(() => {
           setShowToast(false);
-          navigate(redirectUrl);
+          navigate(redirectUrl, { replace: true });
+
+          // Force reload if still on login page after 1 second
+          setTimeout(() => {
+            if (window.location.pathname === "/login") {
+              console.log("Still on login page, forcing reload");
+              window.location.href = redirectUrl;
+            }
+          }, 1000);
         }, 1000);
       }
     } catch (error) {
@@ -262,8 +358,10 @@ const LoginPage = () => {
       });
 
       setIsLoading(false);
+      setRetryCount((prev) => prev + 1);
 
       let errorMessage = "Login failed. Please try again.";
+      let showTroubleshootBtn = false;
 
       if (error.response) {
         if (error.response.status === 401) {
@@ -275,7 +373,17 @@ const LoginPage = () => {
         } else if (error.response.status === 400) {
           errorMessage = "⚠️ Invalid request. Please check your input.";
         } else if (error.response.status === 500) {
-          errorMessage = "🚨 Server error. Please try again later.";
+          // Server error - common after OTP verification
+          const serverError =
+            error.response.data?.message || "Internal server error";
+          errorMessage = `🚨 Server Error: ${serverError}
+          
+          This often happens after OTP verification. Try these steps:
+          
+          1. Wait 2-3 minutes for the server to update
+          2. Try logging in again
+          3. If it persists, try resetting your password`;
+          showTroubleshootBtn = true;
         } else if (error.response.data?.message) {
           errorMessage = `⚠️ ${error.response.data.message}`;
         }
@@ -285,6 +393,23 @@ const LoginPage = () => {
       }
 
       setError(errorMessage);
+      setShowTroubleshoot(showTroubleshootBtn);
+
+      // Clear auth data on login failure
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("user_email");
+      localStorage.removeItem("userProfile");
+      localStorage.removeItem("auth-storage");
+
+      // If multiple retries, suggest password reset
+      if (retryCount >= 2) {
+        setError(
+          (prev) =>
+            prev +
+            "\n\n🔧 Multiple login attempts failed. Consider resetting your password."
+        );
+        setShowTroubleshoot(true);
+      }
     }
   };
 
@@ -302,9 +427,19 @@ const LoginPage = () => {
   };
 
   const handleResetPassword = () => {
+    // Get email from form
+    const email = document.getElementById("email")?.value;
+
     // Clear pending save when navigating to reset password
     localStorage.removeItem("pendingSaveItem");
-    navigate("/reset-password");
+
+    if (email) {
+      navigate("/reset-password", {
+        state: { email },
+      });
+    } else {
+      navigate("/reset-password");
+    }
   };
 
   const handleResendVerification = async () => {
@@ -312,16 +447,24 @@ const LoginPage = () => {
     if (email) {
       try {
         console.log("Resending verification email to:", email);
-        // Add API call to resend verification email here
-        // Example: await axiosInstance.post("/auth/resend-verification", { email });
 
-        setSuccessMessage(
-          `📧 Verification email resent to ${email}. Please check your inbox.`
-        );
-        setToastMessage(`📧 Verification email sent to ${email}`);
-        setToastType("success");
-        setShowToast(true);
+        // Make API call to resend verification
+        const response = await axiosInstance.post("/auth/resend-verification", {
+          email,
+        });
+
+        if (response.data.success || response.data.message?.includes("sent")) {
+          setSuccessMessage(
+            `📧 Verification email resent to ${email}. Please check your inbox.`
+          );
+          setToastMessage(`📧 Verification email sent to ${email}`);
+          setToastType("success");
+          setShowToast(true);
+        } else {
+          setError("Failed to resend verification email. Please try again.");
+        }
       } catch (error) {
+        console.error("Resend verification error:", error);
         setError("Failed to resend verification email. Please try again.");
       }
     } else {
@@ -337,7 +480,7 @@ const LoginPage = () => {
     // Navigate after login
     const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
     localStorage.removeItem("redirectAfterLogin");
-    navigate(redirectUrl);
+    navigate(redirectUrl, { replace: true });
   };
 
   const handleConfirmSave = () => {
@@ -375,7 +518,48 @@ const LoginPage = () => {
     // Navigate after login
     const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
     localStorage.removeItem("redirectAfterLogin");
-    navigate(redirectUrl);
+    navigate(redirectUrl, { replace: true });
+  };
+
+  // Retry login function
+  const handleRetryLogin = () => {
+    const email = document.getElementById("email")?.value;
+    const password = document.getElementById("password")?.value;
+
+    if (email && password) {
+      onSubmit({ email, password });
+    } else {
+      setError("Please enter both email and password first.");
+    }
+  };
+
+  // Clear cache and retry
+  const handleClearCacheAndRetry = () => {
+    console.log("Clearing cache and retrying...");
+
+    // Clear all local storage
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // Clear cookies
+    document.cookie.split(";").forEach((c) => {
+      document.cookie = c
+        .replace(/^ +/, "")
+        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+
+    setError("Cache cleared. Please try logging in again.");
+    setRetryCount(0);
+    setShowTroubleshoot(false);
+
+    // Reload form
+    setValue("password", "");
+    document.getElementById("password")?.focus();
+  };
+
+  // Show troubleshooting options
+  const toggleTroubleshoot = () => {
+    setShowTroubleshoot(!showTroubleshoot);
   };
 
   return (
@@ -423,17 +607,70 @@ const LoginPage = () => {
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm whitespace-pre-line">
             {error}
 
-            {/* Add resend verification button if user is not verified */}
-            {error.includes("verify your email") && (
-              <div className="mt-3">
+            {/* Retry button */}
+            {error.includes("Server Error") && (
+              <div className="mt-3 space-y-2">
                 <button
-                  onClick={handleResendVerification}
-                  className="text-blue-600 hover:text-blue-800 underline text-sm font-medium"
+                  onClick={handleRetryLogin}
+                  disabled={isLoading}
+                  className="w-full py-2 px-4 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium flex items-center justify-center gap-2"
                 >
-                  Resend verification email
+                  <FaSync className={isLoading ? "animate-spin" : ""} />
+                  {isLoading ? "Retrying..." : "Retry Login"}
+                </button>
+
+                {/* Troubleshoot button */}
+                <button
+                  onClick={toggleTroubleshoot}
+                  className="w-full py-2 px-4 text-sm text-gray-600 hover:text-gray-800"
+                >
+                  {showTroubleshoot ? "Hide Options" : "Show More Options"}
                 </button>
               </div>
             )}
+
+            {/* Troubleshoot options */}
+            {showTroubleshoot && (
+              <div className="mt-3 space-y-2 border-t border-red-100 pt-3">
+                <p className="text-xs font-medium text-gray-700 mb-2">
+                  Troubleshooting Options:
+                </p>
+
+                <button
+                  onClick={handleResetPassword}
+                  className="w-full py-2 px-4 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-lg hover:bg-yellow-100 transition-colors text-sm font-medium"
+                >
+                  Reset Password
+                </button>
+
+                <button
+                  onClick={handleResendVerification}
+                  className="w-full py-2 px-4 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors text-sm font-medium"
+                >
+                  Resend Verification Email
+                </button>
+
+                <button
+                  onClick={handleClearCacheAndRetry}
+                  className="w-full py-2 px-4 bg-gray-50 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium"
+                >
+                  Clear Cache & Retry
+                </button>
+              </div>
+            )}
+
+            {/* Add resend verification button if user is not verified */}
+            {error.includes("verify your email") &&
+              !error.includes("Server Error") && (
+                <div className="mt-3">
+                  <button
+                    onClick={handleResendVerification}
+                    className="text-blue-600 hover:text-blue-800 underline text-sm font-medium"
+                  >
+                    Resend verification email
+                  </button>
+                </div>
+              )}
           </div>
         )}
 
@@ -454,6 +691,7 @@ const LoginPage = () => {
                 errors.email ? "border-red-500" : "border-gray-300"
               } rounded-lg focus:ring-2 focus:ring-[#00d37f] focus:border-[#00d37f] transition-colors`}
               placeholder="Email Address"
+              autoComplete="email"
             />
             {errors.email && (
               <p className="text-red-500 text-xs mt-1">
@@ -479,6 +717,7 @@ const LoginPage = () => {
                   errors.password ? "border-red-500" : "border-gray-300"
                 } rounded-lg focus:ring-2 focus:ring-[#00d37f] focus:border-[#00d37f] transition-colors`}
                 placeholder="Enter your password"
+                autoComplete="current-password"
               />
               <button
                 type="button"
@@ -499,18 +738,23 @@ const LoginPage = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full hover:bg-[#06EAFC] bg-[#6cff] text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full hover:bg-[#06EAFC] bg-[#6cff] text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isLoading ? (
-              <span className="flex items-center justify-center gap-2">
+              <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 Logging in...
-              </span>
+              </>
             ) : (
               "Log In"
             )}
           </button>
         </form>
+
+        {/* Debug info */}
+        <div className="text-center text-xs text-gray-400">
+          <p>Retry attempts: {retryCount}</p>
+        </div>
 
         <div className="text-center text-sm text-gray-600 pt-4">
           <div className="mb-3 space-y-2">

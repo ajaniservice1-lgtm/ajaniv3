@@ -1,11 +1,12 @@
-// src/pages/auth/ResetPasswordPage.jsx
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { FaEye, FaEyeSlash, FaTimes, FaCheck } from "react-icons/fa";
 import Logo from "../../assets/Logos/logo5.png";
+import axiosInstance from "../../lib/axios";
 
 const ResetPasswordPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [step, setStep] = useState(1); // 1: Email input, 2: OTP verification, 3: New password
   const [form, setForm] = useState({
     email: "",
@@ -20,6 +21,13 @@ const ResetPasswordPage = () => {
   const [success, setSuccess] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
+
+  // Pre-fill email from location state if available
+  React.useEffect(() => {
+    if (location.state?.email) {
+      setForm((prev) => ({ ...prev, email: location.state.email }));
+    }
+  }, [location]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,13 +44,28 @@ const ResetPasswordPage = () => {
           return;
         }
 
-        // Simulate API call to send OTP
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log("Requesting password reset OTP for:", form.email);
 
-        setOtpSent(true);
-        setSuccess(`OTP sent to ${form.email}`);
-        setStep(2);
-        startCountdown(120); // 2 minutes countdown
+        // API call to request password reset OTP
+        const response = await axiosInstance.post("/auth/forgot-password", {
+          email: form.email,
+        });
+
+        console.log("Password reset OTP response:", response.data);
+
+        if (
+          response.data.success ||
+          response.data.message === "OTP sent successfully"
+        ) {
+          setOtpSent(true);
+          setSuccess(`OTP sent to ${form.email}`);
+          setStep(2);
+          startCountdown(120); // 2 minutes countdown
+        } else {
+          setError(
+            response.data.message || "Failed to send OTP. Please try again."
+          );
+        }
       } else if (step === 2) {
         // Verify OTP
         if (!form.otp || form.otp.length !== 6) {
@@ -51,15 +74,27 @@ const ResetPasswordPage = () => {
           return;
         }
 
-        // Simulate OTP verification
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log("Verifying password reset OTP:", {
+          email: form.email,
+          otp: form.otp,
+        });
 
-        // For demo purposes, accept any 6-digit OTP
-        if (form.otp.length === 6) {
+        // API call to verify password reset OTP
+        const response = await axiosInstance.post("/auth/verify-reset-otp", {
+          email: form.email,
+          otp: form.otp,
+        });
+
+        console.log("OTP verification response:", response.data);
+
+        if (
+          response.data.success ||
+          response.data.message === "OTP verified successfully"
+        ) {
           setSuccess("OTP verified successfully!");
           setStep(3);
         } else {
-          setError("Invalid OTP. Please try again.");
+          setError(response.data.message || "Invalid OTP. Please try again.");
         }
       } else if (step === 3) {
         // Set new password
@@ -75,18 +110,72 @@ const ResetPasswordPage = () => {
           return;
         }
 
-        // Simulate password reset
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log("Resetting password for:", form.email);
 
-        setSuccess("Password reset successfully! Redirecting to login...");
+        // API call to reset password
+        const response = await axiosInstance.post("/auth/reset-password", {
+          email: form.email,
+          otp: form.otp,
+          newPassword: form.password,
+        });
 
-        // Redirect to login after delay
-        setTimeout(() => {
-          navigate("/login");
-        }, 2000);
+        console.log("Password reset response:", response.data);
+
+        if (
+          response.data.success ||
+          response.data.message === "Password reset successfully"
+        ) {
+          setSuccess("Password reset successfully! Redirecting to login...");
+
+          // Clear any existing auth data
+          localStorage.removeItem("auth_token");
+          localStorage.removeItem("user_email");
+          localStorage.removeItem("userProfile");
+          localStorage.removeItem("auth-storage");
+
+          // Redirect to login after delay
+          setTimeout(() => {
+            navigate("/login", {
+              state: {
+                resetSuccess: true,
+                email: form.email,
+              },
+            });
+          }, 2000);
+        } else {
+          setError(
+            response.data.message ||
+              "Failed to reset password. Please try again."
+          );
+        }
       }
-    } catch (err) {
-      setError("Something went wrong. Please try again.");
+    } catch (error) {
+      console.error("Reset password error:", error);
+
+      let errorMessage = "Something went wrong. Please try again.";
+
+      if (error.response) {
+        console.error("Error response:", error.response.data);
+        console.error("Error status:", error.response.status);
+
+        if (error.response.status === 400) {
+          errorMessage =
+            error.response.data?.message ||
+            "Invalid request. Please check your input.";
+        } else if (error.response.status === 404) {
+          errorMessage = "Email not found. Please check and try again.";
+        } else if (error.response.status === 429) {
+          errorMessage = "Too many attempts. Please try again later.";
+        } else if (error.response.status === 500) {
+          errorMessage = "Server error. Please try again later.";
+        } else if (error.response.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error.request) {
+        errorMessage = "Network error. Please check your internet connection.";
+      }
+
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -105,16 +194,48 @@ const ResetPasswordPage = () => {
     }, 1000);
   };
 
-  const resendOTP = () => {
-    if (countdown > 0) return;
+  const resendOTP = async () => {
+    if (countdown > 0 || !form.email) return;
 
     setError("");
-    setSuccess("OTP resent to your email");
-    startCountdown(120);
+    setIsLoading(true);
+
+    try {
+      console.log("Resending OTP to:", form.email);
+
+      const response = await axiosInstance.post("/auth/resend-otp", {
+        email: form.email,
+        type: "password-reset", // Specify this is for password reset
+      });
+
+      if (
+        response.data.success ||
+        response.data.message === "OTP resent successfully"
+      ) {
+        setSuccess("OTP resent to your email");
+        startCountdown(120);
+      } else {
+        setError(response.data.message || "Failed to resend OTP");
+      }
+    } catch (error) {
+      console.error("Resend OTP error:", error);
+      setError("Failed to resend OTP. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    // For OTP input, only allow numbers and limit to 6 digits
+    if (name === "otp") {
+      const numericValue = value.replace(/\D/g, "").slice(0, 6);
+      setForm({ ...form, [name]: numericValue });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
+
     if (error) setError("");
   };
 
@@ -131,6 +252,27 @@ const ResetPasswordPage = () => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+  };
+
+  // Password strength indicator
+  const getPasswordStrength = (password) => {
+    if (!password) return { strength: 0, text: "", color: "" };
+
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+
+    const strengths = [
+      { text: "Very Weak", color: "bg-red-500" },
+      { text: "Weak", color: "bg-orange-500" },
+      { text: "Fair", color: "bg-yellow-500" },
+      { text: "Good", color: "bg-blue-500" },
+      { text: "Strong", color: "bg-green-500" },
+    ];
+
+    return strengths[strength];
   };
 
   return (
@@ -213,19 +355,49 @@ const ResetPasswordPage = () => {
                 >
                   Enter 6-digit OTP *
                 </label>
-                <input
-                  id="otp"
-                  name="otp"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]{6}"
-                  maxLength="6"
-                  required
-                  value={form.otp}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 text-center text-2xl tracking-widest border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d37f] focus:border-[#00d37f] transition-colors"
-                  placeholder="000000"
-                />
+                <div className="flex gap-2 justify-center">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <input
+                      key={index}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength="1"
+                      value={form.otp[index] || ""}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, "");
+                        if (value || e.target.value === "") {
+                          const newOtp = form.otp.split("");
+                          newOtp[index] = value;
+                          const otpString = newOtp.join("");
+                          setForm({ ...form, otp: otpString });
+
+                          // Auto-focus next input
+                          if (value && index < 5) {
+                            document
+                              .getElementById(`otp-${index + 1}`)
+                              ?.focus();
+                          }
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (
+                          e.key === "Backspace" &&
+                          !form.otp[index] &&
+                          index > 0
+                        ) {
+                          document.getElementById(`otp-${index - 1}`)?.focus();
+                        }
+                      }}
+                      id={`otp-${index}`}
+                      className="w-12 h-12 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg focus:border-[#00d37f] focus:ring-2 focus:ring-[#00d37f] focus:outline-none transition-colors"
+                      autoFocus={index === 0}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 text-center mt-2">
+                  Enter the 6-digit code received in your email
+                </p>
               </div>
 
               <div className="text-center">
@@ -234,15 +406,17 @@ const ResetPasswordPage = () => {
                   <button
                     type="button"
                     onClick={resendOTP}
-                    disabled={countdown > 0}
+                    disabled={countdown > 0 || isLoading}
                     className={`font-medium ${
-                      countdown > 0
+                      countdown > 0 || isLoading
                         ? "text-gray-400 cursor-not-allowed"
                         : "text-[#6cff] hover:text-[#06EAFC]"
                     }`}
                   >
                     {countdown > 0
                       ? `Resend in ${formatTime(countdown)}`
+                      : isLoading
+                      ? "Sending..."
                       : "Resend OTP"}
                   </button>
                 </p>
@@ -287,9 +461,63 @@ const ResetPasswordPage = () => {
                     )}
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Must be at least 8 characters long
-                </p>
+
+                {/* Password strength indicator */}
+                {form.password && (
+                  <div className="mt-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full ${
+                            getPasswordStrength(form.password).color
+                          } transition-all duration-300`}
+                          style={{
+                            width: `${
+                              (getPasswordStrength(form.password).strength +
+                                1) *
+                              20
+                            }%`,
+                          }}
+                        ></div>
+                      </div>
+                      <span className="text-xs text-gray-600">
+                        {getPasswordStrength(form.password).text}
+                      </span>
+                    </div>
+                    <ul className="text-xs text-gray-500 space-y-1 mt-2">
+                      <li
+                        className={`${
+                          form.password.length >= 8 ? "text-green-600" : ""
+                        }`}
+                      >
+                        • At least 8 characters
+                      </li>
+                      <li
+                        className={`${
+                          /[A-Z]/.test(form.password) ? "text-green-600" : ""
+                        }`}
+                      >
+                        • At least one uppercase letter
+                      </li>
+                      <li
+                        className={`${
+                          /[0-9]/.test(form.password) ? "text-green-600" : ""
+                        }`}
+                      >
+                        • At least one number
+                      </li>
+                      <li
+                        className={`${
+                          /[^A-Za-z0-9]/.test(form.password)
+                            ? "text-green-600"
+                            : ""
+                        }`}
+                      >
+                        • At least one special character
+                      </li>
+                    </ul>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -307,7 +535,15 @@ const ResetPasswordPage = () => {
                     required
                     value={form.confirmPassword}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d37f] focus:border-[#00d37f] transition-colors"
+                    className={`w-full px-4 py-3 pr-10 border rounded-lg focus:ring-2 focus:ring-[#00d37f] focus:border-[#00d37f] transition-colors ${
+                      form.confirmPassword &&
+                      form.password !== form.confirmPassword
+                        ? "border-red-500"
+                        : form.password &&
+                          form.password === form.confirmPassword
+                        ? "border-green-500"
+                        : "border-gray-300"
+                    }`}
                     placeholder="Confirm new password"
                     minLength="8"
                   />
@@ -323,6 +559,18 @@ const ResetPasswordPage = () => {
                     )}
                   </button>
                 </div>
+                {form.confirmPassword &&
+                  form.password !== form.confirmPassword && (
+                    <p className="text-red-500 text-xs mt-1">
+                      Passwords do not match
+                    </p>
+                  )}
+                {form.confirmPassword &&
+                  form.password === form.confirmPassword && (
+                    <p className="text-green-500 text-xs mt-1">
+                      Passwords match ✓
+                    </p>
+                  )}
               </div>
             </div>
           )}
@@ -331,15 +579,24 @@ const ResetPasswordPage = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full hover:bg-[#06EAFC] bg-[#6cff] text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full hover:bg-[#06EAFC] bg-[#6cff] text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {isLoading
-              ? "Processing..."
-              : step === 1
-              ? "Send OTP"
-              : step === 2
-              ? "Verify OTP"
-              : "Reset Password"}
+            {isLoading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                {step === 1
+                  ? "Sending OTP..."
+                  : step === 2
+                  ? "Verifying..."
+                  : "Resetting Password..."}
+              </>
+            ) : step === 1 ? (
+              "Send OTP"
+            ) : step === 2 ? (
+              "Verify OTP"
+            ) : (
+              "Reset Password"
+            )}
           </button>
         </form>
 
@@ -350,6 +607,7 @@ const ResetPasswordPage = () => {
             <button
               onClick={() => navigate("/login")}
               className="text-[#6cff] hover:text-[#06EAFC] font-medium"
+              disabled={isLoading}
             >
               Back to Login
             </button>
@@ -360,10 +618,10 @@ const ResetPasswordPage = () => {
         <div className="flex items-center justify-between pt-6">
           <div className="flex items-center">
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
                 step >= 1
-                  ? "bg-[#6cff] text-white"
-                  : "bg-gray-200 text-gray-400"
+                  ? "bg-[#6cff] border-[#6cff] text-white"
+                  : "border-gray-300 bg-white text-gray-400"
               }`}
             >
               1
@@ -374,10 +632,10 @@ const ResetPasswordPage = () => {
               }`}
             ></div>
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
                 step >= 2
-                  ? "bg-[#6cff] text-white"
-                  : "bg-gray-200 text-gray-400"
+                  ? "bg-[#6cff] border-[#6cff] text-white"
+                  : "border-gray-300 bg-white text-gray-400"
               }`}
             >
               2
@@ -388,10 +646,10 @@ const ResetPasswordPage = () => {
               }`}
             ></div>
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
                 step >= 3
-                  ? "bg-[#6cff] text-white"
-                  : "bg-gray-200 text-gray-400"
+                  ? "bg-[#6cff] border-[#6cff] text-white"
+                  : "border-gray-300 bg-white text-gray-400"
               }`}
             >
               3
@@ -400,6 +658,21 @@ const ResetPasswordPage = () => {
           <span className="text-sm text-gray-500">Step {step} of 3</span>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+      `}</style>
     </div>
   );
 };

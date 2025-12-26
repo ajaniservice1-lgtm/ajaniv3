@@ -98,12 +98,17 @@ const VerifyOTPPage = () => {
     message: "",
     type: "success",
   });
+  const [redirecting, setRedirecting] = useState(false);
   const inputRefs = useRef([]);
 
   useEffect(() => {
+    console.log("VerifyOTPPage mounted - checking email...");
+
     // Get email from location state or localStorage
     const stateEmail =
       location.state?.email || localStorage.getItem("pendingVerificationEmail");
+
+    console.log("Found email:", stateEmail);
 
     if (stateEmail) {
       setEmail(stateEmail);
@@ -113,6 +118,8 @@ const VerifyOTPPage = () => {
       if (userProfile) {
         try {
           const parsedProfile = JSON.parse(userProfile);
+          console.log("Parsed profile:", parsedProfile);
+
           if (parsedProfile.email && !parsedProfile.isVerified) {
             setEmail(parsedProfile.email);
             localStorage.setItem(
@@ -120,8 +127,9 @@ const VerifyOTPPage = () => {
               parsedProfile.email
             );
           } else if (parsedProfile.isVerified) {
-            // User is already verified, redirect to home
-            navigate("/");
+            // User is already verified and logged in, redirect to home
+            console.log("User already verified, redirecting to home");
+            navigate("/", { replace: true });
             return;
           }
         } catch (error) {
@@ -131,7 +139,8 @@ const VerifyOTPPage = () => {
 
       // Still no email, redirect to registration
       if (!email) {
-        navigate("/register");
+        console.log("No email found, redirecting to register");
+        navigate("/register", { replace: true });
       }
     }
 
@@ -197,60 +206,119 @@ const VerifyOTPPage = () => {
 
     if (!email) {
       showToast("Email not found. Please register again.", "error");
-      navigate("/register");
+      navigate("/register", { replace: true });
       return;
     }
 
     setIsLoading(true);
 
-    try {
-      console.log("Verifying OTP for email:", email);
+    console.log("Starting OTP verification for:", email);
+    console.log("OTP:", otpString);
 
+    try {
       const response = await axiosInstance.post("/auth/verify-otp", {
         email,
         otp: otpString,
       });
 
-      console.log("OTP verification response:", response.data);
+      console.log("OTP verification API response:", response.data);
 
-      if (response.data.success) {
-        const { token, user } = response.data;
+      if (response.data.message === "OTP verified successfully") {
+        const { token, data: userData } = response.data;
 
-        // Auto-login user after successful OTP verification
+        console.log("OTP verification successful!");
+        console.log("Token received:", token ? "Yes" : "No");
+        console.log("User data:", userData);
+
+        // Save user data to localStorage
+        const userProfile = {
+          id: userData._id,
+          email: userData.email,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          phone: userData.phone,
+          role: userData.role,
+          isVerified: true, // Force verified status
+          isActive: userData.isActive,
+          profilePicture: userData.profilePicture,
+          createdAt: userData.createdAt,
+          updatedAt: userData.updatedAt,
+        };
+
+        // Store authentication data
         localStorage.setItem("auth_token", token);
-        localStorage.setItem("user_email", user.email);
-        localStorage.setItem(
-          "userProfile",
-          JSON.stringify({
-            id: user._id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            phone: user.phone,
-            role: user.role,
-            isVerified: user.isVerified,
-            profilePicture: user.profilePicture,
-          })
-        );
+        localStorage.setItem("user_email", userData.email);
+        localStorage.setItem("userProfile", JSON.stringify(userProfile));
+
+        // Also store in auth-storage for compatibility
+        const authStorage = {
+          state: { token: token },
+          version: 0,
+        };
+        localStorage.setItem("auth-storage", JSON.stringify(authStorage));
 
         // Clear pending verification data
         localStorage.removeItem("pendingVerificationEmail");
         localStorage.removeItem("pendingUserData");
 
-        // Notify header component
+        // Log what was stored
+        console.log("Stored auth_token:", localStorage.getItem("auth_token"));
+        console.log("Stored user_email:", localStorage.getItem("user_email"));
+        console.log("Stored userProfile:", localStorage.getItem("userProfile"));
+
+        // Notify all components about auth change
         window.dispatchEvent(new Event("storage"));
         window.dispatchEvent(new Event("authChange"));
+        window.dispatchEvent(
+          new CustomEvent("loginSuccess", {
+            detail: {
+              email: userData.email,
+              token: token,
+              userProfile: userProfile,
+            },
+          })
+        );
 
         showToast(
-          "✅ OTP verified successfully! Auto-login completed.",
+          "✅ OTP verified successfully! You are now logged in.",
           "success"
         );
 
-        // Redirect to home after toast
+        // Set redirecting state
+        setRedirecting(true);
+
+        // Get redirect URL or default to home
+        const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
+        localStorage.removeItem("redirectAfterLogin");
+
+        console.log("Will redirect to:", redirectUrl);
+        console.log("Current pathname:", window.location.pathname);
+
+        // Force redirect using window.location for guaranteed navigation
         setTimeout(() => {
-          navigate("/");
+          console.log("Attempting to redirect to:", redirectUrl);
+
+          // Method 1: Try programmatic navigation first
+          try {
+            navigate(redirectUrl, { replace: true });
+            console.log("Navigation attempted via navigate()");
+
+            // Method 2: Fallback to window.location if navigate doesn't work
+            setTimeout(() => {
+              if (window.location.pathname === "/verify-otp") {
+                console.log(
+                  "Still on verify-otp page, forcing redirect with window.location"
+                );
+                window.location.href = redirectUrl;
+              }
+            }, 500);
+          } catch (error) {
+            console.error("Navigation error:", error);
+            window.location.href = redirectUrl;
+          }
         }, 1500);
       } else {
+        console.error("OTP verification failed:", response.data);
         showToast(response.data.message || "OTP verification failed", "error");
       }
     } catch (error) {
@@ -259,6 +327,9 @@ const VerifyOTPPage = () => {
       let errorMessage = "OTP verification failed. Please try again.";
 
       if (error.response) {
+        console.error("Error response:", error.response.data);
+        console.error("Error status:", error.response.status);
+
         if (error.response.status === 400) {
           errorMessage =
             error.response.data?.message || "Invalid OTP. Please try again.";
@@ -266,7 +337,12 @@ const VerifyOTPPage = () => {
           errorMessage = "OTP expired or not found. Please request a new one.";
         } else if (error.response.status === 401) {
           errorMessage = "Invalid OTP. Please check and try again.";
+        } else if (error.response.data?.message) {
+          errorMessage = error.response.data.message;
         }
+      } else if (error.request) {
+        console.error("No response received:", error.request);
+        errorMessage = "Network error. Please check your internet connection.";
       }
 
       showToast(errorMessage, "error");
@@ -285,7 +361,10 @@ const VerifyOTPPage = () => {
         email,
       });
 
-      if (response.data.success) {
+      if (
+        response.data.success ||
+        response.data.message === "OTP resent successfully"
+      ) {
         showToast("✅ New OTP sent to your email!", "success");
         setCountdown(30); // Reset countdown
         setOtp(["", "", "", "", "", ""]); // Clear OTP inputs
@@ -306,7 +385,18 @@ const VerifyOTPPage = () => {
   };
 
   const handleBackToRegister = () => {
-    navigate("/register");
+    navigate("/register", { replace: true });
+  };
+
+  // Manual redirect button for testing
+  const handleManualRedirect = () => {
+    console.log("Manual redirect clicked");
+    console.log("Current auth status:", {
+      token: localStorage.getItem("auth_token"),
+      email: localStorage.getItem("user_email"),
+      profile: localStorage.getItem("userProfile"),
+    });
+    navigate("/", { replace: true });
   };
 
   return (
@@ -333,7 +423,7 @@ const VerifyOTPPage = () => {
 
         {/* Close Button */}
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/", { replace: true })}
           className="absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors z-10"
           aria-label="Close"
         >
@@ -356,6 +446,16 @@ const VerifyOTPPage = () => {
         <p className="text-center font-medium text-gray-800 mt-1">
           {email || "your email"}
         </p>
+
+        {/* Debug info */}
+        {redirecting && (
+          <div className="mt-2 text-center">
+            <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              Redirecting to home page...
+            </div>
+          </div>
+        )}
 
         {/* Divider */}
         <div className="w-full border-t border-[#00d1ff] my-4"></div>
@@ -412,7 +512,7 @@ const VerifyOTPPage = () => {
         <div className="flex justify-center">
           <button
             onClick={handleVerifyOTP}
-            disabled={isLoading || otp.join("").length !== 6}
+            disabled={isLoading || otp.join("").length !== 6 || redirecting}
             className="bg-[#00d37f] text-white px-8 py-3 rounded-lg shadow-md hover:bg-[#02be72] transition font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isLoading ? (
@@ -420,9 +520,21 @@ const VerifyOTPPage = () => {
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 Verifying...
               </>
+            ) : redirecting ? (
+              "Redirecting..."
             ) : (
-              "Submit"
+              "Verify OTP"
             )}
+          </button>
+        </div>
+
+        {/* Manual Redirect Button for Testing */}
+        <div className="mt-4 text-center">
+          <button
+            onClick={handleManualRedirect}
+            className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+          >
+            Click here if not redirected automatically
           </button>
         </div>
 
@@ -476,6 +588,15 @@ const VerifyOTPPage = () => {
           }
         }
 
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
         .animate-slideInRight {
           animation: slideInRight 0.3s ease-out forwards;
         }
@@ -490,15 +611,6 @@ const VerifyOTPPage = () => {
 
         .animate-spin {
           animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
         }
       `}</style>
     </div>
