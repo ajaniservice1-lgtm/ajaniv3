@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FaEye, FaEyeSlash, FaTimes, FaSync, FaCheck } from "react-icons/fa";
+import {
+  FaEye,
+  FaEyeSlash,
+  FaTimes,
+  FaSync,
+  FaCheck,
+  FaExclamationTriangle,
+} from "react-icons/fa";
 import Logo from "../../assets/Logos/logo5.png";
 import * as yup from "yup";
 import { useForm } from "react-hook-form";
@@ -35,12 +42,12 @@ const LoginToastNotification = ({ message, onClose, type = "success" }) => {
     return () => clearTimeout(timer);
   }, []);
 
-  const bgColor = type === "success" ? "bg-green-50" : "bg-blue-50";
+  const bgColor = type === "success" ? "bg-green-50" : "bg-red-50";
   const borderColor =
-    type === "success" ? "border-green-200" : "border-blue-200";
-  const textColor = type === "success" ? "text-green-800" : "text-blue-800";
-  const progressColor = type === "success" ? "bg-green-500" : "bg-blue-500";
-  const iconColor = type === "success" ? "text-green-600" : "text-blue-600";
+    type === "success" ? "border-green-200" : "border-red-200";
+  const textColor = type === "success" ? "text-green-800" : "text-red-800";
+  const progressColor = type === "success" ? "bg-green-500" : "bg-red-500";
+  const iconColor = type === "success" ? "text-green-600" : "text-red-600";
 
   return (
     <div
@@ -56,13 +63,7 @@ const LoginToastNotification = ({ message, onClose, type = "success" }) => {
             {type === "success" ? (
               <FaCheck size={16} />
             ) : (
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <FaExclamationTriangle size={16} />
             )}
           </div>
           <div className="flex-1">
@@ -71,7 +72,7 @@ const LoginToastNotification = ({ message, onClose, type = "success" }) => {
           <button
             onClick={handleClose}
             className={`${iconColor} hover:${
-              type === "success" ? "text-green-600" : "text-blue-600"
+              type === "success" ? "text-green-600" : "text-red-600"
             } transition-colors ml-2`}
             aria-label="Close notification"
           >
@@ -129,7 +130,6 @@ const LoginPage = () => {
       setToastType("success");
       setShowToast(true);
 
-      // Clear the query parameter
       setTimeout(() => {
         navigate("/login", { replace: true });
         setSuccessMessage("");
@@ -137,7 +137,6 @@ const LoginPage = () => {
       }, 5000);
     }
 
-    // Check for OTP verification redirect - pre-fill email
     const fromOTP = location.state?.fromOTP;
     const verifiedEmail = location.state?.verifiedEmail;
 
@@ -147,10 +146,8 @@ const LoginPage = () => {
       setToastType("success");
       setShowToast(true);
 
-      // Pre-fill the email field
       setValue("email", verifiedEmail);
 
-      // Focus on password field
       setTimeout(() => {
         document.getElementById("password")?.focus();
       }, 100);
@@ -161,23 +158,19 @@ const LoginPage = () => {
       }, 4000);
     }
 
-    // Check for registration success
     const registeredEmail = localStorage.getItem("pendingVerificationEmail");
     if (registeredEmail && !location.search.includes("verified=true")) {
       setSuccessMessage(
         `📧 Registration successful! Please check ${registeredEmail} for verification.`
       );
-      // Pre-fill the email field
       setValue("email", registeredEmail);
       localStorage.removeItem("pendingVerificationEmail");
 
-      // Clear the message after 8 seconds
       setTimeout(() => {
         setSuccessMessage("");
       }, 8000);
     }
 
-    // Check for password reset success
     const resetSuccess = location.state?.resetSuccess;
     if (resetSuccess) {
       setSuccessMessage(
@@ -192,13 +185,6 @@ const LoginPage = () => {
         setShowToast(false);
       }, 4000);
     }
-
-    // Debug: Log current auth state
-    console.log("LoginPage mounted. Current auth state:", {
-      auth_token: localStorage.getItem("auth_token"),
-      user_email: localStorage.getItem("user_email"),
-      userProfile: localStorage.getItem("userProfile"),
-    });
   }, [location, navigate, setValue]);
 
   const onSubmit = async (data) => {
@@ -208,9 +194,6 @@ const LoginPage = () => {
       setIsLoading(true);
       setIsRedirecting(false);
       setShowTroubleshoot(false);
-
-      console.log("Login attempt for:", data.email);
-      console.log("Clearing any existing auth data...");
 
       // Clear any existing auth data before attempting new login
       localStorage.removeItem("auth_token");
@@ -224,9 +207,7 @@ const LoginPage = () => {
         password: data.password,
       });
 
-      console.log("Login response:", response.data);
-
-      // Handle different response formats - FIXED VERSION
+      // Handle different response formats
       let loginData;
       if (
         response.data &&
@@ -234,18 +215,13 @@ const LoginPage = () => {
         response.data.message.includes("Login successful")
       ) {
         loginData = response.data;
-        console.log("Login successful with message:", response.data.message);
       } else if (response.data && response.data.success) {
-        // Handle alternative success response format
         loginData = response.data;
       } else {
         throw new Error("Invalid login response format");
       }
 
       const { token, data: userData } = loginData;
-
-      console.log("Login successful, user data:", userData);
-      console.log("User verification status:", userData.isVerified);
 
       // Check if user is verified
       if (!userData.isVerified) {
@@ -261,7 +237,7 @@ const LoginPage = () => {
         return;
       }
 
-      // Store authentication data - SAME AS OTP VERIFICATION
+      // Store authentication data
       localStorage.setItem("auth_token", token);
       localStorage.setItem("user_email", userData.email);
       localStorage.setItem(
@@ -281,36 +257,30 @@ const LoginPage = () => {
         })
       );
 
-      // Also store in auth-storage for compatibility - SAME AS OTP
+      // Also store in auth-storage for compatibility
       const authStorage = {
         state: { token: token },
         version: 0,
       };
       localStorage.setItem("auth-storage", JSON.stringify(authStorage));
 
-      console.log("Auth data stored successfully");
-      console.log("auth_token:", localStorage.getItem("auth_token"));
-      console.log("userProfile:", localStorage.getItem("userProfile"));
-
       // Check for pending save item
       const pendingSave = localStorage.getItem("pendingSaveItem");
       if (pendingSave) {
         try {
           const pendingItem = JSON.parse(pendingSave);
-          // Show confirmation dialog instead of auto-saving
           setPendingSaveConfirm({
             item: pendingItem,
-            redirectUrl: "/", // Default redirect
+            redirectUrl: "/",
           });
           setIsLoading(false);
           return;
         } catch (err) {
-          console.error("Error processing pending save:", err);
           localStorage.removeItem("pendingSaveItem");
         }
       }
 
-      // Dispatch login event for header component - SAME AS OTP
+      // Dispatch login event for header component
       window.dispatchEvent(new Event("storage"));
       window.dispatchEvent(new Event("authChange"));
       window.dispatchEvent(
@@ -323,7 +293,7 @@ const LoginPage = () => {
         })
       );
 
-      // Get redirect URL or default to home - SAME AS OTP
+      // Get redirect URL or default to home
       const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
       localStorage.removeItem("redirectAfterLogin");
 
@@ -331,73 +301,52 @@ const LoginPage = () => {
       setRetryCount(0);
       setIsRedirecting(true);
 
-      // Show success toast - SAME AS OTP
+      // Show success toast
       setToastMessage("✅ Login successful! Redirecting...");
       setToastType("success");
       setShowToast(true);
 
-      console.log("Will redirect to:", redirectUrl);
-      console.log("Current pathname:", window.location.pathname);
-
-      // Wait a moment for toast to show, then redirect - SIMILAR TO OTP
       setTimeout(() => {
-        console.log("Attempting navigation to:", redirectUrl);
-
-        // Method 1: Try React Router navigation - SAME AS OTP
         try {
           navigate(redirectUrl, {
             replace: true,
             state: { fromLogin: true },
           });
-          console.log("Navigation attempted via navigate()");
         } catch (navError) {
-          console.error("React Router navigation failed:", navError);
+          console.error("Navigation failed:", navError);
         }
 
-        // Method 2: Fallback to window.location after delay - SAME AS OTP
+        // Fallback to window.location after delay
         setTimeout(() => {
           if (window.location.pathname === "/login") {
-            console.log(
-              "Still on login page after 500ms, forcing window.location"
-            );
             window.location.href = redirectUrl;
           }
         }, 500);
-
-        // Method 3: Force redirect after 2 seconds - SAME AS OTP
-        setTimeout(() => {
-          if (window.location.pathname === "/login") {
-            console.log("Still on login page after 2s, forcing hard redirect");
-            window.location.assign(redirectUrl);
-          }
-        }, 2000);
       }, 1000);
     } catch (error) {
-      console.error("Login error details:", {
-        name: error.name,
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-      });
-
       setIsLoading(false);
       setIsRedirecting(false);
       setRetryCount((prev) => prev + 1);
 
       let errorMessage = "Login failed. Please try again.";
       let showTroubleshootBtn = false;
+      let showErrorToast = false;
+      let toastErrorType = "error";
 
       if (error.response) {
         if (error.response.status === 401) {
           errorMessage =
             "❌ Invalid email or password. Please check your credentials.";
+          showErrorToast = true;
+          toastErrorType = "error";
         } else if (error.response.status === 403) {
           errorMessage =
             "🔒 Please verify your email before logging in. Check your inbox for the verification link.";
         } else if (error.response.status === 400) {
           errorMessage = "⚠️ Invalid request. Please check your input.";
+          showErrorToast = true;
+          toastErrorType = "error";
         } else if (error.response.status === 500) {
-          // Server error - common after OTP verification
           const serverError =
             error.response.data?.message || "Internal server error";
           errorMessage = `🚨 Server Error: ${serverError}
@@ -410,16 +359,27 @@ const LoginPage = () => {
           showTroubleshootBtn = true;
         } else if (error.response.data?.message) {
           errorMessage = `⚠️ ${error.response.data.message}`;
+          showErrorToast = true;
+          toastErrorType = "error";
         }
       } else if (error.request) {
         errorMessage =
           "🌐 Network error. Please check your internet connection.";
       } else if (error.message === "Invalid login response format") {
         errorMessage = "⚠️ Unexpected response from server. Please try again.";
+        showErrorToast = true;
+        toastErrorType = "error";
       }
 
       setError(errorMessage);
       setShowTroubleshoot(showTroubleshootBtn);
+
+      // Show toast for specific errors
+      if (showErrorToast) {
+        setToastMessage(errorMessage);
+        setToastType(toastErrorType);
+        setShowToast(true);
+      }
 
       // Clear auth data on login failure
       localStorage.removeItem("auth_token");
@@ -439,18 +399,15 @@ const LoginPage = () => {
     }
   };
 
-  // Manual redirect function for debugging - SAME AS OTP
+  // Manual redirect function
   const handleManualRedirect = () => {
     const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
-    console.log("Manual redirect to:", redirectUrl);
 
     // Clear any pending save
     localStorage.removeItem("pendingSaveItem");
 
-    // Force navigation
     navigate(redirectUrl, { replace: true });
 
-    // Fallback
     setTimeout(() => {
       if (window.location.pathname === "/login") {
         window.location.href = redirectUrl;
@@ -459,10 +416,8 @@ const LoginPage = () => {
   };
 
   const handleCancel = () => {
-    // Clear any pending save when user cancels
     localStorage.removeItem("pendingSaveItem");
 
-    // Navigate back or to home if no history
     const hasPreviousPage = window.history.length > 1;
     if (hasPreviousPage) {
       navigate(-1);
@@ -472,10 +427,8 @@ const LoginPage = () => {
   };
 
   const handleResetPassword = () => {
-    // Get email from form
     const email = document.getElementById("email")?.value;
 
-    // Clear pending save when navigating to reset password
     localStorage.removeItem("pendingSaveItem");
 
     if (email) {
@@ -491,9 +444,6 @@ const LoginPage = () => {
     const email = document.getElementById("email")?.value;
     if (email) {
       try {
-        console.log("Resending verification email to:", email);
-
-        // Make API call to resend verification
         const response = await axiosInstance.post("/auth/resend-verification", {
           email,
         });
@@ -509,7 +459,6 @@ const LoginPage = () => {
           setError("Failed to resend verification email. Please try again.");
         }
       } catch (error) {
-        console.error("Resend verification error:", error);
         setError("Failed to resend verification email. Please try again.");
       }
     } else {
@@ -518,18 +467,15 @@ const LoginPage = () => {
   };
 
   const handleSkipSave = () => {
-    // User doesn't want to save the listing
     localStorage.removeItem("pendingSaveItem");
     setPendingSaveConfirm(null);
 
-    // Navigate after login
     const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
     localStorage.removeItem("redirectAfterLogin");
     navigate(redirectUrl, { replace: true });
   };
 
   const handleConfirmSave = () => {
-    // User wants to save the listing
     if (pendingSaveConfirm?.item) {
       const saved = JSON.parse(
         localStorage.getItem("userSavedListings") || "[]"
@@ -548,7 +494,6 @@ const LoginPage = () => {
         ];
         localStorage.setItem("userSavedListings", JSON.stringify(updatedSaved));
 
-        // Dispatch event for other components
         window.dispatchEvent(
           new CustomEvent("savedListingsUpdated", {
             detail: { action: "added", item: pendingSaveConfirm.item },
@@ -560,7 +505,6 @@ const LoginPage = () => {
     localStorage.removeItem("pendingSaveItem");
     setPendingSaveConfirm(null);
 
-    // Navigate after login
     const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
     localStorage.removeItem("redirectAfterLogin");
     navigate(redirectUrl, { replace: true });
@@ -580,13 +524,9 @@ const LoginPage = () => {
 
   // Clear cache and retry
   const handleClearCacheAndRetry = () => {
-    console.log("Clearing cache and retrying...");
-
-    // Clear all local storage
     localStorage.clear();
     sessionStorage.clear();
 
-    // Clear cookies
     document.cookie.split(";").forEach((c) => {
       document.cookie = c
         .replace(/^ +/, "")
@@ -597,7 +537,6 @@ const LoginPage = () => {
     setRetryCount(0);
     setShowTroubleshoot(false);
 
-    // Reload form
     setValue("password", "");
     document.getElementById("password")?.focus();
   };
@@ -647,7 +586,7 @@ const LoginPage = () => {
           </div>
         )}
 
-        {/* Redirecting indicator - SAME AS OTP */}
+        {/* Redirecting indicator */}
         {isRedirecting && (
           <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
             <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
@@ -660,7 +599,7 @@ const LoginPage = () => {
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm whitespace-pre-line">
             {error}
 
-            {/* Manual redirect button for debugging - SAME AS OTP */}
+            {/* Manual redirect button */}
             {!error.includes("Invalid") && !error.includes("verify") && (
               <div className="mt-3">
                 <button
@@ -817,25 +756,6 @@ const LoginPage = () => {
             )}
           </button>
         </form>
-
-        {/* Debug info */}
-        <div className="text-center text-xs text-gray-400">
-          <p>Retry attempts: {retryCount}</p>
-          <p>Redirecting: {isRedirecting ? "Yes" : "No"}</p>
-          <button
-            onClick={() => {
-              console.log("Current auth state:", {
-                auth_token: localStorage.getItem("auth_token"),
-                user_email: localStorage.getItem("user_email"),
-                userProfile: localStorage.getItem("userProfile"),
-                auth_storage: localStorage.getItem("auth-storage"),
-              });
-            }}
-            className="text-gray-400 hover:text-gray-600 mt-1"
-          >
-            Debug: Check Auth State
-          </button>
-        </div>
 
         <div className="text-center text-sm text-gray-600 pt-4">
           <div className="mb-3 space-y-2">

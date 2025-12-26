@@ -7,7 +7,6 @@ import { useInView } from "react-intersection-observer";
 import { Link, useNavigate } from "react-router-dom";
 import { MdFavoriteBorder } from "react-icons/md";
 import { FaGreaterThan, FaLessThan } from "react-icons/fa";
-import { PiSliders } from "react-icons/pi";
 
 // ---------------- Skeleton Loading Components ----------------
 const SkeletonCard = ({ isMobile }) => (
@@ -426,7 +425,6 @@ const useIsFavorite = (itemId) => {
       const isAlreadySaved = saved.some((savedItem) => savedItem.id === itemId);
       setIsFavorite(isAlreadySaved);
     } catch (error) {
-      console.error("Error checking favorite status:", error);
       setIsFavorite(false);
     }
   }, [itemId]);
@@ -467,14 +465,52 @@ const useIsFavorite = (itemId) => {
   return isFavorite;
 };
 
+// Check if user is authenticated
+const useAuthStatus = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const checkAuth = useCallback(() => {
+    const token = localStorage.getItem("auth_token");
+    const userProfile = localStorage.getItem("userProfile");
+    const isLoggedIn = !!token && !!userProfile;
+    setIsAuthenticated(isLoggedIn);
+    return isLoggedIn;
+  }, []);
+
+  useEffect(() => {
+    // Initial check
+    checkAuth();
+
+    // Listen for auth changes
+    const handleAuthChange = () => {
+      checkAuth();
+    };
+
+    window.addEventListener("storage", handleAuthChange);
+    window.addEventListener("authChange", handleAuthChange);
+    window.addEventListener("loginSuccess", handleAuthChange);
+    window.addEventListener("logout", handleAuthChange);
+
+    return () => {
+      window.removeEventListener("storage", handleAuthChange);
+      window.removeEventListener("authChange", handleAuthChange);
+      window.removeEventListener("loginSuccess", handleAuthChange);
+      window.removeEventListener("logout", handleAuthChange);
+    };
+  }, [checkAuth]);
+
+  return isAuthenticated;
+};
+
 // ---------------- BusinessCard Component ----------------
 const BusinessCard = ({ item, category, isMobile }) => {
   const images = getCardImages(item);
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Use custom hook for favorite status
+  // Use custom hooks
   const isFavorite = useIsFavorite(item.id);
+  const isAuthenticated = useAuthStatus();
 
   const formatPrice = (n) => {
     if (!n) return "–";
@@ -611,11 +647,8 @@ const BusinessCard = ({ item, category, isMobile }) => {
       setIsProcessing(true);
 
       try {
-        // Check if user is signed in
-        const isLoggedIn = localStorage.getItem("ajani_dummy_login") === "true";
-
-        // If not logged in, show login prompt and redirect to login page
-        if (!isLoggedIn) {
+        // Check if user is signed in using the proper auth check
+        if (!isAuthenticated) {
           showToast("Please login to save listings", "info");
 
           // Store the current URL to redirect back after login
@@ -718,7 +751,6 @@ const BusinessCard = ({ item, category, isMobile }) => {
           );
         }
       } catch (error) {
-        console.error("Error saving/removing favorite:", error);
         showToast("Something went wrong. Please try again.", "info");
       } finally {
         setIsProcessing(false);
@@ -736,6 +768,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
       locationText,
       showToast,
       navigate,
+      isAuthenticated,
     ]
   );
 
@@ -898,7 +931,6 @@ const BusinessCard = ({ item, category, isMobile }) => {
                 ${isMobile ? "text-[9px]" : "text-xs"}
               `}
             >
-              {/* BLACK STAR */}
               <FontAwesomeIcon
                 icon={faStar}
                 className={`${isMobile ? "text-[9px]" : "text-xs"} text-black`}
@@ -1052,7 +1084,6 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
     setCanScrollLeft(hasScrollLeft);
 
     // Check if we can scroll right (not at end)
-    // Using 5px buffer to account for rounding
     const hasScrollRight =
       Math.ceil(scrollLeft + clientWidth) < Math.floor(scrollWidth) - 5;
     setCanScrollRight(hasScrollRight);
@@ -1063,7 +1094,7 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
     const container = containerRef.current;
     if (container) {
       // Initial check
-      setTimeout(updateArrows, 100); // Small delay to ensure DOM is ready
+      setTimeout(updateArrows, 100);
 
       // Add scroll event listener
       container.addEventListener("scroll", updateArrows);
@@ -1083,7 +1114,7 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
     const container = containerRef.current;
     if (!container) return;
 
-    const scrollAmount = isMobile ? 180 : 220; // Slightly more than one card
+    const scrollAmount = isMobile ? 180 : 220;
 
     const newPosition =
       direction === "next"
@@ -1187,7 +1218,7 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
             msOverflowStyle: "none",
             paddingRight: "16px",
           }}
-          onScroll={updateArrows} // Also trigger on scroll
+          onScroll={updateArrows}
         >
           {items.map((item, index) => (
             <BusinessCard
@@ -1203,7 +1234,7 @@ const CategorySection = ({ title, items, sectionId, isMobile }) => {
       </div>
 
       {/* View All Button at the bottom - Centered */}
-      <div className="flex justify-center  mt-1 font-manrope">
+      <div className="flex justify-center mt-1 font-manrope">
         <button
           onClick={handleViewAllClick}
           className="text-black bg-[#6cff] py-2.5 px-6 rounded-[10px] text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer"

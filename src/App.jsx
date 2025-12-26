@@ -102,14 +102,6 @@ const checkAuthStatus = () => {
   const token = localStorage.getItem("auth_token");
   const userProfile = localStorage.getItem("userProfile");
 
-  // Debug logging
-  console.log("checkAuthStatus:", {
-    token,
-    userProfile,
-    hasToken: !!token,
-    hasProfile: !!userProfile,
-  });
-
   return !!token && !!userProfile;
 };
 
@@ -124,21 +116,6 @@ const isUserVerified = () => {
   }
 };
 
-// Auth debugging function
-const checkAndLogAuthStatus = () => {
-  const authStatus = {
-    auth_token: localStorage.getItem("auth_token"),
-    user_email: localStorage.getItem("user_email"),
-    userProfile: localStorage.getItem("userProfile"),
-    auth_storage: localStorage.getItem("auth-storage"),
-    isAuthenticated: checkAuthStatus(),
-    isVerified: isUserVerified(),
-  };
-
-  console.log("🔐 App Auth Status Check:", authStatus);
-  return authStatus;
-};
-
 /* =======================
    ROUTE GUARDS
 ======================= */
@@ -146,25 +123,15 @@ const ProtectedRoute = ({ children, requireVerification = true }) => {
   const isAuthenticated = checkAuthStatus();
   const isVerified = isUserVerified();
 
-  console.log("ProtectedRoute check:", {
-    isAuthenticated,
-    isVerified,
-    path: window.location.pathname,
-    requireVerification,
-  });
-
   if (!isAuthenticated) {
-    console.log("User not authenticated, redirecting to login");
     localStorage.setItem("redirectAfterLogin", window.location.pathname);
     return <Navigate to="/login" replace />;
   }
 
   if (requireVerification && !isVerified) {
-    console.log("User not verified, redirecting to OTP verification");
     return <Navigate to="/verify-otp" replace />;
   }
 
-  console.log("Access granted to protected route");
   return children;
 };
 
@@ -172,14 +139,7 @@ const PublicRoute = ({ children }) => {
   const isAuthenticated = checkAuthStatus();
   const isVerified = isUserVerified();
 
-  console.log("PublicRoute check:", {
-    isAuthenticated,
-    isVerified,
-    path: window.location.pathname,
-  });
-
   if (isAuthenticated && isVerified) {
-    console.log("User already authenticated and verified, redirecting to home");
     return <Navigate to="/" replace />;
   }
 
@@ -191,22 +151,13 @@ const OTPRoute = ({ children }) => {
   const isVerified = isUserVerified();
   const hasPendingEmail = localStorage.getItem("pendingVerificationEmail");
 
-  console.log("OTPRoute check:", {
-    isAuthenticated,
-    isVerified,
-    hasPendingEmail,
-    path: window.location.pathname,
-  });
-
   // If user is already verified, redirect to home
   if (isAuthenticated && isVerified) {
-    console.log("User already verified, redirecting to home");
     return <Navigate to="/" replace />;
   }
 
   // If no pending email and not authenticated, redirect to register
   if (!hasPendingEmail && !isAuthenticated) {
-    console.log("No pending verification email, redirecting to register");
     return <Navigate to="/register" replace />;
   }
 
@@ -217,21 +168,12 @@ const OTPRoute = ({ children }) => {
    INITIAL AUTH SETUP
 ======================= */
 const initializeAuth = () => {
-  console.log("Initializing auth state...");
-
   const token = localStorage.getItem("auth_token");
   const userProfile = localStorage.getItem("userProfile");
 
   if (token && userProfile) {
     try {
       const profile = JSON.parse(userProfile);
-      console.log("User is logged in:", profile.email);
-
-      // Ensure verification status is consistent
-      if (!profile.isVerified) {
-        console.log("User profile found but not verified");
-        // Optional: You might want to redirect to OTP verification
-      }
 
       // Dispatch initial auth event
       setTimeout(() => {
@@ -243,10 +185,8 @@ const initializeAuth = () => {
         );
       }, 100);
     } catch (error) {
-      console.error("Error parsing user profile:", error);
+      // Silent error handling for profile parsing
     }
-  } else {
-    console.log("No active user session found");
   }
 };
 
@@ -258,32 +198,19 @@ function App() {
     // Initialize auth state on app load
     initializeAuth();
 
-    // Set up auth status monitoring
-    checkAndLogAuthStatus();
-
     // Listen for auth changes from OTP verification, login, etc.
     const handleAuthChange = () => {
-      console.log("Auth change detected, checking status...");
-      checkAndLogAuthStatus();
+      // Auth change handler - no logging needed
     };
 
     window.addEventListener("storage", handleAuthChange);
     window.addEventListener("authChange", handleAuthChange);
     window.addEventListener("loginSuccess", handleAuthChange);
 
-    // Set up periodic auth check (every 5 seconds) for debugging
-    const authCheckInterval = setInterval(() => {
-      const token = localStorage.getItem("auth_token");
-      if (token) {
-        console.log("Periodic auth check: User is logged in");
-      }
-    }, 5000);
-
     return () => {
       window.removeEventListener("storage", handleAuthChange);
       window.removeEventListener("authChange", handleAuthChange);
       window.removeEventListener("loginSuccess", handleAuthChange);
-      clearInterval(authCheckInterval);
     };
   }, []);
 
