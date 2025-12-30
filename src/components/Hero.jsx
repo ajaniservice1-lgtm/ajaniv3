@@ -1089,7 +1089,7 @@ const DiscoverIbadan = () => {
                 <span className="bg-gradient-to-r from-blue-600 to-teal-400 bg-clip-text text-transparent">
                   Ibadan
                 </span>{" "}
-                through AI & Local Stories hh
+                through AI & Local Stories
               </h1>
               {/* INCREASED paragraph text size */}
               <p className="text-[14.5px] sm:text-lg md:text-xl lg:text-[16px] md:mt-3 text-gray-600 font-medium max-w-xl mx-auto px-2">
