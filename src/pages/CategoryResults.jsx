@@ -1072,7 +1072,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   const [imageHeight, setImageHeight] = useState(170);
   const isFavorite = useIsFavorite(item.id);
   const cardRef = useRef(null);
-  
+
   // Use auth status hook
   const isAuthenticated = useAuthStatus();
 
