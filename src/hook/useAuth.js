@@ -1,51 +1,56 @@
-// Create a useAuth hook (create a new file: src/hooks/useAuth.js)
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 export const useAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userEmail, setUserEmail] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
 
-  useEffect(() => {
-    checkAuthStatus();
-
-    // Listen for auth changes
-    const handleStorageChange = () => {
-      checkAuthStatus();
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
+  const checkAuth = useCallback(() => {
+    const token = localStorage.getItem("auth_token");
+    const storedProfile = localStorage.getItem("userProfile");
+    
+    if (token && storedProfile) {
+      try {
+        const profile = JSON.parse(storedProfile);
+        setIsAuthenticated(true);
+        setUserProfile(profile);
+        return { isAuthenticated: true, profile };
+      } catch (error) {
+        setIsAuthenticated(false);
+        setUserProfile(null);
+        return { isAuthenticated: false, profile: null };
+      }
+    } else {
+      setIsAuthenticated(false);
+      setUserProfile(null);
+      return { isAuthenticated: false, profile: null };
+    }
   }, []);
 
-  const checkAuthStatus = () => {
-    const loggedIn = localStorage.getItem("ajani_dummy_login") === "true";
-    const email = localStorage.getItem("ajani_dummy_email");
-    setIsAuthenticated(loggedIn);
-    setUserEmail(email);
-  };
+  useEffect(() => {
+    // Initial check
+    checkAuth();
 
-  const login = (email) => {
-    localStorage.setItem("ajani_dummy_login", "true");
-    localStorage.setItem("ajani_dummy_email", email);
-    setIsAuthenticated(true);
-    setUserEmail(email);
-  };
+    // Listen for auth changes
+    const handleAuthChange = () => {
+      checkAuth();
+    };
 
-  const logout = () => {
-    localStorage.removeItem("ajani_dummy_login");
-    localStorage.removeItem("ajani_dummy_email");
-    setIsAuthenticated(false);
-    setUserEmail(null);
-  };
+    window.addEventListener("storage", handleAuthChange);
+    window.addEventListener("authChange", handleAuthChange);
+    window.addEventListener("loginSuccess", handleAuthChange);
+    window.addEventListener("logout", handleAuthChange);
+
+    return () => {
+      window.removeEventListener("storage", handleAuthChange);
+      window.removeEventListener("authChange", handleAuthChange);
+      window.removeEventListener("loginSuccess", handleAuthChange);
+      window.removeEventListener("logout", handleAuthChange);
+    };
+  }, [checkAuth]);
 
   return {
     isAuthenticated,
-    userEmail,
-    login,
-    logout,
-    checkAuthStatus,
+    userProfile,
+    checkAuth,
   };
 };
