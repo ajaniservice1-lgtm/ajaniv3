@@ -23,7 +23,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { CiBookmark } from "react-icons/ci";
 import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
-import { FaBookOpen, FaRegCircleCheck } from "react-icons/fa";
+import { FaBookOpen } from "react-icons/fa";
 import { HiLocationMarker } from "react-icons/hi";
 import { RiShare2Line } from "react-icons/ri";
 import { VscVerifiedFilled } from "react-icons/vsc";
@@ -91,6 +91,11 @@ const VendorDetail = () => {
   const [touchEnd, setTouchEnd] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const imageRef = useRef(null);
+
+  // Scroll to top on component mount and when id changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
 
   // Check for mobile view
   useEffect(() => {
@@ -421,6 +426,30 @@ const VendorDetail = () => {
     return 9;
   };
 
+  // Get features list
+  const getFeatures = () => {
+    const defaultFeatures = [
+      { icon: faWifi, name: "WiFi" },
+      { icon: faSwimmingPool, name: "Swimming Pool" },
+      { icon: faCar, name: "Parking" },
+      { icon: faUtensils, name: "Restaurant" },
+      { icon: faShieldAlt, name: "24/7 Security" },
+    ];
+    return defaultFeatures;
+  };
+
+  // Get services list
+  const getServices = () => {
+    const defaultServices = [
+      "Standard, Deluxe & Executive Rooms",
+      "Restaurant & Bar",
+      "Event & Meeting Spaces",
+      "Airport Pickup",
+      "Laundry & Concierge Services",
+    ];
+    return defaultServices;
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -457,6 +486,8 @@ const VendorDetail = () => {
   const images = getVendorImages();
   const category = normalizeCategory(vendor.category);
   const amenities = getAmenities();
+  const features = getFeatures();
+  const services = getServices();
   const reviewCount = getReviewCount();
   const categoryDisplay = getCategoryDisplay(vendor);
 
@@ -910,6 +941,78 @@ const VendorDetail = () => {
             </div>
           </div>
 
+          {/* About and Features Section */}
+          <section className="w-full bg-[#F7F7FA] rounded-none md:rounded-3xl hover:shadow-lg transition-shadow duration-300">
+            <div className="px-4 sm:px-4 md:px-6 lg:px-8 py-6 md:py-8">
+              {/* About Section */}
+              <div className="mb-8 md:mb-12">
+                <h2 className="text-lg md:text-xl font-bold text-[#06F49F] mb-3 md:mb-4 font-manrope hover:text-[#05d9eb] transition-colors duration-300">
+                  About
+                </h2>
+                <p className="text-gray-700 leading-relaxed text-sm md:text-base font-manrope hover:text-gray-800 transition-colors duration-300">
+                  {vendor.description ||
+                    "Welcome to our premium venue, offering exceptional service and unforgettable experiences. With modern amenities and professional staff, we ensure your stay is comfortable and memorable."}
+                </p>
+              </div>
+
+              {/* What They Do & Features Side by Side */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+                {/* What They Do Section */}
+                <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
+                  <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-4 md:mb-6 font-manrope hover:text-[#06EAFC] transition-colors duration-300">
+                    What They Do
+                  </h3>
+                  <div className="space-y-3 md:space-y-4">
+                    {services.map((service, index) => (
+                      <div
+                        key={index}
+                        className="flex items-start gap-3 md:gap-4 hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
+                        style={{ cursor: "pointer" }}
+                      >
+                        <div className="flex-shrink-0 mt-0.5 md:mt-1 group-hover:scale-110 transition-transform duration-300">
+                          <FontAwesomeIcon
+                            icon={faCheckCircle}
+                            size={18}
+                            className="text-[#06EAFC] group-hover:text-[#05d9eb] transition-colors duration-300"
+                          />
+                        </div>
+                        <span className="text-gray-700 font-manrope leading-relaxed text-sm md:text-sm group-hover:text-gray-900 transition-colors duration-300">
+                          {service}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Key Features Section */}
+                <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
+                  <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-4 md:mb-6 font-manrope hover:text-[#06EAFC] transition-colors duration-300">
+                    Key Features
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+                    {features.map((feature, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 md:gap-3 hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
+                        style={{ cursor: "pointer" }}
+                      >
+                        <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                          <FontAwesomeIcon
+                            icon={feature.icon}
+                            className="text-sm md:text-base text-gray-900 group-hover:text-[#06EAFC] transition-colors duration-300"
+                          />
+                        </div>
+                        <span className="font-medium text-gray-900 font-manrope text-xs md:text-sm group-hover:text-gray-700 transition-colors duration-300">
+                          {feature.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* Tabs Section */}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
             <div className="border-b border-gray-200">
@@ -942,47 +1045,47 @@ const VendorDetail = () => {
                   </p>
                   
                   <div className="grid md:grid-cols-2 gap-6 mt-8">
-                    <div className="bg-gray-50 rounded-xl p-6">
-                      <h4 className="font-bold text-gray-900 mb-4">Key Features</h4>
+                    <div className="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition-shadow duration-300">
+                      <h4 className="font-bold text-gray-900 mb-4 hover:text-[#06EAFC] transition-colors duration-300">Key Features</h4>
                       <ul className="space-y-3">
-                        <li className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#06EAFC]/10 flex items-center justify-center">
-                            <FontAwesomeIcon icon={faCalendar} className="text-[#06EAFC]" />
+                        <li className="flex items-center gap-3 hover:translate-x-1 transition-transform duration-300">
+                          <div className="w-8 h-8 rounded-full bg-[#06EAFC]/10 flex items-center justify-center hover:scale-110 transition-transform duration-300">
+                            <FontAwesomeIcon icon={faCalendar} className="text-[#06EAFC] hover:text-[#05d9eb] transition-colors duration-300" />
                           </div>
-                          <span>Available for booking year-round</span>
+                          <span className="hover:text-[#06EAFC] transition-colors duration-300">Available for booking year-round</span>
                         </li>
                         {vendor.capacity && (
-                          <li className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#06EAFC]/10 flex items-center justify-center">
-                              <FontAwesomeIcon icon={faUsers} className="text-[#06EAFC]" />
+                          <li className="flex items-center gap-3 hover:translate-x-1 transition-transform duration-300">
+                            <div className="w-8 h-8 rounded-full bg-[#06EAFC]/10 flex items-center justify-center hover:scale-110 transition-transform duration-300">
+                              <FontAwesomeIcon icon={faUsers} className="text-[#06EAFC] hover:text-[#05d9eb] transition-colors duration-300" />
                             </div>
-                            <span>Capacity: {vendor.capacity} guests</span>
+                            <span className="hover:text-[#06EAFC] transition-colors duration-300">Capacity: {vendor.capacity} guests</span>
                           </li>
                         )}
-                        <li className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#06EAFC]/10 flex items-center justify-center">
-                            <FontAwesomeIcon icon={getCategoryIcon(category)} className="text-[#06EAFC]" />
+                        <li className="flex items-center gap-3 hover:translate-x-1 transition-transform duration-300">
+                          <div className="w-8 h-8 rounded-full bg-[#06EAFC]/10 flex items-center justify-center hover:scale-110 transition-transform duration-300">
+                            <FontAwesomeIcon icon={getCategoryIcon(category)} className="text-[#06EAFC] hover:text-[#05d9eb] transition-colors duration-300" />
                           </div>
-                          <span className="capitalize">{category} services</span>
+                          <span className="hover:text-[#06EAFC] transition-colors duration-300 capitalize">{category} services</span>
                         </li>
                       </ul>
                     </div>
                     
-                    <div className="bg-gray-50 rounded-xl p-6">
-                      <h4 className="font-bold text-gray-900 mb-4">Pricing Information</h4>
+                    <div className="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition-shadow duration-300">
+                      <h4 className="font-bold text-gray-900 mb-4 hover:text-[#06EAFC] transition-colors duration-300">Pricing Information</h4>
                       <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                          <span>Standard Rate</span>
-                          <span className="font-bold">{formatPrice(vendor.price_from)}</span>
+                        <div className="flex justify-between items-center hover:bg-gray-100 p-2 rounded-lg transition-colors duration-300">
+                          <span className="hover:text-gray-800 transition-colors duration-300">Standard Rate</span>
+                          <span className="font-bold hover:text-[#06EAFC] transition-colors duration-300">{formatPrice(vendor.price_from)}</span>
                         </div>
                         {vendor.price_to && vendor.price_to !== vendor.price_from && (
-                          <div className="flex justify-between items-center">
-                            <span>Premium Rate</span>
-                            <span className="font-bold">{formatPrice(vendor.price_to)}</span>
+                          <div className="flex justify-between items-center hover:bg-gray-100 p-2 rounded-lg transition-colors duration-300">
+                            <span className="hover:text-gray-800 transition-colors duration-300">Premium Rate</span>
+                            <span className="font-bold hover:text-[#06EAFC] transition-colors duration-300">{formatPrice(vendor.price_to)}</span>
                           </div>
                         )}
                         <div className="pt-4 border-t border-gray-200">
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-gray-600 hover:text-gray-800 transition-colors duration-300">
                             *Prices may vary based on season, availability, and special requirements
                           </p>
                         </div>
@@ -994,10 +1097,10 @@ const VendorDetail = () => {
               
               {activeTab === "amenities" && (
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-6">Amenities & Services</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-6 hover:text-[#06EAFC] transition-colors duration-300">Amenities & Services</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {amenities.map((amenity, index) => (
-                      <div key={index} className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors group cursor-pointer">
+                      <div key={index} className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 hover:scale-105 transition-all duration-300 group cursor-pointer">
                         <div className="w-10 h-10 rounded-full bg-[#06EAFC]/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                           <FontAwesomeIcon icon={getAmenityIcon(amenity)} className="text-[#06EAFC] group-hover:text-[#05d9eb] transition-colors duration-300" />
                         </div>
@@ -1010,21 +1113,21 @@ const VendorDetail = () => {
               
               {activeTab === "reviews" && (
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-6">Customer Reviews</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-6 hover:text-[#06EAFC] transition-colors duration-300">Customer Reviews</h3>
                   <div className="space-y-6">
                     <div className="flex items-center gap-4">
-                      <div className="text-5xl font-bold text-gray-900">{vendor.rating || "4.5"}</div>
+                      <div className="text-5xl font-bold text-gray-900 hover:text-[#06EAFC] transition-colors duration-300">{vendor.rating || "4.5"}</div>
                       <div>
                         <div className="flex items-center gap-1 mb-2">
                           {[...Array(5)].map((_, i) => (
                             <FontAwesomeIcon 
                               key={i} 
                               icon={faStar} 
-                              className={i < Math.floor(vendor.rating || 4.5) ? "text-yellow-500 hover:text-yellow-600 transition-colors" : "text-gray-300"} 
+                              className={i < Math.floor(vendor.rating || 4.5) ? "text-yellow-500 hover:text-yellow-600 transition-colors duration-300" : "text-gray-300 hover:text-gray-400 transition-colors duration-300"} 
                             />
                           ))}
                         </div>
-                        <p className="text-gray-600 hover:text-gray-800 transition-colors">Based on {vendor.review_count || "50+"} reviews</p>
+                        <p className="text-gray-600 hover:text-gray-800 transition-colors duration-300">Based on {vendor.review_count || "50+"} reviews</p>
                       </div>
                     </div>
                     
@@ -1034,22 +1137,22 @@ const VendorDetail = () => {
                         <div key={index} className="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition-shadow duration-300 group">
                           <div className="flex justify-between items-start mb-4">
                             <div>
-                              <h4 className="font-bold text-gray-900 group-hover:text-[#06EAFC] transition-colors">John D.</h4>
+                              <h4 className="font-bold text-gray-900 group-hover:text-[#06EAFC] transition-colors duration-300">John D.</h4>
                               <div className="flex items-center gap-2 mt-1">
                                 <div className="flex">
                                   {[...Array(5)].map((_, i) => (
                                     <FontAwesomeIcon 
                                       key={i} 
                                       icon={faStar} 
-                                      className="text-yellow-500 text-sm hover:scale-110 transition-transform" 
+                                      className="text-yellow-500 text-sm hover:scale-110 transition-transform duration-300" 
                                     />
                                   ))}
                                 </div>
-                                <span className="text-sm text-gray-600 group-hover:text-gray-800 transition-colors">2 weeks ago</span>
+                                <span className="text-sm text-gray-600 group-hover:text-gray-800 transition-colors duration-300">2 weeks ago</span>
                               </div>
                             </div>
                           </div>
-                          <p className="text-gray-600 group-hover:text-gray-800 transition-colors">
+                          <p className="text-gray-600 group-hover:text-gray-800 transition-colors duration-300">
                             "Excellent service and beautiful venue. The staff were very accommodating and the facilities were top-notch."
                           </p>
                         </div>
@@ -1061,14 +1164,14 @@ const VendorDetail = () => {
               
               {activeTab === "location" && (
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-6">Location</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-6 hover:text-[#06EAFC] transition-colors duration-300">Location</h3>
                   <div className="grid lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2">
                       <div className="bg-gray-200 rounded-xl h-[400px] flex items-center justify-center hover:shadow-lg transition-shadow duration-300">
                         <div className="text-center">
                           <FontAwesomeIcon icon={faMapMarkerAlt} className="text-4xl text-gray-400 mb-4 hover:text-[#06EAFC] transition-colors duration-300" />
-                          <p className="text-gray-600 hover:text-gray-800 transition-colors">Map would be displayed here</p>
-                          <p className="text-sm text-gray-500 mt-2 hover:text-gray-700 transition-colors">Google Maps integration available</p>
+                          <p className="text-gray-600 hover:text-gray-800 transition-colors duration-300">Map would be displayed here</p>
+                          <p className="text-sm text-gray-500 mt-2 hover:text-gray-700 transition-colors duration-300">Google Maps integration available</p>
                         </div>
                       </div>
                     </div>
@@ -1077,19 +1180,19 @@ const VendorDetail = () => {
                         <h4 className="font-bold text-gray-900 mb-4 hover:text-[#06EAFC] transition-colors duration-300">Location Details</h4>
                         <div className="space-y-4">
                           <div>
-                            <p className="text-sm text-gray-600 mb-1 hover:text-gray-800 transition-colors">Address</p>
+                            <p className="text-sm text-gray-600 mb-1 hover:text-gray-800 transition-colors duration-300">Address</p>
                             <p className="font-medium hover:text-[#06EAFC] transition-colors duration-300">{vendor.address || `${vendor.name}, ${vendor.area || "Ibadan"}`}</p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-600 mb-1 hover:text-gray-800 transition-colors">Area</p>
+                            <p className="text-sm text-gray-600 mb-1 hover:text-gray-800 transition-colors duration-300">Area</p>
                             <p className="font-medium hover:text-[#06EAFC] transition-colors duration-300">{vendor.area || "Ibadan"}</p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-600 mb-1 hover:text-gray-800 transition-colors">Contact</p>
+                            <p className="text-sm text-gray-600 mb-1 hover:text-gray-800 transition-colors duration-300">Contact</p>
                             <p className="font-medium hover:text-[#06EAFC] transition-colors duration-300">{vendor.contact || "Not provided"}</p>
                           </div>
                           <div className="pt-4">
-                            <p className="text-sm text-gray-600 hover:text-gray-800 transition-colors">
+                            <p className="text-sm text-gray-600 hover:text-gray-800 transition-colors duration-300">
                               Easily accessible from major roads and public transportation
                             </p>
                           </div>

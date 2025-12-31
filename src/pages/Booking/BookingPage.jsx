@@ -79,6 +79,11 @@ const BookingPage = () => {
     guestName: "",
   });
 
+  // Scroll to top on component mount and when id changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
+
   // Fetch vendor data based on ID
   useEffect(() => {
     const fetchVendorData = async () => {
