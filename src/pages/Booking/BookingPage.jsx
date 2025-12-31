@@ -4,6 +4,16 @@ import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 import { useAuth } from "../../hook/useAuth";
 
+// Fallback images for different categories
+const FALLBACK_IMAGES = {
+  hotel: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&q=80",
+  restaurant: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80",
+  event: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1200&q=80",
+  shortlet: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80",
+  cafe: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=1200&q=80",
+  default: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&q=80"
+};
+
 // Category normalization utility
 const normalizeCategory = (category) => {
   if (!category) return 'restaurant';
@@ -43,7 +53,7 @@ const normalizeCategory = (category) => {
 };
 
 const BookingPage = () => {
-  const { id } = useParams(); // Changed from category to id
+  const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated } = useAuth();
@@ -62,13 +72,13 @@ const BookingPage = () => {
     // Event-specific fields
     eventName: "",
     eventType: "",
-    proposedCount: "",
-    expectedGuests: "",
+    proposedCount: "50",
+    expectedGuests: "50",
     duration: "4 hours",
     eventRequirements: "",
     
     // Restaurant-specific fields
-    numberOfGuests: "",
+    numberOfGuests: "2",
     specialRequests: "",
     
     // Hotel-specific fields
@@ -157,20 +167,33 @@ const BookingPage = () => {
           // Determine category based on vendor data
           const vendorCategory = normalizeCategory(vendor.category);
           
+          // Get vendor images from the sheet
+          const vendorImages = (vendor["image url"] || "")
+            .split(",")
+            .map(url => url.trim())
+            .filter(url => url && url.startsWith("http"));
+          
           const vendorData = {
             id: vendor.id,
-            name: vendor.name,
+            name: vendor.name || vendor.title || "Unknown Vendor",
             category: vendorCategory,
             originalCategory: vendor.category,
             priceFrom: vendor.price_from,
             priceTo: vendor.price_to,
-            area: vendor.area,
+            area: vendor.area || vendor.location || "Location not specified",
+            address: vendor.address || "",
             contact: vendor.contact,
             email: vendor.email,
-            description: vendor.description,
-            rating: vendor.rating,
+            // Use "about" field from sheet if available, otherwise use description
+            description: vendor.about || vendor.description || vendor.details || "No description available",
+            rating: vendor.rating || "4.5",
+            reviews: vendor.reviews || vendor.review_count || "0",
             capacity: vendor.capacity,
-            amenities: vendor.amenities
+            amenities: vendor.amenities,
+            // Use images from the sheet
+            images: vendorImages.length > 0 ? vendorImages : [FALLBACK_IMAGES[vendorCategory] || FALLBACK_IMAGES.default],
+            // Primary image for display
+            image: vendorImages[0] || (FALLBACK_IMAGES[vendorCategory] || FALLBACK_IMAGES.default)
           };
           
           console.log("Processed vendor data:", vendorData);
@@ -190,30 +213,26 @@ const BookingPage = () => {
   // Get normalized category from vendor data
   const normalizedCategory = vendorData ? normalizeCategory(vendorData.category) : 'restaurant';
 
-  // Stepper configuration based on category
-  const steps = {
-    event: ["Customer Information", "Payment Information", "Booking is Confirmed"],
-    restaurant: ["Customer Information", "Payment Information", "Booking is Confirmed"],
-    hotel: ["Customer Information", "Payment Information", "Booking is Confirmed"]
+  // Stepper configuration - matching the image design with multi-line text
+  const steps = [
+    { title: "Customer", subtitle: "Information", icon: "👤" },
+    { title: "Payment", subtitle: "Information", icon: "💳" },
+    { title: "Booking is", subtitle: "Confirmed", icon: "✓" }
+  ];
+
+  // Handle quantity increment/decrement
+  const handleQuantityChange = (field, delta) => {
+    setBookingData(prev => {
+      const currentValue = parseInt(prev[field]) || 0;
+      const newValue = Math.max(0, currentValue + delta);
+      return {
+        ...prev,
+        [field]: newValue.toString()
+      };
+    });
   };
 
-  // Colors for active steps
-  const stepColors = ["#06EAFC", "#06F49F", "#06EAFC"];
-
-  // Use vendor-specific name or fallback
-  const getVendorName = () => {
-    if (vendorData?.name) {
-      return vendorData.name;
-    }
-    
-    switch(normalizedCategory) {
-      case 'event': return 'Event Centre';
-      case 'restaurant': return 'Restaurant';
-      case 'hotel': return 'Hotel';
-      default: return 'Vendor';
-    }
-  };
-
+  // Handle input change
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setBookingData(prev => ({
@@ -268,7 +287,6 @@ const BookingPage = () => {
   const handleSubmitBooking = () => {
     // Only require authentication when submitting (at payment step)
     if (activeStep === 1 && !isAuthenticated) {
-      // Show toast or message asking to login
       alert("Please login to complete your booking");
       
       // Save current booking data to localStorage to restore after login
@@ -314,6 +332,49 @@ const BookingPage = () => {
     }
   }, [id]);
 
+  // Quantity Selector Component
+  const QuantitySelector = ({ value, onChange, min = 0, max = 1000, label }) => {
+    const handleIncrement = () => {
+      if (max && parseInt(value) >= max) return;
+      onChange(parseInt(value || 0) + 1);
+    };
+
+    const handleDecrement = () => {
+      if (parseInt(value || 0) <= min) return;
+      onChange(parseInt(value || 0) - 1);
+    };
+
+    return (
+      <div className="space-y-2">
+        {label && (
+          <label className="block text-sm font-medium text-gray-700">
+            {label}
+          </label>
+        )}
+        <div className="flex items-center space-x-4 bg-gray-50 rounded-lg p-3 border border-gray-200">
+          <button
+            type="button"
+            onClick={handleDecrement}
+            className="w-10 h-10 rounded-lg border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 hover:border-[#06EAFC] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={parseInt(value || 0) <= min}
+          >
+            <span className="text-xl font-bold">-</span>
+          </button>
+          <span className="w-16 text-center text-lg font-bold text-gray-900">{value || "0"}</span>
+          <button
+            type="button"
+            onClick={handleIncrement}
+            className="w-10 h-10 rounded-lg border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 hover:border-[#06EAFC] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={max && parseInt(value || 0) >= max}
+          >
+            <span className="text-xl font-bold">+</span>
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Render step content
   const renderStepContent = () => {
     switch (activeStep) {
       case 0:
@@ -334,7 +395,7 @@ const BookingPage = () => {
           <div className="max-w-2xl mx-auto">
             <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Event Booking</h2>
-              <p className="text-gray-600 mb-6">{getVendorName()}</p>
+              <p className="text-gray-600 mb-6">{vendorData?.name || "Event Centre"}</p>
               
               <div className="space-y-6">
                 <div>
@@ -381,36 +442,41 @@ const BookingPage = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Proposed Number of Guests *
-                    </label>
-                    <input
-                      type="number"
-                      name="proposedCount"
-                      value={bookingData.proposedCount}
-                      onChange={handleInputChange}
-                      min="1"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
-                      required
-                    />
-                  </div>
+                <QuantitySelector
+                  value={bookingData.proposedCount}
+                  onChange={(newValue) => setBookingData(prev => ({
+                    ...prev,
+                    proposedCount: newValue.toString()
+                  }))}
+                  min={1}
+                  max={vendorData?.capacity ? parseInt(vendorData.capacity) : 1000}
+                  label="Proposed Number of Guests *"
+                />
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Expected Number of Guests *
-                    </label>
-                    <input
-                      type="number"
-                      name="expectedGuests"
-                      value={bookingData.expectedGuests}
-                      onChange={handleInputChange}
-                      min="1"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
-                      required
-                    />
-                  </div>
+                <QuantitySelector
+                  value={bookingData.expectedGuests}
+                  onChange={(newValue) => setBookingData(prev => ({
+                    ...prev,
+                    expectedGuests: newValue.toString()
+                  }))}
+                  min={1}
+                  max={vendorData?.capacity ? parseInt(vendorData.capacity) : 1000}
+                  label="Expected Number of Guests *"
+                />
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Contact Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="contactName"
+                    value={bookingData.contactName}
+                    onChange={handleInputChange}
+                    placeholder="e.g., John Doe"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
+                    required
+                  />
                 </div>
 
                 <div>
@@ -438,21 +504,6 @@ const BookingPage = () => {
                     value={bookingData.email}
                     onChange={handleInputChange}
                     placeholder="e.g., john@example.com"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Contact Name *
-                  </label>
-                  <input
-                    type="text"
-                    name="contactName"
-                    value={bookingData.contactName}
-                    onChange={handleInputChange}
-                    placeholder="e.g., John Doe"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
                     required
                   />
@@ -500,7 +551,7 @@ const BookingPage = () => {
           <div className="max-w-2xl mx-auto">
             <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Restaurant Reservation</h2>
-              <p className="text-gray-600 mb-6">{getVendorName()}</p>
+              <p className="text-gray-600 mb-6">{vendorData?.name || "Restaurant"}</p>
               
               <div className="space-y-6">
                 <div>
@@ -532,31 +583,16 @@ const BookingPage = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Number of Guests *
-                  </label>
-                  <select
-                    name="numberOfGuests"
-                    value={bookingData.numberOfGuests}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
-                    required
-                  >
-                    <option value="">Select number of guests</option>
-                    <option value="1">1 person</option>
-                    <option value="2">2 people</option>
-                    <option value="3">3 people</option>
-                    <option value="4">4 people</option>
-                    <option value="5">5 people</option>
-                    <option value="6">6 people</option>
-                    <option value="7">7 people</option>
-                    <option value="8">8 people</option>
-                    <option value="9">9 people</option>
-                    <option value="10">10 people</option>
-                    <option value="10+">10+ people (please specify in notes)</option>
-                  </select>
-                </div>
+                <QuantitySelector
+                  value={bookingData.numberOfGuests}
+                  onChange={(newValue) => setBookingData(prev => ({
+                    ...prev,
+                    numberOfGuests: newValue.toString()
+                  }))}
+                  min={1}
+                  max={vendorData?.capacity ? parseInt(vendorData.capacity) : 20}
+                  label="Number of Guests *"
+                />
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -626,7 +662,7 @@ const BookingPage = () => {
           <div className="max-w-2xl mx-auto">
             <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Hotel Booking</h2>
-              <p className="text-gray-600 mb-6">{getVendorName()}</p>
+              <p className="text-gray-600 mb-6">{vendorData?.name || "Hotel"}</p>
               
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -661,41 +697,27 @@ const BookingPage = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Number of Rooms *
-                    </label>
-                    <select
-                      name="numberOfRooms"
-                      value={bookingData.numberOfRooms}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
-                      required
-                    >
-                      {[1,2,3,4,5].map(num => (
-                        <option key={num} value={num}>{num} {num === 1 ? 'room' : 'rooms'}</option>
-                      ))}
-                    </select>
-                  </div>
+                <QuantitySelector
+                  value={bookingData.numberOfRooms}
+                  onChange={(newValue) => setBookingData(prev => ({
+                    ...prev,
+                    numberOfRooms: newValue.toString()
+                  }))}
+                  min={1}
+                  max={10}
+                  label="Number of Rooms *"
+                />
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Number of Nights *
-                    </label>
-                    <select
-                      name="numberOfNights"
-                      value={bookingData.numberOfNights}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
-                      required
-                    >
-                      {[1,2,3,4,5,6,7].map(num => (
-                        <option key={num} value={num}>{num} {num === 1 ? 'night' : 'nights'}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                <QuantitySelector
+                  value={bookingData.numberOfNights}
+                  onChange={(newValue) => setBookingData(prev => ({
+                    ...prev,
+                    numberOfNights: newValue.toString()
+                  }))}
+                  min={1}
+                  max={30}
+                  label="Number of Nights *"
+                />
 
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Guest Information</h3>
@@ -786,103 +808,96 @@ const BookingPage = () => {
   };
 
   const renderPaymentInfo = () => {
-    // Calculate price
-    const calculatePrice = () => {
-      if (vendorData?.priceFrom) {
-        const price = parseInt(vendorData.priceFrom.replace(/[^\d]/g, "")) || 0;
-        return price + 5000; // Add taxes
-      }
-      
-      // Default prices
-      const defaultPrices = {
-        hotel: 85000,
-        restaurant: 45000,
-        event: 250000
-      };
-      
-      return (defaultPrices[normalizedCategory] || 45000) + 5000;
-    };
-
-    const totalPrice = calculatePrice();
-
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
+        {/* Back Button */}
+        <button
+          onClick={() => setActiveStep(0)}
+          className="flex items-center text-gray-600 hover:text-gray-900 mb-8"
+        >
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back
+        </button>
+
+        {/* Stepper Display - Matching image design */}
+        <div className="flex items-center space-x-4 text-sm text-gray-500 mb-8">
+          <span>Customer Information</span>
+          <span className="text-gray-300">|</span>
+          <span className="text-[#06EAFC] font-medium">Payment Information</span>
+          <span className="text-gray-300">|</span>
+          <span>Booking is Confirmed</span>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Choose your payment option</h2>
           
           <div className="space-y-6">
-            <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-[#06EAFC] transition-colors">
-              <div className="flex items-center space-x-3">
-                <div className="w-6 h-6 rounded-full border-2 border-[#06EAFC] flex items-center justify-center">
-                  <div className="w-3 h-3 rounded-full bg-[#06EAFC]"></div>
+            {/* Payment Options */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 border-2 border-[#06EAFC] rounded-lg bg-[#06EAFC]/5">
+                <div className="flex items-center space-x-3">
+                  <div className="w-6 h-6 rounded-full border-2 border-[#06EAFC] flex items-center justify-center">
+                    <div className="w-3 h-3 rounded-full bg-[#06EAFC]"></div>
+                  </div>
+                  <span className="font-medium text-gray-900">Credit/Debit Card</span>
                 </div>
-                <span className="font-medium text-gray-900">Credit/Debit Card</span>
+                <span className="text-gray-500 text-sm">Popular</span>
               </div>
-              <span className="text-gray-500">Popular</span>
+
+              <div className="p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+                <div className="flex items-center space-x-3">
+                  <div className="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center">
+                    <div className="w-3 h-3 rounded-full bg-gray-300"></div>
+                  </div>
+                  <span className="font-medium text-gray-900">Pay in the hotel</span>
+                </div>
+              </div>
             </div>
 
-            <div className="p-4 border border-gray-200 rounded-lg">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center">
-                  <div className="w-3 h-3 rounded-full bg-gray-300"></div>
-                </div>
-                <span className="font-medium text-gray-900">Pay at venue</span>
-              </div>
-              <p className="text-gray-600 text-sm">Pay directly at the venue</p>
-            </div>
-
-            <div className="p-4 border border-gray-200 rounded-lg">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center">
-                  <div className="w-3 h-3 rounded-full bg-gray-300"></div>
-                </div>
-                <span className="font-medium text-gray-900">Bank Transfer</span>
-              </div>
-              <p className="text-gray-600 text-sm">Transfer to our bank account</p>
-            </div>
-
+            {/* Price Match Banner */}
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-green-800 font-medium">
-                <span className="text-green-600">✓</span> We price match. Find it for less, and we'll match it!
+              <p className="text-green-800 font-medium mb-1">
+                <span className="text-green-600 mr-2">✓</span> We price match. Find it for less, and we'll match it!
               </p>
-              <p className="text-green-700 text-sm mt-1">You saved ₦ 35,357.85 on this booking!</p>
+              <p className="text-green-700 text-sm">You saved ₦ 35,357.85 on this booking!</p>
             </div>
 
-            <div className="space-y-6 pt-4">
+            {/* Payment Details */}
+            <div className="space-y-6 pt-2">
               <h3 className="text-lg font-medium text-gray-900">Payment Details</h3>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Card Number *
-                </label>
-                <input
-                  type="text"
-                  placeholder="1234 5678 9012 3456"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
-                  required
-                />
+              {/* Card Preview */}
+              <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-5 text-white">
+                <div className="flex justify-between items-start mb-8">
+                  <div>
+                    <p className="text-sm opacity-80">Card Number</p>
+                    <p className="text-xl font-mono">2894 •••• •••• 9432</p>
+                  </div>
+                  <div className="w-12 h-8 bg-white/20 rounded"></div>
+                </div>
+                <div className="flex justify-between">
+                  <div>
+                    <p className="text-sm opacity-80">Card Holder Name</p>
+                    <p className="text-lg">Holder Name</p>
+                  </div>
+                  <div>
+                    <p className="text-sm opacity-80">Expires</p>
+                    <p className="text-lg">MM/YY</p>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Card Holder Name *
-                </label>
-                <input
-                  type="text"
-                  placeholder="John Doe"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
+              {/* Form Fields */}
+              <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Expiry Date *
+                    Card Number
                   </label>
                   <input
                     type="text"
-                    placeholder="MM/YY"
+                    placeholder="Enter Card Number"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
                     required
                   />
@@ -890,29 +905,56 @@ const BookingPage = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    CVV *
+                    Card Holder Name
                   </label>
                   <input
                     type="text"
-                    placeholder="123"
+                    placeholder="Enter Holder Name"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
                     required
                   />
                 </div>
-              </div>
 
-              <div className="flex items-center space-x-2">
-                <input type="checkbox" id="saveCard" className="w-4 h-4 text-[#06EAFC] rounded" />
-                <label htmlFor="saveCard" className="text-sm text-gray-700">
-                  Save this card for future payments
-                </label>
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Expiry Date
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="MM/YY"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      CVV
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="123"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input type="checkbox" id="saveCard" className="w-4 h-4 text-[#06EAFC] rounded" />
+                  <label htmlFor="saveCard" className="text-sm text-gray-700">
+                    Save this card for future payments
+                  </label>
+                </div>
               </div>
             </div>
 
+            {/* Total Price */}
             <div className="border-t pt-6">
               <div className="flex justify-between items-center mb-4">
                 <span className="text-gray-600">Subtotal</span>
-                <span className="font-medium">₦{(totalPrice - 5000).toLocaleString()}</span>
+                <span className="font-medium">₦{(vendorData?.priceFrom ? parseInt(vendorData.priceFrom.replace(/[^\d]/g, "")) || 50000 : 50000).toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center mb-4">
                 <span className="text-gray-600">Taxes & Fees</span>
@@ -920,7 +962,7 @@ const BookingPage = () => {
               </div>
               <div className="flex justify-between items-center pt-4 border-t text-lg font-bold">
                 <span className="text-gray-900">Total</span>
-                <span className="text-[#06EAFC]">₦{totalPrice.toLocaleString()}</span>
+                <span className="text-[#06EAFC]">₦{(vendorData?.priceFrom ? parseInt(vendorData.priceFrom.replace(/[^\d]/g, "")) || 55000 : 55000).toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -930,154 +972,156 @@ const BookingPage = () => {
   };
 
   const renderConfirmation = () => {
-    // Calculate booking reference
-    const bookingRef = `AJN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-    
-    // Calculate total price
-    const calculateTotal = () => {
-      if (vendorData?.priceFrom) {
-        const price = parseInt(vendorData.priceFrom.replace(/[^\d]/g, "")) || 0;
-        return price + 5000;
-      }
-      
-      const defaultPrices = {
-        hotel: 85000,
-        restaurant: 45000,
-        event: 250000
-      };
-      
-      return (defaultPrices[normalizedCategory] || 45000) + 5000;
-    };
-
-    const totalPrice = calculateTotal();
-
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-            </div>
+        {/* Back Button */}
+        <button
+          onClick={() => setActiveStep(1)}
+          className="flex items-center text-gray-600 hover:text-gray-900 mb-8"
+        >
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back
+        </button>
+
+        {/* Stepper Display */}
+        <div className="flex items-center space-x-4 text-sm text-gray-500 mb-8">
+          <span>Customer Information</span>
+          <span className="text-gray-300">|</span>
+          <span>Payment Information</span>
+          <span className="text-gray-300">|</span>
+          <span className="text-[#06EAFC] font-medium">Booking is Confirmed</span>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          {/* Confirmation Header */}
+          <div className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Booking is Confirmed</h2>
-            <p className="text-gray-600">Your booking has been successfully confirmed</p>
+            <p className="text-gray-600 text-sm">Your booking has been successfully confirmed</p>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex justify-between items-center py-3 border-b border-gray-100">
-              <span className="text-gray-600">Booking Reference</span>
-              <span className="font-medium">{bookingRef}</span>
+          {/* Vendor Information Card */}
+          <div className="bg-gradient-to-r from-[#06EAFC]/10 to-[#06F49F]/10 rounded-xl p-6 mb-8 border border-[#06EAFC]/20">
+            <h3 className="text-xl font-bold text-gray-900 mb-3">{vendorData?.name || "Golden Tulip Event Centre"}</h3>
+            
+            {/* Location */}
+            <div className="flex items-center gap-2 mb-4">
+              <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+              </svg>
+              <span className="text-gray-600">{vendorData?.area || vendorData?.address || "Mokola, Rd. 2314"}</span>
             </div>
             
-            <div className="flex justify-between items-center py-3 border-b border-gray-100">
-              <span className="text-gray-600">Vendor</span>
-              <span className="font-medium">{getVendorName()}</span>
+            {/* Description from "about" field in Google Sheet */}
+            <p className="text-gray-700 text-sm mb-4">
+              {vendorData?.description || "Sunrise Premium Hotel offers a blend of comfort, modern amenities, and warm hospitality in the heart of Ibadan. Designed for both business and leisure travelers, the hotel provides a peaceful stay with quick access to major city landmarks."}
+            </p>
+            
+            {/* Rating from Google Sheet */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <span className="text-gray-600 font-medium">{vendorData?.rating || "4.78"}</span>
+              </div>
+              <span className="text-gray-400">({vendorData?.reviews || "23"})</span>
             </div>
-            
-            <div className="flex justify-between items-center py-3 border-b border-gray-100">
-              <span className="text-gray-600">Category</span>
-              <span className="font-medium capitalize">{normalizedCategory}</span>
-            </div>
-            
-            {normalizedCategory === 'event' && (
-              <>
+          </div>
+
+          {/* Booking Details */}
+          <div className="space-y-6">
+            <div>
+              <h4 className="text-lg font-medium text-gray-900 mb-4">Booking Details</h4>
+              
+              <div className="space-y-4">
                 <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                  <span className="text-gray-600">Event Date</span>
-                  <span className="font-medium">{bookingData.date || new Date().toLocaleDateString()}</span>
+                  <span className="text-gray-600">Booking Reference</span>
+                  <span className="font-medium">AJN-{Math.random().toString(36).substr(2, 9).toUpperCase()}</span>
                 </div>
+                
                 <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                  <span className="text-gray-600">Event Type</span>
-                  <span className="font-medium">{bookingData.eventType || "Not specified"}</span>
+                  <span className="text-gray-600">Booking Date</span>
+                  <span className="font-medium">{new Date().toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}</span>
                 </div>
+                
                 <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                  <span className="text-gray-600">Expected Guests</span>
-                  <span className="font-medium">{bookingData.expectedGuests || bookingData.proposedCount || "Not specified"}</span>
+                  <span className="text-gray-600">Check-in</span>
+                  <span className="font-medium">{bookingData.checkInDate || bookingData.date || new Date().toLocaleDateString()}</span>
                 </div>
-              </>
-            )}
-            
-            {normalizedCategory === 'restaurant' && (
-              <>
+                
                 <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                  <span className="text-gray-600">Reservation Date</span>
-                  <span className="font-medium">{bookingData.date || new Date().toLocaleDateString()}</span>
-                </div>
-                <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                  <span className="text-gray-600">Time</span>
-                  <span className="font-medium">{bookingData.time || "Not specified"}</span>
-                </div>
-                <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                  <span className="text-gray-600">Number of Guests</span>
-                  <span className="font-medium">{bookingData.numberOfGuests || "Not specified"}</span>
-                </div>
-              </>
-            )}
-            
-            {normalizedCategory === 'hotel' && (
-              <>
-                <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                  <span className="text-gray-600">Check-in Date</span>
-                  <span className="font-medium">{bookingData.checkInDate || new Date().toLocaleDateString()}</span>
-                </div>
-                <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                  <span className="text-gray-600">Check-out Date</span>
+                  <span className="text-gray-600">Check-out</span>
                   <span className="font-medium">{bookingData.checkOutDate || "Not specified"}</span>
                 </div>
+                
                 <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                  <span className="text-gray-600">Number of Rooms</span>
-                  <span className="font-medium">{bookingData.numberOfRooms || "1"}</span>
+                  <span className="text-gray-600">Guests</span>
+                  <span className="font-medium">{bookingData.numberOfGuests || bookingData.expectedGuests || "1"}</span>
                 </div>
+                
                 <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                  <span className="text-gray-600">Number of Nights</span>
-                  <span className="font-medium">{bookingData.numberOfNights || "1"}</span>
+                  <span className="text-gray-600">Contact Person</span>
+                  <span className="font-medium">{bookingData.contactName || bookingData.guestName || "Not specified"}</span>
                 </div>
-              </>
-            )}
-            
-            <div className="flex justify-between items-center py-3 border-b border-gray-100">
-              <span className="text-gray-600">Contact Person</span>
-              <span className="font-medium">{bookingData.contactName || bookingData.guestName || "Not specified"}</span>
+                
+                <div className="flex justify-between items-center py-3">
+                  <span className="text-gray-600">Total Amount</span>
+                  <span className="text-xl font-bold text-[#06EAFC]">₦{(vendorData?.priceFrom ? parseInt(vendorData.priceFrom.replace(/[^\d]/g, "")) || 85000 : 85000).toLocaleString()}</span>
+                </div>
+              </div>
             </div>
-            
-            <div className="flex justify-between items-center py-3 border-b border-gray-100">
-              <span className="text-gray-600">Contact Email</span>
-              <span className="font-medium">{bookingData.email || "Not specified"}</span>
-            </div>
-            
-            <div className="flex justify-between items-center py-3 border-b border-gray-100">
-              <span className="text-gray-600">Contact Phone</span>
-              <span className="font-medium">{bookingData.phoneNumber || "Not specified"}</span>
-            </div>
-            
-            <div className="flex justify-between items-center py-3">
-              <span className="text-gray-600">Total Amount</span>
-              <span className="text-xl font-bold text-[#06EAFC]">₦{totalPrice.toLocaleString()}</span>
-            </div>
-          </div>
 
-          <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-            <p className="text-blue-800 text-sm mb-2">
-              <strong>Important:</strong> You'll receive a confirmation email shortly. Please check your spam folder if you don't see it within 10 minutes.
-            </p>
-            <p className="text-blue-800 text-sm">
-              For any changes or cancellations, please contact our support team at support@ajani.com or call +234 800 123 4567.
-            </p>
-          </div>
+            {/* Payment Method */}
+            <div>
+              <h4 className="text-lg font-medium text-gray-900 mb-4">Payment Method</h4>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">
+                      <span className="text-gray-700 font-medium">••••</span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Credit Card</p>
+                      <p className="text-sm text-gray-500">Ending in 4321</p>
+                    </div>
+                  </div>
+                  <span className="text-gray-600">Paid</span>
+                </div>
+              </div>
+            </div>
 
-          <div className="mt-8 flex flex-col sm:flex-row gap-4">
-            <button
-              onClick={() => window.print()}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex-1"
-            >
-              Print Confirmation
-            </button>
-            <button
-              onClick={() => navigate("/")}
-              className="px-6 py-3 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors flex-1"
-            >
-              Return to Home
-            </button>
+            {/* Important Notice */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-blue-800 text-sm mb-2">
+                <strong>Important:</strong> You'll receive a confirmation email shortly. Please check your spam folder if you don't see it within 10 minutes.
+              </p>
+              <p className="text-blue-800 text-sm">
+                For any changes or cancellations, please contact our support team at support@ajani.com or call +234 800 123 4567.
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <button
+                onClick={() => window.print()}
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex-1"
+              >
+                Print Confirmation
+              </button>
+              <button
+                onClick={() => navigate("/")}
+                className="px-6 py-3 bg-gradient-to-r from-[#06EAFC] to-[#06F49F] text-white rounded-lg hover:opacity-90 transition-opacity flex-1"
+              >
+                Return to Home
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1146,23 +1190,41 @@ const BookingPage = () => {
         {/* Vendor Info Banner */}
         {vendorData && (
           <div className="max-w-3xl mx-auto mb-8 bg-gradient-to-r from-[#06EAFC]/10 to-[#06F49F]/10 rounded-2xl p-6 border border-[#06EAFC]/20">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+              {/* Vendor Image from sheet */}
+              <div className="w-32 h-32 rounded-xl overflow-hidden flex-shrink-0">
+                <img
+                  src={vendorData.image}
+                  alt={vendorData.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.src = FALLBACK_IMAGES[vendorData.category] || FALLBACK_IMAGES.default;
+                  }}
+                />
+              </div>
+              
               <div className="flex-1">
                 <h2 className="text-xl font-bold text-gray-900">{vendorData.name}</h2>
                 <div className="flex items-center gap-4 mt-2">
+                  {/* Location */}
                   <div className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                     </svg>
                     <span className="text-gray-600 text-sm">{vendorData.area}</span>
                   </div>
+                  {/* Rating */}
                   <div className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
-                    <span className="text-gray-600 text-sm">{vendorData.rating || "4.5"}</span>
+                    <span className="text-gray-600 text-sm">{vendorData.rating || "4.5"} ({vendorData.reviews || "0"})</span>
                   </div>
                 </div>
+                {/* Description - using "about" field from sheet */}
+                <p className="text-gray-600 text-sm mt-3 line-clamp-2">
+                  {vendorData.description}
+                </p>
               </div>
               <div className="text-right">
                 <div className="text-2xl font-bold text-gray-900">
@@ -1178,31 +1240,39 @@ const BookingPage = () => {
           </div>
         )}
 
-        {/* Stepper */}
+        {/* Stepper - Matching image design with multi-line text and icons */}
         <div className="max-w-3xl mx-auto mb-8">
           <div className="flex items-center justify-between relative">
-            {steps[normalizedCategory]?.map((step, index) => (
+            {steps.map((step, index) => (
               <div key={index} className="flex flex-col items-center relative z-10 flex-1">
+                {/* Step Circle with Icon */}
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium mb-2 ${
+                  className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-medium mb-2 ${
                     index <= activeStep
-                      ? `bg-[${stepColors[index]}] text-white`
+                      ? 'bg-[#06EAFC] text-white shadow-lg'
                       : 'bg-gray-200 text-gray-400'
                   }`}
-                  style={{
-                    backgroundColor: index <= activeStep ? stepColors[index] : undefined
-                  }}
                 >
-                  {index + 1}
+                  {step.icon}
                 </div>
-                <span className={`text-xs font-medium text-center px-2 ${
-                  index <= activeStep ? 'text-gray-900' : 'text-gray-400'
-                }`}>
-                  {step}
-                </span>
                 
-                {index < steps[normalizedCategory].length - 1 && (
-                  <div className={`absolute top-5 left-3/4 w-full h-0.5 -z-10 ${
+                {/* Multi-line Step Title */}
+                <div className="text-center">
+                  <div className={`text-sm font-medium ${
+                    index <= activeStep ? 'text-gray-900' : 'text-gray-400'
+                  }`}>
+                    {step.title}
+                  </div>
+                  <div className={`text-sm font-medium ${
+                    index <= activeStep ? 'text-gray-900' : 'text-gray-400'
+                  }`}>
+                    {step.subtitle}
+                  </div>
+                </div>
+                
+                {/* Connecting Line */}
+                {index < steps.length - 1 && (
+                  <div className={`absolute top-6 left-3/4 w-full h-0.5 -z-10 ${
                     index < activeStep ? 'bg-[#06EAFC]' : 'bg-gray-200'
                   }`}></div>
                 )}
