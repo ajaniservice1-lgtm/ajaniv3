@@ -175,11 +175,7 @@ const Header = () => {
       action: () => scrollToSection("Categories"),
     },
     { label: "Blog", id: "Blog", action: handleBlogClick },
-    {
-      label: "Hello",
-      id: "Hello",
-      action: () => navigate("/greeting"),
-    },
+   
   ];
 
   // Additional navigation items for logged in users

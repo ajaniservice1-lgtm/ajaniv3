@@ -1,12 +1,9 @@
-import React, { Suspense, lazy, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import React, { Suspense, lazy, useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate, useLocation } from "react-router-dom";
 import { ChatProvider } from "./context/ChatContext";
 import TrackingWrapper from "./components/TrackingWrapper";
 import LocalBusinessSchema from "./components/LocalBusinessSchema";
 import { ModalProvider } from "./context/ModalContext";
-import VendorDetail from "./pages/VendorDetail";
-import { AdminLayout } from "./components/AdminLayout";
-import Overview from "./pages/admin/Overview";
 
 /* =======================
    LAZY-LOADED PAGES
@@ -18,6 +15,14 @@ const ContactPage = lazy(() => import("./pages/ContactPage"));
 const AboutAjani = lazy(() => import("./pages/AboutAjani"));
 const CategoryResults = lazy(() => import("./pages/CategoryResults"));
 const SearchResults = lazy(() => import("./components/SearchResults"));
+const VendorDetail = lazy(() => import("./pages/VendorDetail"));
+
+/* =======================
+   BOOKING PAGES
+======================= */
+const BookingPage = lazy(() => import("./pages/Booking/BookingPage"));
+const BookingConfirmation = lazy(() => import("./pages/Booking/BookingConfirmation"));
+const BookingFailed = lazy(() => import("./pages/Booking/BookingFailed"));
 
 /* =======================
    AUTH PAGES
@@ -77,6 +82,12 @@ const SavedListingsPage = lazy(() => import("./pages/SavedListingsPage"));
 const UserProfilePage = lazy(() => import("./pages/UserProfilePage"));
 
 /* =======================
+   ADMIN PAGES
+======================= */
+const AdminLayout = lazy(() => import("./components/AdminLayout"));
+const Overview = lazy(() => import("./pages/admin/Overview"));
+
+/* =======================
    LOADING UI
 ======================= */
 const LoadingDots = () => (
@@ -124,7 +135,7 @@ const ProtectedRoute = ({ children, requireVerification = true }) => {
   const isVerified = isUserVerified();
 
   if (!isAuthenticated) {
-    localStorage.setItem("redirectAfterLogin", window.location.pathname);
+    localStorage.setItem("redirectAfterLogin", window.location.pathname + window.location.search);
     return <Navigate to="/login" replace />;
   }
 
@@ -158,7 +169,7 @@ const OTPRoute = ({ children }) => {
 
   // If no pending email and not authenticated, redirect to register
   if (!hasPendingEmail && !isAuthenticated) {
-    return <Navigate to="/register" replace />;
+    return <Navigate to="/register" />;
   }
 
   return children;
@@ -200,7 +211,7 @@ function App() {
 
     // Listen for auth changes from OTP verification, login, etc.
     const handleAuthChange = () => {
-      // Auth change handler - no logging needed
+      // Auth change handler
     };
 
     window.addEventListener("storage", handleAuthChange);
@@ -240,10 +251,25 @@ function App() {
                   />
                   <Route path="/search-results" element={<SearchResults />} />
 
+                  {/* BOOKING ROUTES - UPDATED */}
+                  <Route path="/booking/:id" element={<BookingPage />} />
+                  <Route
+                    path="/booking-confirmation/:id"
+                    element={<BookingConfirmation />}
+                  />
+                  <Route
+                    path="/booking-failed/:id"
+                    element={<BookingFailed />}
+                  />
+
                   {/* VENDOR PROFILE ROUTE */}
                   <Route
                     path="/vendor-profile"
-                    element={<VendorCompleteProfile />}
+                    element={
+                      <ProtectedRoute>
+                        <VendorCompleteProfile />
+                      </ProtectedRoute>
+                    }
                   />
 
                   {/* AUTH ROUTES */}
@@ -393,7 +419,14 @@ function App() {
                   />
 
                   {/* ADMIN ROUTES */}
-                  <Route path="/admincpanel" element={<AdminLayout />}>
+                  <Route
+                    path="/admincpanel"
+                    element={
+                      <ProtectedRoute>
+                        <AdminLayout />
+                      </ProtectedRoute>
+                    }
+                  >
                     <Route index element={<Overview />} />
                     <Route path="customers" element={<p>Customers</p>} />
                     <Route path="vendors" element={<p>Vendors</p>} />
