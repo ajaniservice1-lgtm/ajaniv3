@@ -16,6 +16,7 @@ const AboutAjani = lazy(() => import("./pages/AboutAjani"));
 const CategoryResults = lazy(() => import("./pages/CategoryResults"));
 const SearchResults = lazy(() => import("./components/SearchResults"));
 const VendorDetail = lazy(() => import("./pages/VendorDetail"));
+const VendorsPage = lazy(() => import("./pages/VendorsPage")); // NEW: Added VendorsPage
 
 /* =======================
    BOOKING PAGES
@@ -242,6 +243,7 @@ function App() {
                   <Route path="/privacypage" element={<PrivacyPage />} />
                   <Route path="/termspage" element={<TermsPage />} />
                   <Route path="/contact" element={<ContactPage />} />
+                  <Route path="/vendors" element={<VendorsPage />} /> {/* NEW: Added Vendors route */}
 
                   {/* DYNAMIC ROUTES */}
                   <Route path="/vendor-detail/:id" element={<VendorDetail />} />
