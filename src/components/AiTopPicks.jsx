@@ -1058,7 +1058,7 @@ const AiTopPicks = () => {
                   headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
                 }
                 transition={{ delay: 0.1, duration: 0.4 }}
-                className="text-xl lg:text-2xl font-bold text-gray-900 mb-1 cursor-default"
+                className="text-xl lg:text-2xl font-bold text-center md:text-start text-gray-900 mb-1 cursor-default"
               >
                 Verified Vendors
               </motion.h1>
@@ -1068,7 +1068,7 @@ const AiTopPicks = () => {
                   headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
                 }
                 transition={{ delay: 0.2, duration: 0.4 }}
-                className="text-gray-600 text-lg lg:text-[16.5px] max-w-3xl leading-relaxed cursor-default"
+                className="text-gray-600 text-[13.5px] text-center md:text-start lg:text-[16.5px] max-w-3xl leading-relaxed cursor-default"
               >
                 Trusted businesses reviewed and approved for quality and reliability.
               </motion.p>
@@ -1087,8 +1087,7 @@ const AiTopPicks = () => {
                 rounded-xl 
                 cursor-pointer 
                 transition-all duration-200 
-                hover:shadow-lg hover:scale-105
-                text-black font-medium
+                text-black
                 w-full lg:w-auto
                 text-center
               "

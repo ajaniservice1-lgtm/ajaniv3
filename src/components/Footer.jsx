@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import Logo from "../assets/Logos/fotterimage.png";
+import Logo from "../assets/Logos/logo5.png";
 
 const Footer = () => {
   const year = new Date().getFullYear();
@@ -45,9 +45,10 @@ const Footer = () => {
               <img
                 src={Logo}
                 alt="Ajani Logo"
-                className="md:w-48 w-24 h-auto"
+                className="md:w-40 w-24 h-auto"
               />
             </div>
+            <p className="text-gray-700 hover:text-blue-600 transition-colors text-sm">Your trusted guide to discovering the best of Ibadan. Find hotels, restaurants, events, and verified local services.</p>
           </motion.div>
 
           {/* Column 2: About Section */}
