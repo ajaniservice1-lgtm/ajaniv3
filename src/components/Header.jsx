@@ -107,13 +107,6 @@ const Header = () => {
     };
   }, [isMenuOpen]);
 
-  const scrollToSection = (id) => {
-    const element = document.getElementById(id);
-    if (element) {
-      window.scrollTo({ top: element.offsetTop - 80, behavior: "smooth" });
-    }
-  };
-
   // Handle external blog link
   const handleBlogClick = () => {
     window.open("https://blog.ajani.ai", "_blank", "noopener,noreferrer");
@@ -168,14 +161,33 @@ const Header = () => {
 
   // Base navigation items - always visible
   const baseNavItems = [
-    { label: "Home", id: "Home", action: () => scrollToSection("Home") },
-    {
-      label: "Categories",
-      id: "Categories",
-      action: () => scrollToSection("Categories"),
+ 
+    { 
+      label: "Hotels", 
+      id: "hotels", 
+      action: () => navigate("/category/hotels")
     },
-    { label: "Blog", id: "Blog", action: handleBlogClick },
-   
+    { 
+      label: "Restaurant", 
+      id: "restaurants", 
+      action: () => navigate("/category/restaurants")
+    },
+    { 
+      label: "Shortlet", 
+      id: "shortlets", 
+      action: () => navigate("/category/shortlets")
+    },
+    { 
+      label: "Vendors", 
+      id: "vendors", 
+      action: () => navigate("/vendors")
+    },
+    { 
+      label: "Events", 
+      id: "events", 
+      action: () => navigate("/category/events")
+    },
+ 
   ];
 
   // Additional navigation items for logged in users
@@ -255,10 +267,7 @@ const Header = () => {
           <nav className="flex items-center justify-between h-full">
             <div className="flex items-center gap-3">
               <button
-                onClick={() => {
-                  navigate("/");
-                  setTimeout(() => window.scrollTo({ top: 0 }), 150);
-                }}
+                onClick={() => navigate("/")}
                 className="flex items-center gap-2 cursor-pointer"
               >
                 <img
@@ -270,12 +279,12 @@ const Header = () => {
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex flex-1 justify-center items-center gap-10 text-sm lg:ml-20 h-full">
+            <div className="hidden lg:flex flex-1 justify-center items-center gap-6 text-sm h-full">
               {baseNavItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={item.action}
-                  className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer"
+                  className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-3 py-1 rounded-md hover:bg-blue-50"
                 >
                   {item.label}
                 </button>
@@ -286,7 +295,7 @@ const Header = () => {
                   <button
                     key={index}
                     onClick={item.onClick}
-                    className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer"
+                    className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-3 py-1 rounded-md hover:bg-blue-50"
                   >
                     {item.label}
                   </button>
