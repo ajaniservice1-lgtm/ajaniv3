@@ -1042,7 +1042,7 @@ const AiTopPicks = () => {
   return (
     <section className="bg-white py-8 lg:py-12 font-manrope" id="toppicks">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div ref={headerRef} className="mb-8 lg:mb-12">
+        <div ref={headerRef} className="mb-2 lg:mb-2">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={
@@ -1058,7 +1058,7 @@ const AiTopPicks = () => {
                   headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
                 }
                 transition={{ delay: 0.1, duration: 0.4 }}
-                className="text-xl lg:text-2xl font-bold text-center md:text-start text-gray-900 mb-1 cursor-default"
+                className="text-xl lg:text-2xl text-start  font-bold text-center md:text-start text-gray-900 mb-1.5 cursor-default"
               >
                 Verified Vendors
               </motion.h1>
@@ -1068,7 +1068,7 @@ const AiTopPicks = () => {
                   headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
                 }
                 transition={{ delay: 0.2, duration: 0.4 }}
-                className="text-gray-600 text-[13.5px] text-center md:text-start lg:text-[16.5px] max-w-3xl leading-relaxed cursor-default"
+                className="text-gray-600 text-[13.5px]  md:text-start lg:text-[16.5px] max-w-3xl mb-4 leading-relaxed cursor-default"
               >
                 Trusted businesses reviewed and approved for quality and reliability.
               </motion.p>
@@ -1083,14 +1083,14 @@ const AiTopPicks = () => {
               onClick={handleViewAll}
               className="
                 px-6 py-3 
-                flex items-center justify-center 
+                flex md:items-center md:justify-center 
                 rounded-xl 
                 cursor-pointer 
                 transition-all duration-200 
                 text-black
                 w-full lg:w-auto
                 text-center
-                text-[13.5px]
+                
               "
             >
               View All Vendors →
@@ -1098,13 +1098,7 @@ const AiTopPicks = () => {
           </motion.div>
         </div>
 
-        <FilterBar
-          selectedDistrict={selectedDistrict}
-          setSelectedDistrict={setSelectedDistrict}
-          verifiedOnly={verifiedOnly}
-          setVerifiedOnly={setVerifiedOnly}
-          districts={districts}
-        />
+        
 
         <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-3'} gap-4 lg:gap-8 mb-12`}>
           {visibleVenues.map((venue, index) => (

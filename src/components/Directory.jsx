@@ -9,8 +9,8 @@ import { MdFavoriteBorder } from "react-icons/md";
 // ---------------- Skeleton Loading Components ----------------
 const SkeletonCard = ({ isMobile }) => (
   <div className={`bg-white rounded-xl overflow-hidden flex-shrink-0 font-manrope animate-pulse ${isMobile ? "w-[180px]" : "w-[280px]"} snap-start`}>
-    {/* Image Skeleton */}
-    <div className={`relative overflow-hidden rounded-xl bg-gray-200 ${isMobile ? "h-[180px]" : "h-[200px]"}`}></div>
+    {/* Image Skeleton - Reduced height on mobile */}
+    <div className={`relative overflow-hidden rounded-xl bg-gray-200 ${isMobile ? "h-[130px]" : "h-[200px]"}`}></div> {/* Changed from 180px to 110px */}
 
     {/* Text Skeleton */}
     <div className={`${isMobile ? "p-2.5" : "p-3"} flex flex-col gap-2`}>
@@ -25,8 +25,8 @@ const SkeletonCard = ({ isMobile }) => (
 );
 
 const SkeletonCategorySection = ({ isMobile }) => (
-  <section className="mb-6">
-    <div className="flex justify-between items-center mb-3">
+  <section className="mb-4">
+    <div className="flex justify-between items-center mb-2">
       <div className={`${isMobile ? 'h-5' : 'h-7'} bg-gray-200 rounded w-1/3`}></div>
       <div className={`${isMobile ? 'h-4' : 'h-6'} bg-gray-200 rounded w-24`}></div>
     </div>
@@ -51,7 +51,7 @@ const SkeletonDirectory = ({ isMobile }) => (
       </div>
 
       {/* Category Sections Skeleton - Reduced spacing */}
-      <div className={isMobile ? "space-y-6" : "space-y-8"}>
+      <div className={isMobile ? "space-y-4" : "space-y-6"}>
         {[...Array(3)].map((_, index) => (
           <SkeletonCategorySection key={index} isMobile={isMobile} />
         ))}
@@ -530,14 +530,14 @@ const BusinessCard = ({ item, category, isMobile }) => {
   return (
     <div
       className={`bg-white rounded-xl overflow-hidden font-manrope relative group transition-all duration-200 cursor-pointer hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] snap-start ${
-        isMobile ? "w-[180px] flex-shrink-0" : "w-full"
+        isMobile ? "w-[170px] flex-shrink-0" : "w-full"
       }`}
       onClick={handleCardClick}
     >
-      {/* Image - Fixed to prevent overlap */}
+      {/* Image - Reduced height on mobile by 50px */}
       <div
         className={`relative rounded-xl ${
-          isMobile ? "h-[160px]" : "h-[160px]"
+          isMobile ? "h-[130px]" : "h-[160px]" // Changed from 160px to 110px on mobile
         }`}
       >
         <img
@@ -551,18 +551,20 @@ const BusinessCard = ({ item, category, isMobile }) => {
           loading="lazy"
         />
 
-        {/* Guest favorite badge */}
-        <div className="absolute top-2 left-2 bg-white px-2 py-0.5 rounded-md shadow-sm border border-gray-100">
-          <span className="text-[10px] font-semibold text-gray-900">
+        {/* Guest favorite badge - Smaller on mobile */}
+        <div className="absolute top-1.5 left-1.5 bg-white px-1.5 py-0.5 rounded-md shadow-sm border border-gray-100">
+          <span className="text-[9px] font-semibold text-gray-900"> {/* Smaller text */}
             Guest favorite
           </span>
         </div>
 
-        {/* Heart icon */}
+        {/* Heart icon - Smaller on mobile */}
         <button
           onClick={handleFavoriteClick}
           disabled={isProcessing}
-          className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-sm transition-all duration-200 hover:scale-110 active:scale-95 ${
+          className={`absolute top-1.5 right-1.5 ${
+            isMobile ? "w-5 h-5" : "w-6 h-6" // Smaller on mobile
+          } rounded-full flex items-center justify-center shadow-sm transition-all duration-200 hover:scale-110 active:scale-95 ${
             isFavorite
               ? "bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
               : "bg-white/90 hover:bg-white backdrop-blur-sm"
@@ -572,10 +574,10 @@ const BusinessCard = ({ item, category, isMobile }) => {
           aria-pressed={isFavorite}
         >
           {isProcessing ? (
-            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <div className={`${isMobile ? "w-2.5 h-2.5" : "w-3 h-3"} border-2 border-white border-t-transparent rounded-full animate-spin`}></div>
           ) : isFavorite ? (
             <svg
-              className="w-3 h-3 text-white"
+              className={`${isMobile ? "w-2.5 h-2.5" : "w-3 h-3"} text-white`}
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -586,13 +588,13 @@ const BusinessCard = ({ item, category, isMobile }) => {
               />
             </svg>
           ) : (
-            <MdFavoriteBorder className="text- text-[#06EAFC] w-3 h-3" />
+            <MdFavoriteBorder className={`text-[#06EAFC] ${isMobile ? "w-2.5 h-2.5" : "w-3 h-3"}`} />
           )}
         </button>
       </div>
 
-      {/* Text Content */}
-      <div className={`${isMobile ? "p-2.5" : "p-3"} flex flex-col gap-1`}>
+      {/* Text Content - Adjusted padding for smaller image */}
+      <div className={`${isMobile ? "p-2" : "p-3"} flex flex-col gap-1`}> {/* Reduced padding on mobile */}
         {/* Title and Rating in one line */}
         <div className="flex justify-between items-start">
           <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-1 flex-1 mr-2">
@@ -601,7 +603,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
         </div>
 
         {/* Location */}
-        <p className="text-gray-600 text-xs mb-2 line-clamp-1">
+        <p className="text-gray-600 text-xs mb-1 line-clamp-1"> {/* Reduced margin */}
           {displayLocation}
         </p>
 
@@ -627,8 +629,8 @@ const BusinessCard = ({ item, category, isMobile }) => {
         </div>
 
         {/* Tag - Moved to bottom of card content with dark ash background and black text */}
-        <div className="mt-2 pt-2">
-          <span className="text-[10px] font-semibold text-black px-2 py-1 rounded-md bg-gray-100">
+        <div className="mt-1 pt-1"> {/* Reduced margin */}
+          <span className="text-[10px] font-semibold text-black px-2 py-0.5 rounded-md bg-gray-100"> {/* Reduced padding */}
             {tag}
           </span>
         </div>
@@ -661,8 +663,8 @@ const CategorySection = ({ title, items, isMobile }) => {
   const displayItems = items.slice(0, 6);
 
   return (
-    <section className="mb-6">
-      <div className="flex justify-between items-center mb-3">
+    <section className="mb-4">
+      <div className="flex justify-between items-center mb-2">
         <div>
           <h2 
             className="text-gray-900 font-bold"
@@ -822,7 +824,7 @@ const Directory = () => {
           </motion.div>
 
           {/* Category Sections - Reduced spacing on mobile */}
-          <div className={isMobile ? "space-y-6" : "space-y-8"}>
+          <div className={isMobile ? "space-y-4" : "space-y-6"}>
             {getPopularCategories().map((category, index) => {
               const items = categorizedListings[category] || [];
               if (items.length === 0) return null;
