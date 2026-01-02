@@ -25,13 +25,13 @@ const SkeletonCard = ({ isMobile }) => (
 );
 
 const SkeletonCategorySection = ({ isMobile }) => (
-  <section className="mb-8">
-    <div className="flex justify-between items-center mb-4">
-      <div className="h-7 bg-gray-200 rounded w-1/3"></div>
-      <div className="h-6 bg-gray-200 rounded w-24"></div>
+  <section className="mb-6">
+    <div className="flex justify-between items-center mb-3">
+      <div className={`${isMobile ? 'h-5' : 'h-7'} bg-gray-200 rounded w-1/3`}></div>
+      <div className={`${isMobile ? 'h-4' : 'h-6'} bg-gray-200 rounded w-24`}></div>
     </div>
 
-    <div className={`${isMobile ? "flex overflow-x-auto gap-[12px] pb-6 -mx-[16px] pl-[16px] pr-[48px] snap-x snap-mandatory" : "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4"}`}>
+    <div className={`${isMobile ? "flex overflow-x-auto gap-[12px] pb-4 -mx-[16px] pl-[16px] snap-x snap-mandatory" : "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4"}`}>
       {[...Array(6)].map((_, index) => (
         <SkeletonCard key={index} isMobile={isMobile} />
       ))}
@@ -40,18 +40,18 @@ const SkeletonCategorySection = ({ isMobile }) => (
 );
 
 const SkeletonDirectory = ({ isMobile }) => (
-  <section id="directory" className="bg-white py-12 font-manrope">
+  <section id="directory" className={`bg-white font-manrope ${isMobile ? 'py-6' : 'py-8'}`}>
     <div className="max-w-[1800px] mx-auto px-4 sm:px-6">
       {/* Header Skeleton - Reduced gap */}
-      <div className="mb-8">
+      <div className={isMobile ? "mb-3" : "mb-4"}>
         <div className="text-center">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mx-auto mb-2"></div>
-          <div className="h-5 bg-gray-200 rounded w-1/3 mx-auto"></div>
+          <div className={`${isMobile ? 'h-6' : 'h-8'} bg-gray-200 rounded w-1/4 mx-auto mb-2`}></div>
+          <div className={`${isMobile ? 'h-4' : 'h-5'} bg-gray-200 rounded w-1/3 mx-auto`}></div>
         </div>
       </div>
 
-      {/* Category Sections Skeleton */}
-      <div className="space-y-16">
+      {/* Category Sections Skeleton - Reduced spacing */}
+      <div className={isMobile ? "space-y-6" : "space-y-8"}>
         {[...Array(3)].map((_, index) => (
           <SkeletonCategorySection key={index} isMobile={isMobile} />
         ))}
@@ -637,6 +637,229 @@ const BusinessCard = ({ item, category, isMobile }) => {
   );
 };
 
+// ---------------- CategorySection Component ----------------
+const CategorySection = ({ title, items, isMobile }) => {
+  const navigate = useNavigate();
+
+  if (items.length === 0) return null;
+
+  const getCategoryFromTitle = (title) => {
+    const words = title.toLowerCase().split(" ");
+    if (words.includes("hotel")) return "hotel";
+    if (words.includes("shortlet")) return "shortlet";
+    if (words.includes("restaurant")) return "restaurant";
+    return words[1] || "all";
+  };
+
+  const category = getCategoryFromTitle(title);
+
+  const handleCategoryClick = () => {
+    navigate(`/category/${category}`);
+  };
+
+  // Show only 6 cards
+  const displayItems = items.slice(0, 6);
+
+  return (
+    <section className="mb-6">
+      <div className="flex justify-between items-center mb-3">
+        <div>
+          <h2 
+            className="text-gray-900 font-bold"
+            style={{ color: '#000651' }}
+          >
+            {isMobile ? (
+              <span className="text-[14px]">
+                {title}
+              </span>
+            ) : (
+              <span className="text-xl">
+                {title}
+              </span>
+            )}
+          </h2>
+        </div>
+        {/* View All button with arrow icon */}
+        <button
+          onClick={handleCategoryClick}
+          className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group"
+          style={{ color: '#000651' }}
+        >
+          {isMobile ? (
+            <span className="text-[12px]">View all</span>
+          ) : (
+            <span className="text-[13.5px]">View all</span>
+          )}
+          <svg className={`transition-transform group-hover:translate-x-1 ${
+            isMobile ? "w-3 h-3" : "w-4 h-4"
+          }`} fill="currentColor" viewBox="0 0 16 16">
+            <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+          </svg>
+        </button>
+      </div>
+
+      {/* Desktop: Grid layout for 6 cards */}
+      {/* Mobile: Horizontal scroll */}
+      {!isMobile ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          {displayItems.map((item, index) => (
+            <BusinessCard
+              key={item.id || index}
+              item={item}
+              category={category}
+              isMobile={isMobile}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="relative">
+          <div className="flex overflow-x-auto scrollbar-hide gap-[12px] pb-4 -mx-[16px] pl-[16px] snap-x snap-mandatory">
+            {displayItems.map((item, index) => (
+              <BusinessCard
+                key={item.id || index}
+                item={item}
+                category={category}
+                isMobile={isMobile}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+};
+
+// ---------------- Main Directory Component ----------------
+const Directory = () => {
+  const [headerRef, headerInView] = useInView({
+    threshold: 0.1,
+    triggerOnce: false,
+  });
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  const {
+    data: listings = [],
+    loading,
+    error,
+  } = useGoogleSheet(
+    "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y",
+    import.meta.env.VITE_GOOGLE_API_KEY
+  );
+
+  // Check for mobile view
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Show skeleton loading while data is being fetched
+  if (loading) {
+    return <SkeletonDirectory isMobile={isMobile} />;
+  }
+
+  // Define the specific categories we want to display
+  const getPopularCategories = () => {
+    return ["hotel", "shortlet", "restaurant"];
+  };
+
+  // Filter listings based on search and filters
+  const filteredListings = listings.filter((item) => {
+    return true; // Show all listings for now
+  });
+
+  // Group listings by the specific categories we want
+  const categorizedListings = {};
+  getPopularCategories().forEach((category) => {
+    categorizedListings[category] = filteredListings.filter((item) => {
+      const itemCategory = (item.category || "").toLowerCase();
+      return itemCategory.includes(category);
+    });
+  });
+
+  if (error)
+    return (
+      <section id="directory" className="bg-white py-12 font-manrope">
+        <div className="max-w-[1800px] mx-auto px-4 sm:px-6">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+            <p className="text-red-700 font-medium text-sm">{error}</p>
+          </div>
+        </div>
+      </section>
+    );
+
+  return (
+    <section id="directory" className="bg-white font-manrope">
+      <div className={`${isMobile ? 'py-6' : 'py-8'}`}>
+        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header - Reduced gap on mobile */}
+          <motion.div
+            ref={headerRef}
+            initial={{ opacity: 0, y: 20 }}
+            animate={headerInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className={isMobile ? "mb-3" : "mb-4"}
+          >
+            <h1 className={`md:text-2xl font-semibold text-gray-900 ${
+              isMobile ? 
+                "text-lg text-center mb-2" :
+                "text-xl md:text-start md:mb-4"
+            }`}>
+              Explore Categories
+            </h1>
+            <p className={`text-gray-600 ${
+              isMobile ?
+                "text-xs text-center" :
+                "md:text-[15px] md:text-start text-[13.5px]"
+            }`}>
+              Find the best places and services in Ibadan
+            </p>
+          </motion.div>
+
+          {/* Category Sections - Reduced spacing on mobile */}
+          <div className={isMobile ? "space-y-6" : "space-y-8"}>
+            {getPopularCategories().map((category, index) => {
+              const items = categorizedListings[category] || [];
+              if (items.length === 0) return null;
+
+              const title = `Popular ${capitalizeFirst(category)} in Ibadan`;
+
+              return (
+                <CategorySection
+                  key={category}
+                  title={title}
+                  items={items}
+                  isMobile={isMobile}
+                />
+              );
+            })}
+          </div>
+
+          {/* Empty State */}
+          {filteredListings.length === 0 && !loading && (
+            <div className="text-center py-8">
+              <div className="bg-gray-50 rounded-xl p-6 max-w-md mx-auto">
+                <i className="fas fa-search text-3xl text-gray-300 mb-3 block"></i>
+                <h3 className="text-base text-gray-800 mb-2">
+                  No businesses found
+                </h3>
+                <p className="text-gray-600 text-sm">
+                  Try adjusting your search or filters
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 // Add CSS styles for toast animations and utilities
 const styles = `
 /* Toast animation */
@@ -719,207 +942,5 @@ if (typeof document !== "undefined") {
   styleSheet.textContent = styles;
   document.head.appendChild(styleSheet);
 }
-
-// ---------------- CategorySection Component ----------------
-const CategorySection = ({ title, items, isMobile }) => {
-  const navigate = useNavigate();
-
-  if (items.length === 0) return null;
-
-  const getCategoryFromTitle = (title) => {
-    const words = title.toLowerCase().split(" ");
-    if (words.includes("hotel")) return "hotel";
-    if (words.includes("shortlet")) return "shortlet";
-    if (words.includes("restaurant")) return "restaurant";
-    return words[1] || "all";
-  };
-
-  const category = getCategoryFromTitle(title);
-
-  const handleCategoryClick = () => {
-    navigate(`/category/${category}`);
-  };
-
-  // Show only 6 cards
-  const displayItems = items.slice(0, 6);
-
-  return (
-    <section className="mb-8">
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h2 
-            className="text-gray-900 text-xl font-bold"
-            style={{ color: '#000651' }}
-          >
-            {title}
-          </h2>
-        </div>
-        {/* View All button with arrow icon */}
-        <button
-          onClick={handleCategoryClick}
-          className="text-gray-900 hover:text-[#06EAFC] transition-colors text-[13.5] font-medium cursor-pointer flex items-center gap-2 group"
-          style={{ color: '#000651' }}
-        >
-          View all
-          <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="currentColor" viewBox="0 0 16 16">
-            <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
-          </svg>
-        </button>
-      </div>
-
-      {/* Desktop: Grid layout for 6 cards - FIXED */}
-      {/* Mobile: Horizontal scroll with Airbnb-style peek - REMOVED WHITE SHADOW */}
-      {!isMobile ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          {displayItems.map((item, index) => (
-            <BusinessCard
-              key={item.id || index}
-              item={item}
-              category={category}
-              isMobile={isMobile}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="relative">
-          {/* Airbnb-style mobile scroll container with exact measurements */}
-          {/* REMOVED the pr-[48px] padding that was creating the white shadow */}
-          <div className="flex overflow-x-auto scrollbar-hide gap-[12px] pb-4 -mx-[16px] pl-[16px] snap-x snap-mandatory">
-            {displayItems.map((item, index) => (
-              <BusinessCard
-                key={item.id || index}
-                item={item}
-                category={category}
-                isMobile={isMobile}
-              />
-            ))}
-          </div>
-          {/* REMOVED the gradient fade overlay completely */}
-        </div>
-      )}
-    </section>
-  );
-};
-
-// ---------------- Main Directory Component ----------------
-const Directory = () => {
-  const [headerRef, headerInView] = useInView({
-    threshold: 0.1,
-    triggerOnce: false,
-  });
-
-  const [isMobile, setIsMobile] = useState(false);
-
-  const {
-    data: listings = [],
-    loading,
-    error,
-  } = useGoogleSheet(
-    "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y",
-    import.meta.env.VITE_GOOGLE_API_KEY
-  );
-
-  // Check for mobile view
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024);
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-  // Show skeleton loading while data is being fetched
-  if (loading) {
-    return <SkeletonDirectory isMobile={isMobile} />;
-  }
-
-  // Define the specific categories we want to display
-  const getPopularCategories = () => {
-    return ["hotel", "shortlet", "restaurant"];
-  };
-
-  // Filter listings based on search and filters
-  const filteredListings = listings.filter((item) => {
-    return true; // Show all listings for now
-  });
-
-  // Group listings by the specific categories we want
-  const categorizedListings = {};
-  getPopularCategories().forEach((category) => {
-    categorizedListings[category] = filteredListings.filter((item) => {
-      const itemCategory = (item.category || "").toLowerCase();
-      return itemCategory.includes(category);
-    });
-  });
-
-  if (error)
-    return (
-      <section id="directory" className="bg-white py-12 font-manrope">
-        <div className="max-w-[1800px] mx-auto px-4 sm:px-6">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-            <p className="text-red-700 font-medium text-sm">{error}</p>
-          </div>
-        </div>
-      </section>
-    );
-
-  return (
-    <section id="directory" className="bg-white py-8 font-manrope">
-      <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header - Drastically reduced gap */}
-        <motion.div
-          ref={headerRef}
-          initial={{ opacity: 0, y: 20 }}
-          animate={headerInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="mb-4"
-        >
-          <h1 className="md:text-2xl text-xl text-center md:text-start font-semibold text-gray-900 md:mb-4">
-            Explore Categories
-          </h1>
-          <p className="text-gray-600 md:text-[15px] md:text-start text-center text-[13.5px]">
-            Find the best places and services in Ibadan
-          </p>
-        </motion.div>
-
-        {/* Category Sections */}
-        <div className="space-y-8">
-          {getPopularCategories().map((category, index) => {
-            const items = categorizedListings[category] || [];
-            if (items.length === 0) return null;
-
-            const title = `Popular ${capitalizeFirst(category)} in Ibadan`;
-
-            return (
-              <CategorySection
-                key={category}
-                title={title}
-                items={items}
-                isMobile={isMobile}
-              />
-            );
-          })}
-        </div>
-
-        {/* Empty State */}
-        {filteredListings.length === 0 && !loading && (
-          <div className="text-center py-12">
-            <div className="bg-gray-50 rounded-xl p-8 max-w-md mx-auto">
-              <i className="fas fa-search text-4xl text-gray-300 mb-4 block"></i>
-              <h3 className="text-lg text-gray-800 mb-2">
-                No businesses found
-              </h3>
-              <p className="text-gray-600">
-                Try adjusting your search or filters
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-    </section>
-  );
-};
 
 export default Directory;
