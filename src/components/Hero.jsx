@@ -18,11 +18,14 @@ import {
   faChevronLeft,
   faBuilding,
   faUtensils,
-  faLandmark,
   faHome,
   faTools,
-  faCalendar,
-  faUser,
+  faHotel,
+  faBriefcase,
+  faStar,
+  faConciergeBell,
+  faLightbulb,
+  faFire,
 } from "@fortawesome/free-solid-svg-icons";
 import { createPortal } from "react-dom";
 
@@ -42,6 +45,20 @@ const FALLBACK_IMAGES = {
   Tourism: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400",
   Services:
     "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=400",
+};
+
+/* ---------------- SOPHISTICATED ICON MAPPING ---------------- */
+const getSophisticatedCategoryIcon = (category) => {
+  const cat = category.toLowerCase();
+  
+  if (cat.includes("hotel")) return faHotel;
+  if (cat.includes("restaurant") || cat.includes("food")) return faUtensils;
+  if (cat.includes("shortlet") || cat.includes("apartment")) return faHome;
+  if (cat.includes("services")) return faConciergeBell;
+  if (cat.includes("trending")) return faFire;
+  if (cat.includes("popular") || cat.includes("featured")) return faStar;
+  
+  return faBriefcase;
 };
 
 /* ---------------- HELPER FUNCTIONS ---------------- */
@@ -125,13 +142,13 @@ const getCategoryImage = (category, fallback) => {
   }
 };
 
-// Get category icon
+// Get category icon (original - keep for hero section)
 const getCategoryIcon = (category) => {
   const cat = category.toLowerCase();
   if (cat.includes("hotel")) return faBuilding;
   if (cat.includes("restaurant") || cat.includes("food")) return faUtensils;
   if (cat.includes("shortlet") || cat.includes("apartment")) return faHome;
-  if (cat.includes("tourism") || cat.includes("tourist")) return faLandmark;
+  if (cat.includes("tourism") || cat.includes("tourist")) return faMapMarkerAlt;
   if (cat.includes("services")) return faTools;
   return faFilter;
 };
@@ -349,7 +366,7 @@ const generateSearchSuggestions = (query, listings) => {
 
 /* ---------------- COMPONENTS ---------------- */
 
-// Mobile Search Modal Component
+// Mobile Search Modal Component - APPLE STANDARD DESIGN
 const MobileSearchModal = ({
   searchQuery,
   listings,
@@ -429,23 +446,26 @@ const MobileSearchModal = ({
 
   return createPortal(
     <>
-      {/* Backdrop */}
+      {/* Minimal Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9990] animate-fadeIn"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9990] animate-fadeIn"
         onClick={onClose}
       />
 
-      {/* Modal Content */}
+      {/* Apple-Style Modal Content */}
       <div
         ref={modalRef}
         className="fixed inset-0 bg-white z-[9991] animate-slideInUp flex flex-col"
+        style={{
+          boxShadow: "0 -25px 50px -12px rgba(0, 0, 0, 0.1)",
+        }}
       >
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
+        {/* Clean Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4">
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="text-gray-600 hover:text-gray-900 p-2 rounded-full hover:bg-gray-100"
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors duration-200"
             >
               <FontAwesomeIcon icon={faChevronLeft} className="w-5 h-5" />
             </button>
@@ -456,17 +476,17 @@ const MobileSearchModal = ({
               <input
                 ref={inputRef}
                 type="text"
-                className="w-full pl-10 pr-10 py-3 bg-gray-100 rounded-full border-0 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-900"
+                className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-gray-900 text-base placeholder:text-gray-500"
                 value={inputValue}
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
-                placeholder="Search by area, category, or name..."
+                placeholder="Search hotels, restaurants, shortlets..."
                 autoFocus
               />
               {inputValue && (
                 <button
                   onClick={handleClearInput}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
                 </button>
@@ -475,92 +495,87 @@ const MobileSearchModal = ({
           </div>
         </div>
 
-        {/* Body */}
+        {/* Clean Body */}
         <div className="flex-1 overflow-y-auto">
           {inputValue.trim() ? (
             <>
-              {/* Suggestions Section */}
+              {/* Clean Suggestions Section */}
               {suggestions.length > 0 ? (
-                <div className="p-4">
-                  <div className="mb-4">
-                    <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
-                      Top Suggestions ({suggestions.length})
+                <div className="p-5">
+                  {/* Clean Header */}
+                  <div className="mb-6">
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+                      Suggestions ({suggestions.length})
                     </h3>
+                  </div>
 
-                    {/* Suggestions List */}
-                    <div className="space-y-3">
-                      {suggestions.map((suggestion, index) => (
+                  {/* Clean Suggestions List */}
+                  <div className="space-y-3">
+                    {suggestions.map((suggestion, index) => {
+                      const sophisticatedIcon = suggestion.type === "category" 
+                        ? getSophisticatedCategoryIcon(suggestion.title)
+                        : faMapMarkerAlt;
+                      
+                      return (
                         <button
                           key={index}
                           onClick={() =>
                             handleSuggestionClick(suggestion.action())
                           }
-                          className="w-full text-left p-4 bg-white hover:bg-blue-50 rounded-xl border border-gray-100 transition-all duration-200 hover:shadow-md"
+                          className="w-full text-left p-4 bg-white rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors duration-200 group"
                         >
-                          <div className="flex items-start gap-3 mb-3">
-                            <div
-                              className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                                suggestion.type === "category"
-                                  ? "bg-blue-100 text-blue-600"
-                                  : "bg-green-100 text-green-600"
-                              }`}
-                            >
+                          <div className="flex items-start gap-4">
+                            {/* Minimal Icon Container */}
+                            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${suggestion.type === "category" 
+                              ? "bg-gray-100" 
+                              : "bg-gray-100"
+                            }`}>
                               <FontAwesomeIcon
-                                icon={
-                                  suggestion.type === "category"
-                                    ? faFilter
-                                    : faMapMarkerAlt
-                                }
-                                className="w-5 h-5"
+                                icon={sophisticatedIcon}
+                                className={`w-5 h-5 ${suggestion.type === "category" 
+                                  ? "text-gray-700" 
+                                  : "text-gray-700"
+                                }`}
                               />
                             </div>
+                            
                             <div className="flex-1">
-                              <div className="flex items-start justify-between mb-1">
-                                <h4 className="font-semibold text-gray-900 text-lg">
-                                  {suggestion.title}
-                                </h4>
+                              <div className="flex items-start justify-between mb-2">
+                                <div>
+                                  <h4 className="font-medium text-gray-900 text-base">
+                                    {suggestion.title}
+                                  </h4>
+                                  <p className="text-sm text-gray-600 mt-1">
+                                    {suggestion.description}
+                                  </p>
+                                </div>
                                 <span
-                                  className={`text-sm font-semibold px-3 py-1 rounded-full ${
-                                    suggestion.type === "category"
-                                      ? "bg-blue-100 text-blue-700"
-                                      : "bg-green-100 text-green-700"
+                                  className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${suggestion.type === "category" 
+                                    ? "bg-blue-50 text-blue-700" 
+                                    : "bg-purple-50 text-purple-700"
                                   }`}
                                 >
-                                  {suggestion.count}{" "}
-                                  {suggestion.count === 1 ? "place" : "places"}
+                                  {suggestion.count} {suggestion.count === 1 ? "place" : "places"}
                                 </span>
                               </div>
-                              <p className="text-sm text-gray-600 mb-2">
-                                {suggestion.description}
-                              </p>
 
-                              {/* Dynamic Breakdown */}
+                              {/* Clean Breakdown */}
                               <div className="mt-3 pt-3 border-t border-gray-100">
                                 <p className="text-xs text-gray-500 mb-2">
                                   {suggestion.breakdownText}
                                 </p>
 
-                                {/* Breakdown Tags */}
-                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                {/* Clean Breakdown Tags */}
+                                <div className="flex flex-wrap gap-1.5">
                                   {suggestion.breakdown.map((item, idx) => (
                                     <div
                                       key={idx}
-                                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${
-                                        suggestion.type === "category"
-                                          ? "bg-blue-50 text-blue-700"
-                                          : "bg-green-50 text-green-700"
+                                      className={`text-xs px-2 py-1 rounded ${suggestion.type === "category" 
+                                        ? "bg-gray-100 text-gray-700" 
+                                        : "bg-gray-100 text-gray-700"
                                       }`}
                                     >
-                                      {suggestion.type === "location" && (
-                                        <FontAwesomeIcon
-                                          icon={item.icon}
-                                          className="w-3 h-3"
-                                        />
-                                      )}
-                                      <span className="text-xs font-medium">
-                                        {item.category || item.location} (
-                                        {item.count})
-                                      </span>
+                                      {item.category || item.location} ({item.count})
                                     </div>
                                   ))}
                                 </div>
@@ -568,11 +583,10 @@ const MobileSearchModal = ({
                             </div>
                           </div>
 
-                          {/* View All Button */}
-                          <div className="flex items-center justify-end mt-2">
+                          {/* Clean View All CTA */}
+                          <div className="flex items-center justify-end mt-4 pt-3 border-t border-gray-100">
                             <span className="text-sm text-blue-600 font-medium">
-                              View all {suggestion.count}{" "}
-                              {suggestion.count === 1 ? "place" : "places"}
+                              View all
                             </span>
                             <FontAwesomeIcon
                               icon={faChevronRight}
@@ -580,11 +594,11 @@ const MobileSearchModal = ({
                             />
                           </div>
                         </button>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
 
-                  {/* Show All Results Button */}
+                  {/* Clean Show All Results Button */}
                   <button
                     onClick={() => {
                       const params = new URLSearchParams();
@@ -592,38 +606,36 @@ const MobileSearchModal = ({
                       onSuggestionClick(`/search-results?${params.toString()}`);
                       onClose();
                     }}
-                    className="w-full p-4 bg-gradient-to-r from-blue-500 to-teal-400 hover:from-blue-600 hover:to-teal-500 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
+                    className="w-full mt-6 p-4 bg-gray-900 hover:bg-black text-white font-medium rounded-xl transition-colors duration-200"
                   >
                     <div className="flex items-center justify-between">
                       <div className="text-left">
-                        <p className="font-bold text-lg">
-                          Show all results for "{inputValue}"
-                        </p>
-                        <p className="text-sm opacity-90 mt-1">
-                          Search across all categories and locations
+                        <p className="text-base font-medium">Show all results</p>
+                        <p className="text-sm text-gray-300 mt-1">
+                          View all matches for "{inputValue}"
                         </p>
                       </div>
                       <FontAwesomeIcon
                         icon={faChevronRight}
-                        className="w-5 h-5"
+                        className="w-4 h-4"
                       />
                     </div>
                   </button>
                 </div>
               ) : (
-                /* No Results Message */
+                /* Clean No Results Message */
                 <div className="flex flex-col items-center justify-center h-full py-16 px-4">
-                  <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
                     <FontAwesomeIcon
                       icon={faSearch}
-                      className="w-10 h-10 text-gray-400"
+                      className="w-8 h-8 text-gray-400"
                     />
                   </div>
-                  <p className="text-xl font-semibold text-gray-800 mb-3">
-                    No matches found for "{inputValue}"
-                  </p>
-                  <p className="text-sm text-gray-600 text-center max-w-xs mb-8">
-                    Try searching with different keywords or browse categories
+                  <h3 className="text-xl font-medium text-gray-900 mb-3">
+                    No matches found
+                  </h3>
+                  <p className="text-gray-600 text-center max-w-sm mb-8">
+                    Try different keywords or browse our categories
                   </p>
                   <button
                     onClick={() => {
@@ -632,7 +644,7 @@ const MobileSearchModal = ({
                       onSuggestionClick(`/search-results?${params.toString()}`);
                       onClose();
                     }}
-                    className="px-6 py-3 bg-blue-500 text-white font-medium rounded-full hover:bg-blue-600 transition-colors"
+                    className="px-6 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-black transition-colors"
                   >
                     Search anyway
                   </button>
@@ -640,41 +652,35 @@ const MobileSearchModal = ({
               )}
             </>
           ) : (
-            /* Empty State */
+            /* Clean Empty State */
             <div className="flex flex-col items-center justify-center h-full py-16 px-4">
-              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
                 <FontAwesomeIcon
                   icon={faSearch}
-                  className="w-10 h-10 text-gray-400"
+                  className="w-8 h-8 text-gray-400"
                 />
               </div>
-              <p className="text-xl font-semibold text-gray-800 mb-3">
-                Start typing to search
-              </p>
-              <p className="text-sm text-gray-600 text-center max-w-xs">
-                Search for categories, locations, or places in Ibadan
+              <h3 className="text-xl font-medium text-gray-900 mb-3">
+                Start searching
+              </h3>
+              <p className="text-gray-600 text-center max-w-sm mb-10">
+                Search for hotels, restaurants, shortlets, and services in Ibadan
               </p>
 
-              {/* Popular Search Tips */}
-              <div className="mt-8 w-full max-w-md px-4">
-                <p className="text-sm font-medium text-gray-500 mb-3">
-                  Try searching for:
+              {/* Clean Popular Search Tips */}
+              <div className="w-full max-w-md px-4">
+                <p className="text-sm font-medium text-gray-500 mb-4 text-center">
+                  Popular searches
                 </p>
                 <div className="flex flex-wrap gap-2 justify-center">
-                  {[
-                    "Hotels",
-                    "Restaurants",
-                    "Ibadan",
-                    "Shortlets",
-                    "Tourism",
-                  ].map((term) => (
+                  {["Hotels", "Restaurants", "Shortlets", "Services"].map((term) => (
                     <button
                       key={term}
                       onClick={() => {
                         setInputValue(term);
                         onTyping(term);
                       }}
-                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-sm transition-colors"
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors duration-200"
                     >
                       {term}
                     </button>
@@ -690,7 +696,7 @@ const MobileSearchModal = ({
   );
 };
 
-// Desktop Search Suggestions Component
+// Desktop Search Suggestions Component - APPLE STANDARD DESIGN
 const DesktopSearchSuggestions = ({
   searchQuery,
   listings,
@@ -729,29 +735,30 @@ const DesktopSearchSuggestions = ({
   if (!isVisible || !searchQuery.trim() || suggestions.length === 0)
     return null;
 
-  // FIXED: Use exact containerWidth (no 60% increase)
   const containerWidth = searchBarPosition?.width || 0;
 
   return createPortal(
     <>
-      {/* Semi-transparent backdrop */}
+      {/* Minimal Backdrop */}
       <div
-        className="fixed inset-0 bg-black/5 z-[9980] animate-fadeIn"
+        className="fixed inset-0 bg-transparent z-[9980]"
         onClick={onClose}
       />
 
+      {/* Apple-Style Modal Container */}
       <div
         ref={suggestionsRef}
-        className="absolute bg-white rounded-xl shadow-xl border border-gray-200 z-[9981] animate-scaleIn overflow-hidden"
+        className="absolute bg-white rounded-xl shadow-2xl border border-gray-200 z-[9981] animate-fadeIn overflow-hidden"
         style={{
           left: `${searchBarPosition?.left || 0}px`,
           top: `${(searchBarPosition?.bottom || 0) + 8}px`,
           width: `${containerWidth}px`,
           maxHeight: "70vh",
+          boxShadow: "0 10px 40px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)",
         }}
       >
-        {/* Suggestions Header */}
-        <div className="p-3 border-b border-gray-100 bg-gray-50/80 backdrop-blur-sm">
+        {/* Clean Suggestions Header */}
+        <div className="p-4 border-b border-gray-200">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <FontAwesomeIcon
@@ -764,7 +771,7 @@ const DesktopSearchSuggestions = ({
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-200 transition-colors"
+              className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded transition-colors"
               aria-label="Close suggestions"
             >
               <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
@@ -772,107 +779,91 @@ const DesktopSearchSuggestions = ({
           </div>
         </div>
 
-        {/* Suggestions List */}
+        {/* Clean Suggestions List */}
         <div
           className="overflow-y-auto"
-          style={{ maxHeight: "calc(70vh - 48px)" }}
+          style={{ maxHeight: "calc(70vh - 56px)" }}
         >
-          <div className="p-4">
-            {suggestions.map((suggestion, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  onSuggestionClick(suggestion.action());
-                  onClose();
-                }}
-                className="w-full text-left p-4 bg-white hover:bg-blue-50 rounded-lg border border-gray-100 transition-all duration-200 hover:shadow-sm mb-2 last:mb-0 group"
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      suggestion.type === "category"
-                        ? "bg-blue-100 text-blue-600"
-                        : "bg-green-100 text-green-600"
-                    }`}
-                  >
-                    <FontAwesomeIcon
-                      icon={
-                        suggestion.type === "category"
-                          ? faFilter
-                          : faMapMarkerAlt
-                      }
-                      className="w-5 h-5"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-1">
-                      <h4 className="font-semibold text-gray-900 text-sm truncate">
-                        {suggestion.title}
-                      </h4>
-                      <span
-                        className={`text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap ml-2 ${
-                          suggestion.type === "category"
-                            ? "bg-blue-50 text-blue-700"
-                            : "bg-green-50 text-green-700"
-                        }`}
-                      >
-                        {suggestion.count}{" "}
-                        {suggestion.count === 1 ? "place" : "places"}
-                      </span>
+          <div className="p-2">
+            {suggestions.map((suggestion, index) => {
+              const sophisticatedIcon = suggestion.type === "category" 
+                ? getSophisticatedCategoryIcon(suggestion.title)
+                : faMapMarkerAlt;
+              
+              return (
+                <button
+                  key={index}
+                  onClick={() => {
+                    onSuggestionClick(suggestion.action());
+                    onClose();
+                  }}
+                  className="w-full text-left p-3 bg-white hover:bg-gray-50 rounded-lg transition-colors duration-150 mb-1 last:mb-0 group"
+                >
+                  <div className="flex items-start gap-3">
+                    {/* Minimal Icon */}
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100 flex-shrink-0">
+                      <FontAwesomeIcon
+                        icon={sophisticatedIcon}
+                        className="w-4 h-4 text-gray-700"
+                      />
                     </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-1">
+                        <h4 className="font-medium text-gray-900 text-sm truncate">
+                          {suggestion.title}
+                        </h4>
+                        <span
+                          className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ml-2 ${suggestion.type === "category" 
+                            ? "bg-blue-50 text-blue-700" 
+                            : "bg-purple-50 text-purple-700"
+                          }`}
+                        >
+                          {suggestion.count} {suggestion.count === 1 ? "place" : "places"}
+                        </span>
+                      </div>
 
-                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                      {suggestion.description}
-                    </p>
-
-                    {/* Dynamic Breakdown */}
-                    <div className="mt-2">
-                      <p className="text-xs text-gray-500 mb-1">
-                        {suggestion.breakdownText}
+                      <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                        {suggestion.description}
                       </p>
 
-                      {/* Breakdown Tags */}
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {suggestion.breakdown.slice(0, 3).map((item, idx) => (
-                          <div
-                            key={idx}
-                            className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs ${
-                              suggestion.type === "category"
-                                ? "bg-blue-50 text-blue-700"
-                                : "bg-green-50 text-green-700"
-                            }`}
-                          >
-                            {suggestion.type === "location" && (
-                              <FontAwesomeIcon
-                                icon={item.icon}
-                                className="w-3 h-3"
-                              />
-                            )}
-                            <span className="font-medium">
+                      {/* Clean Breakdown */}
+                      <div className="mt-2">
+                        <p className="text-xs text-gray-500 mb-1">
+                          {suggestion.breakdownText}
+                        </p>
+
+                        {/* Clean Breakdown Tags */}
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {suggestion.breakdown.slice(0, 3).map((item, idx) => (
+                            <div
+                              key={idx}
+                              className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded"
+                            >
                               {item.category || item.location} ({item.count})
+                            </div>
+                          ))}
+                          {suggestion.breakdown.length > 3 && (
+                            <span className="text-xs text-gray-500 px-2 py-1">
+                              +{suggestion.breakdown.length - 3} more
                             </span>
-                          </div>
-                        ))}
-                        {suggestion.breakdown.length > 3 && (
-                          <span className="text-xs text-gray-500 px-2 py-1">
-                            +{suggestion.breakdown.length - 3} more
-                          </span>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <FontAwesomeIcon
-                      icon={faChevronRight}
-                      className="w-3 h-3 text-blue-600"
-                    />
+                    <div className="flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <FontAwesomeIcon
+                        icon={faChevronRight}
+                        className="w-3 h-3 text-gray-400"
+                      />
+                    </div>
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
 
-            {/* Show All Results Button */}
+            {/* Clean Show All Results Button */}
             <button
               onClick={() => {
                 const params = new URLSearchParams();
@@ -880,18 +871,16 @@ const DesktopSearchSuggestions = ({
                 onSuggestionClick(`/search-results?${params.toString()}`);
                 onClose();
               }}
-              className="w-full mt-4 p-4 bg-gradient-to-r from-blue-500 to-teal-400 hover:from-blue-600 hover:to-teal-500 text-white font-semibold rounded-lg shadow-sm hover:shadow transition-all duration-200 group"
+              className="w-full mt-3 p-3 bg-gray-900 hover:bg-black text-white font-medium rounded-lg transition-colors duration-150"
             >
               <div className="flex items-center justify-between">
                 <div className="text-left">
-                  <p className="text-sm font-bold">Show all results</p>
-                  <p className="text-xs opacity-90 mt-1">
-                    Search across all categories and locations
+                  <p className="text-sm font-medium">Show all results</p>
+                  <p className="text-xs text-gray-300 mt-1">
+                    View all matches for "{searchQuery}"
                   </p>
                 </div>
-                <div className="transform group-hover:translate-x-1 transition-transform">
-                  <FontAwesomeIcon icon={faChevronRight} className="w-4 h-4" />
-                </div>
+                <FontAwesomeIcon icon={faChevronRight} className="w-3 h-3" />
               </div>
             </button>
           </div>
@@ -1208,7 +1197,7 @@ const DiscoverIbadan = () => {
         </div>
       </section>
 
-      {/* Desktop Search Suggestions - NOW MATCHES EXACT WIDTH (FIXED) */}
+      {/* Apple Standard Desktop Search Suggestions */}
       {!isMobile && (
         <DesktopSearchSuggestions
           searchQuery={searchQuery}
@@ -1220,7 +1209,7 @@ const DiscoverIbadan = () => {
         />
       )}
 
-      {/* Mobile Fullscreen Search Modal */}
+      {/* Apple Standard Mobile Fullscreen Search Modal */}
       {isMobile && (
         <MobileSearchModal
           searchQuery={searchQuery}

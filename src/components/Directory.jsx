@@ -9,15 +9,15 @@ import { MdFavoriteBorder } from "react-icons/md";
 
 // ---------------- Skeleton Loading Components ----------------
 const SkeletonCard = ({ isMobile }) => (
-  <div className={`bg-white rounded-xl overflow-hidden flex-shrink-0 font-manrope animate-pulse ${isMobile ? "w-[180px]" : "w-[260px]"}`}>
+  <div className={`bg-white rounded-xl overflow-hidden flex-shrink-0 font-manrope animate-pulse ${isMobile ? "w-[180px]" : "w-[280px]"} snap-start`}>
     {/* Image Skeleton */}
-    <div className={`relative overflow-hidden rounded-xl bg-gray-200 ${isMobile ? "w-full h-[160px]" : "w-full h-[220px]"}`}></div>
+    <div className={`relative overflow-hidden rounded-xl bg-gray-200 ${isMobile ? "h-[180px]" : "h-[200px]"}`}></div>
 
     {/* Text Skeleton */}
-    <div className={`${isMobile ? "p-2" : "p-4"} flex flex-col gap-2`}>
+    <div className={`${isMobile ? "p-2.5" : "p-3"} flex flex-col gap-2`}>
       <div className="h-4 bg-gray-200 rounded w-3/4"></div>
       <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-      <div className="flex items-center gap-1 mt-2">
+      <div className="flex items-center gap-1 mt-1">
         <div className="h-3 bg-gray-200 rounded w-1/3"></div>
         <div className="h-3 bg-gray-200 rounded w-1/4"></div>
       </div>
@@ -27,12 +27,12 @@ const SkeletonCard = ({ isMobile }) => (
 
 const SkeletonCategorySection = ({ isMobile }) => (
   <section className="mb-12">
-    <div className="flex justify-between items-center mb-8">
+    <div className="flex justify-between items-center mb-6">
       <div className="h-7 bg-gray-200 rounded w-1/3"></div>
       <div className="h-6 bg-gray-200 rounded w-24"></div>
     </div>
 
-    <div className={`${isMobile ? "flex overflow-x-auto gap-4" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6"}`}>
+    <div className={`${isMobile ? "flex overflow-x-auto gap-[12px] pb-6 -mx-[16px] pl-[16px] pr-[48px] snap-x snap-mandatory" : "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4"}`}>
       {[...Array(6)].map((_, index) => (
         <SkeletonCard key={index} isMobile={isMobile} />
       ))}
@@ -42,17 +42,17 @@ const SkeletonCategorySection = ({ isMobile }) => (
 
 const SkeletonDirectory = ({ isMobile }) => (
   <section id="directory" className="bg-white py-12 font-manrope">
-    <div className="max-w-7xl mx-auto px-6">
-      {/* Header Skeleton */}
-      <div className="mb-12">
-        <div className="text-center mb-8">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mx-auto mb-3"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/3 mx-auto"></div>
+    <div className="max-w-[1800px] mx-auto px-4 sm:px-6">
+      {/* Header Skeleton - Reduced gap */}
+      <div className="mb-8">
+        <div className="text-center">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mx-auto mb-2"></div>
+          <div className="h-5 bg-gray-200 rounded w-1/3 mx-auto"></div>
         </div>
       </div>
 
       {/* Category Sections Skeleton */}
-      <div className="space-y-12">
+      <div className="space-y-16">
         {[...Array(3)].map((_, index) => (
           <SkeletonCategorySection key={index} isMobile={isMobile} />
         ))}
@@ -262,12 +262,11 @@ const BusinessCard = ({ item, category, isMobile }) => {
   const rating = item.rating || "4.9";
   const businessName = item.name || "Business Name";
 
-  // Shorten business name if too long - like Airbnb
+  // Shorten text like Airbnb
   const displayName = businessName.length > 25 
     ? businessName.substring(0, 22) + "..." 
     : businessName;
 
-  // Shorten location text - like Airbnb
   const displayLocation = locationText.length > 20
     ? locationText.substring(0, 18) + "..."
     : locationText;
@@ -292,16 +291,17 @@ const BusinessCard = ({ item, category, isMobile }) => {
       // Create toast element
       const toast = document.createElement("div");
       toast.id = "toast-notification";
-      toast.className = `fixed z-[9999] px-4 py-3 rounded-lg shadow-lg border ${
+      toast.className = `fixed z-[9999] px-4 py-3 rounded-lg shadow-sm border ${
         type === "success"
           ? "bg-green-50 border-green-200 text-green-800"
           : "bg-blue-50 border-blue-200 text-blue-800"
       }`;
 
-      // Position toast
+      // Position toast with margin
       toast.style.top = "15px";
       toast.style.right = "15px";
-      toast.style.maxWidth = "320px";
+      toast.style.left = "15px";
+      toast.style.maxWidth = "calc(100% - 30px)";
       toast.style.animation = "slideInRight 0.3s ease-out forwards";
 
       // Toast content
@@ -520,15 +520,15 @@ const BusinessCard = ({ item, category, isMobile }) => {
 
   return (
     <div
-      className={`bg-white rounded-xl overflow-hidden flex-shrink-0 font-manrope relative group transition-all duration-200 cursor-pointer hover:shadow-[0_6px_16px_rgba(0,0,0,0.12)] ${
-        isMobile ? "w-[200px]" : "w-full"
+      className={`bg-white rounded-xl overflow-hidden font-manrope relative group transition-all duration-200 cursor-pointer border border-gray-100 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] snap-start ${
+        isMobile ? "w-[180px] flex-shrink-0" : "w-full"
       }`}
       onClick={handleCardClick}
     >
-      {/* Image */}
+      {/* Image - Fixed to prevent overlap */}
       <div
-        className={`relative overflow-hidden rounded-xl ${
-          isMobile ? "w-full h-[180px]" : "w-full h-[140px]"
+        className={`relative rounded-xl ${
+          isMobile ? "h-[160px]" : "h-[160px]"
         }`}
       >
         <img
@@ -542,18 +542,18 @@ const BusinessCard = ({ item, category, isMobile }) => {
           loading="lazy"
         />
 
-        {/* Guest favorite badge - Top left like Airbnb */}
-        <div className="absolute top-3 left-3 bg-white px-2.5 py-1 rounded-md shadow-sm">
-          <span className="text-xs font-semibold text-gray-900">
+        {/* Guest favorite badge */}
+        <div className="absolute top-2 left-2 bg-white px-2 py-0.5 rounded-md shadow-sm border border-gray-100">
+          <span className="text-[10px] font-semibold text-gray-900">
             Guest favorite
           </span>
         </div>
 
-        {/* Heart icon - Top right */}
+        {/* Heart icon */}
         <button
           onClick={handleFavoriteClick}
           disabled={isProcessing}
-          className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 ${
+          className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-sm transition-all duration-200 hover:scale-110 active:scale-95 ${
             isFavorite
               ? "bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
               : "bg-white/90 hover:bg-white backdrop-blur-sm"
@@ -563,10 +563,10 @@ const BusinessCard = ({ item, category, isMobile }) => {
           aria-pressed={isFavorite}
         >
           {isProcessing ? (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           ) : isFavorite ? (
             <svg
-              className="w-4 h-4 text-white"
+              className="w-3 h-3 text-white"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -577,41 +577,41 @@ const BusinessCard = ({ item, category, isMobile }) => {
               />
             </svg>
           ) : (
-            <MdFavoriteBorder className="text-gray-700 w-4 h-4" />
+            <MdFavoriteBorder className="text-gray-700 w-3 h-3" />
           )}
         </button>
       </div>
 
       {/* Text Content */}
-      <div className={`${isMobile ? "p-3" : "p-4"} flex flex-col gap-1.5`}>
-        {/* Title and Rating in one line like Airbnb */}
+      <div className={`${isMobile ? "p-2.5" : "p-3"} flex flex-col gap-1`}>
+        {/* Title and Rating in one line */}
         <div className="flex justify-between items-start">
-          <h3 className="font-semibold text-gray-900 text-base leading-tight line-clamp-1 flex-1 mr-2">
+          <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-1 flex-1 mr-2">
             {displayName}
           </h3>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-shrink-0">
             <FontAwesomeIcon
               icon={faStar}
-              className="text-sm text-black"
+              className="text-[10px] text-black"
             />
-            <span className="text-sm font-semibold text-black">
+            <span className="text-[10px] font-semibold text-black">
               {rating}
             </span>
           </div>
         </div>
 
-        {/* Location - smaller text */}
-        <p className="text-gray-600 text-sm line-clamp-1">
+        {/* Location */}
+        <p className="text-gray-600 text-xs line-clamp-1">
           {displayLocation}
         </p>
 
-        {/* Price - bold and clean */}
+        {/* Price */}
         <div className="mt-1">
           <div className="flex items-baseline gap-1">
-            <span className="text-base font-semibold text-gray-900">
+            <span className="text-sm font-semibold text-gray-900">
               {priceText}
             </span>
-            <span className="text-sm text-gray-600">
+            <span className="text-[11px] text-gray-600">
               for 2 nights
             </span>
           </div>
@@ -678,17 +678,22 @@ const styles = `
   display: none;
 }
 
-/* Container padding for mobile scroll */
-.px-scroll {
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
+/* Snap scrolling */
+.snap-x {
+  scroll-snap-type: x mandatory;
 }
 
-@media (min-width: 768px) {
-  .px-scroll {
-    padding-left: 0;
-    padding-right: 0;
-  }
+.snap-mandatory {
+  scroll-snap-stop: always;
+}
+
+.snap-start {
+  scroll-snap-align: start;
+}
+
+/* Fix for grid columns to prevent overflow */
+.grid-cols-fix {
+  grid-template-columns: repeat(6, minmax(0, 280px));
 }
 `;
 
@@ -723,17 +728,17 @@ const CategorySection = ({ title, items, isMobile }) => {
   const displayItems = items.slice(0, 6);
 
   return (
-    <section className="mb-16">
-      <div className="flex justify-between items-center mb-8">
+    <section className="mb-8">
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-gray-900 text-2xl font-bold">
+          <h2 className="text-gray-900 text-xl font-bold">
             {title}
           </h2>
         </div>
-        {/* View All button with arrow icon - matches Airbnb style */}
+        {/* View All button with arrow icon */}
         <button
           onClick={handleCategoryClick}
-          className="text-gray-900 hover:text-[#06EAFC] transition-colors text-base font-medium cursor-pointer flex items-center gap-2 group"
+          className="text-gray-900 hover:text-[#06EAFC] transition-colors text-sm font-medium cursor-pointer flex items-center gap-2 group"
         >
           View all
           <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="currentColor" viewBox="0 0 16 16">
@@ -742,10 +747,10 @@ const CategorySection = ({ title, items, isMobile }) => {
         </button>
       </div>
 
-      {/* Desktop: Grid layout for 6 cards with proper gap */}
-      {/* Mobile: Horizontal scroll for 6 cards with proper gap */}
+      {/* Desktop: Grid layout for 6 cards - FIXED */}
+      {/* Mobile: Horizontal scroll with Airbnb-style peek */}
       {!isMobile ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {displayItems.map((item, index) => (
             <BusinessCard
               key={item.id || index}
@@ -757,7 +762,8 @@ const CategorySection = ({ title, items, isMobile }) => {
         </div>
       ) : (
         <div className="relative">
-          <div className="flex overflow-x-auto scrollbar-hide gap-4 pb-6 -mx-6 px-6">
+          {/* Airbnb-style mobile scroll container with exact measurements */}
+          <div className="flex overflow-x-auto scrollbar-hide gap-[12px] pb-4 -mx-[16px] pl-[16px] pr-[48px] snap-x snap-mandatory">
             {displayItems.map((item, index) => (
               <BusinessCard
                 key={item.id || index}
@@ -767,9 +773,8 @@ const CategorySection = ({ title, items, isMobile }) => {
               />
             ))}
           </div>
-          {/* Gradient fade on mobile scroll */}
-          <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white to-transparent pointer-events-none"></div>
-          <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white to-transparent pointer-events-none"></div>
+          {/* Gradient fade on mobile scroll - subtle Airbnb style */}
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white via-white/90 to-transparent pointer-events-none"></div>
         </div>
       )}
     </section>
@@ -831,8 +836,8 @@ const Directory = () => {
 
   if (error)
     return (
-      <section id="directory" className="bg-white py-6 font-manrope">
-        <div className="max-w-7xl mx-auto px-6">
+      <section id="directory" className="bg-white py-12 font-manrope">
+        <div className="max-w-[1800px] mx-auto px-4 sm:px-6">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
             <p className="text-red-700 font-medium text-sm">{error}</p>
           </div>
@@ -841,27 +846,27 @@ const Directory = () => {
     );
 
   return (
-    <section id="directory" className="bg-white py-12 font-manrope">
-      <div className="max-w-7xl mx-auto px-6">
-        {/* Header */}
+    <section id="directory" className="bg-white py-8 font-manrope">
+      <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header - Drastically reduced gap */}
         <motion.div
           ref={headerRef}
           initial={{ opacity: 0, y: 20 }}
           animate={headerInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="text-center mb-16"
+          className="mb-4"
         >
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <h1 className="text-xl font-bold text-gray-900 mb-1">
             Explore Categories
           </h1>
-          <p className="text-gray-600 text-lg">
+          <p className="text-gray-600 text-[15px]">
             Find the best places and services in Ibadan
           </p>
         </motion.div>
 
         {/* Category Sections */}
-        <div className="space-y-16">
-          {getPopularCategories().map((category) => {
+        <div className="space-y-8">
+          {getPopularCategories().map((category, index) => {
             const items = categorizedListings[category] || [];
             if (items.length === 0) return null;
 
@@ -880,7 +885,7 @@ const Directory = () => {
 
         {/* Empty State */}
         {filteredListings.length === 0 && !loading && (
-          <div className="text-center py-16">
+          <div className="text-center py-12">
             <div className="bg-gray-50 rounded-xl p-8 max-w-md mx-auto">
               <i className="fas fa-search text-4xl text-gray-300 mb-4 block"></i>
               <h3 className="text-lg text-gray-800 mb-2">
