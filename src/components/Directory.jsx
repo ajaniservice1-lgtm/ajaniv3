@@ -859,7 +859,7 @@ const Directory = () => {
           <h1 className="text-xl font-bold text-gray-900 mb-1">
             Explore Categories
           </h1>
-          <p className="text-gray-600 md:text-[15px] text-[14px]">
+          <p className="text-gray-600 md:text-[15px] text-[13.5px]">
             Find the best places and services in Ibadan
           </p>
         </motion.div>
