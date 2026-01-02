@@ -1090,6 +1090,7 @@ const AiTopPicks = () => {
                 text-black
                 w-full lg:w-auto
                 text-center
+                text-[13.5px]
               "
             >
               View All Vendors →

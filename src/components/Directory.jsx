@@ -757,7 +757,7 @@ const CategorySection = ({ title, items, isMobile }) => {
         {/* View All button with arrow icon */}
         <button
           onClick={handleCategoryClick}
-          className="text-gray-900 hover:text-[#06EAFC] transition-colors text-sm font-medium cursor-pointer flex items-center gap-2 group"
+          className="text-gray-900 hover:text-[#06EAFC] transition-colors text-[13.5] font-medium cursor-pointer flex items-center gap-2 group"
           style={{ color: '#000651' }}
         >
           View all
@@ -876,7 +876,7 @@ const Directory = () => {
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="mb-4"
         >
-          <h1 className="text-xl md:text-start text-center font-bold text-gray-900 mb-1">
+          <h1 className="md:text-2xl text-xl text-center md:text-start font-semibold text-gray-900 md:mb-4">
             Explore Categories
           </h1>
           <p className="text-gray-600 md:text-[15px] md:text-start text-center text-[13.5px]">

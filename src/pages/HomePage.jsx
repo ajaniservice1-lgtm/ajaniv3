@@ -3,7 +3,7 @@ import LocalBusinessSchema from "../components/LocalBusinessSchema";
 import Header from "../components/Header";
 import Hero from "../components/Hero";
 import AiTopPicks from "../components/AiTopPicks";
-import FeaturedBanner from "../components/FeaturedBanner";
+// import FeaturedBanner from "../components/FeaturedBanner";
 import Directory from "../components/Directory";
 // import VendorForm from "../components/VendorForm";
 import Footer from "../components/Footer";
@@ -51,7 +51,7 @@ export default function HomePage() {
       <Hero />
       <Directory />
       <AiTopPicks onAuthToast={showAuthToast} />
-      <FeaturedBanner />
+      {/* <FeaturedBanner /> */}
       {/* <VendorForm /> */}
       <Footer />
     </section>
