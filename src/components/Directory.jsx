@@ -586,7 +586,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
               />
             </svg>
           ) : (
-            <MdFavoriteBorder className="text-[#06EAFC] text-[#06EAFC] w-3 h-3" />
+            <MdFavoriteBorder className="text- text-[#06EAFC] w-3 h-3" />
           )}
         </button>
       </div>
