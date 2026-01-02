@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faStar } from "@fortawesome/free-solid-svg-icons";
+import { faStar, faSearch } from "@fortawesome/free-solid-svg-icons";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import { VscVerifiedFilled } from "react-icons/vsc";
@@ -14,7 +14,9 @@ import {
   FaClock, 
   FaCheckCircle,
   FaTruck,
-  FaCalendarCheck 
+  FaCalendarCheck,
+  FaWhatsapp,
+  FaUser
 } from "react-icons/fa";
 
 // ---------------- Vendor Modal Component ----------------
@@ -54,7 +56,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
           className="
             bg-white rounded-3xl shadow-2xl
             w-full max-w-6xl max-h-[90vh]
@@ -71,7 +73,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
               bg-white rounded-full p-3
               shadow-lg hover:shadow-xl
               hover:bg-gray-50
-              transition-all duration-200
+              transition-all duration-150
               z-10
               cursor-pointer
               border border-gray-200
@@ -88,7 +90,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
               <div className="absolute -bottom-16 left-8 lg:left-12">
                 <div className="relative">
                   <img
-                    src={vendor.avatar}
+                    src={vendor.image_url}
                     alt={vendor.fullName}
                     className="
                       w-32 h-32 lg:w-40 lg:h-40 rounded-full
@@ -119,35 +121,35 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                       <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
                         Verified Vendor
                       </span>
-                      {vendor.yearsExperience && (
+                      {vendor.years_experience && (
                         <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
-                          {vendor.yearsExperience} years experience
+                          {vendor.years_experience} years experience
                         </span>
                       )}
                     </div>
                   </div>
                   
                   <p className="text-xl text-gray-600 mb-4">
-                    {vendor.businessType} • {vendor.workType}
+                    {vendor.category} • {vendor.service_type}
                   </p>
                   
                   <div className="flex flex-wrap items-center gap-4 mt-4">
                     <div className="flex items-center gap-2">
                       <FontAwesomeIcon
                         icon={faStar}
-                        className="text-yellow-500 text-lg"
+                        className="text-black text-lg"
                       />
                       <span className="font-bold text-gray-900 text-xl">
                         {vendor.rating}
                       </span>
                       <span className="text-gray-500">
-                        ({vendor.totalReviews} reviews)
+                        ({vendor.review_count} reviews)
                       </span>
                     </div>
                     <span className="text-gray-300 hidden lg:inline">•</span>
                     <div className="flex items-center gap-2 text-gray-600">
                       <FaCheckCircle className="text-green-500" />
-                      <span>{vendor.completedProjects} projects completed</span>
+                      <span>{vendor.completedProjects || 0} projects completed</span>
                     </div>
                   </div>
                 </div>
@@ -155,30 +157,30 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button className="
                     px-8 py-3
-                    bg-white text-black
+                    bg-[#06EAFC] hover:bg-[#6cf5ff]
+                    text-black
                     rounded-xl
-                    hover:bg-gray-50
-                    transition-all duration-200
+                    transition-all duration-150
                     font-semibold
                     cursor-pointer
                     flex items-center justify-center gap-3
                     hover:shadow-lg
-                    border border-gray-300
+                    border border-[#06EAFC]
                   ">
                     <FaEnvelope />
                     Contact Vendor
                   </button>
                   <button className="
                     px-8 py-3
-                    bg-[#06EAFC] text-black
+                    bg-white text-gray-800
                     rounded-xl
-                    hover:bg-[#6cf5ff]
-                    transition-all duration-200
+                    hover:bg-gray-50
+                    transition-all duration-150
                     font-semibold
                     cursor-pointer
                     flex items-center justify-center gap-3
                     hover:shadow-lg
-                    border border-[#06EAFC]
+                    border border-gray-300
                   ">
                     <FaCalendarCheck />
                     Book Now
@@ -189,44 +191,44 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
                 <motion.div 
                   whileHover={{ scale: 1.02 }}
-                  transition={{ duration: 0.15 }}
-                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-200"
+                  transition={{ duration: 0.1 }}
+                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150"
                 >
                   <p className="text-sm text-gray-600 mb-2">Completed Projects</p>
                   <p className="text-3xl font-bold text-gray-900">
-                    {vendor.completedProjects.toLocaleString()}
+                    {vendor.completedProjects || 0}
                   </p>
                 </motion.div>
                 <motion.div 
                   whileHover={{ scale: 1.02 }}
-                  transition={{ duration: 0.15 }}
-                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-200"
+                  transition={{ duration: 0.1 }}
+                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150"
                 >
                   <p className="text-sm text-gray-600 mb-2">Repeat Clients</p>
                   <p className="text-3xl font-bold text-gray-900">
-                    {vendor.repeatClients}%
+                    {vendor.repeatClients || 85}%
                   </p>
                   <p className="text-xs text-green-600 mt-1">High retention rate</p>
                 </motion.div>
                 <motion.div 
                   whileHover={{ scale: 1.02 }}
-                  transition={{ duration: 0.15 }}
-                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-200"
+                  transition={{ duration: 0.1 }}
+                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150"
                 >
                   <p className="text-sm text-gray-600 mb-2">Satisfaction Rate</p>
                   <p className="text-3xl font-bold text-gray-900">
-                    {vendor.satisfactionRate}%
+                    {vendor.satisfactionRate || 96}%
                   </p>
                   <p className="text-xs text-green-600 mt-1">Excellent feedback</p>
                 </motion.div>
                 <motion.div 
                   whileHover={{ scale: 1.02 }}
-                  transition={{ duration: 0.15 }}
-                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-200"
+                  transition={{ duration: 0.1 }}
+                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150"
                 >
                   <p className="text-sm text-gray-600 mb-2">Response Time</p>
                   <p className="text-3xl font-bold text-gray-900">
-                    {vendor.responseTime}
+                    {vendor.response_time || "1-4 hours"}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">Typically responds</p>
                 </motion.div>
@@ -270,11 +272,11 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                       Services Offered
                     </h3>
                     <div className="flex flex-wrap gap-3">
-                      {vendor.services.map((service, index) => (
+                      {(vendor.services || [vendor.service_type || "Service"]).map((service, index) => (
                         <motion.span
                           key={index}
                           whileHover={{ scale: 1.05 }}
-                          transition={{ duration: 0.15 }}
+                          transition={{ duration: 0.1 }}
                           className="
                             px-5 py-3
                             bg-gradient-to-r from-[#06EAFC]/10 to-blue-50
@@ -283,7 +285,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                             font-semibold
                             border border-[#06EAFC]/30
                             hover:border-[#06EAFC]
-                            transition-all duration-200
+                            transition-all duration-150
                             cursor-default
                           "
                         >
@@ -299,11 +301,11 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                       Specialties & Expertise
                     </h3>
                     <div className="flex flex-wrap gap-3">
-                      {vendor.specialties.map((specialty, index) => (
+                      {(vendor.specialties || ["General Services"]).map((specialty, index) => (
                         <motion.span
                           key={index}
                           whileHover={{ scale: 1.05 }}
-                          transition={{ duration: 0.15 }}
+                          transition={{ duration: 0.1 }}
                           className="
                             px-5 py-3
                             bg-gradient-to-r from-green-50 to-teal-50
@@ -312,7 +314,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                             font-semibold
                             border border-green-200
                             hover:border-green-300
-                            transition-all duration-200
+                            transition-all duration-150
                             cursor-default
                           "
                         >
@@ -321,7 +323,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                       ))}
                     </div>
                     
-                    {vendor.certifications && vendor.certifications.length > 0 && (
+                    {(vendor.certifications && vendor.certifications.length > 0) && (
                       <div className="mt-8">
                         <h4 className="font-semibold text-gray-900 mb-4">Certifications:</h4>
                         <div className="flex flex-wrap gap-3">
@@ -363,7 +365,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                             {vendor.location}
                           </p>
                           <p className="text-sm text-gray-500 mt-1">
-                            {vendor.activeWithin}
+                            {vendor.activeWithin || `Within 15 km of ${vendor.location?.split(",")[0] || "your location"}`}
                           </p>
                         </div>
                       </div>
@@ -375,7 +377,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                         <div>
                           <p className="text-sm text-gray-600">Business Name</p>
                           <p className="font-semibold text-gray-900">
-                            {vendor.businessName}
+                            {vendor.businessName || vendor.name}
                           </p>
                         </div>
                       </div>
@@ -384,13 +386,13 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                         <div>
                           <p className="text-sm text-gray-600">Hourly Rate</p>
                           <p className="font-bold text-gray-900 text-lg">
-                            {vendor.hourlyRate}
+                            {vendor.price_range || "₦5,000 - ₦10,000"}
                           </p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Minimum Order</p>
                           <p className="font-bold text-gray-900 text-lg">
-                            {vendor.minOrder}
+                            {vendor.minOrder || "₦15,000"}
                           </p>
                         </div>
                       </div>
@@ -402,7 +404,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                         <div>
                           <p className="text-sm text-gray-600">Business Hours</p>
                           <p className="font-semibold text-gray-900">
-                            {vendor.businessHours}
+                            {vendor.businessHours || "8:00 AM - 10:00 PM"}
                           </p>
                         </div>
                       </div>
@@ -458,7 +460,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   <div className="bg-white rounded-2xl p-6 border border-gray-200">
                     <h4 className="font-semibold text-gray-900 mb-4">Languages</h4>
                     <div className="space-y-2">
-                      {vendor.languages.map((language, index) => (
+                      {(vendor.languages || ["English (Native)", "Yoruba (Fluent)"]).map((language, index) => (
                         <div key={index} className="flex items-center gap-3">
                           <div className="w-2 h-2 bg-[#06EAFC] rounded-full"></div>
                           <span className="text-gray-700">{language}</span>
@@ -557,20 +559,42 @@ const FilterBar = ({
 // ---------------- Vendor Card Component ----------------
 const VendorCard = ({ venue, index }) => {
   const [showModal, setShowModal] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
+  // Use the exact same data structure as VendorsPage
   const vendorData = {
     id: venue.id,
-    fullName: venue.name,
-    email: venue.email || `${venue.name.toLowerCase().replace(/\s+/g, "")}@example.com`,
-    phone: venue.phone || "+234 812 345 6789",
-    businessType: venue.category || "Service",
-    workType: venue.service_type,
-    location: venue.location || venue.district,
+    name: venue.name,
+    service_type: venue.service_type,
     description: venue.description,
-    avatar: venue.image_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face",
-    rating: parseFloat(venue.rating) || 4.9,
-    totalReviews: parseInt(venue.review_count) || 128,
-    completedProjects: parseInt(venue.completed_projects) || 247,
+    rating: venue.rating || "4.9",
+    review_count: venue.review_count || "128",
+    image_url: venue.image_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face",
+    district: venue.district,
+    location: venue.location || "Ibadan",
+    is_verified: venue.is_verified || "TRUE",
+    is_available: venue.is_available || "TRUE",
+    years_experience: venue.years_experience || "5+",
+    phone: venue.phone || "+234 801 234 5678",
+    email: venue.email || `${venue.name.toLowerCase().replace(/\s+/g, "")}@example.com`,
+    category: venue.category || "Services",
+    fullName: venue.name,
+    completedProjects: venue.completed_projects || 128,
+    repeatClients: 85,
+    satisfactionRate: 96,
+    response_time: venue.response_time || "1-4 hours",
+    activeWithin: `Within 15 km of ${venue.district || "Ibadan"}`,
+    languages: ["English (Native)", "Yoruba (Fluent)"],
+    services: [venue.service_type || "Service"],
+    specialties: ["Professional Service", "Quality Workmanship"],
+    certifications: ["Verified Vendor"],
+    businessName: venue.name,
+    price_range: venue.price_range || "₦5,000 - ₦10,000",
+    minOrder: "₦15,000",
+    businessHours: "8:00 AM - 10:00 PM",
+    deliveryAvailable: true,
+    onlineBookings: true,
+    workType: venue.service_type
   };
 
   const handleViewVendor = () => {
@@ -582,10 +606,15 @@ const VendorCard = ({ venue, index }) => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: index * 0.05 }}
+        transition={{ duration: 0.2, delay: index * 0.05 }}
         whileHover={{
-          y: -8,
-          transition: { duration: 0.2 }
+          y: -6,
+          scale: 1.01,
+          boxShadow: "0 10px 25px rgba(0, 0, 0, 0.12), 0 5px 10px rgba(0, 0, 0, 0.08)",
+          transition: { 
+            duration: 0.15,
+            ease: "easeInOut" 
+          }
         }}
         className="
           bg-white
@@ -602,9 +631,10 @@ const VendorCard = ({ venue, index }) => {
           flex flex-col
           min-h-[280px]
           hover:shadow-xl
-          transition-shadow duration-200
+          transition-all duration-150
           hover:border-gray-300
         "
+        onClick={handleViewVendor}
       >
         <div className="p-6 flex-1 flex flex-col">
           <div className="flex items-start gap-4 mb-5">
@@ -613,7 +643,7 @@ const VendorCard = ({ venue, index }) => {
                 <img
                   src={venue.image_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face"}
                   alt={venue.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-150"
                   onError={(e) => {
                     e.target.src = "https://via.placeholder.com/80/DDDDDD/808080?text=No+Image";
                   }}
@@ -627,14 +657,14 @@ const VendorCard = ({ venue, index }) => {
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
-                <h3 className="text-xl font-bold text-gray-900 truncate">
+                <h3 className="text-xl font-bold text-gray-900 truncate group-hover:text-gray-800 transition-colors duration-150">
                   {venue.name}
                 </h3>
                 
                 <div className="flex items-center gap-1 shrink-0">
                   <FontAwesomeIcon
                     icon={faStar}
-                    className="text-yellow-500 text-sm"
+                    className="text-black text-sm"
                   />
                   <span className="font-bold text-gray-900 text-sm">
                     {venue.rating || "4.9"}
@@ -651,49 +681,46 @@ const VendorCard = ({ venue, index }) => {
               <div className="flex items-center gap-2">
                 <FaMapMarkerAlt className="text-gray-400 text-sm flex-shrink-0" />
                 <span className="text-gray-600 text-sm font-medium truncate">
-                  {venue.district || venue.location || "Bodija, Ibadan"}
+                  {venue.district || venue.location || "Ibadan"}
                 </span>
               </div>
 
             </div>
           </div>
           
-              <div className="">
-                <p className="text-gray-700 leading-relaxed text-sm line-clamp-3">
-                  {venue.description || 
-                    `Professional ${venue.service_type?.toLowerCase() || "service"} with ${
-                      venue.years_experience || "10+"
-                    } years experience. Available 24/7 for emergencies.`}
-                </p>
-              </div>
+          <div className="">
+            <p className="text-gray-700 leading-relaxed text-sm line-clamp-3">
+              {venue.description || 
+                `Professional ${venue.service_type?.toLowerCase() || "service"} with ${
+                  venue.years_experience || "5+"
+                } years experience.`}
+            </p>
+          </div>
+          
           <div className="mt-auto pt-4">
-            <button
-              onClick={handleViewVendor}
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              transition={{ duration: 0.1 }}
               className="
                 w-full 
                 py-3
                 bg-white hover:bg-gray-50
                 text-black 
                 font-bold 
-                text-base
-                rounded-xl
-                transition-colors duration-150
+                text-sm
+                rounded-lg
+                transition-all duration-100
                 border-2 border-gray-300
                 cursor-pointer
                 flex items-center justify-center gap-2
-                focus:outline-none
+                hover:shadow-md
+                hover:border-gray-400
               "
             >
-              Contact
-              <svg 
-                className="w-4 h-4"
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-            </button>
+              <FaUser className="text-black text-sm" />
+              View Details
+            </motion.button>
           </div>
         </div>
       </motion.div>
@@ -751,7 +778,7 @@ const SkeletonCard = () => (
       </div>
       
       <div className="mt-auto pt-4">
-        <div className="w-full py-3 bg-gray-300 rounded-xl"></div>
+        <div className="w-full py-3 bg-gray-300 rounded-lg"></div>
       </div>
     </div>
   </div>
@@ -802,6 +829,7 @@ const AiTopPicks = () => {
     error,
   } = useGoogleSheet(SHEET_ID, API_KEY);
 
+  // Use the exact same demo data as VendorsPage
   const demoVenues = [
     {
       id: "1",
@@ -810,144 +838,118 @@ const AiTopPicks = () => {
       description: "Professional plumber with 10+ years experience. Available 24/7 for emergencies.",
       rating: "4.9",
       review_count: "234",
-      image_url:
-        "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face",
+      image_url: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face",
       district: "Bodija",
       location: "Bodija, Ibadan",
       is_verified: "TRUE",
       is_available: "TRUE",
-      category: "Services",
-      price_range: "1500-5000",
-      response_time: "1-4 hours",
       years_experience: "10",
+      phone: "+234 801 234 5678",
+      email: "aj.plumbing@example.com",
+      category: "Services",
+      completed_projects: "247",
+      response_time: "1-4 hours",
+      price_range: "₦1,500 - ₦5,000"
     },
     {
       id: "2",
-      name: "RoyalPot Amala Spot",
-      service_type: "Caterer",
-      description:
-        "Authentic amala, gbegiri, and local dishes loved across Ibadan.",
-      rating: "4.7",
-      review_count: "189",
-      image_url:
-        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80",
-      district: "Dugbe",
-      location: "Dugbe, Ibadan",
-      is_verified: "TRUE",
-      is_available: "FALSE",
-      category: "Food",
-      price_range: "800-2500",
-      response_time: "1-4 hours",
-      years_experience: "8",
-    },
-    {
-      id: "3",
-      name: "Blossom Event Centre",
-      service_type: "Event Planner",
-      description: "Modern event space for weddings, parties, and conferences.",
-      rating: "4.7",
-      review_count: "156",
-      image_url:
-        "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&q=80",
-      district: "Sango",
-      location: "Sango, Ibadan",
-      is_verified: "FALSE",
-      is_available: "TRUE",
-      category: "Events",
-      price_range: "50000-200000",
-      response_time: "5-8 hours",
-      years_experience: "5",
-    },
-    {
-      id: "4",
-      name: "QuickClean Laundry",
-      service_type: "Laundry Service",
-      description: "Fast, reliable laundry service with pick-up and delivery.",
-      rating: "4.5",
-      review_count: "92",
-      image_url:
-        "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=400&q=80",
-      district: "Iwo Road",
-      location: "Iwo Road, Ibadan",
-      is_verified: "TRUE",
-      is_available: "TRUE",
-      category: "Services",
-      price_range: "1200-4000",
-      response_time: "1-4 hours",
-      years_experience: "6",
-    },
-    {
-      id: "5",
-      name: "Sparkle Photography",
-      service_type: "Photographer",
-      description:
-        "Professional photography for weddings, events, and portraits.",
+      name: "Bright Electric Solutions",
+      service_type: "Electrician",
+      description: "Certified electrician for residential and commercial electrical works.",
       rating: "4.8",
-      review_count: "143",
-      image_url:
-        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80",
+      review_count: "189",
+      image_url: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=400&h=400&fit=crop&crop=face",
       district: "Mokola",
       location: "Mokola, Ibadan",
       is_verified: "TRUE",
       is_available: "TRUE",
-      category: "Photography",
-      price_range: "10000-50000",
+      years_experience: "8",
+      phone: "+234 802 345 6789",
+      email: "bright.electric@example.com",
+      category: "Services",
+      completed_projects: "189",
       response_time: "1-4 hours",
+      price_range: "₦4,000 - ₦8,000"
+    },
+    {
+      id: "3",
+      name: "Taste of Yoruba Catering",
+      service_type: "Caterer",
+      description: "Authentic Yoruba cuisine for weddings, parties and corporate events.",
+      rating: "4.7",
+      review_count: "156",
+      image_url: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80",
+      district: "Dugbe",
+      location: "Dugbe, Ibadan",
+      is_verified: "TRUE",
+      is_available: "TRUE",
+      years_experience: "5",
+      phone: "+234 803 456 7890",
+      email: "yoruba.taste@example.com",
+      category: "Food",
+      completed_projects: "156",
+      response_time: "1-4 hours",
+      price_range: "₦3,000 - ₦6,000"
+    },
+    {
+      id: "4",
+      name: "AutoFix Mechanics",
+      service_type: "Mechanic",
+      description: "Expert car repair and maintenance services with warranty.",
+      rating: "4.6",
+      review_count: "142",
+      image_url: "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=400&h=400&fit=crop&crop=face",
+      district: "Iwo Road",
+      location: "Iwo Road, Ibadan",
+      is_verified: "TRUE",
+      is_available: "TRUE",
+      years_experience: "7",
+      phone: "+234 804 567 8901",
+      email: "autofix@example.com",
+      category: "Automotive",
+      completed_projects: "142",
+      response_time: "1-4 hours",
+      price_range: "₦5,000 - ₦12,000"
+    },
+    {
+      id: "5",
+      name: "Elegant Events Planning",
+      service_type: "Event Planner",
+      description: "Complete event planning and coordination services.",
+      rating: "4.9",
+      review_count: "201",
+      image_url: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&q=80",
+      district: "Sango",
+      location: "Sango, Ibadan",
+      is_verified: "TRUE",
+      is_available: "TRUE",
       years_experience: "12",
+      phone: "+234 805 678 9012",
+      email: "elegant.events@example.com",
+      category: "Events",
+      completed_projects: "201",
+      response_time: "1-4 hours",
+      price_range: "₦8,000 - ₦20,000"
     },
     {
       id: "6",
-      name: "FixIt Auto Repairs",
-      service_type: "Mechanic",
-      description: "Expert car repairs and maintenance services.",
-      rating: "4.6",
-      review_count: "87",
-      image_url:
-        "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&q=80",
-      district: "UI Area",
-      location: "UI Area, Ibadan",
-      is_verified: "TRUE",
-      is_available: "FALSE",
-      category: "Automotive",
-      price_range: "5000-50000",
-      response_time: "5-8 hours",
-      years_experience: "7",
-    },
-    {
-      id: "7",
-      name: "Green Thumb Gardening",
-      service_type: "Gardener",
-      description: "Professional gardening and landscaping services.",
+      name: "Glamour Makeup Studio",
+      service_type: "Makeup Artist",
+      description: "Professional makeup for weddings, photoshoots and special occasions.",
       rating: "4.8",
-      review_count: "134",
-      image_url:
-        "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&q=80",
-      district: "Bodija",
-      location: "Bodija, Ibadan",
-      is_verified: "TRUE",
-      is_available: "TRUE",
-      category: "Services",
-      price_range: "3000-15000",
-      response_time: "1-4 hours",
-      years_experience: "9",
-    },
-    {
-      id: "8",
-      name: "TechFix Solutions",
-      service_type: "IT Support",
-      description: "Computer repair and IT support services.",
-      rating: "4.9",
       review_count: "178",
-      image_url:
-        "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?w=400&q=80",
+      image_url: "https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=400&h=400&fit=crop&crop=face",
       district: "UI Area",
       location: "UI Area, Ibadan",
       is_verified: "TRUE",
       is_available: "TRUE",
-      category: "Technology",
-      price_range: "5000-25000",
+      years_experience: "6",
+      phone: "+234 806 789 0123",
+      email: "glamour.makeup@example.com",
+      category: "Beauty",
+      completed_projects: "178",
       response_time: "1-4 hours",
-      years_experience: "11",
+      price_range: "₦5,000 - ₦15,000"
     },
   ];
 
@@ -1013,7 +1015,7 @@ const AiTopPicks = () => {
             animate={
               headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
             }
-            transition={{ duration: 0.5, ease: "easeOut" }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
             className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 lg:gap-8"
           >
             <div className="flex-1">
@@ -1022,7 +1024,7 @@ const AiTopPicks = () => {
                 animate={
                   headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
                 }
-                transition={{ delay: 0.1, duration: 0.4 }}
+                transition={{ delay: 0.1, duration: 0.3 }}
                 className="text-xl lg:text-2xl text-start  font-bold text-center md:text-start text-gray-900 mb-1.5 cursor-default"
               >
                 Verified Vendors
@@ -1032,7 +1034,7 @@ const AiTopPicks = () => {
                 animate={
                   headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
                 }
-                transition={{ delay: 0.2, duration: 0.4 }}
+                transition={{ delay: 0.15, duration: 0.3 }}
                 className="text-gray-600 text-[13.5px]  md:text-start lg:text-[16.5px] max-w-3xl mb-4 leading-relaxed cursor-default"
               >
                 Trusted businesses reviewed and approved for quality and reliability.
@@ -1044,14 +1046,14 @@ const AiTopPicks = () => {
               animate={
                 headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
               }
-              transition={{ delay: 0.3, duration: 0.4 }}
+              transition={{ delay: 0.2, duration: 0.3 }}
               onClick={handleViewAll}
               className="
                 px-6 py-3 
                 flex md:items-center md:justify-center 
                 rounded-xl 
                 cursor-pointer 
-                transition-all duration-200 
+                transition-all duration-150 
                 text-black
                 w-full lg:w-auto
                 text-center
@@ -1062,8 +1064,6 @@ const AiTopPicks = () => {
             </motion.button>
           </motion.div>
         </div>
-
-        
 
         <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-3'} gap-4 lg:gap-8 mb-12`}>
           {visibleVenues.map((venue, index) => (

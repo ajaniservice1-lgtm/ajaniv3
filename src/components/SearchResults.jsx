@@ -1058,10 +1058,22 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   const isFavorite = useIsFavorite(item.id);
   const cardRef = useRef(null);
 
-  // Set consistent height based on device
+  // Set consistent height based on device - FIXED: Use fixed values
   useEffect(() => {
+    // Always use fixed heights to prevent dimension changes
     setImageHeight(isMobile ? 150 : 170);
   }, [isMobile]);
+
+  // FIXED: Add a resize listener to maintain dimensions
+  useEffect(() => {
+    const handleResize = () => {
+      // Re-set the fixed height on resize
+      setImageHeight(window.innerWidth < 768 ? 150 : 170);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const formatPrice = (n) => {
     if (!n) return "–";
@@ -1352,13 +1364,18 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
         hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
       `}
       onClick={handleCardClick}
+      // FIXED: Use fixed height values with min/max constraints
       style={{
         height: isMobile ? "280px" : "320px",
+        minHeight: isMobile ? "280px" : "320px",
+        maxHeight: isMobile ? "280px" : "320px",
+        minWidth: isMobile ? "165px" : "240px",
       }}
     >
       {/* Image */}
       <div
         className="relative overflow-hidden rounded-xl flex-shrink-0"
+        // FIXED: Use fixed height values with min/max constraints
         style={{
           height: `${imageHeight}px`,
           minHeight: `${imageHeight}px`,
@@ -1373,6 +1390,8 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
             height: "100%",
             width: "100%",
             objectFit: "cover",
+            minHeight: `${imageHeight}px`,
+            maxHeight: `${imageHeight}px`,
           }}
           onError={(e) => {
             e.currentTarget.src = FALLBACK_IMAGES.default;
@@ -1422,7 +1441,13 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
       </div>
 
       {/* Text Content */}
-      <div className={`flex-1 ${isMobile ? "p-1.5" : "p-2.5"} flex flex-col`}>
+      <div 
+        className={`flex-1 ${isMobile ? "p-1.5" : "p-2.5"} flex flex-col`}
+        // FIXED: Ensure consistent content area
+        style={{
+          minHeight: isMobile ? "130px" : "150px",
+        }}
+      >
         <h3 className="font-semibold text-gray-900 leading-tight line-clamp-2 text-xs md:text-sm mb-1 flex-shrink-0">
           {businessName}
         </h3>
@@ -3864,31 +3889,8 @@ const SearchResults = () => {
                   <h3 className="text-xl text-gray-800 mb-2">
                     No matching results found
                   </h3>
-                  <p className="text-gray-600 mb-4 max-w-md mx-auto">
-                    {searchQuery
-                      ? `No places found for "${searchQuery}" with the selected filters.`
-                      : "No places match your current filters."}
-                  </p>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    <button
-                      onClick={clearAllFilters}
-                      className="bg-[#06EAFC] text-white px-6 py-2 rounded-lg hover:bg-[#05d9eb] transition-colors"
-                    >
-                      Clear All Filters
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (isMobile) {
-                          setShowMobileFilters(true);
-                        } else {
-                          setShowDesktopFilters(true);
-                        }
-                      }}
-                      className="bg-white border border-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      Adjust Filters
-                    </button>
-                  </div>
+                 
+               
                   <p className="text-sm text-gray-500 mt-4">
                     Tip: Try selecting fewer filters or different combinations
                   </p>
@@ -4046,6 +4048,25 @@ const SearchResults = () => {
           max-width: 100%;
           height: auto;
           display: block;
+        }
+
+        /* FIXED: Ensure consistent card dimensions */
+        .search-result-card {
+          min-width: 165px;
+          max-width: 165px;
+          height: 280px;
+          min-height: 280px;
+          max-height: 280px;
+        }
+        
+        @media (min-width: 768px) {
+          .search-result-card {
+            min-width: 240px;
+            max-width: 240px;
+            height: 320px;
+            min-height: 320px;
+            max-height: 320px;
+          }
         }
 
         .scrollbar-hide {
