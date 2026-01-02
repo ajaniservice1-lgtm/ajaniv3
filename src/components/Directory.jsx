@@ -1,4 +1,3 @@
-// src/components/Directory.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
@@ -26,8 +25,8 @@ const SkeletonCard = ({ isMobile }) => (
 );
 
 const SkeletonCategorySection = ({ isMobile }) => (
-  <section className="mb-12">
-    <div className="flex justify-between items-center mb-6">
+  <section className="mb-8">
+    <div className="flex justify-between items-center mb-4">
       <div className="h-7 bg-gray-200 rounded w-1/3"></div>
       <div className="h-6 bg-gray-200 rounded w-24"></div>
     </div>
@@ -257,6 +256,16 @@ const BusinessCard = ({ item, category, isMobile }) => {
     return `₦${formattedPrice}`;
   };
 
+  // Determine tag based on category
+  const getTag = () => {
+    const cat = (item.category || "").toLowerCase();
+    if (cat.includes("hotel")) return "Hotel";
+    if (cat.includes("shortlet")) return "Shortlet";
+    if (cat.includes("restaurant")) return "Restaurant";
+    return "Co";
+  };
+
+  const tag = getTag();
   const priceText = getPriceText();
   const locationText = item.area || item.location || "Ibadan";
   const rating = item.rating || "4.9";
@@ -520,7 +529,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
 
   return (
     <div
-      className={`bg-white rounded-xl overflow-hidden font-manrope relative group transition-all duration-200 cursor-pointer border border-gray-100 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] snap-start ${
+      className={`bg-white rounded-xl overflow-hidden font-manrope relative group transition-all duration-200 cursor-pointer hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] snap-start ${
         isMobile ? "w-[180px] flex-shrink-0" : "w-full"
       }`}
       onClick={handleCardClick}
@@ -577,7 +586,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
               />
             </svg>
           ) : (
-            <MdFavoriteBorder className="text-gray-700 w-3 h-3" />
+            <MdFavoriteBorder className="text-[#06EAFC] text-[#06EAFC] w-3 h-3" />
           )}
         </button>
       </div>
@@ -589,32 +598,39 @@ const BusinessCard = ({ item, category, isMobile }) => {
           <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-1 flex-1 mr-2">
             {displayName}
           </h3>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <FontAwesomeIcon
-              icon={faStar}
-              className="text-[10px] text-black"
-            />
-            <span className="text-[10px] font-semibold text-black">
-              {rating}
-            </span>
-          </div>
         </div>
 
         {/* Location */}
-        <p className="text-gray-600 text-xs line-clamp-1">
+        <p className="text-gray-600 text-xs mb-2 line-clamp-1">
           {displayLocation}
         </p>
 
-        {/* Price */}
+        {/* Price and Rating */}
         <div className="mt-1">
           <div className="flex items-baseline gap-1">
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="text-[12px] text-gray-900 font-semibold">
               {priceText}
             </span>
-            <span className="text-[11px] text-gray-600">
+            <span className="text-[12px] text-gray-600">
               for 2 nights
             </span>
+            <div className="flex items-center md:ml-7 ml-2 flex-shrink-0">
+              <FontAwesomeIcon
+                icon={faStar}
+                className="text-[10px] text-black"
+              />
+              <span className="text-[10px] font-semibold text-black">
+                {rating}
+              </span>
+            </div>
           </div>
+        </div>
+
+        {/* Tag - Moved to bottom of card content with dark ash background and black text */}
+        <div className="mt-2 pt-2">
+          <span className="text-[10px] font-semibold text-black px-2 py-1 rounded-md bg-gray-100">
+            {tag}
+          </span>
         </div>
       </div>
     </div>
@@ -729,9 +745,12 @@ const CategorySection = ({ title, items, isMobile }) => {
 
   return (
     <section className="mb-8">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-4">
         <div>
-          <h2 className="text-gray-900 text-xl font-bold">
+          <h2 
+            className="text-gray-900 text-xl font-bold"
+            style={{ color: '#000651' }}
+          >
             {title}
           </h2>
         </div>
@@ -739,6 +758,7 @@ const CategorySection = ({ title, items, isMobile }) => {
         <button
           onClick={handleCategoryClick}
           className="text-gray-900 hover:text-[#06EAFC] transition-colors text-sm font-medium cursor-pointer flex items-center gap-2 group"
+          style={{ color: '#000651' }}
         >
           View all
           <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="currentColor" viewBox="0 0 16 16">
@@ -748,7 +768,7 @@ const CategorySection = ({ title, items, isMobile }) => {
       </div>
 
       {/* Desktop: Grid layout for 6 cards - FIXED */}
-      {/* Mobile: Horizontal scroll with Airbnb-style peek */}
+      {/* Mobile: Horizontal scroll with Airbnb-style peek - REMOVED WHITE SHADOW */}
       {!isMobile ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {displayItems.map((item, index) => (
@@ -763,7 +783,8 @@ const CategorySection = ({ title, items, isMobile }) => {
       ) : (
         <div className="relative">
           {/* Airbnb-style mobile scroll container with exact measurements */}
-          <div className="flex overflow-x-auto scrollbar-hide gap-[12px] pb-4 -mx-[16px] pl-[16px] pr-[48px] snap-x snap-mandatory">
+          {/* REMOVED the pr-[48px] padding that was creating the white shadow */}
+          <div className="flex overflow-x-auto scrollbar-hide gap-[12px] pb-4 -mx-[16px] pl-[16px] snap-x snap-mandatory">
             {displayItems.map((item, index) => (
               <BusinessCard
                 key={item.id || index}
@@ -773,8 +794,7 @@ const CategorySection = ({ title, items, isMobile }) => {
               />
             ))}
           </div>
-          {/* Gradient fade on mobile scroll - subtle Airbnb style */}
-          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white via-white/90 to-transparent pointer-events-none"></div>
+          {/* REMOVED the gradient fade overlay completely */}
         </div>
       )}
     </section>
@@ -856,10 +876,10 @@ const Directory = () => {
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="mb-4"
         >
-          <h1 className="text-xl font-bold text-gray-900 mb-1">
+          <h1 className="text-xl md:text-start text-center font-bold text-gray-900 mb-1">
             Explore Categories
           </h1>
-          <p className="text-gray-600 md:text-[15px] text-[13.5px]">
+          <p className="text-gray-600 md:text-[15px] md:text-start text-center text-[13.5px]">
             Find the best places and services in Ibadan
           </p>
         </motion.div>

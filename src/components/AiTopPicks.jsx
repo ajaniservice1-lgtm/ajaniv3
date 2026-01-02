@@ -155,6 +155,21 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button className="
                     px-8 py-3
+                    bg-white text-black
+                    rounded-xl
+                    hover:bg-gray-50
+                    transition-all duration-200
+                    font-semibold
+                    cursor-pointer
+                    flex items-center justify-center gap-3
+                    hover:shadow-lg
+                    border border-gray-300
+                  ">
+                    <FaEnvelope />
+                    Contact Vendor
+                  </button>
+                  <button className="
+                    px-8 py-3
                     bg-[#06EAFC] text-black
                     rounded-xl
                     hover:bg-[#6cf5ff]
@@ -164,21 +179,6 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                     flex items-center justify-center gap-3
                     hover:shadow-lg
                     border border-[#06EAFC]
-                  ">
-                    <FaEnvelope />
-                    Contact Vendor
-                  </button>
-                  <button className="
-                    px-8 py-3
-                    bg-white text-gray-800
-                    rounded-xl
-                    hover:bg-gray-50
-                    transition-all duration-200
-                    font-semibold
-                    cursor-pointer
-                    flex items-center justify-center gap-3
-                    hover:shadow-lg
-                    border border-gray-300
                   ">
                     <FaCalendarCheck />
                     Book Now
@@ -537,183 +537,19 @@ const useGoogleSheet = (sheetId, apiKey) => {
   return { data, loading, error };
 };
 
-// ---------------- Toggle Switch Component ----------------
-const ToggleSwitch = ({ enabled, setEnabled, label }) => {
-  return (
-    <div className="flex items-center gap-2 cursor-pointer">
-      <button
-        type="button"
-        className={`${
-          enabled ? "bg-[#06EAFC]" : "bg-gray-200"
-        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none hover:shadow-md`}
-        role="switch"
-        aria-checked={enabled}
-        onClick={() => setEnabled(!enabled)}
-      >
-        <span
-          aria-hidden="true"
-          className={`${
-            enabled ? "translate-x-5" : "translate-x-0"
-          } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-        />
-      </button>
-      <span className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors duration-200">
-        {label}
-      </span>
-    </div>
-  );
-};
-
 // ---------------- Filter Bar Component ----------------
 const FilterBar = ({
-  selectedService,
-  setSelectedService,
   selectedDistrict,
   setSelectedDistrict,
   verifiedOnly,
   setVerifiedOnly,
-  availableNow,
-  setAvailableNow,
-  services,
   districts,
-  onViewAllClick,
 }) => {
   return (
-    <div className="flex flex-col gap-4 mb-8 p-4 lg:p-6 bg-white rounded-xl shadow-sm">
-      <div className="flex lg:hidden items-center justify-between gap-3">
-        <div className="relative flex-1 cursor-pointer">
-          <select
-            value={selectedDistrict}
-            onChange={(e) => setSelectedDistrict(e.target.value)}
-            className="appearance-none bg-[#D9D9D9] px-4 py-3 pr-10 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] cursor-pointer w-full font-medium hover:bg-[#D0D0D0] transition-all duration-200 hover:shadow-md"
-          >
-            <option value="" className="text-gray-500">
-              Location
-            </option>
-            {districts.map((district) => (
-              <option key={district} value={district}>
-                {district}
-              </option>
-            ))}
-          </select>
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
-            <IoIosArrowDown />
-          </div>
-        </div>
+    <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-8">
+    
 
-        <div className="relative flex-1 cursor-pointer">
-          <select
-            value={selectedService}
-            onChange={(e) => setSelectedService(e.target.value)}
-            className="appearance-none bg-[#D9D9D9] px-4 py-3 pr-10 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] cursor-pointer w-full font-medium hover:bg-[#D0D0D0] transition-all duration-200 hover:shadow-md"
-          >
-            <option value="" className="text-gray-500">
-              Service/Product
-            </option>
-            {services.map((service) => (
-              <option key={service} value={service}>
-                {service}
-              </option>
-            ))}
-          </select>
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
-            <IoIosArrowDown />
-          </div>
-        </div>
-
-        <button
-          onClick={onViewAllClick}
-          className="
-            bg-[#06EAFC] hover:bg-[#6cf5ff] 
-            px-4 py-3 
-            flex items-center justify-center 
-            rounded-xl 
-            cursor-pointer 
-            transition-all duration-200 
-            hover:shadow-lg hover:scale-105
-            text-black font-medium text-sm
-            min-w-[100px]
-          "
-        >
-          View All →
-        </button>
-      </div>
-
-      <div className="flex lg:hidden items-center justify-center gap-6">
-        <ToggleSwitch
-          enabled={availableNow}
-          setEnabled={setAvailableNow}
-          label="Available Now"
-        />
-      </div>
-
-      <div className="hidden lg:flex lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:w-full">
-        <div className="flex flex-wrap gap-4 items-center">
-          <div className="relative cursor-pointer">
-            <select
-              value={selectedDistrict}
-              onChange={(e) => setSelectedDistrict(e.target.value)}
-              className="appearance-none bg-[#D9D9D9] px-4 py-3 pr-10 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] cursor-pointer min-w-[140px] font-medium hover:bg-[#D0D0D0] transition-all duration-200 hover:shadow-md"
-            >
-              <option value="" className="text-gray-500">
-                Location
-              </option>
-              {districts.map((district) => (
-                <option key={district} value={district}>
-                  {district}
-                </option>
-              ))}
-            </select>
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
-              <IoIosArrowDown />
-            </div>
-          </div>
-
-          <div className="relative cursor-pointer">
-            <select
-              value={selectedService}
-              onChange={(e) => setSelectedService(e.target.value)}
-              className="appearance-none bg-[#D9D9D9] px-4 py-3 pr-10 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] cursor-pointer min-w-[180px] font-medium hover:bg-[#D0D0D0] transition-all duration-200 hover:shadow-md"
-            >
-              <option value="" className="text-gray-500">
-                Service/Product
-              </option>
-              {services.map((service) => (
-                <option key={service} value={service}>
-                  {service}
-                </option>
-              ))}
-            </select>
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-300 pointer-events-none">
-              <IoIosArrowDown />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-6">
-            <ToggleSwitch
-              enabled={availableNow}
-              setEnabled={setAvailableNow}
-              label="Available Now"
-            />
-          </div>
-        </div>
-
-        <button
-          onClick={onViewAllClick}
-          className="
-            bg-[#06EAFC] hover:bg-[#6cf5ff] 
-            px-6 py-3 
-            flex items-center justify-center 
-            rounded-xl 
-            cursor-pointer 
-            transition-all duration-200 
-            hover:shadow-lg hover:scale-105
-            text-black font-medium
-          "
-        >
-          View All Vendors →
-        </button>
-      </div>
+      
     </div>
   );
 };
@@ -867,7 +703,7 @@ const VendorCard = ({ venue, index }) => {
               className="
                 w-full 
                 py-3
-                bg-[#06EAFC] hover:bg-[#6cf5ff]
+                bg-white hover:bg-gray-50
                 text-black 
                 font-bold 
                 text-base
@@ -877,7 +713,7 @@ const VendorCard = ({ venue, index }) => {
                 hover:scale-[1.02]
                 cursor-pointer
                 group/btn
-                border-0
+                border-2 border-gray-300
                 focus:outline-none
                 focus:ring-2 focus:ring-[#06EAFC] focus:ring-offset-2
                 flex items-center justify-center gap-2
@@ -960,26 +796,24 @@ const SkeletonCard = () => (
 const AiTopPicks = () => {
   const navigate = useNavigate();
   const [headerRef, headerInView] = useInView({ threshold: 0.1 });
-  const [selectedService, setSelectedService] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
-  const [availableNow, setAvailableNow] = useState(false);
 
   const getInitialCounts = () => {
     if (typeof window === "undefined") {
-      return { mobile: 2, desktop: 3 };
+      return { mobile: 4, desktop: 6 };
     }
     const isMobile = window.innerWidth < 1024;
     return {
-      mobile: 2,
-      desktop: 3,
+      mobile: 4,
+      desktop: 6,
       isMobile,
     };
   };
 
   const [initialCounts] = useState(getInitialCounts());
   const [isMobile, setIsMobile] = useState(initialCounts.isMobile);
-  const [visibleCount, setVisibleCount] = useState(
+  const [visibleCount] = useState(
     initialCounts.isMobile ? initialCounts.mobile : initialCounts.desktop
   );
 
@@ -987,9 +821,6 @@ const AiTopPicks = () => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 1024;
       setIsMobile(mobile);
-
-      const targetCount = mobile ? initialCounts.mobile : initialCounts.desktop;
-      setVisibleCount(targetCount);
     };
 
     checkMobile();
@@ -1117,57 +948,60 @@ const AiTopPicks = () => {
       response_time: "5-8 hours",
       years_experience: "7",
     },
+    {
+      id: "7",
+      name: "Green Thumb Gardening",
+      service_type: "Gardener",
+      description: "Professional gardening and landscaping services.",
+      rating: "4.8",
+      review_count: "134",
+      image_url:
+        "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&q=80",
+      district: "Bodija",
+      location: "Bodija, Ibadan",
+      is_verified: "TRUE",
+      is_available: "TRUE",
+      category: "Services",
+      price_range: "3000-15000",
+      response_time: "1-4 hours",
+      years_experience: "9",
+    },
+    {
+      id: "8",
+      name: "TechFix Solutions",
+      service_type: "IT Support",
+      description: "Computer repair and IT support services.",
+      rating: "4.9",
+      review_count: "178",
+      image_url:
+        "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?w=400&q=80",
+      district: "UI Area",
+      location: "UI Area, Ibadan",
+      is_verified: "TRUE",
+      is_available: "TRUE",
+      category: "Technology",
+      price_range: "5000-25000",
+      response_time: "1-4 hours",
+      years_experience: "11",
+    },
   ];
 
   const displayVenues = venues.length > 0 ? venues : demoVenues;
 
   const filteredVenues = displayVenues.filter((venue) => {
-    const matchesService =
-      !selectedService || venue.service_type === selectedService;
     const matchesLocation =
       !selectedDistrict || venue.location === selectedDistrict;
     const matchesVerified = !verifiedOnly || venue.is_verified === "TRUE";
-    const matchesAvailable = !availableNow || venue.is_available === "TRUE";
 
-    return (
-      matchesService && matchesLocation && matchesVerified && matchesAvailable
-    );
+    return matchesLocation && matchesVerified;
   });
 
-  const getInitialCount = () => {
-    return isMobile ? initialCounts.mobile : initialCounts.desktop;
-  };
-
   const visibleVenues = filteredVenues.slice(0, visibleCount);
-
-  const hasMoreVenues = visibleCount < filteredVenues.length;
-  const canShowLess = visibleCount > getInitialCount();
-
-  const loadMore = () => {
-    const increment = isMobile ? 2 : 3;
-    const newCount = visibleCount + increment;
-    setVisibleCount(newCount);
-  };
-
-  const showLess = () => {
-    const vendorsSection = document.getElementById("toppicks");
-    if (vendorsSection) {
-      vendorsSection.scrollIntoView({ behavior: "smooth" });
-    }
-
-    setTimeout(() => {
-      const targetCount = getInitialCount();
-      setVisibleCount(targetCount);
-    }, 300);
-  };
 
   const handleViewAll = () => {
     navigate('/vendors');
   };
 
-  const services = [
-    ...new Set(displayVenues.map((v) => v.service_type).filter(Boolean)),
-  ];
   const districts = [
     ...new Set(displayVenues.map((v) => v.location).filter(Boolean)),
   ];
@@ -1176,32 +1010,21 @@ const AiTopPicks = () => {
     return (
       <section className="bg-white font-manrope" id="toppicks">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-2xl lg:text-4xl font-bold text-gray-900 lg:text-start">
-              Verified Vendors
-            </h1>
-            <p className="text-gray-600 md:text-xl text-[10px]">
-              Trusted businesses reviewed and approved for quality and
-              reliability.
-            </p>
-          </div>
-
-          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between mb-8 p-6 bg-white animate-pulse">
-            <div className="flex flex-wrap gap-4 items-center">
-              <div className="bg-gray-200 px-4 py-3 rounded-xl min-w-[180px] h-12"></div>
-              <div className="bg-gray-200 px-4 py-3 rounded-xl min-w-[140px] h-12"></div>
-              <div className="flex items-center gap-6">
-                <div className="bg-gray-200 rounded-full w-11 h-6"></div>
-                <div className="bg-gray-200 rounded-full w-11 h-6"></div>
-              </div>
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 lg:gap-8 mb-8">
+            <div className="flex-1">
+              <h1 className="text-xl lg:text-2xl font-bold text-gray-900 mb-1">
+                Verified Vendors
+              </h1>
+              <p className="text-gray-600 text-lg lg:text-[16.5px] max-w-3xl leading-relaxed">
+                Trusted businesses reviewed and approved for quality and reliability.
+              </p>
             </div>
-            <div className="bg-gray-800 px-6 py-3 rounded-xl w-32 h-12"></div>
+            
+            <div className="bg-[#06EAFC] px-6 py-3 rounded-xl w-32 h-12 animate-pulse"></div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 mb-12">
-            {[
-              ...Array(isMobile ? initialCounts.mobile : initialCounts.desktop),
-            ].map((_, index) => (
+            {[...Array(visibleCount)].map((_, index) => (
               <SkeletonCard key={index} />
             ))}
           </div>
@@ -1226,47 +1049,64 @@ const AiTopPicks = () => {
               headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
             }
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="text-center"
+            className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 lg:gap-8"
           >
-            <motion.h1
+            <div className="flex-1">
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={
+                  headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
+                }
+                transition={{ delay: 0.1, duration: 0.4 }}
+                className="text-xl lg:text-2xl font-bold text-gray-900 mb-1 cursor-default"
+              >
+                Verified Vendors
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={
+                  headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
+                }
+                transition={{ delay: 0.2, duration: 0.4 }}
+                className="text-gray-600 text-lg lg:text-[16.5px] max-w-3xl leading-relaxed cursor-default"
+              >
+                Trusted businesses reviewed and approved for quality and reliability.
+              </motion.p>
+            </div>
+            
+            <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={
                 headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
               }
-              transition={{ delay: 0.1, duration: 0.4 }}
-              className="text-xl lg:text-2xl lg:text-start font-bold text-gray-900 mb-1 cursor-default"
+              transition={{ delay: 0.3, duration: 0.4 }}
+              onClick={handleViewAll}
+              className="
+                px-6 py-3 
+                flex items-center justify-center 
+                rounded-xl 
+                cursor-pointer 
+                transition-all duration-200 
+                hover:shadow-lg hover:scale-105
+                text-black font-medium
+                w-full lg:w-auto
+                text-center
+              "
             >
-              Verified Vendors
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={
-                headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
-              }
-              transition={{ delay: 0.2, duration: 0.4 }}
-              className="text-gray-600 text-lg lg:text-[16.5px] lg:text-start max-w-3xl leading-relaxed cursor-default"
-            >
-              Trusted businesses reviewed and approved for quality and
-              reliability.
-            </motion.p>
+              View All Vendors →
+            </motion.button>
           </motion.div>
         </div>
 
         <FilterBar
-          selectedService={selectedService}
-          setSelectedService={setSelectedService}
           selectedDistrict={selectedDistrict}
           setSelectedDistrict={setSelectedDistrict}
           verifiedOnly={verifiedOnly}
           setVerifiedOnly={setVerifiedOnly}
-          availableNow={availableNow}
-          setAvailableNow={setAvailableNow}
-          services={services}
           districts={districts}
-          onViewAllClick={handleViewAll}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 mb-12">
+        <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-3'} gap-4 lg:gap-8 mb-12`}>
           {visibleVenues.map((venue, index) => (
             <VendorCard key={venue.id} venue={venue} index={index} />
           ))}
@@ -1279,37 +1119,9 @@ const AiTopPicks = () => {
                 No vendors found
               </h3>
               <p className="text-gray-600 text-lg">
-                Try adjusting your filters or toggles
+                Try adjusting your filters
               </p>
             </div>
-          </div>
-        )}
-
-        {filteredVenues.length > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 lg:gap-6 mt-12">
-            {canShowLess && (
-              <motion.button
-                onClick={showLess}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                className="px-8 lg:px-12 py-4 lg:py-5 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-all duration-200 font-bold text-lg hover:border-gray-400 hover:shadow-lg cursor-pointer w-full sm:w-auto"
-              >
-                Show Less
-              </motion.button>
-            )}
-
-            {hasMoreVenues && (
-              <motion.button
-                onClick={loadMore}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                className="px-8 lg:px-12 py-4 lg:py-5 bg-[#06EAFC] hover:bg-[#6cf5ff] text-black rounded-xl transition-all duration-200 font-bold text-lg hover:shadow-xl cursor-pointer w-full sm:w-auto"
-              >
-                View More
-              </motion.button>
-            )}
           </div>
         )}
       </div>
