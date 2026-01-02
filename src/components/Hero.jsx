@@ -729,6 +729,7 @@ const DesktopSearchSuggestions = ({
   if (!isVisible || !searchQuery.trim() || suggestions.length === 0)
     return null;
 
+  // FIXED: Use exact containerWidth (no 60% increase)
   const containerWidth = searchBarPosition?.width || 0;
 
   return createPortal(
@@ -917,13 +918,6 @@ const DiscoverIbadan = () => {
   const searchInputRef = useRef(null);
   const searchContainerRef = useRef(null);
 
-  /* ---- Dates (real-time) ---- */
-  const today = new Date();
-  const tomorrow = new Date(Date.now() + 86400000);
-
-  const [checkIn] = useState(today);
-  const [checkOut] = useState(tomorrow);
-
   const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
   const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
   const { data: listings = [], loading } = useGoogleSheet(SHEET_ID, API_KEY);
@@ -1076,14 +1070,13 @@ const DiscoverIbadan = () => {
       <section className="pt-14 lg:pt-12 text-center bg-[#F7F7FA] overflow-hidden relative">
         {/* Background Pattern */}
         <div
-          className={`absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20`}
+          className={`absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20`}
         ></div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-4 lg:py-4">
           <div className="flex flex-col items-center text-center space-y-4 md:space-y-5 lg:space-y-4">
-            {/* Hero Title - INCREASED HEADING SIZES */}
+            {/* Hero Title */}
             <div className="space-y-1 md:space-y-2 max-w-xl md:max-w-2xl w-full mt-1 md:mt-2 lg:mt-1">
-              {/* INCREASED heading text size for lg and mobile */}
               <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-3xl md:mt-4 leading-tight font-bold text-gray-900">
                 Discover{" "}
                 <span className="bg-gradient-to-r from-blue-600 to-teal-400 bg-clip-text text-transparent">
@@ -1091,126 +1084,86 @@ const DiscoverIbadan = () => {
                 </span>{" "}
                 through AI & Local Stories
               </h1>
-              {/* INCREASED paragraph text size */}
               <p className="text-[14.5px] sm:text-lg md:text-xl lg:text-[16px] md:mt-3 text-gray-600 font-medium max-w-xl mx-auto px-2">
                 Your all-in-one local guide for hotels, food, events, vendors,
                 and market prices.
               </p>
             </div>
 
-            {/* UPDATED SEARCH BAR - MOBILE OPTIMIZED DESIGN */}
-            <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
-              <div ref={searchContainerRef} className="relative w-full">
-                {/* Main Search Card - COMPACT PADDING */}
-                <div className="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg border border-blue-100 p-3 sm:p-3 md:p-4">
-                  {/* Search Input Row - MOBILE FIRST DESIGN */}
-                  <div className="w-full">
-                    {/* Search Input - TOP POSITION */}
-                    <div className="mb-2 sm:mb-3 cursor-pointer">
-                      <div
-                        className="bg-gray-100 rounded-lg px-3 sm:px-3 py-1.5
-                       sm:py-2 text-xs sm:text-xs flex items-center gap-2 hover:bg-gray-200 transition-colors duration-200"
-                      >
-                        <FontAwesomeIcon
-                          icon={faSearch}
-                          className="text-gray-500 w-3 h-3 sm:w-3 sm:h-3"
-                        />
+            {/* SEARCH BAR - 60% WIDER */}
+            <div className="w-full">
+              <div className="flex items-center gap-3 justify-center">
+                <div 
+                  className="relative"
+                  ref={searchContainerRef}
+                  style={{
+                    // KEPT 60% wider (43.2%)
+                    width: isMobile ? "100%" : "43.2%",
+                  }}
+                >
+                  <form onSubmit={handleSearchSubmit} className="w-full">
+                    <div className="flex items-center justify-center w-full">
+                      <div className="flex items-center bg-gray-200 rounded-full shadow-sm relative z-40 w-full">
+                        <div className="pl-3 sm:pl-4 text-gray-500">
+                          <FontAwesomeIcon
+                            icon={faSearch}
+                            className="h-4 w-4"
+                          />
+                        </div>
                         <input
                           ref={searchInputRef}
                           type="text"
+                          placeholder="Search by area, category, or name..."
                           value={searchQuery}
-                          onChange={(e) => handleSearchChange(e.target.value)}
+                          onChange={(e) =>
+                            handleSearchChange(e.target.value)
+                          }
                           onFocus={handleSearchFocus}
                           onKeyPress={handleKeyPress}
-                          placeholder="Search by area, category, or name ..."
-                          className="bg-transparent outline-none w-full text-gray-700 placeholder-gray-500 text-xs sm:text-xs md:text-sm cursor-pointer"
+                          className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 focus:rounded-full"
+                          autoFocus={false}
+                          aria-label="Search input"
+                          role="searchbox"
                         />
                         {searchQuery && (
                           <button
+                            type="button"
                             onClick={handleClearSearch}
-                            className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                            className="p-1 mr-2 text-gray-500 hover:text-gray-700 transition-colors"
                             aria-label="Clear search"
                           >
                             <FontAwesomeIcon
                               icon={faTimes}
-                              className="w-3 h-3 sm:w-3 sm:h-3"
+                              className="h-4 w-4"
                             />
                           </button>
                         )}
                       </div>
-                    </div>
 
-                    {/* Check-in & Check-out - SIDE BY SIDE */}
-                    <div className="grid grid-cols-2 gap-2 sm:gap-2 mb-2 sm:mb-3">
-                      {/* Check-in */}
-                      <div className="bg-gray-100 rounded-lg p-2 sm:p-2 text-left hover:bg-gray-200 transition-colors duration-200 cursor-pointer">
-                        <div className="text-xs text-gray-500 flex items-center gap-1 mb-0.5">
-                          <FontAwesomeIcon
-                            icon={faCalendar}
-                            className="w-3 h-3"
-                          />
-                          Check-in
-                        </div>
-                        <div className="text-xs sm:text-xs font-medium text-blue-600">
-                          {formatDateLabel(checkIn)}
-                        </div>
-                      </div>
-
-                      {/* Check-out */}
-                      <div className="bg-gray-100 rounded-lg p-2 sm:p-2 text-left hover:bg-gray-200 transition-colors duration-200 cursor-pointer">
-                        <div className="text-xs text-gray-500 flex items-center gap-1 mb-0.5">
-                          <FontAwesomeIcon
-                            icon={faCalendar}
-                            className="w-3 h-3"
-                          />
-                          Check-out
-                        </div>
-                        <div className="text-xs sm:text-xs font-medium text-blue-600">
-                          {formatDateLabel(checkOut)}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Room & Guest Info with Profile Icon - SAME WIDTH AS OTHER ELEMENTS */}
-                    <div className="mb-2 sm:mb-3 w-full cursor-pointer">
-                      <div className="inline-flex w-full  items-center justify-start rounded-[10px] bg-gray-100 px-4 py-2 text-[12.5px] font-medium text-gray-500 hover:bg-gray-200 transition-colors duration-200">
-                        {/* Profile Icon at the start */}
-                        <FontAwesomeIcon
-                          icon={faUser}
-                          className="w-4 h-4 mr-2 text-gray-500"
-                        />
-                        <span>1 Room</span>
-                        <span className="mx-1 text-gray-500">•</span>
-                        <span>2 Adults</span>
-                        <span className="mx-1 text-gray-500">•</span>
-                        <span>0 Children</span>
-                      </div>
-                    </div>
-
-                    {/* Search Button - SAME WIDTH AS OTHER ELEMENTS */}
-                    <div className="w-full cursor-pointer">
-                      <button
-                        onClick={handleSearchSubmit}
-                        className="w-full bg-gradient-to-r from-[#00E38C] to-teal-500 hover:from-[#00c97b] hover:to-teal-600 text-white font-semibold py-2 sm:py-2 px-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
-                      >
-                        <FontAwesomeIcon
-                          icon={faSearch}
-                          className="w-3 h-3 sm:w-3 sm:h-3"
-                        />
-                        <span className="text-xs sm:text-xs md:text-sm">
+                      <div className="ml-2">
+                        <button
+                          type="submit"
+                          className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope"
+                          aria-label="Perform search"
+                        >
                           Search
-                        </span>
-                      </button>
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  </form>
                 </div>
               </div>
             </div>
 
-            {/* Category Icons - MINIMAL GAP AND MARGINS */}
-            <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto mt-1 sm:mt-2 lg:mt-1">
-              <div className="flex justify-between items-center gap-2 sm:gap-3 lg:gap-3">
-                {["Hotel", "Tourism", "Shortlet", "Restaurant", "Services"].map(
+            {/* Category Icons - 60% WIDER */}
+            <div className="w-full" style={{
+              // KEPT 60% wider (43.2%)
+              width: isMobile ? "100%" : "43.2%",
+              marginLeft: "auto",
+              marginRight: "auto",
+            }}>
+              <div className="flex justify-between items-center gap-1">
+                {["Hotel", "Shortlet", "Restaurant", "Services"].map(
                   (category) => (
                     <motion.div
                       key={category}
@@ -1219,11 +1172,11 @@ const DiscoverIbadan = () => {
                       className="group cursor-pointer flex flex-col items-center"
                       onClick={() => handleCategoryClick(category)}
                     >
-                      {/* Square Container - COMPACT SIZE */}
-                      <div className="relative w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-12 lg:h-12">
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-teal-50 rounded-md sm:rounded-lg transform group-hover:scale-105 transition-transform duration-300"></div>
+                      {/* Square Container - KEPT 60% larger */}
+                      <div className="relative w-16 h-16 sm:w-19 sm:h-19 md:w-22 md:h-22 lg:w-22 lg:h-22">
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-teal-50 rounded-md transform group-hover:scale-105 transition-transform duration-300"></div>
                         <div className="relative w-full h-full p-0.5">
-                          <div className="w-full h-full overflow-hidden rounded-sm sm:rounded-md shadow-xs group-hover:shadow-xs transition-all duration-300">
+                          <div className="w-full h-full overflow-hidden rounded-sm shadow-xs group-hover:shadow-xs transition-all duration-300">
                             <img
                               src={getCategoryImage(
                                 category,
@@ -1238,8 +1191,7 @@ const DiscoverIbadan = () => {
                           </div>
                         </div>
                       </div>
-                      {/* Minimal text size and margin */}
-                      <p className="mt-0.5 text-[9px] xs:text-[10px] font-medium text-gray-700 group-hover:text-blue-600 transition-colors duration-200 text-center whitespace-nowrap">
+                      <p className="mt-1 text-[10px] xs:text-[12px] font-medium text-gray-700 group-hover:text-blue-600 transition-colors duration-200 text-center whitespace-nowrap">
                         {category}
                       </p>
                     </motion.div>
@@ -1250,17 +1202,13 @@ const DiscoverIbadan = () => {
           </div>
         </div>
 
-        {/* REMOVED bottom gradient - separator will be right at the bottom */}
+        {/* Green Separator Line */}
+        <div className="relative">
+          <div className="absolute left-0 right-0 h-[1px] sm:h-[1px] bg-gradient-to-r from-green-400 via-green-500 to-green-400 opacity-70"></div>
+        </div>
       </section>
 
-      {/* Green Separator Line - AT THE EXACT BOTTOM OF HERO SECTION */}
-      <div className="relative">
-        <div className="absolute left-0 right-0 h-[1px] sm:h-[1px] bg-gradient-to-r from-green-400 via-green-500 to-green-400 opacity-70"></div>
-      </div>
-
-      {/* REMOVED additional content section to keep hero ending at separator */}
-
-      {/* Desktop Search Suggestions */}
+      {/* Desktop Search Suggestions - NOW MATCHES EXACT WIDTH (FIXED) */}
       {!isMobile && (
         <DesktopSearchSuggestions
           searchQuery={searchQuery}
