@@ -11,9 +11,12 @@ const Header = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [userProfile, setUserProfile] = useState(null);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [scrollPosition, setScrollPosition] = useState(0);
   const navigate = useNavigate();
   const profileDropdownRef = useRef(null);
-  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const headerRef = useRef(null);
 
   // Enhanced auth check function
   const checkLoginStatus = () => {
@@ -48,6 +51,44 @@ const Header = () => {
       setUserEmail("");
       setUserProfile(null);
     }
+  };
+
+  // Handle scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      const position = window.pageYOffset;
+      setScrollPosition(position);
+      
+      if (position > 10) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // Calculate glass effect opacity based on scroll position
+  const getGlassEffect = () => {
+    // Max opacity at 100px scroll, min at 0
+    const maxScroll = 100;
+    const opacity = Math.min(scrollPosition / maxScroll, 0.95);
+    
+    return {
+      backgroundColor: `rgba(247, 247, 250, ${opacity})`,
+      backdropFilter: isScrolled ? 'blur(10px) saturate(180%)' : 'none',
+      WebkitBackdropFilter: isScrolled ? 'blur(10px) saturate(180%)' : 'none',
+      // Always keep the blue border regardless of scroll position
+      borderBottom: '2px solid #00d1ff',
+      boxShadow: isScrolled 
+        ? '0 8px 32px 0 rgba(31, 38, 135, 0.07)' 
+        : 'none',
+    };
   };
 
   // Check login status on mount and when window gains focus
@@ -161,7 +202,6 @@ const Header = () => {
 
   // Base navigation items - always visible
   const baseNavItems = [
- 
     { 
       label: "Hotels", 
       id: "hotels", 
@@ -187,7 +227,6 @@ const Header = () => {
       id: "events", 
       action: () => navigate("/category/events")
     },
- 
   ];
 
   // Additional navigation items for logged in users
@@ -262,7 +301,11 @@ const Header = () => {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-[1000] bg-[#F7F7FA] border-b-2 font-manrope border-[#00d1ff] h-16 cursor-default">
+      <header 
+        ref={headerRef}
+        className="fixed top-0 left-0 right-0 z-[1000] h-16 cursor-default transition-all duration-300 ease-out"
+        style={getGlassEffect()}
+      >
         <div className="max-w-7xl mx-auto px-4 h-full">
           <nav className="flex items-center justify-between h-full">
             <div className="flex items-center gap-3">
@@ -273,7 +316,7 @@ const Header = () => {
                 <img
                   src={Logo}
                   alt="Ajani Logo"
-                  className="h-7 w-20 object-contain cursor-pointer"
+                  className="h-7 w-20 object-contain cursor-pointer transition-transform duration-300 hover:scale-105"
                 />
               </button>
             </div>
@@ -284,7 +327,7 @@ const Header = () => {
                 <button
                   key={item.id}
                   onClick={item.action}
-                  className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-3 py-1 rounded-md hover:bg-blue-50"
+                  className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-3 py-1 rounded-md hover:bg-blue-50/50 backdrop-blur-sm"
                 >
                   {item.label}
                 </button>
@@ -295,7 +338,7 @@ const Header = () => {
                   <button
                     key={index}
                     onClick={item.onClick}
-                    className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-3 py-1 rounded-md hover:bg-blue-50"
+                    className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-3 py-1 rounded-md hover:bg-blue-50/50 backdrop-blur-sm"
                   >
                     {item.label}
                   </button>
@@ -307,7 +350,7 @@ const Header = () => {
               {isLoggedIn ? (
                 <>
                   {/* Debug indicator (remove in production) */}
-                  <div className="hidden lg:flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                  <div className="hidden lg:flex items-center gap-1 text-xs text-green-600 bg-green-50/50 backdrop-blur-sm px-2 py-1 rounded">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                     <span>Logged in as {userEmail?.split("@")[0]}</span>
                   </div>
@@ -315,7 +358,7 @@ const Header = () => {
                   {/* Saved Listings button */}
                   <button
                     onClick={() => navigate("/saved")}
-                    className="relative text-2xl hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer"
+                    className="relative text-2xl hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/20 rounded-lg backdrop-blur-sm"
                     title="Saved Listings"
                   >
                     <FiHeart />
@@ -329,7 +372,7 @@ const Header = () => {
                   {/* Chat button */}
                   <button
                     onClick={() => navigate("/chat")}
-                    className="text-2xl hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer"
+                    className="text-2xl hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/20 rounded-lg backdrop-blur-sm"
                     title="Chat"
                   >
                     <MdOutlineChat />
@@ -338,7 +381,7 @@ const Header = () => {
                   {/* Notifications button */}
                   <button
                     onClick={() => navigate("/notifications")}
-                    className="text-2xl hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer"
+                    className="text-2xl hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/20 rounded-lg backdrop-blur-sm"
                     title="Notifications"
                   >
                     <RiNotification2Fill />
@@ -353,35 +396,35 @@ const Header = () => {
                       onClick={() =>
                         setIsProfileDropdownOpen(!isProfileDropdownOpen)
                       }
-                      className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-blue-50 transition-colors cursor-pointer"
+                      className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-blue-50/50 backdrop-blur-sm transition-all duration-300 cursor-pointer hover:scale-105"
                       title="Profile"
                     >
                       {userProfile?.profilePicture ? (
                         <img
                           src={userProfile.profilePicture}
                           alt="Profile"
-                          className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                          className="w-8 h-8 rounded-full object-cover border border-gray-200/50 backdrop-blur-sm"
                           onError={(e) => {
                             e.target.onerror = null;
                             e.target.style.display = "none";
                             e.target.parentElement.innerHTML = `
-                              <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                              <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm backdrop-blur-sm">
                                 ${getUserInitials()}
                               </div>
                             `;
                           }}
                         />
                       ) : (
-                        <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                        <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm backdrop-blur-sm">
                           {getUserInitials()}
                         </div>
                       )}
                     </button>
 
                     {isProfileDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-1001 border border-gray-200 cursor-default">
+                      <div className="absolute right-0 mt-2 w-56 bg-white/95 backdrop-blur-lg rounded-lg shadow-lg py-2 z-1001 border border-gray-200/50 cursor-default transition-all duration-300">
                         {/* User info */}
-                        <div className="px-4 py-3 border-b border-gray-100 cursor-default">
+                        <div className="px-4 py-3 border-b border-gray-100/50 cursor-default">
                           <p className="text-sm font-medium text-gray-900 cursor-default">
                             {userProfile?.firstName
                               ? `${userProfile.firstName} ${userProfile.lastName}`
@@ -404,7 +447,7 @@ const Header = () => {
                             navigate("/profile");
                             setIsProfileDropdownOpen(false);
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/50 hover:text-gray-900 transition-all duration-200 cursor-pointer"
                         >
                           <FiUser className="w-4 h-4" />
                           <span className="cursor-pointer">My Profile</span>
@@ -416,7 +459,7 @@ const Header = () => {
                             navigate("/saved");
                             setIsProfileDropdownOpen(false);
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/50 hover:text-gray-900 transition-all duration-200 cursor-pointer"
                         >
                           <FiHeart className="w-4 h-4" />
                           <span className="cursor-pointer">
@@ -430,7 +473,7 @@ const Header = () => {
                             navigate("/chat");
                             setIsProfileDropdownOpen(false);
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/50 hover:text-gray-900 transition-all duration-200 cursor-pointer"
                         >
                           <MdOutlineChat className="w-4 h-4" />
                           <span className="cursor-pointer">Chat Assistant</span>
@@ -442,7 +485,7 @@ const Header = () => {
                             navigate("/notifications");
                             setIsProfileDropdownOpen(false);
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/50 hover:text-gray-900 transition-all duration-200 cursor-pointer"
                         >
                           <RiNotification2Fill className="w-4 h-4" />
                           <span className="cursor-pointer">Notifications</span>
@@ -454,7 +497,7 @@ const Header = () => {
                             navigate("/add-business");
                             setIsProfileDropdownOpen(false);
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/50 hover:text-gray-900 transition-all duration-200 cursor-pointer"
                         >
                           <svg
                             className="w-4 h-4"
@@ -478,18 +521,18 @@ const Header = () => {
                             alert("Settings feature coming soon!");
                             setIsProfileDropdownOpen(false);
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/50 hover:text-gray-900 transition-all duration-200 cursor-pointer"
                         >
                           <FiSettings className="w-4 h-4" />
                           <span className="cursor-pointer">Settings</span>
                         </button>
 
-                        <div className="h-px bg-gray-100 my-1"></div>
+                        <div className="h-px bg-gray-100/50 my-1"></div>
 
                         {/* Sign out */}
                         <button
                           onClick={handleSignOut}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50/50 hover:text-red-700 transition-all duration-200 cursor-pointer"
                         >
                           <FiLogOut className="w-4 h-4" />
                           <span className="cursor-pointer">Sign Out</span>
@@ -503,16 +546,16 @@ const Header = () => {
                 <div className="hidden lg:flex items-center gap-1.5">
                   <button
                     onClick={() => navigate("/login")}
-                    className="py-2.5 px-5 text-sm font-normal bg-[#06EAFC] hover:bg-[#6cf5ff] duration-300 rounded-full transition-colors shadow-sm cursor-pointer"
+                    className="py-2.5 px-5 text-sm font-normal bg-[#06EAFC]/90 hover:bg-[#6cf5ff] duration-300 rounded-full transition-all shadow-sm cursor-pointer hover:scale-105 backdrop-blur-sm"
                   >
                     Log in
                   </button>
 
-                  <div className="w-px h-5 bg-gray-400 font-bold"></div>
+                  <div className="w-px h-5 bg-gray-400/50 font-bold backdrop-blur-sm"></div>
 
                   <button
                     onClick={() => navigate("/register")}
-                    className="py-2.5 px-4 text-sm font-normal border-3 border-[#06EAFC] rounded-full transition-colors shadow-sm cursor-pointer"
+                    className="py-2.5 px-4 text-sm font-normal border-2 border-[#06EAFC] rounded-full transition-all shadow-sm cursor-pointer hover:scale-105 hover:bg-white/20 backdrop-blur-sm"
                   >
                     Register
                   </button>
@@ -522,7 +565,7 @@ const Header = () => {
               {/* Mobile menu button */}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="lg:hidden text-gray-900 text-2xl p-1 ml-2 cursor-pointer hover:text-[#00d1ff] transition-colors"
+                className="lg:hidden text-gray-900 text-2xl p-1 ml-2 cursor-pointer hover:text-[#00d1ff] transition-all duration-300 hover:bg-white/20 rounded-lg"
               >
                 {isMenuOpen ? (
                   <svg
@@ -577,27 +620,27 @@ const Header = () => {
         />
 
         <div
-          className={`fixed left-0 top-0 w-full h-screen bg-[#e6f2ff] flex flex-col z-[100001] transform transition-all duration-500 ease-out ${
+          className={`fixed left-0 top-0 w-full h-screen bg-[#e6f2ff]/95 backdrop-blur-lg flex flex-col z-[100001] transform transition-all duration-500 ease-out ${
             isMenuOpen
               ? "translate-x-0 opacity-100"
               : "-translate-x-full opacity-0"
           }`}
         >
-          <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-[#f2f9ff] rounded-lg shadow-sm mt-1 mx-2 cursor-default transition-all duration-300 delay-100">
+          <div className="p-4 border-b border-gray-200/50 flex justify-between items-center bg-[#f2f9ff]/95 backdrop-blur-lg rounded-lg shadow-sm mt-1 mx-2 cursor-default transition-all duration-300 delay-100">
             <div className="flex items-center gap-2 cursor-pointer">
               <img
                 src={Logo}
                 alt="Ajani Logo"
-                className="h-7 w-20 object-contain cursor-pointer transition-transform duration-300"
+                className="h-7 w-20 object-contain cursor-pointer transition-transform duration-300 hover:scale-105"
               />
-              <div className="w-px h-4 bg-gray-300 mx-1 transition-all duration-300"></div>
+              <div className="w-px h-4 bg-gray-300/50 mx-1 transition-all duration-300"></div>
               <span className="text-xs text-slate-600 hover:text-gray-900 whitespace-nowrap cursor-pointer transition-colors duration-300">
                 The Ibadan Smart Guide
               </span>
             </div>
             <button
               onClick={() => setIsMenuOpen(false)}
-              className="text-gray-900 hover:text-gray-600 text-xl cursor-pointer transition-colors duration-300"
+              className="text-gray-900 hover:text-gray-600 text-xl cursor-pointer transition-colors duration-300 hover:bg-white/20 rounded-lg p-1"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -621,7 +664,7 @@ const Header = () => {
             {baseNavItems.map((item, index) => (
               <button
                 key={item.id}
-                className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
                 onClick={() => {
                   item.action();
                   if (item.id !== "Blog") {
@@ -647,7 +690,7 @@ const Header = () => {
                     item.onClick();
                     setIsMenuOpen(false);
                   }}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${(baseNavItems.length + index) * 50}ms`
@@ -665,7 +708,7 @@ const Header = () => {
             {/* Divider - Only show if user is logged in */}
             {isLoggedIn && (
               <div
-                className="h-px bg-gray-200 my-2 transition-all duration-300"
+                className="h-px bg-gray-200/50 my-2 transition-all duration-300"
                 style={{
                   transitionDelay: isMenuOpen
                     ? `${
@@ -682,7 +725,7 @@ const Header = () => {
               <>
                 {/* Mobile user info */}
                 <div
-                  className="px-4 py-3 bg-white rounded-lg mb-4 cursor-default transition-all duration-300"
+                  className="px-4 py-3 bg-white/80 backdrop-blur-sm rounded-lg mb-4 cursor-default transition-all duration-300"
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
@@ -713,7 +756,7 @@ const Header = () => {
                 {/* Mobile navigation for logged-in users */}
                 <button
                   onClick={() => handleMobileNavigate("/profile")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
@@ -735,7 +778,7 @@ const Header = () => {
 
                 <button
                   onClick={() => handleMobileNavigate("/saved")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
@@ -759,7 +802,7 @@ const Header = () => {
 
                 <button
                   onClick={() => handleMobileNavigate("/chat")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
@@ -777,7 +820,7 @@ const Header = () => {
                 </button>
                 <button
                   onClick={() => handleMobileNavigate("/notifications")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
@@ -799,7 +842,7 @@ const Header = () => {
                   onClick={() => {
                     handleSignOut();
                   }}
-                  className="block w-full text-left py-3 px-4 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  className="block w-full text-left py-3 px-4 text-red-600 hover:text-red-800 hover:bg-red-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
@@ -819,7 +862,7 @@ const Header = () => {
             ) : (
               <>
                 <div
-                  className="h-px bg-gray-200 my-2 transition-all duration-300"
+                  className="h-px bg-gray-200/50 my-2 transition-all duration-300"
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${(baseNavItems.length + 1) * 50}ms`
@@ -830,7 +873,7 @@ const Header = () => {
 
                 <button
                   onClick={() => handleMobileNavigate("/login")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${(baseNavItems.length + 2) * 50}ms`
@@ -846,7 +889,7 @@ const Header = () => {
 
                 <button
                   onClick={() => handleMobileNavigate("/register")}
-                  className="block w-full text-left py-3 px-4 hover:bg-blue-50 text-black rounded-lg font-normal whitespace-nowrap text-sm cursor-pointer transition-all duration-300 transform hover:translate-x-1"
+                  className="block w-full text-left py-3 px-4 hover:bg-blue-50/50 backdrop-blur-sm text-black rounded-lg font-normal whitespace-nowrap text-sm cursor-pointer transition-all duration-300 transform hover:translate-x-1"
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${(baseNavItems.length + 3) * 50}ms`

@@ -1523,11 +1523,309 @@ const CategoryBreakdownBadges = ({ categories }) => {
   );
 };
 
-// ================== ENHANCED FILTER SIDEBAR ==================
+// ================== CATEGORY BUTTONS COMPONENT ==================
+const CategoryButtons = ({ selectedCategories, onCategoryClick }) => {
+  // Create button configs based on the image
+  const buttonConfigs = [
+    { 
+      key: "all", 
+      label: "All Categories", 
+      displayName: "All Categories",
+      icon: faFilter 
+    },
+    { 
+      key: "services", 
+      label: "Services", 
+      displayName: "Services",
+      icon: faTools 
+    },
+    { 
+      key: "shortlet", 
+      label: "Shortlet", 
+      displayName: "Shortlet",
+      icon: faHome 
+    },
+    { 
+      key: "tourist.center", 
+      label: "Tourist Center", 
+      displayName: "Tourist Center",
+      icon: faLandmark 
+    },
+    { 
+      key: "weekend", 
+      label: "Weekend", 
+      displayName: "Weekend",
+      icon: faCalendarWeek 
+    },
+    { 
+      key: "cafe", 
+      label: "Cafe", 
+      displayName: "Cafe",
+      icon: faUtensils 
+    },
+    { 
+      key: "hall", 
+      label: "Hall", 
+      displayName: "Hall",
+      icon: faBuilding 
+    },
+    { 
+      key: "hotel", 
+      label: "Hotel", 
+      displayName: "Hotel",
+      icon: faBuilding 
+    },
+    { 
+      key: "restaurant", 
+      label: "Restaurant", 
+      displayName: "Restaurant",
+      icon: faUtensils 
+    }
+  ];
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  return (
+    <div className="mt-4 md:mt-6 mb-4 md:mb-6">
+      <div className="relative">
+        {/* Mobile: Horizontal scroll */}
+        <div className="md:hidden overflow-x-auto scrollbar-hide pb-2">
+          <div className="flex space-x-2 min-w-max px-1">
+            {buttonConfigs.map((button) => {
+              const isSelected = selectedCategories.some(
+                cat => cat.toLowerCase() === button.key.toLowerCase()
+              );
+              
+              return (
+                <button
+                  key={button.key}
+                  onClick={() => onCategoryClick(button.key)}
+                  className={`
+                    flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-full
+                    whitespace-nowrap transition-all duration-200 font-medium
+                    ${isSelected 
+                      ? 'bg-[#00065A] text-white shadow-sm' 
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                    }
+                    ${button.key === 'all' 
+                      ? 'text-sm font-semibold' 
+                      : 'text-xs'
+                    }
+                  `}
+                  style={{
+                    minWidth: 'auto',
+                  }}
+                >
+                  <FontAwesomeIcon 
+                    icon={button.icon} 
+                    className={`${isSelected ? 'text-white' : 'text-gray-500'} text-xs`}
+                  />
+                  <span>{button.displayName}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Desktop: Grid layout like the image */}
+        <div className="hidden md:block">
+          <div className="grid grid-cols-3 gap-2">
+            {/* First row: All Categories, Services, Shortlet, Tourist Center */}
+            <div className="col-span-3 flex gap-2 mb-2">
+              <div className="flex-1">
+                <button
+                  onClick={() => onCategoryClick("all")}
+                  className={`
+                    w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-lg
+                    transition-all duration-200 font-medium text-base
+                    ${selectedCategories.some(cat => cat.toLowerCase() === "all") 
+                      ? 'bg-[#00065A] text-white shadow-sm' 
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                    }
+                  `}
+                >
+                  <FontAwesomeIcon 
+                    icon={faFilter} 
+                    className={`${selectedCategories.some(cat => cat.toLowerCase() === "all") ? 'text-white' : 'text-gray-500'} text-sm`}
+                  />
+                  <span>All Categories</span>
+                </button>
+              </div>
+              <div className="flex-1">
+                <button
+                  onClick={() => onCategoryClick("services")}
+                  className={`
+                    w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-lg
+                    transition-all duration-200 font-medium text-base
+                    ${selectedCategories.some(cat => cat.toLowerCase() === "services") 
+                      ? 'bg-[#00065A] text-white shadow-sm' 
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                    }
+                  `}
+                >
+                  <FontAwesomeIcon 
+                    icon={faTools} 
+                    className={`${selectedCategories.some(cat => cat.toLowerCase() === "services") ? 'text-white' : 'text-gray-500'} text-sm`}
+                  />
+                  <span>Services</span>
+                </button>
+              </div>
+              <div className="flex-1">
+                <button
+                  onClick={() => onCategoryClick("shortlet")}
+                  className={`
+                    w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-lg
+                    transition-all duration-200 font-medium text-base
+                    ${selectedCategories.some(cat => cat.toLowerCase() === "shortlet") 
+                      ? 'bg-[#00065A] text-white shadow-sm' 
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                    }
+                  `}
+                >
+                  <FontAwesomeIcon 
+                    icon={faHome} 
+                    className={`${selectedCategories.some(cat => cat.toLowerCase() === "shortlet") ? 'text-white' : 'text-gray-500'} text-sm`}
+                  />
+                  <span>Shortlet</span>
+                </button>
+              </div>
+              <div className="flex-1">
+                <button
+                  onClick={() => onCategoryClick("tourist.center")}
+                  className={`
+                    w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-lg
+                    transition-all duration-200 font-medium text-base
+                    ${selectedCategories.some(cat => cat.toLowerCase() === "tourist.center") 
+                      ? 'bg-[#00065A] text-white shadow-sm' 
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                    }
+                  `}
+                >
+                  <FontAwesomeIcon 
+                    icon={faLandmark} 
+                    className={`${selectedCategories.some(cat => cat.toLowerCase() === "tourist.center") ? 'text-white' : 'text-gray-500'} text-sm`}
+                  />
+                  <span>Tourist Center</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Second row: Weekend, Cafe, Hall, Hotel, Restaurant */}
+            <div className="col-span-3 flex gap-2">
+              <div className="flex-1">
+                <button
+                  onClick={() => onCategoryClick("weekend")}
+                  className={`
+                    w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-lg
+                    transition-all duration-200 font-medium text-base
+                    ${selectedCategories.some(cat => cat.toLowerCase() === "weekend") 
+                      ? 'bg-[#00065A] text-white shadow-sm' 
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                    }
+                  `}
+                >
+                  <FontAwesomeIcon 
+                    icon={faCalendarWeek} 
+                    className={`${selectedCategories.some(cat => cat.toLowerCase() === "weekend") ? 'text-white' : 'text-gray-500'} text-sm`}
+                  />
+                  <span>Weekend</span>
+                </button>
+              </div>
+              <div className="flex-1">
+                <button
+                  onClick={() => onCategoryClick("cafe")}
+                  className={`
+                    w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-lg
+                    transition-all duration-200 font-medium text-base
+                    ${selectedCategories.some(cat => cat.toLowerCase() === "cafe") 
+                      ? 'bg-[#00065A] text-white shadow-sm' 
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                    }
+                  `}
+                >
+                  <FontAwesomeIcon 
+                    icon={faUtensils} 
+                    className={`${selectedCategories.some(cat => cat.toLowerCase() === "cafe") ? 'text-white' : 'text-gray-500'} text-sm`}
+                  />
+                  <span>Cafe</span>
+                </button>
+              </div>
+              <div className="flex-1">
+                <button
+                  onClick={() => onCategoryClick("hall")}
+                  className={`
+                    w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-lg
+                    transition-all duration-200 font-medium text-base
+                    ${selectedCategories.some(cat => cat.toLowerCase() === "hall") 
+                      ? 'bg-[#00065A] text-white shadow-sm' 
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                    }
+                  `}
+                >
+                  <FontAwesomeIcon 
+                    icon={faBuilding} 
+                    className={`${selectedCategories.some(cat => cat.toLowerCase() === "hall") ? 'text-white' : 'text-gray-500'} text-sm`}
+                  />
+                  <span>Hall</span>
+                </button>
+              </div>
+              <div className="flex-1">
+                <button
+                  onClick={() => onCategoryClick("hotel")}
+                  className={`
+                    w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-lg
+                    transition-all duration-200 font-medium text-base
+                    ${selectedCategories.some(cat => cat.toLowerCase() === "hotel") 
+                      ? 'bg-[#00065A] text-white shadow-sm' 
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                    }
+                  `}
+                >
+                  <FontAwesomeIcon 
+                    icon={faBuilding} 
+                    className={`${selectedCategories.some(cat => cat.toLowerCase() === "hotel") ? 'text-white' : 'text-gray-500'} text-sm`}
+                  />
+                  <span>Hotel</span>
+                </button>
+              </div>
+              <div className="flex-1">
+                <button
+                  onClick={() => onCategoryClick("restaurant")}
+                  className={`
+                    w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-lg
+                    transition-all duration-200 font-medium text-base
+                    ${selectedCategories.some(cat => cat.toLowerCase() === "restaurant") 
+                      ? 'bg-[#00065A] text-white shadow-sm' 
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                    }
+                  `}
+                >
+                  <FontAwesomeIcon 
+                    icon={faUtensils} 
+                    className={`${selectedCategories.some(cat => cat.toLowerCase() === "restaurant") ? 'text-white' : 'text-gray-500'} text-sm`}
+                  />
+                  <span>Restaurant</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ================== FILTER SIDEBAR (CATEGORIES REMOVED) ==================
 const FilterSidebar = ({
   onFilterChange,
   allLocations,
-  allCategories,
   currentFilters,
   onClose,
   isMobileModal = false,
@@ -1540,26 +1838,20 @@ const FilterSidebar = ({
   const [localFilters, setLocalFilters] = useState(
     currentFilters || {
       locations: [],
-      categories: [],
       priceRange: { min: "", max: "" },
       ratings: [],
       sortBy: "relevance",
-      amenities: [],
     }
   );
 
   const [expandedSections, setExpandedSections] = useState({
     location: true,
-    category: false,
     price: true,
     rating: true,
-    amenities: false,
     sort: true,
   });
 
   const [locationSearch, setLocationSearch] = useState("");
-  const [categorySearch, setCategorySearch] = useState("");
-  const [showCategorySection, setShowCategorySection] = useState(false);
 
   const uniqueLocationDisplayNames = React.useMemo(() => {
     const locations = [
@@ -1567,13 +1859,6 @@ const FilterSidebar = ({
     ];
     return locations.sort();
   }, [allLocations]);
-
-  const uniqueCategoryDisplayNames = React.useMemo(() => {
-    const categories = [
-      ...new Set(allCategories.map((cat) => getCategoryDisplayName(cat))),
-    ];
-    return categories.sort();
-  }, [allCategories]);
 
   const filteredLocationDisplayNames = React.useMemo(() => {
     if (!locationSearch.trim()) return uniqueLocationDisplayNames;
@@ -1583,14 +1868,6 @@ const FilterSidebar = ({
     );
   }, [uniqueLocationDisplayNames, locationSearch]);
 
-  const filteredCategoryDisplayNames = React.useMemo(() => {
-    if (!categorySearch.trim()) return uniqueCategoryDisplayNames;
-    const searchTerm = categorySearch.toLowerCase().trim();
-    return uniqueCategoryDisplayNames.filter((category) =>
-      category.toLowerCase().includes(searchTerm)
-    );
-  }, [uniqueCategoryDisplayNames, categorySearch]);
-
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
       ...prev,
@@ -1598,23 +1875,10 @@ const FilterSidebar = ({
     }));
   };
 
-  // Show category section when location is selected
-  useEffect(() => {
-    if (localFilters.locations.length > 0) {
-      setShowCategorySection(true);
-      if (!expandedSections.category) {
-        setExpandedSections((prev) => ({ ...prev, category: true }));
-      }
-    }
-  }, [localFilters.locations.length, expandedSections.category]);
-
   // Sync local filters when currentFilters prop changes
   useEffect(() => {
     if (isInitialized && currentFilters) {
       setLocalFilters(currentFilters);
-      if (currentFilters.locations.length > 0) {
-        setShowCategorySection(true);
-      }
     }
   }, [currentFilters, isInitialized]);
 
@@ -1625,21 +1889,6 @@ const FilterSidebar = ({
       locations: localFilters.locations.includes(location)
         ? localFilters.locations.filter((l) => l !== location)
         : [...localFilters.locations, location],
-    };
-    setLocalFilters(updatedFilters);
-
-    // For desktop non-modal, apply immediately
-    if (!isMobileModal && !isDesktopModal && !isMobile) {
-      onFilterChange(updatedFilters);
-    }
-  };
-
-  const handleCategoryChange = (category) => {
-    const updatedFilters = {
-      ...localFilters,
-      categories: localFilters.categories.includes(category)
-        ? localFilters.categories.filter((c) => c !== category)
-        : [...localFilters.categories, category],
     };
     setLocalFilters(updatedFilters);
 
@@ -1696,42 +1945,13 @@ const FilterSidebar = ({
     }
   };
 
-  const handleSelectAllCategories = () => {
-    const updatedFilters = {
-      ...localFilters,
-      categories:
-        localFilters.categories.length === uniqueCategoryDisplayNames.length
-          ? []
-          : [...uniqueCategoryDisplayNames],
-    };
-    setLocalFilters(updatedFilters);
-
-    // For desktop non-modal, apply immediately
-    if (!isMobileModal && !isDesktopModal && !isMobile) {
-      onFilterChange(updatedFilters);
-    }
-  };
-
   // Apply filters when user clicks Apply button (for modals only)
   const handleApplyFilters = () => {
     // Apply the local filters to the main component
     onFilterChange(localFilters);
 
     if (onDynamicFilterApply) {
-      const hasCategoryFilters = localFilters.categories.length > 0;
       const hasLocationFilters = localFilters.locations.length > 0;
-
-      let categoryParams = [];
-      if (hasCategoryFilters) {
-        localFilters.categories.forEach((catDisplayName) => {
-          const selectedCategory = allCategories.find(
-            (cat) => getCategoryDisplayName(cat) === catDisplayName
-          );
-          if (selectedCategory) {
-            categoryParams.push(selectedCategory);
-          }
-        });
-      }
 
       let locationParams = [];
       if (hasLocationFilters) {
@@ -1747,7 +1967,6 @@ const FilterSidebar = ({
 
       onDynamicFilterApply({
         filters: localFilters,
-        categories: categoryParams,
         locations: locationParams,
         keepSearchQuery: currentSearchQuery,
       });
@@ -1900,124 +2119,6 @@ const FilterSidebar = ({
           </>
         )}
       </div>
-
-      {/* CATEGORY SECTION WITH SEARCH - Show after location selection */}
-      {(showCategorySection || localFilters.categories.length > 0) && (
-        <div className="border-b pb-4">
-          <button
-            onClick={() => toggleSection("category")}
-            className="w-full flex justify-between items-center mb-3"
-          >
-            <div className="flex items-center gap-2">
-              <FontAwesomeIcon icon={faFilter} className="text-green-500" />
-              <h4 className="font-semibold text-gray-900 text-base">
-                Category
-              </h4>
-              {localFilters.categories.length > 0 && (
-                <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full">
-                  {localFilters.categories.length}
-                </span>
-              )}
-            </div>
-            <FontAwesomeIcon
-              icon={expandedSections.category ? faChevronUp : faChevronDown}
-              className="text-gray-400"
-            />
-          </button>
-
-          {expandedSections.category && (
-            <>
-              <div className="mb-3">
-                <div className="relative mb-3">
-                  <FontAwesomeIcon
-                    icon={faSearch}
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search categories..."
-                    value={categorySearch}
-                    onChange={(e) => setCategorySearch(e.target.value)}
-                    className="w-full pl-10 pr-8 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                  />
-                  {categorySearch && (
-                    <button
-                      onClick={() => setCategorySearch("")}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      <FontAwesomeIcon icon={faTimes} className="text-sm" />
-                    </button>
-                  )}
-                </div>
-                <div className="flex justify-between mb-2">
-                  <button
-                    onClick={handleSelectAllCategories}
-                    className="text-sm text-green-600 hover:text-green-700 font-medium"
-                  >
-                    {localFilters.categories.length ===
-                    uniqueCategoryDisplayNames.length
-                      ? "Clear All Categories"
-                      : "Select All Categories"}
-                  </button>
-                  <span className="text-xs text-gray-500">
-                    {filteredCategoryDisplayNames.length} categories
-                  </span>
-                </div>
-              </div>
-              <div className="max-h-52 overflow-y-auto pr-1">
-                {filteredCategoryDisplayNames.length === 0 ? (
-                  <div className="text-center py-4 text-gray-500 text-sm">
-                    No categories found matching "{categorySearch}"
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-2">
-                    {filteredCategoryDisplayNames.map((category, index) => (
-                      <label
-                        key={index}
-                        className="flex items-center space-x-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={localFilters.categories.includes(category)}
-                          onChange={() => handleCategoryChange(category)}
-                          className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 transition-colors"
-                        />
-                        <span
-                          className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
-                            localFilters.categories.includes(category)
-                              ? "text-green-700 font-medium"
-                              : "text-gray-700"
-                          }`}
-                          style={{
-                            flex: 1,
-                          }}
-                        >
-                          {category}
-                        </span>
-                        {localFilters.categories.includes(category) && (
-                          <FontAwesomeIcon
-                            icon={faCheck}
-                            className="text-sm text-green-600"
-                          />
-                        )}
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {localFilters.categories.length > 0 && (
-                <div className="mt-3 p-2 bg-green-50 rounded-lg">
-                  <p className="text-xs text-green-800">
-                    Selected: {localFilters.categories.slice(0, 3).join(", ")}
-                    {localFilters.categories.length > 3 &&
-                      ` +${localFilters.categories.length - 3} more`}
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
 
       {/* PRICE RANGE SECTION */}
       <div className="border-b pb-4">
@@ -2583,6 +2684,7 @@ const SearchResults = () => {
     bottom: 0,
     width: 0,
   });
+  const [selectedCategoryButtons, setSelectedCategoryButtons] = useState(["all"]);
   const searchContainerRef = useRef(null);
   const filterButtonRef = useRef(null);
   const resultsRef = useRef(null);
@@ -2749,11 +2851,35 @@ const SearchResults = () => {
     // Set categories from URL params
     if (categoryParams.length > 0) {
       initialFilters.categories = [...new Set(categoryParams)];
+      
+      // Update selected category buttons state
+      if (categoryParams.length > 0) {
+        const firstCategory = categoryParams[0].toLowerCase();
+        // Map category to button key
+        const buttonKey = getCategoryButtonKey(firstCategory);
+        setSelectedCategoryButtons([buttonKey]);
+      }
     }
 
     setActiveFilters(initialFilters);
     setFiltersInitialized(true);
   }, [listings.length, searchParams.toString()]);
+
+  // Helper function to get category button key from category name
+  const getCategoryButtonKey = (categoryName) => {
+    const catLower = categoryName.toLowerCase();
+    
+    if (catLower.includes("services")) return "services";
+    if (catLower.includes("shortlet")) return "shortlet";
+    if (catLower.includes("tourist")) return "tourist.center";
+    if (catLower.includes("weekend")) return "weekend";
+    if (catLower.includes("cafe")) return "cafe";
+    if (catLower.includes("hall")) return "hall";
+    if (catLower.includes("hotel")) return "hotel";
+    if (catLower.includes("restaurant")) return "restaurant";
+    
+    return "all";
+  };
 
   // Filter logic
   const applyFilters = (listingsToFilter, filters) => {
@@ -3095,12 +3221,92 @@ const SearchResults = () => {
       amenities: [],
     };
     setActiveFilters(resetFilters);
+    setSelectedCategoryButtons(["all"]);
 
     const params = new URLSearchParams();
     if (searchQuery) {
       params.set("q", searchQuery);
     }
     setSearchParams(params);
+  };
+
+  // Handle category button click
+  const handleCategoryButtonClick = (categoryKey) => {
+    const params = new URLSearchParams();
+    
+    // Keep existing search query if any
+    if (searchQuery) {
+      params.set("q", searchQuery);
+    }
+    
+    // Keep existing location filters
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith("location")) {
+        params.set(key, value);
+      }
+    }
+    
+    // Clear previous category parameters
+    for (const [key] of searchParams.entries()) {
+      if (key.startsWith("category")) {
+        params.delete(key);
+      }
+    }
+    
+    // If "All Categories" is clicked or already selected, clear category filter
+    if (categoryKey === "all") {
+      // Just update state to show "All Categories" is selected
+      setSelectedCategoryButtons(["all"]);
+      
+      // Update filters
+      const updatedFilters = {
+        ...activeFilters,
+        categories: [],
+      };
+      setActiveFilters(updatedFilters);
+      
+      // Update URL without category parameter
+      setSearchParams(params);
+    } else {
+      // Get the actual category value from allCategories
+      const actualCategory = allCategories.find(cat => {
+        const catLower = cat.toLowerCase();
+        const keyLower = categoryKey.toLowerCase();
+        
+        // Handle dot notation
+        if (catLower.includes(".")) {
+          const afterDot = catLower.split(".")[1];
+          return afterDot === keyLower || catLower === keyLower;
+        }
+        return catLower === keyLower || catLower.includes(keyLower);
+      }) || categoryKey;
+
+      // Toggle selection
+      let newSelectedCategories;
+      if (selectedCategoryButtons.includes(categoryKey)) {
+        // If clicking an already selected category, deselect it and default to "all"
+        newSelectedCategories = ["all"];
+      } else {
+        // Select the new category (single selection only)
+        newSelectedCategories = [categoryKey];
+      }
+
+      setSelectedCategoryButtons(newSelectedCategories);
+      
+      // Update URL with category parameter only if not "all"
+      if (newSelectedCategories[0] !== "all") {
+        params.set("category", actualCategory);
+      }
+      setSearchParams(params);
+      
+      // Update filters
+      const displayName = getCategoryDisplayName(actualCategory);
+      const updatedFilters = {
+        ...activeFilters,
+        categories: newSelectedCategories.includes("all") ? [] : [displayName],
+      };
+      setActiveFilters(updatedFilters);
+    }
   };
 
   const getPageTitle = () => {
@@ -3400,6 +3606,14 @@ const SearchResults = () => {
               </div>
             </div>
           </div>
+
+          {/* Category Buttons - ADDED HERE */}
+          <div className="mt-4 md:mt-6">
+            <CategoryButtons
+              selectedCategories={selectedCategoryButtons}
+              onCategoryClick={handleCategoryButtonClick}
+            />
+          </div>
         </div>
 
         {/* Desktop Search Suggestions */}
@@ -3432,7 +3646,6 @@ const SearchResults = () => {
             onFilterChange={handleFilterChange}
             onDynamicFilterApply={handleDynamicFilterApply}
             allLocations={allLocations}
-            allCategories={allCategories}
             currentFilters={activeFilters}
             currentSearchQuery={searchQuery}
             onClose={() => setShowDesktopFilters(false)}
@@ -3451,7 +3664,6 @@ const SearchResults = () => {
               handleMobileFilterApply();
             }}
             allLocations={allLocations}
-            allCategories={allCategories}
             currentFilters={activeFilters}
             currentSearchQuery={searchQuery}
             onClose={handleMobileFilterApply}
@@ -3472,14 +3684,13 @@ const SearchResults = () => {
             paddingRight: "0",
           }}
         >
-          {/* Desktop Filter Sidebar */}
+          {/* Desktop Filter Sidebar - MODIFIED TO REMOVE CATEGORIES */}
           {!isMobile && filtersInitialized && (
             <div className="lg:w-1/4">
               <FilterSidebar
                 onFilterChange={handleFilterChange}
                 onDynamicFilterApply={handleDynamicFilterApply}
                 allLocations={allLocations}
-                allCategories={allCategories}
                 currentFilters={activeFilters}
                 currentSearchQuery={searchQuery}
                 isInitialized={filtersInitialized}
@@ -3986,6 +4197,38 @@ const SearchResults = () => {
             padding-left: 1rem !important;
             paddingright: 1rem !important;
           }
+        }
+
+        /* Category button specific styles */
+        .category-button {
+          transition: all 0.2s ease;
+        }
+        
+        .category-button:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .category-button.selected {
+          box-shadow: 0 4px 12px rgba(0, 6, 90, 0.15);
+        }
+
+        /* Ensure consistent button heights */
+        .category-button-mobile {
+          min-height: 42px;
+        }
+        
+        .category-button-desktop {
+          min-height: 56px;
+        }
+
+        /* Scroll behavior for mobile category buttons */
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
         }
       `}</style>
     </div>

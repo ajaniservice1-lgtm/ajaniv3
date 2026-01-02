@@ -560,46 +560,17 @@ const VendorCard = ({ venue, index }) => {
 
   const vendorData = {
     id: venue.id,
-    firstName: venue.name?.split(" ")[0] || "Vendor",
-    lastName: venue.name?.split(" ").slice(1).join(" ") || "Name",
     fullName: venue.name,
-    email:
-      venue.email ||
-      `${venue.name.toLowerCase().replace(/\s+/g, "")}@example.com`,
+    email: venue.email || `${venue.name.toLowerCase().replace(/\s+/g, "")}@example.com`,
     phone: venue.phone || "+234 812 345 6789",
     businessType: venue.category || "Service",
     workType: venue.service_type,
     location: venue.location || venue.district,
     description: venue.description,
-    yearsExperience: venue.years_experience || "10+",
-    avatar:
-      venue.image_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face",
+    avatar: venue.image_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face",
     rating: parseFloat(venue.rating) || 4.9,
     totalReviews: parseInt(venue.review_count) || 128,
     completedProjects: parseInt(venue.completed_projects) || 247,
-    repeatClients: parseInt(venue.repeat_clients) || 89,
-    satisfactionRate: parseInt(venue.satisfaction_rate) || 98,
-    address: venue.address || venue.location,
-    responseTime: venue.response_time || "Within 2 hours",
-    activeWithin: `Within 15 km of ${
-      venue.location?.split(",")[0] || "your location"
-    }`,
-    languages: ["English (Native)", "Yoruba (Fluent)"],
-    services: [venue.service_type || "Your service"],
-    specialties: venue.specialties
-      ? venue.specialties.split(",")
-      : ["Traditional Cuisine", "Corporate Events"],
-    certifications: venue.certifications
-      ? venue.certifications.split(",")
-      : ["Food Safety Certified", "Health Department Approved"],
-    businessName: venue.business_name || venue.name,
-    hourlyRate: venue.hourly_rate || "₦5,000 - ₦10,000",
-    minOrder: venue.min_order || "₦15,000",
-    businessHours: venue.business_hours || "8:00 AM - 10:00 PM",
-    deliveryAvailable: venue.delivery_available === "TRUE",
-    onlineBookings: venue.online_bookings === "TRUE",
-    listings: [],
-    reviews: [],
   };
 
   const handleViewVendor = () => {
@@ -611,19 +582,15 @@ const VendorCard = ({ venue, index }) => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: index * 0.1 }}
+        transition={{ duration: 0.3, delay: index * 0.05 }}
         whileHover={{
-          y: -5,
-          scale: 1.02,
-          boxShadow:
-            "0 10px 20px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.08)",
-          transition: { duration: 0.15, ease: "easeInOut" }
+          y: -8,
+          transition: { duration: 0.2 }
         }}
         className="
           bg-white
           border border-gray-200 
-          shadow-sm hover:shadow-xl 
-          transition-all duration-200
+          shadow-sm
           relative
           overflow-hidden
           cursor-pointer
@@ -632,19 +599,21 @@ const VendorCard = ({ venue, index }) => {
           w-full
           max-w-sm
           mx-auto
-          hover:border-gray-300
           flex flex-col
           min-h-[280px]
+          hover:shadow-xl
+          transition-shadow duration-200
+          hover:border-gray-300
         "
       >
         <div className="p-6 flex-1 flex flex-col">
-          <div className="flex items-start gap-4 mb-5 flex-shrink-0">
+          <div className="flex items-start gap-4 mb-5">
             <div className="relative flex-shrink-0">
-              <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200 group-hover:border-gray-300 transition-all duration-200">
+              <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200">
                 <img
                   src={venue.image_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face"}
                   alt={venue.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  className="w-full h-full object-cover"
                   onError={(e) => {
                     e.target.src = "https://via.placeholder.com/80/DDDDDD/808080?text=No+Image";
                   }}
@@ -658,7 +627,7 @@ const VendorCard = ({ venue, index }) => {
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
-                <h3 className="text-xl font-bold text-gray-900 group-hover:text-gray-800 transition-colors duration-200 truncate">
+                <h3 className="text-xl font-bold text-gray-900 truncate">
                   {venue.name}
                 </h3>
                 
@@ -679,14 +648,17 @@ const VendorCard = ({ venue, index }) => {
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2">
                 <FaMapMarkerAlt className="text-gray-400 text-sm flex-shrink-0" />
                 <span className="text-gray-600 text-sm font-medium truncate">
                   {venue.district || venue.location || "Bodija, Ibadan"}
                 </span>
               </div>
 
-              <div className="mt-2">
+            </div>
+          </div>
+          
+              <div className="">
                 <p className="text-gray-700 leading-relaxed text-sm line-clamp-3">
                   {venue.description || 
                     `Professional ${venue.service_type?.toLowerCase() || "service"} with ${
@@ -694,9 +666,6 @@ const VendorCard = ({ venue, index }) => {
                     } years experience. Available 24/7 for emergencies.`}
                 </p>
               </div>
-            </div>
-          </div>
-          
           <div className="mt-auto pt-4">
             <button
               onClick={handleViewVendor}
@@ -708,20 +677,16 @@ const VendorCard = ({ venue, index }) => {
                 font-bold 
                 text-base
                 rounded-xl
-                transition-all duration-200
-                hover:shadow-lg
-                hover:scale-[1.02]
-                cursor-pointer
-                group/btn
+                transition-colors duration-150
                 border-2 border-gray-300
-                focus:outline-none
-                focus:ring-2 focus:ring-[#06EAFC] focus:ring-offset-2
+                cursor-pointer
                 flex items-center justify-center gap-2
+                focus:outline-none
               "
             >
               Contact
               <svg 
-                className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform duration-150"
+                className="w-4 h-4"
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"

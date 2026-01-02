@@ -610,7 +610,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
         {/* Price and Rating */}
         <div className="mt-1">
           <div className="flex items-baseline gap-1">
-            <span className="text-[12px] text-gray-900 font-semibold">
+            <span className="text-[12px] text-gray-900 ">
               {priceText}
             </span>
             <span className="text-[12px] text-gray-600">
@@ -630,7 +630,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
 
         {/* Tag - Moved to bottom of card content with dark ash background and black text */}
         <div className="mt-1 pt-1"> {/* Reduced margin */}
-          <span className="text-[10px] font-semibold text-black px-2 py-0.5 rounded-md bg-gray-100"> {/* Reduced padding */}
+          <span className="text-[12px]  text-black px-2 py-0.5 rounded-md bg-gray-100"> {/* Reduced padding */}
             {tag}
           </span>
         </div>
@@ -752,7 +752,7 @@ const Directory = () => {
   // Check for mobile view
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024);
+      setIsMobile(window.innerWidth < 768); // Mobile: < 768px
     };
 
     checkMobile();
@@ -797,66 +797,144 @@ const Directory = () => {
 
   return (
     <section id="directory" className="bg-white font-manrope">
-      <div className={`${isMobile ? 'py-6' : 'py-8'}`}>
-        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header - Reduced gap on mobile */}
-          <motion.div
-            ref={headerRef}
-            initial={{ opacity: 0, y: 20 }}
-            animate={headerInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            className={isMobile ? "mb-3" : "mb-4"}
-          >
-            <h1 className={`md:text-2xl font-semibold text-gray-900 ${
-              isMobile ? 
-                "text-lg text-center mb-2" :
-                "text-xl md:text-start md:mb-4"
-            }`}>
-              Explore Categories
-            </h1>
-            <p className={`text-gray-600 ${
-              isMobile ?
-                "text-xs text-center" :
-                "md:text-[15px] md:text-start text-[13.5px]"
-            }`}>
-              Find the best places and services in Ibadan
-            </p>
-          </motion.div>
+      <div className={`${isMobile ? 'py-0' : 'py-8'}`}>
+        {/* MOBILE VIEW: Use same margins as SearchResults */}
+        {isMobile ? (
+          <div className="w-full" style={{ paddingLeft: '0.75rem', paddingRight: '0.75rem' }}>
+            {/* Header - Same as SearchResults mobile styling */}
+            <motion.div
+              ref={headerRef}
+              initial={{ opacity: 0, y: 20 }}
+              animate={headerInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="mb-4"
+            >
+              <h1 className="text-lg font-bold text-center mb-2 text-[#00065A]">
+                Explore Categories
+              </h1>
+              <p className="text-xs text-gray-600 text-center">
+                Find the best places and services in Ibadan
+              </p>
+            </motion.div>
 
-          {/* Category Sections - Reduced spacing on mobile */}
-          <div className={isMobile ? "space-y-4" : "space-y-6"}>
-            {getPopularCategories().map((category, index) => {
-              const items = categorizedListings[category] || [];
-              if (items.length === 0) return null;
+            {/* Category Sections - Mobile layout similar to SearchResults */}
+            <div className="space-y-6">
+              {getPopularCategories().map((category, index) => {
+                const items = categorizedListings[category] || [];
+                if (items.length === 0) return null;
 
-              const title = `Popular ${capitalizeFirst(category)} in Ibadan`;
+                const title = `Popular ${capitalizeFirst(category)} in Ibadan`;
 
-              return (
-                <CategorySection
-                  key={category}
-                  title={title}
-                  items={items}
-                  isMobile={isMobile}
-                />
-              );
-            })}
-          </div>
+                return (
+                  <section key={category} className="mb-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <button
+                        onClick={() => navigate(`/category/${category}`)}
+                        className="text-[#00065A] hover:text-[#06EAFC] transition-colors text-left text-sm font-bold cursor-pointer flex items-center gap-1"
+                      >
+                        {title}
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </button>
+                    </div>
 
-          {/* Empty State */}
-          {filteredListings.length === 0 && !loading && (
-            <div className="text-center py-8">
-              <div className="bg-gray-50 rounded-xl p-6 max-w-md mx-auto">
-                <i className="fas fa-search text-3xl text-gray-300 mb-3 block"></i>
-                <h3 className="text-base text-gray-800 mb-2">
-                  No businesses found
-                </h3>
-                <p className="text-gray-600 text-sm">
-                  Try adjusting your search or filters
-                </p>
-              </div>
+                    {/* Horizontal scroll for cards - Same as SearchResults mobile */}
+                    <div className="relative">
+                      <div
+                        className="flex overflow-x-auto scrollbar-hide gap-2"
+                        style={{
+                          scrollbarWidth: "none",
+                          msOverflowStyle: "none",
+                        }}
+                      >
+                        {items.slice(0, 6).map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex-shrink-0"
+                            style={{ width: "165px" }}
+                          >
+                            {/* Use the same BusinessCard from Directory but with mobile styling */}
+                            <BusinessCard
+                              item={item}
+                              category={category}
+                              isMobile={true}
+                            />
+                          </div>
+                        ))}
+                        {/* Spacer for last card visibility */}
+                        <div className="flex-shrink-0" style={{ width: "8px" }}></div>
+                      </div>
+                    </div>
+                  </section>
+                );
+              })}
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          /* DESKTOP VIEW: Original layout */
+          <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Header - Reduced gap on mobile */}
+            <motion.div
+              ref={headerRef}
+              initial={{ opacity: 0, y: 20 }}
+              animate={headerInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="mb-4"
+            >
+              <h1 className="text-xl font-semibold text-gray-900 md:text-start md:mb-4">
+                Explore Categories
+              </h1>
+              <p className="text-gray-600 md:text-[15px] md:text-start text-[13.5px]">
+                Find the best places and services in Ibadan
+              </p>
+            </motion.div>
+
+            {/* Category Sections - Original desktop layout */}
+            <div className="space-y-6">
+              {getPopularCategories().map((category, index) => {
+                const items = categorizedListings[category] || [];
+                if (items.length === 0) return null;
+
+                const title = `Popular ${capitalizeFirst(category)} in Ibadan`;
+
+                return (
+                  <CategorySection
+                    key={category}
+                    title={title}
+                    items={items}
+                    isMobile={isMobile}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Empty State */}
+            {filteredListings.length === 0 && !loading && (
+              <div className="text-center py-8">
+                <div className="bg-gray-50 rounded-xl p-6 max-w-md mx-auto">
+                  <i className="fas fa-search text-3xl text-gray-300 mb-3 block"></i>
+                  <h3 className="text-base text-gray-800 mb-2">
+                    No businesses found
+                  </h3>
+                  <p className="text-gray-600 text-sm">
+                    Try adjusting your search or filters
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </section>
   );
