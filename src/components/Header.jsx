@@ -148,11 +148,6 @@ const Header = () => {
     };
   }, [isMenuOpen]);
 
-  // Handle external blog link
-  const handleBlogClick = () => {
-    window.open("https://blog.ajani.ai", "_blank", "noopener,noreferrer");
-  };
-
   // Enhanced sign out function
   const handleSignOut = () => {
     console.log("Signing out...");
@@ -201,21 +196,22 @@ const Header = () => {
   }, []);
 
   // Base navigation items - always visible
+  // UPDATED to match DiscoverIbadan hero section routes
   const baseNavItems = [
     { 
-      label: "Hotels", 
-      id: "hotels", 
-      action: () => navigate("/category/hotels")
+      label: "Hotel", 
+      id: "hotel", 
+      action: () => navigate("/category/hotel")
     },
     { 
       label: "Restaurant", 
-      id: "restaurants", 
-      action: () => navigate("/category/restaurants")
+      id: "restaurant", 
+      action: () => navigate("/category/restaurant")
     },
     { 
       label: "Shortlet", 
-      id: "shortlets", 
-      action: () => navigate("/category/shortlets")
+      id: "shortlet", 
+      action: () => navigate("/category/shortlet")
     },
     { 
       label: "Vendors", 
@@ -660,7 +656,7 @@ const Header = () => {
           </div>
 
           <nav className="flex-1 p-4 space-y-2 text-sm overflow-y-auto">
-            {/* Base navigation items */}
+            {/* Base navigation items - UPDATED to match DiscoverIbadan */}
             {baseNavItems.map((item, index) => (
               <button
                 key={item.id}
