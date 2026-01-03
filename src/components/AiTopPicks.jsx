@@ -22,6 +22,7 @@ import {
 // ---------------- Vendor Modal Component ----------------
 const VendorModal = ({ vendor, isOpen, onClose }) => {
   const modalRef = useRef(null);
+  const contentRef = useRef(null);
 
   // Close modal on ESC key
   useEffect(() => {
@@ -56,7 +57,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
       document.addEventListener('keydown', handleEscape);
       document.addEventListener('keydown', handleTabKey);
       document.body.style.overflow = 'hidden';
-      document.body.style.pointerEvents = 'none';
+      document.body.style.pointerEvents = 'auto'; // Keep pointer events enabled
       
       // Focus the close button when modal opens
       setTimeout(() => {
@@ -73,23 +74,24 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
     };
   }, [isOpen, onClose]);
 
-  // Close modal when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (modalRef.current && !modalRef.current.contains(e.target) && isOpen) {
-        onClose();
-      }
-    };
+  // Prevent closing when clicking inside modal
+  const handleBackdropClick = (e) => {
+    // Only close if clicking directly on the backdrop (not on any modal content)
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, onClose]);
+  // Prevent closing when clicking on image or any content
+  const handleModalClick = (e) => {
+    e.stopPropagation();
+  };
 
   if (!isOpen) return null;
 
   return (
     <>
-      {/* Enhanced Glassy Blur Background */}
+      {/* Enhanced Glassy Blur Background - Now clickable to close */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -100,10 +102,14 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
           backdropFilter: 'blur(8px) saturate(180%)',
           WebkitBackdropFilter: 'blur(8px) saturate(180%)',
         }}
+        onClick={handleBackdropClick} // Only closes when clicking directly on backdrop
       />
 
       {/* Modal Container */}
-      <div className="vendor-modal-container">
+      <div 
+        className="vendor-modal-container"
+        onClick={handleBackdropClick} // Also closes when clicking container
+      >
         <motion.div
           ref={modalRef}
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -119,8 +125,9 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-title"
+          onClick={handleModalClick} // Prevent closing when clicking modal content
         >
-          {/* Close Button */}
+          {/* Close Button - Only way to close via clicking */}
           <button
             onClick={onClose}
             className="vendor-modal-close-btn"
@@ -129,31 +136,36 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
             <IoClose className="text-2xl text-gray-700" />
           </button>
 
-          {/* Modal Content */}
-          <div className="vendor-modal-scroll">
-            <div className="relative">
-              <div className="h-56 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500" />
-              <div className="absolute -bottom-16 left-8 lg:left-12">
-                <div className="relative">
+          {/* Modal Content with proper scrolling */}
+          <div 
+            ref={contentRef}
+            className="vendor-modal-scroll"
+            onClick={handleModalClick} // Prevent closing when scrolling/clicking content
+          >
+            <div className="relative" onClick={handleModalClick}>
+              <div className="h-56 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500" onClick={handleModalClick} />
+              <div className="absolute -bottom-16 left-8 lg:left-12" onClick={handleModalClick}>
+                <div className="relative" onClick={handleModalClick}>
                   <img
                     src={vendor.image_url}
                     alt={vendor.fullName}
                     className="vendor-modal-avatar"
+                    onClick={handleModalClick} // Explicitly prevent closing on image click
                     onError={(e) => {
                       e.target.src = "https://via.placeholder.com/160/DDDDDD/808080?text=No+Image";
                     }}
                   />
-                  <div className="absolute -top-2 -right-2 bg-white rounded-full p-1.5 shadow-lg border border-green-200">
+                  <div className="absolute -top-2 -right-2 bg-white rounded-full p-1.5 shadow-lg border border-green-200" onClick={handleModalClick}>
                     <VscVerifiedFilled className="text-2xl text-green-500" />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="p-6 lg:p-10 pt-24 lg:pt-28">
-              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-10">
-                <div className="flex-1">
-                  <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-4">
+            <div className="p-6 lg:p-10 pt-24 lg:pt-28" onClick={handleModalClick}>
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-10" onClick={handleModalClick}>
+                <div className="flex-1" onClick={handleModalClick}>
+                  <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-4" onClick={handleModalClick}>
                     <h2 id="modal-title" className="text-3xl lg:text-4xl font-bold text-gray-900">
                       {vendor.fullName}
                     </h2>
@@ -194,7 +206,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   </div>
                 </div>
                 
-                <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex flex-col sm:flex-row gap-4" onClick={handleModalClick}>
                   <button className="vendor-modal-action-btn primary">
                     <FaEnvelope />
                     Contact Vendor
@@ -206,7 +218,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10" onClick={handleModalClick}>
                 <motion.div 
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.1 }}
@@ -252,8 +264,8 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                 </motion.div>
               </div>
 
-              <div className="grid lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-8">
+              <div className="grid lg:grid-cols-3 gap-8" onClick={handleModalClick}>
+                <div className="lg:col-span-2 space-y-8" onClick={handleModalClick}>
                   <div className="vendor-modal-section">
                     <h3 className="vendor-modal-section-title">
                       <span className="vendor-modal-section-indicator"></span>
@@ -339,7 +351,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   </div>
                 </div>
 
-                <div className="space-y-8">
+                <div className="space-y-8" onClick={handleModalClick}>
                   <div className="vendor-modal-contact-card">
                     <h3 className="text-2xl font-bold text-gray-900 mb-6">
                       Contact & Details
@@ -1204,9 +1216,9 @@ const AiTopPicks = () => {
   );
 };
 
-// CSS Styles
+// CSS Styles - UPDATED
 const vendorModalStyles = `
-  /* Modal Backdrop */
+  /* Modal Backdrop - Now ONLY closes when clicking directly on backdrop */
   .vendor-modal-backdrop {
     position: fixed;
     top: 0;
@@ -1217,6 +1229,7 @@ const vendorModalStyles = `
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(8px) saturate(180%);
     -webkit-backdrop-filter: blur(8px) saturate(180%);
+    cursor: pointer;
   }
 
   /* Modal Container */
@@ -1231,9 +1244,11 @@ const vendorModalStyles = `
     align-items: center;
     justify-content: center;
     padding: 1rem;
+    cursor: pointer;
+    overflow-y: auto;
   }
 
-  /* Modal Content */
+  /* Modal Content - FIXED SCROLLING */
   .vendor-modal-content {
     position: relative;
     background-color: white;
@@ -1241,13 +1256,15 @@ const vendorModalStyles = `
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     width: 100%;
     max-width: 72rem;
-    max-height: 90vh;
+    max-height: 85vh; /* Reduced to allow modal to fit */
     overflow: hidden;
     border: 1px solid rgba(229, 231, 235, 0.5);
     isolation: isolate;
+    cursor: default; /* Reset cursor for content area */
+    margin: auto; /* Center vertically */
   }
 
-  /* Close Button */
+  /* Close Button - Only way to close via clicking */
   .vendor-modal-close-btn {
     position: absolute;
     top: 1.5rem;
@@ -1274,10 +1291,11 @@ const vendorModalStyles = `
     box-shadow: 0 0 0 2px #06EAFC, 0 0 0 4px rgba(6, 234, 252, 0.5);
   }
 
-  /* Scrollable Content */
+  /* Scrollable Content - FIXED SCROLLING */
   .vendor-modal-scroll {
     overflow-y: auto;
-    max-height: 90vh;
+    max-height: 85vh; /* Match parent height */
+    cursor: default; /* Prevent closing when scrolling */
   }
 
   /* Avatar */
@@ -1290,6 +1308,7 @@ const vendorModalStyles = `
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     object-fit: cover;
     background-color: white;
+    cursor: default; /* Prevent closing on image click */
   }
 
   @media (min-width: 1024px) {
@@ -1354,6 +1373,7 @@ const vendorModalStyles = `
     border-radius: 1rem;
     border: 1px solid #e5e7eb;
     transition: all 0.15s;
+    cursor: default;
   }
 
   .vendor-modal-stat-card:hover {
@@ -1366,6 +1386,7 @@ const vendorModalStyles = `
     border-radius: 1rem;
     padding: 1.5rem;
     border: 1px solid #e5e7eb;
+    cursor: default;
   }
 
   .vendor-modal-section-title {
@@ -1433,6 +1454,7 @@ const vendorModalStyles = `
     padding: 1.5rem;
     border: 1px solid #e5e7eb;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    cursor: default;
   }
 
   .vendor-modal-contact-icon {

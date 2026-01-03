@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -21,6 +21,10 @@ import {
 
 // ======================= VENDOR MODAL COMPONENT =======================
 const VendorModal = ({ vendor, isOpen, onClose }) => {
+  const modalRef = useRef(null);
+  const contentRef = useRef(null);
+
+  // Close modal on ESC key
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape' && isOpen) {
@@ -28,67 +32,132 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
       }
     };
     
+    // Trap focus inside modal for accessibility
+    const handleTabKey = (e) => {
+      if (!isOpen) return;
+      
+      const focusableElements = modalRef.current?.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (!e.shiftKey && document.activeElement === lastElement) {
+        firstElement.focus();
+        e.preventDefault();
+      }
+
+      if (e.shiftKey && document.activeElement === firstElement) {
+        lastElement.focus();
+        e.preventDefault();
+      }
+    };
+
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
+      document.addEventListener('keydown', handleTabKey);
       document.body.style.overflow = 'hidden';
+      
+      // Focus the close button when modal opens
+      setTimeout(() => {
+        const closeButton = modalRef.current?.querySelector('button[aria-label="Close modal"]');
+        closeButton?.focus();
+      }, 100);
     }
     
     return () => {
       document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('keydown', handleTabKey);
       document.body.style.overflow = 'unset';
     };
   }, [isOpen, onClose]);
+
+  // Close modal when clicking outside - Only on backdrop
+  const handleBackdropClick = (e) => {
+    // Only close if clicking directly on the backdrop (not on any modal content)
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  // Prevent closing when clicking inside modal
+  const handleModalClick = (e) => {
+    e.stopPropagation();
+  };
 
   if (!isOpen || !vendor) return null;
 
   return (
     <>
+      {/* Enhanced Glassy Blur Background */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-        onClick={onClose}
+        className="fixed inset-0 z-50"
+        style={{
+          background: 'rgba(0, 0, 0, 0.4)',
+          backdropFilter: 'blur(8px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(8px) saturate(180%)',
+        }}
+        onClick={handleBackdropClick}
       />
 
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Modal Container */}
+      <div 
+        className="fixed inset-0 z-[51] flex items-center justify-center p-4"
+        onClick={handleBackdropClick}
+      >
         <motion.div
+          ref={modalRef}
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
           className="
             bg-white rounded-3xl shadow-2xl
-            w-full max-w-6xl max-h-[90vh]
+            w-full max-w-6xl max-h-[85vh]
             overflow-hidden
             relative
             border border-gray-200
           "
-          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-title"
+          onClick={handleModalClick}
         >
+          {/* Close Button - Only way to close via clicking */}
           <button
             onClick={onClose}
             className="
               absolute top-6 right-6
-              bg-white rounded-full p-3
+              bg-white/90 backdrop-blur-sm
+              rounded-full p-3
               shadow-lg hover:shadow-xl
-              hover:bg-gray-50
+              hover:bg-white
               transition-all duration-200
               z-10
               cursor-pointer
-              border border-gray-200
-              hover:border-gray-300
+              border border-gray-300/50
+              hover:border-gray-400
+              focus:outline-none
+              focus:ring-2 focus:ring-[#06EAFC] focus:ring-offset-2
             "
             aria-label="Close modal"
           >
             <IoClose className="text-2xl text-gray-700" />
           </button>
 
-          <div className="overflow-y-auto max-h-[90vh]">
-            <div className="relative">
-              <div className="h-56 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500" />
-              <div className="absolute -bottom-16 left-8 lg:left-12">
-                <div className="relative">
+          {/* Modal Content with proper scrolling */}
+          <div 
+            ref={contentRef}
+            className="overflow-y-auto max-h-[85vh]"
+            onClick={handleModalClick}
+          >
+            <div className="relative" onClick={handleModalClick}>
+              <div className="h-56 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500" onClick={handleModalClick} />
+              <div className="absolute -bottom-16 left-8 lg:left-12" onClick={handleModalClick}>
+                <div className="relative" onClick={handleModalClick}>
                   <img
                     src={vendor.avatar || vendor.image_url}
                     alt={vendor.fullName || vendor.name}
@@ -99,22 +168,23 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                       object-cover
                       bg-white
                     "
+                    onClick={handleModalClick}
                     onError={(e) => {
                       e.target.src = "https://via.placeholder.com/160/DDDDDD/808080?text=No+Image";
                     }}
                   />
-                  <div className="absolute -top-2 -right-2 bg-white rounded-full p-1.5 shadow-lg border border-green-200">
+                  <div className="absolute -top-2 -right-2 bg-white rounded-full p-1.5 shadow-lg border border-green-200" onClick={handleModalClick}>
                     <VscVerifiedFilled className="text-2xl text-green-500" />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="p-6 lg:p-10 pt-24 lg:pt-28">
-              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-10">
-                <div className="flex-1">
-                  <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-4">
-                    <h2 className="text-3xl lg:text-4xl font-bold text-gray-900">
+            <div className="p-6 lg:p-10 pt-24 lg:pt-28" onClick={handleModalClick}>
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-10" onClick={handleModalClick}>
+                <div className="flex-1" onClick={handleModalClick}>
+                  <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-4" onClick={handleModalClick}>
+                    <h2 id="modal-title" className="text-3xl lg:text-4xl font-bold text-gray-900">
                       {vendor.fullName || vendor.name}
                     </h2>
                     <div className="flex items-center gap-2">
@@ -154,45 +224,61 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   </div>
                 </div>
                 
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <button className="
-                    px-8 py-3
-                    bg-[#06EAFC] hover:bg-[#6cf5ff]
-                    text-black
-                    rounded-xl
-                    transition-all duration-200
-                    font-semibold
-                    cursor-pointer
-                    flex items-center justify-center gap-3
-                    hover:shadow-lg
-                    border border-[#06EAFC]
-                  ">
+                <div className="flex flex-col sm:flex-row gap-4" onClick={handleModalClick}>
+                  <button 
+                    className="
+                      px-8 py-3
+                      bg-[#06EAFC] hover:bg-[#6cf5ff]
+                      text-black
+                      rounded-xl
+                      transition-all duration-200
+                      font-semibold
+                      cursor-pointer
+                      flex items-center justify-center gap-3
+                      hover:shadow-lg
+                      border border-[#06EAFC]
+                      focus:outline-none
+                      focus:ring-2 focus:ring-[#06EAFC] focus:ring-offset-2
+                    "
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.location.href = `mailto:${vendor.email}`;
+                    }}
+                  >
                     <FaEnvelope />
                     Contact Vendor
                   </button>
-                  <button className="
-                    px-8 py-3
-                    bg-white text-gray-800
-                    rounded-xl
-                    hover:bg-gray-50
-                    transition-all duration-200
-                    font-semibold
-                    cursor-pointer
-                    flex items-center justify-center gap-3
-                    hover:shadow-lg
-                    border border-gray-300
-                  ">
+                  <button 
+                    className="
+                      px-8 py-3
+                      bg-white text-gray-800
+                      rounded-xl
+                      hover:bg-gray-50
+                      transition-all duration-200
+                      font-semibold
+                      cursor-pointer
+                      flex items-center justify-center gap-3
+                      hover:shadow-lg
+                      border border-gray-300
+                      focus:outline-none
+                      focus:ring-2 focus:ring-gray-300 focus:ring-offset-2
+                    "
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Add booking logic here
+                    }}
+                  >
                     <FaCalendarCheck />
                     Book Now
                   </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10" onClick={handleModalClick}>
                 <motion.div 
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.15 }}
-                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-200"
+                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-200 cursor-default"
                 >
                   <p className="text-sm text-gray-600 mb-2">Completed Projects</p>
                   <p className="text-3xl font-bold text-gray-900">
@@ -202,7 +288,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                 <motion.div 
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.15 }}
-                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-200"
+                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-200 cursor-default"
                 >
                   <p className="text-sm text-gray-600 mb-2">Repeat Clients</p>
                   <p className="text-3xl font-bold text-gray-900">
@@ -213,7 +299,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                 <motion.div 
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.15 }}
-                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-200"
+                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-200 cursor-default"
                 >
                   <p className="text-sm text-gray-600 mb-2">Satisfaction Rate</p>
                   <p className="text-3xl font-bold text-gray-900">
@@ -224,7 +310,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                 <motion.div 
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.15 }}
-                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-200"
+                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-200 cursor-default"
                 >
                   <p className="text-sm text-gray-600 mb-2">Response Time</p>
                   <p className="text-3xl font-bold text-gray-900">
@@ -234,9 +320,9 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                 </motion.div>
               </div>
 
-              <div className="grid lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-8">
-                  <div className="bg-white rounded-2xl p-6 border border-gray-200">
+              <div className="grid lg:grid-cols-3 gap-8" onClick={handleModalClick}>
+                <div className="lg:col-span-2 space-y-8" onClick={handleModalClick}>
+                  <div className="bg-white rounded-2xl p-6 border border-gray-200 cursor-default">
                     <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                       <span className="w-1 h-6 bg-[#06EAFC] rounded-full"></span>
                       About
@@ -266,7 +352,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                     )}
                   </div>
 
-                  <div className="bg-white rounded-2xl p-6 border border-gray-200">
+                  <div className="bg-white rounded-2xl p-6 border border-gray-200 cursor-default">
                     <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                       <span className="w-1 h-6 bg-[#06EAFC] rounded-full"></span>
                       Services Offered
@@ -295,7 +381,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-2xl p-6 border border-gray-200">
+                  <div className="bg-white rounded-2xl p-6 border border-gray-200 cursor-default">
                     <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                       <span className="w-1 h-6 bg-[#06EAFC] rounded-full"></span>
                       Specialties & Expertise
@@ -337,6 +423,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                                 font-medium
                                 border border-yellow-200
                                 text-sm
+                                cursor-default
                               "
                             >
                               {cert}
@@ -348,8 +435,8 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   </div>
                 </div>
 
-                <div className="space-y-8">
-                  <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                <div className="space-y-8" onClick={handleModalClick}>
+                  <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 border border-gray-200 shadow-sm cursor-default">
                     <h3 className="text-2xl font-bold text-gray-900 mb-6">
                       Contact & Details
                     </h3>
@@ -457,7 +544,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-2xl p-6 border border-gray-200">
+                  <div className="bg-white rounded-2xl p-6 border border-gray-200 cursor-default">
                     <h4 className="font-semibold text-gray-900 mb-4">Languages</h4>
                     <div className="space-y-2">
                       {(vendor.languages || ["English (Native)", "Yoruba (Fluent)"]).map((language, index) => (
@@ -914,7 +1001,6 @@ const VendorsPage = () => {
                 shadow-sm
               "
             />
-            {/* Filter icon removed as requested */}
           </div>
         </div>
 

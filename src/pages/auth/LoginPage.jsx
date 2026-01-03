@@ -4,9 +4,7 @@ import {
   FaEye,
   FaEyeSlash,
   FaTimes,
-  FaSync,
   FaCheck,
-  FaExclamationTriangle,
 } from "react-icons/fa";
 import Logo from "../../assets/Logos/logo5.png";
 import * as yup from "yup";
@@ -63,7 +61,7 @@ const LoginToastNotification = ({ message, onClose, type = "success" }) => {
             {type === "success" ? (
               <FaCheck size={16} />
             ) : (
-              <FaExclamationTriangle size={16} />
+              <FaTimes size={16} />
             )}
           </div>
           <div className="flex-1">
@@ -103,8 +101,6 @@ const LoginPage = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("success");
-  const [retryCount, setRetryCount] = useState(0);
-  const [showTroubleshoot, setShowTroubleshoot] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   const {
@@ -193,7 +189,6 @@ const LoginPage = () => {
       setSuccessMessage("");
       setIsLoading(true);
       setIsRedirecting(false);
-      setShowTroubleshoot(false);
 
       // Clear any existing auth data before attempting new login
       localStorage.removeItem("auth_token");
@@ -225,15 +220,15 @@ const LoginPage = () => {
 
       // Check if user is verified
       if (!userData.isVerified) {
+        // Show red toast for unverified user
+        setToastMessage("⚠️ Please verify your email before logging in.");
+        setToastType("error");
+        setShowToast(true);
+        
         setError(
-          `⚠️ Please verify your email before logging in. 
-            
-            Check your inbox (${userData.email}) for the verification link. 
-            
-            If you didn't receive it, check your spam folder or request a new verification link.`
+          `Please verify your email before logging in. Check your inbox (${userData.email}) for the verification link.`
         );
         setIsLoading(false);
-        setRetryCount(0);
         return;
       }
 
@@ -298,7 +293,6 @@ const LoginPage = () => {
       localStorage.removeItem("redirectAfterLogin");
 
       setIsLoading(false);
-      setRetryCount(0);
       setIsRedirecting(true);
 
       // Show success toast
@@ -326,59 +320,59 @@ const LoginPage = () => {
     } catch (error) {
       setIsLoading(false);
       setIsRedirecting(false);
-      setRetryCount((prev) => prev + 1);
 
-      let errorMessage = "Login failed. Please try again.";
-      let showTroubleshootBtn = false;
+      let errorMessage = "";
       let showErrorToast = false;
-      let toastErrorType = "error";
+      let isAuthError = false;
 
       if (error.response) {
-        if (error.response.status === 401) {
-          errorMessage =
-            "❌ Invalid email or password. Please check your credentials.";
+        if (error.response.status === 401 || error.response.status === 400) {
+          errorMessage = "Incorrect email or password. Please check and try again.";
           showErrorToast = true;
-          toastErrorType = "error";
+          isAuthError = true;
         } else if (error.response.status === 403) {
-          errorMessage =
-            "🔒 Please verify your email before logging in. Check your inbox for the verification link.";
-        } else if (error.response.status === 400) {
-          errorMessage = "⚠️ Invalid request. Please check your input.";
+          errorMessage = "Please verify your email before logging in.";
           showErrorToast = true;
-          toastErrorType = "error";
         } else if (error.response.status === 500) {
-          const serverError =
-            error.response.data?.message || "Internal server error";
-          errorMessage = `🚨 Server Error: ${serverError}
-          
-          This often happens after OTP verification. Try these steps:
-          
-          1. Wait 2-3 minutes for the server to update
-          2. Try logging in again
-          3. If it persists, try resetting your password`;
-          showTroubleshootBtn = true;
-        } else if (error.response.data?.message) {
-          errorMessage = `⚠️ ${error.response.data.message}`;
+          // For server errors, show generic auth error message
+          errorMessage = "Incorrect email or password. Please check and try again.";
           showErrorToast = true;
-          toastErrorType = "error";
+          isAuthError = true;
+        } else if (error.response.data?.message) {
+          // Override any other specific messages with generic auth error
+          errorMessage = "Incorrect email or password. Please check and try again.";
+          showErrorToast = true;
+          isAuthError = true;
         }
       } else if (error.request) {
-        errorMessage =
-          "🌐 Network error. Please check your internet connection.";
-      } else if (error.message === "Invalid login response format") {
-        errorMessage = "⚠️ Unexpected response from server. Please try again.";
+        // Network errors - show generic auth error
+        errorMessage = "Incorrect email or password. Please check and try again.";
         showErrorToast = true;
-        toastErrorType = "error";
+        isAuthError = true;
+      } else if (error.message === "Invalid login response format") {
+        errorMessage = "Incorrect email or password. Please check and try again.";
+        showErrorToast = true;
+        isAuthError = true;
+      } else {
+        // Any other error
+        errorMessage = "Incorrect email or password. Please check and try again.";
+        showErrorToast = true;
+        isAuthError = true;
       }
 
-      setError(errorMessage);
-      setShowTroubleshoot(showTroubleshootBtn);
-
-      // Show toast for specific errors
+      // Always show red toast for any login error with "Incorrect email or password"
       if (showErrorToast) {
-        setToastMessage(errorMessage);
-        setToastType(toastErrorType);
+        setToastMessage(`❌ Incorrect email or password. Please check and try again.`);
+        setToastType("error");
         setShowToast(true);
+      }
+
+      // Only show the form error for email verification issues
+      if (!isAuthError && errorMessage.includes("verify your email")) {
+        setError(errorMessage);
+      } else {
+        // Don't show any error in the form for auth errors
+        setError("");
       }
 
       // Clear auth data on login failure
@@ -386,16 +380,6 @@ const LoginPage = () => {
       localStorage.removeItem("user_email");
       localStorage.removeItem("userProfile");
       localStorage.removeItem("auth-storage");
-
-      // If multiple retries, suggest password reset
-      if (retryCount >= 2) {
-        setError(
-          (prev) =>
-            prev +
-            "\n\n🔧 Multiple login attempts failed. Consider resetting your password."
-        );
-        setShowTroubleshoot(true);
-      }
     }
   };
 
@@ -510,42 +494,6 @@ const LoginPage = () => {
     navigate(redirectUrl, { replace: true });
   };
 
-  // Retry login function
-  const handleRetryLogin = () => {
-    const email = document.getElementById("email")?.value;
-    const password = document.getElementById("password")?.value;
-
-    if (email && password) {
-      onSubmit({ email, password });
-    } else {
-      setError("Please enter both email and password first.");
-    }
-  };
-
-  // Clear cache and retry
-  const handleClearCacheAndRetry = () => {
-    localStorage.clear();
-    sessionStorage.clear();
-
-    document.cookie.split(";").forEach((c) => {
-      document.cookie = c
-        .replace(/^ +/, "")
-        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-    });
-
-    setError("Cache cleared. Please try logging in again.");
-    setRetryCount(0);
-    setShowTroubleshoot(false);
-
-    setValue("password", "");
-    document.getElementById("password")?.focus();
-  };
-
-  // Show troubleshooting options
-  const toggleTroubleshoot = () => {
-    setShowTroubleshoot(!showTroubleshoot);
-  };
-
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
       {/* Toast Notification */}
@@ -594,87 +542,20 @@ const LoginPage = () => {
           </div>
         )}
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm whitespace-pre-line">
+        {/* Error Message - Only show for email verification issues */}
+        {error && error.includes("verify your email") && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
             {error}
-
-            {/* Manual redirect button */}
-            {!error.includes("Invalid") && !error.includes("verify") && (
-              <div className="mt-3">
-                <button
-                  onClick={handleManualRedirect}
-                  className="w-full py-2 px-4 bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 transition-colors text-sm font-medium"
-                >
-                  Click here if not redirected automatically
-                </button>
-              </div>
-            )}
-
-            {/* Retry button */}
-            {error.includes("Server Error") && (
-              <div className="mt-3 space-y-2">
-                <button
-                  onClick={handleRetryLogin}
-                  disabled={isLoading}
-                  className="w-full py-2 px-4 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                >
-                  <FaSync className={isLoading ? "animate-spin" : ""} />
-                  {isLoading ? "Retrying..." : "Retry Login"}
-                </button>
-
-                {/* Troubleshoot button */}
-                <button
-                  onClick={toggleTroubleshoot}
-                  className="w-full py-2 px-4 text-sm text-gray-600 hover:text-gray-800"
-                >
-                  {showTroubleshoot ? "Hide Options" : "Show More Options"}
-                </button>
-              </div>
-            )}
-
-            {/* Troubleshoot options */}
-            {showTroubleshoot && (
-              <div className="mt-3 space-y-2 border-t border-red-100 pt-3">
-                <p className="text-xs font-medium text-gray-700 mb-2">
-                  Troubleshooting Options:
-                </p>
-
-                <button
-                  onClick={handleResetPassword}
-                  className="w-full py-2 px-4 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-lg hover:bg-yellow-100 transition-colors text-sm font-medium"
-                >
-                  Reset Password
-                </button>
-
-                <button
-                  onClick={handleResendVerification}
-                  className="w-full py-2 px-4 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors text-sm font-medium"
-                >
-                  Resend Verification Email
-                </button>
-
-                <button
-                  onClick={handleClearCacheAndRetry}
-                  className="w-full py-2 px-4 bg-gray-50 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium"
-                >
-                  Clear Cache & Retry
-                </button>
-              </div>
-            )}
-
-            {/* Add resend verification button if user is not verified */}
-            {error.includes("verify your email") &&
-              !error.includes("Server Error") && (
-                <div className="mt-3">
-                  <button
-                    onClick={handleResendVerification}
-                    className="text-blue-600 hover:text-blue-800 underline text-sm font-medium"
-                  >
-                    Resend verification email
-                  </button>
-                </div>
-              )}
+            
+            {/* Resend verification button ONLY for unverified users */}
+            <div className="mt-3">
+              <button
+                onClick={handleResendVerification}
+                className="text-blue-600 hover:text-blue-800 underline text-sm font-medium"
+              >
+                Resend verification email
+              </button>
+            </div>
           </div>
         )}
 
@@ -758,7 +639,7 @@ const LoginPage = () => {
         </form>
 
         <div className="text-center text-sm text-gray-600 pt-4">
-          <div className="mb-3 space-y-2">
+          <div className="mb-3">
             <p>
               Forgot your password?{" "}
               <button
@@ -766,26 +647,6 @@ const LoginPage = () => {
                 className="text-[#6cff] hover:text-[#06EAFC] font-medium"
               >
                 Reset here
-              </button>
-            </p>
-
-            {/* Help text for unverified users */}
-            <p className="text-xs text-gray-500">
-              Need help with email verification?{" "}
-              <button
-                onClick={() => {
-                  const email = document.getElementById("email")?.value;
-                  if (email) {
-                    setError(
-                      `Check ${email} for verification link. Didn't receive it? Check spam folder.`
-                    );
-                  } else {
-                    setError("Please enter your email above and try again.");
-                  }
-                }}
-                className="text-gray-600 hover:text-gray-800 underline"
-              >
-                Click here
               </button>
             </p>
           </div>
@@ -819,7 +680,7 @@ const LoginPage = () => {
                 className="w-12 h-12 rounded-lg object-cover"
                 onError={(e) => {
                   e.currentTarget.src =
-                    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80";
+                    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w-600&q=80";
                   e.currentTarget.onerror = null;
                 }}
               />
