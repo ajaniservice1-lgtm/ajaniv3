@@ -1074,7 +1074,7 @@ const DiscoverIbadan = () => {
                 through AI & Local Stories
               </h1>
               <p className="text-[13.5px] sm:text-lg md:text-xl lg:text-[16px] md:mt-3 text-gray-600 font-medium max-w-xl mx-auto px-2">
-                Your all-in-one local guide for hotels, food, events, vendors,
+                Your all-in-one local guide for hotels, food, events, vendors, sddsd
                 and market prices.
               </p>
             </div>
