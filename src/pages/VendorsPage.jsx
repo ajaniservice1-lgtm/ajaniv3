@@ -57,6 +57,8 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
       document.addEventListener('keydown', handleEscape);
       document.addEventListener('keydown', handleTabKey);
       document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
       
       // Focus the close button when modal opens
       setTimeout(() => {
@@ -69,6 +71,8 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
       document.removeEventListener('keydown', handleEscape);
       document.removeEventListener('keydown', handleTabKey);
       document.body.style.overflow = 'unset';
+      document.body.style.position = 'static';
+      document.body.style.width = 'auto';
     };
   }, [isOpen, onClose]);
 
@@ -94,18 +98,18 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50"
+        className="fixed inset-0 z-[9999]"
         style={{
-          background: 'rgba(0, 0, 0, 0.4)',
-          backdropFilter: 'blur(8px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(8px) saturate(180%)',
+          background: 'rgba(0, 0, 0, 0.5)',
+          backdropFilter: 'blur(12px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(12px) saturate(180%)',
         }}
         onClick={handleBackdropClick}
       />
 
       {/* Modal Container */}
       <div 
-        className="fixed inset-0 z-[51] flex items-center justify-center p-4"
+        className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
         onClick={handleBackdropClick}
       >
         <motion.div
@@ -960,7 +964,8 @@ const VendorsPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 font-manrope flex flex-col">
-      <Header />
+      {/* Conditional rendering: Hide header when modal is open */}
+      {!isModalOpen && <Header />}
       
       <main className="flex-grow max-w-7xl mx-auto w-full px-3 sm:px-4 lg:px-8 py-4 lg:py-8">
         <div className="mb-6 lg:mb-8 mt-12">
@@ -1225,7 +1230,8 @@ const VendorsPage = () => {
         )}
       </main>
 
-      <Footer />
+      {/* Conditional rendering: Hide footer when modal is open */}
+      {!isModalOpen && <Footer />}
 
       <VendorModal
         vendor={selectedVendor}
