@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar, faSearch } from "@fortawesome/free-solid-svg-icons";
@@ -21,6 +21,9 @@ import {
 
 // ---------------- Vendor Modal Component ----------------
 const VendorModal = ({ vendor, isOpen, onClose }) => {
+  const modalRef = useRef(null);
+
+  // Close modal on ESC key
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape' && isOpen) {
@@ -28,63 +31,106 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
       }
     };
     
+    // Trap focus inside modal for accessibility
+    const handleTabKey = (e) => {
+      if (!isOpen) return;
+      
+      const focusableElements = modalRef.current?.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (!e.shiftKey && document.activeElement === lastElement) {
+        firstElement.focus();
+        e.preventDefault();
+      }
+
+      if (e.shiftKey && document.activeElement === firstElement) {
+        lastElement.focus();
+        e.preventDefault();
+      }
+    };
+
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
+      document.addEventListener('keydown', handleTabKey);
       document.body.style.overflow = 'hidden';
+      document.body.style.pointerEvents = 'none';
+      
+      // Focus the close button when modal opens
+      setTimeout(() => {
+        const closeButton = modalRef.current?.querySelector('button[aria-label="Close modal"]');
+        closeButton?.focus();
+      }, 100);
     }
     
     return () => {
       document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('keydown', handleTabKey);
       document.body.style.overflow = 'unset';
+      document.body.style.pointerEvents = 'auto';
     };
+  }, [isOpen, onClose]);
+
+  // Close modal when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (modalRef.current && !modalRef.current.contains(e.target) && isOpen) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return (
     <>
+      {/* Enhanced Glassy Blur Background */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-        onClick={onClose}
+        className="vendor-modal-backdrop"
+        style={{
+          background: 'rgba(0, 0, 0, 0.4)',
+          backdropFilter: 'blur(8px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(8px) saturate(180%)',
+        }}
       />
 
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Modal Container */}
+      <div className="vendor-modal-container">
         <motion.div
+          ref={modalRef}
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
-          className="
-            bg-white rounded-3xl shadow-2xl
-            w-full max-w-6xl max-h-[90vh]
-            overflow-hidden
-            relative
-            border border-gray-200
-          "
-          onClick={(e) => e.stopPropagation()}
+          transition={{ 
+            duration: 0.25, 
+            ease: [0.16, 1, 0.3, 1],
+            scale: { duration: 0.25 },
+            y: { duration: 0.25 }
+          }}
+          className="vendor-modal-content"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-title"
         >
+          {/* Close Button */}
           <button
             onClick={onClose}
-            className="
-              absolute top-6 right-6
-              bg-white rounded-full p-3
-              shadow-lg hover:shadow-xl
-              hover:bg-gray-50
-              transition-all duration-150
-              z-10
-              cursor-pointer
-              border border-gray-200
-              hover:border-gray-300
-            "
+            className="vendor-modal-close-btn"
             aria-label="Close modal"
           >
             <IoClose className="text-2xl text-gray-700" />
           </button>
 
-          <div className="overflow-y-auto max-h-[90vh]">
+          {/* Modal Content */}
+          <div className="vendor-modal-scroll">
             <div className="relative">
               <div className="h-56 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500" />
               <div className="absolute -bottom-16 left-8 lg:left-12">
@@ -92,13 +138,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   <img
                     src={vendor.image_url}
                     alt={vendor.fullName}
-                    className="
-                      w-32 h-32 lg:w-40 lg:h-40 rounded-full
-                      border-4 border-white
-                      shadow-2xl
-                      object-cover
-                      bg-white
-                    "
+                    className="vendor-modal-avatar"
                     onError={(e) => {
                       e.target.src = "https://via.placeholder.com/160/DDDDDD/808080?text=No+Image";
                     }}
@@ -114,7 +154,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
               <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-10">
                 <div className="flex-1">
                   <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-4">
-                    <h2 className="text-3xl lg:text-4xl font-bold text-gray-900">
+                    <h2 id="modal-title" className="text-3xl lg:text-4xl font-bold text-gray-900">
                       {vendor.fullName}
                     </h2>
                     <div className="flex items-center gap-2">
@@ -155,33 +195,11 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                 </div>
                 
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <button className="
-                    px-8 py-3
-                    bg-[#06EAFC] hover:bg-[#6cf5ff]
-                    text-black
-                    rounded-xl
-                    transition-all duration-150
-                    font-semibold
-                    cursor-pointer
-                    flex items-center justify-center gap-3
-                    hover:shadow-lg
-                    border border-[#06EAFC]
-                  ">
+                  <button className="vendor-modal-action-btn primary">
                     <FaEnvelope />
                     Contact Vendor
                   </button>
-                  <button className="
-                    px-8 py-3
-                    bg-white text-gray-800
-                    rounded-xl
-                    hover:bg-gray-50
-                    transition-all duration-150
-                    font-semibold
-                    cursor-pointer
-                    flex items-center justify-center gap-3
-                    hover:shadow-lg
-                    border border-gray-300
-                  ">
+                  <button className="vendor-modal-action-btn secondary">
                     <FaCalendarCheck />
                     Book Now
                   </button>
@@ -192,7 +210,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                 <motion.div 
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.1 }}
-                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150"
+                  className="vendor-modal-stat-card"
                 >
                   <p className="text-sm text-gray-600 mb-2">Completed Projects</p>
                   <p className="text-3xl font-bold text-gray-900">
@@ -202,7 +220,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                 <motion.div 
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.1 }}
-                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150"
+                  className="vendor-modal-stat-card"
                 >
                   <p className="text-sm text-gray-600 mb-2">Repeat Clients</p>
                   <p className="text-3xl font-bold text-gray-900">
@@ -213,7 +231,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                 <motion.div 
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.1 }}
-                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150"
+                  className="vendor-modal-stat-card"
                 >
                   <p className="text-sm text-gray-600 mb-2">Satisfaction Rate</p>
                   <p className="text-3xl font-bold text-gray-900">
@@ -224,7 +242,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                 <motion.div 
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.1 }}
-                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150"
+                  className="vendor-modal-stat-card"
                 >
                   <p className="text-sm text-gray-600 mb-2">Response Time</p>
                   <p className="text-3xl font-bold text-gray-900">
@@ -236,9 +254,9 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
 
               <div className="grid lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8">
-                  <div className="bg-white rounded-2xl p-6 border border-gray-200">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <span className="w-1 h-6 bg-[#06EAFC] rounded-full"></span>
+                  <div className="vendor-modal-section">
+                    <h3 className="vendor-modal-section-title">
+                      <span className="vendor-modal-section-indicator"></span>
                       About
                     </h3>
                     <p className="text-gray-700 leading-relaxed text-lg">
@@ -266,9 +284,9 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                     )}
                   </div>
 
-                  <div className="bg-white rounded-2xl p-6 border border-gray-200">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                      <span className="w-1 h-6 bg-[#06EAFC] rounded-full"></span>
+                  <div className="vendor-modal-section">
+                    <h3 className="vendor-modal-section-title">
+                      <span className="vendor-modal-section-indicator"></span>
                       Services Offered
                     </h3>
                     <div className="flex flex-wrap gap-3">
@@ -277,17 +295,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                           key={index}
                           whileHover={{ scale: 1.05 }}
                           transition={{ duration: 0.1 }}
-                          className="
-                            px-5 py-3
-                            bg-gradient-to-r from-[#06EAFC]/10 to-blue-50
-                            text-gray-700
-                            rounded-xl
-                            font-semibold
-                            border border-[#06EAFC]/30
-                            hover:border-[#06EAFC]
-                            transition-all duration-150
-                            cursor-default
-                          "
+                          className="vendor-modal-service-tag"
                         >
                           {service}
                         </motion.span>
@@ -295,9 +303,9 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-2xl p-6 border border-gray-200">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                      <span className="w-1 h-6 bg-[#06EAFC] rounded-full"></span>
+                  <div className="vendor-modal-section">
+                    <h3 className="vendor-modal-section-title">
+                      <span className="vendor-modal-section-indicator"></span>
                       Specialties & Expertise
                     </h3>
                     <div className="flex flex-wrap gap-3">
@@ -306,17 +314,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                           key={index}
                           whileHover={{ scale: 1.05 }}
                           transition={{ duration: 0.1 }}
-                          className="
-                            px-5 py-3
-                            bg-gradient-to-r from-green-50 to-teal-50
-                            text-gray-700
-                            rounded-xl
-                            font-semibold
-                            border border-green-200
-                            hover:border-green-300
-                            transition-all duration-150
-                            cursor-default
-                          "
+                          className="vendor-modal-specialty-tag"
                         >
                           {specialty}
                         </motion.span>
@@ -330,14 +328,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                           {vendor.certifications.map((cert, index) => (
                             <span
                               key={index}
-                              className="
-                                px-4 py-2
-                                bg-yellow-50 text-yellow-800
-                                rounded-lg
-                                font-medium
-                                border border-yellow-200
-                                text-sm
-                              "
+                              className="vendor-modal-certification-tag"
                             >
                               {cert}
                             </span>
@@ -349,14 +340,14 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                 </div>
 
                 <div className="space-y-8">
-                  <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                  <div className="vendor-modal-contact-card">
                     <h3 className="text-2xl font-bold text-gray-900 mb-6">
                       Contact & Details
                     </h3>
 
                     <div className="space-y-6">
                       <div className="flex items-start gap-4">
-                        <div className="p-2 bg-[#06EAFC]/20 rounded-lg">
+                        <div className="vendor-modal-contact-icon">
                           <FaMapMarkerAlt className="text-[#06EAFC] text-xl" />
                         </div>
                         <div>
@@ -371,7 +362,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                       </div>
 
                       <div className="flex items-start gap-4">
-                        <div className="p-2 bg-[#06EAFC]/20 rounded-lg">
+                        <div className="vendor-modal-contact-icon">
                           <span className="font-bold text-[#06EAFC]">BN</span>
                         </div>
                         <div>
@@ -398,7 +389,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                       </div>
 
                       <div className="flex items-start gap-4">
-                        <div className="p-2 bg-[#06EAFC]/20 rounded-lg">
+                        <div className="vendor-modal-contact-icon">
                           <FaClock className="text-[#06EAFC] text-xl" />
                         </div>
                         <div>
@@ -457,12 +448,12 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-2xl p-6 border border-gray-200">
+                  <div className="vendor-modal-section">
                     <h4 className="font-semibold text-gray-900 mb-4">Languages</h4>
                     <div className="space-y-2">
                       {(vendor.languages || ["English (Native)", "Yoruba (Fluent)"]).map((language, index) => (
                         <div key={index} className="flex items-center gap-3">
-                          <div className="w-2 h-2 bg-[#06EAFC] rounded-full"></div>
+                          <div className="vendor-modal-language-indicator"></div>
                           <span className="text-gray-700">{language}</span>
                         </div>
                       ))}
@@ -549,9 +540,7 @@ const FilterBar = ({
 }) => {
   return (
     <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-8">
-    
-
-      
+      {/* Filter controls can be added here */}
     </div>
   );
 };
@@ -616,71 +605,54 @@ const VendorCard = ({ venue, index }) => {
             ease: "easeInOut" 
           }
         }}
-        className="
-          bg-white
-          border border-gray-200 
-          shadow-sm
-          relative
-          overflow-hidden
-          cursor-pointer
-          rounded-2xl
-          group
-          w-full
-          max-w-sm
-          mx-auto
-          flex flex-col
-          min-h-[280px]
-          hover:shadow-xl
-          transition-all duration-150
-          hover:border-gray-300
-        "
+        className="vendor-card"
         onClick={handleViewVendor}
       >
-        <div className="p-6 flex-1 flex flex-col">
-          <div className="flex items-start gap-4 mb-5">
-            <div className="relative flex-shrink-0">
-              <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200">
+        <div className="vendor-card-content">
+          <div className="vendor-card-header">
+            <div className="vendor-avatar-container">
+              <div className="vendor-avatar">
                 <img
                   src={venue.image_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face"}
                   alt={venue.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-150"
+                  className="vendor-avatar-image"
                   onError={(e) => {
                     e.target.src = "https://via.placeholder.com/80/DDDDDD/808080?text=No+Image";
                   }}
                 />
               </div>
               
-              <div className="absolute -top-1 -right-1 bg-white rounded-full p-1 shadow-sm border border-green-200">
+              <div className="vendor-verified-badge">
                 <VscVerifiedFilled className="text-green-500 text-sm" />
               </div>
             </div>
 
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="text-xl font-bold text-gray-900 truncate group-hover:text-gray-800 transition-colors duration-150">
+            <div className="vendor-info">
+              <div className="vendor-name-rating">
+                <h3 className="vendor-name">
                   {venue.name}
                 </h3>
                 
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="vendor-rating">
                   <FontAwesomeIcon
                     icon={faStar}
                     className="text-black text-sm"
                   />
-                  <span className="font-bold text-gray-900 text-sm">
+                  <span className="rating-value">
                     {venue.rating || "4.9"}
                   </span>
                 </div>
               </div>
 
-              <div className="mb-2">
-                <span className="text-gray-600 font-medium text-sm">
+              <div className="vendor-category">
+                <span className="category-text">
                   {venue.service_type || venue.category || "Service Provider"}
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
-                <FaMapMarkerAlt className="text-gray-400 text-sm flex-shrink-0" />
-                <span className="text-gray-600 text-sm font-medium truncate">
+              <div className="vendor-location">
+                <FaMapMarkerAlt className="location-icon" />
+                <span className="location-text">
                   {venue.district || venue.location || "Ibadan"}
                 </span>
               </div>
@@ -688,8 +660,8 @@ const VendorCard = ({ venue, index }) => {
             </div>
           </div>
           
-          <div className="">
-            <p className="text-gray-700 leading-relaxed text-sm line-clamp-3">
+          <div className="vendor-description">
+            <p className="description-text">
               {venue.description || 
                 `Professional ${venue.service_type?.toLowerCase() || "service"} with ${
                   venue.years_experience || "5+"
@@ -697,26 +669,12 @@ const VendorCard = ({ venue, index }) => {
             </p>
           </div>
           
-          <div className="mt-auto pt-4">
+          <div className="vendor-actions">
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               transition={{ duration: 0.1 }}
-              className="
-                w-full 
-                py-3
-                bg-white hover:bg-gray-50
-                text-black 
-                font-bold 
-                text-sm
-                rounded-lg
-                transition-all duration-100
-                border-2 border-gray-300
-                cursor-pointer
-                flex items-center justify-center gap-2
-                hover:shadow-md
-                hover:border-gray-400
-              "
+              className="vendor-view-btn"
             >
               <FaUser className="text-black text-sm" />
               View Details
@@ -736,49 +694,39 @@ const VendorCard = ({ venue, index }) => {
 
 // ---------------- Skeleton Loading Component ----------------
 const SkeletonCard = () => (
-  <div
-    className="
-    bg-white border border-gray-200 relative overflow-hidden animate-pulse
-    rounded-2xl
-    w-full max-w-sm mx-auto
-    flex flex-col
-    min-h-[280px]
-  "
-  >
-    <div className="p-6 flex-1 flex flex-col">
-      <div className="flex items-start gap-4 mb-5 flex-shrink-0">
-        <div className="relative flex-shrink-0">
-          <div className="w-20 h-20 rounded-full bg-gray-300"></div>
+  <div className="skeleton-card">
+    <div className="skeleton-content">
+      <div className="skeleton-header">
+        <div className="skeleton-avatar-container">
+          <div className="skeleton-avatar"></div>
         </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1">
-            <div className="h-6 bg-gray-300 rounded w-24"></div>
-            <div className="flex items-center gap-1 shrink-0">
-              <div className="w-4 h-4 bg-gray-300 rounded"></div>
-              <div className="h-4 bg-gray-300 rounded w-6"></div>
+        <div className="skeleton-info">
+          <div className="skeleton-name-rating">
+            <div className="skeleton-name"></div>
+            <div className="skeleton-rating">
+              <div className="skeleton-star"></div>
+              <div className="skeleton-rating-value"></div>
             </div>
           </div>
 
-          <div className="mb-2">
-            <div className="h-4 bg-gray-200 rounded w-16"></div>
+          <div className="skeleton-category"></div>
+
+          <div className="skeleton-location">
+            <div className="skeleton-location-icon"></div>
+            <div className="skeleton-location-text"></div>
           </div>
 
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-4 h-4 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-20"></div>
-          </div>
-
-          <div className="mt-2 space-y-2">
-            <div className="h-3 bg-gray-200 rounded w-full"></div>
-            <div className="h-3 bg-gray-200 rounded w-5/6"></div>
-            <div className="h-3 bg-gray-200 rounded w-4/6"></div>
+          <div className="skeleton-description">
+            <div className="skeleton-line"></div>
+            <div className="skeleton-line"></div>
+            <div className="skeleton-line"></div>
           </div>
         </div>
       </div>
       
-      <div className="mt-auto pt-4">
-        <div className="w-full py-3 bg-gray-300 rounded-lg"></div>
+      <div className="skeleton-actions">
+        <div className="skeleton-button"></div>
       </div>
     </div>
   </div>
@@ -969,123 +917,882 @@ const AiTopPicks = () => {
     navigate('/vendors');
   };
 
-  const districts = [
-    ...new Set(displayVenues.map((v) => v.location).filter(Boolean)),
-  ];
-
   if (loading) {
     return (
-      <section className="bg-white font-manrope" id="toppicks">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 lg:gap-8 mb-8">
-            <div className="flex-1">
-              <h1 className="text-xl lg:text-2xl font-bold text-gray-900 mb-1">
+      <section className="vendor-section" id="toppicks">
+        <div className="container">
+          <div className="section-header">
+            <div className="header-content">
+              <h1 className="section-title">
                 Verified Vendors
               </h1>
-              <p className="text-gray-600 text-lg lg:text-[16.5px] max-w-3xl leading-relaxed">
+              <p className="section-description">
                 Trusted businesses reviewed and approved for quality and reliability.
               </p>
             </div>
             
-            <div className="bg-[#06EAFC] px-6 py-3 rounded-xl w-32 h-12 animate-pulse"></div>
+            <div className="skeleton-button-large"></div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 mb-12">
+          <div className="vendors-grid">
             {[...Array(visibleCount)].map((_, index) => (
               <SkeletonCard key={index} />
             ))}
           </div>
         </div>
+        
+        {/* Add CSS styles */}
+        <style jsx>{`
+          ${vendorModalStyles}
+        `}</style>
       </section>
     );
   }
 
   if (error) {
     return (
-      <section className="py-16 text-center text-red-500">{error}</section>
+      <section className="error-section">
+        <div className="error-content">{error}</div>
+      </section>
     );
   }
 
   return (
-    <section className="bg-white py-8 lg:py-12 font-manrope" id="toppicks">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div ref={headerRef} className="mb-2 lg:mb-2">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={
-              headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
-            }
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 lg:gap-8"
-          >
-            <div className="flex-1">
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={
-                  headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
-                }
-                transition={{ delay: 0.1, duration: 0.3 }}
-                className="text-xl lg:text-2xl text-start  font-bold text-center md:text-start text-gray-900 mb-1.5 cursor-default"
-              >
-                Verified Vendors
-              </motion.h1>
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={
-                  headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
-                }
-                transition={{ delay: 0.15, duration: 0.3 }}
-                className="text-gray-600 text-[13.5px]  md:text-start lg:text-[16.5px] max-w-3xl mb-4 leading-relaxed cursor-default"
-              >
-                Trusted businesses reviewed and approved for quality and reliability.
-              </motion.p>
-            </div>
-            
-            <motion.button
+    <>
+      <section className="vendor-section" id="toppicks">
+        <div className="container">
+          <div ref={headerRef} className="mb-2 lg:mb-2">
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={
                 headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
               }
-              transition={{ delay: 0.2, duration: 0.3 }}
-              onClick={handleViewAll}
-              className="
-                px-6 py-3 
-                flex md:items-center md:justify-center 
-                rounded-xl 
-                cursor-pointer 
-                transition-all duration-150 
-                text-black
-                w-full lg:w-auto
-                text-center
-                
-              "
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="section-header"
             >
-              View All Vendors →
-            </motion.button>
-          </motion.div>
-        </div>
-
-        <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-3'} gap-4 lg:gap-8 mb-12`}>
-          {visibleVenues.map((venue, index) => (
-            <VendorCard key={venue.id} venue={venue} index={index} />
-          ))}
-        </div>
-
-        {filteredVenues.length === 0 && !loading && (
-          <div className="text-center py-16 cursor-default">
-            <div className="bg-gray-50 rounded-2xl p-12 max-w-md mx-auto">
-              <h3 className="text-2xl text-gray-800 mb-4 font-bold">
-                No vendors found
-              </h3>
-              <p className="text-gray-600 text-lg">
-                Try adjusting your filters
-              </p>
-            </div>
+              <div className="header-content">
+                <motion.h1
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={
+                    headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
+                  }
+                  transition={{ delay: 0.1, duration: 0.3 }}
+                  className="section-title"
+                >
+                  Verified Vendors
+                </motion.h1>
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={
+                    headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
+                  }
+                  transition={{ delay: 0.15, duration: 0.3 }}
+                  className="section-description"
+                >
+                  Trusted businesses reviewed and approved for quality and reliability.
+                </motion.p>
+              </div>
+              
+              <motion.button
+                initial={{ opacity: 0, y: 20 }}
+                animate={
+                  headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
+                }
+                transition={{ delay: 0.2, duration: 0.3 }}
+                onClick={handleViewAll}
+                className="view-all-btn"
+              >
+                View All Vendors →
+              </motion.button>
+            </motion.div>
           </div>
-        )}
-      </div>
-    </section>
+
+          <div className={`vendors-grid ${isMobile ? 'mobile' : 'desktop'}`}>
+            {visibleVenues.map((venue, index) => (
+              <VendorCard key={venue.id} venue={venue} index={index} />
+            ))}
+          </div>
+
+          {filteredVenues.length === 0 && !loading && (
+            <div className="empty-state">
+              <div className="empty-state-content">
+                <h3 className="empty-state-title">
+                  No vendors found
+                </h3>
+                <p className="empty-state-text">
+                  Try adjusting your filters
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+      
+      {/* Add CSS styles */}
+      <style jsx>{`
+        ${vendorModalStyles}
+        
+        .vendor-section {
+          background-color: white;
+          padding: 2rem 1rem;
+        }
+        
+        @media (min-width: 1024px) {
+          .vendor-section {
+            padding: 3rem 2rem;
+          }
+        }
+        
+        .container {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 0 1rem;
+        }
+        
+        .section-header {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          margin-bottom: 2rem;
+        }
+        
+        @media (min-width: 1024px) {
+          .section-header {
+            flex-direction: row;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 2rem;
+          }
+        }
+        
+        .header-content {
+          flex: 1;
+        }
+        
+        .section-title {
+          font-size: 1.5rem;
+          font-weight: bold;
+          color: #1f2937;
+          margin-bottom: 0.5rem;
+          text-align: center;
+        }
+        
+        @media (min-width: 768px) {
+          .section-title {
+            text-align: left;
+          }
+        }
+        
+        @media (min-width: 1024px) {
+          .section-title {
+            font-size: 1.75rem;
+          }
+        }
+        
+        .section-description {
+          color: #6b7280;
+          font-size: 0.875rem;
+          max-width: 48rem;
+          margin-bottom: 1rem;
+          line-height: 1.625;
+          text-align: center;
+        }
+        
+        @media (min-width: 768px) {
+          .section-description {
+            text-align: left;
+            font-size: 1rem;
+          }
+        }
+        
+        .view-all-btn {
+          padding: 0.75rem 1.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 0.75rem;
+          cursor: pointer;
+          transition: all 0.15s;
+          color: black;
+          width: 100%;
+          text-align: center;
+          font-weight: 500;
+        }
+        
+        @media (min-width: 1024px) {
+          .view-all-btn {
+            width: auto;
+          }
+        }
+        
+        .view-all-btn:hover {
+          transform: translateY(-2px);
+        }
+        
+        .vendors-grid {
+          display: grid;
+          gap: 1rem;
+          margin-bottom: 3rem;
+        }
+        
+        .vendors-grid.mobile {
+          grid-template-columns: 1fr;
+        }
+        
+        .vendors-grid.desktop {
+          grid-template-columns: 1fr;
+        }
+        
+        @media (min-width: 768px) {
+          .vendors-grid.desktop {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        
+        @media (min-width: 1024px) {
+          .vendors-grid.desktop {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+          }
+        }
+        
+        .empty-state {
+          text-align: center;
+          padding: 4rem 0;
+          cursor: default;
+        }
+        
+        .empty-state-content {
+          background-color: #f9fafb;
+          border-radius: 1rem;
+          padding: 3rem;
+          max-width: 28rem;
+          margin: 0 auto;
+        }
+        
+        .empty-state-title {
+          font-size: 1.5rem;
+          color: #1f2937;
+          margin-bottom: 1rem;
+          font-weight: bold;
+        }
+        
+        .empty-state-text {
+          color: #6b7280;
+          font-size: 1.125rem;
+        }
+        
+        .skeleton-button-large {
+          background-color: #06EAFC;
+          padding: 0.75rem 1.5rem;
+          border-radius: 0.75rem;
+          width: 8rem;
+          height: 3rem;
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: .5;
+          }
+        }
+      `}</style>
+    </>
   );
 };
+
+// CSS Styles
+const vendorModalStyles = `
+  /* Modal Backdrop */
+  .vendor-modal-backdrop {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 9998;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px) saturate(180%);
+    -webkit-backdrop-filter: blur(8px) saturate(180%);
+  }
+
+  /* Modal Container */
+  .vendor-modal-container {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  /* Modal Content */
+  .vendor-modal-content {
+    position: relative;
+    background-color: white;
+    border-radius: 1.5rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    width: 100%;
+    max-width: 72rem;
+    max-height: 90vh;
+    overflow: hidden;
+    border: 1px solid rgba(229, 231, 235, 0.5);
+    isolation: isolate;
+  }
+
+  /* Close Button */
+  .vendor-modal-close-btn {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background-color: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(4px);
+    border-radius: 9999px;
+    padding: 0.75rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s;
+    z-index: 10;
+    cursor: pointer;
+    border: 1px solid rgba(209, 213, 219, 0.5);
+  }
+
+  .vendor-modal-close-btn:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    background-color: white;
+    border-color: rgba(156, 163, 175, 0.4);
+  }
+
+  .vendor-modal-close-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #06EAFC, 0 0 0 4px rgba(6, 234, 252, 0.5);
+  }
+
+  /* Scrollable Content */
+  .vendor-modal-scroll {
+    overflow-y: auto;
+    max-height: 90vh;
+  }
+
+  /* Avatar */
+  .vendor-modal-avatar {
+    width: 8rem;
+    height: 8rem;
+    border-radius: 9999px;
+    border-width: 4px;
+    border-color: white;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    object-fit: cover;
+    background-color: white;
+  }
+
+  @media (min-width: 1024px) {
+    .vendor-modal-avatar {
+      width: 10rem;
+      height: 10rem;
+    }
+  }
+
+  /* Action Buttons */
+  .vendor-modal-action-btn {
+    padding: 0.75rem 2rem;
+    border-radius: 0.75rem;
+    transition: all 0.15s;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    border: 1px solid;
+  }
+
+  .vendor-modal-action-btn:focus {
+    outline: none;
+  }
+
+  .vendor-modal-action-btn.primary {
+    background-color: #06EAFC;
+    color: black;
+    border-color: #06EAFC;
+  }
+
+  .vendor-modal-action-btn.primary:hover {
+    background-color: #6cf5ff;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  }
+
+  .vendor-modal-action-btn.primary:focus {
+    box-shadow: 0 0 0 2px #06EAFC, 0 0 0 4px rgba(6, 234, 252, 0.5);
+  }
+
+  .vendor-modal-action-btn.secondary {
+    background-color: white;
+    color: #1f2937;
+    border-color: #d1d5db;
+  }
+
+  .vendor-modal-action-btn.secondary:hover {
+    background-color: #f9fafb;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  }
+
+  .vendor-modal-action-btn.secondary:focus {
+    box-shadow: 0 0 0 2px #d1d5db, 0 0 0 4px rgba(209, 213, 219, 0.5);
+  }
+
+  /* Stat Cards */
+  .vendor-modal-stat-card {
+    background-color: #f9fafb;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid #e5e7eb;
+    transition: all 0.15s;
+  }
+
+  .vendor-modal-stat-card:hover {
+    border-color: #06EAFC;
+  }
+
+  /* Sections */
+  .vendor-modal-section {
+    background-color: white;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+  }
+
+  .vendor-modal-section-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #1f2937;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .vendor-modal-section-indicator {
+    width: 0.25rem;
+    height: 1.5rem;
+    background-color: #06EAFC;
+    border-radius: 9999px;
+  }
+
+  /* Tags */
+  .vendor-modal-service-tag {
+    padding: 0.75rem 1.25rem;
+    background: linear-gradient(to right, rgba(6, 234, 252, 0.1), rgba(219, 234, 254, 0.1));
+    color: #374151;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    border: 1px solid rgba(6, 234, 252, 0.3);
+    transition: all 0.15s;
+    cursor: default;
+  }
+
+  .vendor-modal-service-tag:hover {
+    border-color: #06EAFC;
+  }
+
+  .vendor-modal-specialty-tag {
+    padding: 0.75rem 1.25rem;
+    background: linear-gradient(to right, rgba(240, 253, 244, 0.5), rgba(240, 253, 244, 0.5));
+    color: #374151;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    border: 1px solid rgba(134, 239, 172, 0.3);
+    transition: all 0.15s;
+    cursor: default;
+  }
+
+  .vendor-modal-specialty-tag:hover {
+    border-color: rgba(134, 239, 172, 0.6);
+  }
+
+  .vendor-modal-certification-tag {
+    padding: 0.5rem 1rem;
+    background-color: #fefce8;
+    color: #92400e;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    border: 1px solid #fef08a;
+    font-size: 0.875rem;
+  }
+
+  /* Contact Card */
+  .vendor-modal-contact-card {
+    background: linear-gradient(to bottom right, #f9fafb, white);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  .vendor-modal-contact-icon {
+    padding: 0.5rem;
+    background-color: rgba(6, 234, 252, 0.2);
+    border-radius: 0.5rem;
+  }
+
+  /* Language Indicator */
+  .vendor-modal-language-indicator {
+    width: 0.5rem;
+    height: 0.5rem;
+    background-color: #06EAFC;
+    border-radius: 9999px;
+  }
+
+  /* Vendor Card Styles */
+  .vendor-card {
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    border-radius: 1rem;
+    width: 100%;
+    max-width: 24rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 280px;
+    transition: all 0.15s;
+  }
+
+  .vendor-card:hover {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12), 0 5px 10px rgba(0, 0, 0, 0.08);
+    border-color: #d1d5db;
+  }
+
+  .vendor-card-content {
+    padding: 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .vendor-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .vendor-avatar-container {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .vendor-avatar {
+    width: 5rem;
+    height: 5rem;
+    border-radius: 9999px;
+    overflow: hidden;
+    border: 2px solid #e5e7eb;
+  }
+
+  .vendor-avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.15s;
+  }
+
+  .vendor-avatar-image:hover {
+    transform: scale(1.05);
+  }
+
+  .vendor-verified-badge {
+    position: absolute;
+    top: -0.25rem;
+    right: -0.25rem;
+    background-color: white;
+    border-radius: 9999px;
+    padding: 0.25rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border: 1px solid #d1fae5;
+  }
+
+  .vendor-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .vendor-name-rating {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+  }
+
+  .vendor-name {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #111827;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: color 0.15s;
+  }
+
+  .vendor-name:hover {
+    color: #4b5563;
+  }
+
+  .vendor-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+  }
+
+  .rating-value {
+    font-weight: bold;
+    color: #111827;
+    font-size: 0.875rem;
+  }
+
+  .vendor-category {
+    margin-bottom: 0.5rem;
+  }
+
+  .category-text {
+    color: #6b7280;
+    font-weight: 500;
+    font-size: 0.875rem;
+  }
+
+  .vendor-location {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .location-icon {
+    color: #9ca3af;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+  }
+
+  .location-text {
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .vendor-description {
+    flex: 1;
+  }
+
+  .description-text {
+    color: #4b5563;
+    line-height: 1.625;
+    font-size: 0.875rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .vendor-actions {
+    margin-top: auto;
+    padding-top: 1rem;
+  }
+
+  .vendor-view-btn {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: white;
+    color: black;
+    font-weight: bold;
+    font-size: 0.875rem;
+    border-radius: 0.5rem;
+    transition: all 0.1s;
+    border: 2px solid #d1d5db;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .vendor-view-btn:hover {
+    background-color: #f9fafb;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border-color: #9ca3af;
+  }
+
+  /* Skeleton Styles */
+  .skeleton-card {
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+    width: 100%;
+    max-width: 24rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 280px;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .skeleton-content {
+    padding: 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .skeleton-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    flex-shrink: 0;
+  }
+
+  .skeleton-avatar-container {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .skeleton-avatar {
+    width: 5rem;
+    height: 5rem;
+    border-radius: 9999px;
+    background-color: #d1d5db;
+  }
+
+  .skeleton-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .skeleton-name-rating {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+  }
+
+  .skeleton-name {
+    height: 1.5rem;
+    background-color: #d1d5db;
+    border-radius: 0.25rem;
+    width: 6rem;
+  }
+
+  .skeleton-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+  }
+
+  .skeleton-star {
+    width: 1rem;
+    height: 1rem;
+    background-color: #d1d5db;
+    border-radius: 0.25rem;
+  }
+
+  .skeleton-rating-value {
+    width: 1.5rem;
+    height: 1rem;
+    background-color: #d1d5db;
+    border-radius: 0.25rem;
+  }
+
+  .skeleton-category {
+    height: 1rem;
+    background-color: #e5e7eb;
+    border-radius: 0.25rem;
+    width: 4rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .skeleton-location {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .skeleton-location-icon {
+    width: 1rem;
+    height: 1rem;
+    background-color: #e5e7eb;
+    border-radius: 0.25rem;
+  }
+
+  .skeleton-location-text {
+    width: 5rem;
+    height: 1rem;
+    background-color: #e5e7eb;
+    border-radius: 0.25rem;
+  }
+
+  .skeleton-description {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .skeleton-line {
+    height: 0.75rem;
+    background-color: #e5e7eb;
+    border-radius: 0.25rem;
+  }
+
+  .skeleton-line:nth-child(1) {
+    width: 100%;
+  }
+
+  .skeleton-line:nth-child(2) {
+    width: 83.333333%;
+  }
+
+  .skeleton-line:nth-child(3) {
+    width: 66.666667%;
+  }
+
+  .skeleton-actions {
+    margin-top: auto;
+    padding-top: 1rem;
+  }
+
+  .skeleton-button {
+    width: 100%;
+    height: 3rem;
+    background-color: #d1d5db;
+    border-radius: 0.5rem;
+  }
+
+  /* Error Section */
+  .error-section {
+    padding: 4rem 0;
+    text-align: center;
+    color: #ef4444;
+  }
+
+  .error-content {
+    font-size: 1.125rem;
+    font-weight: 500;
+  }
+`;
 
 export default AiTopPicks;

@@ -8,12 +8,20 @@ import { MdFavoriteBorder } from "react-icons/md";
 
 // ---------------- Skeleton Loading Components ----------------
 const SkeletonCard = ({ isMobile }) => (
-  <div className={`bg-white rounded-xl overflow-hidden flex-shrink-0 font-manrope animate-pulse ${isMobile ? "w-[165px]" : "w-[280px]"} snap-start`}>
-    {/* Image Skeleton - Using SearchResults mobile height */}
-    <div className={`relative overflow-hidden rounded-xl bg-gray-200 ${isMobile ? "h-[150px]" : "h-[200px]"}`}></div>
+  <div
+    className={`bg-white rounded-xl overflow-hidden flex-shrink-0 font-manrope animate-pulse ${
+      isMobile ? "w-[165px]" : "w-[210px]"
+    } snap-start`}
+  >
+    {/* Image Skeleton - Further reduced height */}
+    <div
+      className={`relative overflow-hidden rounded-xl bg-gray-200 ${
+        isMobile ? "h-[150px]" : "h-[150px]"
+      }`}
+    ></div>
 
     {/* Text Skeleton */}
-    <div className={`${isMobile ? "p-1.5" : "p-3"} flex flex-col gap-2`}>
+    <div className={`${isMobile ? "p-1.5" : "p-2"} flex flex-col gap-1.5`}>
       <div className="h-4 bg-gray-200 rounded w-3/4"></div>
       <div className="h-3 bg-gray-200 rounded w-1/2"></div>
       <div className="flex items-center gap-1 mt-1">
@@ -27,11 +35,21 @@ const SkeletonCard = ({ isMobile }) => (
 const SkeletonCategorySection = ({ isMobile }) => (
   <section className="mb-4">
     <div className="flex justify-between items-center mb-2">
-      <div className={`${isMobile ? 'h-5' : 'h-7'} bg-gray-200 rounded w-1/3`}></div>
-      <div className={`${isMobile ? 'h-4' : 'h-6'} bg-gray-200 rounded w-24`}></div>
+      <div
+        className={`${isMobile ? "h-5" : "h-7"} bg-gray-200 rounded w-1/3`}
+      ></div>
+      <div
+        className={`${isMobile ? "h-4" : "h-6"} bg-gray-200 rounded w-24`}
+      ></div>
     </div>
 
-    <div className={`${isMobile ? "flex overflow-x-auto gap-[8px] pb-4 -mx-[16px] pl-[16px] snap-x snap-mandatory" : "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4"}`}>
+    <div
+      className={`${
+        isMobile
+          ? "flex overflow-x-auto gap-[8px] pb-4 -mx-[16px] pl-[16px] snap-x snap-mandatory"
+          : "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3"
+      }`}
+    >
       {[...Array(6)].map((_, index) => (
         <SkeletonCard key={index} isMobile={isMobile} />
       ))}
@@ -40,13 +58,24 @@ const SkeletonCategorySection = ({ isMobile }) => (
 );
 
 const SkeletonDirectory = ({ isMobile }) => (
-  <section id="directory" className={`bg-white font-manrope ${isMobile ? 'py-6' : 'py-8'}`}>
+  <section
+    id="directory"
+    className={`bg-white font-manrope ${isMobile ? "py-6" : "py-8"}`}
+  >
     <div className="max-w-[1800px] mx-auto px-4 sm:px-6">
       {/* Header Skeleton - Reduced gap */}
       <div className={isMobile ? "mb-3" : "mb-4"}>
         <div className="text-center">
-          <div className={`${isMobile ? 'h-6' : 'h-8'} bg-gray-200 rounded w-1/4 mx-auto mb-2`}></div>
-          <div className={`${isMobile ? 'h-4' : 'h-5'} bg-gray-200 rounded w-1/3 mx-auto`}></div>
+          <div
+            className={`${
+              isMobile ? "h-6" : "h-8"
+            } bg-gray-200 rounded w-1/4 mx-auto mb-2`}
+          ></div>
+          <div
+            className={`${
+              isMobile ? "h-4" : "h-5"
+            } bg-gray-200 rounded w-1/3 mx-auto`}
+          ></div>
         </div>
       </div>
 
@@ -66,9 +95,12 @@ const capitalizeFirst = (str) =>
 
 const FALLBACK_IMAGES = {
   hotel: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop&q=80",
-  restaurant: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop&q=80",
-  shortlet: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&h=400&fit=crop&q=80",
-  default: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop&q=80",
+  restaurant:
+    "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop&q=80",
+  shortlet:
+    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&h=400&fit=crop&q=80",
+  default:
+    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop&q=80",
 };
 
 const getCardImages = (item) => {
@@ -87,7 +119,7 @@ const getCardImages = (item) => {
   return [FALLBACK_IMAGES.default];
 };
 
-// ---------------- Custom Hook ----------------
+// ---------------- Custom Hooks ----------------
 const useGoogleSheet = (sheetId, apiKey) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -236,25 +268,25 @@ const BusinessCard = ({ item, category, isMobile }) => {
   const images = getCardImages(item);
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [imageHeight, setImageHeight] = useState(170);
+  const [imageHeight, setImageHeight] = useState(150); // Reduced from 160
 
   // Use custom hooks
   const isFavorite = useIsFavorite(item.id);
   const isAuthenticated = useAuthStatus();
 
-  // Set consistent height based on device - Using SearchResults mobile height
+  // Set consistent height based on device - Further reduced desktop height
   useEffect(() => {
-    setImageHeight(isMobile ? 150 : 170);
+    setImageHeight(isMobile ? 150 : 150); // Same height for mobile and desktop now
   }, [isMobile]);
 
   // Add resize listener to maintain dimensions
   useEffect(() => {
     const handleResize = () => {
-      setImageHeight(window.innerWidth < 768 ? 150 : 170);
+      setImageHeight(150); // Fixed height
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const formatPrice = (n) => {
@@ -539,20 +571,20 @@ const BusinessCard = ({ item, category, isMobile }) => {
       className={`
         bg-white rounded-xl overflow-hidden flex-shrink-0 
         font-manrope relative group flex flex-col h-full
-        ${isMobile ? "w-[165px]" : "w-[280]"} 
+        ${isMobile ? "w-[165px]" : "w-[210px]"} 
         transition-all duration-200 cursor-pointer 
         hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
       `}
       onClick={handleCardClick}
-      // Using SearchResults mobile card dimensions
+      // Significantly reduced dimensions for desktop
       style={{
-        height: isMobile ? "280px" : "320px",
-        minHeight: isMobile ? "280px" : "320px",
-        maxHeight: isMobile ? "280px" : "320px",
-        minWidth: isMobile ? "165px" : "200px",
+        height: isMobile ? "280px" : "280px", // Same height as mobile
+        minHeight: isMobile ? "280px" : "280px",
+        maxHeight: isMobile ? "280px" : "280px",
+        minWidth: isMobile ? "165px" : "165px", // Same min width as mobile
       }}
     >
-      {/* Image - Using SearchResults mobile height */}
+      {/* Image - Reduced height */}
       <div
         className="relative overflow-hidden rounded-xl flex-shrink-0"
         style={{
@@ -564,14 +596,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
         <img
           src={images[0]}
           alt={businessName}
-          className="w-full  h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
-          style={{
-            height: "100%",
-            width: "100%",
-            objectFit: "cover",
-            minHeight: `${imageHeight}px`,
-            maxHeight: `${imageHeight}px`,
-          }}
+          className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
           onError={(e) => {
             e.currentTarget.src = FALLBACK_IMAGES.default;
             e.currentTarget.onerror = null;
@@ -579,18 +604,18 @@ const BusinessCard = ({ item, category, isMobile }) => {
           loading="lazy"
         />
 
-        {/* Guest favorite badge - Same as SearchResults */}
-        <div className="absolute top-2 left-2 bg-white px-1.5 py-1 rounded-md shadow-sm flex items-center gap-1">
-          <span className="text-[9px] font-semibold text-gray-900">
+        {/* Guest favorite badge - Smaller */}
+        <div className="absolute top-1.5 left-1.5 bg-white px-1 py-0.5 rounded-md shadow-sm flex items-center gap-0.5">
+          <span className="text-[8px] font-semibold text-gray-900">
             Guest favorite
           </span>
         </div>
 
-        {/* Heart icon - Same as SearchResults */}
+        {/* Heart icon - Smaller */}
         <button
           onClick={handleFavoriteClick}
           disabled={isProcessing}
-          className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 ${
+          className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110 active:scale-95 ${
             isFavorite
               ? "bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
               : "bg-white/90 hover:bg-white backdrop-blur-sm"
@@ -600,10 +625,10 @@ const BusinessCard = ({ item, category, isMobile }) => {
           aria-pressed={isFavorite}
         >
           {isProcessing ? (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           ) : isFavorite ? (
             <svg
-              className="w-4 h-4 text-white"
+              className="w-3 h-3 text-white"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -614,66 +639,66 @@ const BusinessCard = ({ item, category, isMobile }) => {
               />
             </svg>
           ) : (
-            <MdFavoriteBorder className="text-[#00d1ff] w-4 h-4" />
+            <MdFavoriteBorder className="text-[#00d1ff] w-3 h-3" />
           )}
         </button>
       </div>
 
-      {/* Text Content - Same layout as SearchResults */}
-      <div 
-        className={`flex-1 ${isMobile ? "p-1.5" : "p-2.5"} flex flex-col`}
+      {/* Text Content - More compact */}
+      <div
+        className={`flex-1 ${isMobile ? "p-1.5" : "p-2"} flex flex-col`}
         style={{
-          minHeight: isMobile ? "130px" : "150px",
+          minHeight: isMobile ? "130px" : "130px", // Reduced from 140px
         }}
       >
-        <h3 className="font-semibold text-gray-900 leading-tight line-clamp-2 text-xs md:text-sm mb-1 flex-shrink-0">
+        <h3 className="font-semibold text-gray-900 leading-tight line-clamp-2 text-[13.5px] mb-1 flex-shrink-0">
           {businessName}
         </h3>
 
         <div className="flex-1 flex flex-col justify-between">
           <div>
-            <p className="text-gray-600 text-[9px] md:text-xs line-clamp-1 mb-2">
+            <p className="text-gray-600 text-[12.5px] line-clamp-1 mb-1">
               {locationText}
             </p>
 
-            {/* Combined Price, Per Text, and Ratings on same line - Like SearchResults */}
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1 flex-wrap">
+            {/* Combined Price, Per Text, and Ratings on same line */}
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-0.5 flex-wrap">
                 {/* Price and Per Text */}
-                <div className="flex items-baseline gap-1">
-                  <span className="text-xs md:text-xs font-manrope text-gray-900">
+                <div className="flex items-baseline gap-0.5">
+                  <span className="text-[12px] font-manrope text-gray-900">
                     {priceText}
                   </span>
-                  <span className="text-[9px] md:text-xs text-gray-600">
+                  <span className="text-[12px] text-gray-600">
                     for 2 nights
                   </span>
                 </div>
               </div>
 
-              {/* Ratings on the right - Like SearchResults */}
-              <div className="flex items-center gap-1">
-                <div className="flex items-center gap-1 text-gray-800 text-[9px] md:text-xs">
-                  <FontAwesomeIcon icon={faStar} className="text-black" />
+              {/* Ratings on the right */}
+              <div className="flex items-center gap-0.5">
+                <div className="flex items-center gap-0.5 text-gray-800 text-[12px]">
+                  <FontAwesomeIcon icon={faStar} className="text-black w-2 h-2" />
                   <span className="font-semibold text-black">{rating}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Bottom row: Category tag - Same as SearchResults */}
-          <div className="flex items-center justify-between mt-auto pt-2">
-            {/* Category tag - Dark ash background with black text */}
+          {/* Bottom row: Category tag */}
+          <div className="flex items-center justify-between mt-auto pt-1">
+            {/* Category tag - Smaller */}
             <div>
-              <span className="inline-block text-[10px] text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
+              <span className="inline-block text-[11px] text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
                 {tag}
               </span>
             </div>
 
-            {/* Saved indicator badge - Same as SearchResults */}
+            {/* Saved indicator badge - Smaller */}
             {isFavorite && !isProcessing && (
-              <span className="inline-flex items-center gap-1 text-[10px] text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+              <span className="inline-flex items-center gap-0.5 text-[9px] text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">
                 <svg
-                  className="w-2 h-2"
+                  className="w-1.5 h-1.5"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -690,7 +715,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
         </div>
       </div>
 
-      {/* Hover overlay effect - Same as SearchResults */}
+      {/* Hover overlay effect */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none"></div>
     </div>
   );
@@ -723,44 +748,44 @@ const CategorySection = ({ title, items, isMobile }) => {
     <section className="mb-4">
       <div className="flex justify-between items-center mb-2">
         <div>
-          <h2 
-            className="text-gray-900 font-bold"
-            style={{ color: '#000651' }}
-          >
+          <h2 className="text-gray-900 font-bold" style={{ color: "#000651" }}>
             {isMobile ? (
-              <span className="text-[14px]">
-                {title}
-              </span>
+              <span className="text-[14px]">{title}</span>
             ) : (
-              <span className="text-xl">
-                {title}
-              </span>
+              <span className="text-xl">{title}</span>
             )}
           </h2>
         </div>
-        {/* View All button with arrow icon - Same styling for both mobile and desktop */}
+        {/* View All button with arrow icon */}
         <button
           onClick={handleCategoryClick}
           className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group"
-          style={{ color: '#000651' }}
+          style={{ color: "#000651" }}
         >
           {isMobile ? (
             <span className="text-[12px]">View all</span>
           ) : (
             <span className="text-[13.5px]">View all</span>
           )}
-          <svg className={`transition-transform group-hover:translate-x-1 ${
-            isMobile ? "w-3 h-3" : "w-4 h-4"
-          }`} fill="currentColor" viewBox="0 0 16 16">
-            <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+          <svg
+            className={`transition-transform group-hover:translate-x-1 ${
+              isMobile ? "w-3 h-3" : "w-4 h-4"
+            }`}
+            fill="currentColor"
+            viewBox="0 0 16 16"
+          >
+            <path
+              fillRule="evenodd"
+              d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"
+            />
           </svg>
         </button>
       </div>
 
-      {/* Desktop: Grid layout for 6 cards */}
-      {/* Mobile: Horizontal scroll - Same gap as SearchResults */}
+      {/* Desktop: Grid layout for 6 cards with reduced gap */}
+      {/* Mobile: Horizontal scroll */}
       {!isMobile ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3">
           {displayItems.map((item, index) => (
             <BusinessCard
               key={item.id || index}
@@ -772,7 +797,7 @@ const CategorySection = ({ title, items, isMobile }) => {
         </div>
       ) : (
         <div className="relative">
-          <div 
+          <div
             className="flex overflow-x-auto scrollbar-hide gap-2 pb-4"
             style={{
               scrollbarWidth: "none",
@@ -788,7 +813,7 @@ const CategorySection = ({ title, items, isMobile }) => {
                 isMobile={isMobile}
               />
             ))}
-            {/* Spacer for last card visibility - Same as SearchResults */}
+            {/* Spacer for last card visibility */}
             <div className="flex-shrink-0" style={{ width: "8px" }}></div>
           </div>
         </div>
@@ -864,11 +889,14 @@ const Directory = () => {
 
   return (
     <section id="directory" className="bg-white font-manrope">
-      <div className={`${isMobile ? 'py-0' : 'py-8'}`}>
-        {/* MOBILE VIEW: Use same margins as SearchResults */}
+      <div className={`${isMobile ? "py-0" : "py-8"}`}>
+        {/* MOBILE VIEW */}
         {isMobile ? (
-          <div className="w-full" style={{ paddingLeft: '0.75rem', paddingRight: '0.75rem' }}>
-            {/* Header - Same as SearchResults mobile styling */}
+          <div
+            className="w-full"
+            style={{ paddingLeft: "0.75rem", paddingRight: "0.75rem" }}
+          >
+            {/* Header */}
             <motion.div
               ref={headerRef}
               initial={{ opacity: 0, y: 20 }}
@@ -884,7 +912,7 @@ const Directory = () => {
               </p>
             </motion.div>
 
-            {/* Category Sections - Mobile layout similar to SearchResults */}
+            {/* Category Sections */}
             <div className="space-y-6">
               {getPopularCategories().map((category, index) => {
                 const items = categorizedListings[category] || [];
@@ -904,9 +932,9 @@ const Directory = () => {
             </div>
           </div>
         ) : (
-          /* DESKTOP VIEW: Original layout */
+          /* DESKTOP VIEW */
           <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Header - Reduced gap on mobile */}
+            {/* Header */}
             <motion.div
               ref={headerRef}
               initial={{ opacity: 0, y: 20 }}
@@ -922,7 +950,7 @@ const Directory = () => {
               </p>
             </motion.div>
 
-            {/* Category Sections - Original desktop layout */}
+            {/* Category Sections */}
             <div className="space-y-6">
               {getPopularCategories().map((category, index) => {
                 const items = categorizedListings[category] || [];
@@ -1034,7 +1062,7 @@ const styles = `
 
 /* Fix for grid columns to prevent overflow */
 .grid-cols-fix {
-  grid-template-columns: repeat(6, minmax(0, 280px));
+  grid-template-columns: repeat(6, minmax(0, 210px));
 }
 `;
 
