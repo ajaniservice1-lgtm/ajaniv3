@@ -494,21 +494,21 @@ const ContactUs = () => {
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
                     <FaPhone className="mx-auto text-blue-600 text-2xl mb-3" />
                     <h4 className="font-semibold text-gray-900">Call Us</h4>
-                    <p className="text-gray-600 text-sm mt-1">+234 801 234 5678</p>
-                    <p className="text-gray-500 text-xs mt-1">Mon-Fri, 9AM-6PM</p>
+                    <p className="text-gray-600 text-sm mt-1">+234 802 266 2256</p>
+                    <p className="text-gray-500 text-xs mt-1">Mon-Fri, 9AM-5PM</p>
                   </div>
                   
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
                     <FaEnvelope className="mx-auto text-green-600 text-2xl mb-3" />
                     <h4 className="font-semibold text-gray-900">Email Us</h4>
-                    <p className="text-gray-600 text-sm mt-1">support@ajani.com</p>
+                    <p className="text-gray-600 text-sm mt-1">info@ajani.com</p>
                     <p className="text-gray-500 text-xs mt-1">Response within 24h</p>
                   </div>
                   
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
                     <FaMapMarkerAlt className="mx-auto text-purple-600 text-2xl mb-3" />
                     <h4 className="font-semibold text-gray-900">Visit Us</h4>
-                    <p className="text-gray-600 text-sm mt-1">123 Business Ave, Lagos</p>
+                    <p className="text-gray-600 text-sm mt-1">7 Oluyoro St, off Awolowo Avenue, Old Bodija, Lagelu 000234, Oyo</p>
                     <p className="text-gray-500 text-xs mt-1">By appointment</p>
                   </div>
                 </div>
