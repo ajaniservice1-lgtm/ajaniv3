@@ -348,24 +348,32 @@ const UserRegistration = () => {
         // ✅ CHECK USER VERIFICATION STATUS
         const isVerified = userData?.isVerified || false;
 
+        // ✅ Create complete user profile object
+        const completeUserProfile = {
+          id: userData._id,
+          email: userData.email || data.email,
+          firstName: userData.firstName || data.firstName,
+          lastName: userData.lastName || data.lastName,
+          phone: userData.phone || data.phone,
+          role: userData.role || data.role,
+          isVerified: isVerified,
+          profilePicture: userData.profilePicture || "",
+          created_at: userData.createdAt || new Date().toISOString(),
+          // Store registration date for member since display
+          registrationDate: new Date().toISOString()
+        };
+
         // ✅ SCENARIO 1: User is verified and has token (Auto-login - rare case)
         if (isVerified && token && userData) {
           // ✅ Store authentication data
           localStorage.setItem("auth_token", token);
-          localStorage.setItem("user_email", userData.email);
-          localStorage.setItem(
-            "userProfile",
-            JSON.stringify({
-              id: userData._id,
-              email: userData.email,
-              firstName: userData.firstName,
-              lastName: userData.lastName,
-              phone: userData.phone,
-              role: userData.role,
-              isVerified: userData.isVerified,
-              profilePicture: userData.profilePicture,
-            })
-          );
+          localStorage.setItem("user_email", userData.email || data.email);
+          localStorage.setItem("userProfile", JSON.stringify(completeUserProfile));
+
+          // ✅ Initialize saved listings if not exists
+          if (!localStorage.getItem("userSavedListings")) {
+            localStorage.setItem("userSavedListings", JSON.stringify([]));
+          }
 
           // ✅ Notify Header immediately
           window.dispatchEvent(new Event("storage"));
@@ -388,16 +396,21 @@ const UserRegistration = () => {
           // Store email for OTP verification
           localStorage.setItem("pendingVerificationEmail", data.email);
 
-          // Store user data temporarily for verification
+          // Store COMPLETE user data temporarily for verification
           localStorage.setItem(
             "pendingUserData",
             JSON.stringify({
-              email: data.email,
-              firstName: data.firstName,
-              lastName: data.lastName,
-              phone: data.phone,
+              ...completeUserProfile,
+              rawData: data,
+              token: token
             })
           );
+
+          // Also store a temporary user profile
+          localStorage.setItem("userProfile", JSON.stringify(completeUserProfile));
+
+          // Initialize saved listings
+          localStorage.setItem("userSavedListings", JSON.stringify([]));
 
           // Show registration success toast
           setShowRegistrationToast(true);
@@ -412,6 +425,7 @@ const UserRegistration = () => {
               state: {
                 email: data.email,
                 fromRegistration: true,
+                userData: completeUserProfile
               },
             });
           }, 1500);
