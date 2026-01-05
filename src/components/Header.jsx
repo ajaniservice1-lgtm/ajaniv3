@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "../assets/Logos/logo5.png";
-import { MdOutlineChat } from "react-icons/md";
-import { RiNotification2Fill } from "react-icons/ri";
-import { FiUser, FiHeart, FiSettings, FiLogOut } from "react-icons/fi";
+import * as LucideIcons from "lucide-react";
 
 // Main Header Component
 const Header = () => {
@@ -20,7 +18,6 @@ const Header = () => {
 
   // Enhanced auth check function
   const checkLoginStatus = () => {
-    // Check multiple possible token storage locations
     const token =
       localStorage.getItem("auth_token") ||
       JSON.parse(localStorage.getItem("auth-storage") || "{}")?.state?.token;
@@ -38,7 +35,6 @@ const Header = () => {
           const parsedProfile = JSON.parse(profile);
           setUserProfile(parsedProfile);
 
-          // Also ensure isVerified is true for logged in users
           if (!parsedProfile.isVerified) {
             console.warn("User profile found but not verified");
           }
@@ -75,7 +71,6 @@ const Header = () => {
 
   // Calculate glass effect opacity based on scroll position
   const getGlassEffect = () => {
-    // Max opacity at 100px scroll, min at 0
     const maxScroll = 100;
     const opacity = Math.min(scrollPosition / maxScroll, 0.95);
     
@@ -83,7 +78,6 @@ const Header = () => {
       backgroundColor: `rgba(247, 247, 250, ${opacity})`,
       backdropFilter: isScrolled ? 'blur(10px) saturate(180%)' : 'none',
       WebkitBackdropFilter: isScrolled ? 'blur(10px) saturate(180%)' : 'none',
-      // Always keep the blue border regardless of scroll position
       borderBottom: '2px solid #00d1ff',
       boxShadow: isScrolled 
         ? '0 8px 32px 0 rgba(31, 38, 135, 0.07)' 
@@ -95,33 +89,28 @@ const Header = () => {
   useEffect(() => {
     checkLoginStatus();
 
-    // Listen for storage changes (from OTP verification)
     const handleStorageChange = () => {
       console.log("Storage changed, checking auth status");
       checkLoginStatus();
     };
 
     window.addEventListener("storage", handleStorageChange);
-
-    // Listen for custom auth events (from OTP verification)
     window.addEventListener("authChange", handleStorageChange);
     window.addEventListener("loginSuccess", handleStorageChange);
 
-    // Check when window gains focus (in case auth happened in another tab)
     const handleFocus = () => {
       checkLoginStatus();
     };
 
     window.addEventListener("focus", handleFocus);
 
-    // Set up polling to check auth status more reliably
     const authCheckInterval = setInterval(() => {
       const token = localStorage.getItem("auth_token");
       if (token && !isLoggedIn) {
         console.log("Token found via polling, updating login state");
         checkLoginStatus();
       }
-    }, 1000); // Check every second
+    }, 1000);
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
@@ -152,18 +141,15 @@ const Header = () => {
   const handleSignOut = () => {
     console.log("Signing out...");
 
-    // Clear all authentication tokens
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_email");
     localStorage.removeItem("userProfile");
     localStorage.removeItem("auth-storage");
     localStorage.removeItem("redirectAfterLogin");
 
-    // Clear session storage too
     sessionStorage.removeItem("auth_token");
     sessionStorage.removeItem("user_email");
 
-    // Dispatch events to update other components
     window.dispatchEvent(new Event("storage"));
     window.dispatchEvent(new CustomEvent("logout"));
 
@@ -173,9 +159,8 @@ const Header = () => {
     setIsProfileDropdownOpen(false);
     setIsMenuOpen(false);
 
-    // Force reload to ensure clean state
     navigate("/");
-    window.location.reload(); // Force reload to clear any cached state
+    window.location.reload();
   };
 
   // Handle click outside profile dropdown
@@ -195,8 +180,7 @@ const Header = () => {
     };
   }, []);
 
-  // Base navigation items - always visible
-  // UPDATED to match DiscoverIbadan hero section routes
+  // Base navigation items
   const baseNavItems = [
     { 
       label: "Hotel", 
@@ -260,7 +244,6 @@ const Header = () => {
       );
       setSavedCount(saved.length);
 
-      // Listen for updates to saved listings
       const handleSavedListingsUpdate = () => {
         const updated = JSON.parse(
           localStorage.getItem("userSavedListings") || "[]"
@@ -348,10 +331,10 @@ const Header = () => {
                   {/* Saved Listings button */}
                   <button
                     onClick={() => navigate("/saved")}
-                    className="relative text-2xl hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/20 rounded-lg backdrop-blur-sm"
+                    className="relative hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/20 rounded-lg backdrop-blur-sm"
                     title="Saved Listings"
                   >
-                    <FiHeart />
+                    <LucideIcons.Bookmark size={20} strokeWidth={1.5} />
                     {savedCount > 0 && (
                       <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                         {savedCount > 9 ? "9+" : savedCount}
@@ -362,19 +345,19 @@ const Header = () => {
                   {/* Chat button */}
                   <button
                     onClick={() => navigate("/chat")}
-                    className="text-2xl hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/20 rounded-lg backdrop-blur-sm"
+                    className="hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/20 rounded-lg backdrop-blur-sm"
                     title="Chat"
                   >
-                    <MdOutlineChat />
+                    <LucideIcons.MessageSquare size={20} strokeWidth={1.5} />
                   </button>
 
                   {/* Notifications button */}
                   <button
                     onClick={() => navigate("/notifications")}
-                    className="text-2xl hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/20 rounded-lg backdrop-blur-sm"
+                    className="hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/20 rounded-lg backdrop-blur-sm"
                     title="Notifications"
                   >
-                    <RiNotification2Fill />
+                    <LucideIcons.Bell size={20} strokeWidth={1.5} />
                   </button>
 
                   {/* Profile dropdown */}
@@ -439,7 +422,7 @@ const Header = () => {
                           }}
                           className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/50 hover:text-gray-900 transition-all duration-200 cursor-pointer"
                         >
-                          <FiUser className="w-4 h-4" />
+                          <LucideIcons.User size={16} strokeWidth={1.5} />
                           <span className="cursor-pointer">My Profile</span>
                         </button>
 
@@ -451,7 +434,7 @@ const Header = () => {
                           }}
                           className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/50 hover:text-gray-900 transition-all duration-200 cursor-pointer"
                         >
-                          <FiHeart className="w-4 h-4" />
+                          <LucideIcons.Bookmark size={16} strokeWidth={1.5} />
                           <span className="cursor-pointer">
                             Saved Listings {savedCount > 0 && `(${savedCount})`}
                           </span>
@@ -465,7 +448,7 @@ const Header = () => {
                           }}
                           className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/50 hover:text-gray-900 transition-all duration-200 cursor-pointer"
                         >
-                          <MdOutlineChat className="w-4 h-4" />
+                          <LucideIcons.MessageSquare size={16} strokeWidth={1.5} />
                           <span className="cursor-pointer">Chat Assistant</span>
                         </button>
 
@@ -477,7 +460,7 @@ const Header = () => {
                           }}
                           className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/50 hover:text-gray-900 transition-all duration-200 cursor-pointer"
                         >
-                          <RiNotification2Fill className="w-4 h-4" />
+                          <LucideIcons.Bell size={16} strokeWidth={1.5} />
                           <span className="cursor-pointer">Notifications</span>
                         </button>
 
@@ -489,19 +472,7 @@ const Header = () => {
                           }}
                           className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/50 hover:text-gray-900 transition-all duration-200 cursor-pointer"
                         >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M12 4v16m8-8H4"
-                            />
-                          </svg>
+                          <LucideIcons.Briefcase size={16} strokeWidth={1.5} />
                           <span className="cursor-pointer">List Business</span>
                         </button>
 
@@ -513,7 +484,7 @@ const Header = () => {
                           }}
                           className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/50 hover:text-gray-900 transition-all duration-200 cursor-pointer"
                         >
-                          <FiSettings className="w-4 h-4" />
+                          <LucideIcons.Settings size={16} strokeWidth={1.5} />
                           <span className="cursor-pointer">Settings</span>
                         </button>
 
@@ -524,7 +495,7 @@ const Header = () => {
                           onClick={handleSignOut}
                           className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50/50 hover:text-red-700 transition-all duration-200 cursor-pointer"
                         >
-                          <FiLogOut className="w-4 h-4" />
+                          <LucideIcons.LogOut size={16} strokeWidth={1.5} />
                           <span className="cursor-pointer">Sign Out</span>
                         </button>
                       </div>
@@ -555,38 +526,12 @@ const Header = () => {
               {/* Mobile menu button */}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="lg:hidden text-gray-900 text-2xl p-1 ml-2 cursor-pointer hover:text-[#00d1ff] transition-all duration-300 hover:bg-white/20 rounded-lg"
+                className="lg:hidden text-gray-900 p-1 ml-2 cursor-pointer hover:text-[#00d1ff] transition-all duration-300 hover:bg-white/20 rounded-lg"
               >
                 {isMenuOpen ? (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  <LucideIcons.X size={24} strokeWidth={1.5} />
                 ) : (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
-                  </svg>
+                  <LucideIcons.Menu size={24} strokeWidth={1.5} />
                 )}
               </button>
             </div>
@@ -630,27 +575,14 @@ const Header = () => {
             </div>
             <button
               onClick={() => setIsMenuOpen(false)}
-              className="text-gray-900 hover:text-gray-600 text-xl cursor-pointer transition-colors duration-300 hover:bg-white/20 rounded-lg p-1"
+              className="text-gray-900 hover:text-gray-600 cursor-pointer transition-colors duration-300 hover:bg-white/20 rounded-lg p-1"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 transition-transform duration-300 hover:rotate-90"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <LucideIcons.X size={24} strokeWidth={1.5} className="transition-transform duration-300 hover:rotate-90" />
             </button>
           </div>
 
           <nav className="flex-1 p-4 space-y-2 text-sm overflow-y-auto">
-            {/* Base navigation items - UPDATED to match DiscoverIbadan */}
+            {/* Base navigation items */}
             {baseNavItems.map((item, index) => (
               <button
                 key={item.id}
@@ -695,7 +627,7 @@ const Header = () => {
                 </button>
               ))}
 
-            {/* Divider - Only show if user is logged in */}
+            {/* Divider */}
             {isLoggedIn && (
               <div
                 className="h-px bg-gray-200/50 my-2 transition-all duration-300"
@@ -710,7 +642,7 @@ const Header = () => {
               ></div>
             )}
 
-            {/* Authentication buttons - Show based on login status */}
+            {/* Authentication buttons */}
             {isLoggedIn ? (
               <>
                 {/* Mobile user info */}
@@ -761,7 +693,7 @@ const Header = () => {
                   }}
                 >
                   <div className="flex items-center gap-2">
-                    <FiUser className="w-4 h-4" />
+                    <LucideIcons.User size={16} strokeWidth={1.5} />
                     <span>My Profile</span>
                   </div>
                 </button>
@@ -783,7 +715,7 @@ const Header = () => {
                   }}
                 >
                   <div className="flex items-center gap-2">
-                    <FiHeart className="w-4 h-4" />
+                    <LucideIcons.Bookmark size={16} strokeWidth={1.5} />
                     <span>
                       Saved Listings {savedCount > 0 && `(${savedCount})`}
                     </span>
