@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaArrowRight, FaEye, FaEyeSlash, FaTimes, FaCheckCircle, FaExclamationTriangle, FaInfoCircle } from "react-icons/fa";
+import { FaArrowRight, FaEye, FaEyeSlash, FaTimes, FaCheckCircle, FaExclamationTriangle, FaInfoCircle, FaArrowLeft } from "react-icons/fa";
 import Logo from "../../../assets/Logos/logo5.png";
 import * as yup from "yup";
 import { useForm } from "react-hook-form";
@@ -91,7 +91,11 @@ const VendorRegistration = () => {
   const [vendorCategory, setVendorCategory] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
-  const [debugInfo, setDebugInfo] = useState("");
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const schema = yup.object().shape({
     firstName: yup.string()
@@ -143,27 +147,22 @@ const VendorRegistration = () => {
     }
   };
 
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  const handleLogoClick = () => {
+    navigate("/");
+  };
+
   const showNotification = (message, subMessage = "", type = "success") => {
     setToastConfig({ message, subMessage, type });
     setShowToast(true);
   };
 
-  const testBackendConnection = async () => {
-    try {
-      console.log("Testing backend connection...");
-      const response = await axiosInstance.get("/health");
-      console.log("Backend health check:", response.data);
-      return response.data;
-    } catch (error) {
-      console.error("Backend connection test failed:", error);
-      return null;
-    }
-  };
-
   const handleRegistration = async (data) => {
     try {
       setIsSubmitting(true);
-      setDebugInfo("");
 
       // Validate vendor category
       if (!vendorCategory) {
@@ -191,32 +190,9 @@ const VendorRegistration = () => {
         }
       };
 
-      // Log payload for debugging
-      console.log("Sending registration payload:", JSON.stringify(payload, null, 2));
-      setDebugInfo(`Payload: ${JSON.stringify(payload, null, 2)}`);
-
-      // Test backend first
-      const healthCheck = await testBackendConnection();
-      if (!healthCheck) {
-        showNotification(
-          "Backend Unavailable",
-          "Unable to connect to server. Please try again later.",
-          "error"
-        );
-        setIsSubmitting(false);
-        return;
-      }
-
       // Send registration request
-      console.log("Making POST request to /auth/register...");
       const response = await axiosInstance.post("/auth/register", payload);
       
-      console.log("Registration response:", {
-        status: response.status,
-        statusText: response.statusText,
-        data: response.data
-      });
-
       if (response.data && response.data.message) {
         setRegisteredEmail(data.email);
 
@@ -263,38 +239,21 @@ const VendorRegistration = () => {
           "Unexpected response from server",
           "error"
         );
-        setDebugInfo(`Unexpected response: ${JSON.stringify(response.data)}`);
       }
 
     } catch (error) {
-      console.error("Registration error details:", {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-        response: error.response?.data,
-        status: error.response?.status,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          data: error.config?.data
-        }
-      });
+      console.error("Registration error:", error);
 
       let errorMessage = "Registration failed. Please try again.";
       let errorDetails = "";
 
       if (error.response) {
-        // Server responded with error
         const { status, data } = error.response;
         
         switch (status) {
           case 400:
             if (data.message === "Category is required for vendor accounts") {
               errorMessage = "Vendor category is required";
-            } else if (data.message === "Please provide a valid email") {
-              errorMessage = "Invalid email format";
-            } else if (data.message === "Please provide a valid phone number") {
-              errorMessage = "Invalid phone number";
             } else if (data.message) {
               errorMessage = data.message;
             } else if (data.errors) {
@@ -315,7 +274,7 @@ const VendorRegistration = () => {
             break;
           
           case 500:
-            errorMessage = "Server error (500)";
+            errorMessage = "Server error";
             errorDetails = "Our servers are experiencing issues. Please try again later.";
             break;
           
@@ -324,18 +283,12 @@ const VendorRegistration = () => {
             errorDetails = data?.message || "Please try again";
         }
         
-        setDebugInfo(`Server Response (${status}): ${JSON.stringify(data)}`);
-        
       } else if (error.request) {
-        // Request made but no response
         errorMessage = "Network error";
         errorDetails = "Please check your internet connection and try again";
-        setDebugInfo("No response received from server");
       } else {
-        // Request setup error
         errorMessage = "Request error";
         errorDetails = error.message;
-        setDebugInfo(`Request setup error: ${error.message}`);
       }
 
       showNotification(errorMessage, errorDetails, "error");
@@ -349,12 +302,27 @@ const VendorRegistration = () => {
     { value: "hotel", label: "Hotel" },
     { value: "restaurant", label: "Restaurant" },
     { value: "shortlet", label: "Shortlet/Apartment" },
-    { value: "service provider", label: "Service Provider" },
+    { value: "Vendor", label: "Vendor" },
     { value: "accommodation", label: "Accommodation" }
   ];
 
   return (
     <div className="min-h-screen w-full bg-white flex items-center justify-center p-4 sm:p-6 md:p-8 font-manrope relative">
+      {/* Header Section with Back Button (Desktop) */}
+      <div className="hidden lg:block absolute left-0 top-0 p-6">
+        <button
+          onClick={handleBack}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-lg transition-colors group"
+          aria-label="Go back"
+        >
+          <FaArrowLeft 
+            size={20} 
+            className="group-hover:-translate-x-0.5 transition-transform" 
+          />
+          <span className="font-medium">Back</span>
+        </button>
+      </div>
+
       {/* Toast Notification */}
       {showToast && (
         <ToastNotification
@@ -363,24 +331,6 @@ const VendorRegistration = () => {
           type={toastConfig.type}
           onClose={() => setShowToast(false)}
         />
-      )}
-
-      {/* Debug Panel (remove in production) */}
-      {debugInfo && (
-        <div className="fixed bottom-4 left-4 right-4 max-w-md mx-auto bg-gray-900 text-white p-3 rounded-lg text-xs opacity-80 z-40">
-          <div className="flex justify-between items-center mb-2">
-            <span className="font-semibold">Debug Info:</span>
-            <button 
-              onClick={() => setDebugInfo("")}
-              className="text-gray-400 hover:text-white"
-            >
-              <FaTimes size={12} />
-            </button>
-          </div>
-          <pre className="overflow-auto max-h-32 text-xs">
-            {debugInfo}
-          </pre>
-        </div>
       )}
 
       <div className="w-full max-w-md sm:max-w-lg p-6 sm:p-8 rounded-xl shadow-lg bg-white relative">
@@ -393,9 +343,15 @@ const VendorRegistration = () => {
           <FaTimes size={20} />
         </button>
 
-        {/* Logo */}
+        {/* Logo - Clickable with Zoom Effect */}
         <div className="flex justify-center mb-4">
-          <img src={Logo} alt="Ajani Logo" className="h-auto w-30" />
+          <button
+            onClick={handleLogoClick}
+            className="cursor-pointer hover:opacity-80 transition-all duration-300"
+            aria-label="Go to homepage"
+          >
+            <img src={Logo} alt="Ajani Logo" className="h-auto w-30 cursor-pointer transition-transform duration-300 hover:scale-105" />
+          </button>
         </div>
 
         {/* Heading */}

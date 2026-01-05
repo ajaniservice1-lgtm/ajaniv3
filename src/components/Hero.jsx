@@ -26,6 +26,8 @@ import {
   faConciergeBell,
   faLightbulb,
   faFire,
+  faStore,
+  faUserTie,
 } from "@fortawesome/free-solid-svg-icons";
 import { createPortal } from "react-dom";
 
@@ -34,6 +36,7 @@ import hotelImg from "../assets/Logos/hotel.jpg";
 import tourismImg from "../assets/Logos/tourism.jpg";
 import eventsImg from "../assets/Logos/events.jpg";
 import restuarantImg from "../assets/Logos/restuarant.jpg";
+// import vendorImg from "../assets/Logos/vendor.jpg"; // Make sure this image exists
 
 /* ---------------- FALLBACKS ---------------- */
 const FALLBACK_IMAGES = {
@@ -43,8 +46,8 @@ const FALLBACK_IMAGES = {
   Shortlet:
     "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400",
   Tourism: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400",
-  Services:
-    "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=400",
+  Vendor:
+    "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=400", // Changed from Services to Vendor
 };
 
 /* ---------------- SOPHISTICATED ICON MAPPING ---------------- */
@@ -54,7 +57,8 @@ const getSophisticatedCategoryIcon = (category) => {
   if (cat.includes("hotel")) return faHotel;
   if (cat.includes("restaurant") || cat.includes("food")) return faUtensils;
   if (cat.includes("shortlet") || cat.includes("apartment")) return faHome;
-  if (cat.includes("services")) return faConciergeBell;
+  if (cat.includes("vendor")) return faStore; // Changed from faConciergeBell to faStore
+  if (cat.includes("tourism")) return faMapMarkerAlt;
   if (cat.includes("trending")) return faFire;
   if (cat.includes("popular") || cat.includes("featured")) return faStar;
   
@@ -131,8 +135,8 @@ const getCategoryImage = (category, fallback) => {
         return eventsImg;
       case "Restaurant":
         return restuarantImg;
-      case "Services":
-        return FALLBACK_IMAGES.Services;
+      case "Vendor": // Changed from Services to Vendor
+        return vendorImg || FALLBACK_IMAGES.Vendor;
       default:
         return fallback;
     }
@@ -149,7 +153,7 @@ const getCategoryIcon = (category) => {
   if (cat.includes("restaurant") || cat.includes("food")) return faUtensils;
   if (cat.includes("shortlet") || cat.includes("apartment")) return faHome;
   if (cat.includes("tourism") || cat.includes("tourist")) return faMapMarkerAlt;
-  if (cat.includes("services")) return faTools;
+  if (cat.includes("vendor")) return faStore; // Changed from faTools to faStore
   return faFilter;
 };
 
@@ -480,7 +484,7 @@ const MobileSearchModal = ({
                 value={inputValue}
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
-                placeholder="Search hotels, restaurants, shortlets..."
+                placeholder="Search hotels, restaurants, shortlets, vendors..."
                 autoFocus
               />
               {inputValue && (
@@ -664,7 +668,7 @@ const MobileSearchModal = ({
                 Start searching
               </h3>
               <p className="text-gray-600 text-center max-w-sm mb-10">
-                Search for hotels, restaurants, shortlets, and services in Ibadan
+                Search for hotels, restaurants, shortlets, and vendors in Ibadan
               </p>
 
               {/* Clean Popular Search Tips */}
@@ -673,7 +677,7 @@ const MobileSearchModal = ({
                   Popular searches
                 </p>
                 <div className="flex flex-wrap gap-2 justify-center">
-                  {["Hotels", "Restaurants", "Shortlets", "Services"].map((term) => (
+                  {["Hotels", "Restaurants", "Shortlets", "Vendors"].map((term) => (
                     <button
                       key={term}
                       onClick={() => {
@@ -1041,12 +1045,12 @@ const DiscoverIbadan = () => {
       Restaurant: "restaurant",
       Shortlet: "shortlet",
       Tourism: "tourist-center",
-      Services: "services",
+      Vendor: "vendor", // Changed from Services to Vendor
     };
     const categorySlug = categoryMap[category];
 
     if (categorySlug) {
-      if (category === "Services") {
+      if (category === "Vendor") {
         scrollToAiTopPicks();
       } else {
         navigate(`/category/${categorySlug}`);
@@ -1152,7 +1156,7 @@ const DiscoverIbadan = () => {
               marginRight: "auto",
             }}>
               <div className="flex justify-between items-center gap-1">
-                {["Hotel", "Shortlet", "Restaurant", "Services"].map(
+                {["Hotel", "Shortlet", "Restaurant", "Vendor"].map(
                   (category) => (
                     <motion.div
                       key={category}

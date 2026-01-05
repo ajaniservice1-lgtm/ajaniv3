@@ -21,7 +21,7 @@ const PrivacyPage = () => {
       <Header />
 
       {/* Hero Section — EXACT SAME AS ABOUT & TERMS */}
-      <section className="mx-auto mb-8 max-w-4xl rounded-xl bg-[#6cff] px-6 py-12 text-center shadow-lg">
+      <section className="mx-auto mb-8 max-w-4xl rounded-xl bg-[#6cff] px-6 py-12 md:mt-25 mt-20 text-center shadow-lg">
         <h1 className="text-3xl font-bold tracking-tight text-[#00065A] mt-5">
           Privacy Policy
         </h1>

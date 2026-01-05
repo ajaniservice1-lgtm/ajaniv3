@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaTimes } from "react-icons/fa";
+import { FaTimes, FaArrowLeft } from "react-icons/fa";
 import Icon from "../../assets/Logos/logo5.png";
 import Ilu1 from "../../assets/Illustration/undraw_online-groceries_n03y.png";
 import Ilu2 from "../../assets/Illustration/undraw_shopping-app_b80f.png";
@@ -8,6 +8,8 @@ import Ilu2 from "../../assets/Illustration/undraw_shopping-app_b80f.png";
 const RegisterChoicePage = () => {
   const navigate = useNavigate();
   const [selected, setSelected] = useState(null);
+  const [isHoverClient, setIsHoverClient] = useState(false);
+  const [isHoverVendor, setIsHoverVendor] = useState(false);
 
   const handleCancel = () => {
     const hasPreviousPage = window.history.length > 1;
@@ -18,32 +20,64 @@ const RegisterChoicePage = () => {
     }
   };
 
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  const handleLogoClick = () => {
+    navigate("/");
+  };
+
   return (
     <div className="min-h-screen bg-white flex flex-col justify-between">
-      {/* Close Button - Top Right for Mobile */}
-      <div className="w-full flex justify-end p-3 sm:p-4 lg:absolute lg:right-0 lg:top-0 lg:p-6">
-        <button
-          onClick={handleCancel}
-          className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
-          aria-label="Close"
-        >
-          <FaTimes size={20} />
-        </button>
+      {/* Header Section with Back Button (Desktop) and Close Button */}
+      <div className="relative w-full">
+        {/* Back Button - Desktop Only (Left side) */}
+        <div className="hidden lg:block absolute left-0 top-0 p-6 z-10">
+          <button
+            onClick={handleBack}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-lg transition-colors group"
+            aria-label="Go back"
+          >
+            <FaArrowLeft 
+              size={20} 
+              className="group-hover:-translate-x-0.5 transition-transform duration-300" 
+            />
+            <span className="font-medium">Back</span>
+          </button>
+        </div>
+
+        {/* Close Button - Top Right for Mobile, Centered for Desktop */}
+        <div className="w-full flex justify-end p-3 sm:p-4 lg:justify-center lg:py-6">
+          <button
+            onClick={handleCancel}
+            className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors duration-300 lg:absolute lg:right-0 lg:top-0 lg:mr-6 lg:mt-6"
+            aria-label="Close"
+          >
+            <FaTimes size={20} />
+          </button>
+        </div>
       </div>
 
       {/* Main Content Container */}
       <div className="flex flex-col items-center justify-center px-3 py-2 lg:py-4 flex-grow">
-        {/* Logo - Centered for Mobile */}
+        {/* Logo - Centered and Clickable with Zoom Effect */}
         <div className="mb-2 lg:mb-3 flex justify-center">
-          <img
-            src={Icon}
-            alt="Ajani Logo"
-            className="h-8 lg:h-10 w-auto object-contain"
-          />
+          <button
+            onClick={handleLogoClick}
+            className="cursor-pointer hover:opacity-80 transition-all duration-300 focus:outline-none transform hover:scale-105 active:scale-95"
+            aria-label="Go to homepage"
+          >
+            <img
+              src={Icon}
+              alt="Ajani Logo"
+              className="h-8 lg:h-10 w-auto object-contain cursor-pointer transition-transform duration-300"
+            />
+          </button>
         </div>
 
         {/* Subheading */}
-        <p className="text-gray-600 text-center text-sm sm:text-base mb-4 lg:mb-6 max-w-md">
+        <p className="text-gray-600 text-center text-sm sm:text-base mb-4 lg:mb-6 max-w-md px-2">
           Choose how you want to experience Ajani
         </p>
 
@@ -54,20 +88,24 @@ const RegisterChoicePage = () => {
             {/* Buyer/Explorer Card - Mobile */}
             <div
               onClick={() => setSelected("client")}
-              className={`relative bg-white cursor-pointer transition-all duration-200
+              onMouseEnter={() => setIsHoverClient(true)}
+              onMouseLeave={() => setIsHoverClient(false)}
+              className={`relative bg-white cursor-pointer transition-all duration-300 transform ${
+                selected === "client" || isHoverClient ? "scale-[1.02]" : ""
+              }
                 ${
                   selected === "client"
-                    ? "border-green-500 border-2"
+                    ? "border-green-500 border-2 shadow-md"
                     : "border-gray-200 border"
                 }
-                w-full h-[150px] rounded-xl flex items-center`}
+                w-full h-[150px] rounded-xl flex items-center hover:shadow-md active:scale-[0.98]`}
             >
               {/* Illustration */}
               <div className="w-1/3 flex items-center justify-center p-2">
                 <img
                   src={Ilu1}
                   alt="Buyer Illustration"
-                  className="h-20 w-auto object-contain"
+                  className="h-20 w-auto object-contain transition-transform duration-300"
                 />
               </div>
 
@@ -81,25 +119,38 @@ const RegisterChoicePage = () => {
                   insight across Ibadan
                 </p>
               </div>
+
+              {/* Selection Indicator */}
+              {selected === "client" && (
+                <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
             </div>
 
             {/* Vendor/Business Owner Card - Mobile */}
             <div
               onClick={() => setSelected("vendor")}
-              className={`relative bg-white cursor-pointer transition-all duration-200
+              onMouseEnter={() => setIsHoverVendor(true)}
+              onMouseLeave={() => setIsHoverVendor(false)}
+              className={`relative bg-white cursor-pointer transition-all duration-300 transform ${
+                selected === "vendor" || isHoverVendor ? "scale-[1.02]" : ""
+              }
                 ${
                   selected === "vendor"
-                    ? "border-green-500 border-2"
+                    ? "border-green-500 border-2 shadow-md"
                     : "border-gray-200 border"
                 }
-                w-full h-[150px] rounded-xl flex items-center`}
+                w-full h-[150px] rounded-xl flex items-center hover:shadow-md active:scale-[0.98]`}
             >
               {/* Illustration */}
               <div className="w-1/3 flex items-center justify-center p-2">
                 <img
                   src={Ilu2}
                   alt="Vendor Illustration"
-                  className="h-20 w-auto object-contain"
+                  className="h-20 w-auto object-contain transition-transform duration-300"
                 />
               </div>
 
@@ -113,6 +164,15 @@ const RegisterChoicePage = () => {
                   your visibility on Ajani
                 </p>
               </div>
+
+              {/* Selection Indicator */}
+              {selected === "vendor" && (
+                <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
             </div>
           </div>
 
@@ -121,21 +181,25 @@ const RegisterChoicePage = () => {
             {/* Buyer/Explorer Card - Desktop */}
             <div
               onClick={() => setSelected("client")}
-              className={`relative bg-white cursor-pointer transition-all duration-200 mx-auto
+              onMouseEnter={() => setIsHoverClient(true)}
+              onMouseLeave={() => setIsHoverClient(false)}
+              className={`relative bg-white cursor-pointer transition-all duration-300 transform ${
+                selected === "client" || isHoverClient ? "scale-[1.02] -translate-y-1" : "hover:scale-[1.02] hover:-translate-y-1"
+              }
                 ${
                   selected === "client"
                     ? "border-green-500 border-3"
                     : "border-gray-200"
                 }
-                w-[280px] h-[340px] rounded-xl border-2
-                ${selected === "client" ? "shadow-md" : "hover:shadow-sm"}`}
+                w-[280px] h-[340px] rounded-xl border-2 active:scale-[0.98]
+                ${selected === "client" ? "shadow-lg" : "hover:shadow-md"}`}
             >
               {/* Illustration */}
               <div className="flex justify-center mt-3 mb-10 px-3">
                 <img
                   src={Ilu1}
                   alt="Buyer Illustration"
-                  className="h-28 w-auto object-contain"
+                  className="h-28 w-auto object-contain transition-transform duration-300"
                 />
               </div>
 
@@ -149,26 +213,39 @@ const RegisterChoicePage = () => {
                   insight across Ibadan
                 </p>
               </div>
+
+              {/* Selection Indicator */}
+              {selected === "client" && (
+                <div className="absolute -top-3 -right-3 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
             </div>
 
             {/* Vendor/Business Owner Card - Desktop */}
             <div
               onClick={() => setSelected("vendor")}
-              className={`relative bg-white cursor-pointer transition-all duration-200 mx-auto
+              onMouseEnter={() => setIsHoverVendor(true)}
+              onMouseLeave={() => setIsHoverVendor(false)}
+              className={`relative bg-white cursor-pointer transition-all duration-300 transform ${
+                selected === "vendor" || isHoverVendor ? "scale-[1.02] -translate-y-1" : "hover:scale-[1.02] hover:-translate-y-1"
+              }
                 ${
                   selected === "vendor"
                     ? "border-green-500 border-3"
                     : "border-gray-200"
                 }
-                w-[280px] h-[340px] rounded-xl border-2
-                ${selected === "vendor" ? "shadow-md" : "hover:shadow-sm"}`}
+                w-[280px] h-[340px] rounded-xl border-2 active:scale-[0.98]
+                ${selected === "vendor" ? "shadow-lg" : "hover:shadow-md"}`}
             >
               {/* Illustration */}
               <div className="flex justify-center mt-3 mb-10 px-3">
                 <img
                   src={Ilu2}
                   alt="Vendor Illustration"
-                  className="h-28 w-auto object-contain"
+                  className="h-28 w-auto object-contain transition-transform duration-300"
                 />
               </div>
 
@@ -182,6 +259,15 @@ const RegisterChoicePage = () => {
                   your visibility on Ajani
                 </p>
               </div>
+
+              {/* Selection Indicator */}
+              {selected === "vendor" && (
+                <div className="absolute -top-3 -right-3 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -195,18 +281,34 @@ const RegisterChoicePage = () => {
                 selected === "client" ? "/register/user" : "/register/vendor"
               )
             }
-            className={`w-full py-2 lg:py-2.5 px-5 rounded-lg font-semibold text-sm lg:text-base transition-all duration-200
+            className={`w-full py-2 lg:py-2.5 px-5 rounded-lg font-semibold text-sm lg:text-base transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]
               ${
                 selected === "client"
-                  ? "bg-green-600 text-white hover:bg-green-700 shadow-sm hover:shadow"
+                  ? "bg-green-600 text-white hover:bg-green-700 shadow-md hover:shadow-lg"
                   : selected === "vendor"
-                  ? "bg-green-600 text-white hover:bg-green-700 shadow-sm hover:shadow"
-                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  ? "bg-green-600 text-white hover:bg-green-700 shadow-md hover:shadow-lg"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed hover:scale-100 active:scale-100"
               }`}
           >
-            {!selected && "Create Account"}
-            {selected === "client" && "Join as Buyer"}
-            {selected === "vendor" && "Apply as Vendor"}
+            <div className="flex items-center justify-center gap-2">
+              {!selected && "Create Account"}
+              {selected === "client" && (
+                <>
+                  <span>Join as Buyer</span>
+                  <svg className="w-4 h-4 ml-1 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </>
+              )}
+              {selected === "vendor" && (
+                <>
+                  <span>Apply as Vendor</span>
+                  <svg className="w-4 h-4 ml-1 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </>
+              )}
+            </div>
           </button>
 
           {/* Login Link */}
@@ -214,12 +316,32 @@ const RegisterChoicePage = () => {
             Already have an account?{" "}
             <button
               onClick={() => navigate("/login")}
-              className="text-green-600 hover:text-green-700 font-semibold underline"
+              className="text-green-600 hover:text-green-700 font-semibold underline transition-colors duration-300 hover:scale-105 active:scale-95 transform"
             >
               Log In
             </button>
           </p>
         </div>
+      </div>
+
+      {/* Footer Section */}
+      <div className="py-4 px-3 text-center">
+        <p className="text-gray-400 text-xs">
+          By continuing, you agree to Ajani's{" "}
+          <button 
+            onClick={() => navigate("/termspage")}
+            className="text-green-600 hover:text-green-700 underline transition-colors duration-300"
+          >
+            Terms of Service
+          </button>{" "}
+          and{" "}
+          <button 
+            onClick={() => navigate("/privacypage")}
+            className="text-green-600 hover:text-green-700 underline transition-colors duration-300"
+          >
+            Privacy Policy
+          </button>
+        </p>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaArrowRight, FaEye, FaEyeSlash, FaTimes } from "react-icons/fa";
+import { FaArrowRight, FaEye, FaEyeSlash, FaTimes, FaArrowLeft } from "react-icons/fa";
 import Logo from "../../../assets/Logos/logo5.png";
 import * as yup from "yup";
 import { useForm } from "react-hook-form";
@@ -319,6 +319,14 @@ const UserRegistration = () => {
     }
   };
 
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  const handleLogoClick = () => {
+    navigate("/");
+  };
+
   const handleRegistration = async (data) => {
     try {
       setIsSubmitting(true);
@@ -450,7 +458,22 @@ const UserRegistration = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-white flex items-center justify-center p-4 sm:p-6 md:p-8 font-manrope">
+    <div className="min-h-screen w-full bg-white flex items-center justify-center p-4 sm:p-6 md:p-8 font-manrope relative">
+      {/* Header Section with Back Button (Desktop) */}
+      <div className="hidden lg:block absolute left-0 top-0 p-6">
+        <button
+          onClick={handleBack}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-lg transition-colors group"
+          aria-label="Go back"
+        >
+          <FaArrowLeft 
+            size={20} 
+            className="group-hover:-translate-x-0.5 transition-transform" 
+          />
+          <span className="font-medium">Back</span>
+        </button>
+      </div>
+
       {/* Auto-Login Success Toast Notification (rare case) */}
       {showSuccessToast && (
         <ToastNotification
@@ -496,14 +519,20 @@ const UserRegistration = () => {
           <FaTimes size={20} />
         </button>
 
-        {/* Logo */}
+        {/* Logo - Clickable with Zoom Effect */}
         <div className="flex justify-center mb-4">
-          <img src={Logo} alt="Ajani Logo" className="h-auto w-30" />
+          <button
+            onClick={handleLogoClick}
+            className="cursor-pointer hover:opacity-80 transition-all duration-300"
+            aria-label="Go to homepage"
+          >
+            <img src={Logo} alt="Ajani Logo" className="h-auto w-30 cursor-pointer transition-transform duration-300 hover:scale-105" />
+          </button>
         </div>
 
         {/* Heading */}
         <h2 className="text-xl sm:text-2xl font-bold text-center text-gray-900">
-          Create User Account
+          Create Buyer Account
         </h2>
 
         <p className="text-center text-gray-600 mt-2 text-sm sm:text-base leading-tight">

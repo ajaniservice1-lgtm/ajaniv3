@@ -57,6 +57,11 @@ const SavedListingsPage = lazy(() => import("./pages/SavedListingsPage"));
 const UserProfilePage = lazy(() => import("./pages/UserProfilePage"));
 
 /* =======================
+   CONTACT US PAGE - NEW
+======================= */
+const ContactUs = lazy(() => import("./pages/ContactUs"));
+
+/* =======================
    ADMIN PAGES
 ======================= */
 const AdminLayout = lazy(() => import("./components/AdminLayout"));
@@ -218,6 +223,7 @@ function App() {
                   <Route path="/privacypage" element={<PrivacyPage />} />
                   <Route path="/termspage" element={<TermsPage />} />
                   <Route path="/contact" element={<ContactPage />} />
+                  <Route path="/contact-us" element={<ContactUs />} /> {/* NEW CONTACT US PAGE */}
                   <Route path="/vendors" element={<VendorsPage />} />
 
                   {/* DYNAMIC ROUTES */}
