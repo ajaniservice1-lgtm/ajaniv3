@@ -11,12 +11,13 @@ import { ModalProvider } from "./context/ModalContext";
 const HomePage = lazy(() => import("./pages/HomePage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
-const ContactPage = lazy(() => import("./pages/ContactPage"));
+const ContactPage = lazy(() => import("./pages/ContactUs"));
 const AboutAjani = lazy(() => import("./pages/AboutAjani"));
 const CategoryResults = lazy(() => import("./pages/CategoryResults"));
 const SearchResults = lazy(() => import("./components/SearchResults"));
 const VendorDetail = lazy(() => import("./pages/VendorDetail"));
 const VendorsPage = lazy(() => import("./pages/VendorsPage"));
+const HelpCenterPage = lazy(() => import("./pages/HelpCenter")); // NEW
 
 /* =======================
    BOOKING PAGES
@@ -220,10 +221,11 @@ function App() {
                   {/* PUBLIC ROUTES */}
                   <Route path="/" element={<HomePage />} />
                   <Route path="/about" element={<AboutAjani />} />
+                  <Route path="/help-center" element={<HelpCenterPage />} /> {/* NEW */}
                   <Route path="/privacypage" element={<PrivacyPage />} />
                   <Route path="/termspage" element={<TermsPage />} />
                   <Route path="/contact" element={<ContactPage />} />
-                  <Route path="/contact-us" element={<ContactUs />} /> {/* NEW CONTACT US PAGE */}
+                  <Route path="/contact-us" element={<ContactUs />} />
                   <Route path="/vendors" element={<VendorsPage />} />
 
                   {/* DYNAMIC ROUTES */}

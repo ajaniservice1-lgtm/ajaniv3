@@ -345,12 +345,6 @@ const Header = () => {
             <div className="flex items-center gap-2 lg:gap-6 h-full">
               {isLoggedIn ? (
                 <>
-                  {/* Debug indicator (remove in production) */}
-                  <div className="hidden lg:flex items-center gap-1 text-xs text-green-600 bg-green-50/50 backdrop-blur-sm px-2 py-1 rounded">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span>Logged in as {userEmail?.split("@")[0]}</span>
-                  </div>
-
                   {/* Saved Listings button */}
                   <button
                     onClick={() => navigate("/saved")}
