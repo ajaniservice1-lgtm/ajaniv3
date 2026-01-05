@@ -69,19 +69,17 @@ const Header = () => {
     };
   }, []);
 
-  // Calculate glass effect opacity based on scroll position
+  // Enhanced glass effect with more noticeable transparency
   const getGlassEffect = () => {
-    const maxScroll = 100;
-    const opacity = Math.min(scrollPosition / maxScroll, 0.95);
-    
     return {
-      backgroundColor: `rgba(247, 247, 250, ${opacity})`,
-      backdropFilter: isScrolled ? 'blur(10px) saturate(180%)' : 'none',
-      WebkitBackdropFilter: isScrolled ? 'blur(10px) saturate(180%)' : 'none',
-      borderBottom: '2px solid #00d1ff',
+      backgroundColor: isScrolled ? 'rgba(255, 255, 255, 0.65)' : 'rgba(255, 255, 255, 0.95)',
+      backdropFilter: isScrolled ? 'blur(16px) saturate(200%)' : 'blur(8px) saturate(180%)',
+      WebkitBackdropFilter: isScrolled ? 'blur(16px) saturate(200%)' : 'blur(8px) saturate(180%)',
+      borderBottom: isScrolled ? '1px solid rgba(0, 209, 255, 0.3)' : '2px solid #00d1ff',
       boxShadow: isScrolled 
-        ? '0 8px 32px 0 rgba(31, 38, 135, 0.07)' 
-        : 'none',
+        ? '0 8px 32px 0 rgba(31, 38, 135, 0.15)' 
+        : '0 4px 16px 0 rgba(31, 38, 135, 0.05)',
+      transition: 'all 0.3s ease-in-out',
     };
   };
 
@@ -282,10 +280,13 @@ const Header = () => {
     <>
       <header 
         ref={headerRef}
-        className="fixed top-0 left-0 right-0 z-[1000] h-16 cursor-default transition-all duration-300 ease-out"
+        className="fixed top-0 left-0 right-0 z-[1000] h-16 cursor-default transition-all duration-300 ease-in-out"
         style={getGlassEffect()}
       >
-        <div className="max-w-7xl mx-auto px-4 h-full">
+        {/* Enhanced glass effect background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/70 to-white/60 -z-10" />
+        
+        <div className="max-w-7xl mx-auto px-4 h-full relative">
           <nav className="flex items-center justify-between h-full">
             <div className="flex items-center gap-3">
               <button
@@ -306,7 +307,7 @@ const Header = () => {
                 <button
                   key={item.id}
                   onClick={item.action}
-                  className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-3 py-1 rounded-md hover:bg-blue-50/50 backdrop-blur-sm"
+                  className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-3 py-1 rounded-md hover:bg-white/30 backdrop-blur-sm"
                 >
                   {item.label}
                 </button>
@@ -317,7 +318,7 @@ const Header = () => {
                   <button
                     key={index}
                     onClick={item.onClick}
-                    className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-3 py-1 rounded-md hover:bg-blue-50/50 backdrop-blur-sm"
+                    className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-3 py-1 rounded-md hover:bg-white/30 backdrop-blur-sm"
                   >
                     {item.label}
                   </button>
@@ -328,36 +329,67 @@ const Header = () => {
             <div className="flex items-center gap-2 lg:gap-6 h-full">
               {isLoggedIn ? (
                 <>
-                  {/* Saved Listings button */}
+                  {/* Saved Listings button - Black & White Heart */}
                   <button
                     onClick={() => navigate("/saved")}
-                    className="relative hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/20 rounded-lg backdrop-blur-sm"
+                    className="relative hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/30 rounded-lg backdrop-blur-sm group"
                     title="Saved Listings"
                   >
-                    <LucideIcons.Bookmark size={20} strokeWidth={1.5} />
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      width="20" 
+                      height="20" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="1.5" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                      className="group-hover:scale-110 transition-transform duration-200"
+                    >
+                      <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
+                    </svg>
                     {savedCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      <span className="absolute -top-1 -right-1 bg-gray-800 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium shadow-sm border border-white/20">
                         {savedCount > 9 ? "9+" : savedCount}
                       </span>
                     )}
                   </button>
 
-                  {/* Chat button */}
+                  {/* Chat button - Return to MessageSquareText icon */}
                   <button
                     onClick={() => navigate("/chat")}
-                    className="hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/20 rounded-lg backdrop-blur-sm"
+                    className="hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/30 rounded-lg backdrop-blur-sm group"
                     title="Chat"
                   >
-                    <LucideIcons.MessageSquare size={20} strokeWidth={1.5} />
+                    <LucideIcons.MessageSquareText 
+                      size={20} 
+                      strokeWidth={1.5} 
+                      className="group-hover:scale-110 transition-transform duration-200"
+                    />
                   </button>
 
-                  {/* Notifications button */}
+                  {/* Notifications button - Simple Bell */}
                   <button
                     onClick={() => navigate("/notifications")}
-                    className="hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/20 rounded-lg backdrop-blur-sm"
+                    className="hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/30 rounded-lg backdrop-blur-sm group"
                     title="Notifications"
                   >
-                    <LucideIcons.Bell size={20} strokeWidth={1.5} />
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      width="20" 
+                      height="20" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="1.5" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                      className="group-hover:scale-110 transition-transform duration-200"
+                    >
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
                   </button>
 
                   {/* Profile dropdown */}
@@ -369,33 +401,33 @@ const Header = () => {
                       onClick={() =>
                         setIsProfileDropdownOpen(!isProfileDropdownOpen)
                       }
-                      className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-blue-50/50 backdrop-blur-sm transition-all duration-300 cursor-pointer hover:scale-105"
+                      className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-white/30 backdrop-blur-sm transition-all duration-300 cursor-pointer hover:scale-105 group"
                       title="Profile"
                     >
                       {userProfile?.profilePicture ? (
                         <img
                           src={userProfile.profilePicture}
                           alt="Profile"
-                          className="w-8 h-8 rounded-full object-cover border border-gray-200/50 backdrop-blur-sm"
+                          className="w-8 h-8 rounded-full object-cover border border-gray-200/50 backdrop-blur-sm group-hover:ring-2 group-hover:ring-[#00d1ff]/30 transition-all"
                           onError={(e) => {
                             e.target.onerror = null;
                             e.target.style.display = "none";
                             e.target.parentElement.innerHTML = `
-                              <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm backdrop-blur-sm">
+                              <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm backdrop-blur-sm group-hover:ring-2 group-hover:ring-[#00d1ff]/30 transition-all">
                                 ${getUserInitials()}
                               </div>
                             `;
                           }}
                         />
                       ) : (
-                        <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm backdrop-blur-sm">
+                        <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm backdrop-blur-sm group-hover:ring-2 group-hover:ring-[#00d1ff]/30 transition-all">
                           {getUserInitials()}
                         </div>
                       )}
                     </button>
 
                     {isProfileDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white/95 backdrop-blur-lg rounded-lg shadow-lg py-2 z-1001 border border-gray-200/50 cursor-default transition-all duration-300">
+                      <div className="absolute right-0 mt-2 w-56 bg-white/95 backdrop-blur-xl rounded-lg shadow-xl py-2 z-[1002] border border-gray-200/30 cursor-default transition-all duration-300 animate-in fade-in-50 slide-in-from-top-1">
                         {/* User info */}
                         <div className="px-4 py-3 border-b border-gray-100/50 cursor-default">
                           <p className="text-sm font-medium text-gray-900 cursor-default">
@@ -420,82 +452,160 @@ const Header = () => {
                             navigate("/profile");
                             setIsProfileDropdownOpen(false);
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/50 hover:text-gray-900 transition-all duration-200 cursor-pointer"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/80 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
                         >
-                          <LucideIcons.User size={16} strokeWidth={1.5} />
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            width="16" 
+                            height="16" 
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            strokeWidth="1.5" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round"
+                          >
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                          </svg>
                           <span className="cursor-pointer">My Profile</span>
                         </button>
 
-                        {/* Saved listings link */}
+                        {/* Saved listings link - Black & White Heart */}
                         <button
                           onClick={() => {
                             navigate("/saved");
                             setIsProfileDropdownOpen(false);
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/50 hover:text-gray-900 transition-all duration-200 cursor-pointer"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/80 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
                         >
-                          <LucideIcons.Bookmark size={16} strokeWidth={1.5} />
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            width="16" 
+                            height="16" 
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            strokeWidth="1.5" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round"
+                          >
+                            <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
+                          </svg>
                           <span className="cursor-pointer">
                             Saved Listings {savedCount > 0 && `(${savedCount})`}
                           </span>
                         </button>
 
-                        {/* Chat link */}
+                        {/* Chat link - Return to MessageSquareText icon */}
                         <button
                           onClick={() => {
                             navigate("/chat");
                             setIsProfileDropdownOpen(false);
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/50 hover:text-gray-900 transition-all duration-200 cursor-pointer"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/80 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
                         >
-                          <LucideIcons.MessageSquare size={16} strokeWidth={1.5} />
+                          <LucideIcons.MessageSquareText size={16} strokeWidth={1.5} />
                           <span className="cursor-pointer">Chat Assistant</span>
                         </button>
 
-                        {/* Notifications link */}
+                        {/* Notifications link - Simple Bell */}
                         <button
                           onClick={() => {
                             navigate("/notifications");
                             setIsProfileDropdownOpen(false);
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/50 hover:text-gray-900 transition-all duration-200 cursor-pointer"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/80 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
                         >
-                          <LucideIcons.Bell size={16} strokeWidth={1.5} />
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            width="16" 
+                            height="16" 
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            strokeWidth="1.5" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round"
+                          >
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                          </svg>
                           <span className="cursor-pointer">Notifications</span>
                         </button>
 
-                        {/* List business link */}
+                        {/* List business link - Simple Briefcase */}
                         <button
                           onClick={() => {
                             navigate("/add-business");
                             setIsProfileDropdownOpen(false);
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/50 hover:text-gray-900 transition-all duration-200 cursor-pointer"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/80 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
                         >
-                          <LucideIcons.Briefcase size={16} strokeWidth={1.5} />
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            width="16" 
+                            height="16" 
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            strokeWidth="1.5" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round"
+                          >
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                          </svg>
                           <span className="cursor-pointer">List Business</span>
                         </button>
 
-                        {/* Settings link */}
+                        {/* Settings link - Simple Gear */}
                         <button
                           onClick={() => {
                             alert("Settings feature coming soon!");
                             setIsProfileDropdownOpen(false);
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/50 hover:text-gray-900 transition-all duration-200 cursor-pointer"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/80 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
                         >
-                          <LucideIcons.Settings size={16} strokeWidth={1.5} />
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            width="16" 
+                            height="16" 
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            strokeWidth="1.5" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round"
+                          >
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                          </svg>
                           <span className="cursor-pointer">Settings</span>
                         </button>
 
                         <div className="h-px bg-gray-100/50 my-1"></div>
 
-                        {/* Sign out */}
+                        {/* Sign out - Simple Logout */}
                         <button
                           onClick={handleSignOut}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50/50 hover:text-red-700 transition-all duration-200 cursor-pointer"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-red-50/80 hover:text-red-700 transition-all duration-200 cursor-pointer group/item"
                         >
-                          <LucideIcons.LogOut size={16} strokeWidth={1.5} />
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            width="16" 
+                            height="16" 
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            strokeWidth="1.5" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round"
+                          >
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <polyline points="16 17 21 12 16 7"/>
+                            <line x1="21" y1="12" x2="9" y2="12"/>
+                          </svg>
                           <span className="cursor-pointer">Sign Out</span>
                         </button>
                       </div>
@@ -507,18 +617,18 @@ const Header = () => {
                 <div className="hidden lg:flex items-center gap-1.5">
                   <button
                     onClick={() => navigate("/login")}
-                    className="py-2.5 px-5 text-sm font-normal bg-[#06EAFC]/90 hover:bg-[#6cf5ff] duration-300 rounded-full transition-all shadow-sm cursor-pointer hover:scale-105 backdrop-blur-sm"
+                    className="py-2.5 px-5 text-sm font-normal bg-[#06EAFC]/90 hover:bg-[#6cf5ff] duration-300 rounded-full transition-all shadow-sm cursor-pointer hover:scale-105 backdrop-blur-sm group"
                   >
-                    Log in
+                    <span className="group-hover:tracking-wide transition-all">Log in</span>
                   </button>
 
                   <div className="w-px h-5 bg-gray-400/50 font-bold backdrop-blur-sm"></div>
 
                   <button
                     onClick={() => navigate("/register")}
-                    className="py-2.5 px-4 text-sm font-normal border-2 border-[#06EAFC] rounded-full transition-all shadow-sm cursor-pointer hover:scale-105 hover:bg-white/20 backdrop-blur-sm"
+                    className="py-2.5 px-4 text-sm font-normal border-2 border-[#06EAFC] rounded-full transition-all shadow-sm cursor-pointer hover:scale-105 hover:bg-white/30 backdrop-blur-sm group"
                   >
-                    Register
+                    <span className="group-hover:tracking-wide transition-all">Register</span>
                   </button>
                 </div>
               )}
@@ -526,12 +636,41 @@ const Header = () => {
               {/* Mobile menu button */}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="lg:hidden text-gray-900 p-1 ml-2 cursor-pointer hover:text-[#00d1ff] transition-all duration-300 hover:bg-white/20 rounded-lg"
+                className="lg:hidden text-gray-900 p-1 ml-2 cursor-pointer hover:text-[#00d1ff] transition-all duration-300 hover:bg-white/30 rounded-lg group"
               >
                 {isMenuOpen ? (
-                  <LucideIcons.X size={24} strokeWidth={1.5} />
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="24" 
+                    height="24" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="1.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                    className="group-hover:rotate-90 transition-transform duration-300"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
                 ) : (
-                  <LucideIcons.Menu size={24} strokeWidth={1.5} />
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="24" 
+                    height="24" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="1.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                    className="group-hover:scale-110 transition-transform duration-300"
+                  >
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                  </svg>
                 )}
               </button>
             </div>
@@ -575,9 +714,23 @@ const Header = () => {
             </div>
             <button
               onClick={() => setIsMenuOpen(false)}
-              className="text-gray-900 hover:text-gray-600 cursor-pointer transition-colors duration-300 hover:bg-white/20 rounded-lg p-1"
+              className="text-gray-900 hover:text-gray-600 cursor-pointer transition-colors duration-300 hover:bg-white/20 rounded-lg p-1 group"
             >
-              <LucideIcons.X size={24} strokeWidth={1.5} className="transition-transform duration-300 hover:rotate-90" />
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="24" 
+                height="24" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="1.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+                className="transition-transform duration-300 group-hover:rotate-90"
+              >
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
             </button>
           </div>
 
@@ -586,7 +739,7 @@ const Header = () => {
             {baseNavItems.map((item, index) => (
               <button
                 key={item.id}
-                className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
                 onClick={() => {
                   item.action();
                   if (item.id !== "Blog") {
@@ -599,7 +752,7 @@ const Header = () => {
                   transform: isMenuOpen ? "translateX(0)" : "translateX(-20px)",
                 }}
               >
-                {item.label}
+                <span className="group-hover/item:pl-1 transition-all">{item.label}</span>
               </button>
             ))}
 
@@ -612,7 +765,7 @@ const Header = () => {
                     item.onClick();
                     setIsMenuOpen(false);
                   }}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${(baseNavItems.length + index) * 50}ms`
@@ -623,7 +776,7 @@ const Header = () => {
                       : "translateX(-20px)",
                   }}
                 >
-                  {item.label}
+                  <span className="group-hover/item:pl-1 transition-all">{item.label}</span>
                 </button>
               ))}
 
@@ -678,7 +831,7 @@ const Header = () => {
                 {/* Mobile navigation for logged-in users */}
                 <button
                   onClick={() => handleMobileNavigate("/profile")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
@@ -693,14 +846,27 @@ const Header = () => {
                   }}
                 >
                   <div className="flex items-center gap-2">
-                    <LucideIcons.User size={16} strokeWidth={1.5} />
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      width="16" 
+                      height="16" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="1.5" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                      <circle cx="12" cy="7" r="4"/>
+                    </svg>
                     <span>My Profile</span>
                   </div>
                 </button>
 
                 <button
                   onClick={() => handleMobileNavigate("/saved")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
@@ -715,7 +881,19 @@ const Header = () => {
                   }}
                 >
                   <div className="flex items-center gap-2">
-                    <LucideIcons.Bookmark size={16} strokeWidth={1.5} />
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      width="16" 
+                      height="16" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="1.5" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
+                    </svg>
                     <span>
                       Saved Listings {savedCount > 0 && `(${savedCount})`}
                     </span>
@@ -724,7 +902,7 @@ const Header = () => {
 
                 <button
                   onClick={() => handleMobileNavigate("/chat")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
@@ -738,11 +916,15 @@ const Header = () => {
                       : "translateX(-20px)",
                   }}
                 >
-                  Chat Assistant
+                  <div className="flex items-center gap-2">
+                    <LucideIcons.MessageSquareText size={16} strokeWidth={1.5} />
+                    <span>Chat Assistant</span>
+                  </div>
                 </button>
+
                 <button
                   onClick={() => handleMobileNavigate("/notifications")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
@@ -756,7 +938,23 @@ const Header = () => {
                       : "translateX(-20px)",
                   }}
                 >
-                  Notifications
+                  <div className="flex items-center gap-2">
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      width="16" 
+                      height="16" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="1.5" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    >
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <span>Notifications</span>
+                  </div>
                 </button>
 
                 {/* Sign Out button */}
@@ -764,7 +962,7 @@ const Header = () => {
                   onClick={() => {
                     handleSignOut();
                   }}
-                  className="block w-full text-left py-3 px-4 text-red-600 hover:text-red-800 hover:bg-red-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  className="block w-full text-left py-3 px-4 text-gray-700 hover:text-red-700 hover:bg-red-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${
@@ -778,7 +976,24 @@ const Header = () => {
                       : "translateX(-20px)",
                   }}
                 >
-                  Sign Out
+                  <div className="flex items-center gap-2">
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      width="16" 
+                      height="16" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="1.5" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    >
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                      <polyline points="16 17 21 12 16 7"/>
+                      <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    <span>Sign Out</span>
+                  </div>
                 </button>
               </>
             ) : (
@@ -795,7 +1010,7 @@ const Header = () => {
 
                 <button
                   onClick={() => handleMobileNavigate("/login")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${(baseNavItems.length + 2) * 50}ms`
@@ -806,12 +1021,12 @@ const Header = () => {
                       : "translateX(-20px)",
                   }}
                 >
-                  Log In
+                  <span className="group-hover/item:pl-1 transition-all">Log In</span>
                 </button>
 
                 <button
                   onClick={() => handleMobileNavigate("/register")}
-                  className="block w-full text-left py-3 px-4 hover:bg-blue-50/50 backdrop-blur-sm text-black rounded-lg font-normal whitespace-nowrap text-sm cursor-pointer transition-all duration-300 transform hover:translate-x-1"
+                  className="block w-full text-left py-3 px-4 hover:bg-blue-50/50 backdrop-blur-sm text-black rounded-lg font-normal whitespace-nowrap text-sm cursor-pointer transition-all duration-300 transform hover:translate-x-1 group/item"
                   style={{
                     transitionDelay: isMenuOpen
                       ? `${(baseNavItems.length + 3) * 50}ms`
@@ -822,7 +1037,7 @@ const Header = () => {
                       : "translateX(-20px)",
                   }}
                 >
-                  Register
+                  <span className="group-hover/item:pl-1 transition-all">Register</span>
                 </button>
               </>
             )}
