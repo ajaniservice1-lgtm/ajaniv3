@@ -6,6 +6,214 @@ import { useInView } from "react-intersection-observer";
 import { useNavigate } from "react-router-dom";
 import { MdFavoriteBorder } from "react-icons/md";
 
+// API Configuration
+const API_BASE_URL = 'https://ajanibackend.onrender.com/api/v1/listings';
+
+// DEMO DATA - Will be shown when backend has no listings
+const DEMO_LISTINGS = {
+  hotel: [
+    {
+      _id: "demo_hotel_1",
+      title: "Luxury Hotel & Suites",
+      category: "hotel",
+      price: 45000,
+      location: {
+        address: "123 Luxury Lane",
+        area: "Victoria Island, Lagos"
+      },
+      images: [{ 
+        url: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop&q=80",
+        public_id: "demo_hotel_1"
+      }],
+      status: "active",
+      description: "5-star luxury hotel with premium amenities"
+    },
+    {
+      _id: "demo_hotel_2",
+      title: "Business Class Hotel",
+      category: "hotel",
+      price: 32000,
+      location: {
+        address: "456 Business Avenue",
+        area: "Ikeja, Lagos"
+      },
+      images: [{ 
+        url: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600&h=400&fit=crop&q=80",
+        public_id: "demo_hotel_2"
+      }],
+      status: "active",
+      description: "Perfect for business travelers"
+    },
+    {
+      _id: "demo_hotel_3",
+      title: "Boutique Hotel Resort",
+      category: "hotel",
+      price: 38000,
+      location: {
+        address: "789 Resort Road",
+        area: "Lekki, Lagos"
+      },
+      images: [{ 
+        url: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600&h=400&fit=crop&q=80",
+        public_id: "demo_hotel_3"
+      }],
+      status: "active",
+      description: "Luxurious boutique hotel experience"
+    }
+  ],
+  shortlet: [
+    {
+      _id: "demo_shortlet_1",
+      title: "Modern Apartment Shortlet",
+      category: "shortlet",
+      price: 25000,
+      location: {
+        address: "101 Shortlet Street",
+        area: "Yaba, Lagos"
+      },
+      images: [{ 
+        url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&h=400&fit=crop&q=80",
+        public_id: "demo_shortlet_1"
+      }],
+      status: "active",
+      description: "Fully furnished modern apartment"
+    },
+    {
+      _id: "demo_shortlet_2",
+      title: "Executive Studio Apartment",
+      category: "shortlet",
+      price: 18000,
+      location: {
+        address: "202 Executive Lane",
+        area: "Surulere, Lagos"
+      },
+      images: [{ 
+        url: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&h=400&fit=crop&q=80",
+        public_id: "demo_shortlet_2"
+      }],
+      status: "active",
+      description: "Cozy studio perfect for short stays"
+    }
+  ],
+  restaurant: [
+    {
+      _id: "demo_restaurant_1",
+      title: "Fine Dining Restaurant",
+      category: "restaurant",
+      price: 15000,
+      location: {
+        address: "303 Food Street",
+        area: "Ikoyi, Lagos"
+      },
+      images: [{ 
+        url: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop&q=80",
+        public_id: "demo_restaurant_1"
+      }],
+      status: "active",
+      description: "Premium dining experience"
+    },
+    {
+      _id: "demo_restaurant_2",
+      title: "Traditional Nigerian Cuisine",
+      category: "restaurant",
+      price: 8000,
+      location: {
+        address: "404 Culture Road",
+        area: "Mushin, Lagos"
+      },
+      images: [{ 
+        url: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&h=400&fit=crop&q=80",
+        public_id: "demo_restaurant_2"
+      }],
+      status: "active",
+      description: "Authentic Nigerian dishes"
+    },
+    {
+      _id: "demo_restaurant_3",
+      title: "Italian Bistro",
+      category: "restaurant",
+      price: 12000,
+      location: {
+        address: "505 Pasta Lane",
+        area: "VI, Lagos"
+      },
+      images: [{ 
+        url: "https://images.unsplash.com/photo-1590846406792-0adc7f938f1d?w=600&h=400&fit=crop&q=80",
+        public_id: "demo_restaurant_3"
+      }],
+      status: "active",
+      description: "Authentic Italian cuisine"
+    }
+  ]
+};
+
+// ---------------- API Service Functions ----------------
+const buildQueryString = (filters = {}) => {
+  const params = new URLSearchParams();
+  
+  // Add filters
+  if (filters.category) params.append('category', filters.category);
+  if (filters.status) params.append('status', filters.status || 'active');
+  if (filters.minPrice) params.append('price[gte]', filters.minPrice);
+  if (filters.maxPrice) params.append('price[lte]', filters.maxPrice);
+  if (filters.area) params.append('location.area', filters.area);
+  
+  // Add sorting
+  if (filters.sort) params.append('sort', filters.sort || '-createdAt');
+  
+  // Add pagination
+  if (filters.page) params.append('page', filters.page);
+  if (filters.limit) params.append('limit', filters.limit || 6);
+  
+  // Add field selection
+  params.append('fields', 'title,category,price,images,location,status,description');
+  
+  return params.toString();
+};
+
+// Get all listings with filters
+const getListings = async (filters = {}) => {
+  const queryString = buildQueryString(filters);
+  const url = queryString ? `${API_BASE_URL}?${queryString}` : API_BASE_URL;
+  
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.status === 'error') {
+      throw new Error(data.message || 'Failed to fetch listings');
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('API Fetch Error:', error.message);
+    throw error;
+  }
+};
+
+// Get listings by category
+const getListingsByCategory = async (category, limit = 6) => {
+  const filters = {
+    category: category,
+    status: 'active',
+    sort: '-createdAt',
+    limit: limit
+  };
+  
+  return getListings(filters);
+};
+
 // ---------------- Skeleton Loading Components ----------------
 const SkeletonCard = ({ isMobile }) => (
   <div
@@ -13,14 +221,11 @@ const SkeletonCard = ({ isMobile }) => (
       isMobile ? "w-[165px]" : "w-[210px]"
     } snap-start`}
   >
-    {/* Image Skeleton - Further reduced height */}
     <div
       className={`relative overflow-hidden rounded-xl bg-gray-200 ${
         isMobile ? "h-[150px]" : "h-[150px]"
       }`}
     ></div>
-
-    {/* Text Skeleton */}
     <div className={`${isMobile ? "p-1.5" : "p-2"} flex flex-col gap-1.5`}>
       <div className="h-4 bg-gray-200 rounded w-3/4"></div>
       <div className="h-3 bg-gray-200 rounded w-1/2"></div>
@@ -42,7 +247,6 @@ const SkeletonCategorySection = ({ isMobile }) => (
         className={`${isMobile ? "h-4" : "h-6"} bg-gray-200 rounded w-24`}
       ></div>
     </div>
-
     <div
       className={`${
         isMobile
@@ -63,7 +267,6 @@ const SkeletonDirectory = ({ isMobile }) => (
     className={`bg-white font-manrope ${isMobile ? "py-6" : "py-8"}`}
   >
     <div className="max-w-[1800px] mx-auto px-4 sm:px-6">
-      {/* Header Skeleton - Reduced gap */}
       <div className={isMobile ? "mb-3" : "mb-4"}>
         <div className="text-center">
           <div
@@ -78,8 +281,6 @@ const SkeletonDirectory = ({ isMobile }) => (
           ></div>
         </div>
       </div>
-
-      {/* Category Sections Skeleton - Reduced spacing */}
       <div className={isMobile ? "space-y-4" : "space-y-6"}>
         {[...Array(3)].map((_, index) => (
           <SkeletonCategorySection key={index} isMobile={isMobile} />
@@ -95,85 +296,28 @@ const capitalizeFirst = (str) =>
 
 const FALLBACK_IMAGES = {
   hotel: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop&q=80",
-  restaurant:
-    "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop&q=80",
-  shortlet:
-    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&h=400&fit=crop&q=80",
-  default:
-    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop&q=80",
+  restaurant: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop&q=80",
+  shortlet: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&h=400&fit=crop&q=80",
+  services: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop&q=80",
+  event: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop&q=80",
+  default: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop&q=80",
 };
 
-const getCardImages = (item) => {
-  const raw = item["image url"] || "";
-  const urls = raw
-    .split(",")
-    .map((u) => u.trim())
-    .filter((u) => u && u.startsWith("http"));
-
-  if (urls.length > 0) return urls;
-
-  const cat = (item.category || "").toLowerCase();
+const getCardImages = (listing) => {
+  if (listing.images && listing.images.length > 0 && listing.images[0].url) {
+    return [listing.images[0].url];
+  }
+  
+  const cat = (listing.category || "").toLowerCase();
   if (cat.includes("hotel")) return [FALLBACK_IMAGES.hotel];
   if (cat.includes("restaurant")) return [FALLBACK_IMAGES.restaurant];
   if (cat.includes("shortlet")) return [FALLBACK_IMAGES.shortlet];
+  if (cat.includes("services")) return [FALLBACK_IMAGES.services];
+  if (cat.includes("event")) return [FALLBACK_IMAGES.event];
   return [FALLBACK_IMAGES.default];
 };
 
 // ---------------- Custom Hooks ----------------
-const useGoogleSheet = (sheetId, apiKey) => {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (!sheetId || !apiKey) {
-      setError("⚠️ Missing SHEET_ID or API_KEY");
-      setLoading(false);
-      return;
-    }
-
-    const fetchData = async () => {
-      try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A1:Z1000?key=${apiKey}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        let result = [];
-        if (
-          json.values &&
-          Array.isArray(json.values) &&
-          json.values.length > 1
-        ) {
-          const headers = json.values[0];
-          const rows = json.values.slice(1);
-          result = rows
-            .filter((row) => Array.isArray(row) && row.length > 0)
-            .map((row) => {
-              const obj = {};
-              headers.forEach((h, i) => {
-                obj[h?.toString().trim() || `col_${i}`] = (row[i] || "")
-                  .toString()
-                  .trim();
-              });
-              return obj;
-            });
-        }
-        setData(result);
-      } catch (err) {
-        console.error("Google Sheets fetch error:", err);
-        setError("⚠️ Failed to load directory. Try again later.");
-        setData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [sheetId, apiKey]);
-
-  return { data: Array.isArray(data) ? data : [], loading, error };
-};
-
 // Custom hook for tracking favorite status
 const useIsFavorite = (itemId) => {
   const [isFavorite, setIsFavorite] = useState(false);
@@ -191,33 +335,25 @@ const useIsFavorite = (itemId) => {
   }, [itemId]);
 
   useEffect(() => {
-    // Initial check
     checkFavoriteStatus();
 
-    // Create a custom event listener
     const handleSavedListingsChange = () => {
       checkFavoriteStatus();
     };
 
-    // Listen for storage events
     const handleStorageChange = (e) => {
       if (e.key === "userSavedListings") {
         checkFavoriteStatus();
       }
     };
 
-    // Add event listeners
     window.addEventListener("savedListingsUpdated", handleSavedListingsChange);
     window.addEventListener("storage", handleStorageChange);
 
-    // Poll for changes (fallback)
     const pollInterval = setInterval(checkFavoriteStatus, 1000);
 
     return () => {
-      window.removeEventListener(
-        "savedListingsUpdated",
-        handleSavedListingsChange
-      );
+      window.removeEventListener("savedListingsUpdated", handleSavedListingsChange);
       window.removeEventListener("storage", handleStorageChange);
       clearInterval(pollInterval);
     };
@@ -239,10 +375,8 @@ const useAuthStatus = () => {
   }, []);
 
   useEffect(() => {
-    // Initial check
     checkAuth();
 
-    // Listen for auth changes
     const handleAuthChange = () => {
       checkAuth();
     };
@@ -263,26 +397,68 @@ const useAuthStatus = () => {
   return isAuthenticated;
 };
 
+// Custom hook for fetching listings
+const useListings = (category, limit = 6) => {
+  const [listings, setListings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isEmpty, setIsEmpty] = useState(false);
+
+  useEffect(() => {
+    const fetchListings = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        setIsEmpty(false);
+        
+        const data = await getListingsByCategory(category, limit);
+        
+        // Check if we got actual data
+        if (data && data.data && data.data.listings && data.data.listings.length > 0) {
+          setListings(data.data.listings);
+        } else {
+          // No data from API, use demo data
+          console.log(`No ${category} listings found in database. Using demo data.`);
+          setListings(DEMO_LISTINGS[category] || []);
+          setIsEmpty(true);
+        }
+      } catch (err) {
+        console.error(`Error fetching ${category} listings:`, err);
+        // Use demo data on error
+        setListings(DEMO_LISTINGS[category] || []);
+        setIsEmpty(true);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchListings();
+  }, [category, limit]);
+
+  return { listings, loading, error, isEmpty };
+};
+
 // ---------------- BusinessCard Component ----------------
-const BusinessCard = ({ item, category, isMobile }) => {
+const BusinessCard = ({ item, category, isMobile, isDemo = false }) => {
   const images = getCardImages(item);
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [imageHeight, setImageHeight] = useState(150); // Reduced from 160
+  const [imageHeight, setImageHeight] = useState(150);
 
   // Use custom hooks
-  const isFavorite = useIsFavorite(item.id);
+  const isFavorite = useIsFavorite(item._id || item.id);
   const isAuthenticated = useAuthStatus();
 
-  // Set consistent height based on device - Further reduced desktop height
+  // Set consistent height based on device
   useEffect(() => {
-    setImageHeight(isMobile ? 150 : 150); // Same height for mobile and desktop now
+    setImageHeight(isMobile ? 150 : 150);
   }, [isMobile]);
 
   // Add resize listener to maintain dimensions
   useEffect(() => {
     const handleResize = () => {
-      setImageHeight(150); // Fixed height
+      setImageHeight(150);
     };
 
     window.addEventListener("resize", handleResize);
@@ -299,8 +475,8 @@ const BusinessCard = ({ item, category, isMobile }) => {
   };
 
   const getPriceText = () => {
-    const priceFrom = item.price_from || item.price || "0";
-    const formattedPrice = formatPrice(priceFrom);
+    const price = item.price || "0";
+    const formattedPrice = formatPrice(price);
     return `₦${formattedPrice}`;
   };
 
@@ -310,18 +486,20 @@ const BusinessCard = ({ item, category, isMobile }) => {
     if (cat.includes("hotel")) return "Hotel";
     if (cat.includes("shortlet")) return "Shortlet";
     if (cat.includes("restaurant")) return "Restaurant";
+    if (cat.includes("services")) return "Service";
+    if (cat.includes("event")) return "Event";
     return "Co";
   };
 
   const tag = getTag();
   const priceText = getPriceText();
-  const locationText = item.area || item.location || "Ibadan";
-  const rating = item.rating || "4.9";
-  const businessName = item.name || "Business Name";
+  const locationText = item.location?.area || item.area || "Lagos";
+  const rating = "4.9"; // Default rating
+  const businessName = item.title || item.name || "Business Name";
 
   const handleCardClick = () => {
-    if (item.id) {
-      navigate(`/vendor-detail/${item.id}`);
+    if (item._id || item.id) {
+      navigate(`/vendor-detail/${item._id || item.id}`);
     } else {
       navigate(`/category/${category}`);
     }
@@ -330,13 +508,11 @@ const BusinessCard = ({ item, category, isMobile }) => {
   // Toast Notification Function
   const showToast = useCallback(
     (message, type = "success") => {
-      // Remove any existing toast
       const existingToast = document.getElementById("toast-notification");
       if (existingToast) {
         existingToast.remove();
       }
 
-      // Create toast element
       const toast = document.createElement("div");
       toast.id = "toast-notification";
       toast.className = `fixed z-[9999] px-4 py-3 rounded-lg shadow-sm border ${
@@ -345,14 +521,12 @@ const BusinessCard = ({ item, category, isMobile }) => {
           : "bg-blue-50 border-blue-200 text-blue-800"
       }`;
 
-      // Position toast with margin
       toast.style.top = "15px";
       toast.style.right = "15px";
       toast.style.left = "15px";
       toast.style.maxWidth = "calc(100% - 30px)";
       toast.style.animation = "slideInRight 0.3s ease-out forwards";
 
-      // Toast content
       toast.innerHTML = `
       <div class="flex items-start gap-3">
         <div class="${
@@ -376,10 +550,8 @@ const BusinessCard = ({ item, category, isMobile }) => {
       </div>
     `;
 
-      // Add to DOM
       document.body.appendChild(toast);
 
-      // Auto remove after 3 seconds
       setTimeout(() => {
         if (toast.parentElement) {
           toast.style.animation = "slideOutRight 0.3s ease-in forwards";
@@ -399,23 +571,16 @@ const BusinessCard = ({ item, category, isMobile }) => {
     async (e) => {
       e.stopPropagation();
 
-      // Prevent multiple clicks while processing
       if (isProcessing) return;
-
-      // Immediately show loading state
       setIsProcessing(true);
 
       try {
-        // Check if user is signed in using the proper auth check
         if (!isAuthenticated) {
           showToast("Please login to save listings", "info");
-
-          // Store the current URL to redirect back after login
           localStorage.setItem("redirectAfterLogin", window.location.pathname);
 
-          // Store the item details to save after login
           const itemToSaveAfterLogin = {
-            id: item.id,
+            id: item._id || item.id,
             name: businessName,
             price: priceText,
             rating: parseFloat(rating),
@@ -424,12 +589,9 @@ const BusinessCard = ({ item, category, isMobile }) => {
             category: capitalizeFirst(category) || "Business",
             location: locationText,
             originalData: {
-              price_from: item.price_from,
-              area: item.area,
-              rating: item.rating,
+              price: item.price,
+              location: item.location,
               description: item.description,
-              amenities: item.amenities,
-              contact: item.contact,
             },
           };
 
@@ -438,7 +600,6 @@ const BusinessCard = ({ item, category, isMobile }) => {
             JSON.stringify(itemToSaveAfterLogin)
           );
 
-          // Redirect to login page after a short delay
           setTimeout(() => {
             navigate("/login");
             setIsProcessing(false);
@@ -447,35 +608,28 @@ const BusinessCard = ({ item, category, isMobile }) => {
           return;
         }
 
-        // User is logged in, proceed with bookmarking
-        // Get existing saved listings from localStorage
         const saved = JSON.parse(
           localStorage.getItem("userSavedListings") || "[]"
         );
 
-        // Check if this item is already saved
+        const itemId = item._id || item.id;
         const isAlreadySaved = saved.some(
-          (savedItem) => savedItem.id === item.id
+          (savedItem) => savedItem.id === itemId
         );
 
         if (isAlreadySaved) {
-          // REMOVE FROM SAVED
-          const updated = saved.filter((savedItem) => savedItem.id !== item.id);
+          const updated = saved.filter((savedItem) => savedItem.id !== itemId);
           localStorage.setItem("userSavedListings", JSON.stringify(updated));
-
-          // Show toast notification
           showToast("Removed from saved listings", "info");
 
-          // Dispatch event for other components
           window.dispatchEvent(
             new CustomEvent("savedListingsUpdated", {
-              detail: { action: "removed", itemId: item.id },
+              detail: { action: "removed", itemId: itemId },
             })
           );
         } else {
-          // ADD TO SAVED
           const listingToSave = {
-            id: item.id || `listing_${Date.now()}`,
+            id: itemId || `listing_${Date.now()}`,
             name: businessName,
             price: priceText,
             rating: parseFloat(rating),
@@ -485,22 +639,18 @@ const BusinessCard = ({ item, category, isMobile }) => {
             location: locationText,
             savedDate: new Date().toISOString().split("T")[0],
             originalData: {
-              price_from: item.price_from,
-              area: item.area,
-              rating: item.rating,
+              price: item.price,
+              location: item.location,
               description: item.description,
-              amenities: item.amenities,
-              contact: item.contact,
+              category: item.category,
+              status: item.status,
             },
           };
 
           const updated = [...saved, listingToSave];
           localStorage.setItem("userSavedListings", JSON.stringify(updated));
-
-          // Show toast notification
           showToast("Added to saved listings!", "success");
 
-          // Dispatch event for other components
           window.dispatchEvent(
             new CustomEvent("savedListingsUpdated", {
               detail: { action: "added", item: listingToSave },
@@ -528,44 +678,6 @@ const BusinessCard = ({ item, category, isMobile }) => {
     ]
   );
 
-  // Check for pending saves after login
-  useEffect(() => {
-    const pendingSaveItem = JSON.parse(
-      localStorage.getItem("pendingSaveItem") || "null"
-    );
-
-    if (pendingSaveItem && pendingSaveItem.id === item.id) {
-      // Clear the pending save
-      localStorage.removeItem("pendingSaveItem");
-
-      // Get existing saved listings
-      const saved = JSON.parse(
-        localStorage.getItem("userSavedListings") || "[]"
-      );
-
-      // Check if already saved (to avoid duplicates)
-      const isAlreadySaved = saved.some(
-        (savedItem) => savedItem.id === item.id
-      );
-
-      if (!isAlreadySaved) {
-        // Add to saved listings
-        const updated = [...saved, pendingSaveItem];
-        localStorage.setItem("userSavedListings", JSON.stringify(updated));
-
-        // Show success message
-        showToast("Added to saved listings!", "success");
-
-        // Dispatch event
-        window.dispatchEvent(
-          new CustomEvent("savedListingsUpdated", {
-            detail: { action: "added", item: pendingSaveItem },
-          })
-        );
-      }
-    }
-  }, [item.id, showToast]);
-
   return (
     <div
       className={`
@@ -574,17 +686,24 @@ const BusinessCard = ({ item, category, isMobile }) => {
         ${isMobile ? "w-[165px]" : "w-[210px]"} 
         transition-all duration-200 cursor-pointer 
         hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
+        ${isDemo ? "border-2 border-dashed border-blue-200" : ""}
       `}
       onClick={handleCardClick}
-      // Significantly reduced dimensions for desktop
       style={{
-        height: isMobile ? "280px" : "280px", // Same height as mobile
+        height: isMobile ? "280px" : "280px",
         minHeight: isMobile ? "280px" : "280px",
         maxHeight: isMobile ? "280px" : "280px",
-        minWidth: isMobile ? "165px" : "165px", // Same min width as mobile
+        minWidth: isMobile ? "165px" : "165px",
       }}
     >
-      {/* Image - Reduced height */}
+      {/* Demo badge */}
+      {isDemo && (
+        <div className="absolute top-1.5 left-1.5 bg-blue-500 text-white px-2 py-0.5 rounded-md shadow-sm z-10">
+          <span className="text-[8px] font-semibold">DEMO</span>
+        </div>
+      )}
+
+      {/* Image */}
       <div
         className="relative overflow-hidden rounded-xl flex-shrink-0"
         style={{
@@ -604,14 +723,14 @@ const BusinessCard = ({ item, category, isMobile }) => {
           loading="lazy"
         />
 
-        {/* Guest favorite badge - Smaller */}
-        <div className="absolute top-1.5 left-1.5 bg-white px-1 py-0.5 rounded-md shadow-sm flex items-center gap-0.5">
+        {/* Guest favorite badge */}
+        <div className="absolute top-1.5 right-12 bg-white px-1 py-0.5 rounded-md shadow-sm flex items-center gap-0.5">
           <span className="text-[8px] font-semibold text-gray-900">
             Guest favorite
           </span>
         </div>
 
-        {/* Heart icon - Smaller */}
+        {/* Heart icon */}
         <button
           onClick={handleFavoriteClick}
           disabled={isProcessing}
@@ -644,11 +763,11 @@ const BusinessCard = ({ item, category, isMobile }) => {
         </button>
       </div>
 
-      {/* Text Content - More compact */}
+      {/* Text Content */}
       <div
         className={`flex-1 ${isMobile ? "p-1.5" : "p-2"} flex flex-col`}
         style={{
-          minHeight: isMobile ? "130px" : "130px", // Reduced from 140px
+          minHeight: isMobile ? "130px" : "130px",
         }}
       >
         <h3 className="font-semibold text-gray-900 leading-tight line-clamp-2 text-[13.5px] mb-1 flex-shrink-0">
@@ -661,21 +780,20 @@ const BusinessCard = ({ item, category, isMobile }) => {
               {locationText}
             </p>
 
-            {/* Combined Price, Per Text, and Ratings on same line */}
+            {/* Combined Price and Ratings */}
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-0.5 flex-wrap">
-                {/* Price and Per Text */}
                 <div className="flex items-baseline gap-0.5">
                   <span className="text-[12px] font-manrope text-gray-900">
                     {priceText}
                   </span>
                   <span className="text-[12px] text-gray-600">
-                    for 2 nights
+                    {category === 'hotel' || category === 'shortlet' ? 'for 2 nights' : ''}
                   </span>
                 </div>
               </div>
 
-              {/* Ratings on the right */}
+              {/* Ratings */}
               <div className="flex items-center gap-0.5">
                 <div className="flex items-center gap-0.5 text-gray-800 text-[12px]">
                   <FontAwesomeIcon icon={faStar} className="text-black w-2 h-2" />
@@ -687,14 +805,12 @@ const BusinessCard = ({ item, category, isMobile }) => {
 
           {/* Bottom row: Category tag */}
           <div className="flex items-center justify-between mt-auto pt-1">
-            {/* Category tag - Smaller */}
             <div>
               <span className="inline-block text-[11px] text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
                 {tag}
               </span>
             </div>
 
-            {/* Saved indicator badge - Smaller */}
             {isFavorite && !isProcessing && (
               <span className="inline-flex items-center gap-0.5 text-[9px] text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">
                 <svg
@@ -722,20 +838,174 @@ const BusinessCard = ({ item, category, isMobile }) => {
 };
 
 // ---------------- CategorySection Component ----------------
-const CategorySection = ({ title, items, isMobile }) => {
+const CategorySection = ({ title, items, category, isMobile, loading, error, isEmpty }) => {
   const navigate = useNavigate();
 
-  if (items.length === 0) return null;
+  if (loading) {
+    return (
+      <section className="mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <div>
+            <h2 className="text-gray-900 font-bold" style={{ color: "#000651" }}>
+              {isMobile ? (
+                <span className="text-[14px]">{title}</span>
+              ) : (
+                <span className="text-xl">{title}</span>
+              )}
+            </h2>
+          </div>
+          <button
+            className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group"
+            style={{ color: "#000651" }}
+            onClick={() => navigate(`/category/${category}`)}
+          >
+            {isMobile ? (
+              <span className="text-[12px]">View all</span>
+            ) : (
+              <span className="text-[13.5px]">View all</span>
+            )}
+            <svg
+              className={`transition-transform group-hover:translate-x-1 ${
+                isMobile ? "w-3 h-3" : "w-4 h-4"
+              }`}
+              fill="currentColor"
+              viewBox="0 0 16 16"
+            >
+              <path
+                fillRule="evenodd"
+                d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"
+              />
+            </svg>
+          </button>
+        </div>
+        <div
+          className={`${
+            isMobile
+              ? "flex overflow-x-auto gap-[8px] pb-4 -mx-[16px] pl-[16px] snap-x snap-mandatory"
+              : "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3"
+          }`}
+        >
+          {[...Array(6)].map((_, index) => (
+            <SkeletonCard key={index} isMobile={isMobile} />
+          ))}
+        </div>
+      </section>
+    );
+  }
 
-  const getCategoryFromTitle = (title) => {
-    const words = title.toLowerCase().split(" ");
-    if (words.includes("hotel")) return "hotel";
-    if (words.includes("shortlet")) return "shortlet";
-    if (words.includes("restaurant")) return "restaurant";
-    return words[1] || "all";
-  };
+  if (error && items.length === 0) {
+    return (
+      <section className="mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <div>
+            <h2 className="text-gray-900 font-bold" style={{ color: "#000651" }}>
+              {isMobile ? (
+                <span className="text-[14px]">{title}</span>
+              ) : (
+                <span className="text-xl">{title}</span>
+              )}
+            </h2>
+          </div>
+          <button
+            className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group"
+            style={{ color: "#000651" }}
+            onClick={() => navigate(`/category/${category}`)}
+          >
+            {isMobile ? (
+              <span className="text-[12px]">View all</span>
+            ) : (
+              <span className="text-[13.5px]">View all</span>
+            )}
+            <svg
+              className={`transition-transform group-hover:translate-x-1 ${
+                isMobile ? "w-3 h-3" : "w-4 h-4"
+              }`}
+              fill="currentColor"
+              viewBox="0 0 16 16"
+            >
+              <path
+                fillRule="evenodd"
+                d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"
+              />
+            </svg>
+          </button>
+        </div>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <p className="text-yellow-700 font-medium text-sm">
+            Using demo data (API connection error)
+          </p>
+        </div>
+        {items.length > 0 && (
+          <div
+            className={`mt-3 ${
+              isMobile
+                ? "flex overflow-x-auto gap-[8px] pb-4 -mx-[16px] pl-[16px] snap-x snap-mandatory"
+                : "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3"
+            }`}
+          >
+            {items.slice(0, 6).map((item, index) => (
+              <BusinessCard
+                key={item._id || index}
+                item={item}
+                category={category}
+                isMobile={isMobile}
+                isDemo={true}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+    );
+  }
 
-  const category = getCategoryFromTitle(title);
+  if (items.length === 0) {
+    return (
+      <section className="mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <div>
+            <h2 className="text-gray-900 font-bold" style={{ color: "#000651" }}>
+              {isMobile ? (
+                <span className="text-[14px]">{title}</span>
+              ) : (
+                <span className="text-xl">{title}</span>
+              )}
+            </h2>
+          </div>
+          <button
+            className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group"
+            style={{ color: "#000651" }}
+            onClick={() => navigate(`/category/${category}`)}
+          >
+            {isMobile ? (
+              <span className="text-[12px]">View all</span>
+            ) : (
+              <span className="text-[13.5px]">View all</span>
+            )}
+            <svg
+              className={`transition-transform group-hover:translate-x-1 ${
+                isMobile ? "w-3 h-3" : "w-4 h-4"
+              }`}
+              fill="currentColor"
+              viewBox="0 0 16 16"
+            >
+              <path
+                fillRule="evenodd"
+                d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"
+              />
+            </svg>
+          </button>
+        </div>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-blue-700 font-medium text-sm">
+            No listings found in database
+          </p>
+          <p className="text-blue-600 text-xs mt-1">
+            Showing demo data. Add listings to your backend to see real data.
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   const handleCategoryClick = () => {
     navigate(`/category/${category}`);
@@ -755,8 +1025,12 @@ const CategorySection = ({ title, items, isMobile }) => {
               <span className="text-xl">{title}</span>
             )}
           </h2>
+          {isEmpty && (
+            <p className="text-blue-600 text-xs mt-1">
+              Showing demo data - Database is empty
+            </p>
+          )}
         </div>
-        {/* View All button with arrow icon */}
         <button
           onClick={handleCategoryClick}
           className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group"
@@ -782,16 +1056,17 @@ const CategorySection = ({ title, items, isMobile }) => {
         </button>
       </div>
 
-      {/* Desktop: Grid layout for 6 cards with reduced gap */}
+      {/* Desktop: Grid layout for 6 cards */}
       {/* Mobile: Horizontal scroll */}
       {!isMobile ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3">
           {displayItems.map((item, index) => (
             <BusinessCard
-              key={item.id || index}
+              key={item._id || index}
               item={item}
               category={category}
               isMobile={isMobile}
+              isDemo={isEmpty}
             />
           ))}
         </div>
@@ -807,10 +1082,11 @@ const CategorySection = ({ title, items, isMobile }) => {
           >
             {displayItems.map((item, index) => (
               <BusinessCard
-                key={item.id || index}
+                key={item._id || index}
                 item={item}
                 category={category}
                 isMobile={isMobile}
+                isDemo={isEmpty}
               />
             ))}
             {/* Spacer for last card visibility */}
@@ -830,21 +1106,19 @@ const Directory = () => {
   });
 
   const [isMobile, setIsMobile] = useState(false);
-  const navigate = useNavigate();
-
-  const {
-    data: listings = [],
-    loading,
-    error,
-  } = useGoogleSheet(
-    "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y",
-    import.meta.env.VITE_GOOGLE_API_KEY
-  );
+  
+  // Define the specific categories we want to display
+  const categories = ['hotel', 'shortlet', 'restaurant'];
+  
+  // Fetch data for each category
+  const hotelListings = useListings('hotel', 6);
+  const shortletListings = useListings('shortlet', 6);
+  const restaurantListings = useListings('restaurant', 6);
 
   // Check for mobile view
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768); // Mobile: < 768px
+      setIsMobile(window.innerWidth < 768);
     };
 
     checkMobile();
@@ -852,40 +1126,21 @@ const Directory = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Show skeleton loading while data is being fetched
-  if (loading) {
+  // Show skeleton loading while initial data is being fetched
+  const initialLoading = hotelListings.loading && shortletListings.loading && restaurantListings.loading;
+  
+  if (initialLoading) {
     return <SkeletonDirectory isMobile={isMobile} />;
   }
 
-  // Define the specific categories we want to display
-  const getPopularCategories = () => {
-    return ["hotel", "shortlet", "restaurant"];
+  const categoryData = {
+    hotel: hotelListings,
+    shortlet: shortletListings,
+    restaurant: restaurantListings,
   };
 
-  // Filter listings based on search and filters
-  const filteredListings = listings.filter((item) => {
-    return true; // Show all listings for now
-  });
-
-  // Group listings by the specific categories we want
-  const categorizedListings = {};
-  getPopularCategories().forEach((category) => {
-    categorizedListings[category] = filteredListings.filter((item) => {
-      const itemCategory = (item.category || "").toLowerCase();
-      return itemCategory.includes(category);
-    });
-  });
-
-  if (error)
-    return (
-      <section id="directory" className="bg-white py-12 font-manrope">
-        <div className="max-w-[1800px] mx-auto px-4 sm:px-6">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-            <p className="text-red-700 font-medium text-sm">{error}</p>
-          </div>
-        </div>
-      </section>
-    );
+  // Check if any category has real data
+  const hasRealData = categories.some(cat => !categoryData[cat].isEmpty && categoryData[cat].listings.length > 0);
 
   return (
     <section id="directory" className="bg-white font-manrope">
@@ -912,20 +1167,41 @@ const Directory = () => {
               </p>
             </motion.div>
 
+            {/* Database Empty Notice */}
+            {!hasRealData && (
+              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-start">
+                  <div className="text-blue-600 mr-2 mt-0.5">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-blue-700 font-medium text-sm">Database Empty</p>
+                    <p className="text-blue-600 text-xs mt-1">
+                      Your database has no listings yet. Showing demo data.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Category Sections */}
             <div className="space-y-6">
-              {getPopularCategories().map((category, index) => {
-                const items = categorizedListings[category] || [];
-                if (items.length === 0) return null;
-
+              {categories.map((category) => {
+                const { listings, loading, error, isEmpty } = categoryData[category];
                 const title = `Popular ${capitalizeFirst(category)} in Ibadan`;
 
                 return (
                   <CategorySection
                     key={category}
                     title={title}
-                    items={items}
+                    items={listings}
+                    category={category}
                     isMobile={isMobile}
+                    loading={loading}
+                    error={error}
+                    isEmpty={isEmpty}
                   />
                 );
               })}
@@ -950,36 +1226,86 @@ const Directory = () => {
               </p>
             </motion.div>
 
+            {/* Database Empty Notice */}
+            {!hasRealData && (
+              <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start">
+                  <div className="text-blue-600 mr-3 mt-0.5">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-blue-800 font-medium">Database is Empty</h3>
+                    <p className="text-blue-700 text-sm mt-1">
+                      Your backend database has no listings yet. We're showing demo data so you can see how the app will look.
+                    </p>
+                    <div className="mt-3 text-blue-600 text-xs">
+                      <p className="font-medium">To add real listings:</p>
+                      <ol className="list-decimal pl-4 mt-1 space-y-1">
+                        <li>Use your admin dashboard to create listings</li>
+                        <li>Or use the API to post data programmatically</li>
+                        <li>Or seed your database with sample data</li>
+                      </ol>
+                      <p className="mt-2">
+                        Once you add listings to your database, they will automatically appear here.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Category Sections */}
             <div className="space-y-6">
-              {getPopularCategories().map((category, index) => {
-                const items = categorizedListings[category] || [];
-                if (items.length === 0) return null;
-
+              {categories.map((category) => {
+                const { listings, loading, error, isEmpty } = categoryData[category];
                 const title = `Popular ${capitalizeFirst(category)} in Ibadan`;
 
                 return (
                   <CategorySection
                     key={category}
                     title={title}
-                    items={items}
+                    items={listings}
+                    category={category}
                     isMobile={isMobile}
+                    loading={loading}
+                    error={error}
+                    isEmpty={isEmpty}
                   />
                 );
               })}
             </div>
 
-            {/* Empty State */}
-            {filteredListings.length === 0 && !loading && (
-              <div className="text-center py-8">
-                <div className="bg-gray-50 rounded-xl p-6 max-w-md mx-auto">
-                  <i className="fas fa-search text-3xl text-gray-300 mb-3 block"></i>
-                  <h3 className="text-base text-gray-800 mb-2">
-                    No businesses found
-                  </h3>
-                  <p className="text-gray-600 text-sm">
-                    Try adjusting your search or filters
-                  </p>
+            {/* How to Add Data Instructions */}
+            {!hasRealData && (
+              <div className="mt-8 p-6 bg-gray-50 border border-gray-200 rounded-lg">
+                <h3 className="text-gray-800 font-medium mb-3">How to Add Listings to Your Database</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-white p-4 rounded-lg border">
+                    <h4 className="text-gray-700 font-medium text-sm mb-2">Method 1: Use Admin Dashboard</h4>
+                    <p className="text-gray-600 text-xs">
+                      If you have an admin dashboard, log in and create listings through the UI.
+                    </p>
+                  </div>
+                  <div className="bg-white p-4 rounded-lg border">
+                    <h4 className="text-gray-700 font-medium text-sm mb-2">Method 2: Use API Directly</h4>
+                    <p className="text-gray-600 text-xs">
+                      Make POST requests to <code className="bg-gray-100 px-1">/api/v1/listings</code>
+                    </p>
+                  </div>
+                  <div className="bg-white p-4 rounded-lg border">
+                    <h4 className="text-gray-700 font-medium text-sm mb-2">Method 3: Database Seeding</h4>
+                    <p className="text-gray-600 text-xs">
+                      Seed your MongoDB database with sample listing data.
+                    </p>
+                  </div>
+                  <div className="bg-white p-4 rounded-lg border">
+                    <h4 className="text-gray-700 font-medium text-sm mb-2">Test Your API</h4>
+                    <p className="text-gray-600 text-xs">
+                      Try: <code className="bg-gray-100 px-1">GET {API_BASE_URL}?limit=1</code>
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -990,9 +1316,8 @@ const Directory = () => {
   );
 };
 
-// Add CSS styles for toast animations and utilities
+// Add CSS styles
 const styles = `
-/* Toast animation */
 @keyframes slideInRight {
   from {
     transform: translateX(100%);
@@ -1015,7 +1340,6 @@ const styles = `
   }
 }
 
-/* Line clamp utility */
 .line-clamp-1 {
   display: -webkit-box;
   -webkit-line-clamp: 1;
@@ -1030,14 +1354,6 @@ const styles = `
   overflow: hidden;
 }
 
-/* Smooth transitions */
-.transition-all {
-  transition-property: all;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-
-/* Scrollbar hiding */
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -1045,24 +1361,6 @@ const styles = `
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
-}
-
-/* Snap scrolling */
-.snap-x {
-  scroll-snap-type: x mandatory;
-}
-
-.snap-mandatory {
-  scroll-snap-stop: always;
-}
-
-.snap-start {
-  scroll-snap-align: start;
-}
-
-/* Fix for grid columns to prevent overflow */
-.grid-cols-fix {
-  grid-template-columns: repeat(6, minmax(0, 210px));
 }
 `;
 

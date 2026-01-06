@@ -13,21 +13,22 @@ import {
   faSearch,
   faTimes,
   faMapMarkerAlt,
-  faFilter,
   faChevronRight,
   faChevronLeft,
   faBuilding,
   faUtensils,
   faHome,
-  faTools,
+  faStore,
+  faCalendar,
+  faUser,
   faHotel,
   faBriefcase,
   faStar,
+  faFire,
   faConciergeBell,
   faLightbulb,
-  faFire,
-  faStore,
-  faUserTie,
+  faPlus,
+  faMinus,
 } from "@fortawesome/free-solid-svg-icons";
 import { createPortal } from "react-dom";
 
@@ -36,7 +37,7 @@ import hotelImg from "../assets/Logos/hotel.jpg";
 import tourismImg from "../assets/Logos/tourism.jpg";
 import eventsImg from "../assets/Logos/events.jpg";
 import restuarantImg from "../assets/Logos/restuarant.jpg";
-// import vendorImg from "../assets/Logos/vendor.jpg"; // Make sure this image exists
+// import vendorImg from "../assets/Logos/vendor.jpg";
 
 /* ---------------- FALLBACKS ---------------- */
 const FALLBACK_IMAGES = {
@@ -47,7 +48,7 @@ const FALLBACK_IMAGES = {
     "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400",
   Tourism: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400",
   Vendor:
-    "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=400", // Changed from Services to Vendor
+    "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=400",
 };
 
 /* ---------------- SOPHISTICATED ICON MAPPING ---------------- */
@@ -57,7 +58,7 @@ const getSophisticatedCategoryIcon = (category) => {
   if (cat.includes("hotel")) return faHotel;
   if (cat.includes("restaurant") || cat.includes("food")) return faUtensils;
   if (cat.includes("shortlet") || cat.includes("apartment")) return faHome;
-  if (cat.includes("vendor")) return faStore; // Changed from faConciergeBell to faStore
+  if (cat.includes("vendor")) return faStore;
   if (cat.includes("tourism")) return faMapMarkerAlt;
   if (cat.includes("trending")) return faFire;
   if (cat.includes("popular") || cat.includes("featured")) return faStar;
@@ -135,8 +136,8 @@ const getCategoryImage = (category, fallback) => {
         return eventsImg;
       case "Restaurant":
         return restuarantImg;
-      case "Vendor": // Changed from Services to Vendor
-        return vendorImg || FALLBACK_IMAGES.Vendor;
+      case "Vendor":
+        return FALLBACK_IMAGES.Vendor;
       default:
         return fallback;
     }
@@ -153,8 +154,8 @@ const getCategoryIcon = (category) => {
   if (cat.includes("restaurant") || cat.includes("food")) return faUtensils;
   if (cat.includes("shortlet") || cat.includes("apartment")) return faHome;
   if (cat.includes("tourism") || cat.includes("tourist")) return faMapMarkerAlt;
-  if (cat.includes("vendor")) return faStore; // Changed from faTools to faStore
-  return faFilter;
+  if (cat.includes("vendor")) return faStore;
+  return faConciergeBell;
 };
 
 // Format date
@@ -368,7 +369,272 @@ const generateSearchSuggestions = (query, listings) => {
     .slice(0, 8);
 };
 
-/* ---------------- COMPONENTS ---------------- */
+/* ---------------- AGODA-STYLE COMPONENTS ---------------- */
+
+// Simple Calendar Component
+const SimpleCalendar = ({ onSelect, onClose, isCheckIn = true }) => {
+  const modalRef = useRef(null);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  // Handle click outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
+
+  const getDaysInMonth = (year, month) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const getMonthName = (date) => {
+    return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  };
+
+  const handleDateClick = (day) => {
+    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    setSelectedDate(newDate);
+    onSelect(newDate);
+    onClose();
+  };
+
+  const nextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  const prevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+
+  const renderCalendar = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const daysInMonth = getDaysInMonth(year, month);
+    const firstDay = new Date(year, month, 1).getDay();
+
+    const days = [];
+    
+    // Empty cells for days before the first day of the month
+    for (let i = 0; i < firstDay; i++) {
+      days.push(<div key={`empty-${i}`} className="h-8 w-8"></div>);
+    }
+
+    // Days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      const isToday = date.toDateString() === new Date().toDateString();
+      const isSelected = date.toDateString() === selectedDate.toDateString();
+      
+      days.push(
+        <button
+          key={day}
+          onClick={() => handleDateClick(day)}
+          className={`h-8 w-8 rounded-full flex items-center justify-center text-sm
+            ${isToday ? 'border border-blue-500' : ''}
+            ${isSelected ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}
+          `}
+        >
+          {day}
+        </button>
+      );
+    }
+
+    return days;
+  };
+
+  return createPortal(
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[10000]" onClick={onClose} />
+      
+      {/* Calendar Modal */}
+      <div
+        ref={modalRef}
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
+          bg-white rounded-xl shadow-2xl z-[10001] w-80 p-4"
+      >
+        <div className="flex justify-between items-center mb-4">
+          <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded">
+            ←
+          </button>
+          <h3 className="font-semibold text-gray-800">
+            {getMonthName(currentDate)}
+          </h3>
+          <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded">
+            →
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+            <div key={day} className="text-center text-xs text-gray-500 font-medium">
+              {day}
+            </div>
+          ))}
+        </div>
+        
+        <div className="grid grid-cols-7 gap-1">
+          {renderCalendar()}
+        </div>
+        
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <button
+            onClick={() => {
+              onSelect(new Date());
+              onClose();
+            }}
+            className="w-full py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          >
+            Select Today
+          </button>
+        </div>
+      </div>
+    </>,
+    document.body
+  );
+};
+
+// Guest Selector Component
+const GuestSelector = ({ guests, onChange, onClose }) => {
+  const modalRef = useRef(null);
+
+  // Handle click outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
+
+  const handleGuestChange = (type, value) => {
+    const newGuests = { ...guests };
+    newGuests[type] = Math.max(0, newGuests[type] + value);
+    onChange(newGuests);
+  };
+
+  const totalGuests = guests.adults + guests.children;
+
+  return createPortal(
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[10000]" onClick={onClose} />
+      
+      {/* Guest Selector Modal */}
+      <div
+        ref={modalRef}
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
+          bg-white rounded-xl shadow-2xl z-[10001] w-80 p-6"
+      >
+        <h3 className="font-semibold text-gray-800 mb-6 text-center">Guests & Rooms</h3>
+        
+        {/* Adults */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <div className="font-medium text-gray-800">Adults</div>
+            <div className="text-sm text-gray-500">Age 18+</div>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => handleGuestChange('adults', -1)}
+              disabled={guests.adults <= 1}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center
+                disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+            >
+              <FontAwesomeIcon icon={faMinus} className="w-3 h-3" />
+            </button>
+            <span className="w-8 text-center font-medium">{guests.adults}</span>
+            <button
+              onClick={() => handleGuestChange('adults', 1)}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center
+                hover:bg-gray-100"
+            >
+              <FontAwesomeIcon icon={faPlus} className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+        
+        {/* Children */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <div className="font-medium text-gray-800">Children</div>
+            <div className="text-sm text-gray-500">Age 0-17</div>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => handleGuestChange('children', -1)}
+              disabled={guests.children <= 0}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center
+                disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+            >
+              <FontAwesomeIcon icon={faMinus} className="w-3 h-3" />
+            </button>
+            <span className="w-8 text-center font-medium">{guests.children}</span>
+            <button
+              onClick={() => handleGuestChange('children', 1)}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center
+                hover:bg-gray-100"
+            >
+              <FontAwesomeIcon icon={faPlus} className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+        
+        {/* Rooms */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <div className="font-medium text-gray-800">Rooms</div>
+            <div className="text-sm text-gray-500">Number of rooms</div>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => handleGuestChange('rooms', -1)}
+              disabled={guests.rooms <= 1}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center
+                disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+            >
+              <FontAwesomeIcon icon={faMinus} className="w-3 h-3" />
+            </button>
+            <span className="w-8 text-center font-medium">{guests.rooms}</span>
+            <button
+              onClick={() => handleGuestChange('rooms', 1)}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center
+                hover:bg-gray-100"
+            >
+              <FontAwesomeIcon icon={faPlus} className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+        
+        {/* Summary and Done Button */}
+        <div className="pt-4 border-t border-gray-200">
+          <div className="text-center mb-4">
+            <div className="text-sm text-gray-600">Total Guests</div>
+            <div className="text-xl font-bold text-blue-600">{totalGuests}</div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-full py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </>,
+    document.body
+  );
+};
+
+/* ---------------- SEARCH MODAL COMPONENTS (ORIGINAL DESIGN) ---------------- */
 
 // Mobile Search Modal Component - APPLE STANDARD DESIGN
 const MobileSearchModal = ({
@@ -908,6 +1174,25 @@ const DiscoverIbadan = () => {
     width: 0,
   });
 
+  // AGODA-STATE STATE
+  const [showCheckInCalendar, setShowCheckInCalendar] = useState(false);
+  const [showCheckOutCalendar, setShowCheckOutCalendar] = useState(false);
+  const [showGuestSelector, setShowGuestSelector] = useState(false);
+  const [checkInDate, setCheckInDate] = useState(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  });
+  const [checkOutDate, setCheckOutDate] = useState(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
+  });
+  const [guests, setGuests] = useState({
+    adults: 2,
+    children: 0,
+    rooms: 1,
+  });
+
   const searchInputRef = useRef(null);
   const searchContainerRef = useRef(null);
 
@@ -1024,6 +1309,39 @@ const DiscoverIbadan = () => {
     }
   }, [isMobile, searchQuery, handleMobileSearchClick]);
 
+  /* ---------------- AGODA-STYLE HANDLERS ---------------- */
+  const handleCheckInClick = () => {
+    setShowCheckInCalendar(true);
+    setShowCheckOutCalendar(false);
+  };
+
+  const handleCheckOutClick = () => {
+    setShowCheckOutCalendar(true);
+    setShowCheckInCalendar(false);
+  };
+
+  const handleGuestClick = () => {
+    setShowGuestSelector(true);
+  };
+
+  const handleCheckInSelect = (date) => {
+    setCheckInDate(date);
+    // Auto-set checkout to next day if checkout is before or same as checkin
+    const nextDay = new Date(date);
+    nextDay.setDate(nextDay.getDate() + 1);
+    if (checkOutDate <= date) {
+      setCheckOutDate(nextDay);
+    }
+  };
+
+  const handleCheckOutSelect = (date) => {
+    setCheckOutDate(date);
+  };
+
+  const handleGuestsChange = (newGuests) => {
+    setGuests(newGuests);
+  };
+
   /* ---------------- CATEGORY HANDLERS ---------------- */
   const scrollToAiTopPicks = useCallback(() => {
     const aiTopPicksSection = document.getElementById("toppicks");
@@ -1045,7 +1363,7 @@ const DiscoverIbadan = () => {
       Restaurant: "restaurant",
       Shortlet: "shortlet",
       Tourism: "tourist-center",
-      Vendor: "vendor", // Changed from Services to Vendor
+      Vendor: "vendor",
     };
     const categorySlug = categoryMap[category];
 
@@ -1063,7 +1381,7 @@ const DiscoverIbadan = () => {
       <section className="pt-14 lg:pt-12 text-center bg-[#F7F7FA] overflow-hidden relative">
         {/* Background Pattern */}
         <div
-          className={`absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20`}
+          className={`absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20`}
         ></div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-4 lg:py-4">
@@ -1083,74 +1401,129 @@ const DiscoverIbadan = () => {
               </p>
             </div>
 
-            {/* SEARCH BAR - 60% WIDER */}
-            <div className="w-full">
-              <div className="flex items-center gap-3 justify-center">
-                <div 
-                  className="relative"
-                  ref={searchContainerRef}
-                  style={{
-                    // KEPT 60% wider (43.2%)
-                    width: isMobile ? "100%" : "43.2%",
-                  }}
-                >
-                  <form onSubmit={handleSearchSubmit} className="w-full">
-                    <div className="flex items-center justify-center w-full">
-                      <div className="flex items-center bg-gray-200 rounded-full shadow-sm relative z-40 w-full">
-                        <div className="pl-3 sm:pl-4 text-gray-500">
-                          <FontAwesomeIcon
-                            icon={faSearch}
-                            className="h-4 w-4"
-                          />
-                        </div>
+            {/* AGODA-STYLE SEARCH BAR */}
+            <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
+              <div ref={searchContainerRef} className="relative w-full">
+                {/* Main Search Card */}
+                <div className="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg border border-blue-100 p-3 sm:p-3 md:p-4">
+                  {/* Search Input Row */}
+                  <div className="w-full">
+                    {/* Search Input */}
+                    <div className="mb-2 sm:mb-3 cursor-pointer">
+                      <div
+                        className="bg-gray-100 rounded-lg px-3 sm:px-3 py-1.5
+                       sm:py-2 text-xs sm:text-xs flex items-center gap-2 hover:bg-gray-200 transition-colors duration-200"
+                      >
+                        <FontAwesomeIcon
+                          icon={faSearch}
+                          className="text-gray-500 w-3 h-3 sm:w-3 sm:h-3"
+                        />
                         <input
                           ref={searchInputRef}
                           type="text"
-                          placeholder="Search by area, category, or name..."
                           value={searchQuery}
-                          onChange={(e) =>
-                            handleSearchChange(e.target.value)
-                          }
+                          onChange={(e) => handleSearchChange(e.target.value)}
                           onFocus={handleSearchFocus}
                           onKeyPress={handleKeyPress}
-                          className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 focus:rounded-full"
-                          autoFocus={false}
-                          aria-label="Search input"
-                          role="searchbox"
+                          placeholder="Search by area, category, or name ..."
+                          className="bg-transparent outline-none w-full text-gray-700 placeholder-gray-500 text-xs sm:text-xs md:text-sm cursor-pointer"
                         />
                         {searchQuery && (
                           <button
-                            type="button"
                             onClick={handleClearSearch}
-                            className="p-1 mr-2 text-gray-500 hover:text-gray-700 transition-colors"
+                            className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                             aria-label="Clear search"
                           >
                             <FontAwesomeIcon
                               icon={faTimes}
-                              className="h-4 w-4"
+                              className="w-3 h-3 sm:w-3 sm:h-3"
                             />
                           </button>
                         )}
                       </div>
+                    </div>
 
-                      <div className="ml-2">
-                        <button
-                          type="submit"
-                          className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope"
-                          aria-label="Perform search"
-                        >
-                          Search
-                        </button>
+                    {/* Check-in & Check-out - AGODA STYLE */}
+                    <div className="grid grid-cols-2 gap-2 sm:gap-2 mb-2 sm:mb-3">
+                      {/* Check-in */}
+                      <div 
+                        onClick={handleCheckInClick}
+                        className="bg-gray-100 rounded-lg p-2 sm:p-2 text-left hover:bg-gray-200 transition-colors duration-200 cursor-pointer"
+                      >
+                        <div className="text-xs text-gray-500 flex items-center gap-1 mb-0.5">
+                          <FontAwesomeIcon
+                            icon={faCalendar}
+                            className="w-3 h-3"
+                          />
+                          Check-in
+                        </div>
+                        <div className="text-xs sm:text-xs font-medium text-blue-600">
+                          {formatDateLabel(checkInDate)}
+                        </div>
+                      </div>
+
+                      {/* Check-out */}
+                      <div 
+                        onClick={handleCheckOutClick}
+                        className="bg-gray-100 rounded-lg p-2 sm:p-2 text-left hover:bg-gray-200 transition-colors duration-200 cursor-pointer"
+                      >
+                        <div className="text-xs text-gray-500 flex items-center gap-1 mb-0.5">
+                          <FontAwesomeIcon
+                            icon={faCalendar}
+                            className="w-3 h-3"
+                          />
+                          Check-out
+                        </div>
+                        <div className="text-xs sm:text-xs font-medium text-blue-600">
+                          {formatDateLabel(checkOutDate)}
+                        </div>
                       </div>
                     </div>
-                  </form>
+
+                    {/* Room & Guest Info - AGODA STYLE */}
+                    <div className="mb-2 sm:mb-3 w-full">
+                      <div 
+                        onClick={handleGuestClick}
+                        className="inline-flex w-full items-center justify-start rounded-[10px] bg-gray-100 px-4 py-2 text-[12.5px] font-medium text-gray-500 hover:bg-gray-200 transition-colors duration-200 cursor-pointer"
+                      >
+                        <FontAwesomeIcon
+                          icon={faUser}
+                          className="w-4 h-4 mr-2 text-gray-500"
+                        />
+                        <span>{guests.rooms} {guests.rooms === 1 ? 'Room' : 'Rooms'}</span>
+                        <span className="mx-1 text-gray-500">•</span>
+                        <span>{guests.adults} {guests.adults === 1 ? 'Adult' : 'Adults'}</span>
+                        {guests.children > 0 && (
+                          <>
+                            <span className="mx-1 text-gray-500">•</span>
+                            <span>{guests.children} {guests.children === 1 ? 'Child' : 'Children'}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Search Button */}
+                    <div className="w-full">
+                      <button
+                        onClick={handleSearchSubmit}
+                        className="w-full bg-gradient-to-r from-[#00E38C] to-teal-500 hover:from-[#00c97b] hover:to-teal-600 text-white font-semibold py-2 sm:py-2 px-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
+                      >
+                        <FontAwesomeIcon
+                          icon={faSearch}
+                          className="w-3 h-3 sm:w-3 sm:h-3"
+                        />
+                        <span className="text-xs sm:text-xs md:text-sm">
+                          Search
+                        </span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Category Icons - 60% WIDER */}
             <div className="w-full" style={{
-              // KEPT 60% wider (43.2%)
               width: isMobile ? "100%" : "43.2%",
               marginLeft: "auto",
               marginRight: "auto",
@@ -1200,6 +1573,31 @@ const DiscoverIbadan = () => {
           <div className="absolute left-0 right-0 h-[1px] sm:h-[1px] bg-gradient-to-r from-green-400 via-green-500 to-green-400 opacity-70"></div>
         </div>
       </section>
+
+      {/* AGODA-STYLE MODALS */}
+      {showCheckInCalendar && (
+        <SimpleCalendar
+          onSelect={handleCheckInSelect}
+          onClose={() => setShowCheckInCalendar(false)}
+          isCheckIn={true}
+        />
+      )}
+      
+      {showCheckOutCalendar && (
+        <SimpleCalendar
+          onSelect={handleCheckOutSelect}
+          onClose={() => setShowCheckOutCalendar(false)}
+          isCheckIn={false}
+        />
+      )}
+      
+      {showGuestSelector && (
+        <GuestSelector
+          guests={guests}
+          onChange={handleGuestsChange}
+          onClose={() => setShowGuestSelector(false)}
+        />
+      )}
 
       {/* Apple Standard Desktop Search Suggestions */}
       {!isMobile && (

@@ -12,7 +12,6 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import axiosInstance from "../../lib/axios";
 
-// Validation schema
 const loginSchema = yup.object().shape({
   email: yup
     .string()
@@ -21,7 +20,6 @@ const loginSchema = yup.object().shape({
   password: yup.string().required("Password is required"),
 });
 
-// Toast Notification Component for Login
 const LoginToastNotification = ({ message, onClose, type = "success" }) => {
   const [isVisible, setIsVisible] = useState(true);
 
@@ -115,7 +113,6 @@ const LoginPage = () => {
 
   const email = watch("email");
 
-  // Check for email verification success message and pre-fill email
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const verified = searchParams.get("verified");
@@ -190,19 +187,16 @@ const LoginPage = () => {
       setIsLoading(true);
       setIsRedirecting(false);
 
-      // Clear any existing auth data before attempting new login
       localStorage.removeItem("auth_token");
       localStorage.removeItem("user_email");
       localStorage.removeItem("userProfile");
       localStorage.removeItem("auth-storage");
 
-      // Make API call to login
       const response = await axiosInstance.post("/auth/login", {
         email: data.email,
         password: data.password,
       });
 
-      // Handle different response formats
       let loginData;
       if (
         response.data &&
@@ -220,7 +214,6 @@ const LoginPage = () => {
 
       // Check if user is verified
       if (!userData.isVerified) {
-        // Show red toast for unverified user
         setToastMessage("⚠️ Please verify your email before logging in.");
         setToastType("error");
         setShowToast(true);
@@ -235,22 +228,25 @@ const LoginPage = () => {
       // Store authentication data
       localStorage.setItem("auth_token", token);
       localStorage.setItem("user_email", userData.email);
-      localStorage.setItem(
-        "userProfile",
-        JSON.stringify({
-          id: userData._id,
-          email: userData.email,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          phone: userData.phone,
-          role: userData.role,
-          isVerified: userData.isVerified,
-          isActive: userData.isActive,
-          profilePicture: userData.profilePicture,
-          createdAt: userData.createdAt,
-          updatedAt: userData.updatedAt,
-        })
-      );
+      
+      // Create complete user profile
+      const completeUserProfile = {
+        id: userData._id,
+        email: userData.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        phone: userData.phone,
+        role: userData.role,
+        isVerified: userData.isVerified,
+        isActive: userData.isActive,
+        profilePicture: userData.profilePicture,
+        createdAt: userData.createdAt,
+        updatedAt: userData.updatedAt,
+        // Add vendor data if exists
+        vendor: userData.vendor || null
+      };
+      
+      localStorage.setItem("userProfile", JSON.stringify(completeUserProfile));
 
       // Also store in auth-storage for compatibility
       const authStorage = {
@@ -288,15 +284,29 @@ const LoginPage = () => {
         })
       );
 
-      // Get redirect URL or default to home
-      const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
+      // Determine redirect URL based on user role
+      let redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
+      
+      // If no specific redirect, use role-based redirect
+      if (!localStorage.getItem("redirectAfterLogin")) {
+        if (userData.role === "vendor") {
+          redirectUrl = "/vendor/dashboard";
+        } else {
+          redirectUrl = "/";
+        }
+      }
+      
       localStorage.removeItem("redirectAfterLogin");
 
       setIsLoading(false);
       setIsRedirecting(true);
 
-      // Show success toast
-      setToastMessage("✅ Login successful! Redirecting...");
+      // Show success message based on role
+      const roleMessage = userData.role === "vendor" 
+        ? "Vendor login successful! Redirecting to dashboard..." 
+        : "Login successful! Redirecting...";
+      
+      setToastMessage(`✅ ${roleMessage}`);
       setToastType("success");
       setShowToast(true);
 
@@ -310,7 +320,6 @@ const LoginPage = () => {
           console.error("Navigation failed:", navError);
         }
 
-        // Fallback to window.location after delay
         setTimeout(() => {
           if (window.location.pathname === "/login") {
             window.location.href = redirectUrl;
@@ -334,18 +343,15 @@ const LoginPage = () => {
           errorMessage = "Please verify your email before logging in.";
           showErrorToast = true;
         } else if (error.response.status === 500) {
-          // For server errors, show generic auth error message
           errorMessage = "Incorrect email or password. Please check and try again.";
           showErrorToast = true;
           isAuthError = true;
         } else if (error.response.data?.message) {
-          // Override any other specific messages with generic auth error
           errorMessage = "Incorrect email or password. Please check and try again.";
           showErrorToast = true;
           isAuthError = true;
         }
       } else if (error.request) {
-        // Network errors - show generic auth error
         errorMessage = "Incorrect email or password. Please check and try again.";
         showErrorToast = true;
         isAuthError = true;
@@ -354,28 +360,23 @@ const LoginPage = () => {
         showErrorToast = true;
         isAuthError = true;
       } else {
-        // Any other error
         errorMessage = "Incorrect email or password. Please check and try again.";
         showErrorToast = true;
         isAuthError = true;
       }
 
-      // Always show red toast for any login error with "Incorrect email or password"
       if (showErrorToast) {
         setToastMessage(`❌ Incorrect email or password. Please check and try again.`);
         setToastType("error");
         setShowToast(true);
       }
 
-      // Only show the form error for email verification issues
       if (!isAuthError && errorMessage.includes("verify your email")) {
         setError(errorMessage);
       } else {
-        // Don't show any error in the form for auth errors
         setError("");
       }
 
-      // Clear auth data on login failure
       localStorage.removeItem("auth_token");
       localStorage.removeItem("user_email");
       localStorage.removeItem("userProfile");
@@ -383,11 +384,9 @@ const LoginPage = () => {
     }
   };
 
-  // Manual redirect function
   const handleManualRedirect = () => {
     const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
 
-    // Clear any pending save
     localStorage.removeItem("pendingSaveItem");
 
     navigate(redirectUrl, { replace: true });
@@ -496,7 +495,6 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      {/* Toast Notification */}
       {showToast && (
         <LoginToastNotification
           message={toastMessage}
@@ -506,7 +504,6 @@ const LoginPage = () => {
       )}
 
       <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-2xl shadow-lg relative">
-        {/* Cancel/Close Button - Top Right */}
         <button
           onClick={handleCancel}
           className="absolute -top-2 -right-2 sm:top-2 sm:right-2 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors z-10"
@@ -515,7 +512,6 @@ const LoginPage = () => {
           <FaTimes size={20} />
         </button>
 
-        {/* Logo */}
         <div className="text-center">
           <div className="flex justify-center mb-4">
             <img src={Logo} alt="Ajani Logo" className="h-auto w-30" />
@@ -527,27 +523,23 @@ const LoginPage = () => {
           </p>
         </div>
 
-        {/* Success Message */}
         {successMessage && (
           <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
             {successMessage}
           </div>
         )}
 
-        {/* Redirecting indicator */}
         {isRedirecting && (
           <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
             <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-            Redirecting to home page...
+            Redirecting...
           </div>
         )}
 
-        {/* Error Message - Only show for email verification issues */}
         {error && error.includes("verify your email") && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
             {error}
             
-            {/* Resend verification button ONLY for unverified users */}
             <div className="mt-3">
               <button
                 onClick={handleResendVerification}
@@ -560,7 +552,6 @@ const LoginPage = () => {
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Email Input */}
           <div>
             <label
               htmlFor="email"
@@ -585,7 +576,6 @@ const LoginPage = () => {
             )}
           </div>
 
-          {/* Password Input */}
           <div>
             <label
               htmlFor="password"
@@ -619,7 +609,6 @@ const LoginPage = () => {
             )}
           </div>
 
-          {/* Login Button */}
           <button
             type="submit"
             disabled={isLoading || isRedirecting}
@@ -651,7 +640,6 @@ const LoginPage = () => {
             </p>
           </div>
 
-          {/* Don't have an account? Register here */}
           <div className="pt-3 border-t border-gray-200">
             <p>
               Don't have an account?{" "}
@@ -666,7 +654,6 @@ const LoginPage = () => {
         </div>
       </div>
 
-      {/* Pending Save Confirmation Modal */}
       {pendingSaveConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 max-w-md w-full animate-fadeIn">

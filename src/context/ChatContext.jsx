@@ -38,9 +38,9 @@ export const ChatProvider = ({ children }) => {
               transition={{ duration: 0.3 }}
               whileTap={{ scale: 0.9 }}
               onClick={openChat}
-              className="fixed bottom-6 right-6 z-50 bg-[#06EAFC] hover:bg-[#0be4f3]  px-5 py-4 rounded-full shadow-lg text-lg font-medium"
+              // className="fixed bottom-6 right-6 z-50 bg-[#06EAFC] hover:bg-[#0be4f3]  px-5 py-4 rounded-full shadow-lg text-lg font-medium"
             >
-              <CiChat1 className="text-xl"/>
+              {/* <CiChat1 className="text-xl"/> */}
             </motion.button>
           )}
       </AnimatePresence>

@@ -7,7 +7,6 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import axiosInstance from "../../../lib/axios";
 
-// Toast Notification Components
 const ToastNotification = ({ message, onClose, subMessage = null, type = "success" }) => {
   const [isVisible, setIsVisible] = useState(true);
 
@@ -92,7 +91,6 @@ const VendorRegistration = () => {
   const [businessName, setBusinessName] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
 
-  // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -164,7 +162,6 @@ const VendorRegistration = () => {
     try {
       setIsSubmitting(true);
 
-      // Validate vendor category
       if (!vendorCategory) {
         showNotification(
           "Category Required",
@@ -175,7 +172,6 @@ const VendorRegistration = () => {
         return;
       }
 
-      // Create payload exactly matching API documentation
       const payload = {
         firstName: data.firstName.trim(),
         lastName: data.lastName.trim(),
@@ -190,7 +186,6 @@ const VendorRegistration = () => {
         }
       };
 
-      // Send registration request
       const response = await axiosInstance.post("/auth/register", payload);
       
       if (response.data && response.data.message) {
@@ -200,15 +195,20 @@ const VendorRegistration = () => {
         localStorage.setItem("pendingVerificationEmail", data.email);
         localStorage.setItem("pendingVerificationRole", "vendor");
         
-        // Store user data temporarily for verification
-        localStorage.setItem("pendingVendorData", JSON.stringify({
+        // Store complete user data for verification
+        const completeUserProfile = {
+          id: response.data.data._id,
           email: data.email,
           firstName: data.firstName,
           lastName: data.lastName,
           phone: data.phone,
           role: "vendor",
-          vendor: payload.vendor
-        }));
+          isVerified: false,
+          vendor: payload.vendor,
+          registrationDate: new Date().toISOString()
+        };
+        
+        localStorage.setItem("pendingVendorData", JSON.stringify(completeUserProfile));
 
         showNotification(
           "Registration Successful!",
@@ -308,7 +308,6 @@ const VendorRegistration = () => {
 
   return (
     <div className="min-h-screen w-full bg-white flex items-center justify-center p-4 sm:p-6 md:p-8 font-manrope relative">
-      {/* Header Section with Back Button (Desktop) */}
       <div className="hidden lg:block absolute left-0 top-0 p-6">
         <button
           onClick={handleBack}
@@ -323,7 +322,6 @@ const VendorRegistration = () => {
         </button>
       </div>
 
-      {/* Toast Notification */}
       {showToast && (
         <ToastNotification
           message={toastConfig.message}
@@ -334,7 +332,6 @@ const VendorRegistration = () => {
       )}
 
       <div className="w-full max-w-md sm:max-w-lg p-6 sm:p-8 rounded-xl shadow-lg bg-white relative">
-        {/* Cancel/Close Button */}
         <button
           onClick={handleCancel}
           className="absolute -top-2 -right-2 sm:top-2 sm:right-2 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors z-10"
@@ -343,7 +340,6 @@ const VendorRegistration = () => {
           <FaTimes size={20} />
         </button>
 
-        {/* Logo - Clickable with Zoom Effect */}
         <div className="flex justify-center mb-4">
           <button
             onClick={handleLogoClick}
@@ -354,7 +350,6 @@ const VendorRegistration = () => {
           </button>
         </div>
 
-        {/* Heading */}
         <h2 className="text-xl sm:text-2xl font-bold text-center text-gray-900">
           Create Vendor Account
         </h2>
@@ -363,12 +358,9 @@ const VendorRegistration = () => {
           Join our platform as a verified vendor and grow your business
         </p>
 
-        {/* Divider */}
         <div className="w-full border-t border-[#00d1ff] mt-4 mb-6"></div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit(handleRegistration)} className="space-y-4" noValidate>
-          {/* First & Last Name */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-gray-700">
@@ -413,7 +405,6 @@ const VendorRegistration = () => {
             </div>
           </div>
 
-          {/* Email */}
           <div>
             <label className="text-sm font-medium text-gray-700">Email *</label>
             <input
@@ -433,7 +424,6 @@ const VendorRegistration = () => {
             )}
           </div>
 
-          {/* Phone */}
           <div>
             <label className="text-sm font-medium text-gray-700">
               Phone Number *
@@ -455,7 +445,6 @@ const VendorRegistration = () => {
             )}
           </div>
 
-          {/* Vendor Category - REQUIRED */}
           <div>
             <label className="text-sm font-medium text-gray-700">
               Vendor Category *
@@ -484,7 +473,6 @@ const VendorRegistration = () => {
             )}
           </div>
 
-          {/* Business Name (Optional) */}
           <div>
             <label className="text-sm font-medium text-gray-700">
               Business Name (Optional)
@@ -501,7 +489,6 @@ const VendorRegistration = () => {
             </p>
           </div>
 
-          {/* Business Address (Optional) */}
           <div>
             <label className="text-sm font-medium text-gray-700">
               Business Address (Optional)
@@ -518,7 +505,6 @@ const VendorRegistration = () => {
             </p>
           </div>
 
-          {/* Password */}
           <div>
             <label className="text-sm font-medium text-gray-700">
               Password *
@@ -549,7 +535,6 @@ const VendorRegistration = () => {
               </p>
             )}
             
-            {/* Password Strength Indicator */}
             {passwordValue && (
               <div className="mt-2 space-y-1">
                 <div className="flex items-center gap-2">
@@ -573,7 +558,6 @@ const VendorRegistration = () => {
             )}
           </div>
 
-          {/* Confirm Password */}
           <div>
             <label className="text-sm font-medium text-gray-700">
               Confirm Password *
@@ -605,7 +589,6 @@ const VendorRegistration = () => {
             )}
           </div>
 
-          {/* Terms and Conditions */}
           <div className="flex items-start gap-2 mt-6">
             <input
               type="checkbox"
@@ -633,7 +616,6 @@ const VendorRegistration = () => {
             </label>
           </div>
 
-          {/* Sign In Link */}
           <p className="text-center text-sm text-gray-600 mt-3">
             Already have an account?{" "}
             <button
@@ -645,7 +627,6 @@ const VendorRegistration = () => {
             </button>
           </p>
 
-          {/* Registration Button */}
           <div className="flex justify-end mt-3">
             <button
               type="submit"
@@ -667,7 +648,6 @@ const VendorRegistration = () => {
         </form>
       </div>
 
-      {/* CSS Animations */}
       <style>{`
         @keyframes slideInRight {
           from { transform: translateX(100%); opacity: 0; }

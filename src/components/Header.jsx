@@ -1,9 +1,9 @@
+// src/components/Header.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "../assets/Logos/logo5.png";
 import * as LucideIcons from "lucide-react";
 
-// Main Header Component
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -210,7 +210,6 @@ const Header = () => {
   // Additional navigation items for logged in users
   const loggedInNavItems = [
     { label: "Chat with Assistant", onClick: () => navigate("/chat") },
-    { label: "List Your Business", onClick: () => navigate("/add-business") },
   ];
 
   // Handle mobile navigate
@@ -230,6 +229,17 @@ const Header = () => {
       return userEmail.charAt(0).toUpperCase();
     }
     return "U";
+  };
+
+  // Get verification status text
+  const getVerificationStatusText = () => {
+    if (!userProfile?.isVerified) return "Not Verified";
+    
+    if (userProfile?.role === "vendor") {
+      return "Verified Vendor";
+    } else {
+      return "Verified Buyer";
+    }
   };
 
   // Get saved listings count
@@ -265,6 +275,25 @@ const Header = () => {
     }
   }, [isLoggedIn]);
 
+  // Handle profile navigation based on user role
+  const handleProfileNavigation = () => {
+    if (userProfile?.role === "vendor") {
+      navigate("/vendor/profile");
+    } else {
+      navigate("/buyer/profile");
+    }
+    setIsProfileDropdownOpen(false);
+  };
+
+  // Handle mobile profile navigation
+  const handleMobileProfileNavigation = () => {
+    if (userProfile?.role === "vendor") {
+      handleMobileNavigate("/vendor/profile");
+    } else {
+      handleMobileNavigate("/buyer/profile");
+    }
+  };
+
   // Debug: Log current auth state
   useEffect(() => {
     console.log("Current Header State:", {
@@ -286,8 +315,9 @@ const Header = () => {
         {/* Enhanced glass effect background */}
         <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/70 to-white/60 -z-10" />
         
-        <div className="max-w-7xl mx-auto px-4 h-full relative">
+        <div className="w-full px-4 h-full relative">
           <nav className="flex items-center justify-between h-full">
+            {/* Left: Logo */}
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate("/")}
@@ -301,8 +331,8 @@ const Header = () => {
               </button>
             </div>
 
-            {/* Desktop Navigation */}
-            <div className="hidden lg:flex flex-1 justify-center items-center gap-6 text-sm h-full">
+            {/* Center: Navigation Items */}
+            <div className="hidden lg:flex items-center gap-6 text-sm h-full">
               {baseNavItems.map((item) => (
                 <button
                   key={item.id}
@@ -325,11 +355,11 @@ const Header = () => {
                 ))}
             </div>
 
-            {/* Right section */}
-            <div className="flex items-center gap-2 lg:gap-6 h-full">
+            {/* Right: Auth/Profile Section */}
+            <div className="flex items-center gap-2 lg:gap-4 h-full">
               {isLoggedIn ? (
                 <>
-                  {/* Saved Listings button - Black & White Heart */}
+                  {/* Saved Listings button */}
                   <button
                     onClick={() => navigate("/saved")}
                     className="relative hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/30 rounded-lg backdrop-blur-sm group"
@@ -356,7 +386,7 @@ const Header = () => {
                     )}
                   </button>
 
-                  {/* Chat button - Return to MessageSquareText icon */}
+                  {/* Chat button */}
                   <button
                     onClick={() => navigate("/chat")}
                     className="hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/30 rounded-lg backdrop-blur-sm group"
@@ -369,7 +399,7 @@ const Header = () => {
                     />
                   </button>
 
-                  {/* Notifications button - Simple Bell */}
+                  {/* Notifications button */}
                   <button
                     onClick={() => navigate("/notifications")}
                     className="hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/30 rounded-lg backdrop-blur-sm group"
@@ -439,19 +469,16 @@ const Header = () => {
                             {userEmail}
                           </p>
                           <div className="flex items-center gap-1 mt-1">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <span className="text-xs text-green-600">
-                              Verified
+                            <div className={`w-2 h-2 rounded-full ${userProfile?.isVerified ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                            <span className={`text-xs ${userProfile?.isVerified ? 'text-green-600' : 'text-yellow-600'}`}>
+                              {getVerificationStatusText()}
                             </span>
                           </div>
                         </div>
 
                         {/* Profile link */}
                         <button
-                          onClick={() => {
-                            navigate("/profile");
-                            setIsProfileDropdownOpen(false);
-                          }}
+                          onClick={handleProfileNavigation}
                           className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/80 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
                         >
                           <svg 
@@ -471,7 +498,63 @@ const Header = () => {
                           <span className="cursor-pointer">My Profile</span>
                         </button>
 
-                        {/* Saved listings link - Black & White Heart */}
+                        {/* Dashboard link for vendors ONLY */}
+                        {userProfile?.role === "vendor" && (
+                          <button
+                            onClick={() => {
+                              navigate("/vendor/dashboard");
+                              setIsProfileDropdownOpen(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/80 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
+                          >
+                            <svg 
+                              xmlns="http://www.w3.org/2000/svg" 
+                              width="16" 
+                              height="16" 
+                              viewBox="0 0 24 24" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              strokeWidth="1.5" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round"
+                            >
+                              <rect x="3" y="3" width="7" height="7"/>
+                              <rect x="14" y="3" width="7" height="7"/>
+                              <rect x="3" y="14" width="7" height="7"/>
+                              <rect x="14" y="14" width="7" height="7"/>
+                            </svg>
+                            <span className="cursor-pointer">Vendor Dashboard</span>
+                          </button>
+                        )}
+
+                        {/* List Your Business link - ONLY for vendors in dropdown */}
+                        {userProfile?.role === "vendor" && (
+                          <button
+                            onClick={() => {
+                              navigate("/add-business");
+                              setIsProfileDropdownOpen(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/80 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
+                          >
+                            <svg 
+                              xmlns="http://www.w3.org/2000/svg" 
+                              width="16" 
+                              height="16" 
+                              viewBox="0 0 24 24" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              strokeWidth="1.5" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round"
+                            >
+                              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                            </svg>
+                            <span className="cursor-pointer">List Your Business</span>
+                          </button>
+                        )}
+
+                        {/* Saved listings link */}
                         <button
                           onClick={() => {
                             navigate("/saved");
@@ -497,7 +580,7 @@ const Header = () => {
                           </span>
                         </button>
 
-                        {/* Chat link - Return to MessageSquareText icon */}
+                        {/* Chat link */}
                         <button
                           onClick={() => {
                             navigate("/chat");
@@ -509,7 +592,7 @@ const Header = () => {
                           <span className="cursor-pointer">Chat Assistant</span>
                         </button>
 
-                        {/* Notifications link - Simple Bell */}
+                        {/* Notifications link */}
                         <button
                           onClick={() => {
                             navigate("/notifications");
@@ -534,32 +617,7 @@ const Header = () => {
                           <span className="cursor-pointer">Notifications</span>
                         </button>
 
-                        {/* List business link - Simple Briefcase */}
-                        <button
-                          onClick={() => {
-                            navigate("/add-business");
-                            setIsProfileDropdownOpen(false);
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/80 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
-                        >
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            width="16" 
-                            height="16" 
-                            viewBox="0 0 24 24" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            strokeWidth="1.5" 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round"
-                          >
-                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                          </svg>
-                          <span className="cursor-pointer">List Business</span>
-                        </button>
-
-                        {/* Settings link - Simple Gear */}
+                        {/* Settings link */}
                         <button
                           onClick={() => {
                             alert("Settings feature coming soon!");
@@ -586,7 +644,7 @@ const Header = () => {
 
                         <div className="h-px bg-gray-100/50 my-1"></div>
 
-                        {/* Sign out - Simple Logout */}
+                        {/* Sign out */}
                         <button
                           onClick={handleSignOut}
                           className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-red-50/80 hover:text-red-700 transition-all duration-200 cursor-pointer group/item"
@@ -823,14 +881,16 @@ const Header = () => {
                     {userEmail}
                   </p>
                   <div className="flex items-center gap-1 mt-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-xs text-green-600">Verified</span>
+                    <div className={`w-2 h-2 rounded-full ${userProfile?.isVerified ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                    <span className={`text-xs ${userProfile?.isVerified ? 'text-green-600' : 'text-yellow-600'}`}>
+                      {getVerificationStatusText()}
+                    </span>
                   </div>
                 </div>
 
                 {/* Mobile navigation for logged-in users */}
                 <button
-                  onClick={() => handleMobileNavigate("/profile")}
+                  onClick={handleMobileProfileNavigation}
                   className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
                   style={{
                     transitionDelay: isMenuOpen
@@ -864,66 +924,86 @@ const Header = () => {
                   </div>
                 </button>
 
+                {/* Vendor Dashboard for vendors only in mobile */}
+                {userProfile?.role === "vendor" && (
+                  <button
+                    onClick={() => handleMobileNavigate("/vendor/dashboard")}
+                    className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
+                    style={{
+                      transitionDelay: isMenuOpen
+                        ? `${
+                            (baseNavItems.length + loggedInNavItems.length + 5) *
+                            50
+                          }ms`
+                        : "0ms",
+                      opacity: isMenuOpen ? 1 : 0,
+                      transform: isMenuOpen
+                        ? "translateX(0)"
+                        : "translateX(-20px)",
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="1.5" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                      >
+                        <rect x="3" y="3" width="7" height="7"/>
+                        <rect x="14" y="3" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/>
+                      </svg>
+                      <span>Vendor Dashboard</span>
+                    </div>
+                  </button>
+                )}
+
+                {/* List Your Business for vendors only in mobile */}
+                {userProfile?.role === "vendor" && (
+                  <button
+                    onClick={() => handleMobileNavigate("/add-business")}
+                    className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
+                    style={{
+                      transitionDelay: isMenuOpen
+                        ? `${
+                            (baseNavItems.length + loggedInNavItems.length + 6) *
+                            50
+                          }ms`
+                        : "0ms",
+                      opacity: isMenuOpen ? 1 : 0,
+                      transform: isMenuOpen
+                        ? "translateX(0)"
+                        : "translateX(-20px)",
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="1.5" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                      >
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                      </svg>
+                      <span>List Your Business</span>
+                    </div>
+                  </button>
+                )}
+
                 <button
                   onClick={() => handleMobileNavigate("/saved")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 5) *
-                          50
-                        }ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      width="16" 
-                      height="16" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="1.5" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                    >
-                      <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
-                    </svg>
-                    <span>
-                      Saved Listings {savedCount > 0 && `(${savedCount})`}
-                    </span>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => handleMobileNavigate("/chat")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 6) *
-                          50
-                        }ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <LucideIcons.MessageSquareText size={16} strokeWidth={1.5} />
-                    <span>Chat Assistant</span>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => handleMobileNavigate("/notifications")}
                   className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
                   style={{
                     transitionDelay: isMenuOpen
@@ -950,10 +1030,11 @@ const Header = () => {
                       strokeLinecap="round" 
                       strokeLinejoin="round"
                     >
-                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                      <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
                     </svg>
-                    <span>Notifications</span>
+                    <span>
+                      Saved Listings {savedCount > 0 && `(${savedCount})`}
+                    </span>
                   </div>
                 </button>
 

@@ -4,6 +4,7 @@ import { ChatProvider } from "./context/ChatContext";
 import TrackingWrapper from "./components/TrackingWrapper";
 import LocalBusinessSchema from "./components/LocalBusinessSchema";
 import { ModalProvider } from "./context/ModalContext";
+import Header from "./components/Header";
 
 /* =======================
    LAZY-LOADED PAGES
@@ -18,6 +19,19 @@ const SearchResults = lazy(() => import("./components/SearchResults"));
 const VendorDetail = lazy(() => import("./pages/VendorDetail"));
 const VendorsPage = lazy(() => import("./pages/VendorsPage"));
 const HelpCenterPage = lazy(() => import("./pages/HelpCenter"));
+const AddBusinessPage = lazy(() => import("./pages/AddBusinessPage"));
+const ChatPage = lazy(() => import("./pages/ChatPage"));
+
+/* =======================
+   NEW COMPONENTS - Replaced ChatPopupAd with ComingSoonModal
+======================= */
+const ComingSoonModal = lazy(() => import("./components/ComingSoonModal"));
+
+/* =======================
+   PROFILE PAGES
+======================= */
+const BuyerProfilePage = lazy(() => import("./pages/BuyerProfilePage"));
+const VendorProfilePage = lazy(() => import("./pages/VendorProfilePage"));
 
 /* =======================
    BOOKING PAGES
@@ -38,24 +52,19 @@ const VerifyOTPPage = lazy(() => import("./pages/auth/VerifyOTPPage"));
    USER REGISTRATION FLOW
 ======================= */
 const UserRegistration = lazy(() => import("./pages/auth/registration/UserRegistration"));
-// REMOVE UserProcess1-4 as requested
-// const UserProcess1 = lazy(() => import("./pages/auth/registration/UserProcess1"));
-// const UserProcess2 = lazy(() => import("./pages/auth/registration/UserProcess2"));
-// const UserProcess3 = lazy(() => import("./pages/auth/registration/UserProcess3"));
-// const UserProcess4 = lazy(() => import("./pages/auth/registration/UserProcess4"));
 
 /* =======================
    VENDOR PAGES
 ======================= */
 const VendorRegistration = lazy(() => import("./pages/auth/registration/VendorRegistration"));
 const VendorDashboard = lazy(() => import("./pages/VendorDashboard"));
+const VendorCompleteProfile = lazy(() => import("./pages/auth/registration/VendorCompleteProfile"));
 
 /* =======================
    PROTECTED PAGES
 ======================= */
 const SavedListingsPage = lazy(() => import("./pages/SavedListingsPage"));
-// Make sure this is the CORRECT UserProfilePage
-const UserProfilePage = lazy(() => import("./pages/UserProfilePage"));
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 
 /* =======================
    LOADING UI
@@ -154,6 +163,77 @@ const ProtectedRoute = ({ children, requireVerification = true }) => {
   return children;
 };
 
+const BuyerRoute = ({ children }) => {
+  const isAuthenticated = checkAuthStatus();
+  const isVerified = isUserVerified();
+
+  console.log("BuyerRoute - Check:", { isAuthenticated, isVerified });
+
+  if (!isAuthenticated) {
+    console.log("BuyerRoute - Not authenticated, redirecting to login");
+    localStorage.setItem("redirectAfterLogin", window.location.pathname + window.location.search);
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!isVerified) {
+    console.log("BuyerRoute - Not verified, redirecting to OTP");
+    return <Navigate to="/verify-otp" replace />;
+  }
+
+  try {
+    const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+    console.log("BuyerRoute - Profile role:", profile.role);
+    
+    // Check if user is a buyer (role is "user" or "buyer" or undefined for backward compatibility)
+    const isBuyer = !profile.role || profile.role === "user" || profile.role === "buyer";
+    
+    if (!isBuyer) {
+      console.log("BuyerRoute - Not a buyer, redirecting to vendor profile");
+      return <Navigate to="/vendor/profile" replace />;
+    }
+  } catch (error) {
+    console.error("BuyerRoute - Error checking role:", error);
+    return <Navigate to="/" replace />;
+  }
+
+  console.log("BuyerRoute - Access granted");
+  return children;
+};
+
+const VendorRoute = ({ children }) => {
+  const isAuthenticated = checkAuthStatus();
+  const isVerified = isUserVerified();
+
+  console.log("VendorRoute - Check:", { isAuthenticated, isVerified });
+
+  if (!isAuthenticated) {
+    console.log("VendorRoute - Not authenticated, redirecting to login");
+    localStorage.setItem("redirectAfterLogin", window.location.pathname + window.location.search);
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!isVerified) {
+    console.log("VendorRoute - Not verified, redirecting to OTP");
+    return <Navigate to="/verify-otp" replace />;
+  }
+
+  try {
+    const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+    console.log("VendorRoute - Profile role:", profile.role);
+    
+    if (profile.role !== "vendor") {
+      console.log("VendorRoute - Not a vendor, redirecting to buyer profile");
+      return <Navigate to="/buyer/profile" replace />;
+    }
+  } catch (error) {
+    console.error("VendorRoute - Error checking role:", error);
+    return <Navigate to="/" replace />;
+  }
+
+  console.log("VendorRoute - Access granted");
+  return children;
+};
+
 const PublicRoute = ({ children }) => {
   const isAuthenticated = checkAuthStatus();
   const isVerified = isUserVerified();
@@ -189,40 +269,18 @@ const OTPRoute = ({ children }) => {
 };
 
 /* =======================
-   VENDOR ROUTE GUARD
+   LAYOUT COMPONENT
 ======================= */
-const VendorRoute = ({ children }) => {
-  const isAuthenticated = checkAuthStatus();
-  const isVerified = isUserVerified();
-
-  console.log("VendorRoute - Check:", { isAuthenticated, isVerified });
-
-  if (!isAuthenticated) {
-    console.log("VendorRoute - Not authenticated, redirecting to login");
-    localStorage.setItem("redirectAfterLogin", window.location.pathname + window.location.search);
-    return <Navigate to="/login" replace />;
-  }
-
-  if (!isVerified) {
-    console.log("VendorRoute - Not verified, redirecting to OTP");
-    return <Navigate to="/verify-otp" replace />;
-  }
-
-  try {
-    const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
-    console.log("VendorRoute - Profile role:", profile.role);
-    
-    if (profile.role !== "vendor") {
-      console.log("VendorRoute - Not a vendor, redirecting home");
-      return <Navigate to="/" replace />;
-    }
-  } catch (error) {
-    console.error("VendorRoute - Error checking role:", error);
-    return <Navigate to="/" replace />;
-  }
-
-  console.log("VendorRoute - Access granted");
-  return children;
+const Layout = ({ children }) => {
+  return (
+    <div className="min-h-screen bg-white">
+      <Header />
+      <main className="pt-16">
+        {children}
+      </main>
+      {/* Removed ChatPopupAd - ComingSoonModal will show globally */}
+    </div>
+  );
 };
 
 /* =======================
@@ -269,33 +327,36 @@ function App() {
           <BrowserRouter>
             <TrackingWrapper>
               <Suspense fallback={<LoadingDots />}>
+                {/* ComingSoonModal shows globally on ALL pages */}
+                <ComingSoonModal />
+                
                 <Routes>
                   {/* PUBLIC ROUTES */}
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/about" element={<AboutAjani />} />
-                  <Route path="/help-center" element={<HelpCenterPage />} />
-                  <Route path="/privacypage" element={<PrivacyPage />} />
-                  <Route path="/termspage" element={<TermsPage />} />
-                  <Route path="/contact" element={<ContactPage />} />
-                  <Route path="/contact-us" element={<ContactPage />} />
-                  <Route path="/vendors" element={<VendorsPage />} />
+                  <Route path="/" element={<Layout><HomePage /></Layout>} />
+                  <Route path="/about" element={<Layout><AboutAjani /></Layout>} />
+                  <Route path="/help-center" element={<Layout><HelpCenterPage /></Layout>} />
+                  <Route path="/privacypage" element={<Layout><PrivacyPage /></Layout>} />
+                  <Route path="/termspage" element={<Layout><TermsPage /></Layout>} />
+                  <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
+                  <Route path="/contact-us" element={<Layout><ContactPage /></Layout>} />
+                  <Route path="/vendors" element={<Layout><VendorsPage /></Layout>} />
 
                   {/* DYNAMIC ROUTES */}
-                  <Route path="/vendor-detail/:id" element={<VendorDetail />} />
-                  <Route path="/category/:category" element={<CategoryResults />} />
-                  <Route path="/search-results" element={<SearchResults />} />
+                  <Route path="/vendor-detail/:id" element={<Layout><VendorDetail /></Layout>} />
+                  <Route path="/category/:category" element={<Layout><CategoryResults /></Layout>} />
+                  <Route path="/search-results" element={<Layout><SearchResults /></Layout>} />
 
                   {/* BOOKING ROUTES */}
-                  <Route path="/booking/:id" element={<BookingPage />} />
-                  <Route path="/booking-confirmation/:id" element={<BookingConfirmation />} />
-                  <Route path="/booking-failed/:id" element={<BookingFailed />} />
+                  <Route path="/booking/:id" element={<Layout><BookingPage /></Layout>} />
+                  <Route path="/booking-confirmation/:id" element={<Layout><BookingConfirmation /></Layout>} />
+                  <Route path="/booking-failed/:id" element={<Layout><BookingFailed /></Layout>} />
 
                   {/* AUTH ROUTES */}
                   <Route
                     path="/login"
                     element={
                       <PublicRoute>
-                        <LoginPage />
+                        <Layout><LoginPage /></Layout>
                       </PublicRoute>
                     }
                   />
@@ -303,7 +364,7 @@ function App() {
                     path="/reset-password"
                     element={
                       <PublicRoute>
-                        <ResetPasswordPage />
+                        <Layout><ResetPasswordPage /></Layout>
                       </PublicRoute>
                     }
                   />
@@ -311,7 +372,7 @@ function App() {
                     path="/register"
                     element={
                       <PublicRoute>
-                        <RegisterChoicePage />
+                        <Layout><RegisterChoicePage /></Layout>
                       </PublicRoute>
                     }
                   />
@@ -321,7 +382,7 @@ function App() {
                     path="/verify-otp"
                     element={
                       <OTPRoute>
-                        <VerifyOTPPage />
+                        <Layout><VerifyOTPPage /></Layout>
                       </OTPRoute>
                     }
                   />
@@ -331,46 +392,92 @@ function App() {
                     path="/register/user"
                     element={
                       <PublicRoute>
-                        <UserRegistration />
+                        <Layout><UserRegistration /></Layout>
                       </PublicRoute>
                     }
                   />
-                  {/* REMOVED UserProcess routes as requested */}
 
                   {/* VENDOR REGISTRATION */}
                   <Route
                     path="/register/vendor"
                     element={
                       <PublicRoute>
-                        <VendorRegistration />
+                        <Layout><VendorRegistration /></Layout>
                       </PublicRoute>
                     }
                   />
 
-                  {/* VENDOR DASHBOARD ROUTES */}
+                  {/* PROFILE ROUTES */}
                   <Route
-                    path="/vendor/dashboard"
+                    path="/buyer/profile"
+                    element={
+                      <BuyerRoute>
+                        <Layout><BuyerProfilePage /></Layout>
+                      </BuyerRoute>
+                    }
+                  />
+                  <Route
+                    path="/vendor/profile"
                     element={
                       <VendorRoute>
-                        <VendorDashboard />
+                        <Layout><VendorProfilePage /></Layout>
                       </VendorRoute>
                     }
                   />
 
-                  {/* PROTECTED ROUTES - CRITICAL: Make sure these point to correct components */}
+                  {/* VENDOR ROUTES */}
+                  <Route
+                    path="/vendor/dashboard"
+                    element={
+                      <VendorRoute>
+                        <Layout><VendorDashboard /></Layout>
+                      </VendorRoute>
+                    }
+                  />
+                  <Route
+                    path="/vendor/complete-profile"
+                    element={
+                      <VendorRoute>
+                        <Layout><VendorCompleteProfile /></Layout>
+                      </VendorRoute>
+                    }
+                  />
+
+                  {/* PROTECTED ROUTES */}
                   <Route
                     path="/saved"
                     element={
                       <ProtectedRoute>
-                        <SavedListingsPage />
+                        <Layout><SavedListingsPage /></Layout>
                       </ProtectedRoute>
                     }
                   />
                   <Route
-                    path="/profile"
+                    path="/notifications"
                     element={
-                      <ProtectedRoute requireVerification={false}>
-                        <UserProfilePage />
+                      <ProtectedRoute>
+                        <Layout><NotificationsPage /></Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/chat"
+                    element={
+                      <ProtectedRoute>
+                        <div className="min-h-screen bg-white">
+                          <Header />
+                          <main className="pt-16">
+                            <ChatPage />
+                          </main>
+                        </div>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/add-business"
+                    element={
+                      <ProtectedRoute>
+                        <Layout><AddBusinessPage /></Layout>
                       </ProtectedRoute>
                     }
                   />
@@ -379,18 +486,20 @@ function App() {
                   <Route
                     path="*"
                     element={
-                      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-                        <div className="text-center">
-                          <h1 className="mb-4 text-4xl font-bold">404</h1>
-                          <p className="mb-6 text-gray-600">Page not found</p>
-                          <a
-                            href="/"
-                            className="font-medium text-cyan-500 hover:text-cyan-400"
-                          >
-                            Return Home
-                          </a>
+                      <Layout>
+                        <div className="flex min-h-screen items-center justify-center bg-gray-50">
+                          <div className="text-center">
+                            <h1 className="mb-4 text-4xl font-bold">404</h1>
+                            <p className="mb-6 text-gray-600">Page not found</p>
+                            <a
+                              href="/"
+                              className="font-medium text-cyan-500 hover:text-cyan-400"
+                            >
+                              Return Home
+                            </a>
+                          </div>
                         </div>
-                      </div>
+                      </Layout>
                     }
                   />
                 </Routes>
