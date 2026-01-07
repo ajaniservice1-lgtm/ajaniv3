@@ -1,10 +1,11 @@
+// App.js
 import React, { Suspense, lazy, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ChatProvider } from "./context/ChatContext";
 import TrackingWrapper from "./components/TrackingWrapper";
 import LocalBusinessSchema from "./components/LocalBusinessSchema";
 import { ModalProvider } from "./context/ModalContext";
-import Header from "./components/Header";
+import MainLayout from "./components/MainLayout";
 
 /* =======================
    LAZY-LOADED PAGES
@@ -23,7 +24,7 @@ const AddBusinessPage = lazy(() => import("./pages/AddBusinessPage"));
 const ChatPage = lazy(() => import("./pages/ChatPage"));
 
 /* =======================
-   NEW COMPONENTS - Replaced ChatPopupAd with ComingSoonModal
+   NEW COMPONENTS
 ======================= */
 const ComingSoonModal = lazy(() => import("./components/ComingSoonModal"));
 
@@ -184,7 +185,6 @@ const BuyerRoute = ({ children }) => {
     const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
     console.log("BuyerRoute - Profile role:", profile.role);
     
-    // Check if user is a buyer (role is "user" or "buyer" or undefined for backward compatibility)
     const isBuyer = !profile.role || profile.role === "user" || profile.role === "buyer";
     
     if (!isBuyer) {
@@ -269,21 +269,6 @@ const OTPRoute = ({ children }) => {
 };
 
 /* =======================
-   LAYOUT COMPONENT
-======================= */
-const Layout = ({ children }) => {
-  return (
-    <div className="min-h-screen bg-white">
-      <Header />
-      <main className="pt-16">
-        {children}
-      </main>
-      {/* Removed ChatPopupAd - ComingSoonModal will show globally */}
-    </div>
-  );
-};
-
-/* =======================
    APP
 ======================= */
 function App() {
@@ -332,31 +317,31 @@ function App() {
                 
                 <Routes>
                   {/* PUBLIC ROUTES */}
-                  <Route path="/" element={<Layout><HomePage /></Layout>} />
-                  <Route path="/about" element={<Layout><AboutAjani /></Layout>} />
-                  <Route path="/help-center" element={<Layout><HelpCenterPage /></Layout>} />
-                  <Route path="/privacypage" element={<Layout><PrivacyPage /></Layout>} />
-                  <Route path="/termspage" element={<Layout><TermsPage /></Layout>} />
-                  <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
-                  <Route path="/contact-us" element={<Layout><ContactPage /></Layout>} />
-                  <Route path="/vendors" element={<Layout><VendorsPage /></Layout>} />
+                  <Route path="/" element={<MainLayout><HomePage /></MainLayout>} />
+                  <Route path="/about" element={<MainLayout><AboutAjani /></MainLayout>} />
+                  <Route path="/help-center" element={<MainLayout><HelpCenterPage /></MainLayout>} />
+                  <Route path="/privacypage" element={<MainLayout><PrivacyPage /></MainLayout>} />
+                  <Route path="/termspage" element={<MainLayout><TermsPage /></MainLayout>} />
+                  <Route path="/contact" element={<MainLayout><ContactPage /></MainLayout>} />
+                  <Route path="/contact-us" element={<MainLayout><ContactPage /></MainLayout>} />
+                  <Route path="/vendors" element={<MainLayout><VendorsPage /></MainLayout>} />
 
                   {/* DYNAMIC ROUTES */}
-                  <Route path="/vendor-detail/:id" element={<Layout><VendorDetail /></Layout>} />
-                  <Route path="/category/:category" element={<Layout><CategoryResults /></Layout>} />
-                  <Route path="/search-results" element={<Layout><SearchResults /></Layout>} />
+                  <Route path="/vendor-detail/:id" element={<MainLayout><VendorDetail /></MainLayout>} />
+                  <Route path="/category/:category" element={<MainLayout><CategoryResults /></MainLayout>} />
+                  <Route path="/search-results" element={<MainLayout><SearchResults /></MainLayout>} />
 
                   {/* BOOKING ROUTES */}
-                  <Route path="/booking/:id" element={<Layout><BookingPage /></Layout>} />
-                  <Route path="/booking-confirmation/:id" element={<Layout><BookingConfirmation /></Layout>} />
-                  <Route path="/booking-failed/:id" element={<Layout><BookingFailed /></Layout>} />
+                  <Route path="/booking/:id" element={<MainLayout><BookingPage /></MainLayout>} />
+                  <Route path="/booking-confirmation/:id" element={<MainLayout><BookingConfirmation /></MainLayout>} />
+                  <Route path="/booking-failed/:id" element={<MainLayout><BookingFailed /></MainLayout>} />
 
                   {/* AUTH ROUTES */}
                   <Route
                     path="/login"
                     element={
                       <PublicRoute>
-                        <Layout><LoginPage /></Layout>
+                        <MainLayout><LoginPage /></MainLayout>
                       </PublicRoute>
                     }
                   />
@@ -364,7 +349,7 @@ function App() {
                     path="/reset-password"
                     element={
                       <PublicRoute>
-                        <Layout><ResetPasswordPage /></Layout>
+                        <MainLayout><ResetPasswordPage /></MainLayout>
                       </PublicRoute>
                     }
                   />
@@ -372,7 +357,7 @@ function App() {
                     path="/register"
                     element={
                       <PublicRoute>
-                        <Layout><RegisterChoicePage /></Layout>
+                        <MainLayout><RegisterChoicePage /></MainLayout>
                       </PublicRoute>
                     }
                   />
@@ -382,7 +367,7 @@ function App() {
                     path="/verify-otp"
                     element={
                       <OTPRoute>
-                        <Layout><VerifyOTPPage /></Layout>
+                        <MainLayout><VerifyOTPPage /></MainLayout>
                       </OTPRoute>
                     }
                   />
@@ -392,7 +377,7 @@ function App() {
                     path="/register/user"
                     element={
                       <PublicRoute>
-                        <Layout><UserRegistration /></Layout>
+                        <MainLayout><UserRegistration /></MainLayout>
                       </PublicRoute>
                     }
                   />
@@ -402,7 +387,7 @@ function App() {
                     path="/register/vendor"
                     element={
                       <PublicRoute>
-                        <Layout><VendorRegistration /></Layout>
+                        <MainLayout><VendorRegistration /></MainLayout>
                       </PublicRoute>
                     }
                   />
@@ -412,7 +397,7 @@ function App() {
                     path="/buyer/profile"
                     element={
                       <BuyerRoute>
-                        <Layout><BuyerProfilePage /></Layout>
+                        <MainLayout><BuyerProfilePage /></MainLayout>
                       </BuyerRoute>
                     }
                   />
@@ -420,7 +405,7 @@ function App() {
                     path="/vendor/profile"
                     element={
                       <VendorRoute>
-                        <Layout><VendorProfilePage /></Layout>
+                        <MainLayout><VendorProfilePage /></MainLayout>
                       </VendorRoute>
                     }
                   />
@@ -430,7 +415,7 @@ function App() {
                     path="/vendor/dashboard"
                     element={
                       <VendorRoute>
-                        <Layout><VendorDashboard /></Layout>
+                        <MainLayout><VendorDashboard /></MainLayout>
                       </VendorRoute>
                     }
                   />
@@ -438,7 +423,7 @@ function App() {
                     path="/vendor/complete-profile"
                     element={
                       <VendorRoute>
-                        <Layout><VendorCompleteProfile /></Layout>
+                        <MainLayout><VendorCompleteProfile /></MainLayout>
                       </VendorRoute>
                     }
                   />
@@ -448,7 +433,7 @@ function App() {
                     path="/saved"
                     element={
                       <ProtectedRoute>
-                        <Layout><SavedListingsPage /></Layout>
+                        <MainLayout><SavedListingsPage /></MainLayout>
                       </ProtectedRoute>
                     }
                   />
@@ -456,7 +441,7 @@ function App() {
                     path="/notifications"
                     element={
                       <ProtectedRoute>
-                        <Layout><NotificationsPage /></Layout>
+                        <MainLayout><NotificationsPage /></MainLayout>
                       </ProtectedRoute>
                     }
                   />
@@ -464,12 +449,7 @@ function App() {
                     path="/chat"
                     element={
                       <ProtectedRoute>
-                        <div className="min-h-screen bg-white">
-                          <Header />
-                          <main className="pt-16">
-                            <ChatPage />
-                          </main>
-                        </div>
+                        <MainLayout><ChatPage /></MainLayout>
                       </ProtectedRoute>
                     }
                   />
@@ -477,7 +457,7 @@ function App() {
                     path="/add-business"
                     element={
                       <ProtectedRoute>
-                        <Layout><AddBusinessPage /></Layout>
+                        <MainLayout><AddBusinessPage /></MainLayout>
                       </ProtectedRoute>
                     }
                   />
@@ -486,8 +466,8 @@ function App() {
                   <Route
                     path="*"
                     element={
-                      <Layout>
-                        <div className="flex min-h-screen items-center justify-center bg-gray-50">
+                      <MainLayout>
+                        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-gray-50">
                           <div className="text-center">
                             <h1 className="mb-4 text-4xl font-bold">404</h1>
                             <p className="mb-6 text-gray-600">Page not found</p>
@@ -499,7 +479,7 @@ function App() {
                             </a>
                           </div>
                         </div>
-                      </Layout>
+                      </MainLayout>
                     }
                   />
                 </Routes>

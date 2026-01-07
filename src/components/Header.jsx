@@ -11,10 +11,8 @@ const Header = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [scrollPosition, setScrollPosition] = useState(0);
   const navigate = useNavigate();
   const profileDropdownRef = useRef(null);
-  const headerRef = useRef(null);
 
   // Enhanced auth check function
   const checkLoginStatus = () => {
@@ -24,8 +22,6 @@ const Header = () => {
     const userEmail = localStorage.getItem("user_email");
     const profile = localStorage.getItem("userProfile");
 
-    console.log("Header auth check:", { token, userEmail, profile });
-
     if (token && userEmail) {
       setIsLoggedIn(true);
       setUserEmail(userEmail);
@@ -34,10 +30,6 @@ const Header = () => {
         try {
           const parsedProfile = JSON.parse(profile);
           setUserProfile(parsedProfile);
-
-          if (!parsedProfile.isVerified) {
-            console.warn("User profile found but not verified");
-          }
         } catch (error) {
           console.error("Error parsing user profile:", error);
         }
@@ -53,8 +45,6 @@ const Header = () => {
   useEffect(() => {
     const handleScroll = () => {
       const position = window.pageYOffset;
-      setScrollPosition(position);
-      
       if (position > 10) {
         setIsScrolled(true);
       } else {
@@ -69,26 +59,25 @@ const Header = () => {
     };
   }, []);
 
-  // Enhanced glass effect with more noticeable transparency
+  // Enhanced glass effect
   const getGlassEffect = () => {
     return {
-      backgroundColor: isScrolled ? 'rgba(255, 255, 255, 0.65)' : 'rgba(255, 255, 255, 0.95)',
-      backdropFilter: isScrolled ? 'blur(16px) saturate(200%)' : 'blur(8px) saturate(180%)',
-      WebkitBackdropFilter: isScrolled ? 'blur(16px) saturate(200%)' : 'blur(8px) saturate(180%)',
-      borderBottom: isScrolled ? '1px solid rgba(0, 209, 255, 0.3)' : '2px solid #00d1ff',
+      backgroundColor: isScrolled ? 'rgba(255, 255, 255, 0.85)' : 'rgba(255, 255, 255, 0.95)',
+      backdropFilter: isScrolled ? 'blur(12px) saturate(180%)' : 'blur(8px) saturate(180%)',
+      WebkitBackdropFilter: isScrolled ? 'blur(12px) saturate(180%)' : 'blur(8px) saturate(180%)',
+      borderBottom: isScrolled ? '1px solid rgba(0, 209, 255, 0.2)' : '1px solid rgba(0, 209, 255, 0.3)',
       boxShadow: isScrolled 
-        ? '0 8px 32px 0 rgba(31, 38, 135, 0.15)' 
-        : '0 4px 16px 0 rgba(31, 38, 135, 0.05)',
+        ? '0 4px 20px 0 rgba(31, 38, 135, 0.1)' 
+        : '0 2px 10px 0 rgba(31, 38, 135, 0.05)',
       transition: 'all 0.3s ease-in-out',
     };
   };
 
-  // Check login status on mount and when window gains focus
+  // Check login status
   useEffect(() => {
     checkLoginStatus();
 
     const handleStorageChange = () => {
-      console.log("Storage changed, checking auth status");
       checkLoginStatus();
     };
 
@@ -102,43 +91,29 @@ const Header = () => {
 
     window.addEventListener("focus", handleFocus);
 
-    const authCheckInterval = setInterval(() => {
-      const token = localStorage.getItem("auth_token");
-      if (token && !isLoggedIn) {
-        console.log("Token found via polling, updating login state");
-        checkLoginStatus();
-      }
-    }, 1000);
-
     return () => {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("authChange", handleStorageChange);
       window.removeEventListener("loginSuccess", handleStorageChange);
       window.removeEventListener("focus", handleFocus);
-      clearInterval(authCheckInterval);
     };
-  }, [isLoggedIn]);
+  }, []);
 
   // Prevent body scrolling when mobile menu is open
   useEffect(() => {
     if (isMenuOpen) {
       document.body.style.overflow = "hidden";
-      document.body.style.height = "100vh";
     } else {
       document.body.style.overflow = "";
-      document.body.style.height = "";
     }
 
     return () => {
       document.body.style.overflow = "";
-      document.body.style.height = "";
     };
   }, [isMenuOpen]);
 
   // Enhanced sign out function
   const handleSignOut = () => {
-    console.log("Signing out...");
-
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_email");
     localStorage.removeItem("userProfile");
@@ -158,7 +133,6 @@ const Header = () => {
     setIsMenuOpen(false);
 
     navigate("/");
-    window.location.reload();
   };
 
   // Handle click outside profile dropdown
@@ -294,31 +268,18 @@ const Header = () => {
     }
   };
 
-  // Debug: Log current auth state
-  useEffect(() => {
-    console.log("Current Header State:", {
-      isLoggedIn,
-      userEmail,
-      userProfile,
-      authToken: localStorage.getItem("auth_token"),
-      userProfileStorage: localStorage.getItem("userProfile"),
-    });
-  }, [isLoggedIn, userEmail, userProfile]);
-
   return (
     <>
       <header 
-        ref={headerRef}
         className="fixed top-0 left-0 right-0 z-[1000] h-16 cursor-default transition-all duration-300 ease-in-out"
         style={getGlassEffect()}
       >
-        {/* Enhanced glass effect background */}
         <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/70 to-white/60 -z-10" />
         
-        <div className="w-full px-4 h-full relative">
+        <div className="w-full px-4 h-full max-w-7xl mx-auto">
           <nav className="flex items-center justify-between h-full">
             {/* Left: Logo */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-shrink-0">
               <button
                 onClick={() => navigate("/")}
                 className="flex items-center gap-2 cursor-pointer"
@@ -331,32 +292,34 @@ const Header = () => {
               </button>
             </div>
 
-            {/* Center: Navigation Items */}
-            <div className="hidden lg:flex items-center gap-6 text-sm h-full">
-              {baseNavItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={item.action}
-                  className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-3 py-1 rounded-md hover:bg-white/30 backdrop-blur-sm"
-                >
-                  {item.label}
-                </button>
-              ))}
-
-              {isLoggedIn &&
-                loggedInNavItems.map((item, index) => (
+            {/* Center: Navigation Items - CENTERED with reduced gap */}
+            <div className="hidden lg:flex items-center justify-center flex-1 text-sm h-full">
+              <div className="flex items-center justify-center gap-3 h-full">
+                {baseNavItems.map((item) => (
                   <button
-                    key={index}
-                    onClick={item.onClick}
-                    className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-3 py-1 rounded-md hover:bg-white/30 backdrop-blur-sm"
+                    key={item.id}
+                    onClick={item.action}
+                    className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-2.5 py-1 rounded-md hover:bg-white/30 backdrop-blur-sm"
                   >
                     {item.label}
                   </button>
                 ))}
+
+                {isLoggedIn &&
+                  loggedInNavItems.map((item, index) => (
+                    <button
+                      key={index}
+                      onClick={item.onClick}
+                      className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-2.5 py-1 rounded-md hover:bg-white/30 backdrop-blur-sm"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+              </div>
             </div>
 
             {/* Right: Auth/Profile Section */}
-            <div className="flex items-center gap-2 lg:gap-4 h-full">
+            <div className="flex items-center gap-2 h-full flex-shrink-0">
               {isLoggedIn ? (
                 <>
                   {/* Saved Listings button */}
@@ -617,31 +580,6 @@ const Header = () => {
                           <span className="cursor-pointer">Notifications</span>
                         </button>
 
-                        {/* Settings link */}
-                        <button
-                          onClick={() => {
-                            alert("Settings feature coming soon!");
-                            setIsProfileDropdownOpen(false);
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/80 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
-                        >
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            width="16" 
-                            height="16" 
-                            viewBox="0 0 24 24" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            strokeWidth="1.5" 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round"
-                          >
-                            <circle cx="12" cy="12" r="3"/>
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                          </svg>
-                          <span className="cursor-pointer">Settings</span>
-                        </button>
-
                         <div className="h-px bg-gray-100/50 my-1"></div>
 
                         {/* Sign out */}
@@ -675,16 +613,16 @@ const Header = () => {
                 <div className="hidden lg:flex items-center gap-1.5">
                   <button
                     onClick={() => navigate("/login")}
-                    className="py-2.5 px-5 text-sm font-normal bg-[#06EAFC]/90 hover:bg-[#6cf5ff] duration-300 rounded-full transition-all shadow-sm cursor-pointer hover:scale-105 backdrop-blur-sm group"
+                    className="py-2 px-4 text-sm font-normal bg-[#06EAFC]/90 hover:bg-[#6cf5ff] duration-300 rounded-full transition-all shadow-sm cursor-pointer hover:scale-105 backdrop-blur-sm group"
                   >
                     <span className="group-hover:tracking-wide transition-all">Log in</span>
                   </button>
 
-                  <div className="w-px h-5 bg-gray-400/50 font-bold backdrop-blur-sm"></div>
+                  <div className="w-px h-4 bg-gray-400/50 font-bold backdrop-blur-sm"></div>
 
                   <button
                     onClick={() => navigate("/register")}
-                    className="py-2.5 px-4 text-sm font-normal border-2 border-[#06EAFC] rounded-full transition-all shadow-sm cursor-pointer hover:scale-105 hover:bg-white/30 backdrop-blur-sm group"
+                    className="py-2 px-4 text-sm font-normal border-2 border-[#06EAFC] rounded-full transition-all shadow-sm cursor-pointer hover:scale-105 hover:bg-white/30 backdrop-blur-sm group"
                   >
                     <span className="group-hover:tracking-wide transition-all">Register</span>
                   </button>
@@ -694,7 +632,7 @@ const Header = () => {
               {/* Mobile menu button */}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="lg:hidden text-gray-900 p-1 ml-2 cursor-pointer hover:text-[#00d1ff] transition-all duration-300 hover:bg-white/30 rounded-lg group"
+                className="lg:hidden text-gray-900 p-1 ml-1 cursor-pointer hover:text-[#00d1ff] transition-all duration-300 hover:bg-white/30 rounded-lg group"
               >
                 {isMenuOpen ? (
                   <svg 
@@ -800,9 +738,7 @@ const Header = () => {
                 className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
                 onClick={() => {
                   item.action();
-                  if (item.id !== "Blog") {
-                    setTimeout(() => setIsMenuOpen(false), 400);
-                  }
+                  setTimeout(() => setIsMenuOpen(false), 400);
                 }}
                 style={{
                   transitionDelay: isMenuOpen ? `${index * 50}ms` : "0ms",

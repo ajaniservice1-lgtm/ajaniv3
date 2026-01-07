@@ -495,7 +495,7 @@ const VendorDetail = () => {
     <div className="min-h-screen font-manrope">
       <Header />
       
-      <main className="pt-16">
+      <main className="pt-14 md:pt-14"> {/* Reduced top padding */}
         {/* MOBILE BACK BUTTON */}
         <div className="md:hidden fixed top-16 left-0 z-50">
           <button
@@ -511,8 +511,8 @@ const VendorDetail = () => {
           </button>
         </div>
 
-        {/* Breadcrumb */}
-        <nav className="flex items-center space-x-2 text-xs text-gray-600 mb-4 md:mb-6 px-4 sm:px-2 md:px-0 font-manrope justify-center">
+        {/* Breadcrumb - Reduced margins */}
+        <nav className="flex items-center space-x-2 text-xs text-gray-600 mb-2 md:mb-2 px-4 sm:px-2 md:px-0 font-manrope justify-center"> {/* Reduced mb-4 to mb-2 */}
           <Link
             to="/"
             className="hover:text-[#06EAFC] transition-colors hover:underline"
@@ -535,14 +535,14 @@ const VendorDetail = () => {
         </nav>
 
         {/* Single Column Layout */}
-        <div className="space-y-4 md:space-y-8">
-          {/* Header Info */}
-          <div className="px-4 sm:px-2 md:px-4 lg:px-8 py-4 md:py-8 bg-white rounded-xl md:rounded-2xl mx-0 md:mx-0 hover:shadow-lg transition-shadow duration-300">
+        <div className="space-y-3 md:space-y-6"> {/* Reduced space between sections */}
+          {/* Header Info - Reduced top padding */}
+          <div className="px-4 sm:px-2 md:px-4 lg:px-8 py-3 md:py-6 bg-white rounded-xl md:rounded-2xl mx-0 md:mx-0 hover:shadow-lg transition-shadow duration-300"> {/* Reduced py-4 to py-3, py-8 to py-6 */}
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6">
               {/* Left: Name and Info */}
               <div className="flex-1">
                 {/* Vendor name */}
-                <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-3">
+                <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2"> {/* Reduced mb-2 to mb-1 */}
                   <h1 className="text-lg md:text-xl lg:text-3xl font-bold text-gray-900 font-manrope line-clamp-2">
                     {vendor.name}
                   </h1>
@@ -668,7 +668,7 @@ const VendorDetail = () => {
           <div className="block md:hidden px-0">
             <div className="relative w-full">
               <div
-                className="relative w-full h-[320px] rounded-none md:rounded-2xl overflow-hidden"
+                className="relative w-full h-[300px] rounded-none md:rounded-2xl overflow-hidden" 
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
@@ -728,8 +728,8 @@ const VendorDetail = () => {
             </div>
           </div>
 
-          {/* DESKTOP: Original 5 Image Gallery */}
-          <div className="hidden md:block p-4">
+          {/* DESKTOP: Modified 5 Image Gallery with further reduced height */}
+          <div className="hidden md:block px-4 lg:px-8">
             <div className="flex gap-4">
               {/* LEFT COLUMN - 2 images */}
               <div className="flex flex-col gap-4">
@@ -742,29 +742,29 @@ const VendorDetail = () => {
                   >
                     <img
                       src={img}
+                      className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
                       style={{
                         width: "305px",
-                        height: "251px",
-                        borderRadius: "20px",
+                        height: "162px", // Reduced from 180px (10% more reduction)
+                        borderRadius: "16px",
                         objectFit: "cover",
                       }}
-                      className="hover:scale-110 transition-transform duration-500"
                     />
                   </button>
                 ))}
               </div>
 
-              {/* CENTER LARGE IMAGE */}
+              {/* CENTER LARGE IMAGE - Reduced height by additional 10% */}
               <div className="relative group">
                 <img
                   src={images[activeImageIndex]}
+                  className="group-hover:scale-105 transition-transform duration-500"
                   style={{
                     width: "630px",
-                    height: "517px",
-                    borderRadius: "20px",
+                    height: "324px", // Reduced from 360px (10% more reduction)
+                    borderRadius: "16px",
                     objectFit: "cover",
                   }}
-                  className="group-hover:scale-105 transition-transform duration-500"
                 />
 
                 {/* Prev Button */}
@@ -802,13 +802,13 @@ const VendorDetail = () => {
                   >
                     <img
                       src={img}
+                      className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
                       style={{
                         width: "305px",
-                        height: "251px",
-                        borderRadius: "20px",
+                        height: "162px", // Reduced from 180px (10% more reduction)
+                        borderRadius: "16px",
                         objectFit: "cover",
                       }}
-                      className="hover:scale-110 transition-transform duration-500"
                     />
                   </button>
                 ))}
@@ -1014,7 +1014,7 @@ const VendorDetail = () => {
           </section>
 
           {/* Tabs Section */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6"> {/* Reduced mt-8 to mt-6 */}
             <div className="border-b border-gray-200">
               <nav className="flex space-x-8">
                 {["overview", "amenities", "reviews", "location"].map((tab) => (
@@ -1034,7 +1034,7 @@ const VendorDetail = () => {
             </div>
             
             {/* Tab Content */}
-            <div className="py-8">
+            <div className="py-6"> {/* Reduced py-8 to py-6 */}
               {activeTab === "overview" && (
                 <div className="space-y-6">
                   <h3 className="text-xl font-bold text-gray-900">About {vendor.name}</h3>
@@ -1044,7 +1044,7 @@ const VendorDetail = () => {
                     unforgettable experiences.`}
                   </p>
                   
-                  <div className="grid md:grid-cols-2 gap-6 mt-8">
+                  <div className="grid md:grid-cols-2 gap-6 mt-6"> {/* Reduced mt-8 to mt-6 */}
                     <div className="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition-shadow duration-300">
                       <h4 className="font-bold text-gray-900 mb-4 hover:text-[#06EAFC] transition-colors duration-300">Key Features</h4>
                       <ul className="space-y-3">
@@ -1206,7 +1206,7 @@ const VendorDetail = () => {
           </div>
           
           {/* CTA Section */}
-          <div className="bg-gradient-to-r from-[#06EAFC] to-[#06F49F] mt-12 py-12">
+          <div className="bg-gradient-to-r from-[#06EAFC] to-[#06F49F] mt-10 py-12"> {/* Reduced mt-12 to mt-10 */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
               <h2 className="text-3xl font-bold text-white mb-4 hover:scale-105 transition-transform duration-300">Ready to Book?</h2>
               <p className="text-white/90 mb-8 max-w-2xl mx-auto hover:text-white transition-colors duration-300">
