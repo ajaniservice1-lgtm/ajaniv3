@@ -5,213 +5,51 @@ import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import { useNavigate } from "react-router-dom";
 import { MdFavoriteBorder } from "react-icons/md";
-
-// API Configuration
-const API_BASE_URL = 'https://ajanibackend.onrender.com/api/v1/listings';
-
-// DEMO DATA - Will be shown when backend has no listings
-const DEMO_LISTINGS = {
-  hotel: [
-    {
-      _id: "demo_hotel_1",
-      title: "Luxury Hotel & Suites",
-      category: "hotel",
-      price: 45000,
-      location: {
-        address: "123 Luxury Lane",
-        area: "Victoria Island, Lagos"
-      },
-      images: [{ 
-        url: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop&q=80",
-        public_id: "demo_hotel_1"
-      }],
-      status: "active",
-      description: "5-star luxury hotel with premium amenities"
-    },
-    {
-      _id: "demo_hotel_2",
-      title: "Business Class Hotel",
-      category: "hotel",
-      price: 32000,
-      location: {
-        address: "456 Business Avenue",
-        area: "Ikeja, Lagos"
-      },
-      images: [{ 
-        url: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600&h=400&fit=crop&q=80",
-        public_id: "demo_hotel_2"
-      }],
-      status: "active",
-      description: "Perfect for business travelers"
-    },
-    {
-      _id: "demo_hotel_3",
-      title: "Boutique Hotel Resort",
-      category: "hotel",
-      price: 38000,
-      location: {
-        address: "789 Resort Road",
-        area: "Lekki, Lagos"
-      },
-      images: [{ 
-        url: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600&h=400&fit=crop&q=80",
-        public_id: "demo_hotel_3"
-      }],
-      status: "active",
-      description: "Luxurious boutique hotel experience"
-    }
-  ],
-  shortlet: [
-    {
-      _id: "demo_shortlet_1",
-      title: "Modern Apartment Shortlet",
-      category: "shortlet",
-      price: 25000,
-      location: {
-        address: "101 Shortlet Street",
-        area: "Yaba, Lagos"
-      },
-      images: [{ 
-        url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&h=400&fit=crop&q=80",
-        public_id: "demo_shortlet_1"
-      }],
-      status: "active",
-      description: "Fully furnished modern apartment"
-    },
-    {
-      _id: "demo_shortlet_2",
-      title: "Executive Studio Apartment",
-      category: "shortlet",
-      price: 18000,
-      location: {
-        address: "202 Executive Lane",
-        area: "Surulere, Lagos"
-      },
-      images: [{ 
-        url: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&h=400&fit=crop&q=80",
-        public_id: "demo_shortlet_2"
-      }],
-      status: "active",
-      description: "Cozy studio perfect for short stays"
-    }
-  ],
-  restaurant: [
-    {
-      _id: "demo_restaurant_1",
-      title: "Fine Dining Restaurant",
-      category: "restaurant",
-      price: 15000,
-      location: {
-        address: "303 Food Street",
-        area: "Ikoyi, Lagos"
-      },
-      images: [{ 
-        url: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop&q=80",
-        public_id: "demo_restaurant_1"
-      }],
-      status: "active",
-      description: "Premium dining experience"
-    },
-    {
-      _id: "demo_restaurant_2",
-      title: "Traditional Nigerian Cuisine",
-      category: "restaurant",
-      price: 8000,
-      location: {
-        address: "404 Culture Road",
-        area: "Mushin, Lagos"
-      },
-      images: [{ 
-        url: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&h=400&fit=crop&q=80",
-        public_id: "demo_restaurant_2"
-      }],
-      status: "active",
-      description: "Authentic Nigerian dishes"
-    },
-    {
-      _id: "demo_restaurant_3",
-      title: "Italian Bistro",
-      category: "restaurant",
-      price: 12000,
-      location: {
-        address: "505 Pasta Lane",
-        area: "VI, Lagos"
-      },
-      images: [{ 
-        url: "https://images.unsplash.com/photo-1590846406792-0adc7f938f1d?w=600&h=400&fit=crop&q=80",
-        public_id: "demo_restaurant_3"
-      }],
-      status: "active",
-      description: "Authentic Italian cuisine"
-    }
-  ]
-};
+import axiosInstance from "../lib/axios";
 
 // ---------------- API Service Functions ----------------
 const buildQueryString = (filters = {}) => {
   const params = new URLSearchParams();
   
-  // Add filters
+  // Add filters - ONLY category filter
   if (filters.category) params.append('category', filters.category);
-  if (filters.status) params.append('status', filters.status || 'active');
-  if (filters.minPrice) params.append('price[gte]', filters.minPrice);
-  if (filters.maxPrice) params.append('price[lte]', filters.maxPrice);
-  if (filters.area) params.append('location.area', filters.area);
-  
-  // Add sorting
-  if (filters.sort) params.append('sort', filters.sort || '-createdAt');
-  
-  // Add pagination
-  if (filters.page) params.append('page', filters.page);
-  if (filters.limit) params.append('limit', filters.limit || 6);
-  
-  // Add field selection
-  params.append('fields', 'title,category,price,images,location,status,description');
   
   return params.toString();
 };
 
-// Get all listings with filters
-const getListings = async (filters = {}) => {
-  const queryString = buildQueryString(filters);
-  const url = queryString ? `${API_BASE_URL}?${queryString}` : API_BASE_URL;
-  
+// Get listings by category using axiosInstance.get() - SIMPLIFIED
+const getListingsByCategory = async (category) => {
   try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
+    const filters = {
+      category: category,
+      // REMOVED: sort, limit, status
+    };
     
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
+    const queryString = buildQueryString(filters);
+    const url = `/listings${queryString ? `?${queryString}` : ''}`;
     
-    const data = await response.json();
+    console.log(`📡 Making GET request for ${category}:`, url);
     
-    if (data.status === 'error') {
-      throw new Error(data.message || 'Failed to fetch listings');
-    }
+    const response = await axiosInstance.get(url);
     
-    return data;
+    console.log(`✅ ${category} Response Status:`, response.data?.status);
+    console.log(`📊 ${category} Results:`, response.data?.results || 0);
+    
+    return response.data;
   } catch (error) {
-    console.error('API Fetch Error:', error.message);
-    throw error;
+    console.error(`❌ ${category} Error:`, error.message);
+    if (error.response) {
+      console.error('Response data:', error.response.data);
+      console.error('Response status:', error.response.status);
+    }
+    // Return empty data structure instead of throwing
+    return {
+      status: 'error',
+      message: error.message,
+      results: 0,
+      data: { listings: [] }
+    };
   }
-};
-
-// Get listings by category
-const getListingsByCategory = async (category, limit = 6) => {
-  const filters = {
-    category: category,
-    status: 'active',
-    sort: '-createdAt',
-    limit: limit
-  };
-  
-  return getListings(filters);
 };
 
 // ---------------- Skeleton Loading Components ----------------
@@ -270,14 +108,10 @@ const SkeletonDirectory = ({ isMobile }) => (
       <div className={isMobile ? "mb-3" : "mb-4"}>
         <div className="text-center">
           <div
-            className={`${
-              isMobile ? "h-6" : "h-8"
-            } bg-gray-200 rounded w-1/4 mx-auto mb-2`}
+            className={`${isMobile ? "h-6" : "h-8"} bg-gray-200 rounded w-1/4 mx-auto mb-2`}
           ></div>
           <div
-            className={`${
-              isMobile ? "h-4" : "h-5"
-            } bg-gray-200 rounded w-1/3 mx-auto`}
+            className={`${isMobile ? "h-4" : "h-5"} bg-gray-200 rounded w-1/3 mx-auto`}
           ></div>
         </div>
       </div>
@@ -318,7 +152,6 @@ const getCardImages = (listing) => {
 };
 
 // ---------------- Custom Hooks ----------------
-// Custom hook for tracking favorite status
 const useIsFavorite = (itemId) => {
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -362,7 +195,6 @@ const useIsFavorite = (itemId) => {
   return isFavorite;
 };
 
-// Check if user is authenticated
 const useAuthStatus = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -397,73 +229,71 @@ const useAuthStatus = () => {
   return isAuthenticated;
 };
 
-// Custom hook for fetching listings
-const useListings = (category, limit = 6) => {
+// Custom hook for fetching listings - SIMPLIFIED
+const useListings = (category) => {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isEmpty, setIsEmpty] = useState(false);
+  const [apiResponse, setApiResponse] = useState(null);
 
   useEffect(() => {
     const fetchListings = async () => {
       try {
         setLoading(true);
         setError(null);
-        setIsEmpty(false);
         
-        const data = await getListingsByCategory(category, limit);
+        console.log(`🔄 Fetching ${category} listings...`);
+        const data = await getListingsByCategory(category);
+        setApiResponse(data);
         
-        // Check if we got actual data
-        if (data && data.data && data.data.listings && data.data.listings.length > 0) {
-          setListings(data.data.listings);
+        // Handle the API response structure correctly
+        if (data && data.status === 'success' && data.data && data.data.listings) {
+          const fetchedListings = data.data.listings;
+          console.log(`✅ Found ${fetchedListings.length} ${category} listings`);
+          setListings(fetchedListings);
+          
+          // Log status distribution
+          const statusCount = fetchedListings.reduce((acc, listing) => {
+            acc[listing.status] = (acc[listing.status] || 0) + 1;
+            return acc;
+          }, {});
+          console.log(`📊 ${category} status distribution:`, statusCount);
+        } else if (data && data.status === 'error') {
+          console.warn(`⚠️ API Error for ${category}:`, data.message);
+          setError(data.message || 'API Error');
+          setListings([]);
         } else {
-          // No data from API, use demo data
-          console.log(`No ${category} listings found in database. Using demo data.`);
-          setListings(DEMO_LISTINGS[category] || []);
-          setIsEmpty(true);
+          console.warn(`⚠️ Unexpected response structure for ${category}:`, data);
+          setListings([]);
         }
       } catch (err) {
-        console.error(`Error fetching ${category} listings:`, err);
-        // Use demo data on error
-        setListings(DEMO_LISTINGS[category] || []);
-        setIsEmpty(true);
+        console.error(`❌ Error fetching ${category}:`, err.message);
         setError(err.message);
+        setListings([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchListings();
-  }, [category, limit]);
+  }, [category]);
 
-  return { listings, loading, error, isEmpty };
+  return { listings, loading, error, apiResponse };
 };
 
 // ---------------- BusinessCard Component ----------------
-const BusinessCard = ({ item, category, isMobile, isDemo = false }) => {
+const BusinessCard = ({ item, category, isMobile }) => {
   const images = getCardImages(item);
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [imageHeight, setImageHeight] = useState(150);
 
-  // Use custom hooks
   const isFavorite = useIsFavorite(item._id || item.id);
   const isAuthenticated = useAuthStatus();
 
-  // Set consistent height based on device
   useEffect(() => {
     setImageHeight(isMobile ? 150 : 150);
   }, [isMobile]);
-
-  // Add resize listener to maintain dimensions
-  useEffect(() => {
-    const handleResize = () => {
-      setImageHeight(150);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   const formatPrice = (n) => {
     if (!n) return "–";
@@ -480,7 +310,6 @@ const BusinessCard = ({ item, category, isMobile, isDemo = false }) => {
     return `₦${formattedPrice}`;
   };
 
-  // Determine tag based on category
   const getTag = () => {
     const cat = (item.category || "").toLowerCase();
     if (cat.includes("hotel")) return "Hotel";
@@ -493,9 +322,10 @@ const BusinessCard = ({ item, category, isMobile, isDemo = false }) => {
 
   const tag = getTag();
   const priceText = getPriceText();
-  const locationText = item.location?.area || item.area || "Lagos";
-  const rating = "4.9"; // Default rating
+  const locationText = item.location?.area || item.area || "Ibadan";
+  const rating = "4.9";
   const businessName = item.title || item.name || "Business Name";
+  const isPending = item.status === 'pending';
 
   const handleCardClick = () => {
     if (item._id || item.id) {
@@ -505,33 +335,25 @@ const BusinessCard = ({ item, category, isMobile, isDemo = false }) => {
     }
   };
 
-  // Toast Notification Function
-  const showToast = useCallback(
-    (message, type = "success") => {
-      const existingToast = document.getElementById("toast-notification");
-      if (existingToast) {
-        existingToast.remove();
-      }
+  const showToast = useCallback((message, type = "success") => {
+    const existingToast = document.getElementById("toast-notification");
+    if (existingToast) existingToast.remove();
 
-      const toast = document.createElement("div");
-      toast.id = "toast-notification";
-      toast.className = `fixed z-[9999] px-4 py-3 rounded-lg shadow-sm border ${
-        type === "success"
-          ? "bg-green-50 border-green-200 text-green-800"
-          : "bg-blue-50 border-blue-200 text-blue-800"
-      }`;
+    const toast = document.createElement("div");
+    toast.id = "toast-notification";
+    toast.className = `fixed z-[9999] px-4 py-3 rounded-lg shadow-sm border ${
+      type === "success" ? "bg-green-50 border-green-200 text-green-800" : "bg-blue-50 border-blue-200 text-blue-800"
+    }`;
 
-      toast.style.top = "15px";
-      toast.style.right = "15px";
-      toast.style.left = "15px";
-      toast.style.maxWidth = "calc(100% - 30px)";
-      toast.style.animation = "slideInRight 0.3s ease-out forwards";
+    toast.style.top = "15px";
+    toast.style.right = "15px";
+    toast.style.left = "15px";
+    toast.style.maxWidth = "calc(100% - 30px)";
+    toast.style.animation = "slideInRight 0.3s ease-out forwards";
 
-      toast.innerHTML = `
+    toast.innerHTML = `
       <div class="flex items-start gap-3">
-        <div class="${
-          type === "success" ? "text-green-600" : "text-blue-600"
-        } mt-0.5">
+        <div class="${type === "success" ? "text-green-600" : "text-blue-600"} mt-0.5">
           ${
             type === "success"
               ? '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>'
@@ -550,133 +372,99 @@ const BusinessCard = ({ item, category, isMobile, isDemo = false }) => {
       </div>
     `;
 
-      document.body.appendChild(toast);
+    document.body.appendChild(toast);
 
-      setTimeout(() => {
-        if (toast.parentElement) {
-          toast.style.animation = "slideOutRight 0.3s ease-in forwards";
-          setTimeout(() => {
-            if (toast.parentElement) {
-              toast.remove();
-            }
-          }, 300);
-        }
-      }, 3000);
-    },
-    [businessName]
-  );
-
-  // Handle favorite click
-  const handleFavoriteClick = useCallback(
-    async (e) => {
-      e.stopPropagation();
-
-      if (isProcessing) return;
-      setIsProcessing(true);
-
-      try {
-        if (!isAuthenticated) {
-          showToast("Please login to save listings", "info");
-          localStorage.setItem("redirectAfterLogin", window.location.pathname);
-
-          const itemToSaveAfterLogin = {
-            id: item._id || item.id,
-            name: businessName,
-            price: priceText,
-            rating: parseFloat(rating),
-            tag: "Guest Favorite",
-            image: images[0] || FALLBACK_IMAGES.default,
-            category: capitalizeFirst(category) || "Business",
-            location: locationText,
-            originalData: {
-              price: item.price,
-              location: item.location,
-              description: item.description,
-            },
-          };
-
-          localStorage.setItem(
-            "pendingSaveItem",
-            JSON.stringify(itemToSaveAfterLogin)
-          );
-
-          setTimeout(() => {
-            navigate("/login");
-            setIsProcessing(false);
-          }, 800);
-
-          return;
-        }
-
-        const saved = JSON.parse(
-          localStorage.getItem("userSavedListings") || "[]"
-        );
-
-        const itemId = item._id || item.id;
-        const isAlreadySaved = saved.some(
-          (savedItem) => savedItem.id === itemId
-        );
-
-        if (isAlreadySaved) {
-          const updated = saved.filter((savedItem) => savedItem.id !== itemId);
-          localStorage.setItem("userSavedListings", JSON.stringify(updated));
-          showToast("Removed from saved listings", "info");
-
-          window.dispatchEvent(
-            new CustomEvent("savedListingsUpdated", {
-              detail: { action: "removed", itemId: itemId },
-            })
-          );
-        } else {
-          const listingToSave = {
-            id: itemId || `listing_${Date.now()}`,
-            name: businessName,
-            price: priceText,
-            rating: parseFloat(rating),
-            tag: "Guest Favorite",
-            image: images[0] || FALLBACK_IMAGES.default,
-            category: capitalizeFirst(category) || "Business",
-            location: locationText,
-            savedDate: new Date().toISOString().split("T")[0],
-            originalData: {
-              price: item.price,
-              location: item.location,
-              description: item.description,
-              category: item.category,
-              status: item.status,
-            },
-          };
-
-          const updated = [...saved, listingToSave];
-          localStorage.setItem("userSavedListings", JSON.stringify(updated));
-          showToast("Added to saved listings!", "success");
-
-          window.dispatchEvent(
-            new CustomEvent("savedListingsUpdated", {
-              detail: { action: "added", item: listingToSave },
-            })
-          );
-        }
-      } catch (error) {
-        showToast("Something went wrong. Please try again.", "info");
-      } finally {
-        setIsProcessing(false);
+    setTimeout(() => {
+      if (toast.parentElement) {
+        toast.style.animation = "slideOutRight 0.3s ease-in forwards";
+        setTimeout(() => {
+          if (toast.parentElement) toast.remove();
+        }, 300);
       }
-    },
-    [
-      isProcessing,
-      item,
-      businessName,
-      priceText,
-      rating,
-      images,
-      category,
-      locationText,
-      showToast,
-      navigate,
-      isAuthenticated,
-    ]
-  );
+    }, 3000);
+  }, [businessName]);
+
+  const handleFavoriteClick = useCallback(async (e) => {
+    e.stopPropagation();
+    if (isProcessing) return;
+    setIsProcessing(true);
+
+    try {
+      if (!isAuthenticated) {
+        showToast("Please login to save listings", "info");
+        localStorage.setItem("redirectAfterLogin", window.location.pathname);
+
+        const itemToSaveAfterLogin = {
+          id: item._id || item.id,
+          name: businessName,
+          price: priceText,
+          rating: parseFloat(rating),
+          tag: "Guest Favorite",
+          image: images[0] || FALLBACK_IMAGES.default,
+          category: capitalizeFirst(category) || "Business",
+          location: locationText,
+          originalData: {
+            price: item.price,
+            location: item.location,
+            description: item.description,
+          },
+        };
+
+        localStorage.setItem("pendingSaveItem", JSON.stringify(itemToSaveAfterLogin));
+
+        setTimeout(() => {
+          navigate("/login");
+          setIsProcessing(false);
+        }, 800);
+        return;
+      }
+
+      const saved = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
+      const itemId = item._id || item.id;
+      const isAlreadySaved = saved.some(savedItem => savedItem.id === itemId);
+
+      if (isAlreadySaved) {
+        const updated = saved.filter(savedItem => savedItem.id !== itemId);
+        localStorage.setItem("userSavedListings", JSON.stringify(updated));
+        showToast("Removed from saved listings", "info");
+
+        window.dispatchEvent(new CustomEvent("savedListingsUpdated", {
+          detail: { action: "removed", itemId: itemId },
+        }));
+      } else {
+        const listingToSave = {
+          id: itemId || `listing_${Date.now()}`,
+          name: businessName,
+          price: priceText,
+          rating: parseFloat(rating),
+          tag: "Guest Favorite",
+          image: images[0] || FALLBACK_IMAGES.default,
+          category: capitalizeFirst(category) || "Business",
+          location: locationText,
+          savedDate: new Date().toISOString().split("T")[0],
+          originalData: {
+            price: item.price,
+            location: item.location,
+            description: item.description,
+            category: item.category,
+            status: item.status,
+          },
+        };
+
+        const updated = [...saved, listingToSave];
+        localStorage.setItem("userSavedListings", JSON.stringify(updated));
+        showToast("Added to saved listings!", "success");
+
+        window.dispatchEvent(new CustomEvent("savedListingsUpdated", {
+          detail: { action: "added", item: listingToSave },
+        }));
+      }
+    } catch (error) {
+      showToast("Something went wrong. Please try again.", "info");
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [isProcessing, item, businessName, priceText, rating, images, category, locationText, showToast, navigate, isAuthenticated]);
 
   return (
     <div
@@ -686,7 +474,7 @@ const BusinessCard = ({ item, category, isMobile, isDemo = false }) => {
         ${isMobile ? "w-[165px]" : "w-[210px]"} 
         transition-all duration-200 cursor-pointer 
         hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
-        ${isDemo ? "border-2 border-dashed border-blue-200" : ""}
+        ${isPending ? 'border border-yellow-300' : ''}
       `}
       onClick={handleCardClick}
       style={{
@@ -696,10 +484,10 @@ const BusinessCard = ({ item, category, isMobile, isDemo = false }) => {
         minWidth: isMobile ? "165px" : "165px",
       }}
     >
-      {/* Demo badge */}
-      {isDemo && (
-        <div className="absolute top-1.5 left-1.5 bg-blue-500 text-white px-2 py-0.5 rounded-md shadow-sm z-10">
-          <span className="text-[8px] font-semibold">DEMO</span>
+      {/* Status Badge */}
+      {isPending && (
+        <div className="absolute top-1.5 left-1.5 bg-yellow-500 text-white px-2 py-0.5 rounded-md shadow-sm z-10">
+          <span className="text-[8px] font-semibold">PENDING</span>
         </div>
       )}
 
@@ -724,11 +512,13 @@ const BusinessCard = ({ item, category, isMobile, isDemo = false }) => {
         />
 
         {/* Guest favorite badge */}
-        <div className="absolute top-1.5 right-12 bg-white px-1 py-0.5 rounded-md shadow-sm flex items-center gap-0.5">
-          <span className="text-[8px] font-semibold text-gray-900">
-            Guest favorite
-          </span>
-        </div>
+        {!isPending && (
+          <div className="absolute top-1.5 right-12 bg-white px-1 py-0.5 rounded-md shadow-sm flex items-center gap-0.5">
+            <span className="text-[8px] font-semibold text-gray-900">
+              Guest favorite
+            </span>
+          </div>
+        )}
 
         {/* Heart icon */}
         <button
@@ -746,16 +536,8 @@ const BusinessCard = ({ item, category, isMobile, isDemo = false }) => {
           {isProcessing ? (
             <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           ) : isFavorite ? (
-            <svg
-              className="w-3 h-3 text-white"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
-                clipRule="evenodd"
-              />
+            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"/>
             </svg>
           ) : (
             <MdFavoriteBorder className="text-[#00d1ff] w-3 h-3" />
@@ -764,12 +546,7 @@ const BusinessCard = ({ item, category, isMobile, isDemo = false }) => {
       </div>
 
       {/* Text Content */}
-      <div
-        className={`flex-1 ${isMobile ? "p-1.5" : "p-2"} flex flex-col`}
-        style={{
-          minHeight: isMobile ? "130px" : "130px",
-        }}
-      >
+      <div className={`flex-1 ${isMobile ? "p-1.5" : "p-2"} flex flex-col`} style={{ minHeight: isMobile ? "130px" : "130px" }}>
         <h3 className="font-semibold text-gray-900 leading-tight line-clamp-2 text-[13.5px] mb-1 flex-shrink-0">
           {businessName}
         </h3>
@@ -780,7 +557,6 @@ const BusinessCard = ({ item, category, isMobile, isDemo = false }) => {
               {locationText}
             </p>
 
-            {/* Combined Price and Ratings */}
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-0.5 flex-wrap">
                 <div className="flex items-baseline gap-0.5">
@@ -793,7 +569,6 @@ const BusinessCard = ({ item, category, isMobile, isDemo = false }) => {
                 </div>
               </div>
 
-              {/* Ratings */}
               <div className="flex items-center gap-0.5">
                 <div className="flex items-center gap-0.5 text-gray-800 text-[12px]">
                   <FontAwesomeIcon icon={faStar} className="text-black w-2 h-2" />
@@ -803,7 +578,6 @@ const BusinessCard = ({ item, category, isMobile, isDemo = false }) => {
             </div>
           </div>
 
-          {/* Bottom row: Category tag */}
           <div className="flex items-center justify-between mt-auto pt-1">
             <div>
               <span className="inline-block text-[11px] text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
@@ -813,16 +587,8 @@ const BusinessCard = ({ item, category, isMobile, isDemo = false }) => {
 
             {isFavorite && !isProcessing && (
               <span className="inline-flex items-center gap-0.5 text-[9px] text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">
-                <svg
-                  className="w-1.5 h-1.5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
+                <svg className="w-1.5 h-1.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
                 </svg>
                 Saved
               </span>
@@ -831,14 +597,13 @@ const BusinessCard = ({ item, category, isMobile, isDemo = false }) => {
         </div>
       </div>
 
-      {/* Hover overlay effect */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none"></div>
     </div>
   );
 };
 
 // ---------------- CategorySection Component ----------------
-const CategorySection = ({ title, items, category, isMobile, loading, error, isEmpty }) => {
+const CategorySection = ({ title, items, category, isMobile, loading, error, apiResponse }) => {
   const navigate = useNavigate();
 
   if (loading) {
@@ -847,161 +612,42 @@ const CategorySection = ({ title, items, category, isMobile, loading, error, isE
         <div className="flex justify-between items-center mb-2">
           <div>
             <h2 className="text-gray-900 font-bold" style={{ color: "#000651" }}>
-              {isMobile ? (
-                <span className="text-[14px]">{title}</span>
-              ) : (
-                <span className="text-xl">{title}</span>
-              )}
+              {isMobile ? <span className="text-[14px]">{title}</span> : <span className="text-xl">{title}</span>}
             </h2>
           </div>
-          <button
-            className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group"
-            style={{ color: "#000651" }}
-            onClick={() => navigate(`/category/${category}`)}
-          >
-            {isMobile ? (
-              <span className="text-[12px]">View all</span>
-            ) : (
-              <span className="text-[13.5px]">View all</span>
-            )}
-            <svg
-              className={`transition-transform group-hover:translate-x-1 ${
-                isMobile ? "w-3 h-3" : "w-4 h-4"
-              }`}
-              fill="currentColor"
-              viewBox="0 0 16 16"
-            >
-              <path
-                fillRule="evenodd"
-                d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"
-              />
+          <button className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" style={{ color: "#000651" }} onClick={() => navigate(`/category/${category}`)}>
+            {isMobile ? <span className="text-[12px]">View all</span> : <span className="text-[13.5px]">View all</span>}
+            <svg className={`transition-transform group-hover:translate-x-1 ${isMobile ? "w-3 h-3" : "w-4 h-4"}`} fill="currentColor" viewBox="0 0 16 16">
+              <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
             </svg>
           </button>
         </div>
-        <div
-          className={`${
-            isMobile
-              ? "flex overflow-x-auto gap-[8px] pb-4 -mx-[16px] pl-[16px] snap-x snap-mandatory"
-              : "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3"
-          }`}
-        >
-          {[...Array(6)].map((_, index) => (
-            <SkeletonCard key={index} isMobile={isMobile} />
-          ))}
+        <div className={`${isMobile ? "flex overflow-x-auto gap-[8px] pb-4 -mx-[16px] pl-[16px] snap-x snap-mandatory" : "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3"}`}>
+          {[...Array(6)].map((_, index) => <SkeletonCard key={index} isMobile={isMobile} />)}
         </div>
       </section>
     );
   }
 
-  if (error && items.length === 0) {
+  if (error) {
     return (
       <section className="mb-4">
         <div className="flex justify-between items-center mb-2">
           <div>
             <h2 className="text-gray-900 font-bold" style={{ color: "#000651" }}>
-              {isMobile ? (
-                <span className="text-[14px]">{title}</span>
-              ) : (
-                <span className="text-xl">{title}</span>
-              )}
+              {isMobile ? <span className="text-[14px]">{title}</span> : <span className="text-xl">{title}</span>}
             </h2>
           </div>
-          <button
-            className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group"
-            style={{ color: "#000651" }}
-            onClick={() => navigate(`/category/${category}`)}
-          >
-            {isMobile ? (
-              <span className="text-[12px]">View all</span>
-            ) : (
-              <span className="text-[13.5px]">View all</span>
-            )}
-            <svg
-              className={`transition-transform group-hover:translate-x-1 ${
-                isMobile ? "w-3 h-3" : "w-4 h-4"
-              }`}
-              fill="currentColor"
-              viewBox="0 0 16 16"
-            >
-              <path
-                fillRule="evenodd"
-                d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"
-              />
+          <button className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" style={{ color: "#000651" }} onClick={() => navigate(`/category/${category}`)}>
+            {isMobile ? <span className="text-[12px]">View all</span> : <span className="text-[13.5px]">View all</span>}
+            <svg className={`transition-transform group-hover:translate-x-1 ${isMobile ? "w-3 h-3" : "w-4 h-4"}`} fill="currentColor" viewBox="0 0 16 16">
+              <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
             </svg>
           </button>
         </div>
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <p className="text-yellow-700 font-medium text-sm">
-            Using demo data (API connection error)
-          </p>
-        </div>
-        {items.length > 0 && (
-          <div
-            className={`mt-3 ${
-              isMobile
-                ? "flex overflow-x-auto gap-[8px] pb-4 -mx-[16px] pl-[16px] snap-x snap-mandatory"
-                : "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3"
-            }`}
-          >
-            {items.slice(0, 6).map((item, index) => (
-              <BusinessCard
-                key={item._id || index}
-                item={item}
-                category={category}
-                isMobile={isMobile}
-                isDemo={true}
-              />
-            ))}
-          </div>
-        )}
-      </section>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <section className="mb-4">
-        <div className="flex justify-between items-center mb-2">
-          <div>
-            <h2 className="text-gray-900 font-bold" style={{ color: "#000651" }}>
-              {isMobile ? (
-                <span className="text-[14px]">{title}</span>
-              ) : (
-                <span className="text-xl">{title}</span>
-              )}
-            </h2>
-          </div>
-          <button
-            className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group"
-            style={{ color: "#000651" }}
-            onClick={() => navigate(`/category/${category}`)}
-          >
-            {isMobile ? (
-              <span className="text-[12px]">View all</span>
-            ) : (
-              <span className="text-[13.5px]">View all</span>
-            )}
-            <svg
-              className={`transition-transform group-hover:translate-x-1 ${
-                isMobile ? "w-3 h-3" : "w-4 h-4"
-              }`}
-              fill="currentColor"
-              viewBox="0 0 16 16"
-            >
-              <path
-                fillRule="evenodd"
-                d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"
-              />
-            </svg>
-          </button>
-        </div>
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-blue-700 font-medium text-sm">
-            No listings found in database
-          </p>
-          <p className="text-blue-600 text-xs mt-1">
-            Showing demo data. Add listings to your backend to see real data.
-          </p>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-700 font-medium text-sm">API Error: {error}</p>
+          <p className="text-red-600 text-xs mt-1">Could not fetch listings from backend</p>
         </div>
       </section>
     );
@@ -1011,88 +657,64 @@ const CategorySection = ({ title, items, category, isMobile, loading, error, isE
     navigate(`/category/${category}`);
   };
 
-  // Show only 6 cards
+  // Still show only 6 items per category
   const displayItems = items.slice(0, 6);
+  const totalResults = apiResponse?.results || 0;
+  const pendingCount = items.filter(item => item.status === 'pending').length;
 
   return (
     <section className="mb-4">
       <div className="flex justify-between items-center mb-2">
         <div>
           <h2 className="text-gray-900 font-bold" style={{ color: "#000651" }}>
-            {isMobile ? (
-              <span className="text-[14px]">{title}</span>
-            ) : (
-              <span className="text-xl">{title}</span>
-            )}
+            {isMobile ? <span className="text-[14px]">{title}</span> : <span className="text-xl">{title}</span>}
           </h2>
-          {isEmpty && (
-            <p className="text-blue-600 text-xs mt-1">
-              Showing demo data - Database is empty
-            </p>
-          )}
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded">
+              ✅ {totalResults} total listings
+            </span>
+            <span className="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
+              📊 {displayItems.length} showing
+            </span>
+            {pendingCount > 0 && (
+              <span className="text-xs text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded">
+                ⏳ {pendingCount} pending
+              </span>
+            )}
+          </div>
         </div>
-        <button
-          onClick={handleCategoryClick}
-          className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group"
-          style={{ color: "#000651" }}
-        >
-          {isMobile ? (
-            <span className="text-[12px]">View all</span>
-          ) : (
-            <span className="text-[13.5px]">View all</span>
-          )}
-          <svg
-            className={`transition-transform group-hover:translate-x-1 ${
-              isMobile ? "w-3 h-3" : "w-4 h-4"
-            }`}
-            fill="currentColor"
-            viewBox="0 0 16 16"
-          >
-            <path
-              fillRule="evenodd"
-              d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"
-            />
+        <button onClick={handleCategoryClick} className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" style={{ color: "#000651" }}>
+          {isMobile ? <span className="text-[12px]">View all</span> : <span className="text-[13.5px]">View all</span>}
+          <svg className={`transition-transform group-hover:translate-x-1 ${isMobile ? "w-3 h-3" : "w-4 h-4"}`} fill="currentColor" viewBox="0 0 16 16">
+            <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
           </svg>
         </button>
       </div>
 
-      {/* Desktop: Grid layout for 6 cards */}
-      {/* Mobile: Horizontal scroll */}
-      {!isMobile ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-          {displayItems.map((item, index) => (
-            <BusinessCard
-              key={item._id || index}
-              item={item}
-              category={category}
-              isMobile={isMobile}
-              isDemo={isEmpty}
-            />
-          ))}
+      {items.length === 0 ? (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-blue-700 font-medium text-sm">No listings found</p>
+          <p className="text-blue-600 text-xs mt-1">Try checking other categories</p>
         </div>
       ) : (
-        <div className="relative">
-          <div
-            className="flex overflow-x-auto scrollbar-hide gap-2 pb-4"
-            style={{
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-              paddingRight: "8px",
-            }}
-          >
-            {displayItems.map((item, index) => (
-              <BusinessCard
-                key={item._id || index}
-                item={item}
-                category={category}
-                isMobile={isMobile}
-                isDemo={isEmpty}
-              />
-            ))}
-            {/* Spacer for last card visibility */}
-            <div className="flex-shrink-0" style={{ width: "8px" }}></div>
-          </div>
-        </div>
+        <>
+          {!isMobile ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+              {displayItems.map((item, index) => (
+                <BusinessCard key={item._id || index} item={item} category={category} isMobile={isMobile} />
+              ))}
+            </div>
+          ) : (
+            <div className="relative">
+              <div className="flex overflow-x-auto scrollbar-hide gap-2 pb-4" style={{ scrollbarWidth: "none", msOverflowStyle: "none", paddingRight: "8px" }}>
+                {displayItems.map((item, index) => (
+                  <BusinessCard key={item._id || index} item={item} category={category} isMobile={isMobile} />
+                ))}
+                <div className="flex-shrink-0" style={{ width: "8px" }}></div>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </section>
   );
@@ -1100,38 +722,27 @@ const CategorySection = ({ title, items, category, isMobile, loading, error, isE
 
 // ---------------- Main Directory Component ----------------
 const Directory = () => {
-  const [headerRef, headerInView] = useInView({
-    threshold: 0.1,
-    triggerOnce: false,
-  });
-
+  const [headerRef, headerInView] = useInView({ threshold: 0.1, triggerOnce: false });
   const [isMobile, setIsMobile] = useState(false);
   
-  // Define the specific categories we want to display
-  const categories = ['hotel', 'shortlet', 'restaurant'];
+  // ONLY 3 CATEGORIES: hotel, shortlet, restaurant
+  const categories = [
+    { key: 'hotel', name: 'Hotels' },
+    { key: 'shortlet', name: 'Shortlets' },
+    { key: 'restaurant', name: 'Restaurants' }
+  ];
   
-  // Fetch data for each category
-  const hotelListings = useListings('hotel', 6);
-  const shortletListings = useListings('shortlet', 6);
-  const restaurantListings = useListings('restaurant', 6);
+  // Fetch listings for each category - NO LIMIT PARAMETER
+  const hotelListings = useListings('hotel');
+  const shortletListings = useListings('shortlet');
+  const restaurantListings = useListings('restaurant');
 
-  // Check for mobile view
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
-
-  // Show skeleton loading while initial data is being fetched
-  const initialLoading = hotelListings.loading && shortletListings.loading && restaurantListings.loading;
-  
-  if (initialLoading) {
-    return <SkeletonDirectory isMobile={isMobile} />;
-  }
 
   const categoryData = {
     hotel: hotelListings,
@@ -1139,176 +750,117 @@ const Directory = () => {
     restaurant: restaurantListings,
   };
 
-  // Check if any category has real data
-  const hasRealData = categories.some(cat => !categoryData[cat].isEmpty && categoryData[cat].listings.length > 0);
+  // Check if any category is still loading
+  const initialLoading = categories.some(cat => categoryData[cat.key].loading);
+  
+  if (initialLoading) return <SkeletonDirectory isMobile={isMobile} />;
+
+  const totalListings = categories.reduce((total, cat) => total + (categoryData[cat.key].apiResponse?.results || 0), 0);
 
   return (
     <section id="directory" className="bg-white font-manrope">
       <div className={`${isMobile ? "py-0" : "py-8"}`}>
-        {/* MOBILE VIEW */}
         {isMobile ? (
-          <div
-            className="w-full"
-            style={{ paddingLeft: "0.75rem", paddingRight: "0.75rem" }}
-          >
-            {/* Header */}
-            <motion.div
-              ref={headerRef}
-              initial={{ opacity: 0, y: 20 }}
-              animate={headerInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              className="mb-4"
-            >
-              <h1 className="text-lg font-bold text-center mb-2 text-[#00065A]">
-                Explore Categories
-              </h1>
-              <p className="text-xs text-gray-600 text-center">
-                Find the best places and services in Ibadan
-              </p>
+          <div className="w-full" style={{ paddingLeft: "0.75rem", paddingRight: "0.75rem" }}>
+            <motion.div ref={headerRef} initial={{ opacity: 0, y: 20 }} animate={headerInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, ease: "easeOut" }} className="mb-4">
+              <h1 className="text-lg font-bold text-center mb-2 text-[#00065A]">Explore Categories</h1>
+              <p className="text-xs text-gray-600 text-center">Find the best places and services in Ibadan</p>
+              <div className="mt-2 bg-green-50 border border-green-200 rounded-lg p-2">
+                <p className="text-green-700 text-xs font-medium">✅ Connected to Backend API</p>
+                <p className="text-green-600 text-xs mt-1">Found {totalListings} total listings</p>
+              </div>
             </motion.div>
 
-            {/* Database Empty Notice */}
-            {!hasRealData && (
-              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <div className="flex items-start">
-                  <div className="text-blue-600 mr-2 mt-0.5">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-blue-700 font-medium text-sm">Database Empty</p>
-                    <p className="text-blue-600 text-xs mt-1">
-                      Your database has no listings yet. Showing demo data.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Category Sections */}
             <div className="space-y-6">
-              {categories.map((category) => {
-                const { listings, loading, error, isEmpty } = categoryData[category];
-                const title = `Popular ${capitalizeFirst(category)} in Ibadan`;
-
+              {categories.map(({ key, name }) => {
+                const { listings, loading, error, apiResponse } = categoryData[key];
+                const title = `Popular ${name} in Ibadan`;
                 return (
-                  <CategorySection
-                    key={category}
-                    title={title}
-                    items={listings}
-                    category={category}
-                    isMobile={isMobile}
-                    loading={loading}
-                    error={error}
-                    isEmpty={isEmpty}
+                  <CategorySection 
+                    key={key} 
+                    title={title} 
+                    items={listings} 
+                    category={key} 
+                    isMobile={isMobile} 
+                    loading={loading} 
+                    error={error} 
+                    apiResponse={apiResponse} 
                   />
                 );
               })}
             </div>
           </div>
         ) : (
-          /* DESKTOP VIEW */
           <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Header */}
-            <motion.div
-              ref={headerRef}
-              initial={{ opacity: 0, y: 20 }}
-              animate={headerInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              className="mb-4"
-            >
-              <h1 className="text-xl font-semibold text-gray-900 md:text-start">
-                Explore Categories
-              </h1>
-              <p className="text-gray-600 md:text-[15px] md:text-start text-[13.5px]">
-                Find the best places and services in Ibadan
-              </p>
-            </motion.div>
-
-            {/* Database Empty Notice */}
-            {!hasRealData && (
-              <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-start">
-                  <div className="text-blue-600 mr-3 mt-0.5">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            <motion.div ref={headerRef} initial={{ opacity: 0, y: 20 }} animate={headerInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, ease: "easeOut" }} className="mb-6">
+              <h1 className="text-xl font-semibold text-gray-900 md:text-start">Explore Categories</h1>
+              <p className="text-gray-600 md:text-[15px] md:text-start text-[13.5px]">Find the best places and services in Ibadan</p>
+              
+              <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <div className="text-green-600">
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-blue-800 font-medium">Database is Empty</h3>
-                    <p className="text-blue-700 text-sm mt-1">
-                      Your backend database has no listings yet. We're showing demo data so you can see how the app will look.
-                    </p>
-                    <div className="mt-3 text-blue-600 text-xs">
-                      <p className="font-medium">To add real listings:</p>
-                      <ol className="list-decimal pl-4 mt-1 space-y-1">
-                        <li>Use your admin dashboard to create listings</li>
-                        <li>Or use the API to post data programmatically</li>
-                        <li>Or seed your database with sample data</li>
-                      </ol>
-                      <p className="mt-2">
-                        Once you add listings to your database, they will automatically appear here.
-                      </p>
+                    <h3 className="text-green-800 font-medium">✅ Successfully Connected to Backend API</h3>
+                    <p className="text-green-700 text-sm mt-1">Using axiosInstance.get() - Found {totalListings} total listings</p>
+                    <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                      {categories.map(({ key, name }) => (
+                        <div key={key} className="bg-white p-2 rounded border">
+                          <p className="font-medium">{name}</p>
+                          <p className="text-green-600">{categoryData[key].apiResponse?.results || 0} listings</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
               </div>
-            )}
+            </motion.div>
 
-            {/* Category Sections */}
             <div className="space-y-6">
-              {categories.map((category) => {
-                const { listings, loading, error, isEmpty } = categoryData[category];
-                const title = `Popular ${capitalizeFirst(category)} in Ibadan`;
-
+              {categories.map(({ key, name }) => {
+                const { listings, loading, error, apiResponse } = categoryData[key];
+                const title = `Popular ${name} in Ibadan`;
                 return (
-                  <CategorySection
-                    key={category}
-                    title={title}
-                    items={listings}
-                    category={category}
-                    isMobile={isMobile}
-                    loading={loading}
-                    error={error}
-                    isEmpty={isEmpty}
+                  <CategorySection 
+                    key={key} 
+                    title={title} 
+                    items={listings} 
+                    category={key} 
+                    isMobile={isMobile} 
+                    loading={loading} 
+                    error={error} 
+                    apiResponse={apiResponse} 
                   />
                 );
               })}
             </div>
 
-            {/* How to Add Data Instructions */}
-            {!hasRealData && (
-              <div className="mt-8 p-6 bg-gray-50 border border-gray-200 rounded-lg">
-                <h3 className="text-gray-800 font-medium mb-3">How to Add Listings to Your Database</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-white p-4 rounded-lg border">
-                    <h4 className="text-gray-700 font-medium text-sm mb-2">Method 1: Use Admin Dashboard</h4>
-                    <p className="text-gray-600 text-xs">
-                      If you have an admin dashboard, log in and create listings through the UI.
-                    </p>
-                  </div>
-                  <div className="bg-white p-4 rounded-lg border">
-                    <h4 className="text-gray-700 font-medium text-sm mb-2">Method 2: Use API Directly</h4>
-                    <p className="text-gray-600 text-xs">
-                      Make POST requests to <code className="bg-gray-100 px-1">/api/v1/listings</code>
-                    </p>
-                  </div>
-                  <div className="bg-white p-4 rounded-lg border">
-                    <h4 className="text-gray-700 font-medium text-sm mb-2">Method 3: Database Seeding</h4>
-                    <p className="text-gray-600 text-xs">
-                      Seed your MongoDB database with sample listing data.
-                    </p>
-                  </div>
-                  <div className="bg-white p-4 rounded-lg border">
-                    <h4 className="text-gray-700 font-medium text-sm mb-2">Test Your API</h4>
-                    <p className="text-gray-600 text-xs">
-                      Try: <code className="bg-gray-100 px-1">GET {API_BASE_URL}?limit=1</code>
-                    </p>
-                  </div>
+            <div className="mt-8 p-6 bg-gray-50 border border-gray-200 rounded-lg">
+              <h3 className="text-gray-800 font-medium mb-3">API Integration Status</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white p-4 rounded-lg border">
+                  <h4 className="text-gray-700 font-medium text-sm mb-2">Request Details</h4>
+                  <p className="text-gray-600 text-xs">
+                    <code className="bg-gray-100 px-2 py-1 rounded text-green-600">GET /listings?category=hotel</code>
+                  </p>
+                  <p className="text-gray-500 text-xs mt-2">
+                    Simple category filtering only. No sorting, no limit, no status filter.
+                  </p>
+                </div>
+                <div className="bg-white p-4 rounded-lg border">
+                  <h4 className="text-gray-700 font-medium text-sm mb-2">Total Results</h4>
+                  <p className="text-gray-600 text-xs">
+                    {totalListings} listings found across 3 categories
+                  </p>
+                  <p className="text-gray-500 text-xs mt-2">
+                    Showing first 6 listings per category (client-side limit)
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         )}
       </div>
@@ -1316,55 +868,21 @@ const Directory = () => {
   );
 };
 
-// Add CSS styles
 const styles = `
 @keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
-
 @keyframes slideOutRight {
-  from {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateX(100%);
-    opacity: 0;
-  }
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0; }
 }
-
-.line-clamp-1 {
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
+.line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
 `;
 
-// Inject styles into the document head
 if (typeof document !== "undefined") {
   const styleSheet = document.createElement("style");
   styleSheet.textContent = styles;

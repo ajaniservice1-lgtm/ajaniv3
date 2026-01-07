@@ -1,1424 +1,908 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faStar } from "@fortawesome/free-solid-svg-icons";
+import { motion } from "framer-motion";
+import { useInView } from "react-intersection-observer";
 import { useNavigate } from "react-router-dom";
-import {
-  Home,
-  List,
-  Users,
-  CalendarCheck,
-  Star,
-  Settings,
-  Plus,
-  CheckCircle,
-  MoreHorizontal,
-  Search,
-  Filter,
-  Download,
-  Menu,
-  Eye,
-  Trash2,
-  Mail,
-  MessageSquare,
-  ToggleLeft,
-  ToggleRight,
-  User,
-  ImageIcon,
-  Bell,
-  Globe,
-  Edit3,
-  ArrowLeft,
-  ArrowRight,
-  X,
-  Save,
-  Upload,
-  DollarSign,
-  Building,
-  MapPin,
-  Phone,
-  Type,
-  FileText,
-  Heart,
-  Package,
-  Briefcase,
-  TrendingUp,
-  CreditCard,
-  Shield,
-  Camera,
-  ChevronDown,
-  ChevronUp,
-  Check,
-  Moon,
-  Sun,
-  Lock,
-  Unlock,
-  Share2,
-  Gift,
-  Award,
-  Zap,
-  Compass,
-  Target,
-  BookOpen,
-  GraduationCap,
-  ClipboardList,
-  Clock,
-  Calendar,
-  Layers,
-  Grid,
-  ThumbsUp,
-  ThumbsDown,
-  Smile,
-  Frown,
-  AlertTriangle,
-  Info,
-  HelpCircle,
-  ArrowUp,
-  ArrowDown,
-  ExternalLink,
-  Link,
-  Copy,
-  RefreshCw,
-  RotateCcw,
-  RotateCw,
-  Trash,
-  Edit,
-  PlusCircle,
-  MinusCircle,
-  EyeOff,
-  BellRing,
-  BellOff,
-  Volume2,
-  VolumeX,
-  Headphones,
-  Mic,
-  Video,
-  VideoOff,
-  PhoneCall,
-  PhoneOff,
-  Send,
-  Inbox,
-  Archive,
-  UserPlus,
-  UserMinus,
-  UserCheck,
-  UserX,
-  HeartCrack,
-  LockKeyhole,
-  LockKeyholeOpen
-} from "lucide-react";
-import Logo from "../assets/Logos/logo5.png";
-import { motion, AnimatePresence } from "framer-motion";
+import { MdFavoriteBorder } from "react-icons/md";
+import axiosInstance from "../lib/axios";
 
-const VendorDashboard = () => {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [userData, setUserData] = useState(null);
-  const [activeTab, setActiveTab] = useState("overview");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [listings, setListings] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [profileImage, setProfileImage] = useState("");
-  const [showAddListingModal, setShowAddListingModal] = useState(false);
-  const [newListing, setNewListing] = useState({
-    name: "",
-    category: "Property",
-    price: "",
-    description: "",
-    location: "",
-    amenities: [],
-    images: []
-  });
-  const [currentAmenity, setCurrentAmenity] = useState("");
+// ---------------- API Service Functions ----------------
+const buildQueryString = (filters = {}) => {
+  const params = new URLSearchParams();
+  
+  // Add filters
+  if (filters.category) params.append('category', filters.category);
+  // REMOVED: status filter
+  if (filters.minPrice) params.append('price[gte]', filters.minPrice);
+  if (filters.maxPrice) params.append('price[lte]', filters.maxPrice);
+  if (filters.area) params.append('location.area', filters.area);
+  
+  // Add sorting
+  if (filters.sort) params.append('sort', filters.sort || '-createdAt');
+  
+  // Add pagination
+  if (filters.page) params.append('page', filters.page);
+  if (filters.limit) params.append('limit', filters.limit || 6);
+  
+  // Add field selection
+  params.append('fields', 'title,category,price,images,location,status,description,vendorId,details');
+  
+  return params.toString();
+};
 
-  // Settings state
-  const [profileData, setProfileData] = useState({
-    name: "",
-    username: "",
-    email: "",
-    city: "",
-    bio: ""
-  });
-  const [notificationSettings, setNotificationSettings] = useState({
-    email: false,
-    whatsapp: true,
-    promotionalEmail: false,
-    promotionalWhatsapp: true
-  });
+// Get listings by category using axiosInstance.get() - UPDATED
+const getListingsByCategory = async (category, limit = 6) => {
+  try {
+    const filters = {
+      category: category,
+      // REMOVED: status: 'active,pending'
+      sort: '-createdAt',
+      limit: limit
+    };
+    
+    const queryString = buildQueryString(filters);
+    const url = `/listings${queryString ? `?${queryString}` : ''}`;
+    
+    console.log(`📡 Making GET request for ${category}:`, url);
+    
+    const response = await axiosInstance.get(url);
+    
+    console.log(`✅ ${category} Response Status:`, response.data?.status);
+    console.log(`📊 ${category} Results:`, response.data?.results || 0);
+    
+    return response.data;
+  } catch (error) {
+    console.error(`❌ ${category} Error:`, error.message);
+    if (error.response) {
+      console.error('Response data:', error.response.data);
+      console.error('Response status:', error.response.status);
+    }
+    // Return empty data structure instead of throwing
+    return {
+      status: 'error',
+      message: error.message,
+      results: 0,
+      data: { listings: [] }
+    };
+  }
+};
 
-  // Tab configuration
-  const tabs = [
-    { id: "overview", label: "Overview", icon: Home },
-    { id: "listings", label: "Listing", icon: List },
-    { id: "customers", label: "Customer", icon: Users },
-    { id: "bookings", label: "Booking", icon: CalendarCheck },
-    { id: "settings", label: "Settings", icon: Settings }
-  ];
+// ---------------- Skeleton Loading Components ----------------
+const SkeletonCard = ({ isMobile }) => (
+  <div
+    className={`bg-white rounded-xl overflow-hidden flex-shrink-0 font-manrope animate-pulse ${
+      isMobile ? "w-[165px]" : "w-[210px]"
+    } snap-start`}
+  >
+    <div
+      className={`relative overflow-hidden rounded-xl bg-gray-200 ${
+        isMobile ? "h-[150px]" : "h-[150px]"
+      }`}
+    ></div>
+    <div className={`${isMobile ? "p-1.5" : "p-2"} flex flex-col gap-1.5`}>
+      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+      <div className="flex items-center gap-1 mt-1">
+        <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+        <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+      </div>
+    </div>
+  </div>
+);
+
+const SkeletonCategorySection = ({ isMobile }) => (
+  <section className="mb-4">
+    <div className="flex justify-between items-center mb-2">
+      <div
+        className={`${isMobile ? "h-5" : "h-7"} bg-gray-200 rounded w-1/3`}
+      ></div>
+      <div
+        className={`${isMobile ? "h-4" : "h-6"} bg-gray-200 rounded w-24`}
+      ></div>
+    </div>
+    <div
+      className={`${
+        isMobile
+          ? "flex overflow-x-auto gap-[8px] pb-4 -mx-[16px] pl-[16px] snap-x snap-mandatory"
+          : "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3"
+      }`}
+    >
+      {[...Array(6)].map((_, index) => (
+        <SkeletonCard key={index} isMobile={isMobile} />
+      ))}
+    </div>
+  </section>
+);
+
+const SkeletonDirectory = ({ isMobile }) => (
+  <section
+    id="directory"
+    className={`bg-white font-manrope ${isMobile ? "py-6" : "py-8"}`}
+  >
+    <div className="max-w-[1800px] mx-auto px-4 sm:px-6">
+      <div className={isMobile ? "mb-3" : "mb-4"}>
+        <div className="text-center">
+          <div
+            className={`${isMobile ? "h-6" : "h-8"} bg-gray-200 rounded w-1/4 mx-auto mb-2`}
+          ></div>
+          <div
+            className={`${isMobile ? "h-4" : "h-5"} bg-gray-200 rounded w-1/3 mx-auto`}
+          ></div>
+        </div>
+      </div>
+      <div className={isMobile ? "space-y-4" : "space-y-6"}>
+        {[...Array(3)].map((_, index) => (
+          <SkeletonCategorySection key={index} isMobile={isMobile} />
+        ))}
+      </div>
+    </div>
+  </section>
+);
+
+// ---------------- Helpers ----------------
+const capitalizeFirst = (str) =>
+  str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
+
+const FALLBACK_IMAGES = {
+  hotel: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop&q=80",
+  restaurant: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop&q=80",
+  shortlet: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&h=400&fit=crop&q=80",
+  services: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop&q=80",
+  event: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop&q=80",
+  default: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop&q=80",
+};
+
+const getCardImages = (listing) => {
+  if (listing.images && listing.images.length > 0 && listing.images[0].url) {
+    return [listing.images[0].url];
+  }
+  
+  const cat = (listing.category || "").toLowerCase();
+  if (cat.includes("hotel")) return [FALLBACK_IMAGES.hotel];
+  if (cat.includes("restaurant")) return [FALLBACK_IMAGES.restaurant];
+  if (cat.includes("shortlet")) return [FALLBACK_IMAGES.shortlet];
+  if (cat.includes("services")) return [FALLBACK_IMAGES.services];
+  if (cat.includes("event")) return [FALLBACK_IMAGES.event];
+  return [FALLBACK_IMAGES.default];
+};
+
+// ---------------- Custom Hooks ----------------
+const useIsFavorite = (itemId) => {
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  const checkFavoriteStatus = useCallback(() => {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem("userSavedListings") || "[]"
+      );
+      const isAlreadySaved = saved.some((savedItem) => savedItem.id === itemId);
+      setIsFavorite(isAlreadySaved);
+    } catch (error) {
+      setIsFavorite(false);
+    }
+  }, [itemId]);
 
   useEffect(() => {
-    fetchUserData();
-    // Close sidebar by default on mobile
-    const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setIsSidebarOpen(false);
-      } else {
-        setIsSidebarOpen(true);
+    checkFavoriteStatus();
+
+    const handleSavedListingsChange = () => {
+      checkFavoriteStatus();
+    };
+
+    const handleStorageChange = (e) => {
+      if (e.key === "userSavedListings") {
+        checkFavoriteStatus();
       }
     };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+
+    window.addEventListener("savedListingsUpdated", handleSavedListingsChange);
+    window.addEventListener("storage", handleStorageChange);
+
+    const pollInterval = setInterval(checkFavoriteStatus, 1000);
+
+    return () => {
+      window.removeEventListener("savedListingsUpdated", handleSavedListingsChange);
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(pollInterval);
+    };
+  }, [itemId, checkFavoriteStatus]);
+
+  return isFavorite;
+};
+
+const useAuthStatus = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const checkAuth = useCallback(() => {
+    const token = localStorage.getItem("auth_token");
+    const userProfile = localStorage.getItem("userProfile");
+    const isLoggedIn = !!token && !!userProfile;
+    setIsAuthenticated(isLoggedIn);
+    return isLoggedIn;
   }, []);
 
-  const fetchUserData = () => {
-    try {
-      const userProfile = localStorage.getItem("userProfile");
-      if (!userProfile) {
-        navigate("/login");
-        return;
-      }
-      const parsedProfile = JSON.parse(userProfile);
-      if (parsedProfile.role !== "vendor") {
-        if (parsedProfile.vendor) {
-          parsedProfile.role = "vendor";
-          localStorage.setItem("userProfile", JSON.stringify(parsedProfile));
-        } else {
-          navigate("/");
-          return;
-        }
-      }
-      if (!parsedProfile.vendor) {
-        parsedProfile.vendor = {
-          category: parsedProfile.category || "",
-          businessName: parsedProfile.businessName || "",
-          businessAddress: parsedProfile.businessAddress || "",
-          approvalStatus: "pending",
-          profileCompleted: false
-        };
-        localStorage.setItem("userProfile", JSON.stringify(parsedProfile));
-      }
-      setUserData(parsedProfile);
-      // Initialize profile data for settings
-      const fullName = parsedProfile.firstName && parsedProfile.lastName
-        ? `${parsedProfile.firstName} ${parsedProfile.lastName}`
-        : parsedProfile.username || "";
-      setProfileData({
-        name: fullName,
-        username: parsedProfile.username || parsedProfile.email || "",
-        email: parsedProfile.email || "",
-        city: parsedProfile.city || "",
-        bio: parsedProfile.bio || "We specialize in luxury coastal properties and mountain retreats. Our properties are carefully selected to provide the best experience for our guests."
-      });
-      // Set profile image from localStorage or default
-      setProfileImage(parsedProfile.profileImage ||
-        "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80");
-      // Initialize listings from localStorage or use default
-      const savedListings = localStorage.getItem("vendorListings");
-      if (savedListings) {
-        setListings(JSON.parse(savedListings));
-      } else {
-        const defaultListings = [
-          {
-            id: 1,
-            name: "Jagz Hotel and Suite",
-            category: "Property",
-            price: "₦28,000/night",
-            rating: "4.8(10)",
-            status: "Active",
-            image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
-            location: "Mokola, RD 8 Ibadan",
-            amenities: ["WiFi", "Parking", "Pool", "AC"]
-          },
-          {
-            id: 2,
-            name: "Jagz Hotel and Suite",
-            category: "Property",
-            price: "₦28,000/night",
-            rating: "4.8(10)",
-            status: "Active",
-            image: "https://images.unsplash.com/photo-1584132967336-9b942d726e7c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
-            location: "Mokola, RD 8 Ibadan",
-            amenities: ["WiFi", "Breakfast", "Gym", "Spa"]
-          }
-        ];
-        setListings(defaultListings);
-        localStorage.setItem("vendorListings", JSON.stringify(defaultListings));
-      }
-      // Initialize customers with real images
-      const defaultCustomers = [
-        {
-          id: 1,
-          name: "Samuel Rotimi",
-          email: "samuel@example.com",
-          bookings: 1,
-          totalSpent: "#300k+",
-          image: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
-        },
-        {
-          id: 2,
-          name: "Sandra Adeoye",
-          email: "sandra@example.com",
-          bookings: 1,
-          totalSpent: "#300k+",
-          image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
-        },
-        {
-          id: 3,
-          name: "Bankole Cole",
-          email: "bankole@example.com",
-          bookings: 1,
-          totalSpent: "#300k+",
-          image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
-        }
-      ];
-      setCustomers(defaultCustomers);
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    checkAuth();
 
-  // Reset all data figures to zero as requested
-  const mockStats = {
-    totalRevenue: 0.00,
-    activeListings: 0,
-    totalBookings: 0,
-    averageRating: 0.0
-  };
-
-  const mockRecentBookings = [
-    {
-      id: 1,
-      customer: "Sola Fadipe Jr.",
-      service: "Iron man street",
-      details: "Hotel Booking",
-      product: "Product",
-      status: "Completed",
-      date: "Today, 10:30 am",
-      image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
-      orderId: "#290888880"
-    },
-    {
-      id: 2,
-      customer: "Bankole Johansson",
-      service: "Bodija",
-      details: "Event booking",
-      product: "Event Centre",
-      status: "Completed",
-      date: "Today, 10:30 am",
-      image: "https://images.unsplash.com/photo-1584132967336-9b942d726e7c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
-      orderId: "#290888880"
-    }
-  ];
-
-  const getStatusBadge = (status) => {
-    switch(status) {
-      case "Completed":
-      case "Active":
-        return <span className="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full">{status}</span>;
-      case "Pending":
-        return <span className="px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded-full">{status}</span>;
-      default:
-        return <span className="px-3 py-1 text-sm bg-gray-100 text-gray-800 rounded-full">{status}</span>;
-    }
-  };
-
-  // Handle Add Listing Modal
-  const handleOpenAddListingModal = () => {
-    setNewListing({
-      name: "",
-      category: "Property",
-      price: "",
-      description: "",
-      location: "",
-      amenities: [],
-      images: []
-    });
-    setShowAddListingModal(true);
-  };
-
-  const handleCloseAddListingModal = () => {
-    setShowAddListingModal(false);
-  };
-
-  const handleAddAmenity = () => {
-    if (currentAmenity.trim() && !newListing.amenities.includes(currentAmenity.trim())) {
-      setNewListing({
-        ...newListing,
-        amenities: [...newListing.amenities, currentAmenity.trim()]
-      });
-      setCurrentAmenity("");
-    }
-  };
-
-  const handleRemoveAmenity = (amenity) => {
-    setNewListing({
-      ...newListing,
-      amenities: newListing.amenities.filter(a => a !== amenity)
-    });
-  };
-
-  const handleSubmitListing = () => {
-    if (!newListing.name || !newListing.price || !newListing.location) {
-      alert("Please fill in all required fields");
-      return;
-    }
-    const listing = {
-      id: Date.now(),
-      name: newListing.name,
-      category: newListing.category,
-      price: `₦${parseFloat(newListing.price).toLocaleString()}/night`,
-      rating: "0.0(0)",
-      status: "Active",
-      image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
-      location: newListing.location,
-      description: newListing.description,
-      amenities: newListing.amenities
+    const handleAuthChange = () => {
+      checkAuth();
     };
-    const updatedListings = [...listings, listing];
-    setListings(updatedListings);
-    localStorage.setItem("vendorListings", JSON.stringify(updatedListings));
-    setShowAddListingModal(false);
-    alert("Listing added successfully!");
-  };
 
-  // Handle listing actions
-  const handleDeleteListing = (id) => {
-    if (window.confirm("Are you sure you want to delete this listing?")) {
-      const updatedListings = listings.filter(listing => listing.id !== id);
-      setListings(updatedListings);
-      localStorage.setItem("vendorListings", JSON.stringify(updatedListings));
-    }
-  };
+    window.addEventListener("storage", handleAuthChange);
+    window.addEventListener("authChange", handleAuthChange);
+    window.addEventListener("loginSuccess", handleAuthChange);
+    window.addEventListener("logout", handleAuthChange);
 
-  const handleEditListing = (id) => {
-    const listing = listings.find(l => l.id === id);
-    if (listing) {
-      setNewListing({
-        name: listing.name,
-        category: listing.category,
-        price: listing.price.replace(/[^0-9.]/g, ''),
-        description: listing.description || "",
-        location: listing.location || "",
-        amenities: listing.amenities || [],
-        images: []
-      });
-      setShowAddListingModal(true);
-    }
-  };
+    return () => {
+      window.removeEventListener("storage", handleAuthChange);
+      window.removeEventListener("authChange", handleAuthChange);
+      window.removeEventListener("loginSuccess", handleAuthChange);
+      window.removeEventListener("logout", handleAuthChange);
+    };
+  }, [checkAuth]);
 
-  const handleViewListing = (id) => {
-    navigate(`/listing/${id}`);
-  };
+  return isAuthenticated;
+};
 
-  // Mobile responsive sidebar toggle
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
+// Custom hook for fetching listings
+const useListings = (category, limit = 6) => {
+  const [listings, setListings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [apiResponse, setApiResponse] = useState(null);
 
-  // Handle profile updates
-  const handleProfileChange = (field, value) => {
-    setProfileData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  // Handle notification toggle
-  const handleNotificationToggle = (type) => {
-    setNotificationSettings(prev => ({
-      ...prev,
-      [type]: !prev[type]
-    }));
-  };
-
-  // Handle save profile
-  const handleSaveProfile = () => {
-    try {
-      const updatedUserData = {
-        ...userData,
-        firstName: profileData.name.split(' ')[0] || userData.firstName,
-        lastName: profileData.name.split(' ').slice(1).join(' ') || userData.lastName,
-        username: profileData.username || userData.username,
-        email: profileData.email || userData.email,
-        city: profileData.city || userData.city,
-        bio: profileData.bio || userData.bio,
-        profileImage: profileImage
-      };
-      localStorage.setItem("userProfile", JSON.stringify(updatedUserData));
-      setUserData(updatedUserData);
-      alert("Profile updated successfully!");
-    } catch (error) {
-      console.error("Error saving profile:", error);
-      alert("Error saving profile. Please try again.");
-    }
-  };
-
-  // Handle profile image upload
-  const handleProfileImageUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert("Image size should be less than 5MB");
-        return;
+  useEffect(() => {
+    const fetchListings = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        console.log(`🔄 Fetching ${category} listings...`);
+        const data = await getListingsByCategory(category, limit);
+        setApiResponse(data);
+        
+        // Handle the API response structure correctly
+        if (data && data.status === 'success' && data.data && data.data.listings) {
+          const fetchedListings = data.data.listings;
+          console.log(`✅ Found ${fetchedListings.length} ${category} listings`);
+          setListings(fetchedListings);
+          
+          // Log status distribution
+          const statusCount = fetchedListings.reduce((acc, listing) => {
+            acc[listing.status] = (acc[listing.status] || 0) + 1;
+            return acc;
+          }, {});
+          console.log(`📊 ${category} status distribution:`, statusCount);
+        } else if (data && data.status === 'error') {
+          console.warn(`⚠️ API Error for ${category}:`, data.message);
+          setError(data.message || 'API Error');
+          setListings([]);
+        } else {
+          console.warn(`⚠️ Unexpected response structure for ${category}:`, data);
+          setListings([]);
+        }
+      } catch (err) {
+        console.error(`❌ Error fetching ${category}:`, err.message);
+        setError(err.message);
+        setListings([]);
+      } finally {
+        setLoading(false);
       }
-      if (!file.type.match('image.*')) {
-        alert("Please select an image file");
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileImage(reader.result);
-      };
-      reader.readAsDataURL(file);
+    };
+
+    fetchListings();
+  }, [category, limit]);
+
+  return { listings, loading, error, apiResponse };
+};
+
+// ---------------- BusinessCard Component ----------------
+const BusinessCard = ({ item, category, isMobile }) => {
+  const images = getCardImages(item);
+  const navigate = useNavigate();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [imageHeight, setImageHeight] = useState(150);
+
+  const isFavorite = useIsFavorite(item._id || item.id);
+  const isAuthenticated = useAuthStatus();
+
+  useEffect(() => {
+    setImageHeight(isMobile ? 150 : 150);
+  }, [isMobile]);
+
+  const formatPrice = (n) => {
+    if (!n) return "–";
+    const num = Number(n);
+    return num.toLocaleString("en-US", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+  };
+
+  const getPriceText = () => {
+    const price = item.price || "0";
+    const formattedPrice = formatPrice(price);
+    return `₦${formattedPrice}`;
+  };
+
+  const getTag = () => {
+    const cat = (item.category || "").toLowerCase();
+    if (cat.includes("hotel")) return "Hotel";
+    if (cat.includes("shortlet")) return "Shortlet";
+    if (cat.includes("restaurant")) return "Restaurant";
+    if (cat.includes("services")) return "Service";
+    if (cat.includes("event")) return "Event";
+    return "Co";
+  };
+
+  const tag = getTag();
+  const priceText = getPriceText();
+  const locationText = item.location?.area || item.area || "Ibadan";
+  const rating = "4.9";
+  const businessName = item.title || item.name || "Business Name";
+  const isPending = item.status === 'pending';
+
+  const handleCardClick = () => {
+    if (item._id || item.id) {
+      navigate(`/vendor-detail/${item._id || item.id}`);
+    } else {
+      navigate(`/category/${category}`);
     }
   };
 
-  // Handle logo click to navigate to homepage
-  const handleLogoClick = () => {
-    navigate("/");
-  };
+  const showToast = useCallback((message, type = "success") => {
+    const existingToast = document.getElementById("toast-notification");
+    if (existingToast) existingToast.remove();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col">
-        <div className="flex-grow flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00d37f] mx-auto"></div>
-            <p className="mt-4 text-gray-600 font-manrope">Loading dashboard...</p>
-          </div>
+    const toast = document.createElement("div");
+    toast.id = "toast-notification";
+    toast.className = `fixed z-[9999] px-4 py-3 rounded-lg shadow-sm border ${
+      type === "success" ? "bg-green-50 border-green-200 text-green-800" : "bg-blue-50 border-blue-200 text-blue-800"
+    }`;
+
+    toast.style.top = "15px";
+    toast.style.right = "15px";
+    toast.style.left = "15px";
+    toast.style.maxWidth = "calc(100% - 30px)";
+    toast.style.animation = "slideInRight 0.3s ease-out forwards";
+
+    toast.innerHTML = `
+      <div class="flex items-start gap-3">
+        <div class="${type === "success" ? "text-green-600" : "text-blue-600"} mt-0.5">
+          ${
+            type === "success"
+              ? '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>'
+              : '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>'
+          }
         </div>
+        <div class="flex-1">
+          <p class="font-medium">${message}</p>
+          <p class="text-sm opacity-80 mt-1">${businessName}</p>
+        </div>
+        <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70 transition-opacity">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
+        </button>
       </div>
-    );
-  }
+    `;
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+      if (toast.parentElement) {
+        toast.style.animation = "slideOutRight 0.3s ease-in forwards";
+        setTimeout(() => {
+          if (toast.parentElement) toast.remove();
+        }, 300);
+      }
+    }, 3000);
+  }, [businessName]);
+
+  const handleFavoriteClick = useCallback(async (e) => {
+    e.stopPropagation();
+    if (isProcessing) return;
+    setIsProcessing(true);
+
+    try {
+      if (!isAuthenticated) {
+        showToast("Please login to save listings", "info");
+        localStorage.setItem("redirectAfterLogin", window.location.pathname);
+
+        const itemToSaveAfterLogin = {
+          id: item._id || item.id,
+          name: businessName,
+          price: priceText,
+          rating: parseFloat(rating),
+          tag: "Guest Favorite",
+          image: images[0] || FALLBACK_IMAGES.default,
+          category: capitalizeFirst(category) || "Business",
+          location: locationText,
+          originalData: {
+            price: item.price,
+            location: item.location,
+            description: item.description,
+          },
+        };
+
+        localStorage.setItem("pendingSaveItem", JSON.stringify(itemToSaveAfterLogin));
+
+        setTimeout(() => {
+          navigate("/login");
+          setIsProcessing(false);
+        }, 800);
+        return;
+      }
+
+      const saved = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
+      const itemId = item._id || item.id;
+      const isAlreadySaved = saved.some(savedItem => savedItem.id === itemId);
+
+      if (isAlreadySaved) {
+        const updated = saved.filter(savedItem => savedItem.id !== itemId);
+        localStorage.setItem("userSavedListings", JSON.stringify(updated));
+        showToast("Removed from saved listings", "info");
+
+        window.dispatchEvent(new CustomEvent("savedListingsUpdated", {
+          detail: { action: "removed", itemId: itemId },
+        }));
+      } else {
+        const listingToSave = {
+          id: itemId || `listing_${Date.now()}`,
+          name: businessName,
+          price: priceText,
+          rating: parseFloat(rating),
+          tag: "Guest Favorite",
+          image: images[0] || FALLBACK_IMAGES.default,
+          category: capitalizeFirst(category) || "Business",
+          location: locationText,
+          savedDate: new Date().toISOString().split("T")[0],
+          originalData: {
+            price: item.price,
+            location: item.location,
+            description: item.description,
+            category: item.category,
+            status: item.status,
+          },
+        };
+
+        const updated = [...saved, listingToSave];
+        localStorage.setItem("userSavedListings", JSON.stringify(updated));
+        showToast("Added to saved listings!", "success");
+
+        window.dispatchEvent(new CustomEvent("savedListingsUpdated", {
+          detail: { action: "added", item: listingToSave },
+        }));
+      }
+    } catch (error) {
+      showToast("Something went wrong. Please try again.", "info");
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [isProcessing, item, businessName, priceText, rating, images, category, locationText, showToast, navigate, isAuthenticated]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-manrope relative">
-      {/* Mobile Sidebar Overlay with Blur Effect */}
-      {isSidebarOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-      
-      {/* New Top Navigation Bar - Single Logo Only */}
-      <div className="bg-white border-b border-blue-500 shadow-sm px-4 py-3 flex items-center justify-between sticky top-0 z-30">
-        {/* Left side: Menu Button (Mobile only) and Logo */}
-        <div className="flex items-center space-x-4">
-          {/* Mobile Menu Button - Hidden on large screens */}
-          <button
-            onClick={toggleSidebar}
-            className="md:hidden p-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors"
-          >
-            <Menu size={20} strokeWidth={2.5} className="text-blue-600" />
-          </button>
-          
-          {/* Single Logo - Only on Top Nav Bar */}
-          <img 
-            src={Logo} 
-            alt="Ajani" 
-            className="h-8 w-auto cursor-pointer hover:scale-105 transition-transform"
-            onClick={handleLogoClick}
-          />
-          
-          {/* Page Title - Always shows "Overview" */}
-          <h1 className="text-xl font-bold text-gray-900 font-manrope">
-            Overview
-          </h1>
+    <div
+      className={`
+        bg-white rounded-xl overflow-hidden flex-shrink-0 
+        font-manrope relative group flex flex-col h-full
+        ${isMobile ? "w-[165px]" : "w-[210px]"} 
+        transition-all duration-200 cursor-pointer 
+        hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
+        ${isPending ? 'border border-yellow-300' : ''}
+      `}
+      onClick={handleCardClick}
+      style={{
+        height: isMobile ? "280px" : "280px",
+        minHeight: isMobile ? "280px" : "280px",
+        maxHeight: isMobile ? "280px" : "280px",
+        minWidth: isMobile ? "165px" : "165px",
+      }}
+    >
+      {/* Status Badge */}
+      {isPending && (
+        <div className="absolute top-1.5 left-1.5 bg-yellow-500 text-white px-2 py-0.5 rounded-md shadow-sm z-10">
+          <span className="text-[8px] font-semibold">PENDING</span>
         </div>
+      )}
 
-        {/* Right side: Search, Settings, Notifications, Profile */}
-        <div className="flex items-center space-x-4">
-          {/* Search Box - Hidden on mobile to save space */}
-          <div className="relative hidden md:block">
-            <Search 
-              size={16} 
-              strokeWidth={2.5} 
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" 
-            />
-            <input
-              type="text"
-              placeholder="Search for something"
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-              style={{ width: '250px' }}
-            />
+      {/* Image */}
+      <div
+        className="relative overflow-hidden rounded-xl flex-shrink-0"
+        style={{
+          height: `${imageHeight}px`,
+          minHeight: `${imageHeight}px`,
+          maxHeight: `${imageHeight}px`,
+        }}
+      >
+        <img
+          src={images[0]}
+          alt={businessName}
+          className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
+          onError={(e) => {
+            e.currentTarget.src = FALLBACK_IMAGES.default;
+            e.currentTarget.onerror = null;
+          }}
+          loading="lazy"
+        />
+
+        {/* Guest favorite badge */}
+        {!isPending && (
+          <div className="absolute top-1.5 right-12 bg-white px-1 py-0.5 rounded-md shadow-sm flex items-center gap-0.5">
+            <span className="text-[8px] font-semibold text-gray-900">
+              Guest favorite
+            </span>
+          </div>
+        )}
+
+        {/* Heart icon */}
+        <button
+          onClick={handleFavoriteClick}
+          disabled={isProcessing}
+          className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110 active:scale-95 ${
+            isFavorite
+              ? "bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
+              : "bg-white/90 hover:bg-white backdrop-blur-sm"
+          } ${isProcessing ? "opacity-70 cursor-not-allowed" : ""}`}
+          title={isFavorite ? "Remove from saved" : "Add to saved"}
+          aria-label={isFavorite ? "Remove from saved" : "Save this listing"}
+          aria-pressed={isFavorite}
+        >
+          {isProcessing ? (
+            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          ) : isFavorite ? (
+            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"/>
+            </svg>
+          ) : (
+            <MdFavoriteBorder className="text-[#00d1ff] w-3 h-3" />
+          )}
+        </button>
+      </div>
+
+      {/* Text Content */}
+      <div className={`flex-1 ${isMobile ? "p-1.5" : "p-2"} flex flex-col`} style={{ minHeight: isMobile ? "130px" : "130px" }}>
+        <h3 className="font-semibold text-gray-900 leading-tight line-clamp-2 text-[13.5px] mb-1 flex-shrink-0">
+          {businessName}
+        </h3>
+
+        <div className="flex-1 flex flex-col justify-between">
+          <div>
+            <p className="text-gray-600 text-[12.5px] line-clamp-1 mb-1">
+              {locationText}
+            </p>
+
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-0.5 flex-wrap">
+                <div className="flex items-baseline gap-0.5">
+                  <span className="text-[12px] font-manrope text-gray-900">
+                    {priceText}
+                  </span>
+                  <span className="text-[12px] text-gray-600">
+                    {category === 'hotel' || category === 'shortlet' ? 'for 2 nights' : ''}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-0.5">
+                <div className="flex items-center gap-0.5 text-gray-800 text-[12px]">
+                  <FontAwesomeIcon icon={faStar} className="text-black w-2 h-2" />
+                  <span className="font-semibold text-black">{rating}</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Settings Icon */}
-          <button 
-            onClick={() => setActiveTab("settings")}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            title="Settings"
-          >
-            <Settings size={20} strokeWidth={2.5} className="text-gray-600" />
-          </button>
+          <div className="flex items-center justify-between mt-auto pt-1">
+            <div>
+              <span className="inline-block text-[11px] text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
+                {tag}
+              </span>
+            </div>
 
-          {/* Notifications Icon */}
-          <button 
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative"
-            title="Notifications"
-          >
-            <Bell size={20} strokeWidth={2.5} className="text-gray-600" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
-
-          {/* Profile Avatar */}
-          <div className="w-10 h-10 rounded-full overflow-hidden cursor-pointer border-2 border-blue-500">
-            <img
-              src={profileImage}
-              alt="Profile"
-              className="w-full h-full object-cover"
-            />
+            {isFavorite && !isProcessing && (
+              <span className="inline-flex items-center gap-0.5 text-[9px] text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">
+                <svg className="w-1.5 h-1.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                </svg>
+                Saved
+              </span>
+            )}
           </div>
         </div>
       </div>
 
-      <main className="flex-grow pt-0">
-        <div className="flex h-[calc(100vh-65px)]">
-          {/* Sidebar - No Logo, No Menu Button on Large Screens */}
-          <motion.aside
-            initial={false}
-            animate={{ 
-              x: isSidebarOpen ? 0 : '-100%',
-              width: isSidebarOpen ? '256px' : '0px'
-            }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="fixed md:relative top-0 left-0 h-full z-50 md:translate-x-0 md:w-64 bg-white border-r border-gray-200 overflow-hidden"
-          >
-            {/* Sidebar Header - Menu Button only on mobile */}
-            <div className="p-4 flex items-center md:hidden justify-end border-b border-gray-200">
-              {/* Menu Button only visible on mobile */}
-              <button
-                onClick={toggleSidebar}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <Menu size={16} strokeWidth={2.5} className="text-gray-600" />
-              </button>
-            </div>
-            
-            <nav className="mt-4 md:mt-8 space-y-1 md:space-y-2 px-4">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setActiveTab(tab.id);
-                      if (window.innerWidth < 768) setIsSidebarOpen(false);
-                    }}
-                    className={`flex items-center w-full px-3 md:px-4 py-2 md:py-3 rounded-lg transition-all duration-200 ${
-                      activeTab === tab.id
-                        ? "bg-blue-50 text-blue-600 border-l-4 border-blue-500 shadow-sm"
-                        : "text-gray-700 hover:bg-gray-50 hover:border-l-4 hover:border-gray-200"
-                    }`}
-                  >
-                    <Icon size={16} strokeWidth={2.5} className="mr-3 flex-shrink-0" />
-                    <span className="text-sm md:text-base font-manrope">{tab.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-            
-            {/* User Info at Bottom */}
-            {isSidebarOpen && (
-              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center">
-                    <img
-                      src={profileImage}
-                      alt="Profile"
-                      className="w-full h-full object-cover sidebar-avatar"
-                    />
-                  </div>
-                  <div className="overflow-hidden">
-                    <p className="font-medium text-gray-900 text-sm truncate font-manrope">{userData?.firstName} {userData?.lastName}</p>
-                    <p className="text-xs text-gray-500 truncate font-manrope">{userData?.role}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </motion.aside>
-
-          {/* Main Content */}
-          <div className="flex-grow overflow-y-auto w-full">
-            {/* Mobile Search - Hidden when sidebar is open */}
-            {!isSidebarOpen && (
-              <div className="md:hidden p-4 border-b border-gray-200">
-                <div className="relative">
-                  <Search 
-                    size={16} 
-                    strokeWidth={2.5} 
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" 
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search for something"
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                  />
-                </div>
-              </div>
-            )}
-            
-            {/* Dashboard Content */}
-            <div className="max-w-7xl mx-auto px-3 md:px-4 md:px-6 py-4 md:py-8">
-              {/* Tab Content with Smooth Animation */}
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {/* Overview Tab */}
-                  {activeTab === "overview" && (
-                    <div className="space-y-6">
-                      {/* My Cards Section */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                        {/* Total Revenue Card */}
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.1 }}
-                          className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex justify-between items-start mb-3 md:mb-4">
-                            <h3 className="text-gray-500 font-medium text-sm md:text-base font-manrope">Total Revenue</h3>
-                            <span className="text-blue-500 text-xs md:text-sm font-semibold font-manrope">+0% from last month</span>
-                          </div>
-                          <div className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2 font-manrope">₦{mockStats.totalRevenue.toFixed(2)}</div>
-                        </motion.div>
-                        
-                        {/* Active Listing Card */}
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.15 }}
-                          className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex justify-between items-start mb-3 md:mb-4">
-                            <h3 className="text-gray-500 font-medium text-sm md:text-base font-manrope">Active Listing</h3>
-                            <span className="text-gray-400 text-xs md:text-sm font-manrope">0</span>
-                          </div>
-                          <div className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2 font-manrope">{mockStats.activeListings}</div>
-                        </motion.div>
-                        
-                        {/* Total Booking Card */}
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.2 }}
-                          className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex justify-between items-start mb-3 md:mb-4">
-                            <h3 className="text-gray-500 font-medium text-sm md:text-base font-manrope">Total Booking</h3>
-                            <span className="text-blue-500 text-xs md:text-sm font-semibold font-manrope">+0 from last month</span>
-                          </div>
-                          <div className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2 font-manrope">{mockStats.totalBookings}</div>
-                        </motion.div>
-                        
-                        {/* Average Rating Card */}
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.25 }}
-                          className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex justify-between items-start mb-3 md:mb-4">
-                            <h3 className="text-gray-500 font-medium text-sm md:text-base font-manrope">Average Rating</h3>
-                            <span className="text-blue-500 text-xs md:text-sm font-semibold font-manrope">+0.0 from last month</span>
-                          </div>
-                          <div className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2 font-manrope">{mockStats.averageRating.toFixed(1)}</div>
-                        </motion.div>
-                      </div>
-                      
-                      {/* Recent Bookings Table */}
-                      <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                        className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm"
-                      >
-                        <div className="p-4 md:p-6 border-b border-gray-200">
-                          <h2 className="text-lg md:text-xl font-bold text-gray-900 font-manrope">Recent Bookings</h2>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <div className="min-w-[600px] md:min-w-0">
-                            <table className="w-full">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Customer</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Service</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope hidden md:table-cell">Details</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Status</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Date</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-200">
-                                {mockRecentBookings.map((booking, index) => (
-                                  <motion.tr 
-                                    key={booking.id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.1 * index }}
-                                    className="hover:bg-gray-50"
-                                  >
-                                    <td className="p-3 md:p-4">
-                                      <div className="flex items-center gap-2 md:gap-3">
-                                        <img src={booking.image} alt={booking.customer} className="w-8 h-8 md:w-10 md:h-10 rounded-md" />
-                                        <div>
-                                          <div className="font-medium text-gray-900 text-sm md:text-base font-manrope">{booking.customer}</div>
-                                          <div className="text-xs text-gray-500 md:hidden font-manrope">{booking.service}</div>
-                                        </div>
-                                      </div>
-                                    </td>
-                                    <td className="p-3 md:p-4 text-gray-900 hidden md:table-cell font-manrope">{booking.service}</td>
-                                    <td className="p-3 md:p-4 text-gray-900 hidden md:table-cell font-manrope">{booking.details}</td>
-                                    <td className="p-3 md:p-4">
-                                      <span className="px-2 py-1 md:px-3 md:py-1 bg-green-100 text-green-800 rounded-full text-xs md:text-sm font-manrope">
-                                        {booking.status}
-                                      </span>
-                                    </td>
-                                    <td className="p-3 md:p-4 text-gray-500 text-sm font-manrope">{booking.date}</td>
-                                  </motion.tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </motion.div>
-                    </div>
-                  )}
-
-                  {/* My Listings Tab */}
-                  {activeTab === "listings" && (
-                    <div className="space-y-6">
-                      {/* Header */}
-                      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                          <div>
-                            <h2 className="text-lg md:text-xl font-bold text-gray-900 font-manrope">My Listings</h2>
-                            <p className="text-gray-600 text-sm font-manrope">Manage your properties and services</p>
-                          </div>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={handleOpenAddListingModal}
-                            className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center justify-center gap-2 font-manrope transition-colors"
-                          >
-                            <Plus size={16} strokeWidth={2.5} /> <span>Add Listing</span>
-                          </motion.button>
-                        </div>
-                        <div className="relative max-w-md">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} strokeWidth={2.5} />
-                          <input
-                            type="text"
-                            placeholder="Search Listings"
-                            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                          />
-                        </div>
-                      </div>
-                      
-                      {/* Listings Table */}
-                      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                        <div className="overflow-x-auto">
-                          <div className="min-w-[600px] md:min-w-0">
-                            <table className="w-full">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Listing</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope hidden md:table-cell">Category</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Price</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope hidden md:table-cell">Rating</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Status</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Actions</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-200">
-                                {listings.map((listing, index) => (
-                                  <motion.tr 
-                                    key={listing.id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.1 * index }}
-                                    className="hover:bg-gray-50"
-                                  >
-                                    <td className="p-3 md:p-4">
-                                      <div className="flex items-center gap-2 md:gap-3">
-                                        <img src={listing.image} alt={listing.name} className="w-10 h-10 md:w-12 md:h-12 rounded-md" />
-                                        <div className="min-w-0">
-                                          <div className="font-medium text-gray-900 text-sm md:text-base font-manrope truncate">{listing.name}</div>
-                                          <div className="text-xs text-gray-500 font-manrope truncate">{listing.location}</div>
-                                        </div>
-                                      </div>
-                                    </td>
-                                    <td className="p-3 md:p-4 text-gray-600 hidden md:table-cell font-manrope">{listing.category}</td>
-                                    <td className="p-3 md:p-4 text-gray-900 font-medium font-manrope">{listing.price}</td>
-                                    <td className="p-3 md:p-4 hidden md:flex items-center gap-1">
-                                      <Star fill="#FFD700" stroke="#FFD700" size={16} strokeWidth={2.5} />
-                                      <span className="text-gray-900 font-manrope">{listing.rating}</span>
-                                    </td>
-                                    <td className="p-3 md:p-4">
-                                      {getStatusBadge(listing.status)}
-                                    </td>
-                                    <td className="p-3 md:p-4">
-                                      <div className="flex items-center gap-2">
-                                        <motion.button
-                                          whileHover={{ scale: 1.1 }}
-                                          whileTap={{ scale: 0.9 }}
-                                          onClick={() => handleViewListing(listing.id)}
-                                          className="text-gray-400 hover:text-gray-600 p-1 transition-colors"
-                                          title="View"
-                                        >
-                                          <Eye size={16} strokeWidth={2.5} />
-                                        </motion.button>
-                                        <motion.button
-                                          whileHover={{ scale: 1.1 }}
-                                          whileTap={{ scale: 0.9 }}
-                                          onClick={() => handleEditListing(listing.id)}
-                                          className="text-gray-400 hover:text-blue-600 p-1 transition-colors"
-                                          title="Edit"
-                                        >
-                                          <Edit3 size={16} strokeWidth={2.5} />
-                                        </motion.button>
-                                        <motion.button
-                                          whileHover={{ scale: 1.1 }}
-                                          whileTap={{ scale: 0.9 }}
-                                          onClick={() => handleDeleteListing(listing.id)}
-                                          className="text-gray-400 hover:text-red-600 p-1 transition-colors"
-                                          title="Delete"
-                                        >
-                                          <Trash2 size={16} strokeWidth={2.5} />
-                                        </motion.button>
-                                      </div>
-                                    </td>
-                                  </motion.tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Customers Tab */}
-                  {activeTab === "customers" && (
-                    <div className="space-y-6">
-                      {/* Header */}
-                      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm">
-                        <div className="flex justify-between items-center mb-4">
-                          <div>
-                            <h2 className="text-lg md:text-xl font-bold text-gray-900 font-manrope">Customers</h2>
-                            <p className="text-gray-600 text-sm font-manrope">View and manage your customer relationships</p>
-                          </div>
-                        </div>
-                        <div className="relative max-w-md">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} strokeWidth={2.5} />
-                          <input
-                            type="text"
-                            placeholder="Search name"
-                            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                          />
-                        </div>
-                      </div>
-                      
-                      {/* Customers Grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                        {customers.map((customer, index) => (
-                          <motion.div 
-                            key={customer.id}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.1 * index }}
-                            className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
-                          >
-                            <div className="flex items-center gap-3 md:gap-4 mb-4">
-                              <img src={customer.image} alt={customer.name} className="w-10 h-10 md:w-12 md:h-12 rounded-full" />
-                              <div className="min-w-0">
-                                <div className="font-medium text-gray-900 text-sm md:text-base font-manrope truncate">{customer.name}</div>
-                                <div className="text-xs text-gray-500 font-manrope truncate">{customer.email}</div>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3 md:gap-4 pt-4 border-t border-gray-200">
-                              <div>
-                                <div className="text-xs md:text-sm text-gray-600 font-manrope">Bookings</div>
-                                <div className="text-lg md:text-xl font-medium text-gray-900 font-manrope">{customer.bookings}</div>
-                              </div>
-                              <div>
-                                <div className="text-xs md:text-sm text-gray-600 font-manrope">Total Spent</div>
-                                <div className="text-lg md:text-xl font-medium text-gray-900 font-manrope">{customer.totalSpent}</div>
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Bookings Tab */}
-                  {activeTab === "bookings" && (
-                    <div className="space-y-6">
-                      {/* Header */}
-                      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div>
-                            <h2 className="text-lg md:text-xl font-bold text-gray-900 font-manrope">Bookings</h2>
-                            <p className="text-gray-600 text-sm font-manrope">Manage your booking requests and reservations</p>
-                          </div>
-                          <motion.button 
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center justify-center gap-2 font-manrope transition-colors"
-                          >
-                            <Plus size={16} strokeWidth={2.5} /> <span className="hidden md:inline">New Booking</span>
-                          </motion.button>
-                        </div>
-                      </div>
-                      
-                      {/* Recent Bookings */}
-                      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm">
-                        <h3 className="text-base md:text-lg font-bold text-gray-900 font-manrope mb-4">Recent Bookings</h3>
-                        <div className="border border-gray-200 rounded-lg p-4 md:p-6">
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div className="flex items-center gap-3 md:gap-4">
-                              <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80" alt="Jagz Hotel" className="w-10 h-10 md:w-12 md:h-12 rounded-md" />
-                              <div className="min-w-0">
-                                <div className="font-medium text-gray-900 text-sm md:text-base font-manrope truncate">Jagz Hotel and Suite</div>
-                                <div className="text-xs md:text-sm text-gray-600 font-manrope truncate">Mokola, RD 8 Ibadan</div>
-                                <div className="mt-2 flex items-center gap-2 md:gap-4">
-                                  <span className="px-2 py-1 md:px-3 md:py-1 bg-gray-100 text-gray-800 rounded-full text-xs md:text-sm font-manrope">
-                                    Property
-                                  </span>
-                                  <span className="px-2 py-1 md:px-3 md:py-1 bg-blue-100 text-blue-800 rounded-full text-xs md:text-sm font-manrope">
-                                    Admin
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-lg md:text-2xl font-bold text-gray-900 font-manrope">₦28,000/night</div>
-                              <motion.button 
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="mt-2 md:mt-3 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-xs md:text-sm font-manrope transition-colors"
-                              >
-                                View Details
-                              </motion.button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Settings Tab */}
-                  {activeTab === "settings" && (
-                    <div className="space-y-6">
-                      {/* Profile Section */}
-                      <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm"
-                      >
-                        <div className="border-b border-gray-200 pb-4 mb-6">
-                          <h2 className="text-lg font-bold text-gray-900 font-manrope">Edit Profile</h2>
-                          <p className="text-sm text-gray-600 mt-1 font-manrope">Manage your account and preferences</p>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="flex items-center gap-4">
-                            <div className="relative group">
-                              <img 
-                                src={profileImage} 
-                                alt="Profile" 
-                                className="w-20 h-20 rounded-full object-cover cursor-pointer group-hover:scale-105 transition-transform"
-                              />
-                              <label className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 cursor-pointer group-hover:scale-110 transition-transform shadow-lg">
-                                <Camera size={16} strokeWidth={2.5} />
-                                <input 
-                                  type="file" 
-                                  accept="image/*" 
-                                  onChange={handleProfileImageUpload}
-                                  className="hidden"
-                                />
-                              </label>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-600 font-manrope">Click the camera icon to upload a new profile picture</p>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">Your Name</label>
-                                <input 
-                                  type="text" 
-                                  value={profileData.name}
-                                  onChange={(e) => handleProfileChange('name', e.target.value)}
-                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">User Name</label>
-                                <input 
-                                  type="text" 
-                                  value={profileData.username}
-                                  onChange={(e) => handleProfileChange('username', e.target.value)}
-                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                                />
-                              </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">Email</label>
-                                <input 
-                                  type="email" 
-                                  value={profileData.email}
-                                  onChange={(e) => handleProfileChange('email', e.target.value)}
-                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">City</label>
-                                <input 
-                                  type="text" 
-                                  value={profileData.city}
-                                  onChange={(e) => handleProfileChange('city', e.target.value)}
-                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                                />
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">Bio</label>
-                              <textarea 
-                                rows={4}
-                                value={profileData.bio}
-                                onChange={(e) => handleProfileChange('bio', e.target.value)}
-                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope resize-none"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-6 flex justify-end">
-                          <motion.button 
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={handleSaveProfile}
-                            className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2 font-manrope transition-colors"
-                          >
-                            <Save size={16} strokeWidth={2.5} /> Save Changes
-                          </motion.button>
-                        </div>
-                      </motion.div>
-                      
-                      {/* Notifications Section */}
-                      <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm"
-                      >
-                        <h2 className="text-lg font-bold text-gray-900 font-manrope mb-4">Notifications</h2>
-                        <p className="text-gray-600 mb-4 font-manrope">How do you want to receive messages from Clients?</p>
-                        
-                        <div className="space-y-4">
-                          <div className="border border-gray-200 rounded-lg p-4">
-                            <h3 className="text-md font-medium text-gray-900 mb-3 font-manrope">Email</h3>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Mail size={16} strokeWidth={2.5} className="text-gray-500" />
-                                <span className="text-gray-900 font-manrope">Email</span>
-                              </div>
-                              <div className="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
-                                <input 
-                                  type="checkbox" 
-                                  id="email-toggle" 
-                                  checked={notificationSettings.email}
-                                  onChange={() => handleNotificationToggle('email')}
-                                  className="sr-only"
-                                />
-                                <label 
-                                  htmlFor="email-toggle"
-                                  className={`block overflow-hidden h-6 rounded-full cursor-pointer ${
-                                    notificationSettings.email ? 'bg-blue-600' : 'bg-gray-300'
-                                  }`}
-                                >
-                                  <span 
-                                    className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
-                                      notificationSettings.email ? 'translate-x-6' : 'translate-x-0'
-                                    }`}
-                                  ></span>
-                                </label>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="border border-gray-200 rounded-lg p-4">
-                            <h3 className="text-md font-medium text-gray-900 mb-3 font-manrope">WhatsApp</h3>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <MessageSquare size={16} strokeWidth={2.5} className="text-gray-500" />
-                                <span className="text-gray-900 font-manrope">WhatsApp</span>
-                              </div>
-                              <div className="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
-                                <input 
-                                  type="checkbox" 
-                                  id="whatsapp-toggle" 
-                                  checked={notificationSettings.whatsapp}
-                                  onChange={() => handleNotificationToggle('whatsapp')}
-                                  className="sr-only"
-                                />
-                                <label 
-                                  htmlFor="whatsapp-toggle"
-                                  className={`block overflow-hidden h-6 rounded-full cursor-pointer ${
-                                    notificationSettings.whatsapp ? 'bg-blue-600' : 'bg-gray-300'
-                                  }`}
-                                >
-                                  <span 
-                                    className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
-                                      notificationSettings.whatsapp ? 'translate-x-6' : 'translate-x-0'
-                                    }`}
-                                  ></span>
-                                </label>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="border border-gray-200 rounded-lg p-4">
-                            <h3 className="text-md font-medium text-gray-900 mb-3 font-manrope">Promotional messages</h3>
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <Mail size={16} strokeWidth={2.5} className="text-gray-500" />
-                                  <span className="text-gray-900 font-manrope">Email</span>
-                                </div>
-                                <div className="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
-                                  <input 
-                                    type="checkbox" 
-                                    id="promo-email-toggle" 
-                                    checked={notificationSettings.promotionalEmail}
-                                    onChange={() => handleNotificationToggle('promotionalEmail')}
-                                    className="sr-only"
-                                  />
-                                  <label 
-                                    htmlFor="promo-email-toggle"
-                                    className={`block overflow-hidden h-6 rounded-full cursor-pointer ${
-                                      notificationSettings.promotionalEmail ? 'bg-blue-600' : 'bg-gray-300'
-                                    }`}
-                                  >
-                                    <span 
-                                      className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
-                                        notificationSettings.promotionalEmail ? 'translate-x-6' : 'translate-x-0'
-                                      }`}
-                                    ></span>
-                                  </label>
-                                </div>
-                              </div>
-                              
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <MessageSquare size={16} strokeWidth={2.5} className="text-gray-500" />
-                                  <span className="text-gray-900 font-manrope">WhatsApp</span>
-                                </div>
-                                <div className="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
-                                  <input 
-                                    type="checkbox" 
-                                    id="promo-whatsapp-toggle" 
-                                    checked={notificationSettings.promotionalWhatsapp}
-                                    onChange={() => handleNotificationToggle('promotionalWhatsapp')}
-                                    className="sr-only"
-                                  />
-                                  <label 
-                                    htmlFor="promo-whatsapp-toggle"
-                                    className={`block overflow-hidden h-6 rounded-full cursor-pointer ${
-                                      notificationSettings.promotionalWhatsapp ? 'bg-blue-600' : 'bg-gray-300'
-                                    }`}
-                                  >
-                                    <span 
-                                      className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
-                                        notificationSettings.promotionalWhatsapp ? 'translate-x-6' : 'translate-x-0'
-                                      }`}
-                                    ></span>
-                                  </label>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    </div>
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          </div>
-        </div>
-      </main>
-
-      {/* Add Listing Modal */}
-      <AnimatePresence>
-        {showAddListingModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.2 }}
-              className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
-            >
-              <div className="p-4 md:p-6 border-b border-gray-200 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900 font-manrope">Add New Listing</h2>
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={handleCloseAddListingModal}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X size={20} strokeWidth={2.5} />
-                </motion.button>
-              </div>
-              <div className="p-4 md:p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 font-manrope">
-                    <Type size={16} strokeWidth={2.5} /> Listing Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={newListing.name}
-                    onChange={(e) => setNewListing({...newListing, name: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                    placeholder="Enter listing name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 font-manrope">
-                    <Briefcase size={16} strokeWidth={2.5} /> Category *
-                  </label>
-                  <select
-                    value={newListing.category}
-                    onChange={(e) => setNewListing({...newListing, category: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                  >
-                    <option value="Property">Property</option>
-                    <option value="Hotel">Hotel</option>
-                    <option value="Event Center">Event Center</option>
-                    <option value="Restaurant">Restaurant</option>
-                    <option value="Service">Service</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 font-manrope">
-                    <DollarSign size={16} strokeWidth={2.5} /> Price per Night *
-                  </label>
-                  <input
-                    type="number"
-                    value={newListing.price}
-                    onChange={(e) => setNewListing({...newListing, price: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                    placeholder="Enter price"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 font-manrope">
-                    <MapPin size={16} strokeWidth={2.5} /> Location *
-                  </label>
-                  <input
-                    type="text"
-                    value={newListing.location}
-                    onChange={(e) => setNewListing({...newListing, location: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                    placeholder="Enter location"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 font-manrope">
-                    <FileText size={16} strokeWidth={2.5} /> Description
-                  </label>
-                  <textarea
-                    value={newListing.description}
-                    onChange={(e) => setNewListing({...newListing, description: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope resize-none"
-                    rows={4}
-                    placeholder="Enter description"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 font-manrope">
-                    <Package size={16} strokeWidth={2.5} /> Amenities
-                  </label>
-                  <div className="flex gap-2 mb-3">
-                    <input
-                      type="text"
-                      value={currentAmenity}
-                      onChange={(e) => setCurrentAmenity(e.target.value)}
-                      className="flex-grow px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                      placeholder="Add amenity"
-                      onKeyPress={(e) => e.key === 'Enter' && handleAddAmenity()}
-                    />
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={handleAddAmenity}
-                      className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-manrope transition-colors"
-                    >
-                      Add
-                    </motion.button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {newListing.amenities.map((amenity, index) => (
-                      <motion.span 
-                        key={index}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="px-3 py-1.5 bg-gray-100 text-gray-800 rounded-full text-sm flex items-center gap-1 font-manrope"
-                      >
-                        {amenity}
-                        <button
-                          onClick={() => handleRemoveAmenity(amenity)}
-                          className="text-gray-500 hover:text-gray-700 transition-colors"
-                        >
-                          <X size={12} strokeWidth={2.5} />
-                        </button>
-                      </motion.span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="p-4 md:p-6 border-t border-gray-200 flex justify-end gap-3">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleCloseAddListingModal}
-                  className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium font-manrope transition-colors"
-                >
-                  Cancel
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleSubmitListing}
-                  className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2 font-manrope transition-colors"
-                >
-                  <Save size={16} strokeWidth={2.5} /> Save Listing
-                </motion.button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none"></div>
     </div>
   );
 };
 
-export default VendorDashboard;
+// ---------------- CategorySection Component ----------------
+const CategorySection = ({ title, items, category, isMobile, loading, error, apiResponse }) => {
+  const navigate = useNavigate();
+
+  if (loading) {
+    return (
+      <section className="mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <div>
+            <h2 className="text-gray-900 font-bold" style={{ color: "#000651" }}>
+              {isMobile ? <span className="text-[14px]">{title}</span> : <span className="text-xl">{title}</span>}
+            </h2>
+          </div>
+          <button className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" style={{ color: "#000651" }} onClick={() => navigate(`/category/${category}`)}>
+            {isMobile ? <span className="text-[12px]">View all</span> : <span className="text-[13.5px]">View all</span>}
+            <svg className={`transition-transform group-hover:translate-x-1 ${isMobile ? "w-3 h-3" : "w-4 h-4"}`} fill="currentColor" viewBox="0 0 16 16">
+              <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+            </svg>
+          </button>
+        </div>
+        <div className={`${isMobile ? "flex overflow-x-auto gap-[8px] pb-4 -mx-[16px] pl-[16px] snap-x snap-mandatory" : "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3"}`}>
+          {[...Array(6)].map((_, index) => <SkeletonCard key={index} isMobile={isMobile} />)}
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <div>
+            <h2 className="text-gray-900 font-bold" style={{ color: "#000651" }}>
+              {isMobile ? <span className="text-[14px]">{title}</span> : <span className="text-xl">{title}</span>}
+            </h2>
+          </div>
+          <button className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" style={{ color: "#000651" }} onClick={() => navigate(`/category/${category}`)}>
+            {isMobile ? <span className="text-[12px]">View all</span> : <span className="text-[13.5px]">View all</span>}
+            <svg className={`transition-transform group-hover:translate-x-1 ${isMobile ? "w-3 h-3" : "w-4 h-4"}`} fill="currentColor" viewBox="0 0 16 16">
+              <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+            </svg>
+          </button>
+        </div>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-700 font-medium text-sm">API Error: {error}</p>
+          <p className="text-red-600 text-xs mt-1">Could not fetch listings from backend</p>
+        </div>
+      </section>
+    );
+  }
+
+  const handleCategoryClick = () => {
+    navigate(`/category/${category}`);
+  };
+
+  const displayItems = items.slice(0, 6);
+  const totalResults = apiResponse?.results || 0;
+  const pendingCount = items.filter(item => item.status === 'pending').length;
+  const activeCount = items.filter(item => item.status === 'active').length;
+
+  return (
+    <section className="mb-4">
+      <div className="flex justify-between items-center mb-2">
+        <div>
+          <h2 className="text-gray-900 font-bold" style={{ color: "#000651" }}>
+            {isMobile ? <span className="text-[14px]">{title}</span> : <span className="text-xl">{title}</span>}
+          </h2>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded">
+              ✅ {totalResults} total listings
+            </span>
+            <span className="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
+              📊 {displayItems.length} showing
+            </span>
+            {pendingCount > 0 && (
+              <span className="text-xs text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded">
+                ⏳ {pendingCount} pending
+              </span>
+            )}
+          </div>
+        </div>
+        <button onClick={handleCategoryClick} className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" style={{ color: "#000651" }}>
+          {isMobile ? <span className="text-[12px]">View all</span> : <span className="text-[13.5px]">View all</span>}
+          <svg className={`transition-transform group-hover:translate-x-1 ${isMobile ? "w-3 h-3" : "w-4 h-4"}`} fill="currentColor" viewBox="0 0 16 16">
+            <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+          </svg>
+        </button>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-blue-700 font-medium text-sm">No listings found</p>
+          <p className="text-blue-600 text-xs mt-1">Try checking other categories</p>
+        </div>
+      ) : (
+        <>
+          {!isMobile ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+              {displayItems.map((item, index) => (
+                <BusinessCard key={item._id || index} item={item} category={category} isMobile={isMobile} />
+              ))}
+            </div>
+          ) : (
+            <div className="relative">
+              <div className="flex overflow-x-auto scrollbar-hide gap-2 pb-4" style={{ scrollbarWidth: "none", msOverflowStyle: "none", paddingRight: "8px" }}>
+                {displayItems.map((item, index) => (
+                  <BusinessCard key={item._id || index} item={item} category={category} isMobile={isMobile} />
+                ))}
+                <div className="flex-shrink-0" style={{ width: "8px" }}></div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  );
+};
+
+// ---------------- Main Directory Component ----------------
+const Directory = () => {
+  const [headerRef, headerInView] = useInView({ threshold: 0.1, triggerOnce: false });
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // ONLY 3 CATEGORIES: hotel, shortlet, restaurant
+  const categories = [
+    { key: 'hotel', name: 'Hotels' },
+    { key: 'shortlet', name: 'Shortlets' },
+    { key: 'restaurant', name: 'Restaurants' }
+  ];
+  
+  // Fetch listings for each category
+  const hotelListings = useListings('hotel', 6);
+  const shortletListings = useListings('shortlet', 6);
+  const restaurantListings = useListings('restaurant', 6);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const categoryData = {
+    hotel: hotelListings,
+    shortlet: shortletListings,
+    restaurant: restaurantListings,
+  };
+
+  // Check if any category is still loading
+  const initialLoading = categories.some(cat => categoryData[cat.key].loading);
+  
+  if (initialLoading) return <SkeletonDirectory isMobile={isMobile} />;
+
+  const totalListings = categories.reduce((total, cat) => total + (categoryData[cat.key].apiResponse?.results || 0), 0);
+
+  return (
+    <section id="directory" className="bg-white font-manrope">
+      <div className={`${isMobile ? "py-0" : "py-8"}`}>
+        {isMobile ? (
+          <div className="w-full" style={{ paddingLeft: "0.75rem", paddingRight: "0.75rem" }}>
+            <motion.div ref={headerRef} initial={{ opacity: 0, y: 20 }} animate={headerInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, ease: "easeOut" }} className="mb-4">
+              <h1 className="text-lg font-bold text-center mb-2 text-[#00065A]">Explore Categories</h1>
+              <p className="text-xs text-gray-600 text-center">Find the best places and services in Ibadan</p>
+              <div className="mt-2 bg-green-50 border border-green-200 rounded-lg p-2">
+                <p className="text-green-700 text-xs font-medium">✅ Connected to Backend API</p>
+                <p className="text-green-600 text-xs mt-1">Found {totalListings} total listings</p>
+              </div>
+            </motion.div>
+
+            <div className="space-y-6">
+              {categories.map(({ key, name }) => {
+                const { listings, loading, error, apiResponse } = categoryData[key];
+                const title = `Popular ${name} in Ibadan`;
+                return (
+                  <CategorySection 
+                    key={key} 
+                    title={title} 
+                    items={listings} 
+                    category={key} 
+                    isMobile={isMobile} 
+                    loading={loading} 
+                    error={error} 
+                    apiResponse={apiResponse} 
+                  />
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div ref={headerRef} initial={{ opacity: 0, y: 20 }} animate={headerInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, ease: "easeOut" }} className="mb-6">
+              <h1 className="text-xl font-semibold text-gray-900 md:text-start">Explore Categories</h1>
+              <p className="text-gray-600 md:text-[15px] md:text-start text-[13.5px]">Find the best places and services in Ibadan</p>
+              
+              <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <div className="text-green-600">
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-green-800 font-medium">✅ Successfully Connected to Backend API</h3>
+                    <p className="text-green-700 text-sm mt-1">Using axiosInstance.get() - Found {totalListings} total listings</p>
+                    <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                      {categories.map(({ key, name }) => (
+                        <div key={key} className="bg-white p-2 rounded border">
+                          <p className="font-medium">{name}</p>
+                          <p className="text-green-600">{categoryData[key].apiResponse?.results || 0} listings</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            <div className="space-y-6">
+              {categories.map(({ key, name }) => {
+                const { listings, loading, error, apiResponse } = categoryData[key];
+                const title = `Popular ${name} in Ibadan`;
+                return (
+                  <CategorySection 
+                    key={key} 
+                    title={title} 
+                    items={listings} 
+                    category={key} 
+                    isMobile={isMobile} 
+                    loading={loading} 
+                    error={error} 
+                    apiResponse={apiResponse} 
+                  />
+                );
+              })}
+            </div>
+
+            <div className="mt-8 p-6 bg-gray-50 border border-gray-200 rounded-lg">
+              <h3 className="text-gray-800 font-medium mb-3">API Integration Status</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white p-4 rounded-lg border">
+                  <h4 className="text-gray-700 font-medium text-sm mb-2">Request Details</h4>
+                  <p className="text-gray-600 text-xs">
+                    <code className="bg-gray-100 px-2 py-1 rounded text-green-600">GET /listings?category=hotel&sort=-createdAt&limit=6</code>
+                  </p>
+                  <p className="text-gray-500 text-xs mt-2">
+                    Simple category filtering: hotel, shortlet, restaurant. No status filter.
+                  </p>
+                </div>
+                <div className="bg-white p-4 rounded-lg border">
+                  <h4 className="text-gray-700 font-medium text-sm mb-2">Total Results</h4>
+                  <p className="text-gray-600 text-xs">
+                    {totalListings} listings found across 3 categories
+                  </p>
+                  <p className="text-gray-500 text-xs mt-2">
+                    Showing 6 listings per category, sorted by newest first
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+};
+
+const styles = `
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes slideOutRight {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0; }
+}
+.line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+`;
+
+if (typeof document !== "undefined") {
+  const styleSheet = document.createElement("style");
+  styleSheet.textContent = styles;
+  document.head.appendChild(styleSheet);
+}
+
+export default Directory;
