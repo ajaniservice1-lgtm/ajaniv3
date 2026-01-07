@@ -3150,11 +3150,7 @@ const CategoryResults = () => {
       </div>
 
       <main
-        className="pb-8 md:mt-15"
-        style={{
-          paddingLeft: isMobile ? "0.75rem" : "1rem",
-          paddingRight: isMobile ? "0.75rem" : "1rem",
-        }}
+        className="pb-8"      
       >
         {/* Fixed Search Bar Container with Back Button */}
         <div
@@ -3194,7 +3190,7 @@ const CategoryResults = () => {
                     <form onSubmit={handleSearchSubmit}>
                       <div className="flex items-center">
                         <div
-                          className="flex items-center bg-gray-200 rounded-full shadow-sm w-full relative z-40"
+                          className="flex items-center bg-gray-200  rounded-full shadow-sm w-full relative z-40"
                           style={{
                             width: "100%",
                           }}
@@ -3211,7 +3207,7 @@ const CategoryResults = () => {
                             value={localSearchQuery}
                             onChange={(e) => handleSearchChange(e.target.value)}
                             onFocus={handleSearchFocus}
-                            className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope"
+                            className="flex-1 bg-transparent py-2.5 px-3  text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope"
                             autoFocus={false}
                             aria-label="Search input"
                             role="searchbox"
