@@ -1,3 +1,4 @@
+// src/components/VendorDetail.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -17,9 +18,7 @@ import {
   faSpa,
   faDumbbell,
   faCheckCircle,
-  faChevronLeft,
-  faArrowLeft,
-  faShieldAlt
+  faArrowLeft
 } from "@fortawesome/free-solid-svg-icons";
 import { CiBookmark } from "react-icons/ci";
 import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
@@ -30,6 +29,7 @@ import { VscVerifiedFilled } from "react-icons/vsc";
 import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import listingService from "../lib/listingService";
 
 // Fallback images for different categories
 const FALLBACK_IMAGES = {
@@ -41,13 +41,11 @@ const FALLBACK_IMAGES = {
   default: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&q=80"
 };
 
-// Category normalization utility
 const normalizeCategory = (category) => {
   if (!category) return 'restaurant';
   
   const cat = category.toString().toLowerCase().trim();
   
-  // Handle categories with slashes
   if (cat.includes("/")) {
     const parts = cat.split("/").map(part => part.trim());
     for (const part of parts) {
@@ -77,11 +75,195 @@ const normalizeCategory = (category) => {
   return 'restaurant';
 };
 
+const getVendorImages = (vendor) => {
+  if (!vendor) return Array(5).fill(FALLBACK_IMAGES.default);
+  
+  if (vendor.images && Array.isArray(vendor.images) && vendor.images.length > 0) {
+    const imageUrls = vendor.images
+      .map(img => img.url)
+      .filter(url => url && url.startsWith("http"));
+    
+    if (imageUrls.length >= 5) {
+      return imageUrls.slice(0, 5);
+    } else if (imageUrls.length > 0) {
+      const filledImages = [...imageUrls];
+      const category = normalizeCategory(vendor.category);
+      const fallbackImage = FALLBACK_IMAGES[category] || FALLBACK_IMAGES.default;
+      
+      while (filledImages.length < 5) {
+        filledImages.push(fallbackImage);
+      }
+      return filledImages.slice(0, 5);
+    }
+  }
+  
+  const category = normalizeCategory(vendor.category);
+  const fallbackImage = FALLBACK_IMAGES[category] || FALLBACK_IMAGES.default;
+  return Array(5).fill(fallbackImage);
+};
+
+const getVendorIdFromListing = (listing) => {
+  if (!listing) return null;
+  
+  if (typeof listing.vendorId === 'string') {
+    return listing.vendorId;
+  }
+  
+  if (listing.vendorId && listing.vendorId._id) {
+    return listing.vendorId._id;
+  }
+  
+  if (listing.vendor) {
+    return listing.vendor._id || listing.vendor.id || listing.vendor;
+  }
+  
+  return listing._id || listing.id;
+};
+
+const getVendorInfo = (listing) => {
+  if (!listing) return null;
+  
+  if (listing.vendorId && typeof listing.vendorId === 'object') {
+    return {
+      id: listing.vendorId._id || listing.vendorId.id,
+      name: listing.vendorId.name || listing.vendorId.username || listing.vendorId.email,
+      email: listing.vendorId.email,
+      phone: listing.vendorId.phone,
+      verified: listing.vendorId.verified || false
+    };
+  }
+  
+  if (listing.vendor && typeof listing.vendor === 'object') {
+    return {
+      id: listing.vendor._id || listing.vendor.id,
+      name: listing.vendor.name || listing.vendor.username || listing.vendor.email,
+      email: listing.vendor.email,
+      phone: listing.vendor.phone,
+      verified: listing.vendor.verified || false
+    };
+  }
+  
+  if (typeof listing.vendorId === 'string') {
+    return {
+      id: listing.vendorId,
+      name: "Vendor",
+      email: null,
+      phone: null,
+      verified: false
+    };
+  }
+  
+  return null;
+};
+
+const useAuthStatus = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const checkAuth = () => {
+    const token = localStorage.getItem("auth_token");
+    const userProfile = localStorage.getItem("userProfile");
+    const isLoggedIn = !!token && !!userProfile;
+    setIsAuthenticated(isLoggedIn);
+    return isLoggedIn;
+  };
+
+  useEffect(() => {
+    checkAuth();
+
+    const handleAuthChange = () => {
+      checkAuth();
+    };
+
+    window.addEventListener("storage", handleAuthChange);
+    window.addEventListener("authChange", handleAuthChange);
+    window.addEventListener("loginSuccess", handleAuthChange);
+    window.addEventListener("logout", handleAuthChange);
+
+    return () => {
+      window.removeEventListener("storage", handleAuthChange);
+      window.removeEventListener("authChange", handleAuthChange);
+      window.removeEventListener("loginSuccess", handleAuthChange);
+      window.removeEventListener("logout", handleAuthChange);
+    };
+  }, []);
+
+  return isAuthenticated;
+};
+
+const VendorListingCard = ({ listing, onClick }) => {
+  const images = getVendorImages(listing);
+  const category = normalizeCategory(listing.category);
+  
+  const formatPrice = (price) => {
+    if (!price) return "₦ --";
+    const num = parseInt(price.toString().replace(/[^\d]/g, ""));
+    if (isNaN(num)) return "₦ --";
+    return `₦${num.toLocaleString()}`;
+  };
+  
+  const getCategoryIcon = () => {
+    switch(category) {
+      case 'hotel': return faBed;
+      case 'restaurant': return faUtensils;
+      case 'event': return faMusic;
+      case 'shortlet': return faBed;
+      default: return faUtensils;
+    }
+  };
+  
+  return (
+    <div 
+      onClick={onClick}
+      className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group"
+    >
+      <div className="relative h-48 overflow-hidden">
+        <img 
+          src={images[0]} 
+          alt={listing.title || listing.name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        />
+        <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-full text-xs">
+          {formatPrice(listing.price || listing.price_from)}
+        </div>
+        <div className="absolute bottom-2 left-2 bg-[#06EAFC] text-white px-2 py-1 rounded-full text-xs">
+          {listing.status === 'active' ? 'Active' : listing.status}
+        </div>
+      </div>
+      <div className="p-4">
+        <div className="flex items-start justify-between mb-2">
+          <h3 className="font-bold text-gray-900 line-clamp-1 flex-1">
+            {listing.title || listing.name}
+          </h3>
+          <FontAwesomeIcon 
+            icon={getCategoryIcon()} 
+            className="text-[#06EAFC] ml-2"
+          />
+        </div>
+        <p className="text-gray-600 text-sm line-clamp-2 mb-3">
+          {listing.description?.substring(0, 100)}...
+        </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <FontAwesomeIcon icon={faStar} className="text-yellow-500 text-xs" />
+            <span className="text-xs font-semibold">{listing.rating || "4.5"}</span>
+          </div>
+          <span className="text-xs text-gray-500">
+            {listing.location?.area || listing.area || "Ibadan"}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const VendorDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [vendor, setVendor] = useState(null);
+  const [vendorInfo, setVendorInfo] = useState(null);
+  const [vendorListings, setVendorListings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingVendorListings, setLoadingVendorListings] = useState(false);
   const [error, setError] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -91,13 +273,13 @@ const VendorDetail = () => {
   const [touchEnd, setTouchEnd] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const imageRef = useRef(null);
+  
+  const isAuthenticated = useAuthStatus();
 
-  // Scroll to top on component mount and when id changes
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [id]);
 
-  // Check for mobile view
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -107,100 +289,85 @@ const VendorDetail = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Fetch vendor data
   useEffect(() => {
     const fetchVendorData = async () => {
       try {
-        const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
-        const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
+        const result = await listingService.getListingById(id);
         
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/A1:Z1000?key=${API_KEY}`;
-        const res = await fetch(url);
-        
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        
-        const json = await res.json();
-        let vendors = [];
-        
-        if (json.values && Array.isArray(json.values) && json.values.length > 1) {
-          const headers = json.values[0];
-          const rows = json.values.slice(1);
+        if (result.status === 'success' && result.data?.listing) {
+          const foundVendor = result.data.listing;
+          setVendor(foundVendor);
           
-          vendors = rows
-            .filter((row) => Array.isArray(row) && row.length > 0)
-            .map((row) => {
-              const obj = {};
-              headers.forEach((h, i) => {
-                obj[h?.toString().trim() || `col_${i}`] = (row[i] || "")
-                  .toString()
-                  .trim();
-              });
-              return obj;
-            });
+          const extractedVendorInfo = getVendorInfo(foundVendor);
+          setVendorInfo(extractedVendorInfo);
           
-          // Find vendor by ID
-          const foundVendor = vendors.find((v) => v.id === id);
-          
-          if (foundVendor) {
-            setVendor(foundVendor);
-            
-            // Check if vendor is in favorites
-            const savedListings = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
-            setIsFavorite(savedListings.some(item => item.id === id));
-          } else {
-            setError("Vendor not found");
-          }
+          const savedListings = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
+          setIsFavorite(savedListings.some(item => item.id === id || item.id === foundVendor._id));
         } else {
-          setError("No vendor data available");
+          setError(result.message || "Vendor not found or invalid response");
         }
       } catch (err) {
-        console.error("Error fetching vendor:", err);
-        setError("Failed to load vendor details");
+        setError("Failed to load vendor details. Please try again later.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchVendorData();
+    if (id) {
+      fetchVendorData();
+    }
   }, [id]);
 
-  // Get vendor images - returns 5 images
-  const getVendorImages = () => {
-    if (!vendor) return [];
-    
-    const imageUrls = (vendor["image url"] || "")
-      .split(",")
-      .map(url => url.trim())
-      .filter(url => url && url.startsWith("http"));
-    
-    const category = normalizeCategory(vendor.category);
-    const fallbackImage = FALLBACK_IMAGES[category] || FALLBACK_IMAGES.default;
-    
-    if (imageUrls.length === 0) {
-      return Array(5).fill(fallbackImage);
-    } else if (imageUrls.length >= 5) {
-      return imageUrls.slice(0, 5);
-    } else {
-      const filledImages = [...imageUrls];
-      while (filledImages.length < 5) {
-        filledImages.push(fallbackImage);
+  useEffect(() => {
+    const fetchVendorListings = async () => {
+      if (!vendor) return;
+      
+      const vendorId = getVendorIdFromListing(vendor);
+      
+      if (!vendorId) {
+        return;
       }
-      return filledImages.slice(0, 5);
+      
+      try {
+        setLoadingVendorListings(true);
+        
+        const result = await listingService.getListingsByVendor(vendorId);
+        
+        if (result.status === 'success') {
+          const allListings = result.data.listings || result.data;
+          const otherListings = Array.isArray(allListings) 
+            ? allListings.filter(listing => (listing._id || listing.id) !== id)
+            : [];
+          
+          setVendorListings(otherListings);
+        }
+      } catch (error) {
+        // Silently handle error for vendor listings
+      } finally {
+        setLoadingVendorListings(false);
+      }
+    };
+    
+    if (vendor) {
+      fetchVendorListings();
     }
-  };
+  }, [vendor, id]);
 
-  // Format price
   const formatPrice = (price) => {
     if (!price) return "₦ --";
-    const num = parseInt(price.replace(/[^\d]/g, ""));
+    const num = parseInt(price.toString().replace(/[^\d]/g, ""));
     if (isNaN(num)) return "₦ --";
     return `₦${num.toLocaleString()}`;
   };
 
-  // Get amenities list
   const getAmenities = () => {
     if (vendor?.amenities) {
-      return vendor.amenities.split(",").map(item => item.trim()).filter(item => item);
+      if (typeof vendor.amenities === 'string') {
+        return vendor.amenities.split(",").map(item => item.trim()).filter(item => item);
+      }
+      if (Array.isArray(vendor.amenities)) {
+        return vendor.amenities;
+      }
     }
     
     const category = normalizeCategory(vendor?.category);
@@ -215,18 +382,16 @@ const VendorDetail = () => {
     return ["Not specified"];
   };
 
-  // Next/Prev image navigation
   const nextImage = () => {
-    const images = getVendorImages();
+    const images = getVendorImages(vendor);
     setActiveImageIndex((prev) => (prev + 1) % images.length);
   };
 
   const prevImage = () => {
-    const images = getVendorImages();
+    const images = getVendorImages(vendor);
     setActiveImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
-  // Touch swipe handlers for mobile
   const handleTouchStart = (e) => {
     setTouchStart(e.targetTouches[0].clientX);
   };
@@ -248,74 +413,68 @@ const VendorDetail = () => {
     setTouchEnd(null);
   };
 
-  // Handle booking button click
   const handleBookingClick = () => {
-    if (!vendor) return;
+    console.log("Booking clicked for vendor:", vendor);
+    
+    if (!vendor) {
+      console.error("No vendor data available");
+      showToast("Unable to book. Vendor data not available.", "info");
+      return;
+    }
+    
+    const vendorId = vendor._id || vendor.id;
+    console.log("Vendor ID:", vendorId);
     
     const vendorBookingData = {
-      id: vendor.id,
-      name: vendor.name,
+      id: vendorId,
+      name: vendor.title || vendor.name,
       category: normalizeCategory(vendor.category),
       originalCategory: vendor.category,
-      priceFrom: vendor.price_from,
-      priceTo: vendor.price_to,
-      area: vendor.area,
-      contact: vendor.contact,
-      email: vendor.email,
+      priceFrom: vendor.price || vendor.price_from,
+      priceTo: vendor.price_to || vendor.price,
+      area: vendor.location?.area || vendor.area,
+      contact: vendor.contact || vendorInfo?.phone,
+      email: vendor.email || vendorInfo?.email,
       description: vendor.description,
       rating: vendor.rating,
       capacity: vendor.capacity,
-      amenities: vendor.amenities
+      amenities: vendor.amenities,
+      images: getVendorImages(vendor),
+      vendorId: getVendorIdFromListing(vendor),
+      vendorInfo: vendorInfo,
+      image: getVendorImages(vendor)[0]
     };
     
+    console.log("Storing vendor data:", vendorBookingData);
+    
+    // Store the data in localStorage
     localStorage.setItem('currentVendorBooking', JSON.stringify(vendorBookingData));
-    navigate(`/booking/${vendor.id}`);
+    
+    // Also store in session storage for immediate access
+    sessionStorage.setItem('currentVendorBooking', JSON.stringify(vendorBookingData));
+    
+    // Try to navigate to booking page
+    try {
+      // Navigate with state data
+      navigate('/booking', { 
+        state: { 
+          vendorData: vendorBookingData,
+          vendorId: vendorId 
+        } 
+      });
+      
+      console.log("Navigation to booking page initiated");
+    } catch (error) {
+      console.error("Navigation error:", error);
+      // Fallback to window.location
+      window.location.href = '/booking';
+    }
   };
 
-  // Handle favorite toggle
-  const handleFavoriteToggle = () => {
-    if (!vendor || isProcessing) return;
-    
-    setIsProcessing(true);
-    
-    setTimeout(() => {
-      const savedListings = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
-      
-      if (isFavorite) {
-        const updated = savedListings.filter(item => item.id !== id);
-        localStorage.setItem("userSavedListings", JSON.stringify(updated));
-        setIsFavorite(false);
-        showToast("Removed from saved listings", "info");
-      } else {
-        const category = normalizeCategory(vendor.category);
-        const listingToSave = {
-          id: vendor.id,
-          name: vendor.name,
-          price: vendor.price_from,
-          perText: category === 'hotel' ? 'per night' : 
-                   category === 'restaurant' ? 'per meal' : 
-                   'per guest',
-          rating: parseFloat(vendor.rating || "4.5"),
-          tag: "Guest Favorite",
-          image: getVendorImages()[0],
-          category: vendor.category || "Business",
-          location: vendor.area || "Ibadan",
-          savedDate: new Date().toISOString().split("T")[0],
-          originalData: vendor
-        };
-        
-        const updated = [...savedListings, listingToSave];
-        localStorage.setItem("userSavedListings", JSON.stringify(updated));
-        setIsFavorite(true);
-        showToast("Added to saved listings!", "success");
-      }
-      
-      window.dispatchEvent(new Event("savedListingsUpdated"));
-      setIsProcessing(false);
-    }, 300);
+  const handleOtherListingClick = (listingId) => {
+    navigate(`/vendor-detail/${listingId}`);
   };
 
-  // Toast notification function
   const showToast = (message, type = "success") => {
     const existingToast = document.getElementById("toast-notification");
     if (existingToast) existingToast.remove();
@@ -341,7 +500,7 @@ const VendorDetail = () => {
         </div>
         <div class="flex-1">
           <p class="font-medium">${message}</p>
-          <p class="text-sm opacity-80 mt-1">${vendor?.name || "Vendor"}</p>
+          <p class="text-sm opacity-80 mt-1">${vendor?.title || vendor?.name || "Vendor"}</p>
         </div>
         <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70 transition-opacity">
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -363,7 +522,84 @@ const VendorDetail = () => {
     }, 3000);
   };
 
-  // Helper functions
+  const handleFavoriteToggle = () => {
+    if (!vendor || isProcessing) return;
+    
+    setIsProcessing(true);
+    
+    setTimeout(() => {
+      const savedListings = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
+      const vendorId = vendor._id || vendor.id;
+      
+      if (!isAuthenticated) {
+        showToast("Please login to save listings", "info");
+
+        localStorage.setItem(
+          "redirectAfterLogin",
+          window.location.pathname + window.location.search
+        );
+
+        const itemToSaveAfterLogin = {
+          id: vendorId,
+          name: vendor.title || vendor.name,
+          price: formatPrice(vendor.price || vendor.price_from),
+          perText: normalizeCategory(vendor.category) === 'hotel' ? 'per night' : 
+                   normalizeCategory(vendor.category) === 'restaurant' ? 'per meal' : 
+                   'per guest',
+          rating: parseFloat(vendor.rating || "4.5"),
+          tag: "Guest Favorite",
+          image: getVendorImages(vendor)[0],
+          category: vendor.category || "Business",
+          location: vendor.location?.area || vendor.area || "Ibadan",
+          originalData: vendor
+        };
+
+        localStorage.setItem(
+          "pendingSaveItem",
+          JSON.stringify(itemToSaveAfterLogin)
+        );
+
+        setTimeout(() => {
+          navigate("/login");
+          setIsProcessing(false);
+        }, 800);
+        return;
+      }
+      
+      if (isFavorite) {
+        const updated = savedListings.filter(item => item.id !== vendorId);
+        localStorage.setItem("userSavedListings", JSON.stringify(updated));
+        setIsFavorite(false);
+        showToast("Removed from saved listings", "info");
+      } else {
+        const category = normalizeCategory(vendor.category);
+        const listingToSave = {
+          id: vendorId,
+          name: vendor.title || vendor.name,
+          price: formatPrice(vendor.price || vendor.price_from),
+          perText: category === 'hotel' ? 'per night' : 
+                   category === 'restaurant' ? 'per meal' : 
+                   'per guest',
+          rating: parseFloat(vendor.rating || "4.5"),
+          tag: "Guest Favorite",
+          image: getVendorImages(vendor)[0],
+          category: vendor.category || "Business",
+          location: vendor.location?.area || vendor.area || "Ibadan",
+          savedDate: new Date().toISOString().split("T")[0],
+          originalData: vendor
+        };
+        
+        const updated = [...savedListings, listingToSave];
+        localStorage.setItem("userSavedListings", JSON.stringify(updated));
+        setIsFavorite(true);
+        showToast("Added to saved listings!", "success");
+      }
+      
+      window.dispatchEvent(new Event("savedListingsUpdated"));
+      setIsProcessing(false);
+    }, 300);
+  };
+
   const getCategoryIcon = (category) => {
     switch(category) {
       case 'hotel': return faBed;
@@ -386,7 +622,6 @@ const VendorDetail = () => {
     return faCheckCircle;
   };
 
-  // Get category display name
   const getCategoryDisplay = (vendor) => {
     if (vendor?.category) {
       const category = vendor.category.toString().trim();
@@ -410,14 +645,15 @@ const VendorDetail = () => {
   };
 
   const getFallbackCategory = (vendor) => {
-    if (vendor?.name?.toLowerCase().includes("hotel")) return "Hotel";
-    if (vendor?.name?.toLowerCase().includes("restaurant")) return "Restaurant";
-    if (vendor?.name?.toLowerCase().includes("shortlet")) return "Shortlet";
-    if (vendor?.name?.toLowerCase().includes("event")) return "Event Center";
-    return "Hotel";
+    if (!vendor) return "Business";
+    const name = (vendor.title || vendor.name || "").toLowerCase();
+    if (name.includes("hotel")) return "Hotel";
+    if (name.includes("restaurant")) return "Restaurant";
+    if (name.includes("shortlet")) return "Shortlet";
+    if (name.includes("event")) return "Event Center";
+    return "Business";
   };
 
-  // Get review count
   const getReviewCount = () => {
     if (vendor?.review_count) {
       const count = parseInt(vendor.review_count);
@@ -426,20 +662,22 @@ const VendorDetail = () => {
     return 9;
   };
 
-  // Get features list
   const getFeatures = () => {
     const defaultFeatures = [
       { icon: faWifi, name: "WiFi" },
       { icon: faSwimmingPool, name: "Swimming Pool" },
       { icon: faCar, name: "Parking" },
       { icon: faUtensils, name: "Restaurant" },
-      { icon: faShieldAlt, name: "24/7 Security" },
     ];
     return defaultFeatures;
   };
 
-  // Get services list
   const getServices = () => {
+    if (vendor?.description) {
+      const sentences = vendor.description.split(/[.!?]+/).filter(s => s.trim().length > 10);
+      return sentences.slice(0, 5).map(s => s.trim() + ".");
+    }
+    
     const defaultServices = [
       "Standard, Deluxe & Executive Rooms",
       "Restaurant & Bar",
@@ -450,7 +688,6 @@ const VendorDetail = () => {
     return defaultServices;
   };
 
-  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -463,14 +700,13 @@ const VendorDetail = () => {
     );
   }
 
-  // Error state
   if (error || !vendor) {
     return (
       <div className="min-h-screen">
         <Header />
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Vendor Not Found</h1>
-          <p className="text-gray-600 mb-6">The vendor you're looking for doesn't exist or has been removed.</p>
+          <p className="text-gray-600 mb-6">{error || "The vendor you're looking for doesn't exist or has been removed."}</p>
           <button 
             onClick={() => navigate("/")}
             className="px-6 py-3 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors"
@@ -483,26 +719,25 @@ const VendorDetail = () => {
     );
   }
 
-  const images = getVendorImages();
+  const images = getVendorImages(vendor);
   const category = normalizeCategory(vendor.category);
   const amenities = getAmenities();
   const features = getFeatures();
   const services = getServices();
   const reviewCount = getReviewCount();
   const categoryDisplay = getCategoryDisplay(vendor);
+  const vendorId = getVendorIdFromListing(vendor);
 
   return (
     <div className="min-h-screen font-manrope">
       <Header />
       
-      <main className="pt-14 md:pt-14"> {/* Reduced top padding */}
-        {/* MOBILE BACK BUTTON */}
+      <main className="pt-14 md:pt-14">
         <div className="md:hidden fixed top-16 left-0 z-50">
           <button
             onClick={() => navigate(-1)}
             className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 rounded-full transition-all duration-200 cursor-pointer"
             aria-label="Go back"
-            style={{ cursor: "pointer" }}
           >
             <FontAwesomeIcon
               icon={faArrowLeft}
@@ -511,12 +746,10 @@ const VendorDetail = () => {
           </button>
         </div>
 
-        {/* Breadcrumb - Reduced margins */}
-        <nav className="flex items-center space-x-2 text-xs text-gray-600 mb-2 md:mb-2 px-4 sm:px-2 md:px-0 font-manrope justify-center"> {/* Reduced mb-4 to mb-2 */}
+        <nav className="flex items-center space-x-2 text-xs text-gray-600 mb-2 md:mb-2 px-4 sm:px-2 md:px-0 font-manrope justify-center">
           <Link
             to="/"
             className="hover:text-[#06EAFC] transition-colors hover:underline"
-            style={{ cursor: "pointer" }}
           >
             Home
           </Link>
@@ -524,40 +757,33 @@ const VendorDetail = () => {
           <Link
             to={`/category/${category.toLowerCase().replace(/\s+/g, "-")}`}
             className="hover:text-[#06EAFC] transition-colors hover:underline"
-            style={{ cursor: "pointer" }}
           >
             {categoryDisplay}
           </Link>
           <span>/</span>
           <span className="text-gray-900 truncate max-w-[120px] md:max-w-xs">
-            {vendor.name}
+            {vendor.title || vendor.name}
           </span>
         </nav>
 
-        {/* Single Column Layout */}
-        <div className="space-y-3 md:space-y-6"> {/* Reduced space between sections */}
-          {/* Header Info - Reduced top padding */}
-          <div className="px-4 sm:px-2 md:px-4 lg:px-8 py-3 md:py-6 bg-white rounded-xl md:rounded-2xl mx-0 md:mx-0 hover:shadow-lg transition-shadow duration-300"> {/* Reduced py-4 to py-3, py-8 to py-6 */}
+        <div className="space-y-3 md:space-y-6">
+          <div className="px-4 sm:px-2 md:px-4 lg:px-8 py-3 md:py-6 bg-white rounded-xl md:rounded-2xl mx-0 md:mx-0 hover:shadow-lg transition-shadow duration-300">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6">
-              {/* Left: Name and Info */}
               <div className="flex-1">
-                {/* Vendor name */}
-                <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2"> {/* Reduced mb-2 to mb-1 */}
+                <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
                   <h1 className="text-lg md:text-xl lg:text-3xl font-bold text-gray-900 font-manrope line-clamp-2">
-                    {vendor.name}
+                    {vendor.title || vendor.name}
                   </h1>
                   <VscVerifiedFilled className="text-green-500 text-base md:text-xl hover:scale-110 transition-transform duration-200" />
                 </div>
 
                 <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 lg:gap-8">
-                  {/* Category */}
                   <div className="flex items-center gap-2">
                     <span className="text-gray-700 font-medium py-1 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200">
                       {categoryDisplay}
                     </span>
                   </div>
 
-                  {/* Rating with star */}
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1 hover:scale-105 transition-transform duration-200">
                       <FontAwesomeIcon
@@ -573,40 +799,60 @@ const VendorDetail = () => {
                     </span>
                   </div>
 
-                  {/* Area with location icon */}
                   <div className="flex items-center gap-2 text-gray-700 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200">
                     <FontAwesomeIcon
                       icon={faMapMarkerAlt}
                       className="text-gray-500 text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200"
                     />
                     <span className="truncate max-w-[150px] md:max-w-none">
-                      {vendor.area || "Ibadan"}
+                      {vendor.location?.area || vendor.area || "Ibadan"}
                     </span>
                   </div>
                 </div>
+                
+                {vendorInfo && (
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-8 h-8 bg-[#06EAFC] rounded-full flex items-center justify-center">
+                        <span className="text-white font-bold text-sm">
+                          {vendorInfo.name?.charAt(0)?.toUpperCase() || "V"}
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900 text-sm">
+                          {vendorInfo.name || "Vendor"}
+                          {vendorInfo.verified && (
+                            <VscVerifiedFilled className="inline-block text-green-500 ml-1" />
+                          )}
+                        </h3>
+                        <p className="text-xs text-gray-600">
+                          Vendor ID: {vendorId?.substring(0, 8)}...
+                        </p>
+                      </div>
+                    </div>
+                    {vendorInfo.email && (
+                      <div className="flex items-center gap-2 mt-2 text-xs text-gray-600">
+                        <FontAwesomeIcon icon={faEnvelope} className="text-gray-400" />
+                        <span>{vendorInfo.email}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Right: Save/Share buttons */}
               <div className="flex flex-col items-end gap-2 md:gap-4 mt-2 md:mt-0">
                 <div className="flex gap-4 md:gap-6 items-center">
-                  {/* Share button */}
                   <div className="flex items-center gap-1 md:gap-2 group relative">
                     <button
                       className="w-8 h-8 md:w-10 md:h-10 bg-white border border-gray-200 md:border-2 rounded-full flex items-center justify-center hover:bg-gray-50 hover:scale-110 hover:shadow-md transition-all duration-300 cursor-pointer group"
-                      style={{ cursor: "pointer" }}
                     >
                       <RiShare2Line className="text-gray-600 text-base md:text-xl group-hover:text-[#06EAFC] transition-colors duration-300" />
                     </button>
                     <span className="text-gray-600 text-xs md:text-sm font-manrope hidden md:inline group-hover:text-[#06EAFC] transition-colors duration-300">
                       Share
                     </span>
-                    <div className="absolute -top-10 right-0 bg-gray-800 text-white text-xs py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-10">
-                      Share this vendor
-                      <div className="absolute -bottom-1 right-3 w-2 h-2 bg-gray-800 rotate-45"></div>
-                    </div>
                   </div>
 
-                  {/* Save/Bookmark button */}
                   <div className="flex items-center gap-1 md:gap-2 group relative">
                     <button
                       onClick={handleFavoriteToggle}
@@ -654,17 +900,12 @@ const VendorDetail = () => {
                         ? "Saved"
                         : "Save"}
                     </span>
-                    <div className="absolute -top-10 right-0 bg-gray-800 text-white text-xs py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-10">
-                      {isFavorite ? "Remove from saved" : "Save this vendor"}
-                      <div className="absolute -bottom-1 right-3 w-2 h-2 bg-gray-800 rotate-45"></div>
-                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* MOBILE: Swipeable Image Gallery */}
           <div className="block md:hidden px-0">
             <div className="relative w-full">
               <div
@@ -676,35 +917,29 @@ const VendorDetail = () => {
               >
                 <img
                   src={images[activeImageIndex]}
-                  alt={`${vendor.name} - Image ${activeImageIndex + 1}`}
+                  alt={`${vendor.title || vendor.name} - Image ${activeImageIndex + 1}`}
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                 />
 
-                {/* Prev Button */}
                 <button
                   onClick={prevImage}
                   className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white hover:scale-110 hover:shadow-lg transition-all duration-300 cursor-pointer"
-                  style={{ cursor: "pointer" }}
                 >
                   <IoIosArrowBack className="text-gray-800 text-lg hover:text-[#06EAFC] transition-colors duration-300" />
                 </button>
 
-                {/* Next Button */}
                 <button
                   onClick={nextImage}
                   className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white hover:scale-110 hover:shadow-lg transition-all duration-300 cursor-pointer"
-                  style={{ cursor: "pointer" }}
                 >
                   <IoIosArrowForward className="text-gray-800 text-lg hover:text-[#06EAFC] transition-colors duration-300" />
                 </button>
 
-                {/* Counter */}
                 <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-manrope backdrop-blur-sm hover:bg-black/80 transition-colors duration-300">
                   {activeImageIndex + 1}/{images.length}
                 </div>
               </div>
 
-              {/* Thumbnail Strip */}
               <div className="flex gap-2 overflow-x-auto pb-2 px-4 mt-0">
                 {images.map((img, index) => (
                   <button
@@ -715,7 +950,6 @@ const VendorDetail = () => {
                         ? "border-blue-500"
                         : "border-transparent hover:border-blue-300"
                     }`}
-                    style={{ cursor: "pointer" }}
                   >
                     <img
                       src={img}
@@ -728,24 +962,21 @@ const VendorDetail = () => {
             </div>
           </div>
 
-          {/* DESKTOP: Modified 5 Image Gallery with further reduced height */}
           <div className="hidden md:block px-4 lg:px-8">
             <div className="flex gap-4">
-              {/* LEFT COLUMN - 2 images */}
               <div className="flex flex-col gap-4">
                 {images.slice(1, 3).map((img, i) => (
                   <button
                     key={i}
                     onClick={() => setActiveImageIndex(i + 1)}
                     className="hover:scale-105 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer"
-                    style={{ cursor: "pointer" }}
                   >
                     <img
                       src={img}
                       className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
                       style={{
                         width: "305px",
-                        height: "162px", // Reduced from 180px (10% more reduction)
+                        height: "162px",
                         borderRadius: "16px",
                         objectFit: "cover",
                       }}
@@ -754,58 +985,50 @@ const VendorDetail = () => {
                 ))}
               </div>
 
-              {/* CENTER LARGE IMAGE - Reduced height by additional 10% */}
               <div className="relative group">
                 <img
                   src={images[activeImageIndex]}
                   className="group-hover:scale-105 transition-transform duration-500"
                   style={{
                     width: "630px",
-                    height: "324px", // Reduced from 360px (10% more reduction)
+                    height: "324px",
                     borderRadius: "16px",
                     objectFit: "cover",
                   }}
                 />
 
-                {/* Prev Button */}
                 <button
                   onClick={prevImage}
                   className="absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white hover:scale-110 hover:shadow-xl transition-all duration-300 cursor-pointer"
-                  style={{ cursor: "pointer" }}
                 >
                   <IoIosArrowBack className="text-gray-800 text-xl hover:text-[#06EAFC] transition-colors duration-300" />
                 </button>
 
-                {/* Next Button */}
                 <button
                   onClick={nextImage}
                   className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white hover:scale-110 hover:shadow-xl transition-all duration-300 cursor-pointer"
-                  style={{ cursor: "pointer" }}
                 >
                   <IoIosArrowForward className="text-gray-800 text-xl hover:text-[#06EAFC] transition-colors duration-300" />
                 </button>
 
-                {/* Counter */}
                 <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-manrope hover:bg-black/80 transition-colors duration-300">
                   {activeImageIndex + 1}/{images.length}
                 </div>
               </div>
 
-              {/* RIGHT COLUMN - 2 images */}
               <div className="flex flex-col gap-4">
                 {images.slice(3, 5).map((img, i) => (
                   <button
                     key={i}
                     onClick={() => setActiveImageIndex(i + 3)}
                     className="hover:scale-105 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer"
-                    style={{ cursor: "pointer" }}
                   >
                     <img
                       src={img}
                       className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
                       style={{
                         width: "305px",
-                        height: "162px", // Reduced from 180px (10% more reduction)
+                        height: "162px",
                         borderRadius: "16px",
                         objectFit: "cover",
                       }}
@@ -816,7 +1039,6 @@ const VendorDetail = () => {
             </div>
           </div>
 
-          {/* Price Range Section */}
           <div className="px-0 md:px-0">
             <div className="text-center bg-white py-4 md:py-6 mx-0 md:mx-0 hover:shadow-md transition-shadow duration-300 rounded-xl">
               <p className="text-[#00065A] font-manrope text-base md:text-xl font-bold mb-2 md:text-start px-4 sm:px-2 md:px-0 hover:text-[#06EAFC] transition-colors duration-300">
@@ -825,13 +1047,13 @@ const VendorDetail = () => {
               <div className="flex md:justify-start flex-col md:flex-row items-center justify-center gap-1 md:gap-3 px-4 sm:px-2 md:px-0">
                 <div className="flex items-center gap-1 md:gap-2 hover:scale-105 transition-transform duration-300">
                   <span className="text-xl md:text-2xl text-gray-900 font-manrope font-bold hover:text-[#06EAFC] transition-colors duration-300">
-                    {formatPrice(vendor.price_from)}
+                    {formatPrice(vendor.price || vendor.price_from)}
                   </span>
                   <span className="text-gray-500 text-xl hover:text-gray-700 transition-colors duration-300">
                     -
                   </span>
                   <span className="text-xl md:text-2xl text-gray-900 font-manrope font-bold hover:text-[#06EAFC] transition-colors duration-300">
-                    {formatPrice(vendor.price_to || vendor.price_from)}
+                    {formatPrice(vendor.price_to || vendor.price || vendor.price_from)}
                   </span>
                 </div>
                 <span className="text-gray-600 text-sm md:text-base mt-1 md:mt-0 md:ml-3 hover:text-gray-800 transition-colors duration-300">
@@ -843,14 +1065,11 @@ const VendorDetail = () => {
             </div>
           </div>
 
-          {/* Action Icons Bar - Matching second design width */}
           <div className="flex justify-center px-0 md:px-0">
             <div className="w-full md:w-[600px] h-14 md:h-16 bg-gray-200 rounded-none md:rounded-3xl flex items-center justify-between px-4 md:px-12 mx-0 md:mx-0 hover:shadow-lg transition-all duration-300 hover:bg-gray-300/50">
-              {/* Call Button with enhanced hover effects */}
               <button
-                onClick={() => vendor.contact && (window.location.href = `tel:${vendor.contact}`)}
+                onClick={() => (vendor.contact || vendorInfo?.phone) && (window.location.href = `tel:${vendor.contact || vendorInfo?.phone}`)}
                 className="flex flex-col items-center transition-all duration-300 px-2 group relative"
-                style={{ cursor: "pointer" }}
               >
                 <div className="relative">
                   <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-blue-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
@@ -864,17 +1083,11 @@ const VendorDetail = () => {
                   Call
                   <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 group-hover:w-full transition-all duration-300"></span>
                 </span>
-                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-10">
-                  Call vendor
-                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
-                </div>
               </button>
 
-              {/* Chat Button with enhanced hover effects */}
               <button
                 onClick={() => showToast("Chat feature coming soon!", "info")}
                 className="flex flex-col items-center transition-all duration-300 px-2 group relative"
-                style={{ cursor: "pointer" }}
               >
                 <div className="relative">
                   <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-green-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
@@ -887,17 +1100,11 @@ const VendorDetail = () => {
                   Chat
                   <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 group-hover:w-full transition-all duration-300"></span>
                 </span>
-                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-10">
-                  Chat with vendor
-                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
-                </div>
               </button>
 
-              {/* Booking Button with enhanced hover effects */}
               <button
                 onClick={handleBookingClick}
                 className="flex flex-col items-center transition-all duration-300 px-2 group relative"
-                style={{ cursor: "pointer" }}
               >
                 <div className="relative">
                   <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-purple-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
@@ -910,17 +1117,11 @@ const VendorDetail = () => {
                   Book
                   <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-600 group-hover:w-full transition-all duration-300"></span>
                 </span>
-                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-10">
-                  Make a booking
-                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
-                </div>
               </button>
 
-              {/* Map Button with enhanced hover effects */}
               <button
                 onClick={() => showToast("Map feature coming soon!", "info")}
                 className="flex flex-col items-center transition-all duration-300 px-2 group relative"
-                style={{ cursor: "pointer" }}
               >
                 <div className="relative">
                   <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-red-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
@@ -933,18 +1134,54 @@ const VendorDetail = () => {
                   Map
                   <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-red-600 group-hover:w-full transition-all duration-300"></span>
                 </span>
-                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-10">
-                  View on map
-                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
-                </div>
               </button>
             </div>
           </div>
 
-          {/* About and Features Section */}
+          {vendorListings.length > 0 && (
+            <div className="px-4 sm:px-2 md:px-4 lg:px-8 py-6 bg-white rounded-xl">
+              <h2 className="text-xl font-bold text-[#00065A] mb-6">
+                Other Listings from This Vendor
+                <span className="text-sm font-normal text-gray-500 ml-2">
+                  ({vendorListings.length} {vendorListings.length === 1 ? 'listing' : 'listings'})
+                </span>
+              </h2>
+              
+              {loadingVendorListings ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#06EAFC]"></div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {vendorListings.slice(0, 4).map((listing, index) => (
+                    <VendorListingCard
+                      key={listing._id || index}
+                      listing={listing}
+                      onClick={() => handleOtherListingClick(listing._id || listing.id)}
+                    />
+                  ))}
+                </div>
+              )}
+              
+              {vendorListings.length > 4 && (
+                <div className="text-center mt-6">
+                  <button
+                    onClick={() => {
+                      if (vendorId) {
+                        navigate(`/vendor-listings/${vendorId}`);
+                      }
+                    }}
+                    className="px-4 py-2 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors"
+                  >
+                    View All {vendorListings.length} Listings
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <section className="w-full bg-[#F7F7FA] rounded-none md:rounded-3xl hover:shadow-lg transition-shadow duration-300">
             <div className="px-4 sm:px-4 md:px-6 lg:px-8 py-6 md:py-8">
-              {/* About Section */}
               <div className="mb-8 md:mb-12">
                 <h2 className="text-lg md:text-xl font-bold text-[#06F49F] mb-3 md:mb-4 font-manrope hover:text-[#05d9eb] transition-colors duration-300">
                   About
@@ -955,9 +1192,7 @@ const VendorDetail = () => {
                 </p>
               </div>
 
-              {/* What They Do & Features Side by Side */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-                {/* What They Do Section */}
                 <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
                   <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-4 md:mb-6 font-manrope hover:text-[#06EAFC] transition-colors duration-300">
                     What They Do
@@ -967,7 +1202,6 @@ const VendorDetail = () => {
                       <div
                         key={index}
                         className="flex items-start gap-3 md:gap-4 hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
-                        style={{ cursor: "pointer" }}
                       >
                         <div className="flex-shrink-0 mt-0.5 md:mt-1 group-hover:scale-110 transition-transform duration-300">
                           <FontAwesomeIcon
@@ -984,7 +1218,6 @@ const VendorDetail = () => {
                   </div>
                 </div>
 
-                {/* Key Features Section */}
                 <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
                   <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-4 md:mb-6 font-manrope hover:text-[#06EAFC] transition-colors duration-300">
                     Key Features
@@ -994,7 +1227,6 @@ const VendorDetail = () => {
                       <div
                         key={index}
                         className="flex items-center gap-2 md:gap-3 hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
-                        style={{ cursor: "pointer" }}
                       >
                         <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                           <FontAwesomeIcon
@@ -1013,11 +1245,10 @@ const VendorDetail = () => {
             </div>
           </section>
 
-          {/* Tabs Section */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6"> {/* Reduced mt-8 to mt-6 */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
             <div className="border-b border-gray-200">
               <nav className="flex space-x-8">
-                {["overview", "amenities", "reviews", "location"].map((tab) => (
+                {["overview", "amenities", "reviews", "location", "vendor"].map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
@@ -1033,18 +1264,17 @@ const VendorDetail = () => {
               </nav>
             </div>
             
-            {/* Tab Content */}
-            <div className="py-6"> {/* Reduced py-8 to py-6 */}
+            <div className="py-6">
               {activeTab === "overview" && (
                 <div className="space-y-6">
-                  <h3 className="text-xl font-bold text-gray-900">About {vendor.name}</h3>
+                  <h3 className="text-xl font-bold text-gray-900">About {vendor.title || vendor.name}</h3>
                   <p className="text-gray-600 leading-relaxed">
-                    {vendor.description || `Welcome to ${vendor.name}, one of the finest ${category}s in ${vendor.area || "Ibadan"}. 
+                    {vendor.description || `Welcome to ${vendor.title || vendor.name}, one of the finest ${category}s in ${vendor.location?.area || vendor.area || "Ibadan"}. 
                     With a rating of ${vendor.rating || "4.5"} stars, we pride ourselves on delivering exceptional service and 
                     unforgettable experiences.`}
                   </p>
                   
-                  <div className="grid md:grid-cols-2 gap-6 mt-6"> {/* Reduced mt-8 to mt-6 */}
+                  <div className="grid md:grid-cols-2 gap-6 mt-6">
                     <div className="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition-shadow duration-300">
                       <h4 className="font-bold text-gray-900 mb-4 hover:text-[#06EAFC] transition-colors duration-300">Key Features</h4>
                       <ul className="space-y-3">
@@ -1076,9 +1306,9 @@ const VendorDetail = () => {
                       <div className="space-y-4">
                         <div className="flex justify-between items-center hover:bg-gray-100 p-2 rounded-lg transition-colors duration-300">
                           <span className="hover:text-gray-800 transition-colors duration-300">Standard Rate</span>
-                          <span className="font-bold hover:text-[#06EAFC] transition-colors duration-300">{formatPrice(vendor.price_from)}</span>
+                          <span className="font-bold hover:text-[#06EAFC] transition-colors duration-300">{formatPrice(vendor.price || vendor.price_from)}</span>
                         </div>
-                        {vendor.price_to && vendor.price_to !== vendor.price_from && (
+                        {vendor.price_to && vendor.price_to !== (vendor.price || vendor.price_from) && (
                           <div className="flex justify-between items-center hover:bg-gray-100 p-2 rounded-lg transition-colors duration-300">
                             <span className="hover:text-gray-800 transition-colors duration-300">Premium Rate</span>
                             <span className="font-bold hover:text-[#06EAFC] transition-colors duration-300">{formatPrice(vendor.price_to)}</span>
@@ -1131,7 +1361,6 @@ const VendorDetail = () => {
                       </div>
                     </div>
                     
-                    {/* Sample Reviews */}
                     <div className="space-y-4">
                       {[1, 2, 3].map((_, index) => (
                         <div key={index} className="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition-shadow duration-300 group">
@@ -1181,15 +1410,15 @@ const VendorDetail = () => {
                         <div className="space-y-4">
                           <div>
                             <p className="text-sm text-gray-600 mb-1 hover:text-gray-800 transition-colors duration-300">Address</p>
-                            <p className="font-medium hover:text-[#06EAFC] transition-colors duration-300">{vendor.address || `${vendor.name}, ${vendor.area || "Ibadan"}`}</p>
+                            <p className="font-medium hover:text-[#06EAFC] transition-colors duration-300">{vendor.address || `${vendor.title || vendor.name}, ${vendor.location?.area || vendor.area || "Ibadan"}`}</p>
                           </div>
                           <div>
                             <p className="text-sm text-gray-600 mb-1 hover:text-gray-800 transition-colors duration-300">Area</p>
-                            <p className="font-medium hover:text-[#06EAFC] transition-colors duration-300">{vendor.area || "Ibadan"}</p>
+                            <p className="font-medium hover:text-[#06EAFC] transition-colors duration-300">{vendor.location?.area || vendor.area || "Ibadan"}</p>
                           </div>
                           <div>
                             <p className="text-sm text-gray-600 mb-1 hover:text-gray-800 transition-colors duration-300">Contact</p>
-                            <p className="font-medium hover:text-[#06EAFC] transition-colors duration-300">{vendor.contact || "Not provided"}</p>
+                            <p className="font-medium hover:text-[#06EAFC] transition-colors duration-300">{vendor.contact || vendorInfo?.phone || "Not provided"}</p>
                           </div>
                           <div className="pt-4">
                             <p className="text-sm text-gray-600 hover:text-gray-800 transition-colors duration-300">
@@ -1202,21 +1431,102 @@ const VendorDetail = () => {
                   </div>
                 </div>
               )}
+              
+              {activeTab === "vendor" && (
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-6 hover:text-[#06EAFC] transition-colors duration-300">Vendor Information</h3>
+                  
+                  {vendorInfo ? (
+                    <div className="space-y-6">
+                      <div className="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition-shadow duration-300">
+                        <div className="flex items-center gap-4 mb-6">
+                          <div className="w-16 h-16 bg-[#06EAFC] rounded-full flex items-center justify-center">
+                            <span className="text-white font-bold text-2xl">
+                              {vendorInfo.name?.charAt(0)?.toUpperCase() || "V"}
+                            </span>
+                          </div>
+                          <div>
+                            <h4 className="text-xl font-bold text-gray-900 hover:text-[#06EAFC] transition-colors duration-300">
+                              {vendorInfo.name || "Vendor"}
+                              {vendorInfo.verified && (
+                                <VscVerifiedFilled className="inline-block text-green-500 ml-2" />
+                              )}
+                            </h4>
+                            <p className="text-gray-600 hover:text-gray-800 transition-colors duration-300">Vendor ID: {vendorId}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          {vendorInfo.email && (
+                            <div className="flex items-center gap-3 p-3 bg-white rounded-lg hover:bg-gray-100 transition-colors duration-300">
+                              <FontAwesomeIcon icon={faEnvelope} className="text-[#06EAFC]" />
+                              <div>
+                                <p className="text-sm text-gray-600">Email</p>
+                                <p className="font-medium hover:text-[#06EAFC] transition-colors duration-300">{vendorInfo.email}</p>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {vendorInfo.phone && (
+                            <div className="flex items-center gap-3 p-3 bg-white rounded-lg hover:bg-gray-100 transition-colors duration-300">
+                              <FontAwesomeIcon icon={faPhone} className="text-[#06EAFC]" />
+                              <div>
+                                <p className="text-sm text-gray-600">Phone</p>
+                                <p className="font-medium hover:text-[#06EAFC] transition-colors duration-300">{vendorInfo.phone}</p>
+                              </div>
+                            </div>
+                          )}
+                          
+                          <div className="mt-6">
+                            <h5 className="font-bold text-gray-900 mb-3 hover:text-[#06EAFC] transition-colors duration-300">Other Listings</h5>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {vendorListings.slice(0, 2).map((listing, index) => (
+                                <div 
+                                  key={index}
+                                  onClick={() => handleOtherListingClick(listing._id || listing.id)}
+                                  className="p-3 bg-white rounded-lg border border-gray-200 hover:border-[#06EAFC] hover:shadow-md transition-all duration-300 cursor-pointer"
+                                >
+                                  <p className="font-medium text-sm line-clamp-1 hover:text-[#06EAFC] transition-colors duration-300">
+                                    {listing.title || listing.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {normalizeCategory(listing.category).charAt(0).toUpperCase() + normalizeCategory(listing.category).slice(1)}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                            {vendorListings.length > 2 && (
+                              <p className="text-sm text-gray-600 mt-3 hover:text-gray-800 transition-colors duration-300">
+                                + {vendorListings.length - 2} more listings from this vendor
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 rounded-xl p-6 text-center">
+                      <FontAwesomeIcon icon={faUsers} className="text-4xl text-gray-400 mb-4" />
+                      <p className="text-gray-600">Vendor information not available</p>
+                      <p className="text-sm text-gray-500 mt-2">The vendor details could not be loaded from this listing</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           
-          {/* CTA Section */}
-          <div className="bg-gradient-to-r from-[#06EAFC] to-[#06F49F] mt-10 py-12"> {/* Reduced mt-12 to mt-10 */}
+          <div className="bg-gradient-to-r from-[#06EAFC] to-[#06F49F] mt-10 py-12">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
               <h2 className="text-3xl font-bold text-white mb-4 hover:scale-105 transition-transform duration-300">Ready to Book?</h2>
               <p className="text-white/90 mb-8 max-w-2xl mx-auto hover:text-white transition-colors duration-300">
-                Reserve your spot at {vendor.name} today and enjoy an unforgettable experience
+                Reserve your spot at {vendor.title || vendor.name} today and enjoy an unforgettable experience
               </p>
               <button
                 onClick={handleBookingClick}
                 className="px-8 py-4 bg-white text-[#06EAFC] rounded-xl font-bold hover:bg-gray-100 hover:scale-105 hover:shadow-xl transition-all duration-300"
               >
-                Book Now - {formatPrice(vendor.price_from)}
+                Book Now - {formatPrice(vendor.price || vendor.price_from)}
               </button>
             </div>
           </div>

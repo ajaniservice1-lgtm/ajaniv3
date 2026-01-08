@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
   faUserGraduate, 
@@ -106,6 +106,7 @@ const StepProgress = ({ activeStep = 0 }) => {
 const BookingPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated } = useAuth();
   const [vendorData, setVendorData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -129,6 +130,7 @@ const BookingPage = () => {
     numberOfRooms: "1",
     numberOfNights: "1",
     guestName: "",
+    country: "",
   });
 
   useEffect(() => {
@@ -138,97 +140,106 @@ const BookingPage = () => {
   useEffect(() => {
     const fetchVendorData = async () => {
       try {
+        console.log("Fetching vendor data...");
+        console.log("Location state:", location.state);
+        console.log("ID from params:", id);
+        
+        // Check if we have data in route state first
+        if (location.state?.vendorData) {
+          console.log("Using vendor data from route state");
+          setVendorData(location.state.vendorData);
+          localStorage.setItem('currentVendorBooking', JSON.stringify(location.state.vendorData));
+          sessionStorage.setItem('currentVendorBooking', JSON.stringify(location.state.vendorData));
+          setLoading(false);
+          return;
+        }
+        
+        // Try to get from sessionStorage (more reliable for immediate access)
+        const sessionVendorData = sessionStorage.getItem('currentVendorBooking');
+        if (sessionVendorData) {
+          try {
+            console.log("Using vendor data from sessionStorage");
+            const parsedData = JSON.parse(sessionVendorData);
+            setVendorData(parsedData);
+            setLoading(false);
+            return;
+          } catch (error) {
+            console.error("Error parsing session vendor data:", error);
+          }
+        }
+        
+        // Try to get from localStorage
+        const storedVendorData = localStorage.getItem('currentVendorBooking');
+        if (storedVendorData) {
+          try {
+            console.log("Using vendor data from localStorage");
+            const parsedData = JSON.parse(storedVendorData);
+            setVendorData(parsedData);
+            setLoading(false);
+            return;
+          } catch (error) {
+            console.error("Error parsing localStorage vendor data:", error);
+          }
+        }
+        
+        // If we have an ID but no stored data, try to fetch from API
         if (id) {
+          console.log("Fetching vendor details for ID:", id);
           await fetchVendorDetails(id);
         } else {
-          const storedVendorData = localStorage.getItem('currentVendorBooking');
-          if (storedVendorData) {
-            try {
-              const parsedData = JSON.parse(storedVendorData);
-              setVendorData(parsedData);
-            } catch (error) {
-              console.error("Error parsing vendor data:", error);
-              setError("Failed to load vendor data");
-            }
-          } else {
-            setError("No vendor specified for booking");
-          }
+          console.error("No vendor data available");
+          setError("Please select a vendor to book from the vendor details page.");
         }
       } catch (error) {
         console.error("Error fetching vendor data:", error);
-        setError("Failed to load vendor details");
+        setError("Failed to load vendor details. Please try again.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchVendorData();
-  }, [id]);
-  
+  }, [id, location.state]);
+
+  useEffect(() => {
+    // Check for pending booking data
+    const pendingBooking = localStorage.getItem("pendingBooking");
+    if (pendingBooking && vendorData) {
+      try {
+        const parsed = JSON.parse(pendingBooking);
+        if (parsed.vendorId === (vendorData.id || id)) {
+          console.log("Restoring pending booking data");
+          setBookingData(parsed.bookingData);
+          setActiveStep(parsed.activeStep || 0);
+          localStorage.removeItem("pendingBooking");
+        }
+      } catch (error) {
+        console.error("Error parsing pending booking:", error);
+      }
+    }
+  }, [vendorData, id]);
+
   const fetchVendorDetails = async (vendorId) => {
     try {
-      const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
-      const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
+      // This is a fallback method - you should implement your actual API call
+      console.log("Fetching vendor details for:", vendorId);
       
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/A1:Z1000?key=${API_KEY}`;
-      const res = await fetch(url);
+      // For now, we'll use a mock response since we're relying on localStorage
+      const mockVendorData = {
+        id: vendorId,
+        name: "Sample Vendor",
+        category: "restaurant",
+        priceFrom: "₦5,000",
+        area: "Ibadan",
+        description: "A sample vendor description",
+        rating: "4.5",
+        reviews: "50",
+        image: FALLBACK_IMAGES.default
+      };
       
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setVendorData(mockVendorData);
+      localStorage.setItem('currentVendorBooking', JSON.stringify(mockVendorData));
       
-      const json = await res.json();
-      
-      if (json.values && Array.isArray(json.values) && json.values.length > 1) {
-        const headers = json.values[0];
-        const rows = json.values.slice(1);
-        
-        const vendors = rows
-          .filter((row) => Array.isArray(row) && row.length > 0)
-          .map((row) => {
-            const obj = {};
-            headers.forEach((h, i) => {
-              obj[h?.toString().trim() || `col_${i}`] = (row[i] || "")
-                .toString()
-                .trim();
-            });
-            return obj;
-          });
-        
-        const vendor = vendors.find((item) => item.id === vendorId);
-        
-        if (vendor) {
-          const vendorCategory = normalizeCategory(vendor.category);
-          
-          const vendorImages = (vendor["image url"] || "")
-            .split(",")
-            .map(url => url.trim())
-            .filter(url => url && url.startsWith("http"));
-          
-          const vendorData = {
-            id: vendor.id,
-            name: vendor.name || vendor.title || "Unknown Vendor",
-            category: vendorCategory,
-            originalCategory: vendor.category,
-            priceFrom: vendor.price_from,
-            priceTo: vendor.price_to,
-            area: vendor.area || vendor.location || "Location not specified",
-            address: vendor.address || "",
-            contact: vendor.contact,
-            email: vendor.email,
-            description: vendor.about || vendor.description || vendor.details || "No description available",
-            rating: vendor.rating || "4.5",
-            reviews: vendor.reviews || vendor.review_count || "0",
-            capacity: vendor.capacity,
-            amenities: vendor.amenities,
-            images: vendorImages.length > 0 ? vendorImages : [FALLBACK_IMAGES[vendorCategory] || FALLBACK_IMAGES.default],
-            image: vendorImages[0] || (FALLBACK_IMAGES[vendorCategory] || FALLBACK_IMAGES.default)
-          };
-          
-          setVendorData(vendorData);
-          localStorage.setItem('currentVendorBooking', JSON.stringify(vendorData));
-        } else {
-          setError("Vendor not found");
-        }
-      }
     } catch (error) {
       console.error("Error fetching vendor details:", error);
       setError("Failed to fetch vendor details");
@@ -299,13 +310,13 @@ const BookingPage = () => {
       alert("Please login to complete your booking");
       
       localStorage.setItem("pendingBooking", JSON.stringify({
-        vendorId: id,
+        vendorId: vendorData?.id || id,
         bookingData,
         activeStep,
         vendorData
       }));
       
-      localStorage.setItem("redirectAfterLogin", `/booking/${id}`);
+      localStorage.setItem("redirectAfterLogin", `/booking`);
       navigate("/login");
       return;
     }
@@ -313,30 +324,11 @@ const BookingPage = () => {
     const isSuccess = Math.random() > 0.3;
     
     if (isSuccess) {
-      navigate(`/booking-confirmation/${id}`);
+      navigate(`/booking-confirmation/${vendorData?.id || id}`);
     } else {
-      navigate(`/booking-failed/${id}`);
+      navigate(`/booking-failed/${vendorData?.id || id}`);
     }
   };
-
-  useEffect(() => {
-    const pendingBooking = localStorage.getItem("pendingBooking");
-    if (pendingBooking) {
-      try {
-        const parsed = JSON.parse(pendingBooking);
-        if (parsed.vendorId === id) {
-          setBookingData(parsed.bookingData);
-          setActiveStep(parsed.activeStep || 0);
-          if (parsed.vendorData) {
-            setVendorData(parsed.vendorData);
-          }
-          localStorage.removeItem("pendingBooking");
-        }
-      } catch (error) {
-        console.error("Error parsing pending booking:", error);
-      }
-    }
-  }, [id]);
 
   const renderStepContent = () => {
     switch (activeStep) {
@@ -605,7 +597,7 @@ const BookingPage = () => {
                       className="w-8 h-8 rounded-lg border border-gray-400 bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 hover:border-[#06EAFC] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       disabled={parseInt(bookingData.numberOfGuests || 1) <= 1}
                     >
-                      <span className="text-lg font-bold">-</span>
+                      <span className="text-lg font-bold">   -</span>
                     </button>
                     <div className="text-center">
                       <span className="text-lg font-bold text-gray-900">{bookingData.numberOfGuests || "2"}</span>
@@ -1186,7 +1178,7 @@ const BookingPage = () => {
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Booking</h1>
           <p className="text-gray-600 mb-4">{error}</p>
-          <p className="text-gray-600 mb-6">Please try selecting a vendor again from the home page.</p>
+          <p className="text-gray-600 mb-6">Please try selecting a vendor again from the vendor details page.</p>
           <button
             onClick={() => navigate("/")}
             className="px-6 py-3 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors"
@@ -1205,7 +1197,7 @@ const BookingPage = () => {
         <Header />
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Vendor Not Found</h1>
-          <p className="text-gray-600 mb-6">Unable to load vendor details. Please try again.</p>
+          <p className="text-gray-600 mb-6">Unable to load vendor details. Please try selecting a vendor from the vendor details page.</p>
           <button
             onClick={() => navigate("/")}
             className="px-6 py-3 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors"
@@ -1233,7 +1225,7 @@ const BookingPage = () => {
               <div className="w-full sm:w-28 sm:flex-shrink-0">
                 <div className="w-full h-40 sm:h-28 sm:w-28 rounded-lg overflow-hidden">
                   <img
-                    src={vendorData.image}
+                    src={vendorData.image || vendorData.images?.[0] || FALLBACK_IMAGES.default}
                     alt={vendorData.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -1263,7 +1255,7 @@ const BookingPage = () => {
                   </div>
                   <div className="text-left sm:text-right">
                     <div className="text-lg sm:text-2xl font-bold text-gray-900">
-                      {vendorData.priceFrom ? `₦${parseInt(vendorData.priceFrom.replace(/[^\d]/g, "") || 0).toLocaleString()}` : 'Price on request'}
+                      {vendorData.priceFrom ? `₦${parseInt(vendorData.priceFrom.toString().replace(/[^\d]/g, "") || 0).toLocaleString()}` : 'Price on request'}
                     </div>
                     <div className="text-gray-600 text-xs sm:text-sm">
                       {normalizedCategory === 'hotel' ? 'per night' : 
@@ -1304,9 +1296,9 @@ const BookingPage = () => {
             </button>
           ) : (
             <div className="w-full flex flex-col sm:flex-row gap-3 sm:gap-4">
-              {id && (
+              {vendorData?.id && (
                 <button
-                  onClick={() => navigate(`/vendor-detail/${id}`)}
+                  onClick={() => navigate(`/vendor-detail/${vendorData.id}`)}
                   className="px-4 sm:px-6 py-2 sm:py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex-1 text-sm sm:text-base"
                 >
                   View Vendor Details

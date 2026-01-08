@@ -68,6 +68,16 @@ const SavedListingsPage = lazy(() => import("./pages/SavedListingsPage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 
 /* =======================
+   ADMIN PAGES - ADDED
+======================= */
+const AdminLayout = lazy(() => import("./components/AdminLayout"));
+const Overview = lazy(() => import("./pages/admin/Overview"));
+// const AdminCustomers = lazy(() => import("./pages/admin/"));
+// const AdminVendors = lazy(() => import("./pages/admin/AdminVendors"));
+// const AdminListings = lazy(() => import("./pages/admin/AdminListings"));
+// const AdminReviews = lazy(() => import("./pages/admin/AdminReviews"));
+
+/* =======================
    LOADING UI
 ======================= */
 const LoadingDots = () => (
@@ -94,43 +104,28 @@ const checkAuthStatus = () => {
   const userProfile = localStorage.getItem("userProfile");
   const userEmail = localStorage.getItem("user_email");
   
-  console.log("checkAuthStatus - Checking authentication:", {
-    token: !!token,
-    userProfile: !!userProfile,
-    userEmail: !!userEmail
-  });
-  
   if (token && userEmail) {
-    console.log("checkAuthStatus - Auth passed: token + email");
     return true;
   }
   
   if (userProfile) {
     try {
       const parsed = JSON.parse(userProfile);
-      const hasEmail = !!parsed.email;
-      console.log("checkAuthStatus - User profile check:", { hasEmail, email: parsed.email });
-      return hasEmail;
+      return !!parsed.email;
     } catch (error) {
-      console.error("checkAuthStatus - Error parsing userProfile:", error);
       return false;
     }
   }
   
   const hasAnyAuthData = token || userEmail || userProfile;
-  console.log("checkAuthStatus - Fallback check:", { hasAnyAuthData });
-  
   return hasAnyAuthData;
 };
 
 const isUserVerified = () => {
   try {
     const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
-    const verified = profile?.isVerified || false;
-    console.log("isUserVerified - Check:", { verified, profile });
-    return verified;
+    return profile?.isVerified || false;
   } catch (error) {
-    console.error("isUserVerified - Error:", error);
     return false;
   }
 };
@@ -142,25 +137,15 @@ const ProtectedRoute = ({ children, requireVerification = true }) => {
   const isAuthenticated = checkAuthStatus();
   const isVerified = isUserVerified();
 
-  console.log("ProtectedRoute - Auth check:", {
-    isAuthenticated,
-    isVerified,
-    requireVerification,
-    path: window.location.pathname
-  });
-
   if (!isAuthenticated) {
-    console.log("ProtectedRoute - Not authenticated, redirecting to login");
     localStorage.setItem("redirectAfterLogin", window.location.pathname + window.location.search);
     return <Navigate to="/login" replace />;
   }
 
   if (requireVerification && !isVerified) {
-    console.log("ProtectedRoute - Not verified, redirecting to OTP");
     return <Navigate to="/verify-otp" replace />;
   }
 
-  console.log("ProtectedRoute - Access granted");
   return children;
 };
 
@@ -168,35 +153,26 @@ const BuyerRoute = ({ children }) => {
   const isAuthenticated = checkAuthStatus();
   const isVerified = isUserVerified();
 
-  console.log("BuyerRoute - Check:", { isAuthenticated, isVerified });
-
   if (!isAuthenticated) {
-    console.log("BuyerRoute - Not authenticated, redirecting to login");
     localStorage.setItem("redirectAfterLogin", window.location.pathname + window.location.search);
     return <Navigate to="/login" replace />;
   }
 
   if (!isVerified) {
-    console.log("BuyerRoute - Not verified, redirecting to OTP");
     return <Navigate to="/verify-otp" replace />;
   }
 
   try {
     const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
-    console.log("BuyerRoute - Profile role:", profile.role);
-    
     const isBuyer = !profile.role || profile.role === "user" || profile.role === "buyer";
     
     if (!isBuyer) {
-      console.log("BuyerRoute - Not a buyer, redirecting to vendor profile");
       return <Navigate to="/vendor/profile" replace />;
     }
   } catch (error) {
-    console.error("BuyerRoute - Error checking role:", error);
     return <Navigate to="/" replace />;
   }
 
-  console.log("BuyerRoute - Access granted");
   return children;
 };
 
@@ -204,33 +180,25 @@ const VendorRoute = ({ children }) => {
   const isAuthenticated = checkAuthStatus();
   const isVerified = isUserVerified();
 
-  console.log("VendorRoute - Check:", { isAuthenticated, isVerified });
-
   if (!isAuthenticated) {
-    console.log("VendorRoute - Not authenticated, redirecting to login");
     localStorage.setItem("redirectAfterLogin", window.location.pathname + window.location.search);
     return <Navigate to="/login" replace />;
   }
 
   if (!isVerified) {
-    console.log("VendorRoute - Not verified, redirecting to OTP");
     return <Navigate to="/verify-otp" replace />;
   }
 
   try {
     const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
-    console.log("VendorRoute - Profile role:", profile.role);
     
     if (profile.role !== "vendor") {
-      console.log("VendorRoute - Not a vendor, redirecting to buyer profile");
       return <Navigate to="/buyer/profile" replace />;
     }
   } catch (error) {
-    console.error("VendorRoute - Error checking role:", error);
     return <Navigate to="/" replace />;
   }
 
-  console.log("VendorRoute - Access granted");
   return children;
 };
 
@@ -238,10 +206,7 @@ const PublicRoute = ({ children }) => {
   const isAuthenticated = checkAuthStatus();
   const isVerified = isUserVerified();
 
-  console.log("PublicRoute - Check:", { isAuthenticated, isVerified });
-
   if (isAuthenticated && isVerified) {
-    console.log("PublicRoute - Already authenticated and verified, redirecting home");
     return <Navigate to="/" replace />;
   }
 
@@ -253,15 +218,11 @@ const OTPRoute = ({ children }) => {
   const isVerified = isUserVerified();
   const hasPendingEmail = localStorage.getItem("pendingVerificationEmail");
 
-  console.log("OTPRoute - Check:", { isAuthenticated, isVerified, hasPendingEmail });
-
   if (isAuthenticated && isVerified) {
-    console.log("OTPRoute - Already verified, redirecting home");
     return <Navigate to="/" replace />;
   }
 
   if (!hasPendingEmail && !isAuthenticated) {
-    console.log("OTPRoute - No pending email and not authenticated, redirecting to register");
     return <Navigate to="/register" />;
   }
 
@@ -277,13 +238,9 @@ function App() {
       const token = localStorage.getItem("auth_token");
       const userProfile = localStorage.getItem("userProfile");
 
-      console.log("App - Initializing auth:", { token: !!token, userProfile: !!userProfile });
-
       if (token && userProfile) {
         try {
           const profile = JSON.parse(userProfile);
-          console.log("App - Dispatching auth events for:", profile.email);
-          
           setTimeout(() => {
             window.dispatchEvent(new Event("storage"));
             window.dispatchEvent(new Event("authChange"));
@@ -294,10 +251,8 @@ function App() {
             );
           }, 100);
         } catch (error) {
-          console.error("App - Error parsing user profile:", error);
+          // Silent error handling
         }
-      } else {
-        console.log("App - No auth data found on initialization");
       }
     };
 
@@ -312,7 +267,6 @@ function App() {
           <BrowserRouter>
             <TrackingWrapper>
               <Suspense fallback={<LoadingDots />}>
-                {/* ComingSoonModal shows globally on ALL pages */}
                 <ComingSoonModal />
                 
                 <Routes>
@@ -331,8 +285,9 @@ function App() {
                   <Route path="/category/:category" element={<MainLayout><CategoryResults /></MainLayout>} />
                   <Route path="/search-results" element={<MainLayout><SearchResults /></MainLayout>} />
 
-                  {/* BOOKING ROUTES */}
-                  <Route path="/booking/:id" element={<MainLayout><BookingPage /></MainLayout>} />
+                  {/* BOOKING ROUTES - UPDATED */}
+                  <Route path="/booking/:id?" element={<MainLayout><BookingPage /></MainLayout>} />
+                  <Route path="/booking" element={<MainLayout><BookingPage /></MainLayout>} />
                   <Route path="/booking-confirmation/:id" element={<MainLayout><BookingConfirmation /></MainLayout>} />
                   <Route path="/booking-failed/:id" element={<MainLayout><BookingFailed /></MainLayout>} />
 
@@ -461,6 +416,21 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
+
+                  {/* ADMIN ROUTES - REMOVED AUTH CHECK */}
+                  <Route
+                    path="/admincpanel"
+                    element={
+                      // Removed AdminRoute wrapper - now public
+                      <AdminLayout />
+                    }
+                  >
+                    <Route index element={<Overview />} />
+                    {/* <Route path="customers" element={<AdminCustomers />} /> */}
+                    {/* <Route path="vendors" element={<AdminVendors />} /> */}
+                    {/* <Route path="listings" element={<AdminListings />} /> */}
+                    {/* <Route path="reviews" element={<AdminReviews />} /> */}
+                  </Route>
 
                   {/* 404 ROUTE */}
                   <Route

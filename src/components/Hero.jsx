@@ -1,4 +1,3 @@
-// src/components/DiscoverIbadan.jsx
 import React, {
   useEffect,
   useRef,
@@ -31,13 +30,13 @@ import {
   faMinus,
 } from "@fortawesome/free-solid-svg-icons";
 import { createPortal } from "react-dom";
+import axiosInstance from "../lib/axios";
 
 /* ---------------- IMAGES ---------------- */
 import hotelImg from "../assets/Logos/hotel.jpg";
 import tourismImg from "../assets/Logos/tourism.jpg";
 import eventsImg from "../assets/Logos/events.jpg";
-import restuarantImg from "../assets/Logos/restuarant.jpg";
-// import vendorImg from "../assets/Logos/vendor.jpg";
+import restaurantImg from "../assets/Logos/restuarant.jpg";
 
 /* ---------------- FALLBACKS ---------------- */
 const FALLBACK_IMAGES = {
@@ -51,78 +50,40 @@ const FALLBACK_IMAGES = {
     "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=400",
 };
 
-/* ---------------- SOPHISTICATED ICON MAPPING ---------------- */
-const getSophisticatedCategoryIcon = (category) => {
-  const cat = category.toLowerCase();
-  
-  if (cat.includes("hotel")) return faHotel;
-  if (cat.includes("restaurant") || cat.includes("food")) return faUtensils;
-  if (cat.includes("shortlet") || cat.includes("apartment")) return faHome;
-  if (cat.includes("vendor")) return faStore;
-  if (cat.includes("tourism")) return faMapMarkerAlt;
-  if (cat.includes("trending")) return faFire;
-  if (cat.includes("popular") || cat.includes("featured")) return faStar;
-  
-  return faBriefcase;
-};
-
-/* ---------------- HELPER FUNCTIONS ---------------- */
-
-// Google Sheet Hook
-const useGoogleSheet = (sheetId, apiKey) => {
-  const [data, setData] = useState([]);
+/* ---------------- CUSTOM HOOK FOR BACKEND LISTINGS ---------------- */
+const useBackendListings = () => {
+  const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!sheetId || !apiKey) {
-      setError("⚠️ Missing SHEET_ID or API_KEY");
-      setLoading(false);
-      return;
-    }
-
-    const fetchData = async () => {
+    const fetchListings = async () => {
       try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A1:Z1000?key=${apiKey}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        let result = [];
-        if (
-          json.values &&
-          Array.isArray(json.values) &&
-          json.values.length > 1
-        ) {
-          const headers = json.values[0];
-          const rows = json.values.slice(1);
-          result = rows
-            .filter((row) => Array.isArray(row) && row.length > 0)
-            .map((row, index) => {
-              const obj = {};
-              headers.forEach((h, i) => {
-                obj[h?.toString().trim() || `col_${i}`] = (row[i] || "")
-                  .toString()
-                  .trim();
-              });
-              obj.id = obj.id || `item-${index}`;
-              return obj;
-            });
+        setLoading(true);
+        const response = await axiosInstance.get('/listings');
+        
+        if (response.data?.status === 'success' && response.data.data?.listings) {
+          setListings(response.data.data.listings);
+        } else {
+          setListings([]);
+          setError('No data received from backend');
         }
-        setData(result);
       } catch (err) {
-        console.error("Google Sheets fetch error:", err);
-        setError("⚠️ Failed to load directory. Try again later.");
-        setData([]);
+        console.error('Backend API Error:', err.message);
+        setError(err.message);
+        setListings([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, [sheetId, apiKey]);
+    fetchListings();
+  }, []);
 
-  return { data: Array.isArray(data) ? data : [], loading, error };
+  return { data: listings, loading, error };
 };
+
+/* ---------------- HELPER FUNCTIONS ---------------- */
 
 // Get category image
 const getCategoryImage = (category, fallback) => {
@@ -135,7 +96,7 @@ const getCategoryImage = (category, fallback) => {
       case "Shortlet":
         return eventsImg;
       case "Restaurant":
-        return restuarantImg;
+        return restaurantImg;
       case "Vendor":
         return FALLBACK_IMAGES.Vendor;
       default:
@@ -145,17 +106,6 @@ const getCategoryImage = (category, fallback) => {
     console.log(`Error loading ${category} image:`, error);
     return fallback;
   }
-};
-
-// Get category icon (original - keep for hero section)
-const getCategoryIcon = (category) => {
-  const cat = category.toLowerCase();
-  if (cat.includes("hotel")) return faBuilding;
-  if (cat.includes("restaurant") || cat.includes("food")) return faUtensils;
-  if (cat.includes("shortlet") || cat.includes("apartment")) return faHome;
-  if (cat.includes("tourism") || cat.includes("tourist")) return faMapMarkerAlt;
-  if (cat.includes("vendor")) return faStore;
-  return faConciergeBell;
 };
 
 // Format date
@@ -169,16 +119,6 @@ const formatDateLabel = (date) =>
 // Get category display name
 const getCategoryDisplayName = (category) => {
   if (!category || category === "All Categories") return "All Categories";
-
-  const parts = category.split(".");
-  if (parts.length > 1) {
-    const afterDot = parts.slice(1).join(".").trim();
-    return afterDot
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  }
-
   return category
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -187,17 +127,7 @@ const getCategoryDisplayName = (category) => {
 
 // Get location display name
 const getLocationDisplayName = (location) => {
-  if (!location) return "All Locations";
-
-  const parts = location.split(".");
-  if (parts.length > 1) {
-    const afterDot = parts.slice(1).join(".").trim();
-    return afterDot
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  }
-
+  if (!location || location === "All Locations") return "All Locations";
   return location
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -219,7 +149,6 @@ const getCategoryBreakdown = (listings) => {
     .map(([category, count]) => ({
       category,
       count,
-      icon: getCategoryIcon(category),
     }))
     .sort((a, b) => b.count - a.count);
 };
@@ -229,8 +158,8 @@ const getLocationBreakdown = (listings) => {
   const locationCounts = {};
 
   listings.forEach((item) => {
-    if (item.area) {
-      const location = getLocationDisplayName(item.area);
+    if (item.location?.area || item.area) {
+      const location = getLocationDisplayName(item.location?.area || item.area);
       locationCounts[location] = (locationCounts[location] || 0) + 1;
     }
   });
@@ -240,7 +169,7 @@ const getLocationBreakdown = (listings) => {
     .sort((a, b) => b.count - a.count);
 };
 
-// Generate search suggestions
+// Generate search suggestions - UPDATED FOR EXPLICIT MATCHES
 const generateSearchSuggestions = (query, listings) => {
   if (!query.trim() || !listings.length) return [];
 
@@ -260,13 +189,88 @@ const generateSearchSuggestions = (query, listings) => {
   const uniqueLocations = [
     ...new Set(
       listings
-        .map((item) => item.area)
+        .map((item) => item.location?.area || item.area)
         .filter((loc) => loc && loc.trim() !== "")
         .map((loc) => loc.trim())
     ),
   ];
 
-  // Category suggestions
+  // 1. First check for EXACT matches (highest priority)
+  // Exact category matches
+  const exactCategoryMatches = uniqueCategories
+    .filter((category) => {
+      const displayName = getCategoryDisplayName(category).toLowerCase();
+      return displayName === queryLower;
+    })
+    .map((category) => {
+      const categoryListings = listings.filter(
+        (item) =>
+          item.category &&
+          item.category.toLowerCase() === category.toLowerCase()
+      );
+
+      const locationBreakdown = getLocationBreakdown(categoryListings);
+      const totalPlaces = categoryListings.length;
+
+      return {
+        type: "category",
+        title: getCategoryDisplayName(category),
+        count: totalPlaces,
+        description: `${totalPlaces} ${
+          totalPlaces === 1 ? "place" : "places"
+        } found`,
+        breakdownText: `${totalPlaces} ${getCategoryDisplayName(category)} options available`,
+        breakdown: locationBreakdown.slice(0, 3),
+        action: () => {
+          // Navigate directly to category page for exact matches
+          const categorySlug = category.toLowerCase().replace(/\s+/g, '-');
+          return `/category/${categorySlug}`;
+        },
+      };
+    });
+
+  // Exact location matches
+  const exactLocationMatches = uniqueLocations
+    .filter((location) => {
+      const displayName = getLocationDisplayName(location).toLowerCase();
+      return displayName === queryLower;
+    })
+    .map((location) => {
+      const locationListings = listings.filter(
+        (item) => {
+          const itemLocation = item.location?.area || item.area;
+          return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
+        }
+      );
+
+      const categoryBreakdown = getCategoryBreakdown(locationListings);
+      const totalPlaces = locationListings.length;
+
+      return {
+        type: "location",
+        title: getLocationDisplayName(location),
+        count: totalPlaces,
+        description: `${totalPlaces} ${
+          totalPlaces === 1 ? "place" : "places"
+        } found`,
+        breakdownText: `Places in ${getLocationDisplayName(location)}`,
+        breakdown: categoryBreakdown.slice(0, 4),
+        action: () => {
+          const params = new URLSearchParams();
+          params.append("location", location);
+          return `/search-results?${params.toString()}`;
+        },
+      };
+    });
+
+  // 2. If there are exact matches, return ONLY those
+  if (exactCategoryMatches.length > 0 || exactLocationMatches.length > 0) {
+    return [...exactCategoryMatches, ...exactLocationMatches]
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 4);
+  }
+
+  // 3. If no exact matches, show general suggestions
   const categoryMatches = uniqueCategories
     .filter((category) => {
       const displayName = getCategoryDisplayName(category).toLowerCase();
@@ -282,8 +286,6 @@ const generateSearchSuggestions = (query, listings) => {
       const locationBreakdown = getLocationBreakdown(categoryListings);
       const totalPlaces = categoryListings.length;
 
-      const topLocations = locationBreakdown.slice(0, 3);
-
       return {
         type: "category",
         title: getCategoryDisplayName(category),
@@ -291,23 +293,16 @@ const generateSearchSuggestions = (query, listings) => {
         description: `${totalPlaces} ${
           totalPlaces === 1 ? "place" : "places"
         } found`,
-        breakdownText:
-          topLocations.length > 0
-            ? `Top locations: ${topLocations
-                .map((loc) => `${loc.location} (${loc.count})`)
-                .join(", ")}`
-            : `Available in multiple areas`,
-        breakdown: topLocations,
+        breakdownText: `${totalPlaces} ${getCategoryDisplayName(category)} options available`,
+        breakdown: locationBreakdown.slice(0, 3),
         action: () => {
           const params = new URLSearchParams();
           params.append("category", category);
-          return `/search-results?${params.toString()}`;
+          return `/category/${category.toLowerCase().replace(/\s+/g, '-')}`;
         },
       };
-    })
-    .sort((a, b) => b.count - a.count);
+    });
 
-  // Location suggestions
   const locationMatches = uniqueLocations
     .filter((location) => {
       const displayName = getLocationDisplayName(location).toLowerCase();
@@ -315,14 +310,14 @@ const generateSearchSuggestions = (query, listings) => {
     })
     .map((location) => {
       const locationListings = listings.filter(
-        (item) =>
-          item.area && item.area.toLowerCase() === location.toLowerCase()
+        (item) => {
+          const itemLocation = item.location?.area || item.area;
+          return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
+        }
       );
 
       const categoryBreakdown = getCategoryBreakdown(locationListings);
       const totalPlaces = locationListings.length;
-
-      const topCategories = categoryBreakdown.slice(0, 4);
 
       return {
         type: "location",
@@ -331,27 +326,20 @@ const generateSearchSuggestions = (query, listings) => {
         description: `${totalPlaces} ${
           totalPlaces === 1 ? "place" : "places"
         } found`,
-        breakdownText: `Places include: ${topCategories
-          .map((cat) => `${cat.category} (${cat.count})`)
-          .join(", ")}${
-          categoryBreakdown.length > 4
-            ? `, +${categoryBreakdown.length - 4} more`
-            : ""
-        }`,
-        breakdown: topCategories,
+        breakdownText: `Places in ${getLocationDisplayName(location)}`,
+        breakdown: categoryBreakdown.slice(0, 4),
         action: () => {
           const params = new URLSearchParams();
           params.append("location", location);
           return `/search-results?${params.toString()}`;
         },
       };
-    })
-    .sort((a, b) => b.count - a.count);
+    });
 
   // Combine and sort by relevance
   return [...categoryMatches, ...locationMatches]
     .sort((a, b) => {
-      // Exact matches first
+      // Exact word matches first
       const aExact = a.title.toLowerCase() === queryLower;
       const bExact = b.title.toLowerCase() === queryLower;
       if (aExact && !bExact) return -1;
@@ -369,9 +357,7 @@ const generateSearchSuggestions = (query, listings) => {
     .slice(0, 8);
 };
 
-/* ---------------- AGODA-STYLE COMPONENTS ---------------- */
-
-// Simple Calendar Component
+/* ---------------- CALENDAR COMPONENT ---------------- */
 const SimpleCalendar = ({ onSelect, onClose, isCheckIn = true }) => {
   const modalRef = useRef(null);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -500,7 +486,7 @@ const SimpleCalendar = ({ onSelect, onClose, isCheckIn = true }) => {
   );
 };
 
-// Guest Selector Component
+/* ---------------- GUEST SELECTOR COMPONENT ---------------- */
 const GuestSelector = ({ guests, onChange, onClose }) => {
   const modalRef = useRef(null);
 
@@ -634,9 +620,9 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
   );
 };
 
-/* ---------------- SEARCH MODAL COMPONENTS (ORIGINAL DESIGN) ---------------- */
+/* ---------------- SEARCH MODAL COMPONENTS ---------------- */
 
-// Mobile Search Modal Component - APPLE STANDARD DESIGN
+// Mobile Search Modal Component
 const MobileSearchModal = ({
   searchQuery,
   listings,
@@ -781,91 +767,85 @@ const MobileSearchModal = ({
 
                   {/* Clean Suggestions List */}
                   <div className="space-y-3">
-                    {suggestions.map((suggestion, index) => {
-                      const sophisticatedIcon = suggestion.type === "category" 
-                        ? getSophisticatedCategoryIcon(suggestion.title)
-                        : faMapMarkerAlt;
-                      
-                      return (
-                        <button
-                          key={index}
-                          onClick={() =>
-                            handleSuggestionClick(suggestion.action())
-                          }
-                          className="w-full text-left p-4 bg-white rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors duration-200 group"
-                        >
-                          <div className="flex items-start gap-4">
-                            {/* Minimal Icon Container */}
-                            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${suggestion.type === "category" 
-                              ? "bg-gray-100" 
-                              : "bg-gray-100"
-                            }`}>
-                              <FontAwesomeIcon
-                                icon={sophisticatedIcon}
-                                className={`w-5 h-5 ${suggestion.type === "category" 
-                                  ? "text-gray-700" 
-                                  : "text-gray-700"
-                                }`}
-                              />
-                            </div>
-                            
-                            <div className="flex-1">
-                              <div className="flex items-start justify-between mb-2">
-                                <div>
-                                  <h4 className="font-medium text-gray-900 text-base">
-                                    {suggestion.title}
-                                  </h4>
-                                  <p className="text-sm text-gray-600 mt-1">
-                                    {suggestion.description}
-                                  </p>
-                                </div>
-                                <span
-                                  className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${suggestion.type === "category" 
-                                    ? "bg-blue-50 text-blue-700" 
-                                    : "bg-purple-50 text-purple-700"
-                                  }`}
-                                >
-                                  {suggestion.count} {suggestion.count === 1 ? "place" : "places"}
-                                </span>
-                              </div>
-
-                              {/* Clean Breakdown */}
-                              <div className="mt-3 pt-3 border-t border-gray-100">
-                                <p className="text-xs text-gray-500 mb-2">
-                                  {suggestion.breakdownText}
-                                </p>
-
-                                {/* Clean Breakdown Tags */}
-                                <div className="flex flex-wrap gap-1.5">
-                                  {suggestion.breakdown.map((item, idx) => (
-                                    <div
-                                      key={idx}
-                                      className={`text-xs px-2 py-1 rounded ${suggestion.type === "category" 
-                                        ? "bg-gray-100 text-gray-700" 
-                                        : "bg-gray-100 text-gray-700"
-                                      }`}
-                                    >
-                                      {item.category || item.location} ({item.count})
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Clean View All CTA */}
-                          <div className="flex items-center justify-end mt-4 pt-3 border-t border-gray-100">
-                            <span className="text-sm text-blue-600 font-medium">
-                              View all
-                            </span>
+                    {suggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() =>
+                          handleSuggestionClick(suggestion.action())
+                        }
+                        className="w-full text-left p-4 bg-white rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors duration-200 group"
+                      >
+                        <div className="flex items-start gap-4">
+                          {/* Minimal Icon Container */}
+                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${suggestion.type === "category" 
+                            ? "bg-gray-100" 
+                            : "bg-gray-100"
+                          }`}>
                             <FontAwesomeIcon
-                              icon={faChevronRight}
-                              className="ml-1 text-blue-600 w-3 h-3"
+                              icon={suggestion.type === "category" ? faBuilding : faMapMarkerAlt}
+                              className={`w-5 h-5 ${suggestion.type === "category" 
+                                ? "text-gray-700" 
+                                : "text-gray-700"
+                              }`}
                             />
                           </div>
-                        </button>
-                      );
-                    })}
+                          
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <h4 className="font-medium text-gray-900 text-base">
+                                  {suggestion.title}
+                                </h4>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  {suggestion.description}
+                                </p>
+                              </div>
+                              <span
+                                className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${suggestion.type === "category" 
+                                  ? "bg-blue-50 text-blue-700" 
+                                  : "bg-purple-50 text-purple-700"
+                                }`}
+                              >
+                                {suggestion.count} {suggestion.count === 1 ? "place" : "places"}
+                              </span>
+                            </div>
+
+                            {/* Clean Breakdown */}
+                            <div className="mt-3 pt-3 border-t border-gray-100">
+                              <p className="text-xs text-gray-500 mb-2">
+                                {suggestion.breakdownText}
+                              </p>
+
+                              {/* Clean Breakdown Tags */}
+                              <div className="flex flex-wrap gap-1.5">
+                                {suggestion.breakdown.map((item, idx) => (
+                                  <div
+                                    key={idx}
+                                    className={`text-xs px-2 py-1 rounded ${suggestion.type === "category" 
+                                      ? "bg-gray-100 text-gray-700" 
+                                      : "bg-gray-100 text-gray-700"
+                                    }`}
+                                  >
+                                    {item.category || item.location} ({item.count})
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Clean View All CTA */}
+                        <div className="flex items-center justify-end mt-4 pt-3 border-t border-gray-100">
+                          <span className="text-sm text-blue-600 font-medium">
+                            View all
+                          </span>
+                          <FontAwesomeIcon
+                            icon={faChevronRight}
+                            className="ml-1 text-blue-600 w-3 h-3"
+                          />
+                        </div>
+                      </button>
+                    ))}
                   </div>
 
                   {/* Clean Show All Results Button */}
@@ -966,7 +946,7 @@ const MobileSearchModal = ({
   );
 };
 
-// Desktop Search Suggestions Component - APPLE STANDARD DESIGN
+// Desktop Search Suggestions Component
 const DesktopSearchSuggestions = ({
   searchQuery,
   listings,
@@ -1055,83 +1035,77 @@ const DesktopSearchSuggestions = ({
           style={{ maxHeight: "calc(70vh - 56px)" }}
         >
           <div className="p-2">
-            {suggestions.map((suggestion, index) => {
-              const sophisticatedIcon = suggestion.type === "category" 
-                ? getSophisticatedCategoryIcon(suggestion.title)
-                : faMapMarkerAlt;
-              
-              return (
-                <button
-                  key={index}
-                  onClick={() => {
-                    onSuggestionClick(suggestion.action());
-                    onClose();
-                  }}
-                  className="w-full text-left p-3 bg-white hover:bg-gray-50 rounded-lg transition-colors duration-150 mb-1 last:mb-0 group"
-                >
-                  <div className="flex items-start gap-3">
-                    {/* Minimal Icon */}
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100 flex-shrink-0">
-                      <FontAwesomeIcon
-                        icon={sophisticatedIcon}
-                        className="w-4 h-4 text-gray-700"
-                      />
+            {suggestions.map((suggestion, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  onSuggestionClick(suggestion.action());
+                  onClose();
+                }}
+                className="w-full text-left p-3 bg-white hover:bg-gray-50 rounded-lg transition-colors duration-150 mb-1 last:mb-0 group"
+              >
+                <div className="flex items-start gap-3">
+                  {/* Minimal Icon */}
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100 flex-shrink-0">
+                    <FontAwesomeIcon
+                      icon={suggestion.type === "category" ? faBuilding : faMapMarkerAlt}
+                      className="w-4 h-4 text-gray-700"
+                    />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between mb-1">
+                      <h4 className="font-medium text-gray-900 text-sm truncate">
+                        {suggestion.title}
+                      </h4>
+                      <span
+                        className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ml-2 ${suggestion.type === "category" 
+                          ? "bg-blue-50 text-blue-700" 
+                          : "bg-purple-50 text-purple-700"
+                        }`}
+                      >
+                        {suggestion.count} {suggestion.count === 1 ? "place" : "places"}
+                      </span>
                     </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-1">
-                        <h4 className="font-medium text-gray-900 text-sm truncate">
-                          {suggestion.title}
-                        </h4>
-                        <span
-                          className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ml-2 ${suggestion.type === "category" 
-                            ? "bg-blue-50 text-blue-700" 
-                            : "bg-purple-50 text-purple-700"
-                          }`}
-                        >
-                          {suggestion.count} {suggestion.count === 1 ? "place" : "places"}
-                        </span>
-                      </div>
 
-                      <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                        {suggestion.description}
+                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                      {suggestion.description}
+                    </p>
+
+                    {/* Clean Breakdown */}
+                    <div className="mt-2">
+                      <p className="text-xs text-gray-500 mb-1">
+                        {suggestion.breakdownText}
                       </p>
 
-                      {/* Clean Breakdown */}
-                      <div className="mt-2">
-                        <p className="text-xs text-gray-500 mb-1">
-                          {suggestion.breakdownText}
-                        </p>
-
-                        {/* Clean Breakdown Tags */}
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {suggestion.breakdown.slice(0, 3).map((item, idx) => (
-                            <div
-                              key={idx}
-                              className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded"
-                            >
-                              {item.category || item.location} ({item.count})
-                            </div>
-                          ))}
-                          {suggestion.breakdown.length > 3 && (
-                            <span className="text-xs text-gray-500 px-2 py-1">
-                              +{suggestion.breakdown.length - 3} more
-                            </span>
-                          )}
-                        </div>
+                      {/* Clean Breakdown Tags */}
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {suggestion.breakdown.slice(0, 3).map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded"
+                          >
+                            {item.category || item.location} ({item.count})
+                          </div>
+                        ))}
+                        {suggestion.breakdown.length > 3 && (
+                          <span className="text-xs text-gray-500 px-2 py-1">
+                            +{suggestion.breakdown.length - 3} more
+                          </span>
+                        )}
                       </div>
                     </div>
-
-                    <div className="flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <FontAwesomeIcon
-                        icon={faChevronRight}
-                        className="w-3 h-3 text-gray-400"
-                      />
-                    </div>
                   </div>
-                </button>
-              );
-            })}
+
+                  <div className="flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <FontAwesomeIcon
+                      icon={faChevronRight}
+                      className="w-3 h-3 text-gray-400"
+                    />
+                  </div>
+                </div>
+              </button>
+            ))}
 
             {/* Clean Show All Results Button */}
             <button
@@ -1196,9 +1170,7 @@ const DiscoverIbadan = () => {
   const searchInputRef = useRef(null);
   const searchContainerRef = useRef(null);
 
-  const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
-  const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
-  const { data: listings = [], loading } = useGoogleSheet(SHEET_ID, API_KEY);
+  const { data: listings = [], loading } = useBackendListings();
 
   /* ---------------- MOBILE CHECK ---------------- */
   useEffect(() => {
@@ -1343,36 +1315,18 @@ const DiscoverIbadan = () => {
   };
 
   /* ---------------- CATEGORY HANDLERS ---------------- */
-  const scrollToAiTopPicks = useCallback(() => {
-    const aiTopPicksSection = document.getElementById("toppicks");
-    if (aiTopPicksSection) {
-      const offset = 80;
-      const elementPosition = aiTopPicksSection.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - offset;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: "smooth",
-      });
-    }
-  }, []);
-
   const handleCategoryClick = (category) => {
     const categoryMap = {
-      Hotel: "hotel",
-      Restaurant: "restaurant",
-      Shortlet: "shortlet",
-      Tourism: "tourist-center",
-      Vendor: "vendor",
+      "Hotel": "hotel",
+      "Restaurant": "restaurant",
+      "Shortlet": "shortlet",
+      "Vendor": "services", // Adjust based on your backend
     };
     const categorySlug = categoryMap[category];
 
     if (categorySlug) {
-      if (category === "Vendor") {
-        scrollToAiTopPicks();
-      } else {
-        navigate(`/category/${categorySlug}`);
-      }
+      // Clear any search query when clicking category
+      navigate(`/category/${categorySlug}`);
     }
   };
 
@@ -1384,7 +1338,7 @@ const DiscoverIbadan = () => {
           className={`absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20`}
         ></div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-4 lg:py-4 lg:mt-[-70px] mt-[-60px]" >
+        <div className="relative max-w-7xl mx-auto w-full py-4 lg:py-4 lg:mt-[-70px] mt-[-60px]" >
           <div className="flex flex-col items-center text-center space-y-4 md:space-y-5 lg:space-y-4">
             {/* Hero Title */}
             <div className="space-y-1 md:space-y-2 max-w-xl md:max-w-2xl w-full mt-1 md:mt-2 lg:mt-1">
@@ -1401,7 +1355,7 @@ const DiscoverIbadan = () => {
               </p>
             </div>
 
-            {/* AGODA-STYLE SEARCH BAR */}
+            {/* AGODA-STYLE SEARCH BAR - ORIGINAL WIDTH */}
             <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
               <div ref={searchContainerRef} className="relative w-full">
                 {/* Main Search Card */}
@@ -1522,12 +1476,8 @@ const DiscoverIbadan = () => {
               </div>
             </div>
 
-            {/* Category Icons - 60% WIDER */}
-            <div className="w-full" style={{
-              width: isMobile ? "100%" : "43.2%",
-              marginLeft: "auto",
-              marginRight: "auto",
-            }}>
+            {/* Category Icons - ORIGINAL WIDTH */}
+            <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
               <div className="flex justify-between items-center gap-1">
                 {["Hotel", "Shortlet", "Restaurant", "Vendor"].map(
                   (category) => (
@@ -1538,7 +1488,7 @@ const DiscoverIbadan = () => {
                       className="group cursor-pointer flex flex-col items-center"
                       onClick={() => handleCategoryClick(category)}
                     >
-                      {/* Square Container - KEPT 60% larger */}
+                      {/* Square Container */}
                       <div className="relative w-16 h-16 sm:w-19 sm:h-19 md:w-22 md:h-22 lg:w-22 lg:h-22">
                         <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-teal-50 rounded-md transform group-hover:scale-105 transition-transform duration-300"></div>
                         <div className="relative w-full h-full p-0.5">
@@ -1622,6 +1572,72 @@ const DiscoverIbadan = () => {
           isVisible={showMobileModal}
         />
       )}
+
+      <style jsx global>{`
+        /* Animation for search suggestions */
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+
+        @keyframes slideOutRight {
+          from {
+            transform: translateX(0);
+            opacity: 1;
+          }
+          to {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+        }
+
+        @keyframes slideInUp {
+          from {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        .animate-slideInUp {
+          animation: slideInUp 0.3s ease-out;
+        }
+
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out;
+        }
+
+        .line-clamp-1 {
+          display: -webkit-box;
+          -webkit-line-clamp: 1;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+      `}</style>
     </div>
   );
 };

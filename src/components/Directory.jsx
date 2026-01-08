@@ -1,3 +1,4 @@
+// src/components/Directory.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
@@ -10,39 +11,19 @@ import axiosInstance from "../lib/axios";
 // ---------------- API Service Functions ----------------
 const buildQueryString = (filters = {}) => {
   const params = new URLSearchParams();
-  
-  // Add filters - ONLY category filter
   if (filters.category) params.append('category', filters.category);
-  
   return params.toString();
 };
 
-// Get listings by category using axiosInstance.get() - SIMPLIFIED
 const getListingsByCategory = async (category) => {
   try {
-    const filters = {
-      category: category,
-      // REMOVED: sort, limit, status
-    };
-    
+    const filters = { category: category };
     const queryString = buildQueryString(filters);
     const url = `/listings${queryString ? `?${queryString}` : ''}`;
     
-    console.log(`📡 Making GET request for ${category}:`, url);
-    
     const response = await axiosInstance.get(url);
-    
-    console.log(`✅ ${category} Response Status:`, response.data?.status);
-    console.log(`📊 ${category} Results:`, response.data?.results || 0);
-    
     return response.data;
   } catch (error) {
-    console.error(`❌ ${category} Error:`, error.message);
-    if (error.response) {
-      console.error('Response data:', error.response.data);
-      console.error('Response status:', error.response.status);
-    }
-    // Return empty data structure instead of throwing
     return {
       status: 'error',
       message: error.message,
@@ -151,6 +132,20 @@ const getCardImages = (listing) => {
   return [FALLBACK_IMAGES.default];
 };
 
+const getVendorId = (listing) => {
+  if (!listing) return null;
+  
+  if (typeof listing.vendorId === 'string') {
+    return listing.vendorId;
+  }
+  
+  if (listing.vendorId && listing.vendorId._id) {
+    return listing.vendorId._id;
+  }
+  
+  return listing._id || listing.id;
+};
+
 // ---------------- Custom Hooks ----------------
 const useIsFavorite = (itemId) => {
   const [isFavorite, setIsFavorite] = useState(false);
@@ -229,7 +224,6 @@ const useAuthStatus = () => {
   return isAuthenticated;
 };
 
-// Custom hook for fetching listings - SIMPLIFIED
 const useListings = (category) => {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -242,32 +236,19 @@ const useListings = (category) => {
         setLoading(true);
         setError(null);
         
-        console.log(`🔄 Fetching ${category} listings...`);
         const data = await getListingsByCategory(category);
         setApiResponse(data);
         
-        // Handle the API response structure correctly
         if (data && data.status === 'success' && data.data && data.data.listings) {
           const fetchedListings = data.data.listings;
-          console.log(`✅ Found ${fetchedListings.length} ${category} listings`);
           setListings(fetchedListings);
-          
-          // Log status distribution
-          const statusCount = fetchedListings.reduce((acc, listing) => {
-            acc[listing.status] = (acc[listing.status] || 0) + 1;
-            return acc;
-          }, {});
-          console.log(`📊 ${category} status distribution:`, statusCount);
         } else if (data && data.status === 'error') {
-          console.warn(`⚠️ API Error for ${category}:`, data.message);
           setError(data.message || 'API Error');
           setListings([]);
         } else {
-          console.warn(`⚠️ Unexpected response structure for ${category}:`, data);
           setListings([]);
         }
       } catch (err) {
-        console.error(`❌ Error fetching ${category}:`, err.message);
         setError(err.message);
         setListings([]);
       } finally {
@@ -286,14 +267,10 @@ const BusinessCard = ({ item, category, isMobile }) => {
   const images = getCardImages(item);
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [imageHeight, setImageHeight] = useState(150);
+  const [imageHeight] = useState(isMobile ? 150 : 150);
 
   const isFavorite = useIsFavorite(item._id || item.id);
   const isAuthenticated = useAuthStatus();
-
-  useEffect(() => {
-    setImageHeight(isMobile ? 150 : 150);
-  }, [isMobile]);
 
   const formatPrice = (n) => {
     if (!n) return "–";
@@ -328,10 +305,9 @@ const BusinessCard = ({ item, category, isMobile }) => {
   const isPending = item.status === 'pending';
 
   const handleCardClick = () => {
-    if (item._id || item.id) {
-      navigate(`/vendor-detail/${item._id || item.id}`);
-    } else {
-      navigate(`/category/${category}`);
+    const listingId = item._id || item.id;
+    if (listingId) {
+      navigate(`/vendor-detail/${listingId}`);
     }
   };
 
@@ -482,16 +458,15 @@ const BusinessCard = ({ item, category, isMobile }) => {
         minHeight: isMobile ? "280px" : "280px",
         maxHeight: isMobile ? "280px" : "280px",
         minWidth: isMobile ? "165px" : "165px",
+        cursor: "pointer"
       }}
     >
-      {/* Status Badge */}
       {isPending && (
         <div className="absolute top-1.5 left-1.5 bg-yellow-500 text-white px-2 py-0.5 rounded-md shadow-sm z-10">
           <span className="text-[8px] font-semibold">PENDING</span>
         </div>
       )}
 
-      {/* Image */}
       <div
         className="relative overflow-hidden rounded-xl flex-shrink-0"
         style={{
@@ -511,7 +486,6 @@ const BusinessCard = ({ item, category, isMobile }) => {
           loading="lazy"
         />
 
-        {/* Guest favorite badge */}
         {!isPending && (
           <div className="absolute top-1.5 right-12 bg-white px-1 py-0.5 rounded-md shadow-sm flex items-center gap-0.5">
             <span className="text-[8px] font-semibold text-gray-900">
@@ -520,7 +494,6 @@ const BusinessCard = ({ item, category, isMobile }) => {
           </div>
         )}
 
-        {/* Heart icon */}
         <button
           onClick={handleFavoriteClick}
           disabled={isProcessing}
@@ -528,10 +501,11 @@ const BusinessCard = ({ item, category, isMobile }) => {
             isFavorite
               ? "bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
               : "bg-white/90 hover:bg-white backdrop-blur-sm"
-          } ${isProcessing ? "opacity-70 cursor-not-allowed" : ""}`}
+          } ${isProcessing ? "opacity-70 cursor-not-allowed" : "cursor-pointer"}`}
           title={isFavorite ? "Remove from saved" : "Add to saved"}
           aria-label={isFavorite ? "Remove from saved" : "Save this listing"}
           aria-pressed={isFavorite}
+          style={{ cursor: isProcessing ? "not-allowed" : "pointer" }}
         >
           {isProcessing ? (
             <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -545,7 +519,6 @@ const BusinessCard = ({ item, category, isMobile }) => {
         </button>
       </div>
 
-      {/* Text Content */}
       <div className={`flex-1 ${isMobile ? "p-1.5" : "p-2"} flex flex-col`} style={{ minHeight: isMobile ? "130px" : "130px" }}>
         <h3 className="font-semibold text-gray-900 leading-tight line-clamp-2 text-[13.5px] mb-1 flex-shrink-0">
           {businessName}
@@ -603,7 +576,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
 };
 
 // ---------------- CategorySection Component ----------------
-const CategorySection = ({ title, items, category, isMobile, loading, error, apiResponse }) => {
+const CategorySection = ({ title, items, category, isMobile, loading, error }) => {
   const navigate = useNavigate();
 
   if (loading) {
@@ -657,10 +630,7 @@ const CategorySection = ({ title, items, category, isMobile, loading, error, api
     navigate(`/category/${category}`);
   };
 
-  // Still show only 6 items per category
   const displayItems = items.slice(0, 6);
-  const totalResults = apiResponse?.results || 0;
-  const pendingCount = items.filter(item => item.status === 'pending').length;
 
   return (
     <section className="mb-4">
@@ -669,19 +639,6 @@ const CategorySection = ({ title, items, category, isMobile, loading, error, api
           <h2 className="text-gray-900 font-bold" style={{ color: "#000651" }}>
             {isMobile ? <span className="text-[14px]">{title}</span> : <span className="text-xl">{title}</span>}
           </h2>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded">
-              ✅ {totalResults} total listings
-            </span>
-            <span className="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
-              📊 {displayItems.length} showing
-            </span>
-            {pendingCount > 0 && (
-              <span className="text-xs text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded">
-                ⏳ {pendingCount} pending
-              </span>
-            )}
-          </div>
         </div>
         <button onClick={handleCategoryClick} className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" style={{ color: "#000651" }}>
           {isMobile ? <span className="text-[12px]">View all</span> : <span className="text-[13.5px]">View all</span>}
@@ -725,14 +682,12 @@ const Directory = () => {
   const [headerRef, headerInView] = useInView({ threshold: 0.1, triggerOnce: false });
   const [isMobile, setIsMobile] = useState(false);
   
-  // ONLY 3 CATEGORIES: hotel, shortlet, restaurant
   const categories = [
     { key: 'hotel', name: 'Hotels' },
     { key: 'shortlet', name: 'Shortlets' },
     { key: 'restaurant', name: 'Restaurants' }
   ];
   
-  // Fetch listings for each category - NO LIMIT PARAMETER
   const hotelListings = useListings('hotel');
   const shortletListings = useListings('shortlet');
   const restaurantListings = useListings('restaurant');
@@ -750,30 +705,23 @@ const Directory = () => {
     restaurant: restaurantListings,
   };
 
-  // Check if any category is still loading
   const initialLoading = categories.some(cat => categoryData[cat.key].loading);
   
   if (initialLoading) return <SkeletonDirectory isMobile={isMobile} />;
-
-  const totalListings = categories.reduce((total, cat) => total + (categoryData[cat.key].apiResponse?.results || 0), 0);
 
   return (
     <section id="directory" className="bg-white font-manrope">
       <div className={`${isMobile ? "py-0" : "py-8"}`}>
         {isMobile ? (
-          <div className="w-full" style={{ paddingLeft: "0.75rem", paddingRight: "0.75rem" }}>
+          <div className="w-full" style={{ paddingLeft: "0", paddingRight: "0" }}>
             <motion.div ref={headerRef} initial={{ opacity: 0, y: 20 }} animate={headerInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, ease: "easeOut" }} className="mb-4">
               <h1 className="text-lg font-bold text-center mb-2 text-[#00065A]">Explore Categories</h1>
               <p className="text-xs text-gray-600 text-center">Find the best places and services in Ibadan</p>
-              <div className="mt-2 bg-green-50 border border-green-200 rounded-lg p-2">
-                <p className="text-green-700 text-xs font-medium">✅ Connected to Backend API</p>
-                <p className="text-green-600 text-xs mt-1">Found {totalListings} total listings</p>
-              </div>
             </motion.div>
 
             <div className="space-y-6">
               {categories.map(({ key, name }) => {
-                const { listings, loading, error, apiResponse } = categoryData[key];
+                const { listings, loading, error } = categoryData[key];
                 const title = `Popular ${name} in Ibadan`;
                 return (
                   <CategorySection 
@@ -784,44 +732,21 @@ const Directory = () => {
                     isMobile={isMobile} 
                     loading={loading} 
                     error={error} 
-                    apiResponse={apiResponse} 
                   />
                 );
               })}
             </div>
           </div>
         ) : (
-          <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-[1800px] mx-auto" style={{ paddingLeft: "0", paddingRight: "0" }}>
             <motion.div ref={headerRef} initial={{ opacity: 0, y: 20 }} animate={headerInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, ease: "easeOut" }} className="mb-6">
               <h1 className="text-xl font-semibold text-gray-900 md:text-start">Explore Categories</h1>
               <p className="text-gray-600 md:text-[15px] md:text-start text-[13.5px]">Find the best places and services in Ibadan</p>
-              
-              <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-center gap-3">
-                  <div className="text-green-600">
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-green-800 font-medium">✅ Successfully Connected to Backend API</h3>
-                    <p className="text-green-700 text-sm mt-1">Using axiosInstance.get() - Found {totalListings} total listings</p>
-                    <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
-                      {categories.map(({ key, name }) => (
-                        <div key={key} className="bg-white p-2 rounded border">
-                          <p className="font-medium">{name}</p>
-                          <p className="text-green-600">{categoryData[key].apiResponse?.results || 0} listings</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
             </motion.div>
 
             <div className="space-y-6">
               {categories.map(({ key, name }) => {
-                const { listings, loading, error, apiResponse } = categoryData[key];
+                const { listings, loading, error } = categoryData[key];
                 const title = `Popular ${name} in Ibadan`;
                 return (
                   <CategorySection 
@@ -832,34 +757,9 @@ const Directory = () => {
                     isMobile={isMobile} 
                     loading={loading} 
                     error={error} 
-                    apiResponse={apiResponse} 
                   />
                 );
               })}
-            </div>
-
-            <div className="mt-8 p-6 bg-gray-50 border border-gray-200 rounded-lg">
-              <h3 className="text-gray-800 font-medium mb-3">API Integration Status</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white p-4 rounded-lg border">
-                  <h4 className="text-gray-700 font-medium text-sm mb-2">Request Details</h4>
-                  <p className="text-gray-600 text-xs">
-                    <code className="bg-gray-100 px-2 py-1 rounded text-green-600">GET /listings?category=hotel</code>
-                  </p>
-                  <p className="text-gray-500 text-xs mt-2">
-                    Simple category filtering only. No sorting, no limit, no status filter.
-                  </p>
-                </div>
-                <div className="bg-white p-4 rounded-lg border">
-                  <h4 className="text-gray-700 font-medium text-sm mb-2">Total Results</h4>
-                  <p className="text-gray-600 text-xs">
-                    {totalListings} listings found across 3 categories
-                  </p>
-                  <p className="text-gray-500 text-xs mt-2">
-                    Showing first 6 listings per category (client-side limit)
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         )}
