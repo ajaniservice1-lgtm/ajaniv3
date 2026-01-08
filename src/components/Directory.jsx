@@ -710,7 +710,7 @@ const Directory = () => {
   if (initialLoading) return <SkeletonDirectory isMobile={isMobile} />;
 
   return (
-    <section id="directory" className="bg-white font-manrope">
+    <section id="directory" className="bg-white font-manrope lg:max-w-7xl lg:mx-auto ml-3">
       <div className={`${isMobile ? "py-0" : "py-8"}`}>
         {isMobile ? (
           <div className="w-full" style={{ paddingLeft: "0", paddingRight: "0" }}>

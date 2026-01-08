@@ -1,8 +1,5 @@
-// Replace the current useBackendListings hook import with:
-import { useState, useEffect, useCallback } from 'react';
-import axiosInstance from '../lib/axios';
-
-// Add these helper functions at the top of your component
+// Update your useBackendListings hook in SearchResults component
+// Add this helper function at the top
 const looksLikeLocation = (query) => {
   if (!query || query.trim() === '') return false;
   
@@ -10,6 +7,7 @@ const looksLikeLocation = (query) => {
   
   // Common Ibadan/place indicators
   const locationIndicators = [
+    // Ibadan areas
     'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly', 'oke', 'agodi', 
     'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
     'molete', 'agbowo', 'sabo', 'bashorun', 'ondo road', 'ogbomoso', 'ife road',
@@ -34,17 +32,7 @@ const looksLikeLocation = (query) => {
   return isLocation || isShortQuery;
 };
 
-const normalizeLocation = (location) => {
-  if (!location) return '';
-  
-  return location
-    .toLowerCase()
-    .trim()
-    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
-    .replace(/\s+/g, ' ');
-};
-
-// Custom hook for backend listings
+// Update useBackendListings hook in SearchResults component
 const useBackendListings = (searchQuery = '', filters = {}) => {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,11 +53,13 @@ const useBackendListings = (searchQuery = '', filters = {}) => {
         const itemCategory = (item.category || '').toLowerCase();
         const itemLocation = (item.location?.area || item.area || item.location || '').toLowerCase();
         const itemDescription = (item.description || '').toLowerCase();
+        const itemTags = (item.tags || '').toLowerCase();
         
         return itemName.includes(queryLower) ||
                itemCategory.includes(queryLower) ||
                itemLocation.includes(queryLower) ||
-               itemDescription.includes(queryLower);
+               itemDescription.includes(queryLower) ||
+               itemTags.includes(queryLower);
       });
     }
     
@@ -153,7 +143,17 @@ const useBackendListings = (searchQuery = '', filters = {}) => {
         }
         
         if (filters.categories && filters.categories.length > 0) {
-          params.append('categories', filters.categories.join(','));
+          const backendCategories = filters.categories.map(cat => {
+            const categoryMap = {
+              'hotel': 'hotel',
+              'restaurant': 'restaurant', 
+              'shortlet': 'shortlet',
+              'vendor': 'services',
+              'services': 'services'
+            };
+            return categoryMap[cat.toLowerCase()] || cat;
+          });
+          params.append('categories', backendCategories.join(','));
         }
         
         if (filters.priceRange?.min) {
@@ -230,4 +230,15 @@ const useBackendListings = (searchQuery = '', filters = {}) => {
     apiResponse,
     looksLikeLocation: () => looksLikeLocation(searchQuery)
   };
+};
+
+// Add normalizeLocation helper
+const normalizeLocation = (location) => {
+  if (!location) return '';
+  
+  return location
+    .toLowerCase()
+    .trim()
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
+    .replace(/\s+/g, ' ');
 };
