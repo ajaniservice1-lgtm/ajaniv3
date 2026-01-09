@@ -1058,7 +1058,7 @@ const CategoryButtons = ({ selectedCategory, onCategoryClick }) => {
   }, []);
 
   const buttonConfigs = [
-    { key: "all", label: "All", displayName: "All Categories", icon: faBuilding },
+    // { key: "all", label: "All", displayName: "All Categories", icon: faBuilding },
     { key: "hotel", label: "Hotel", displayName: "Hotels", icon: faBuilding },
     { key: "restaurant", label: "Restaurant", displayName: "Restaurants", icon: faUtensils },
     { key: "shortlet", label: "Shortlet", displayName: "Shortlets", icon: faHome },
@@ -2543,13 +2543,13 @@ const CategoryResults = () => {
                       </div>
 
                       <div className="ml-2">
-                        <button
+                        {/* <button
                           type="submit"
                           className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope"
                           aria-label="Perform search"
                         >
                           Search
-                        </button>
+                        </button> */}
                       </div>
                     </div>
                   </form>

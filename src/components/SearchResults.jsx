@@ -3427,13 +3427,13 @@ const SearchResults = () => {
                         </div>
 
                         <div className="ml-2">
-                          <button
+                          {/* <button
                             type="submit"
                             className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope"
                             aria-label="Perform search"
                           >
                             Search
-                          </button>
+                          </button> */}
                         </div>
                       </div>
                     </form>
