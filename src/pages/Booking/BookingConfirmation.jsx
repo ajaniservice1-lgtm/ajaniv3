@@ -1,8 +1,8 @@
 // src/pages/BookingConfirmation.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, useLocation, Link, useNavigate } from "react-router-dom";
-import Header from "../components/Header";
-import Footer from "../components/Footer";
+import Header from "../../components/Header";
+import Footer from "../../components/Footer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMapMarkerAlt, faStar, faPrint, faHome, faCheckCircle } from "@fortawesome/free-solid-svg-icons";
 
