@@ -1,309 +1,433 @@
 // src/components/RoomSelection.jsx
-import React, { useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck, faWifi, faCar, faBed, faUtensils, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCheck, faTimes, faWifi, faTv, faCoffee, faSnowflake, faBath, faCar, faUtensils } from '@fortawesome/free-solid-svg-icons';
 
-const RoomSelection = ({ vendorData, onRoomSelected }) => {
-  const navigate = useNavigate();
-  const [selectedDateRange, setSelectedDateRange] = useState({
-    checkIn: "",
-    checkOut: ""
-  });
-  const [roomCount, setRoomCount] = useState(1);
-  const [filterOptions, setFilterOptions] = useState({
-    breakfastIncluded: false,
-    freeCancellation: false,
-    payLater: false,
-    payAtHotel: true,
-    nonSmoking: false,
-    kitchen: false,
-    balcony: false,
-    kingBed: false
-  });
-
-  // Mock room data — replace with API call in production
-  const mockRooms = [
+const RoomSelection = ({ category = 'hotel', onRoomSelect }) => {
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  
+  // Sample room data with images
+  const roomTypes = [
     {
-      id: "superior-twin",
-      name: "Superior Twin Room",
-      image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80",
-      rating: 4.78,
-      price: 435865,
-      originalPrice: 634028,
-      discount: 30,
-      capacity: 2,
-      features: ["Free WiFi", "Parking", "Pay at hotel"],
-      amenities: ["WiFi", "Air conditioning", "Iron facilities", "Cable channel"],
-      description: "Comfortable twin room with modern amenities"
+      id: 'room-1',
+      name: '2 Bedroom Pymont View Suite',
+      description: 'Motion, Rd. 23M',
+      image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
+      images: [
+        'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
+        'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&q=80',
+        'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80'
+      ],
+      features: [
+        { name: 'WIFI', included: true, icon: faWifi },
+        { name: 'Non first floor', included: false, icon: faTimes },
+        { name: 'Cable channel', included: true, icon: faTv },
+        { name: 'Free Breakfast', included: true, icon: faCoffee },
+        { name: 'Air Conditioning', included: true, icon: faSnowflake },
+        { name: 'Private Bathroom', included: true, icon: faBath }
+      ],
+      occupancy: [
+        { 
+          guests: 2, 
+          price: 534098, 
+          description: 'Per night before taxes',
+          breakfast: 'Very good breakfast available',
+          amenities: ['Pay at hotel', 'Free WiFi', 'Parking']
+        },
+        { 
+          guests: 4, 
+          price: 534098, 
+          description: 'Per night before taxes',
+          breakfast: 'Very good breakfast available',
+          amenities: ['Pay at hotel', 'Free WiFi', 'Parking']
+        }
+      ],
+      roomsAvailable: 5,
+      discount: '-3DX'
     },
     {
-      id: "two-bedroom-pymont",
-      name: "2 Bedroom Pymont View Suite",
-      image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80",
-      rating: 4.78,
-      price: 445865,
-      originalPrice: 634028,
-      discount: 30,
-      capacity: 4,
-      features: ["Free WiFi", "Parking", "Pay at hotel"],
-      amenities: ["WiFi", "Air conditioning", "Iron facilities", "Cable channel"],
-      description: "Spacious suite with beautiful views"
+      id: 'room-2',
+      name: 'One Bedroom Suite',
+      description: 'Motion, Rd. 23M',
+      image: 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=80',
+      images: [
+        'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=80',
+        'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=800&q=80',
+        'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80'
+      ],
+      features: [
+        { name: 'WIFI', included: true, icon: faWifi },
+        { name: 'Non first floor', included: true, icon: faCheck },
+        { name: 'Cable channel', included: false, icon: faTv },
+        { name: 'Room Service', included: true, icon: faUtensils },
+        { name: 'Parking', included: true, icon: faCar }
+      ],
+      occupancy: [
+        { 
+          guests: 2, 
+          price: 434098, 
+          description: 'Per night before taxes',
+          breakfast: 'Very good breakfast available',
+          amenities: ['Pay at hotel', 'Free WiFi', 'Parking']
+        }
+      ],
+      roomsAvailable: 3,
+      discount: '-2DX'
     },
     {
-      id: "one-bedroom-suite",
-      name: "One Bedroom Suite",
-      image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80",
-      rating: 4.78,
-      price: 534865,
-      originalPrice: 634028,
-      discount: 30,
-      capacity: 2,
-      features: ["Free WiFi", "Parking", "Pay at hotel"],
-      amenities: ["WiFi", "Air conditioning", "Iron facilities", "Cable channel"],
-      description: "Luxury suite with premium amenities"
+      id: 'room-3',
+      name: 'Superior Twin Room',
+      description: 'MOKUS, Rd. 2314',
+      image: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
+      images: [
+        'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
+        'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80',
+        'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80'
+      ],
+      features: [
+        { name: 'WIFI', included: true, icon: faWifi },
+        { name: 'Iron bed tires', included: true },
+        { name: 'Minibar', included: true },
+        { name: 'Ocean View', included: true },
+        { name: 'Balcony', included: true }
+      ],
+      occupancy: [
+        { 
+          guests: 2, 
+          price: 375865, 
+          description: 'Per night before taxes', 
+          discount: '-10%', 
+          originalPrice: 534098,
+          breakfast: 'Very good breakfast available',
+          amenities: ['Pay at hotel', 'Free WiFi', 'Parking']
+        },
+        { 
+          guests: 4, 
+          price: 435865, 
+          description: 'Per night before taxes', 
+          discount: '-10%', 
+          originalPrice: 534098,
+          breakfast: 'Very good breakfast available',
+          amenities: ['Pay at hotel', 'Free WiFi', 'Parking']
+        }
+      ],
+      roomsAvailable: 8
     }
   ];
 
-  const handleDateChange = (e) => {
-    const { name, value } = e.target;
-    setSelectedDateRange(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const amenities = [
+    { name: 'Breakfast Included', value: false },
+    { name: 'Free Cancellation', value: false },
+    { name: 'Pay later option', value: false },
+    { name: 'Pay at the hotel', value: true },
+    { name: 'Non-smoking', value: true },
+    { name: 'Kitchen', value: false },
+    { name: 'Balcony', value: false },
+    { name: 'King Bed', value: false }
+  ];
 
-  const handleRoomCountChange = (delta) => {
-    setRoomCount(prev => Math.max(1, prev + delta));
-  };
-
-  const toggleFilter = (filter) => {
-    setFilterOptions(prev => ({
-      ...prev,
-      [filter]: !prev[filter]
-    }));
+  const formatPrice = (price) => {
+    if (!price) return "₦ --";
+    const num = parseInt(price.toString().replace(/[^\d]/g, ""));
+    if (isNaN(num)) return "₦ --";
+    return `₦${num.toLocaleString()}`;
   };
 
   const handleRoomSelect = (room) => {
-    const selectedRoomData = {
-      ...room,
-      selectedDateRange,
-      roomCount,
-      filterOptions
-    };
-    onRoomSelected(selectedRoomData);
+    setSelectedRoom(room);
+    if (onRoomSelect) {
+      onRoomSelect(room);
+    }
   };
 
-  const filteredRooms = mockRooms.filter(room => {
-    if (filterOptions.breakfastIncluded && !room.features.some(f => f.toLowerCase().includes("breakfast"))) return false;
-    if (filterOptions.freeCancellation && !room.features.some(f => f.toLowerCase().includes("cancellation"))) return false;
-    if (filterOptions.payLater && !room.features.some(f => f.toLowerCase().includes("later"))) return false;
-    if (filterOptions.payAtHotel && !room.features.some(f => f.toLowerCase().includes("hotel"))) return false;
-    if (filterOptions.nonSmoking && !room.features.some(f => f.toLowerCase().includes("smoking"))) return false;
-    if (filterOptions.kitchen && !room.features.some(f => f.toLowerCase().includes("kitchen"))) return false;
-    if (filterOptions.balcony && !room.features.some(f => f.toLowerCase().includes("balcony"))) return false;
-    if (filterOptions.kingBed && !room.features.some(f => f.toLowerCase().includes("king"))) return false;
-    return true;
-  });
+  const handleBookNow = () => {
+    if (selectedRoom && onRoomSelect) {
+      onRoomSelect(selectedRoom);
+    }
+  };
+
+  if (category !== 'hotel') {
+    return null; // Only show room selection for hotels
+  }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <button 
-            onClick={() => navigate(-1)}
-            className="flex items-center text-gray-600 hover:text-gray-900"
-          >
-            <FontAwesomeIcon icon={faArrowLeft} className="w-4 h-4 mr-2" />
-            Back
-          </button>
-          <h1 className="text-2xl font-bold text-gray-900">Select Your Room</h1>
-        </div>
-
-        {/* Filter Section */}
-        <div className="bg-white rounded-xl p-4 mb-6 shadow-sm border">
-          <h2 className="text-sm font-medium text-gray-900 mb-3">Filter Rooms</h2>
+    <div className="w-full bg-white rounded-xl md:rounded-2xl shadow-sm hover:shadow-lg transition-shadow duration-300">
+      <div className="px-4 sm:px-6 lg:px-8 py-6">
+        <h2 className="text-lg md:text-xl font-bold text-[#00065A] mb-4">
+          Select Your Room
+        </h2>
+        
+        {/* Filters */}
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Filter</h3>
           <div className="flex flex-wrap gap-2">
-            {[
-              { label: "Breakfast included", key: "breakfastIncluded" },
-              { label: "Free cancellation", key: "freeCancellation" },
-              { label: "Pay later option", key: "payLater" },
-              { label: "Pay at the hotel", key: "payAtHotel" },
-              { label: "Non-smoking", key: "nonSmoking" },
-              { label: "Kitchen", key: "kitchen" },
-              { label: "Balcony", key: "balcony" },
-              { label: "King bed", key: "kingBed" }
-            ].map(({ label, key }) => (
+            {amenities.map((amenity, index) => (
               <button
-                key={key}
-                onClick={() => toggleFilter(key)}
-                className={`px-3 py-1 text-xs rounded-full border transition-colors ${
-                  filterOptions[key]
-                    ? "bg-[#06EAFC] text-white border-[#06EAFC]"
-                    : "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200"
+                key={index}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  amenity.value 
+                    ? 'bg-[#06EAFC] text-white' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {label}
+                {amenity.name}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Date Picker */}
-        <div className="bg-white rounded-xl p-4 mb-6 shadow-sm border">
-          <h2 className="text-sm font-medium text-gray-900 mb-3">Select Dates</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-900 mb-1">Check-in</label>
-              <input
-                type="date"
-                name="checkIn"
-                value={selectedDateRange.checkIn}
-                onChange={handleDateChange}
-                className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
-                min={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-900 mb-1">Check-out</label>
-              <input
-                type="date"
-                name="checkOut"
-                value={selectedDateRange.checkOut}
-                onChange={handleDateChange}
-                className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
-                min={selectedDateRange.checkIn || new Date().toISOString().split('T')[0]}
-              />
-            </div>
-          </div>
-        </div>
-
         {/* Room List */}
         <div className="space-y-6">
-          {filteredRooms.length > 0 ? (
-            filteredRooms.map((room) => (
-              <div key={room.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                <div className="flex flex-col md:flex-row">
-                  {/* Room Image */}
-                  <div className="md:w-1/3 relative">
-                    <img
-                      src={room.image}
+          {roomTypes.map((room) => (
+            <div 
+              key={room.id}
+              className={`border rounded-xl p-4 sm:p-6 transition-all duration-300 ${
+                selectedRoom?.id === room.id 
+                  ? 'border-[#06EAFC] bg-blue-50' 
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex flex-col lg:flex-row gap-6">
+                {/* Room Image */}
+                <div className="lg:w-64 flex-shrink-0">
+                  <div className="relative h-48 lg:h-56 rounded-xl overflow-hidden">
+                    <img 
+                      src={room.image} 
                       alt={room.name}
-                      className="w-full h-48 md:h-full object-cover"
+                      className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
                     />
-                    <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded-full text-xs">
-                      {room.rating} ★
+                    {room.discount && (
+                      <div className="absolute top-3 right-3 bg-red-600 text-white px-2 py-1 rounded-lg text-xs font-bold">
+                        {room.discount}
+                      </div>
+                    )}
+                    <div className="absolute bottom-3 left-3 bg-black/70 text-white px-3 py-1 rounded-full text-xs">
+                      {room.roomsAvailable} rooms left
                     </div>
                   </div>
                   
-                  {/* Room Details */}
-                  <div className="md:w-2/3 p-4 md:p-6">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="text-lg font-bold text-gray-900">{room.name}</h3>
-                        <p className="text-gray-600 text-sm mt-1">{vendorData?.area || "Ibadan"}</p>
+                  {/* Additional Images */}
+                  <div className="flex gap-2 mt-2">
+                    {room.images?.slice(0, 3).map((img, index) => (
+                      <div key={index} className="w-1/3 h-16 rounded overflow-hidden">
+                        <img 
+                          src={img} 
+                          alt={`${room.name} view ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                      <div className="text-right">
-                        <div className="flex items-center gap-2">
-                          <span className="text-gray-500 line-through text-sm">₦{room.originalPrice.toLocaleString()}</span>
-                          <span className="text-red-600 font-bold text-xl">₦{room.price.toLocaleString()}</span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Room Details */}
+                <div className="flex-1">
+                  <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                    {/* Left Section - Room Info */}
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">
+                        {room.name}
+                      </h3>
+                      <p className="text-gray-600 text-sm mb-3">{room.description}</p>
+                      
+                      {/* Key Features */}
+                      <div className="mb-4">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Key Features</h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {room.features.map((feature, index) => (
+                            <div key={index} className="flex items-center gap-1.5">
+                              <div className={`w-5 h-5 rounded flex items-center justify-center ${
+                                feature.included ? 'bg-green-100' : 'bg-gray-100'
+                              }`}>
+                                {feature.included ? (
+                                  <FontAwesomeIcon icon={faCheck} className="text-green-600 text-xs" />
+                                ) : (
+                                  <FontAwesomeIcon icon={faTimes} className="text-gray-400 text-xs" />
+                                )}
+                              </div>
+                              <span className="text-sm text-gray-600">{feature.name}</span>
+                            </div>
+                          ))}
                         </div>
-                        <p className="text-gray-600 text-xs">Per night before taxes</p>
                       </div>
-                    </div>
-                    
-                    {/* Room Features */}
-                    <div className="flex items-center gap-4 mb-3">
-                      <div className="flex items-center gap-1">
-                        <FontAwesomeIcon icon={faBed} className="text-gray-600" />
-                        <span className="text-gray-700 text-sm">{room.capacity} adults</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <FontAwesomeIcon icon={faCheck} className="text-green-500" />
-                        <span className="text-gray-700 text-sm">Very good breakfast available (₦43,013)</span>
-                      </div>
-                    </div>
-                    
-                    {/* Amenities */}
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {room.features.map((feature, index) => (
-                        <div key={index} className="flex items-center gap-1 text-green-600 text-xs">
-                          <FontAwesomeIcon icon={faCheck} className="text-xs" />
-                          <span>{feature}</span>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    {/* Key Features */}
-                    <div className="mb-4">
-                      <h4 className="text-sm font-medium text-gray-900 mb-2">Key Features</h4>
-                      <div className="flex flex-wrap gap-3">
-                        {room.amenities.map((amenity, index) => (
-                          <div key={index} className="flex items-center gap-1 text-gray-700 text-xs">
-                            {amenity === "WiFi" && <FontAwesomeIcon icon={faWifi} />}
-                            {amenity === "Air conditioning" && <FontAwesomeIcon icon={faBed} />}
-                            {amenity === "Iron facilities" && <FontAwesomeIcon icon={faCar} />}
-                            {amenity === "Cable channel" && <FontAwesomeIcon icon={faUtensils} />}
-                            <span>{amenity}</span>
+
+                      {/* Occupancy Options */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {room.occupancy.map((option, index) => (
+                          <div key={index} className="bg-gray-50 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-sm font-medium text-gray-700">
+                                {option.guests} {option.guests === 1 ? 'person' : 'people'}
+                              </span>
+                              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                Available
+                              </span>
+                            </div>
+                            
+                            {option.breakfast && (
+                              <p className="text-xs text-gray-600 mb-2">{option.breakfast}</p>
+                            )}
+                            
+                            {/* Amenities */}
+                            {option.amenities && (
+                              <div className="mb-3">
+                                {option.amenities.map((amenity, idx) => (
+                                  <div key={idx} className="flex items-center gap-1.5 text-xs text-gray-600 mb-1">
+                                    <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
+                                    {amenity}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {/* Price */}
+                            <div className="mb-2">
+                              {option.discount && (
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-lg font-bold text-gray-900">
+                                    {formatPrice(option.price)}
+                                  </span>
+                                  {option.originalPrice && (
+                                    <span className="text-sm text-gray-500 line-through">
+                                      {formatPrice(option.originalPrice)}
+                                    </span>
+                                  )}
+                                  <span className="text-xs font-medium text-green-600 bg-green-100 px-2 py-0.5 rounded">
+                                    {option.discount}
+                                  </span>
+                                </div>
+                              )}
+                              
+                              {!option.discount && (
+                                <div className="text-lg font-bold text-gray-900 mb-1">
+                                  {formatPrice(option.price)}
+                                </div>
+                              )}
+                              
+                              <p className="text-xs text-gray-500">{option.description}</p>
+                            </div>
                           </div>
                         ))}
                       </div>
                     </div>
-                    
-                    {/* Booking Options */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleRoomCountChange(-1)}
-                          className="w-8 h-8 rounded-lg border border-gray-400 bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 hover:border-[#06EAFC] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          disabled={roomCount <= 1}
-                        >
-                          <span className="text-lg font-bold">-</span>
-                        </button>
-                        <div className="text-center">
-                          <span className="text-lg font-bold text-gray-900">{roomCount}</span>
-                          <span className="block text-xs text-gray-600 mt-1">rooms</span>
+
+                    {/* Right Section - Booking Action */}
+                    <div className="lg:w-48">
+                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
+                        <div className="text-center mb-4">
+                          <span className="text-3xl font-bold text-[#06EAFC]">
+                            {room.roomsAvailable}
+                          </span>
+                          <div className="text-gray-700 text-sm">rooms left</div>
                         </div>
+                        
                         <button
-                          onClick={() => handleRoomCountChange(1)}
-                          className="w-8 h-8 rounded-lg border border-gray-400 bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 hover:border-[#06EAFC] transition-colors"
+                          onClick={() => handleRoomSelect(room)}
+                          className={`w-full py-3 rounded-lg font-medium transition-all duration-300 ${
+                            selectedRoom?.id === room.id
+                              ? 'bg-[#06EAFC] text-white hover:bg-[#05d9eb]'
+                              : 'bg-white text-[#06EAFC] border border-[#06EAFC] hover:bg-blue-50 hover:scale-105'
+                          }`}
                         >
-                          <span className="text-lg font-bold">+</span>
+                          {selectedRoom?.id === room.id ? 'Selected ✓' : 'Select Room'}
                         </button>
+                        
+                        <p className="text-xs text-gray-600 text-center mt-3">
+                          It only takes 2 minutes<br />
+                          Limited availability
+                        </p>
                       </div>
-                      
-                      <button
-                        onClick={() => handleRoomSelect(room)}
-                        className="px-4 py-2 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors text-sm font-medium"
-                      >
-                        BOOK
-                      </button>
                     </div>
                   </div>
                 </div>
               </div>
-            ))
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No rooms match your filters.</p>
-              <button
-                onClick={() => setFilterOptions({
-                  breakfastIncluded: false,
-                  freeCancellation: false,
-                  payLater: false,
-                  payAtHotel: true,
-                  nonSmoking: false,
-                  kitchen: false,
-                  balcony: false,
-                  kingBed: false
-                })}
-                className="mt-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-              >
-                Clear Filters
-              </button>
             </div>
-          )}
+          ))}
+        </div>
+
+        {/* Selected Room Summary */}
+        {selectedRoom && (
+          <div className="mt-8 p-6 bg-gradient-to-r from-[#06EAFC] to-[#06F49F] rounded-xl">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-lg overflow-hidden">
+                  <img 
+                    src={selectedRoom.image} 
+                    alt={selectedRoom.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-1">
+                    Selected: {selectedRoom.name}
+                  </h3>
+                  <p className="text-white/90 text-sm">
+                    Best price guaranteed • Free cancellation
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-white">
+                    {formatPrice(selectedRoom.occupancy[0]?.price)}
+                  </div>
+                  <div className="text-white/90 text-sm">
+                    {selectedRoom.occupancy[0]?.description}
+                  </div>
+                </div>
+                
+                <button
+                  onClick={handleBookNow}
+                  className="px-8 py-3 bg-white text-[#06EAFC] rounded-lg font-bold hover:bg-gray-100 hover:scale-105 transition-all duration-300"
+                >
+                  Book Now
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Payment Options Info */}
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Payment Options Available</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-blue-600 font-bold">$</span>
+                </div>
+                <span className="font-medium">Pay at Hotel</span>
+              </div>
+              <p className="text-xs text-gray-600">
+                Pay when you arrive at the hotel
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                  <span className="text-green-600 font-bold">✓</span>
+                </div>
+                <span className="font-medium">Free Cancellation</span>
+              </div>
+              <p className="text-xs text-gray-600">
+                Cancel up to 24 hours before check-in
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                  <span className="text-purple-600 font-bold">⏰</span>
+                </div>
+                <span className="font-medium">Pay Later Option</span>
+              </div>
+              <p className="text-xs text-gray-600">
+                Reserve now, pay when you check in
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
