@@ -1,643 +1,611 @@
 // src/pages/BookingPage.jsx
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
+import PaymentOptions from "../../pages/Booking/PaymentOptions";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faMapMarkerAlt, faStar, faChevronLeft, faPrint, faHome } from "@fortawesome/free-solid-svg-icons";
+import { 
+  faMapMarkerAlt, 
+  faStar, 
+  faCalendar, 
+  faUsers,
+  faBed,
+  faCheckCircle,
+  faChevronLeft
+} from "@fortawesome/free-solid-svg-icons";
 
 const BookingPage = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const location = useLocation();
-  const [activeStep, setActiveStep] = useState(1);
+  const navigate = useNavigate();
+  
+  const [vendorData, setVendorData] = useState(null);
+  const [selectedRoom, setSelectedRoom] = useState(null);
   const [bookingData, setBookingData] = useState({
-    guestName: "",
-    contactName: "",
-    email: "",
-    phoneNumber: "",
-    country: "",
-    numberOfGuests: "1",
-    expectedGuests: "1",
-    date: "",
-    time: "",
     checkInDate: "",
     checkOutDate: "",
     numberOfRooms: "1",
-    numberOfNights: "1"
+    numberOfNights: "1",
+    numberOfGuests: "1",
+    contactName: "",
+    email: "",
+    phoneNumber: "",
+    specialRequests: ""
   });
-  const [vendorData, setVendorData] = useState(null);
-  const [selectedRoom, setSelectedRoom] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [selectedPayment, setSelectedPayment] = useState("card");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Initialize booking data from location state or localStorage
   useEffect(() => {
-    const initializeBooking = async () => {
-      try {
-        // Get vendor data from location state
-        if (location.state?.vendorData) {
-          setVendorData(location.state.vendorData);
-        } else {
-          // Fallback mock data
-          setVendorData({
-            name: "Golden Tulip Event Centre",
-            area: "Mokola, Ibadan",
-            address: "Mokola, Rd. 2314",
-            description: "Sunrise Premium Hotel offers a blend of comfort, modern amenities, and warm hospitality in the heart of Ibadan.",
-            rating: "4.78",
-            reviews: "23",
-            priceFrom: "₦85,000",
-            category: "event"
-          });
+    // Get data from location state
+    if (location.state) {
+      console.log("Location state:", location.state);
+      setVendorData(location.state.vendorData);
+      setSelectedRoom(location.state.selectedRoom);
+    } else {
+      // Try to get data from localStorage
+      const storedBooking = localStorage.getItem('currentVendorBooking');
+      if (storedBooking) {
+        try {
+          const parsed = JSON.parse(storedBooking);
+          setVendorData(parsed);
+          setSelectedRoom(parsed.selectedRoom);
+        } catch (error) {
+          console.error("Error parsing stored booking:", error);
         }
-
-        // Check for selected room data
-        const selectedRoomData = localStorage.getItem("selectedRoomData");
-        if (selectedRoomData) {
-          try {
-            const parsedRoom = JSON.parse(selectedRoomData);
-            setSelectedRoom(parsedRoom);
-            localStorage.removeItem("selectedRoomData");
-          } catch (error) {
-            console.error("Error parsing selected room data:", error);
-          }
-        }
-      } catch (error) {
-        console.error("Error initializing booking:", error);
-      } finally {
-        setLoading(false);
       }
-    };
-
-    initializeBooking();
+    }
   }, [location.state]);
+
+  useEffect(() => {
+    // Pre-fill form with default values
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    setBookingData(prev => ({
+      ...prev,
+      checkInDate: today.toISOString().split('T')[0],
+      checkOutDate: tomorrow.toISOString().split('T')[0],
+      numberOfNights: "1",
+      numberOfGuests: selectedRoom?.maxGuests ? selectedRoom.maxGuests.toString() : "1"
+    }));
+  }, [selectedRoom]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setBookingData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setBookingData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleQuantityChange = (field, delta) => {
-    setBookingData(prev => ({
-      ...prev,
-      [field]: Math.max(1, parseInt(prev[field] || "1") + delta).toString()
-    }));
+  const calculateTotal = () => {
+    if (!selectedRoom) {
+      const basePrice = vendorData?.priceFrom ? 
+        parseInt(vendorData.priceFrom.toString().replace(/[^\d]/g, "")) : 85000;
+      const nights = parseInt(bookingData.numberOfNights) || 1;
+      return basePrice * nights + 7500; // Add service fee
+    }
+    
+    const roomPrice = selectedRoom.occupancy[0].price;
+    const nights = parseInt(bookingData.numberOfNights) || 1;
+    const rooms = parseInt(bookingData.numberOfRooms) || 1;
+    return (roomPrice * nights * rooms) + 7500; // Add service fee
   };
 
-  const handleSubmit = (e) => {
+  const formatPrice = (price) => {
+    if (!price) return "₦ --";
+    const num = parseInt(price.toString().replace(/[^\d]/g, ""));
+    if (isNaN(num)) return "₦ --";
+    return `₦${num.toLocaleString()}`;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate required fields
-    if (!bookingData.guestName || !bookingData.email || !bookingData.phoneNumber) {
-      alert("Please fill in all required fields");
+    if (!vendorData) {
+      alert("No vendor data available");
       return;
     }
 
-    // Navigate to confirmation
-    navigate(`/booking-confirmation/${vendorData?.category || 'event'}`, {
-      state: {
-        bookingData,
-        vendorData,
-        selectedRoom
-      }
-    });
+    setIsSubmitting(true);
+
+    // Create booking object
+    const bookingObject = {
+      vendorData,
+      selectedRoom,
+      bookingData,
+      selectedPayment,
+      totalAmount: calculateTotal(),
+      bookingDate: new Date().toISOString(),
+      bookingReference: `BOOK-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    };
+
+    console.log("Submitting booking:", bookingObject);
+
+    // Store booking data
+    localStorage.setItem('lastBooking', JSON.stringify(bookingObject));
+    sessionStorage.setItem('lastBooking', JSON.stringify(bookingObject));
+
+    // Simulate API call
+    setTimeout(() => {
+      setIsSubmitting(false);
+      
+      // Navigate to confirmation page with all data
+      navigate(`/booking-confirmation/${bookingObject.bookingReference}`, {
+        state: {
+          vendorData,
+          bookingData,
+          selectedRoom,
+          selectedPayment,
+          bookingReference: bookingObject.bookingReference,
+          totalAmount: calculateTotal()
+        }
+      });
+    }, 1500);
   };
 
-  const renderEventBooking = () => (
-    <div className="space-y-4 sm:space-y-6">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">Contact information</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <div>
-          <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-            First name *
-          </label>
-          <input
-            type="text"
-            name="guestName"
-            value={bookingData.guestName}
-            onChange={handleInputChange}
-            placeholder="John"
-            className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent placeholder-gray-500"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-            Last name *
-          </label>
-          <input
-            type="text"
-            name="contactName"
-            value={bookingData.contactName}
-            onChange={handleInputChange}
-            placeholder="Adesoye"
-            className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent placeholder-gray-500"
-            required
-          />
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <div>
-          <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-            Email *
-          </label>
-          <input
-            type="email"
-            name="email"
-            value={bookingData.email}
-            onChange={handleInputChange}
-            placeholder="john@example.com"
-            className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent placeholder-gray-500"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-            Mobile number *
-          </label>
-          <input
-            type="tel"
-            name="phoneNumber"
-            value={bookingData.phoneNumber}
-            onChange={handleInputChange}
-            placeholder="+1 (555) 000-0000"
-            className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent placeholder-gray-500"
-            required
-          />
-        </div>
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-          Country/region of residence *
-        </label>
-        <input
-          type="text"
-          name="country"
-          value={bookingData.country || ""}
-          onChange={handleInputChange}
-          placeholder="Enter your country"
-          className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent placeholder-gray-500"
-          required
-        />
-      </div>
-      
-      <div className="mt-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Event details</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          <div>
-            <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-              Date *
-            </label>
-            <input
-              type="date"
-              name="date"
-              value={bookingData.date}
-              onChange={handleInputChange}
-              className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
-              required
-              min={new Date().toISOString().split('T')[0]}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-              Time *
-            </label>
-            <input
-              type="time"
-              name="time"
-              value={bookingData.time}
-              onChange={handleInputChange}
-              className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
-              required
-            />
-          </div>
-        </div>
-        <div className="mt-4">
-          <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-            Expected number of guests *
-          </label>
-          <div className="flex items-center justify-between bg-gray-100 rounded-lg p-3 border border-gray-300">
-            <button
-              type="button"
-              onClick={() => handleQuantityChange('expectedGuests', -1)}
-              className="w-8 h-8 rounded-lg border border-gray-400 bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 hover:border-[#06EAFC] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={parseInt(bookingData.expectedGuests || "1") <= 1}
-            >
-              <span className="text-lg font-bold">-</span>
-            </button>
-            <div className="text-center">
-              <span className="text-lg font-bold text-gray-900">{bookingData.expectedGuests}</span>
-              <span className="block text-xs text-gray-600 mt-1">guests</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleQuantityChange('expectedGuests', 1)}
-              className="w-8 h-8 rounded-lg border border-gray-400 bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 hover:border-[#06EAFC] transition-colors"
-            >
-              <span className="text-lg font-bold">+</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderRestaurantBooking = () => (
-    <div className="space-y-4 sm:space-y-6">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">Contact information</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <div>
-          <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-            First name *
-          </label>
-          <input
-            type="text"
-            name="guestName"
-            value={bookingData.guestName}
-            onChange={handleInputChange}
-            placeholder="John"
-            className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent placeholder-gray-500"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-            Last name *
-          </label>
-          <input
-            type="text"
-            name="contactName"
-            value={bookingData.contactName}
-            onChange={handleInputChange}
-            placeholder="Adesoye"
-            className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent placeholder-gray-500"
-            required
-          />
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <div>
-          <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-            Email *
-          </label>
-          <input
-            type="email"
-            name="email"
-            value={bookingData.email}
-            onChange={handleInputChange}
-            placeholder="john@example.com"
-            className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent placeholder-gray-500"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-            Mobile number *
-          </label>
-          <input
-            type="tel"
-            name="phoneNumber"
-            value={bookingData.phoneNumber}
-            onChange={handleInputChange}
-            placeholder="+1 (555) 000-0000"
-            className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent placeholder-gray-500"
-            required
-          />
-        </div>
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-          Country/region of residence *
-        </label>
-        <input
-          type="text"
-          name="country"
-          value={bookingData.country || ""}
-          onChange={handleInputChange}
-          placeholder="Enter your country"
-          className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent placeholder-gray-500"
-          required
-        />
-      </div>
-      
-      <div className="mt-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Reservation details</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          <div>
-            <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-              Date *
-            </label>
-            <input
-              type="date"
-              name="date"
-              value={bookingData.date}
-              onChange={handleInputChange}
-              className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
-              required
-              min={new Date().toISOString().split('T')[0]}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-              Time *
-            </label>
-            <input
-              type="time"
-              name="time"
-              value={bookingData.time}
-              onChange={handleInputChange}
-              className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
-              required
-            />
-          </div>
-        </div>
-        <div className="mt-4">
-          <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-            Number of guests *
-          </label>
-          <div className="flex items-center justify-between bg-gray-100 rounded-lg p-3 border border-gray-300">
-            <button
-              type="button"
-              onClick={() => handleQuantityChange('numberOfGuests', -1)}
-              className="w-8 h-8 rounded-lg border border-gray-400 bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 hover:border-[#06EAFC] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={parseInt(bookingData.numberOfGuests || "1") <= 1}
-            >
-              <span className="text-lg font-bold">-</span>
-            </button>
-            <div className="text-center">
-              <span className="text-lg font-bold text-gray-900">{bookingData.numberOfGuests}</span>
-              <span className="block text-xs text-gray-600 mt-1">guests</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleQuantityChange('numberOfGuests', 1)}
-              className="w-8 h-8 rounded-lg border border-gray-400 bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 hover:border-[#06EAFC] transition-colors"
-            >
-              <span className="text-lg font-bold">+</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderHotelBooking = () => (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Room Selection Summary */}
-      {selectedRoom && (
-        <div className="bg-gradient-to-r from-[#06EAFC]/10 to-[#06F49F]/10 rounded-xl p-4 mb-6 border border-[#06EAFC]/20">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Room Selected</h3>
-          <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-lg overflow-hidden">
-              <img
-                src={selectedRoom.image}
-                alt={selectedRoom.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div>
-              <h4 className="font-bold text-gray-900">{selectedRoom.name}</h4>
-              <p className="text-gray-600 text-sm">{selectedRoom.capacity} adults</p>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-red-600 font-bold">₦{selectedRoom.price.toLocaleString()}</span>
-                <span className="text-gray-500 line-through">₦{selectedRoom.originalPrice.toLocaleString()}</span>
-                <span className="text-green-600">-{selectedRoom.discount}%</span>
-              </div>
-            </div>
-          </div>
-          <div className="mt-3">
-            <p className="text-sm text-gray-600">Check-in: {selectedRoom.selectedDateRange?.checkIn}</p>
-            <p className="text-sm text-gray-600">Check-out: {selectedRoom.selectedDateRange?.checkOut}</p>
-            <p className="text-sm text-gray-600">Rooms: {selectedRoom.roomCount}</p>
-          </div>
-        </div>
-      )}
-      
-      <h3 className="text-lg font-medium text-gray-900 mb-4">Contact information</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <div>
-          <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-            First name *
-          </label>
-          <input
-            type="text"
-            name="guestName"
-            value={bookingData.guestName}
-            onChange={handleInputChange}
-            placeholder="John"
-            className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent placeholder-gray-500"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-            Last name *
-          </label>
-          <input
-            type="text"
-            name="contactName"
-            value={bookingData.contactName}
-            onChange={handleInputChange}
-            placeholder="Adesoye"
-            className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent placeholder-gray-500"
-            required
-          />
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <div>
-          <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-            Email *
-          </label>
-          <input
-            type="email"
-            name="email"
-            value={bookingData.email}
-            onChange={handleInputChange}
-            placeholder="john@example.com"
-            className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent placeholder-gray-500"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-            Mobile number *
-          </label>
-          <input
-            type="tel"
-            name="phoneNumber"
-            value={bookingData.phoneNumber}
-            onChange={handleInputChange}
-            placeholder="+1 (555) 000-0000"
-            className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent placeholder-gray-500"
-            required
-          />
-        </div>
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-          Country/region of residence *
-        </label>
-        <input
-          type="text"
-          name="country"
-          value={bookingData.country || ""}
-          onChange={handleInputChange}
-          placeholder="Enter your country"
-          className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent placeholder-gray-500"
-          required
-        />
-      </div>
-      
-      {/* Date Selection */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <div>
-          <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-            Check-in Date *
-          </label>
-          <input
-            type="date"
-            name="checkInDate"
-            value={bookingData.checkInDate}
-            onChange={handleInputChange}
-            className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
-            required
-            min={new Date().toISOString().split('T')[0]}
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-            Check-out Date *
-          </label>
-          <input
-            type="date"
-            name="checkOutDate"
-            value={bookingData.checkOutDate}
-            onChange={handleInputChange}
-            className="w-full px-3 sm:px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
-            required
-            min={bookingData.checkInDate || new Date().toISOString().split('T')[0]}
-          />
-        </div>
-      </div>
-      
-      {/* Room Count */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <div>
-          <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-            Number of Rooms *
-          </label>
-          <div className="flex items-center justify-between bg-gray-100 rounded-lg p-3 border border-gray-300">
-            <button
-              type="button"
-              onClick={() => handleQuantityChange('numberOfRooms', -1)}
-              className="w-8 h-8 rounded-lg border border-gray-400 bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 hover:border-[#06EAFC] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={parseInt(bookingData.numberOfRooms || 1) <= 1}
-            >
-              <span className="text-lg font-bold">-</span>
-            </button>
-            <div className="text-center">
-              <span className="text-lg font-bold text-gray-900">{bookingData.numberOfRooms || "1"}</span>
-              <span className="block text-xs text-gray-600 mt-1">rooms</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleQuantityChange('numberOfRooms', 1)}
-              className="w-8 h-8 rounded-lg border border-gray-400 bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 hover:border-[#06EAFC] transition-colors"
-            >
-              <span className="text-lg font-bold">+</span>
-            </button>
-          </div>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-900 uppercase tracking-wider mb-2">
-            Number of Nights *
-          </label>
-          <div className="flex items-center justify-between bg-gray-100 rounded-lg p-3 border border-gray-300">
-            <button
-              type="button"
-              onClick={() => handleQuantityChange('numberOfNights', -1)}
-              className="w-8 h-8 rounded-lg border border-gray-400 bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 hover:border-[#06EAFC] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={parseInt(bookingData.numberOfNights || 1) <= 1}
-            >
-              <span className="text-lg font-bold">-</span>
-            </button>
-            <div className="text-center">
-              <span className="text-lg font-bold text-gray-900">{bookingData.numberOfNights || "1"}</span>
-              <span className="block text-xs text-gray-600 mt-1">nights</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleQuantityChange('numberOfNights', 1)}
-              className="w-8 h-8 rounded-lg border border-gray-400 bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 hover:border-[#06EAFC] transition-colors"
-            >
-              <span className="text-lg font-bold">+</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  if (loading) {
+  if (!vendorData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#06EAFC]"></div>
+      <div className="min-h-screen font-manrope">
+        <Header />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mt-16">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#06EAFC] mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading booking details...</p>
+          </div>
+        </div>
+        <Footer />
       </div>
     );
   }
 
-  const renderBookingForm = () => {
-    const category = vendorData?.category || 'event';
-    switch(category) {
-      case 'hotel':
-        return renderHotelBooking();
-      case 'restaurant':
-        return renderRestaurantBooking();
-      default:
-        return renderEventBooking();
-    }
-  };
+  const isHotel = vendorData.category?.toLowerCase().includes('hotel');
 
   return (
     <div className="min-h-screen font-manrope">
       <Header />
       
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 mt-16">
-        <div className="mb-8">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <FontAwesomeIcon icon={faChevronLeft} className="w-4 h-4 mr-2" />
-            Back
-          </button>
-          
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="bg-gray-100 px-4 sm:px-6 py-4 border-b border-gray-300">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Book {vendorData?.name || "Vendor"}</h2>
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-16">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center text-gray-600 hover:text-gray-900 mb-8"
+        >
+          <FontAwesomeIcon icon={faChevronLeft} className="w-4 h-4 mr-2" />
+          Back
+        </button>
+        
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Left Column - Vendor Info & Booking Form */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Vendor Info */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="w-full sm:w-32 h-32 rounded-xl overflow-hidden flex-shrink-0">
+                  <img
+                    src={vendorData.image || vendorData.images?.[0]}
+                    alt={vendorData.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <h1 className="text-2xl font-bold text-gray-900 mb-2">{vendorData.name}</h1>
+                  <div className="flex items-center gap-2 mb-3">
+                    <FontAwesomeIcon icon={faMapMarkerAlt} className="w-4 h-4 text-gray-600" />
+                    <span className="text-gray-700">{vendorData.area || vendorData.address || "Mokola, Rd. 2314"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <FontAwesomeIcon icon={faStar} className="w-4 h-4 text-yellow-600" />
+                      <span className="font-medium">{vendorData.rating || "4.78"}</span>
+                    </div>
+                    <span className="text-gray-500">({vendorData.reviews || "23"})</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="p-4 sm:p-6 md:p-8">
-              <form onSubmit={handleSubmit}>
-                {renderBookingForm()}
+
+            {/* Selected Room Info (for hotels) */}
+            {selectedRoom && isHotel && (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Selected Room</h2>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="w-full sm:w-48 h-48 rounded-xl overflow-hidden">
+                    <img
+                      src={selectedRoom.image}
+                      alt={selectedRoom.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">{selectedRoom.name}</h3>
+                    <p className="text-gray-600 mb-4">{selectedRoom.description}</p>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="flex items-center gap-2">
+                        <FontAwesomeIcon icon={faUsers} className="w-4 h-4 text-gray-600" />
+                        <span className="text-gray-700">{selectedRoom.maxGuests} guests</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <FontAwesomeIcon icon={faBed} className="w-4 h-4 text-gray-600" />
+                        <span className="text-gray-700">{selectedRoom.beds}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl font-bold text-gray-900">
+                        {formatPrice(selectedRoom.occupancy[0].price)}
+                      </span>
+                      <span className="text-gray-500 line-through text-sm">
+                        {formatPrice(selectedRoom.occupancy[0].originalPrice)}
+                      </span>
+                      <span className="text-green-600 text-sm font-medium bg-green-50 px-2 py-1 rounded">
+                        -{selectedRoom.occupancy[0].discount}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Booking Form */}
+            <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Booking Details</h2>
+              
+              <div className="space-y-6">
+                {isHotel ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Check-in Date
+                        </label>
+                        <input
+                          type="date"
+                          name="checkInDate"
+                          value={bookingData.checkInDate}
+                          onChange={handleInputChange}
+                          required
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Check-out Date
+                        </label>
+                        <input
+                          type="date"
+                          name="checkOutDate"
+                          value={bookingData.checkOutDate}
+                          onChange={handleInputChange}
+                          required
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Number of Nights
+                        </label>
+                        <select
+                          name="numberOfNights"
+                          value={bookingData.numberOfNights}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
+                        >
+                          {[1,2,3,4,5,6,7,8,9,10,11,12,13,14].map(num => (
+                            <option key={num} value={num}>{num} night{num > 1 ? 's' : ''}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Number of Rooms
+                        </label>
+                        <select
+                          name="numberOfRooms"
+                          value={bookingData.numberOfRooms}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
+                        >
+                          {[1,2,3,4,5].map(num => (
+                            <option key={num} value={num}>{num} room{num > 1 ? 's' : ''}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Number of Guests
+                        </label>
+                        <select
+                          name="numberOfGuests"
+                          value={bookingData.numberOfGuests}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
+                        >
+                          {[1,2,3,4,5,6].map(num => (
+                            <option key={num} value={num}>{num} guest{num > 1 ? 's' : ''}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Date
+                      </label>
+                      <input
+                        type="date"
+                        name="date"
+                        value={bookingData.date}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Time
+                      </label>
+                      <select
+                        name="time"
+                        value={bookingData.time}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
+                      >
+                        <option value="">Select time</option>
+                        <option value="08:00">8:00 AM</option>
+                        <option value="09:00">9:00 AM</option>
+                        <option value="10:00">10:00 AM</option>
+                        <option value="11:00">11:00 AM</option>
+                        <option value="12:00">12:00 PM</option>
+                        <option value="13:00">1:00 PM</option>
+                        <option value="14:00">2:00 PM</option>
+                        <option value="15:00">3:00 PM</option>
+                        <option value="16:00">4:00 PM</option>
+                        <option value="17:00">5:00 PM</option>
+                        <option value="18:00">6:00 PM</option>
+                        <option value="19:00">7:00 PM</option>
+                        <option value="20:00">8:00 PM</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Number of Guests
+                      </label>
+                      <select
+                        name="numberOfGuests"
+                        value={bookingData.numberOfGuests}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
+                      >
+                        {[1,2,3,4,5,6,7,8,9,10].map(num => (
+                          <option key={num} value={num}>{num} guest{num > 1 ? 's' : ''}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
                 
-                <div className="mt-8 pt-6 border-t border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Contact Person
+                    </label>
+                    <input
+                      type="text"
+                      name="contactName"
+                      value={bookingData.contactName}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="Your full name"
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={bookingData.email}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="your@email.com"
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    name="phoneNumber"
+                    value={bookingData.phoneNumber}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="+234 800 123 4567"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Special Requests (Optional)
+                  </label>
+                  <textarea
+                    name="specialRequests"
+                    value={bookingData.specialRequests}
+                    onChange={handleInputChange}
+                    rows="4"
+                    placeholder="Any special requirements or requests..."
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </form>
+            
+            {/* Payment Options */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+              <PaymentOptions 
+                onPaymentSelect={setSelectedPayment}
+                selectedPayment={selectedPayment}
+              />
+            </div>
+          </div>
+          
+          {/* Right Column - Booking Summary */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sticky top-24">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Booking Summary</h2>
+              
+              <div className="space-y-4">
+                {/* Vendor Info */}
+                <div className="flex items-start gap-3 pb-4 border-b border-gray-200">
+                  <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                    <img
+                      src={vendorData.image || vendorData.images?.[0]}
+                      alt={vendorData.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 line-clamp-2">{vendorData.name}</h3>
+                    <p className="text-gray-600 text-sm">{vendorData.area || vendorData.address}</p>
+                  </div>
+                </div>
+                
+                {/* Selected Room Info */}
+                {selectedRoom && (
+                  <div className="pb-4 border-b border-gray-200">
+                    <h4 className="font-medium text-gray-900 mb-2">Room Selected</h4>
+                    <p className="text-gray-600 text-sm mb-1">{selectedRoom.name}</p>
+                    <p className="text-gray-500 text-xs">{selectedRoom.description}</p>
+                  </div>
+                )}
+                
+                {/* Booking Details */}
+                <div className="space-y-3 pb-4 border-b border-gray-200">
+                  <h4 className="font-medium text-gray-900">Booking Details</h4>
+                  
+                  {isHotel ? (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 text-sm">Check-in</span>
+                        <span className="font-medium text-sm">{bookingData.checkInDate}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 text-sm">Check-out</span>
+                        <span className="font-medium text-sm">{bookingData.checkOutDate}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 text-sm">Nights</span>
+                        <span className="font-medium text-sm">{bookingData.numberOfNights}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 text-sm">Rooms</span>
+                        <span className="font-medium text-sm">{bookingData.numberOfRooms}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 text-sm">Date</span>
+                        <span className="font-medium text-sm">{bookingData.date || "Not selected"}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 text-sm">Time</span>
+                        <span className="font-medium text-sm">{bookingData.time || "Not selected"}</span>
+                      </div>
+                    </>
+                  )}
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 text-sm">Guests</span>
+                    <span className="font-medium text-sm">{bookingData.numberOfGuests}</span>
+                  </div>
+                </div>
+                
+                {/* Price Breakdown */}
+                <div className="space-y-3 pb-4 border-b border-gray-200">
+                  <h4 className="font-medium text-gray-900">Price Breakdown</h4>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 text-sm">
+                      {selectedRoom ? selectedRoom.name : "Standard rate"} × {bookingData.numberOfNights} night{bookingData.numberOfNights > 1 ? 's' : ''}
+                      {selectedRoom && bookingData.numberOfRooms > 1 && ` × ${bookingData.numberOfRooms} rooms`}
+                    </span>
+                    <span className="font-medium text-sm">
+                      {formatPrice(
+                        (selectedRoom ? selectedRoom.occupancy[0].price : 
+                         (vendorData.priceFrom ? parseInt(vendorData.priceFrom.toString().replace(/[^\d]/g, "")) : 85000)) * 
+                        (parseInt(bookingData.numberOfNights) || 1) *
+                        (selectedRoom ? parseInt(bookingData.numberOfRooms) || 1 : 1)
+                      )}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 text-sm">Service fee</span>
+                    <span className="font-medium text-sm">₦7,500</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 text-sm">Taxes & charges</span>
+                    <span className="font-medium text-sm">Included</span>
+                  </div>
+                </div>
+                
+                {/* Total */}
+                <div className="flex justify-between items-center pt-4">
+                  <span className="text-lg font-bold text-gray-900">Total</span>
+                  <span className="text-2xl font-bold text-[#06EAFC]">{formatPrice(calculateTotal())}</span>
+                </div>
+                
+                {/* Terms */}
+                <div className="pt-4">
+                  <div className="flex items-start gap-2 mb-4">
+                    <input
+                      type="checkbox"
+                      id="terms"
+                      required
+                      className="w-4 h-4 text-[#06EAFC] rounded focus:ring-[#06EAFC] mt-1"
+                    />
+                    <label htmlFor="terms" className="text-sm text-gray-600">
+                      I agree to the terms and conditions, privacy policy, and cancellation policy
+                    </label>
+                  </div>
+                  
                   <button
                     type="submit"
-                    className="w-full px-6 py-3 bg-gradient-to-r from-[#06EAFC] to-[#06F49F] text-white rounded-lg hover:opacity-90 transition-opacity font-medium text-base"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="w-full py-4 bg-gradient-to-r from-[#06EAFC] to-[#06F49F] text-white rounded-xl font-bold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Confirm Booking
+                    {isSubmitting ? (
+                      <div className="flex items-center justify-center">
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        Processing...
+                      </div>
+                    ) : (
+                      `Confirm Booking - ${formatPrice(calculateTotal())}`
+                    )}
                   </button>
+                  
+                  <p className="text-center text-gray-500 text-xs mt-4">
+                    You won't be charged until your booking is confirmed
+                  </p>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         </div>
       </main>
-
+      
       <Footer />
     </div>
   );

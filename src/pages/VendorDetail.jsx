@@ -31,7 +31,7 @@ import { VscVerifiedFilled } from "react-icons/vsc";
 import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import RoomSelection from "../components/RoomSelection"; // New import
+import RoomSelection from "../components/RoomSelection";
 import listingService from "../lib/listingService";
 
 // Fallback images for different categories
@@ -275,7 +275,7 @@ const VendorDetail = () => {
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState(null); // Add selected room state
+  const [selectedRoom, setSelectedRoom] = useState(null);
   const imageRef = useRef(null);
   
   const isAuthenticated = useAuthStatus();
@@ -423,6 +423,36 @@ const VendorDetail = () => {
     setSelectedRoom(room);
   };
 
+  const handleShareClick = () => {
+    const currentUrl = window.location.href;
+    
+    if (navigator.share && isMobile) {
+      navigator.share({
+        title: vendor?.title || vendor?.name || 'Check out this vendor',
+        text: `Check out ${vendor?.title || vendor?.name || 'this amazing vendor'} on Ajani!`,
+        url: currentUrl,
+      })
+      .then(() => showToast("Link shared successfully!", "success"))
+      .catch((error) => {
+        console.log("Sharing failed:", error);
+        copyToClipboard(currentUrl);
+      });
+    } else {
+      copyToClipboard(currentUrl);
+    }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        showToast("Link copied to clipboard!", "success");
+      })
+      .catch(err => {
+        console.error("Failed to copy:", err);
+        showToast("Failed to copy link", "info");
+      });
+  };
+
   const handleBookingClick = () => {
     console.log("Booking clicked for vendor:", vendor);
     
@@ -454,7 +484,7 @@ const VendorDetail = () => {
       vendorId: getVendorIdFromListing(vendor),
       vendorInfo: vendorInfo,
       image: getVendorImages(vendor)[0],
-      selectedRoom: selectedRoom, // Include selected room
+      selectedRoom: selectedRoom,
       bookingType: selectedRoom ? 'room-booking' : 'standard-booking'
     };
     
@@ -466,23 +496,52 @@ const VendorDetail = () => {
     // Also store in session storage for immediate access
     sessionStorage.setItem('currentVendorBooking', JSON.stringify(vendorBookingData));
     
-    // Try to navigate to booking page
-    try {
-      // Navigate with state data
-      navigate('/booking', { 
-        state: { 
-          vendorData: vendorBookingData,
-          vendorId: vendorId,
-          selectedRoom: selectedRoom
-        } 
-      });
-      
-      console.log("Navigation to booking page initiated");
-    } catch (error) {
-      console.error("Navigation error:", error);
-      // Fallback to window.location
-      window.location.href = '/booking';
-    }
+    // Navigate to booking page with the selected room data
+    navigate('/booking', { 
+      state: { 
+        vendorData: vendorBookingData,
+        vendorId: vendorId,
+        selectedRoom: selectedRoom
+      } 
+    });
+  };
+
+  const handleRoomBookNow = (room) => {
+    console.log("Room Book Now clicked:", room);
+    setSelectedRoom(room);
+    
+    const vendorBookingData = {
+      id: vendor._id || vendor.id,
+      name: vendor.title || vendor.name,
+      category: normalizeCategory(vendor.category),
+      originalCategory: vendor.category,
+      priceFrom: vendor.price || vendor.price_from,
+      priceTo: vendor.price_to || vendor.price,
+      area: vendor.location?.area || vendor.area,
+      contact: vendor.contact || vendorInfo?.phone,
+      email: vendor.email || vendorInfo?.email,
+      description: vendor.description,
+      rating: vendor.rating,
+      capacity: vendor.capacity,
+      amenities: vendor.amenities,
+      images: getVendorImages(vendor),
+      vendorId: getVendorIdFromListing(vendor),
+      vendorInfo: vendorInfo,
+      image: getVendorImages(vendor)[0],
+      selectedRoom: room,
+      bookingType: 'room-booking'
+    };
+    
+    localStorage.setItem('currentVendorBooking', JSON.stringify(vendorBookingData));
+    sessionStorage.setItem('currentVendorBooking', JSON.stringify(vendorBookingData));
+    
+    navigate('/booking', { 
+      state: { 
+        vendorData: vendorBookingData,
+        vendorId: vendor._id || vendor.id,
+        selectedRoom: room
+      } 
+    });
   };
 
   const handleOtherListingClick = (listingId) => {
@@ -747,50 +806,59 @@ const VendorDetail = () => {
       <Header />
       
       <main className="pt-14 md:pt-14">
-        {/* Scroll to top on mount handled by useEffect */}
-        
-        <div className="md:hidden fixed top-16 left-0 z-50">
-          <button
-            onClick={() => navigate(-1)}
-            className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 rounded-full transition-all duration-200 cursor-pointer"
-            aria-label="Go back"
-          >
-            <FontAwesomeIcon
-              icon={faArrowLeft}
-              className="text-gray-800 text-base"
-            />
-          </button>
+        {/* Breadcrumb with Back Button for Mobile */}
+        <div className="px-4 sm:px-2 md:px-0">
+          <nav className="flex items-center space-x-2 text-xs text-gray-600 mb-2 md:mb-2 font-manrope">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-1 hover:text-[#06EAFC] transition-colors mr-2"
+            >
+              <FontAwesomeIcon icon={faArrowLeft} className="text-gray-800 text-sm" />
+              <span className="hidden sm:inline">Back</span>
+            </button>
+            <span className="hidden sm:inline">/</span>
+            <Link
+              to="/"
+              className="hover:text-[#06EAFC] transition-colors hover:underline"
+            >
+              Home
+            </Link>
+            <span>/</span>
+            <Link
+              to={`/category/${category.toLowerCase().replace(/\s+/g, "-")}`}
+              className="hover:text-[#06EAFC] transition-colors hover:underline"
+            >
+              {categoryDisplay}
+            </Link>
+            <span>/</span>
+            <span className="text-gray-900 truncate max-w-[120px] md:max-w-xs">
+              {vendor.title || vendor.name}
+            </span>
+          </nav>
         </div>
 
-        <nav className="flex items-center space-x-2 text-xs text-gray-600 mb-2 md:mb-2 px-4 sm:px-2 md:px-0 font-manrope justify-center">
-          <Link
-            to="/"
-            className="hover:text-[#06EAFC] transition-colors hover:underline"
-          >
-            Home
-          </Link>
-          <span>/</span>
-          <Link
-            to={`/category/${category.toLowerCase().replace(/\s+/g, "-")}`}
-            className="hover:text-[#06EAFC] transition-colors hover:underline"
-          >
-            {categoryDisplay}
-          </Link>
-          <span>/</span>
-          <span className="text-gray-900 truncate max-w-[120px] md:max-w-xs">
-            {vendor.title || vendor.name}
-          </span>
-        </nav>
-
         <div className="space-y-3 md:space-y-6">
+          {/* Vendor Header Section */}
           <div className="px-4 sm:px-2 md:px-4 lg:px-8 py-3 md:py-6 bg-white rounded-xl md:rounded-2xl mx-0 md:mx-0 hover:shadow-lg transition-shadow duration-300">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6">
               <div className="flex-1">
-                <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
-                  <h1 className="text-lg md:text-xl lg:text-3xl font-bold text-gray-900 font-manrope line-clamp-2">
-                    {vendor.title || vendor.name}
-                  </h1>
-                  <VscVerifiedFilled className="text-green-500 text-base md:text-xl hover:scale-110 transition-transform duration-200" />
+                <div className="flex flex-col md:flex-row md:items-center justify-between md:gap-4 mb-1 md:mb-2">
+                  <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-0">
+                    <h1 className="text-lg md:text-xl lg:text-3xl font-bold text-gray-900 font-manrope line-clamp-2">
+                      {vendor.title || vendor.name}
+                    </h1>
+                    <VscVerifiedFilled className="text-green-500 text-base md:text-xl hover:scale-110 transition-transform duration-200" />
+                  </div>
+                  
+                  {/* Vendor Info for Desktop */}
+                  <div className="hidden md:block">
+                    {vendorInfo?.email && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <FontAwesomeIcon icon={faEnvelope} className="text-gray-400" />
+                        <span>{vendorInfo.email}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 lg:gap-8">
@@ -827,7 +895,7 @@ const VendorDetail = () => {
                 </div>
                 
                 {vendorInfo && (
-                  <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200 md:hidden">
                     <div className="flex items-center gap-3 mb-2">
                       <div className="w-8 h-8 bg-[#06EAFC] rounded-full flex items-center justify-center">
                         <span className="text-white font-bold text-sm">
@@ -860,6 +928,7 @@ const VendorDetail = () => {
                 <div className="flex gap-4 md:gap-6 items-center">
                   <div className="flex items-center gap-1 md:gap-2 group relative">
                     <button
+                      onClick={handleShareClick}
                       className="w-8 h-8 md:w-10 md:h-10 bg-white border border-gray-200 md:border-2 rounded-full flex items-center justify-center hover:bg-gray-50 hover:scale-110 hover:shadow-md transition-all duration-300 cursor-pointer group"
                     >
                       <RiShare2Line className="text-gray-600 text-base md:text-xl group-hover:text-[#06EAFC] transition-colors duration-300" />
@@ -922,6 +991,7 @@ const VendorDetail = () => {
             </div>
           </div>
 
+          {/* Images Section */}
           <div className="block md:hidden px-0">
             <div className="relative w-full">
               <div
@@ -1055,12 +1125,13 @@ const VendorDetail = () => {
             </div>
           </div>
 
+          {/* Price Range - Centered for all screens */}
           <div className="px-0 md:px-0">
             <div className="text-center bg-white py-4 md:py-6 mx-0 md:mx-0 hover:shadow-md transition-shadow duration-300 rounded-xl">
-              <p className="text-[#00065A] font-manrope text-base md:text-xl font-bold mb-2 md:text-start px-4 sm:px-2 md:px-0 hover:text-[#06EAFC] transition-colors duration-300">
+              <p className="text-[#00065A] font-manrope text-base md:text-xl font-bold mb-2 hover:text-[#06EAFC] transition-colors duration-300">
                 Price Range
               </p>
-              <div className="flex md:justify-start flex-col md:flex-row items-center justify-center gap-1 md:gap-3 px-4 sm:px-2 md:px-0">
+              <div className="flex flex-col items-center justify-center gap-1 md:gap-3">
                 <div className="flex items-center gap-1 md:gap-2 hover:scale-105 transition-transform duration-300">
                   <span className="text-xl md:text-2xl text-gray-900 font-manrope font-bold hover:text-[#06EAFC] transition-colors duration-300">
                     {formatPrice(vendor.price || vendor.price_from)}
@@ -1072,7 +1143,7 @@ const VendorDetail = () => {
                     {formatPrice(vendor.price_to || vendor.price || vendor.price_from)}
                   </span>
                 </div>
-                <span className="text-gray-600 text-sm md:text-base mt-1 md:mt-0 md:ml-3 hover:text-gray-800 transition-colors duration-300">
+                <span className="text-gray-600 text-sm md:text-base mt-1 hover:text-gray-800 transition-colors duration-300">
                   {category === 'hotel' ? 'per night' : 
                    category === 'restaurant' ? 'per meal' : 
                    'per guest'}
@@ -1087,10 +1158,12 @@ const VendorDetail = () => {
               <RoomSelection 
                 category={category}
                 onRoomSelect={handleRoomSelect}
+                onRoomBookNow={handleRoomBookNow}
               />
             </div>
           )}
 
+          {/* Action Buttons */}
           <div className="flex justify-center px-0 md:px-0">
             <div className="w-full md:w-[600px] h-14 md:h-16 bg-gray-200 rounded-none md:rounded-3xl flex items-center justify-between px-4 md:px-12 mx-0 md:mx-0 hover:shadow-lg transition-all duration-300 hover:bg-gray-300/50">
               <button
@@ -1164,6 +1237,7 @@ const VendorDetail = () => {
             </div>
           </div>
 
+          {/* About Section */}
           <section className="w-full bg-[#F7F7FA] rounded-none md:rounded-3xl hover:shadow-lg transition-shadow duration-300">
             <div className="px-4 sm:px-4 md:px-6 lg:px-8 py-6 md:py-8">
               <div className="mb-8 md:mb-12">
@@ -1229,6 +1303,7 @@ const VendorDetail = () => {
             </div>
           </section>
 
+          {/* Tabs Section */}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
             <div className="border-b border-gray-200">
               <nav className="flex space-x-8">
@@ -1500,7 +1575,7 @@ const VendorDetail = () => {
             </div>
           </div>
           
-          {/* Other Listings from This Vendor - MOVED TO BOTTOM */}
+          {/* Other Listings from This Vendor */}
           {vendorListings.length > 0 && (
             <div className="px-4 sm:px-2 md:px-4 lg:px-8 py-6 bg-white rounded-xl">
               <h2 className="text-xl font-bold text-[#00065A] mb-6">
@@ -1543,6 +1618,7 @@ const VendorDetail = () => {
             </div>
           )}
           
+          {/* Call to Action Section */}
           <div className="bg-gradient-to-r from-[#06EAFC] to-[#06F49F] mt-10 py-12">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
               <h2 className="text-3xl font-bold text-white mb-4 hover:scale-105 transition-transform duration-300">Ready to Book?</h2>

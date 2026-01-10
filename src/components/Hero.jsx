@@ -9,33 +9,20 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../lib/axios";
 
-// Import Lucide icons
-import { Search, X, Calendar, Users, ChevronRight, ChevronLeft, Home, Building, Utensils, Store, User, Hotel, Bed, MapPin } from 'lucide-react';
-
-/* ---------------- FALLBACKI'll fix the component according to your specific requirements:
-
-1. Use #06f49f for active tab backgrounds
-2. Apply white background for main elements and #d9d9d9 for sub-elements in the tabs
-3. Add appropriate icons for each suggestion type (location, hotel, restaurant, etc.)
-4. Fix the position of the suggestions modal to be more top above the search button
-5. Make all text in suggestions black
-
-Here's the updated component:
-
-```jsx
-import React, {
-  useEffect,
-  useRef,
-  useState,
-  useCallback,
-  useMemo,
-} from "react";
-import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
-import axiosInstance from "../lib/axios";
-
-// Import Lucide icons
-import { Search, X, Calendar, Users, ChevronRight, ChevronLeft, Home, Building, Utensils, Store, User, Hotel, Bed, MapPin } from 'lucide-react';
+// Lucide Icons
+import {
+  Search,
+  X,
+  Calendar,
+  Users,
+  ChevronRight,
+  ChevronLeft,
+  Hotel,
+  Bed,
+  Utensils,
+  Store,
+  MapPin,
+} from "lucide-react";
 
 /* ---------------- FALLBACKS ---------------- */
 const FALLBACK_IMAGES = {
@@ -59,15 +46,18 @@ const useBackendListings = () => {
     const fetchListings = async () => {
       try {
         setLoading(true);
-        const response = await axiosInstance.get('/listings');
-        if (response.data?.status === 'success' && response.data.data?.listings) {
+        const response = await axiosInstance.get("/listings");
+        if (
+          response.data?.status === "success" &&
+          response.data.data?.listings
+        ) {
           setListings(response.data.data.listings);
         } else {
           setListings([]);
-          setError('No data received from backend');
+          setError("No data received from backend");
         }
       } catch (err) {
-        console.error('Backend API Error:', err.message);
+        console.error("Backend API Error:", err.message);
         setError(err.message);
         setListings([]);
       } finally {
@@ -77,11 +67,10 @@ const useBackendListings = () => {
     fetchListings();
   }, []);
 
-  return { data: listings, loading, error };
+  return { listings, loading, error };
 };
 
 /* ---------------- HELPER FUNCTIONS ---------------- */
-// Format date
 const formatDateLabel = (date) =>
   date.toLocaleDateString("en-US", {
     weekday: "short",
@@ -89,7 +78,6 @@ const formatDateLabel = (date) =>
     day: "numeric",
   });
 
-// Get category display name
 const getCategoryDisplayName = (category) => {
   if (!category || category === "All Categories") return "All Categories";
   return category
@@ -98,7 +86,6 @@ const getCategoryDisplayName = (category) => {
     .join(" ");
 };
 
-// Get location display name
 const getLocationDisplayName = (location) => {
   if (!location || location === "All Locations") return "All Locations";
   return location
@@ -107,7 +94,6 @@ const getLocationDisplayName = (location) => {
     .join(" ");
 };
 
-// Get category breakdown
 const getCategoryBreakdown = (listings) => {
   const categoryCounts = {};
   listings.forEach((item) => {
@@ -117,14 +103,10 @@ const getCategoryBreakdown = (listings) => {
     }
   });
   return Object.entries(categoryCounts)
-    .map(([category, count]) => ({
-      category,
-      count,
-    }))
+    .map(([category, count]) => ({ category, count }))
     .sort((a, b) => b.count - a.count);
 };
 
-// Get location breakdown
 const getLocationBreakdown = (listings) => {
   const locationCounts = {};
   listings.forEach((item) => {
@@ -138,13 +120,11 @@ const getLocationBreakdown = (listings) => {
     .sort((a, b) => b.count - a.count);
 };
 
-// Generate search suggestions - UPDATED FOR EXPLICIT MATCHES
 const generateSearchSuggestions = (query, listings) => {
   if (!query.trim() || !listings.length) return [];
   const queryLower = query.toLowerCase().trim();
   const suggestions = [];
 
-  // Get unique categories and locations
   const uniqueCategories = [
     ...new Set(
       listings
@@ -162,8 +142,6 @@ const generateSearchSuggestions = (query, listings) => {
     ),
   ];
 
-  // 1. First check for EXACT matches (highest priority)
-  // Exact category matches
   const exactCategoryMatches = uniqueCategories
     .filter((category) => {
       const displayName = getCategoryDisplayName(category).toLowerCase();
@@ -181,43 +159,30 @@ const generateSearchSuggestions = (query, listings) => {
         type: "category",
         title: getCategoryDisplayName(category),
         count: totalPlaces,
-        description: `${totalPlaces} ${
-          totalPlaces === 1 ? "place" : "places"
-        } found`,
-        breakdownText: `${totalPlaces} ${getCategoryDisplayName(
-          category
-        )} options available`,
+        description: `${totalPlaces} ${totalPlaces === 1 ? "place" : "places"} found`,
+        breakdownText: `${totalPlaces} ${getCategoryDisplayName(category)} options available`,
         breakdown: locationBreakdown.slice(0, 3),
-        action: () => {
-          // Navigate directly to category page for exact matches
-          const categorySlug = category.toLowerCase().replace(/\s+/g, '-');
-          return `/category/${categorySlug}`;
-        },
+        action: () => `/category/${category.toLowerCase().replace(/\s+/g, "-")}`,
       };
     });
 
-  // Exact location matches
   const exactLocationMatches = uniqueLocations
     .filter((location) => {
       const displayName = getLocationDisplayName(location).toLowerCase();
       return displayName === queryLower;
     })
     .map((location) => {
-      const locationListings = listings.filter(
-        (item) => {
-          const itemLocation = item.location?.area || item.area;
-          return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
-        }
-      );
+      const locationListings = listings.filter((item) => {
+        const itemLocation = item.location?.area || item.area;
+        return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
+      });
       const categoryBreakdown = getCategoryBreakdown(locationListings);
       const totalPlaces = locationListings.length;
       return {
         type: "location",
         title: getLocationDisplayName(location),
         count: totalPlaces,
-        description: `${totalPlaces} ${
-          totalPlaces === 1 ? "place" : "places"
-        } found`,
+        description: `${totalPlaces} ${totalPlaces === 1 ? "place" : "places"} found`,
         breakdownText: `Places in ${getLocationDisplayName(location)}`,
         breakdown: categoryBreakdown.slice(0, 4),
         action: () => {
@@ -228,14 +193,12 @@ const generateSearchSuggestions = (query, listings) => {
       };
     });
 
-  // 2. If there are exact matches, return ONLY those
   if (exactCategoryMatches.length > 0 || exactLocationMatches.length > 0) {
     return [...exactCategoryMatches, ...exactLocationMatches]
       .sort((a, b) => b.count - a.count)
       .slice(0, 4);
   }
 
-  // 3. If no exact matches, show general suggestions
   const categoryMatches = uniqueCategories
     .filter((category) => {
       const displayName = getCategoryDisplayName(category).toLowerCase();
@@ -253,18 +216,10 @@ const generateSearchSuggestions = (query, listings) => {
         type: "category",
         title: getCategoryDisplayName(category),
         count: totalPlaces,
-        description: `${totalPlaces} ${
-          totalPlaces === 1 ? "place" : "places"
-        } found`,
-        breakdownText: `${totalPlaces} ${getCategoryDisplayName(
-          category
-        )} options available`,
+        description: `${totalPlaces} ${totalPlaces === 1 ? "place" : "places"} found`,
+        breakdownText: `${totalPlaces} ${getCategoryDisplayName(category)} options available`,
         breakdown: locationBreakdown.slice(0, 3),
-        action: () => {
-          const params = new URLSearchParams();
-          params.append("category", category);
-          return `/category/${category.toLowerCase().replace(/\s+/g, '-')}`;
-        },
+        action: () => `/category/${category.toLowerCase().replace(/\s+/g, "-")}`,
       };
     });
 
@@ -274,21 +229,17 @@ const generateSearchSuggestions = (query, listings) => {
       return displayName.includes(queryLower);
     })
     .map((location) => {
-      const locationListings = listings.filter(
-        (item) => {
-          const itemLocation = item.location?.area || item.area;
-          return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
-        }
-      );
+      const locationListings = listings.filter((item) => {
+        const itemLocation = item.location?.area || item.area;
+        return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
+      });
       const categoryBreakdown = getCategoryBreakdown(locationListings);
       const totalPlaces = locationListings.length;
       return {
         type: "location",
         title: getLocationDisplayName(location),
         count: totalPlaces,
-        description: `${totalPlaces} ${
-          totalPlaces === 1 ? "place" : "places"
-        } found`,
+        description: `${totalPlaces} ${totalPlaces === 1 ? "place" : "places"} found`,
         breakdownText: `Places in ${getLocationDisplayName(location)}`,
         breakdown: categoryBreakdown.slice(0, 4),
         action: () => {
@@ -299,20 +250,16 @@ const generateSearchSuggestions = (query, listings) => {
       };
     });
 
-  // Combine and sort by relevance
   return [...categoryMatches, ...locationMatches]
     .sort((a, b) => {
-      // Exact word matches first
       const aExact = a.title.toLowerCase() === queryLower;
       const bExact = b.title.toLowerCase() === queryLower;
       if (aExact && !bExact) return -1;
       if (!aExact && bExact) return 1;
-      // Starts with query
       const aStartsWith = a.title.toLowerCase().startsWith(queryLower);
       const bStartsWith = b.title.toLowerCase().startsWith(queryLower);
       if (aStartsWith && !bStartsWith) return -1;
       if (!aStartsWith && bStartsWith) return 1;
-      // Then by count
       return b.count - a.count;
     })
     .slice(0, 8);
@@ -324,7 +271,6 @@ const SimpleCalendar = ({ onSelect, onClose, isCheckIn = true }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
 
-  // Handle click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (modalRef.current && !modalRef.current.contains(event.target)) {
@@ -365,12 +311,10 @@ const SimpleCalendar = ({ onSelect, onClose, isCheckIn = true }) => {
     const firstDay = new Date(year, month, 1).getDay();
     const days = [];
 
-    // Empty cells for days before the first day of the month
     for (let i = 0; i < firstDay; i++) {
       days.push(<div key={`empty-${i}`} className="h-8 w-8"></div>);
     }
 
-    // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day);
       const isToday = date.toDateString() === new Date().toDateString();
@@ -380,8 +324,8 @@ const SimpleCalendar = ({ onSelect, onClose, isCheckIn = true }) => {
           key={day}
           onClick={() => handleDateClick(day)}
           className={`h-8 w-8 rounded-full flex items-center justify-center text-sm
-            ${isToday ? 'border border-blue-500' : ''}
-            ${isSelected ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}
+            ${isToday ? "border border-blue-500" : ""}
+            ${isSelected ? "bg-blue-500 text-white" : "hover:bg-gray-100"}
           `}
         >
           {day}
@@ -394,36 +338,28 @@ const SimpleCalendar = ({ onSelect, onClose, isCheckIn = true }) => {
 
   return (
     <>
-      {/* Backdrop */}
       <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[10000]" onClick={onClose} />
-      
-      {/* Calendar Modal */}
       <div
         ref={modalRef}
-        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2
-          bg-white rounded-xl shadow-2xl z-[10001] w-80 p-4"
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl z-[10001] w-80 p-4"
       >
         <div className="flex justify-between items-center mb-4">
           <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded">
             ←
           </button>
-          <h3 className="font-semibold text-gray-800">
-            {getMonthName(currentDate)}
-          </h3>
+          <h3 className="font-semibold text-gray-800">{getMonthName(currentDate)}</h3>
           <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded">
             →
           </button>
         </div>
         <div className="grid grid-cols-7 gap-1 mb-2">
-          {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+          {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
             <div key={day} className="text-center text-xs text-gray-500 font-medium">
               {day}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1">
-          {renderCalendar()}
-        </div>
+        <div className="grid grid-cols-7 gap-1">{renderCalendar()}</div>
         <div className="mt-4 pt-4 border-t border-gray-200">
           <button
             onClick={() => {
@@ -444,7 +380,6 @@ const SimpleCalendar = ({ onSelect, onClose, isCheckIn = true }) => {
 const GuestSelector = ({ guests, onChange, onClose }) => {
   const modalRef = useRef(null);
 
-  // Handle click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (modalRef.current && !modalRef.current.contains(event.target)) {
@@ -465,18 +400,13 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
 
   return (
     <>
-      {/* Backdrop */}
       <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[10000]" onClick={onClose} />
-      
-      {/* Guest Selector Modal */}
       <div
         ref={modalRef}
-        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2
-          bg-white rounded-xl shadow-2xl z-[10001] w-80 p-6"
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl z-[10001] w-80 p-6"
       >
         <h3 className="font-semibold text-gray-800 mb-6 text-center">Guests & Rooms</h3>
-        
-        {/* Adults */}
+
         <div className="flex justify-between items-center mb-6">
           <div>
             <div className="font-medium text-gray-800">Adults</div>
@@ -484,51 +414,45 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
           </div>
           <div className="flex items-center gap-4">
             <button
-              onClick={() => handleGuestChange('adults', -1)}
+              onClick={() => handleGuestChange("adults", -1)}
               disabled={guests.adults <= 1}
-              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center
-                disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
             >
               <ChevronLeft size={16} />
             </button>
             <span className="w-8 text-center font-medium">{guests.adults}</span>
             <button
-              onClick={() => handleGuestChange('adults', 1)}
-              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center
-                hover:bg-gray-100"
+              onClick={() => handleGuestChange("adults", 1)}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100"
             >
               <ChevronRight size={16} />
             </button>
           </div>
         </div>
-        
-        {/* Children */}
+
         <div className="flex justify-between items-center mb-6">
           <div>
             <div className="font-medium text-gray-800">Children</div>
-            <div className="text-sm text-gray-500">Age 0-17</div>
+            <div className="text-sm text-gray-500">Age 0–17</div>
           </div>
           <div className="flex items-center gap-4">
             <button
-              onClick={() => handleGuestChange('children', -1)}
+              onClick={() => handleGuestChange("children", -1)}
               disabled={guests.children <= 0}
-              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center
-                disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
             >
               <ChevronLeft size={16} />
             </button>
             <span className="w-8 text-center font-medium">{guests.children}</span>
             <button
-              onClick={() => handleGuestChange('children', 1)}
-              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center
-                hover:bg-gray-100"
+              onClick={() => handleGuestChange("children", 1)}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100"
             >
               <ChevronRight size={16} />
             </button>
           </div>
         </div>
-        
-        {/* Rooms */}
+
         <div className="flex justify-between items-center mb-8">
           <div>
             <div className="font-medium text-gray-800">Rooms</div>
@@ -536,25 +460,22 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
           </div>
           <div className="flex items-center gap-4">
             <button
-              onClick={() => handleGuestChange('rooms', -1)}
+              onClick={() => handleGuestChange("rooms", -1)}
               disabled={guests.rooms <= 1}
-              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center
-                disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
             >
               <ChevronLeft size={16} />
             </button>
             <span className="w-8 text-center font-medium">{guests.rooms}</span>
             <button
-              onClick={() => handleGuestChange('rooms', 1)}
-              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center
-                hover:bg-gray-100"
+              onClick={() => handleGuestChange("rooms", 1)}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100"
             >
               <ChevronRight size={16} />
             </button>
           </div>
         </div>
-        
-        {/* Summary and Done Button */}
+
         <div className="pt-4 border-t border-gray-200">
           <div className="text-center mb-4">
             <div className="text-sm text-gray-600">Total Guests</div>
@@ -573,7 +494,6 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
 };
 
 /* ---------------- SEARCH MODAL COMPONENTS ---------------- */
-// Mobile Search Modal Component
 const MobileSearchModal = ({
   searchQuery,
   listings,
@@ -586,32 +506,27 @@ const MobileSearchModal = ({
   const modalRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Generate suggestions
   const suggestions = useMemo(() => {
     return generateSearchSuggestions(inputValue, listings);
   }, [inputValue, listings]);
 
-  // Handle input change
   const handleInputChange = (e) => {
     const value = e.target.value;
     setInputValue(value);
     onTyping(value);
   };
 
-  // Handle clear input
   const handleClearInput = () => {
     setInputValue("");
     onTyping("");
     inputRef.current?.focus();
   };
 
-  // Handle suggestion click
   const handleSuggestionClick = (action) => {
     onSuggestionClick(action);
     onClose();
   };
 
-  // Handle key press
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && inputValue.trim()) {
       const params = new URLSearchParams();
@@ -621,57 +536,35 @@ const MobileSearchModal = ({
     }
   };
 
-  // Focus input when modal opens
   useEffect(() => {
     if (isVisible && inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isVisible]);
 
-  // Prevent body scroll when modal is open
   useEffect(() => {
-    if (isVisible) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
+    if (isVisible) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
+    return () => (document.body.style.overflow = "");
   }, [isVisible]);
 
-  // Sync inputValue with searchQuery prop
-  useEffect(() => {
-    setInputValue(searchQuery);
-  }, [searchQuery]);
+  useEffect(() => setInputValue(searchQuery), [searchQuery]);
 
-  // Don't render if not visible
   if (!isVisible) return null;
 
   return (
     <>
-      {/* Minimal Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9990] animate-fadeIn"
-        onClick={onClose}
-      />
-      
-      {/* Apple-Style Modal Content */}
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9990]" onClick={onClose} />
       <div
         ref={modalRef}
-        className="fixed inset-0 bg-white z-[9991] animate-slideInUp flex flex-col"
-        style={{
-          boxShadow: "0 -25px 50px -12px rgba(0, 0, 0, 0.1)",
-        }}
+        className="fixed inset-0 bg-white z-[9991] flex flex-col"
+        style={{ boxShadow: "0 -25px 50px -12px rgba(0, 0, 0, 0.1)" }}
       >
-        {/* Clean Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4">
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors duration-200"
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600"
             >
               <ChevronLeft size={20} />
             </button>
@@ -682,7 +575,7 @@ const MobileSearchModal = ({
               <input
                 ref={inputRef}
                 type="text"
-                className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-gray-900 text-base placeholder:text-gray-500"
+                className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none text-gray-900 placeholder:text-gray-500"
                 value={inputValue}
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
@@ -692,7 +585,7 @@ const MobileSearchModal = ({
               {inputValue && (
                 <button
                   onClick={handleClearInput}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   <X size={16} />
                 </button>
@@ -700,165 +593,119 @@ const MobileSearchModal = ({
             </div>
           </div>
         </div>
-        
-        {/* Clean Body */}
+
         <div className="flex-1 overflow-y-auto">
           {inputValue.trim() ? (
-            <>
-              {/* Clean Suggestions Section */}
-              {suggestions.length > 0 ? (
-                <div className="p-5">
-                  {/* Clean Header */}
-                  <div className="mb-6">
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-                      Suggestions ({suggestions.length})
-                    </h3>
-                  </div>
-                  {/* Clean Suggestions List */}
-                  <div className="space-y-3">
-                    {suggestions.map((suggestion, index) => (
-                      <button
-                        key={index}
-                        onClick={() =>
-                          handleSuggestionClick(suggestion.action())
-                        }
-                        className="w-full text-left p-4 bg-white rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors duration-200 group"
-                      >
-                        <div className="flex items-start gap-4">
-                          {/* Minimal Icon Container */}
-                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${suggestion.type === "category"
-                            ? "bg-gray-100"
-                            : "bg-gray-100"
-                          }`}>
-                            {suggestion.type === "category" ? (
-                              suggestion.title.toLowerCase().includes("hotel") ? (
-                                <Hotel size={20} className="text-gray-700" />
-                              ) : suggestion.title.toLowerCase().includes("restaurant") ? (
-                                <Utensils size={20} className="text-gray-700" />
-                              ) : suggestion.title.toLowerCase().includes("shortlet") ? (
-                                <Bed size={20} className="text-gray-700" />
-                              ) : (
-                                <Building size={20} className="text-gray-700" />
-                              )
-                            ) : (
-                              <MapPin size={20} className="text-gray-700" />
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-start justify-between mb-2">
-                              <div>
-                                <h4 className="font-medium text-gray-900 text-base">
-                                  {suggestion.title}
-                                </h4>
-                                <p className="text-sm text-gray-600 mt-1">
-                                  {suggestion.description}
-                                </p>
-                              </div>
-                              <span
-                                className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${suggestion.type === "category"
-                                  ? "bg-blue-50 text-blue-700"
-                                  : "bg-purple-50 text-purple-700"
-                                }`}
-                              >
-                                {suggestion.count} {suggestion.count === 1 ? "place" : "places"}
-                              </span>
-                            </div>
-                            {/* Clean Breakdown */}
-                            <div className="mt-3 pt-3 border-t border-gray-100">
-                              <p className="text-xs text-gray-500 mb-2">
-                                {suggestion.breakdownText}
-                              </p>
-                              {/* Clean Breakdown Tags */}
-                              <div className="flex flex-wrap gap-1.5">
-                                {suggestion.breakdown.map((item, idx) => (
-                                  <div
-                                    key={idx}
-                                    className={`text-xs px-2 py-1 rounded ${suggestion.type === "category"
-                                      ? "bg-gray-100 text-gray-700"
-                                      : "bg-gray-100 text-gray-700"
-                                    }`}
-                                  >
-                                    {item.category || item.location} ({item.count})
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        {/* Clean View All CTA */}
-                        <div className="flex items-center justify-end mt-4 pt-3 border-t border-gray-100">
-                          <span className="text-sm text-blue-600 font-medium">
-                            View all
-                          </span>
-                          <ChevronRight size={16} className="ml-1 text-blue-600" />
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                  {/* Clean Show All Results Button */}
-                  <button
-                    onClick={() => {
-                      const params = new URLSearchParams();
-                      params.append("q", inputValue.trim());
-                      onSuggestionClick(`/search-results?${params.toString()}`);
-                      onClose();
-                    }}
-                    className="w-full mt-6 p-4 bg-gray-900 hover:bg-black text-white font-medium rounded-xl transition-colors duration-200"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="text-left">
-                        <p className="text-base font-medium">Show all results</p>
-                        <p className="text-sm text-gray-300 mt-1">
-                          View all matches for "{inputValue}"
-                        </p>
-                      </div>
-                      <ChevronRight size={16} />
-                    </div>
-                  </button>
-                </div>
-              ) : (
-                /* Clean No Results Message */
-                <div className="flex flex-col items-center justify-center h-full py-16 px-4">
-                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                    <Search size={32} className="text-gray-400" />
-                  </div>
-                  <h3 className="text-xl font-medium text-gray-900 mb-3">
-                    No matches found
+            suggestions.length > 0 ? (
+              <div className="p-5">
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+                    Suggestions ({suggestions.length})
                   </h3>
-                  <p className="text-gray-600 text-center max-w-sm mb-8">
-                    Try different keywords or browse our categories
-                  </p>
-                  <button
-                    onClick={() => {
-                      const params = new URLSearchParams();
-                      params.append("q", inputValue.trim());
-                      onSuggestionClick(`/search-results?${params.toString()}`);
-                      onClose();
-                    }}
-                    className="px-6 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-black transition-colors"
-                  >
-                    Search anyway
-                  </button>
                 </div>
-              )}
-            </>
+                <div className="space-y-3">
+                  {suggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleSuggestionClick(suggestion.action())}
+                      className="w-full text-left p-4 bg-white rounded-xl border border-gray-200 hover:bg-gray-50"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-gray-100">
+                          {suggestion.type === "category" ? (
+                            suggestion.title.toLowerCase().includes("hotel") ? (
+                              <Hotel size={20} className="text-gray-700" />
+                            ) : suggestion.title.toLowerCase().includes("restaurant") ? (
+                              <Utensils size={20} className="text-gray-700" />
+                            ) : suggestion.title.toLowerCase().includes("shortlet") ? (
+                              <Bed size={20} className="text-gray-700" />
+                            ) : (
+                              <Store size={20} className="text-gray-700" />
+                            )
+                          ) : (
+                            <MapPin size={20} className="text-gray-700" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <h4 className="font-medium text-gray-900 text-base">{suggestion.title}</h4>
+                              <p className="text-sm text-gray-600 mt-1">{suggestion.description}</p>
+                            </div>
+                            <span className="text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap bg-gray-200 text-gray-900">
+                              {suggestion.count} {suggestion.count === 1 ? "place" : "places"}
+                            </span>
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <p className="text-xs text-gray-500 mb-2">{suggestion.breakdownText}</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {suggestion.breakdown.map((item, idx) => (
+                                <div key={idx} className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
+                                  {item.category || item.location} ({item.count})
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end mt-4 pt-3 border-t border-gray-100">
+                        <span className="text-sm text-blue-600 font-medium">View all</span>
+                        <ChevronRight size={16} className="ml-1 text-blue-600" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => {
+                    const params = new URLSearchParams();
+                    params.append("q", inputValue.trim());
+                    onSuggestionClick(`/search-results?${params.toString()}`);
+                    onClose();
+                  }}
+                  className="w-full mt-6 p-4 bg-gray-900 hover:bg-black text-white font-medium rounded-xl"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-left">
+                      <p className="text-base font-medium">Show all results</p>
+                      <p className="text-sm text-gray-300 mt-1">View all matches for "{inputValue}"</p>
+                    </div>
+                    <ChevronRight size={16} />
+                  </div>
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full py-16 px-4">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                  <Search size={32} className="text-gray-400" />
+                </div>
+                <h3 className="text-xl font-medium text-gray-900 mb-3">No matches found</h3>
+                <p className="text-gray-600 text-center max-w-sm mb-8">
+                  Try different keywords or browse our categories
+                </p>
+                <button
+                  onClick={() => {
+                    const params = new URLSearchParams();
+                    params.append("q", inputValue.trim());
+                    onSuggestionClick(`/search-results?${params.toString()}`);
+                    onClose();
+                  }}
+                  className="px-6 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-black"
+                >
+                  Search anyway
+                </button>
+              </div>
+            )
           ) : (
-            /* Clean Empty State */
             <div className="flex flex-col items-center justify-center h-full py-16 px-4">
               <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
                 <Search size={32} className="text-gray-400" />
               </div>
-              <h3 className="text-xl font-medium text-gray-900 mb-3">
-                Start searching
-              </h3>
+              <h3 className="text-xl font-medium text-gray-900 mb-3">Start searching</h3>
               <p className="text-gray-600 text-center max-w-sm mb-10">
                 Search for hotels, restaurants, shortlets, and vendors in Ibadan
               </p>
-              {/* Clean Popular Search Tips */}
               <div className="w-full max-w-md px-4">
-                <p className="text-sm font-medium text-gray-500 mb-4 text-center">
-                  Popular searches
-                </p>
+                <p className="text-sm font-medium text-gray-500 mb-4 text-center">Popular searches</p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {["Hotels", "Restaurants", "Shortlets", "Vendors"].map((term) => (
                     <button
@@ -867,7 +714,7 @@ const MobileSearchModal = ({
                         setInputValue(term);
                         onTyping(term);
                       }}
-                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors duration-200"
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg"
                     >
                       {term}
                     </button>
@@ -882,7 +729,6 @@ const MobileSearchModal = ({
   );
 };
 
-// Desktop Search Suggestions Component
 const DesktopSearchSuggestions = ({
   searchQuery,
   listings,
@@ -893,77 +739,52 @@ const DesktopSearchSuggestions = ({
 }) => {
   const suggestionsRef = useRef(null);
 
-  // Generate suggestions
   const suggestions = useMemo(() => {
     return generateSearchSuggestions(searchQuery, listings);
   }, [searchQuery, listings]);
 
-  // Handle click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        suggestionsRef.current &&
-        !suggestionsRef.current.contains(event.target)
-      ) {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target)) {
         onClose();
       }
     };
-    if (isVisible) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    if (isVisible) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isVisible, onClose]);
 
-  if (!isVisible || !searchQuery.trim() || suggestions.length === 0)
-    return null;
-
-  const containerWidth = searchBarPosition?.width || 0;
+  if (!isVisible || !searchQuery.trim() || suggestions.length === 0) return null;
 
   return (
     <>
-      {/* Minimal Backdrop */}
-      <div
-        className="fixed inset-0 bg-transparent z-[9980]"
-        onClick={onClose}
-      />
-      
-      {/* Apple-Style Modal Container */}
+      <div className="fixed inset-0 bg-transparent z-[9980]" onClick={onClose} />
       <div
         ref={suggestionsRef}
-        className="absolute bg-white rounded-xl shadow-2xl border border-gray-200 z-[9981] animate-fadeIn overflow-hidden"
+        className="absolute bg-white rounded-xl shadow-2xl border border-gray-200 z-[9981] overflow-hidden"
         style={{
           left: `${searchBarPosition?.left || 0}px`,
-          top: `${(searchBarPosition?.top || 0) - 10}px`, // Position above search bar
-          width: `${containerWidth}px`,
+          top: `${(searchBarPosition?.top || 0) - 10}px`,
+          width: `${searchBarPosition?.width || 0}px`,
           maxHeight: "70vh",
           boxShadow: "0 10px 40px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)",
         }}
       >
-        {/* Clean Suggestions Header */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Search size={16} className="text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">
-                Results for "{searchQuery}"
-              </span>
+              <span className="text-sm font-medium text-gray-700">Results for "{searchQuery}"</span>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded transition-colors"
+              className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded"
               aria-label="Close suggestions"
             >
               <X size={16} />
             </button>
           </div>
         </div>
-        {/* Clean Suggestions List */}
-        <div
-          className="overflow-y-auto"
-          style={{ maxHeight: "calc(70vh - 56px)" }}
-        >
+        <div className="overflow-y-auto" style={{ maxHeight: "calc(70vh - 56px)" }}>
           <div className="p-2">
             {suggestions.map((suggestion, index) => (
               <button
@@ -972,10 +793,9 @@ const DesktopSearchSuggestions = ({
                   onSuggestionClick(suggestion.action());
                   onClose();
                 }}
-                className="w-full text-left p-3 bg-white hover:bg-gray-50 rounded-lg transition-colors duration-150 mb-1 last:mb-0 group"
+                className="w-full text-left p-3 bg-white hover:bg-gray-50 rounded-lg mb-1 last:mb-0"
               >
                 <div className="flex items-start gap-3">
-                  {/* Minimal Icon */}
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100 flex-shrink-0">
                     {suggestion.type === "category" ? (
                       suggestion.title.toLowerCase().includes("hotel") ? (
@@ -985,7 +805,7 @@ const DesktopSearchSuggestions = ({
                       ) : suggestion.title.toLowerCase().includes("shortlet") ? (
                         <Bed size={16} className="text-gray-700" />
                       ) : (
-                        <Building size={16} className="text-gray-700" />
+                        <Store size={16} className="text-gray-700" />
                       )
                     ) : (
                       <MapPin size={16} className="text-gray-700" />
@@ -993,40 +813,22 @@ const DesktopSearchSuggestions = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between mb-1">
-                      <h4 className="font-medium text-gray-900 text-sm truncate">
-                        {suggestion.title}
-                      </h4>
-                      <span
-                        className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ml-2 ${suggestion.type === "category"
-                          ? "bg-blue-50 text-blue-700"
-                          : "bg-purple-50 text-purple-700"
-                        }`}
-                      >
+                      <h4 className="font-medium text-gray-900 text-sm truncate">{suggestion.title}</h4>
+                      <span className="text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap bg-gray-200 text-gray-900">
                         {suggestion.count} {suggestion.count === 1 ? "place" : "places"}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                      {suggestion.description}
-                    </p>
-                    {/* Clean Breakdown */}
+                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">{suggestion.description}</p>
                     <div className="mt-2">
-                      <p className="text-xs text-gray-500 mb-1">
-                        {suggestion.breakdownText}
-                      </p>
-                      {/* Clean Breakdown Tags */}
+                      <p className="text-xs text-gray-500 mb-1">{suggestion.breakdownText}</p>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {suggestion.breakdown.slice(0, 3).map((item, idx) => (
-                          <div
-                            key={idx}
-                            className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded"
-                          >
+                          <div key={idx} className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded">
                             {item.category || item.location} ({item.count})
                           </div>
                         ))}
                         {suggestion.breakdown.length > 3 && (
-                          <span className="text-xs text-gray-500 px-2 py-1">
-                            +{suggestion.breakdown.length - 3} more
-                          </span>
+                          <span className="text-xs text-gray-500 px-2 py-1">+{suggestion.breakdown.length - 3} more</span>
                         )}
                       </div>
                     </div>
@@ -1037,7 +839,6 @@ const DesktopSearchSuggestions = ({
                 </div>
               </button>
             ))}
-            {/* Clean Show All Results Button */}
             <button
               onClick={() => {
                 const params = new URLSearchParams();
@@ -1045,14 +846,12 @@ const DesktopSearchSuggestions = ({
                 onSuggestionClick(`/search-results?${params.toString()}`);
                 onClose();
               }}
-              className="w-full mt-3 p-3 bg-gray-900 hover:bg-black text-white font-medium rounded-lg transition-colors duration-150"
+              className="w-full mt-3 p-3 bg-gray-900 hover:bg-black text-white font-medium rounded-lg"
             >
               <div className="flex items-center justify-between">
                 <div className="text-left">
                   <p className="text-sm font-medium">Show all results</p>
-                  <p className="text-xs text-gray-300 mt-1">
-                    View all matches for "{searchQuery}"
-                  </p>
+                  <p className="text-xs text-gray-300 mt-1">View all matches for "{searchQuery}"</p>
                 </div>
                 <ChevronRight size={16} />
               </div>
@@ -1073,11 +872,10 @@ const DiscoverIbadan = () => {
   const [showMobileModal, setShowMobileModal] = useState(false);
   const [searchBarPosition, setSearchBarPosition] = useState({
     left: 0,
-    bottom: 0,
+    top: 0,
     width: 0,
   });
 
-  // AGODA-STATE STATE
   const [showCheckInCalendar, setShowCheckInCalendar] = useState(false);
   const [showCheckOutCalendar, setShowCheckOutCalendar] = useState(false);
   const [showGuestSelector, setShowGuestSelector] = useState(false);
@@ -1090,17 +888,12 @@ const DiscoverIbadan = () => {
     tomorrow.setDate(tomorrow.getDate() + 1);
     return new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
   });
-  const [guests, setGuests] = useState({
-    adults: 2,
-    children: 0,
-    rooms: 1,
-  });
+  const [guests, setGuests] = useState({ adults: 2, children: 0, rooms: 1 });
 
   const searchInputRef = useRef(null);
   const searchContainerRef = useRef(null);
-  const { data: listings = [], loading } = useBackendListings();
+  const { listings = [], loading } = useBackendListings();
 
-  /* ---------------- MOBILE CHECK ---------------- */
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
@@ -1108,39 +901,25 @@ const DiscoverIbadan = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  /* ---------------- SEARCH BAR POSITION TRACKING ---------------- */
   useEffect(() => {
     if (!searchContainerRef.current || isMobile) return;
-    const container = searchContainerRef.current;
-    const updateSearchBarPosition = () => {
-      const rect = container.getBoundingClientRect();
-      const scrollY = window.scrollY;
-      const scrollX = window.scrollX;
+    const updatePosition = () => {
+      const rect = searchContainerRef.current.getBoundingClientRect();
       setSearchBarPosition({
-        left: rect.left + scrollX,
-        top: rect.top + scrollY, // Changed from bottom to top for positioning above
+        left: rect.left + window.scrollX,
+        top: rect.top + window.scrollY,
         width: rect.width,
       });
     };
-    // Initial update
-    updateSearchBarPosition();
-    // Update on scroll and resize
-    const handleScroll = () => {
-      updateSearchBarPosition();
-    };
-    const handleResize = () => {
-      updateSearchBarPosition();
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", handleResize);
-    // Cleanup
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, { passive: true });
+    window.addEventListener("resize", updatePosition);
     return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("scroll", updatePosition);
+      window.removeEventListener("resize", updatePosition);
     };
-  }, [isMobile, showSuggestions]);
+  }, [isMobile]);
 
-  /* ---------------- SEARCH HANDLERS ---------------- */
   const handleSearchSubmit = useCallback(() => {
     if (searchQuery.trim()) {
       const params = new URLSearchParams();
@@ -1151,14 +930,9 @@ const DiscoverIbadan = () => {
     }
   }, [searchQuery, navigate]);
 
-  const handleKeyPress = useCallback(
-    (e) => {
-      if (e.key === "Enter") {
-        handleSearchSubmit();
-      }
-    },
-    [handleSearchSubmit]
-  );
+  const handleKeyPress = useCallback((e) => {
+    if (e.key === "Enter") handleSearchSubmit();
+  }, [handleSearchSubmit]);
 
   const handleSuggestionClick = useCallback(
     (url) => {
@@ -1169,17 +943,11 @@ const DiscoverIbadan = () => {
     [navigate]
   );
 
-  const handleSearchChange = useCallback(
-    (value) => {
-      setSearchQuery(value);
-      if (!isMobile && value.trim().length > 0) {
-        setShowSuggestions(true);
-      } else {
-        setShowSuggestions(false);
-      }
-    },
-    [isMobile]
-  );
+  const handleSearchChange = useCallback((value) => {
+    setSearchQuery(value);
+    if (!isMobile && value.trim().length > 0) setShowSuggestions(true);
+    else setShowSuggestions(false);
+  }, [isMobile]);
 
   const handleClearSearch = useCallback(() => {
     setSearchQuery("");
@@ -1188,64 +956,38 @@ const DiscoverIbadan = () => {
   }, []);
 
   const handleMobileSearchClick = useCallback(() => {
-    if (isMobile) {
-      setShowMobileModal(true);
-    }
+    if (isMobile) setShowMobileModal(true);
   }, [isMobile]);
 
   const handleSearchFocus = useCallback(() => {
-    if (isMobile) {
-      handleMobileSearchClick();
-    } else if (searchQuery.trim().length > 0) {
-      setShowSuggestions(true);
-    }
+    if (isMobile) handleMobileSearchClick();
+    else if (searchQuery.trim().length > 0) setShowSuggestions(true);
   }, [isMobile, searchQuery, handleMobileSearchClick]);
 
-  /* ---------------- AGODA-STYLE HANDLERS ---------------- */
-  const handleCheckInClick = () => {
-    setShowCheckInCalendar(true);
-    setShowCheckOutCalendar(false);
-  };
-
-  const handleCheckOutClick = () => {
-    setShowCheckOutCalendar(true);
-    setShowCheckInCalendar(false);
-  };
-
-  const handleGuestClick = () => {
-    setShowGuestSelector(true);
-  };
+  const handleCheckInClick = () => setShowCheckInCalendar(true);
+  const handleCheckOutClick = () => setShowCheckOutCalendar(true);
+  const handleGuestClick = () => setShowGuestSelector(true);
 
   const handleCheckInSelect = (date) => {
     setCheckInDate(date);
-    // Auto-set checkout to next day if checkout is before or same as checkin
     const nextDay = new Date(date);
     nextDay.setDate(nextDay.getDate() + 1);
-    if (checkOutDate <= date) {
-      setCheckOutDate(nextDay);
-    }
+    if (checkOutDate <= date) setCheckOutDate(nextDay);
   };
 
-  const handleCheckOutSelect = (date) => {
-    setCheckOutDate(date);
-  };
+  const handleCheckOutSelect = (date) => setCheckOutDate(date);
 
-  const handleGuestsChange = (newGuests) => {
-    setGuests(newGuests);
-  };
+  const handleGuestsChange = (newGuests) => setGuests(newGuests);
 
-  /* ---------------- TAB HANDLERS ---------------- */
   const handleTabClick = (category) => {
     const categoryMap = {
-      "Hotel": "hotel",
-      "Shortlet": "shortlet",
-      "Restaurant": "restaurant",
-      "Vendor": "services",
+      Hotel: "hotel",
+      Shortlet: "shortlet",
+      Restaurant: "restaurant",
+      Vendor: "services",
     };
-    const categorySlug = categoryMap[category];
-    if (categorySlug) {
-      navigate(`/category/${categorySlug}`);
-    }
+    const slug = categoryMap[category];
+    if (slug) navigate(`/category/${slug}`);
   };
 
   return (
@@ -1255,7 +997,7 @@ const DiscoverIbadan = () => {
         <div
           className={`absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20`}
         ></div>
-        
+
         <div className="relative max-w-7xl mx-auto w-full py-4 lg:py-4 lg:mt-[-70px] mt-[-60px]">
           <div className="flex flex-col items-center text-center space-y-4 md:space-y-5 lg:space-y-4">
             {/* Hero Title */}
@@ -1268,169 +1010,114 @@ const DiscoverIbadan = () => {
                 through AI & Local Stories
               </h1>
               <p className="text-[13.5px] sm:text-lg md:text-xl lg:text-[16px] md:mt-3 text-gray-600 font-medium max-w-xl mx-auto px-2">
-                Your all-in-one local guide for hotels, food, events, vendors,
-                and market prices.
+                Your all-in-one local guide for hotels, food, events, vendors, and market prices.
               </p>
             </div>
-            
-            {/* New Tab Design - Replacing Category Images Cards */}
+
+            {/* TABS */}
             <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
-              <div className="flex justify-between items-center gap-2 mb-4">
+              <div className="flex justify-between items-center gap-2 mb-4 p-1 bg-[#f7f7fa] rounded-lg border border-[#f7f7fa]">
                 {["Hotel", "Shortlet", "Restaurant", "Vendor"].map((category) => (
                   <button
                     key={category}
                     onClick={() => handleTabClick(category)}
-                    className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    className={`flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all ${
                       category === "Hotel"
-                        ? "bg-[#06f49f] text-white border border-[#06f49f]"
-                        : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+                        ? "bg-[#06f49f] text-white"
+                        : "bg-[#d9d9d9] text-gray-800"
                     }`}
                   >
-                    {category === "Hotel" && <Hotel size={16} />}
-                    {category === "Shortlet" && <Bed size={16} />}
-                    {category === "Restaurant" && <Utensils size={16} />}
-                    {category === "Vendor" && <Store size={16} />}
-                    {category}
+                    {category === "Hotel" && <Hotel size={14} />}
+                    {category === "Shortlet" && <Bed size={14} />}
+                    {category === "Restaurant" && <Utensils size={14} />}
+                    {category === "Vendor" && <Store size={14} />}
+                    <span className="text-[12.5px] font-medium">{category}</span>
                   </button>
                 ))}
               </div>
             </div>
-            
-            {/* AGODA-STYLE SEARCH BAR - ORIGINAL WIDTH */}
+
+            {/* SEARCH BAR */}
             <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
               <div ref={searchContainerRef} className="relative w-full">
-                {/* Main Search Card */}
                 <div className="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg border border-blue-100 p-3 sm:p-3 md:p-4">
-                  {/* Search Input Row */}
+                  <div className="mb-2 sm:mb-3 cursor-pointer">
+                    <div className="bg-gray-100 rounded-lg px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-gray-200">
+                      <Search size={14} className="text-gray-500" />
+                      <input
+                        ref={searchInputRef}
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => handleSearchChange(e.target.value)}
+                        onFocus={handleSearchFocus}
+                        onKeyPress={handleKeyPress}
+                        placeholder="Search by area, category, or name ..."
+                        className="bg-transparent outline-none w-full text-gray-700 placeholder-gray-500 text-xs cursor-pointer"
+                      />
+                      {searchQuery && (
+                        <button onClick={handleClearSearch} className="text-gray-400 hover:text-gray-600">
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div onClick={handleCheckInClick} className="bg-gray-100 rounded-lg p-2 text-left hover:bg-gray-200 cursor-pointer">
+                      <div className="text-xs text-gray-500 flex items-center gap-1 mb-0.5">
+                        <Calendar size={14} /> Check-in
+                      </div>
+                      <div className="text-xs font-medium text-blue-600">{formatDateLabel(checkInDate)}</div>
+                    </div>
+                    <div onClick={handleCheckOutClick} className="bg-gray-100 rounded-lg p-2 text-left hover:bg-gray-200 cursor-pointer">
+                      <div className="text-xs text-gray-500 flex items-center gap-1 mb-0.5">
+                        <Calendar size={14} /> Check-out
+                      </div>
+                      <div className="text-xs font-medium text-blue-600">{formatDateLabel(checkOutDate)}</div>
+                    </div>
+                  </div>
+
+                  <div className="mb-2 w-full">
+                    <div
+                      onClick={handleGuestClick}
+                      className="inline-flex w-full items-center justify-start rounded-[10px] bg-gray-100 px-4 py-2 text-[12.5px] font-medium text-gray-500 hover:bg-gray-200 cursor-pointer"
+                    >
+                      <Users size={14} className="mr-2" />
+                      <span>{guests.rooms} {guests.rooms === 1 ? "Room" : "Rooms"}</span>
+                      <span className="mx-1">•</span>
+                      <span>{guests.adults} {guests.adults === 1 ? "Adult" : "Adults"}</span>
+                      {guests.children > 0 && (
+                        <>
+                          <span className="mx-1">•</span>
+                          <span>{guests.children} {guests.children === 1 ? "Child" : "Children"}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="w-full">
-                    {/* Search Input */}
-                    <div className="mb-2 sm:mb-3 cursor-pointer">
-                      <div
-                        className="bg-gray-100 rounded-lg px-3 sm:px-3 py-1.5
-                          sm:py-2 text-xs sm:text-xs flex items-center gap-2 hover:bg-gray-200 transition-colors duration-200"
-                      >
-                        <Search size={16} className="text-gray-500" />
-                        <input
-                          ref={searchInputRef}
-                          type="text"
-                          value={searchQuery}
-                          onChange={(e) => handleSearchChange(e.target.value)}
-                          onFocus={handleSearchFocus}
-                          onKeyPress={handleKeyPress}
-                          placeholder="Search by area, category, or name ..."
-                          className="bg-transparent outline-none w-full text-gray-700 placeholder-gray-500 text-xs sm:text-xs md:text-sm cursor-pointer"
-                        />
-                        {searchQuery && (
-                          <button
-                            onClick={handleClearSearch}
-                            className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-                            aria-label="Clear search"
-                          >
-                            <X size={16} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Check-in & Check-out - AGODA STYLE */}
-                    <div className="grid grid-cols-2 gap-2 sm:gap-2 mb-2 sm:mb-3">
-                      {/* Check-in */}
-                      <div
-                        onClick={handleCheckInClick}
-                        className="bg-gray-100 rounded-lg p-2 sm:p-2 text-left hover:bg-gray-200 transition-colors duration-200 cursor-pointer"
-                      >
-                        <div className="text-xs text-gray-500 flex items-center gap-1 mb-0.5">
-                          <Calendar size={16} />
-                          Check-in
-                        </div>
-                        <div className="text-xs sm:text-xs font-medium text-blue-600">
-                          {formatDateLabel(checkInDate)}
-                        </div>
-                      </div>
-                      
-                      {/* Check-out */}
-                      <div
-                        onClick={handleCheckOutClick}
-                        className="bg-gray-100 rounded-lg p-2 sm:p-2 text-left hover:bg-gray-200 transition-colors duration-200 cursor-pointer"
-                      >
-                        <div className="text-xs text-gray-500 flex items-center gap-1 mb-0.5">
-                          <Calendar size={16} />
-                          Check-out
-                        </div>
-                        <div className="text-xs sm:text-xs font-medium text-blue-600">
-                          {formatDateLabel(checkOutDate)}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Room & Guest Info - AGODA STYLE */}
-                    <div className="mb-2 sm:mb-3 w-full">
-                      <div
-                        onClick={handleGuestClick}
-                        className="inline-flex w-full items-center justify-start rounded-[10px] bg-gray-100 px-4 py-2 text-[12.5px] font-medium text-gray-500 hover:bg-gray-200 transition-colors duration-200 cursor-pointer"
-                      >
-                        <Users size={16} className="mr-2 text-gray-500" />
-                        <span>{guests.rooms} {guests.rooms === 1 ? 'Room' : 'Rooms'}</span>
-                        <span className="mx-1 text-gray-500">•</span>
-                        <span>{guests.adults} {guests.adults === 1 ? 'Adult' : 'Adults'}</span>
-                        {guests.children > 0 && (
-                          <>
-                            <span className="mx-1 text-gray-500">•</span>
-                            <span>{guests.children} {guests.children === 1 ? 'Child' : 'Children'}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Search Button */}
-                    <div className="w-full">
-                      <button
-                        onClick={handleSearchSubmit}
-                        className="w-full bg-gradient-to-r from-[#00E38C] to-teal-500 hover:from-[#00c97b] hover:to-teal-600 text-white font-semibold py-2 sm:py-2 px-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
-                      >
-                        <Search size={16} />
-                        <span className="text-xs sm:text-xs md:text-sm">
-                          Search
-                        </span>
-                      </button>
-                    </div>
+                    <button
+                      onClick={handleSearchSubmit}
+                      className="w-full bg-gradient-to-r from-[#00E38C] to-teal-500 hover:from-[#00c97b] hover:to-teal-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2"
+                    >
+                      <Search size={14} />
+                      <span className="text-xs">Search Hotel</span>
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        
-        {/* Green Separator Line */}
+
         <div className="relative">
-          <div className="absolute left-0 right-0 h-[1px] sm:h-[1px] bg-gradient-to-r from-green-400 via-green-500 to-green-400 opacity-70"></div>
+          <div className="absolute left-0 right-0 h-[1px] bg-gradient-to-r from-green-400 via-green-500 to-green-400 opacity-70"></div>
         </div>
       </section>
-      
-      {/* AGODA-STYLE MODALS */}
-      {showCheckInCalendar && (
-        <SimpleCalendar
-          onSelect={handleCheckInSelect}
-          onClose={() => setShowCheckInCalendar(false)}
-          isCheckIn={true}
-        />
-      )}
-      {showCheckOutCalendar && (
-        <SimpleCalendar
-          onSelect={handleCheckOutSelect}
-          onClose={() => setShowCheckOutCalendar(false)}
-          isCheckIn={false}
-        />
-      )}
-      {showGuestSelector && (
-        <GuestSelector
-          guests={guests}
-          onChange={handleGuestsChange}
-          onClose={() => setShowGuestSelector(false)}
-        />
-      )}
-      
-      {/* Apple Standard Desktop Search Suggestions */}
+
+      {showCheckInCalendar && <SimpleCalendar onSelect={handleCheckInSelect} onClose={() => setShowCheckInCalendar(false)} />}
+      {showCheckOutCalendar && <SimpleCalendar onSelect={handleCheckOutSelect} onClose={() => setShowCheckOutCalendar(false)} />}
+      {showGuestSelector && <GuestSelector guests={guests} onChange={handleGuestsChange} onClose={() => setShowGuestSelector(false)} />}
       {!isMobile && (
         <DesktopSearchSuggestions
           searchQuery={searchQuery}
@@ -1441,8 +1128,6 @@ const DiscoverIbadan = () => {
           searchBarPosition={searchBarPosition}
         />
       )}
-      
-      {/* Apple Standard Mobile Fullscreen Search Modal */}
       {isMobile && (
         <MobileSearchModal
           searchQuery={searchQuery}
@@ -1453,59 +1138,18 @@ const DiscoverIbadan = () => {
           isVisible={showMobileModal}
         />
       )}
-      
+
       <style jsx global>{`
-        /* Animation for search suggestions */
-        @keyframes slideInRight {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-        @keyframes slideOutRight {
-          from {
-            transform: translateX(0);
-            opacity: 1;
-          }
-          to {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-        }
         @keyframes slideInUp {
-          from {
-            transform: translateY(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
+          from { transform: translateY(100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
         }
         @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
-        .animate-slideInUp {
-          animation: slideInUp 0.3s ease-out;
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.2s ease-out;
-        }
-        .line-clamp-1 {
-          display: -webkit-box;
-          -webkit-line-clamp: 1;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
+        .animate-slideInUp { animation: slideInUp 0.3s ease-out; }
+        .animate-fadeIn { animation: fadeIn 0.2s ease-out; }
         .line-clamp-2 {
           display: -webkit-box;
           -webkit-line-clamp: 2;

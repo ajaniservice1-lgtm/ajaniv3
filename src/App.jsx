@@ -1,4 +1,4 @@
-// App.js
+// src/App.js
 import React, { Suspense, lazy, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ChatProvider } from "./context/ChatContext";
@@ -72,10 +72,6 @@ const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 ======================= */
 const AdminLayout = lazy(() => import("./components/AdminLayout"));
 const Overview = lazy(() => import("./pages/admin/Overview"));
-// const AdminCustomers = lazy(() => import("./pages/admin/"));
-// const AdminVendors = lazy(() => import("./pages/admin/AdminVendors"));
-// const AdminListings = lazy(() => import("./pages/admin/AdminListings"));
-// const AdminReviews = lazy(() => import("./pages/admin/AdminReviews"));
 
 /* =======================
    LOADING UI
@@ -286,10 +282,38 @@ function App() {
                   <Route path="/search-results" element={<MainLayout><SearchResults /></MainLayout>} />
 
                   {/* BOOKING ROUTES - UPDATED */}
-                  <Route path="/booking/:id?" element={<MainLayout><BookingPage /></MainLayout>} />
-                  <Route path="/booking" element={<MainLayout><BookingPage /></MainLayout>} />
-                  <Route path="/booking-confirmation/:id" element={<MainLayout><BookingConfirmation /></MainLayout>} />
-                  <Route path="/booking-failed/:id" element={<MainLayout><BookingFailed /></MainLayout>} />
+                  <Route 
+                    path="/booking/:id?" 
+                    element={
+                      <ProtectedRoute>
+                        <MainLayout><BookingPage /></MainLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/booking" 
+                    element={
+                      <ProtectedRoute>
+                        <MainLayout><BookingPage /></MainLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/booking-confirmation/:id" 
+                    element={
+                      <ProtectedRoute>
+                        <MainLayout><BookingConfirmation /></MainLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/booking-failed/:id" 
+                    element={
+                      <ProtectedRoute>
+                        <MainLayout><BookingFailed /></MainLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
 
                   {/* AUTH ROUTES */}
                   <Route
@@ -426,10 +450,6 @@ function App() {
                     }
                   >
                     <Route index element={<Overview />} />
-                    {/* <Route path="customers" element={<AdminCustomers />} /> */}
-                    {/* <Route path="vendors" element={<AdminVendors />} /> */}
-                    {/* <Route path="listings" element={<AdminListings />} /> */}
-                    {/* <Route path="reviews" element={<AdminReviews />} /> */}
                   </Route>
 
                   {/* 404 ROUTE */}

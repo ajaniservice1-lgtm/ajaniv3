@@ -1,10 +1,12 @@
 // src/components/RoomSelection.jsx
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faTimes, faWifi, faTv, faCoffee, faSnowflake, faBath, faCar, faUtensils } from '@fortawesome/free-solid-svg-icons';
 
-const RoomSelection = ({ category = 'hotel', onRoomSelect }) => {
+const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData }) => {
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const navigate = useNavigate();
   
   // Sample room data with images
   const roomTypes = [
@@ -141,9 +143,43 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect }) => {
   };
 
   const handleBookNow = () => {
-    if (selectedRoom && onRoomSelect) {
-      onRoomSelect(selectedRoom);
-    }
+    if (!selectedRoom) return;
+    
+    // Prepare booking data
+    const bookingData = {
+      vendorData: vendorData || {
+        id: 'vendor-123',
+        name: 'WETLAND HOTELS',
+        category: 'hotel',
+        area: 'Mokola, Rd. 2314',
+        rating: 4.8,
+        image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80',
+        description: 'Premium hotel with excellent amenities and services'
+      },
+      selectedRoom: selectedRoom,
+      bookingDetails: {
+        checkInDate: new Date().toISOString().split('T')[0],
+        checkOutDate: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
+        numberOfNights: 1,
+        numberOfRooms: 1,
+        numberOfGuests: selectedRoom.occupancy[0]?.guests || 2
+      }
+    };
+    
+    console.log('Booking data:', bookingData);
+    
+    // Store in localStorage for booking page
+    localStorage.setItem('roomBookingData', JSON.stringify(bookingData));
+    sessionStorage.setItem('roomBookingData', JSON.stringify(bookingData));
+    
+    // Navigate to booking page
+    navigate('/booking', {
+      state: {
+        vendorData: bookingData.vendorData,
+        selectedRoom: bookingData.selectedRoom,
+        bookingDetails: bookingData.bookingDetails
+      }
+    });
   };
 
   if (category !== 'hotel') {
