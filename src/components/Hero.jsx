@@ -1016,7 +1016,7 @@ const DiscoverIbadan = () => {
 
             {/* TABS */}
             <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
-              <div className="flex justify-between items-center gap-2 mb-4 p-1 bg-[#f7f7fa] rounded-lg border border-[#f7f7fa]">
+              <div className="flex justify-between items-center gap-2  p-2.5 bg-white rounded-lg border border-[#f7f7fa]">
                 {["Hotel", "Shortlet", "Restaurant", "Vendor"].map((category) => (
                   <button
                     key={category}
@@ -1024,7 +1024,7 @@ const DiscoverIbadan = () => {
                     className={`flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all ${
                       category === "Hotel"
                         ? "bg-[#06f49f] text-white"
-                        : "bg-[#d9d9d9] text-gray-800"
+                        : "bg-gray-100 text-yello-800"
                     }`}
                   >
                     {category === "Hotel" && <Hotel size={14} />}
@@ -1043,7 +1043,7 @@ const DiscoverIbadan = () => {
                 <div className="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg border border-blue-100 p-3 sm:p-3 md:p-4">
                   <div className="mb-2 sm:mb-3 cursor-pointer">
                     <div className="bg-gray-100 rounded-lg px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-gray-200">
-                      <Search size={14} className="text-gray-500" />
+                      <Search size={20} className="text-gray-500" />
                       <input
                         ref={searchInputRef}
                         type="text"
