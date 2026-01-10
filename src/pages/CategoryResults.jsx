@@ -1060,8 +1060,8 @@ const CategoryButtons = ({ selectedCategory, onCategoryClick }) => {
   const buttonConfigs = [
     // { key: "all", label: "All", displayName: "All Categories", icon: faBuilding },
     { key: "hotel", label: "Hotel", displayName: "Hotels", icon: faBuilding },
-    { key: "restaurant", label: "Restaurant", displayName: "Restaurants", icon: faUtensils },
     { key: "shortlet", label: "Shortlet", displayName: "Shortlets", icon: faHome },
+    { key: "restaurant", label: "Restaurant", displayName: "Restaurants", icon: faUtensils },
     { key: "vendor", label: "Vendor", displayName: "Vendors", icon: faTools }
   ];
 
@@ -1082,7 +1082,7 @@ const CategoryButtons = ({ selectedCategory, onCategoryClick }) => {
                     flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-full
                     whitespace-nowrap transition-all duration-200 font-medium
                     ${isSelected 
-                      ? 'bg-[#00065A] text-white shadow-sm' 
+                      ? 'bg-[#06f49f] text-white shadow-sm' 
                       : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
                     }
                     ${button.key === 'all' 
@@ -1117,7 +1117,7 @@ const CategoryButtons = ({ selectedCategory, onCategoryClick }) => {
                     flex items-center justify-center gap-2 px-4 py-3.5 rounded-lg
                     transition-all duration-200 font-medium text-base
                     ${isSelected 
-                      ? 'bg-[#00065A] text-white shadow-sm' 
+                      ? 'bg-[#06f49f] text-white shadow-sm' 
                       : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
                     }
                   `}
