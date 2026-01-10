@@ -8,7 +8,6 @@ import React, {
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../lib/axios";
-
 // Lucide Icons
 import {
   Search,
@@ -22,6 +21,7 @@ import {
   Utensils,
   Store,
   MapPin,
+  User, // 👈 Added for Restaurant
 } from "lucide-react";
 
 /* ---------------- FALLBACKS ---------------- */
@@ -123,8 +123,6 @@ const getLocationBreakdown = (listings) => {
 const generateSearchSuggestions = (query, listings) => {
   if (!query.trim() || !listings.length) return [];
   const queryLower = query.toLowerCase().trim();
-  const suggestions = [];
-
   const uniqueCategories = [
     ...new Set(
       listings
@@ -266,7 +264,7 @@ const generateSearchSuggestions = (query, listings) => {
 };
 
 /* ---------------- CALENDAR COMPONENT ---------------- */
-const SimpleCalendar = ({ onSelect, onClose, isCheckIn = true }) => {
+const SimpleCalendar = ({ onSelect, onClose }) => {
   const modalRef = useRef(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -310,11 +308,9 @@ const SimpleCalendar = ({ onSelect, onClose, isCheckIn = true }) => {
     const daysInMonth = getDaysInMonth(year, month);
     const firstDay = new Date(year, month, 1).getDay();
     const days = [];
-
     for (let i = 0; i < firstDay; i++) {
       days.push(<div key={`empty-${i}`} className="h-8 w-8"></div>);
     }
-
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day);
       const isToday = date.toDateString() === new Date().toDateString();
@@ -332,7 +328,6 @@ const SimpleCalendar = ({ onSelect, onClose, isCheckIn = true }) => {
         </button>
       );
     }
-
     return days;
   };
 
@@ -406,7 +401,6 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
         className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl z-[10001] w-80 p-6"
       >
         <h3 className="font-semibold text-gray-800 mb-6 text-center">Guests & Rooms</h3>
-
         <div className="flex justify-between items-center mb-6">
           <div>
             <div className="font-medium text-gray-800">Adults</div>
@@ -429,7 +423,6 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
             </button>
           </div>
         </div>
-
         <div className="flex justify-between items-center mb-6">
           <div>
             <div className="font-medium text-gray-800">Children</div>
@@ -452,7 +445,6 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
             </button>
           </div>
         </div>
-
         <div className="flex justify-between items-center mb-8">
           <div>
             <div className="font-medium text-gray-800">Rooms</div>
@@ -475,7 +467,6 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
             </button>
           </div>
         </div>
-
         <div className="pt-4 border-t border-gray-200">
           <div className="text-center mb-4">
             <div className="text-sm text-gray-600">Total Guests</div>
@@ -505,7 +496,6 @@ const MobileSearchModal = ({
   const [inputValue, setInputValue] = useState(searchQuery);
   const modalRef = useRef(null);
   const inputRef = useRef(null);
-
   const suggestions = useMemo(() => {
     return generateSearchSuggestions(inputValue, listings);
   }, [inputValue, listings]);
@@ -564,7 +554,7 @@ const MobileSearchModal = ({
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600"
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 cursor-pointer"
             >
               <ChevronLeft size={20} />
             </button>
@@ -585,7 +575,7 @@ const MobileSearchModal = ({
               {inputValue && (
                 <button
                   onClick={handleClearInput}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                 >
                   <X size={16} />
                 </button>
@@ -593,7 +583,6 @@ const MobileSearchModal = ({
             </div>
           </div>
         </div>
-
         <div className="flex-1 overflow-y-auto">
           {inputValue.trim() ? (
             suggestions.length > 0 ? (
@@ -608,7 +597,7 @@ const MobileSearchModal = ({
                     <button
                       key={index}
                       onClick={() => handleSuggestionClick(suggestion.action())}
-                      className="w-full text-left p-4 bg-white rounded-xl border border-gray-200 hover:bg-gray-50"
+                      className="w-full text-left p-4 bg-white rounded-xl border border-gray-200 hover:bg-gray-50 cursor-pointer"
                     >
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-gray-100">
@@ -662,7 +651,7 @@ const MobileSearchModal = ({
                     onSuggestionClick(`/search-results?${params.toString()}`);
                     onClose();
                   }}
-                  className="w-full mt-6 p-4 bg-gray-900 hover:bg-black text-white font-medium rounded-xl"
+                  className="w-full mt-6 p-4 bg-gray-900 hover:bg-black text-white font-medium rounded-xl cursor-pointer"
                 >
                   <div className="flex items-center justify-between">
                     <div className="text-left">
@@ -689,7 +678,7 @@ const MobileSearchModal = ({
                     onSuggestionClick(`/search-results?${params.toString()}`);
                     onClose();
                   }}
-                  className="px-6 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-black"
+                  className="px-6 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-black cursor-pointer"
                 >
                   Search anyway
                 </button>
@@ -714,7 +703,7 @@ const MobileSearchModal = ({
                         setInputValue(term);
                         onTyping(term);
                       }}
-                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg"
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg cursor-pointer"
                     >
                       {term}
                     </button>
@@ -738,7 +727,6 @@ const DesktopSearchSuggestions = ({
   searchBarPosition,
 }) => {
   const suggestionsRef = useRef(null);
-
   const suggestions = useMemo(() => {
     return generateSearchSuggestions(searchQuery, listings);
   }, [searchQuery, listings]);
@@ -777,7 +765,7 @@ const DesktopSearchSuggestions = ({
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded"
+              className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded cursor-pointer"
               aria-label="Close suggestions"
             >
               <X size={16} />
@@ -793,7 +781,7 @@ const DesktopSearchSuggestions = ({
                   onSuggestionClick(suggestion.action());
                   onClose();
                 }}
-                className="w-full text-left p-3 bg-white hover:bg-gray-50 rounded-lg mb-1 last:mb-0"
+                className="w-full text-left p-3 bg-white hover:bg-gray-50 rounded-lg mb-1 last:mb-0 cursor-pointer"
               >
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100 flex-shrink-0">
@@ -846,7 +834,7 @@ const DesktopSearchSuggestions = ({
                 onSuggestionClick(`/search-results?${params.toString()}`);
                 onClose();
               }}
-              className="w-full mt-3 p-3 bg-gray-900 hover:bg-black text-white font-medium rounded-lg"
+              className="w-full mt-3 p-3 bg-gray-900 hover:bg-black text-white font-medium rounded-lg cursor-pointer"
             >
               <div className="flex items-center justify-between">
                 <div className="text-left">
@@ -875,24 +863,20 @@ const DiscoverIbadan = () => {
     top: 0,
     width: 0,
   });
-
   const [showCheckInCalendar, setShowCheckInCalendar] = useState(false);
-  const [showCheckOutCalendar, setShowCheckOutCalendar] = useState(false);
   const [showGuestSelector, setShowGuestSelector] = useState(false);
   const [checkInDate, setCheckInDate] = useState(() => {
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  });
-  const [checkOutDate, setCheckOutDate] = useState(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
   });
   const [guests, setGuests] = useState({ adults: 2, children: 0, rooms: 1 });
 
   const searchInputRef = useRef(null);
   const searchContainerRef = useRef(null);
   const { listings = [], loading } = useBackendListings();
+
+  // ✅ Default active tab is Hotel
+  const [activeTab, setActiveTab] = useState("Hotel");
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -920,19 +904,33 @@ const DiscoverIbadan = () => {
     };
   }, [isMobile]);
 
+  // ✅ "Find X" button: GO STRAIGHT TO CATEGORY PAGE — NO QUERY
   const handleSearchSubmit = useCallback(() => {
-    if (searchQuery.trim()) {
-      const params = new URLSearchParams();
-      params.append("q", searchQuery.trim());
-      navigate(`/search-results?${params.toString()}`);
-      setShowSuggestions(false);
-      setShowMobileModal(false);
-    }
-  }, [searchQuery, navigate]);
+    const categoryMap = {
+      Hotel: "hotel",
+      Shortlet: "shortlet",
+      Restaurant: "restaurant",
+      Vendor: "services",
+    };
+    const slug = categoryMap[activeTab];
+    navigate(slug ? `/category/${slug}` : "/search-results");
+    setShowSuggestions(false);
+    setShowMobileModal(false);
+  }, [activeTab, navigate]);
 
-  const handleKeyPress = useCallback((e) => {
-    if (e.key === "Enter") handleSearchSubmit();
-  }, [handleSearchSubmit]);
+  // ✅ Only Enter key uses the search query
+  const handleKeyPress = useCallback(
+    (e) => {
+      if (e.key === "Enter" && searchQuery.trim()) {
+        const params = new URLSearchParams();
+        params.append("q", searchQuery.trim());
+        navigate(`/search-results?${params.toString()}`);
+        setShowSuggestions(false);
+        setShowMobileModal(false);
+      }
+    },
+    [searchQuery, navigate]
+  );
 
   const handleSuggestionClick = useCallback(
     (url) => {
@@ -965,39 +963,44 @@ const DiscoverIbadan = () => {
   }, [isMobile, searchQuery, handleMobileSearchClick]);
 
   const handleCheckInClick = () => setShowCheckInCalendar(true);
-  const handleCheckOutClick = () => setShowCheckOutCalendar(true);
   const handleGuestClick = () => setShowGuestSelector(true);
 
   const handleCheckInSelect = (date) => {
     setCheckInDate(date);
-    const nextDay = new Date(date);
-    nextDay.setDate(nextDay.getDate() + 1);
-    if (checkOutDate <= date) setCheckOutDate(nextDay);
   };
-
-  const handleCheckOutSelect = (date) => setCheckOutDate(date);
 
   const handleGuestsChange = (newGuests) => setGuests(newGuests);
 
+  // ✅ Tab click only changes UI, no navigation
   const handleTabClick = (category) => {
-    const categoryMap = {
-      Hotel: "hotel",
-      Shortlet: "shortlet",
-      Restaurant: "restaurant",
-      Vendor: "services",
-    };
-    const slug = categoryMap[category];
-    if (slug) navigate(`/category/${slug}`);
+    setActiveTab(category);
   };
+
+  const getSearchPlaceholder = () => {
+    if (activeTab === "Vendor") return "What service do you need?";
+    if (activeTab === "Restaurant") return "Search by restaurant name, cuisine, or area...";
+    if (activeTab === "Shortlet") return "Search by shortlet name, area, or location...";
+    return "Search by hotel name, area, or location...";
+  };
+
+  const getSearchButtonText = () => {
+    if (activeTab === "Hotel") return "Find Hotel";
+    if (activeTab === "Shortlet") return "Find Shortlet";
+    if (activeTab === "Restaurant") return "Find Restaurant";
+    if (activeTab === "Vendor") return "Find Vendor";
+    return "Search";
+  };
+
+  // Compute total people for restaurant
+  const totalPeople = guests.adults + guests.children;
 
   return (
     <div className="min-h-[50%] bg-[#F7F7FA] font-manrope">
       <section className="pt-14 lg:pt-12 text-center bg-[#F7F7FA] overflow-hidden relative">
         {/* Background Pattern */}
         <div
-          className={`absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20`}
+          className={`absolute inset-0 bg-[url('image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20`}
         ></div>
-
         <div className="relative max-w-7xl mx-auto w-full py-4 lg:py-4 lg:mt-[-70px] mt-[-60px]">
           <div className="flex flex-col items-center text-center space-y-4 md:space-y-5 lg:space-y-4">
             {/* Hero Title */}
@@ -1014,23 +1017,26 @@ const DiscoverIbadan = () => {
               </p>
             </div>
 
-            {/* TABS */}
+            {/* TABS — FIXED ICONS ON MOBILE */}
             <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
-              <div className="flex justify-between items-center gap-2  p-2.5 bg-white rounded-lg border border-[#f7f7fa]">
+              <div className="flex justify-between items-center gap-2 p-2.5 bg-white rounded-lg border border-[#f7f7fa]">
                 {["Hotel", "Shortlet", "Restaurant", "Vendor"].map((category) => (
                   <button
                     key={category}
                     onClick={() => handleTabClick(category)}
-                    className={`flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all ${
-                      category === "Hotel"
+                    className={`flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all cursor-pointer ${
+                      activeTab === category
                         ? "bg-[#06f49f] text-white"
-                        : "bg-gray-100 text-yello-800"
+                        : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {category === "Hotel" && <Hotel size={14} />}
-                    {category === "Shortlet" && <Bed size={14} />}
-                    {category === "Restaurant" && <Utensils size={14} />}
-                    {category === "Vendor" && <Store size={14} />}
+                    {/* ✅ Ensure icon doesn't shrink on mobile */}
+                    <span className="flex-shrink-0">
+                      {category === "Hotel" && <Hotel size={14} />}
+                      {category === "Shortlet" && <Bed size={14} />}
+                      {category === "Restaurant" && <Utensils size={14} />}
+                      {category === "Vendor" && <Store size={14} />}
+                    </span>
                     <span className="text-[12.5px] font-medium">{category}</span>
                   </button>
                 ))}
@@ -1041,9 +1047,10 @@ const DiscoverIbadan = () => {
             <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
               <div ref={searchContainerRef} className="relative w-full">
                 <div className="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg border border-blue-100 p-3 sm:p-3 md:p-4">
-                  <div className="mb-2 sm:mb-3 cursor-pointer">
-                    <div className="bg-gray-100 rounded-lg px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-gray-200">
-                      <Search size={20} className="text-gray-500" />
+                  {/* Search Input */}
+                  <div className="mb-2 sm:mb-3">
+                    <div className="bg-gray-100 rounded-lg px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-gray-200 cursor-pointer">
+                      <Search size={20} className="text-gray-500 flex-shrink-0" />
                       <input
                         ref={searchInputRef}
                         type="text"
@@ -1051,57 +1058,124 @@ const DiscoverIbadan = () => {
                         onChange={(e) => handleSearchChange(e.target.value)}
                         onFocus={handleSearchFocus}
                         onKeyPress={handleKeyPress}
-                        placeholder="Search by area, category, or name ..."
-                        className="bg-transparent outline-none w-full text-gray-700 placeholder-gray-500 text-xs cursor-pointer"
+                        placeholder={getSearchPlaceholder()}
+                        className="bg-transparent outline-none w-full text-gray-700 placeholder-gray-500 text-xs min-w-0"
                       />
                       {searchQuery && (
-                        <button onClick={handleClearSearch} className="text-gray-400 hover:text-gray-600">
+                        <button
+                          onClick={handleClearSearch}
+                          className="text-gray-400 hover:text-gray-600 flex-shrink-0 ml-1 cursor-pointer"
+                        >
                           <X size={14} />
                         </button>
                       )}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 mb-2">
-                    <div onClick={handleCheckInClick} className="bg-gray-100 rounded-lg p-2 text-left hover:bg-gray-200 cursor-pointer">
-                      <div className="text-xs text-gray-500 flex items-center gap-1 mb-0.5">
-                        <Calendar size={14} /> Check-in
+                  {/* Dynamic Fields Based on Tab */}
+                  {activeTab === "Hotel" || activeTab === "Shortlet" ? (
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      <div
+                        onClick={handleCheckInClick}
+                        className="bg-gray-100 rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
+                      >
+                        <div className="text-xs text-gray-500 flex items-center justify-center gap-1 mb-0.5">
+                          <Calendar size={14} /> Check-in
+                        </div>
+                        <div className="text-xs font-medium text-blue-600">{formatDateLabel(checkInDate)}</div>
                       </div>
-                      <div className="text-xs font-medium text-blue-600">{formatDateLabel(checkInDate)}</div>
-                    </div>
-                    <div onClick={handleCheckOutClick} className="bg-gray-100 rounded-lg p-2 text-left hover:bg-gray-200 cursor-pointer">
-                      <div className="text-xs text-gray-500 flex items-center gap-1 mb-0.5">
-                        <Calendar size={14} /> Check-out
+                      <div
+                        onClick={handleCheckInClick}
+                        className="bg-gray-100 rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
+                      >
+                        <div className="text-xs text-gray-500 flex items-center justify-center gap-1 mb-0.5">
+                          <Calendar size={14} /> Check-out
+                        </div>
+                        <div className="text-xs font-medium text-blue-600">
+                          {formatDateLabel(new Date(checkInDate.getTime() + 86400000))}
+                        </div>
                       </div>
-                      <div className="text-xs font-medium text-blue-600">{formatDateLabel(checkOutDate)}</div>
                     </div>
-                  </div>
-
-                  <div className="mb-2 w-full">
-                    <div
-                      onClick={handleGuestClick}
-                      className="inline-flex w-full items-center justify-start rounded-[10px] bg-gray-100 px-4 py-2 text-[12.5px] font-medium text-gray-500 hover:bg-gray-200 cursor-pointer"
-                    >
-                      <Users size={14} className="mr-2" />
-                      <span>{guests.rooms} {guests.rooms === 1 ? "Room" : "Rooms"}</span>
-                      <span className="mx-1">•</span>
-                      <span>{guests.adults} {guests.adults === 1 ? "Adult" : "Adults"}</span>
-                      {guests.children > 0 && (
-                        <>
-                          <span className="mx-1">•</span>
-                          <span>{guests.children} {guests.children === 1 ? "Child" : "Children"}</span>
-                        </>
-                      )}
+                  ) : activeTab === "Restaurant" ? (
+                    <div className="space-y-2 mb-2">
+                      <div
+                        onClick={handleCheckInClick}
+                        className="bg-gray-100 rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
+                      >
+                        <div className="text-xs text-gray-500 flex items-center justify-center gap-1 mb-0.5">
+                          <Calendar size={14} /> When are you visiting?
+                        </div>
+                        <div className="text-xs font-medium text-blue-600">{formatDateLabel(checkInDate)}</div>
+                      </div>
+                      {/* ✅ UPDATED: Clickable "Number of People" with User icon */}
+                      <div
+                        onClick={handleGuestClick}
+                        className="bg-gray-100 rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
+                      >
+                        <div className="text-xs text-gray-500 flex items-center justify-center gap-1 mb-0.5">
+                          <User size={14} /> Number of People (optional)
+                        </div>
+                        <div className="text-xs font-medium text-blue-600">
+                          {totalPeople} {totalPeople === 1 ? "person" : "people"}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ) : activeTab === "Vendor" ? (
+                    <div className="space-y-2 mb-2">
+                      <div
+                        onClick={handleCheckInClick}
+                        className="bg-gray-100 rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
+                      >
+                        <div className="text-xs text-gray-500 flex items-center justify-center gap-1 mb-0.5">
+                          <Calendar size={14} /> Preferred service date (optional)
+                        </div>
+                        <div className="text-xs font-medium text-blue-600">{formatDateLabel(checkInDate)}</div>
+                      </div>
+                    </div>
+                  ) : null}
 
+                  {/* Guest Selector — Show for Hotel/Shortlet/Restaurant */}
+                  {(activeTab === "Hotel" || activeTab === "Shortlet" || activeTab === "Restaurant") && (
+                    <div className="mb-2 w-full">
+                      <div
+                        onClick={handleGuestClick}
+                        className="inline-flex w-full items-center justify-center rounded-[10px] bg-gray-100 px-4 py-2 text-[12.5px] font-medium text-gray-500 hover:bg-gray-200 cursor-pointer"
+                      >
+                        {activeTab !== "Restaurant" && (
+                          <>
+                            <span>{guests.rooms} {guests.rooms === 1 ? "Room" : "Rooms"}</span>
+                            <span className="mx-1">•</span>
+                          </>
+                        )}
+                        {/* ✅ For Restaurant: Only show total people with User icon */}
+                        {activeTab === "Restaurant" ? (
+                          <>
+                            <User size={14} className="mr-1" />
+                            <span>{totalPeople} {totalPeople === 1 ? "person" : "people"}</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>{guests.adults} {guests.adults === 1 ? "Adult" : "Adults"}</span>
+                            {guests.children > 0 && (
+                              <>
+                                <span className="mx-1">•</span>
+                                <span>{guests.children} {guests.children === 1 ? "Child" : "Children"}</span>
+                              </>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Search Button */}
                   <div className="w-full">
                     <button
                       onClick={handleSearchSubmit}
-                      className="w-full bg-gradient-to-r from-[#00E38C] to-teal-500 hover:from-[#00c97b] hover:to-teal-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2"
+                      className="w-full bg-gradient-to-r from-[#00E38C] to-teal-500 hover:from-[#00c97b] hover:to-teal-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <Search size={14} />
-                      <span className="text-xs">Search Hotel</span>
+                      <span className="text-xs">{getSearchButtonText()}</span>
                     </button>
                   </div>
                 </div>
@@ -1109,15 +1183,25 @@ const DiscoverIbadan = () => {
             </div>
           </div>
         </div>
-
         <div className="relative">
           <div className="absolute left-0 right-0 h-[1px] bg-gradient-to-r from-green-400 via-green-500 to-green-400 opacity-70"></div>
         </div>
       </section>
 
-      {showCheckInCalendar && <SimpleCalendar onSelect={handleCheckInSelect} onClose={() => setShowCheckInCalendar(false)} />}
-      {showCheckOutCalendar && <SimpleCalendar onSelect={handleCheckOutSelect} onClose={() => setShowCheckOutCalendar(false)} />}
-      {showGuestSelector && <GuestSelector guests={guests} onChange={handleGuestsChange} onClose={() => setShowGuestSelector(false)} />}
+      {showCheckInCalendar && (
+        <SimpleCalendar
+          onSelect={handleCheckInSelect}
+          onClose={() => setShowCheckInCalendar(false)}
+        />
+      )}
+      {showGuestSelector && (
+        <GuestSelector
+          guests={guests}
+          onChange={handleGuestsChange}
+          onClose={() => setShowGuestSelector(false)}
+        />
+      )}
+
       {!isMobile && (
         <DesktopSearchSuggestions
           searchQuery={searchQuery}
