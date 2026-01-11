@@ -21,7 +21,7 @@ import {
   Utensils,
   Store,
   MapPin,
-  User, // 👈 Added for Restaurant
+  User,
 } from "lucide-react";
 
 /* ---------------- FALLBACKS ---------------- */
@@ -120,144 +120,133 @@ const getLocationBreakdown = (listings) => {
     .sort((a, b) => b.count - a.count);
 };
 
-const generateSearchSuggestions = (query, listings) => {
+/* ---------------- UPDATED: CATEGORY-SPECIFIC SEARCH SUGGESTIONS ---------------- */
+const generateSearchSuggestions = (query, listings, activeCategory) => {
   if (!query.trim() || !listings.length) return [];
+
   const queryLower = query.toLowerCase().trim();
-  const uniqueCategories = [
-    ...new Set(
-      listings
-        .map((item) => item.category)
-        .filter((cat) => cat && cat.trim() !== "")
-        .map((cat) => cat.trim())
-    ),
-  ];
+  const suggestions = [];
+
+  // Filter listings by active category first
+  const categoryFilteredListings = activeCategory === "All Categories" 
+    ? listings 
+    : listings.filter(item => {
+        const itemCategory = getCategoryDisplayName(item.category || "").toLowerCase();
+        const activeCategoryLower = activeCategory.toLowerCase();
+        return itemCategory.includes(activeCategoryLower) || 
+               activeCategoryLower.includes(itemCategory);
+      });
+
+  // Get unique locations from category-filtered listings
   const uniqueLocations = [
     ...new Set(
-      listings
+      categoryFilteredListings
         .map((item) => item.location?.area || item.area)
         .filter((loc) => loc && loc.trim() !== "")
         .map((loc) => loc.trim())
     ),
   ];
 
-  const exactCategoryMatches = uniqueCategories
-    .filter((category) => {
-      const displayName = getCategoryDisplayName(category).toLowerCase();
-      return displayName === queryLower;
-    })
-    .map((category) => {
-      const categoryListings = listings.filter(
-        (item) =>
-          item.category &&
-          item.category.toLowerCase() === category.toLowerCase()
-      );
-      const locationBreakdown = getLocationBreakdown(categoryListings);
-      const totalPlaces = categoryListings.length;
-      return {
-        type: "category",
-        title: getCategoryDisplayName(category),
-        count: totalPlaces,
-        description: `${totalPlaces} ${totalPlaces === 1 ? "place" : "places"} found`,
-        breakdownText: `${totalPlaces} ${getCategoryDisplayName(category)} options available`,
-        breakdown: locationBreakdown.slice(0, 3),
-        action: () => `/category/${category.toLowerCase().replace(/\s+/g, "-")}`,
-      };
-    });
-
+  // For exact location matches within the active category
   const exactLocationMatches = uniqueLocations
     .filter((location) => {
       const displayName = getLocationDisplayName(location).toLowerCase();
       return displayName === queryLower;
     })
     .map((location) => {
-      const locationListings = listings.filter((item) => {
+      const locationListings = categoryFilteredListings.filter((item) => {
         const itemLocation = item.location?.area || item.area;
         return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
       });
-      const categoryBreakdown = getCategoryBreakdown(locationListings);
+
       const totalPlaces = locationListings.length;
+
       return {
         type: "location",
         title: getLocationDisplayName(location),
         count: totalPlaces,
-        description: `${totalPlaces} ${totalPlaces === 1 ? "place" : "places"} found`,
-        breakdownText: `Places in ${getLocationDisplayName(location)}`,
-        breakdown: categoryBreakdown.slice(0, 4),
+        description: `Showing ${activeCategory} options in ${getLocationDisplayName(location)}`,
+        breakdownText: "",
+        breakdown: [],
         action: () => {
           const params = new URLSearchParams();
           params.append("location", location);
+          if (activeCategory !== "All Categories") {
+            params.append("category", activeCategory.toLowerCase());
+          }
           return `/search-results?${params.toString()}`;
         },
       };
     });
 
-  if (exactCategoryMatches.length > 0 || exactLocationMatches.length > 0) {
-    return [...exactCategoryMatches, ...exactLocationMatches]
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 4);
+  if (exactLocationMatches.length > 0) {
+    return exactLocationMatches.slice(0, 4);
   }
 
-  const categoryMatches = uniqueCategories
-    .filter((category) => {
-      const displayName = getCategoryDisplayName(category).toLowerCase();
-      return displayName.includes(queryLower);
-    })
-    .map((category) => {
-      const categoryListings = listings.filter(
-        (item) =>
-          item.category &&
-          item.category.toLowerCase() === category.toLowerCase()
-      );
-      const locationBreakdown = getLocationBreakdown(categoryListings);
-      const totalPlaces = categoryListings.length;
-      return {
-        type: "category",
-        title: getCategoryDisplayName(category),
-        count: totalPlaces,
-        description: `${totalPlaces} ${totalPlaces === 1 ? "place" : "places"} found`,
-        breakdownText: `${totalPlaces} ${getCategoryDisplayName(category)} options available`,
-        breakdown: locationBreakdown.slice(0, 3),
-        action: () => `/category/${category.toLowerCase().replace(/\s+/g, "-")}`,
-      };
-    });
-
+  // For location matches within the active category
   const locationMatches = uniqueLocations
     .filter((location) => {
       const displayName = getLocationDisplayName(location).toLowerCase();
       return displayName.includes(queryLower);
     })
     .map((location) => {
-      const locationListings = listings.filter((item) => {
+      const locationListings = categoryFilteredListings.filter((item) => {
         const itemLocation = item.location?.area || item.area;
         return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
       });
-      const categoryBreakdown = getCategoryBreakdown(locationListings);
+
       const totalPlaces = locationListings.length;
+
       return {
         type: "location",
         title: getLocationDisplayName(location),
         count: totalPlaces,
-        description: `${totalPlaces} ${totalPlaces === 1 ? "place" : "places"} found`,
-        breakdownText: `Places in ${getLocationDisplayName(location)}`,
-        breakdown: categoryBreakdown.slice(0, 4),
+        description: `${activeCategory} in ${getLocationDisplayName(location)}`,
+        breakdownText: "",
+        breakdown: [],
         action: () => {
           const params = new URLSearchParams();
           params.append("location", location);
+          if (activeCategory !== "All Categories") {
+            params.append("category", activeCategory.toLowerCase());
+          }
           return `/search-results?${params.toString()}`;
         },
       };
     });
 
-  return [...categoryMatches, ...locationMatches]
+  // Also check for exact category matches (but only if it matches active category)
+  if (activeCategory !== "All Categories") {
+    const categoryLower = activeCategory.toLowerCase();
+    if (categoryLower.includes(queryLower) || queryLower.includes(categoryLower)) {
+      const categoryListings = categoryFilteredListings;
+      const locationBreakdown = getLocationBreakdown(categoryListings);
+      const totalPlaces = categoryListings.length;
+
+      suggestions.push({
+        type: "category",
+        title: activeCategory,
+        count: totalPlaces,
+        description: `Browse all ${activeCategory} options`,
+        breakdownText: "",
+        breakdown: locationBreakdown.slice(0, 3),
+        action: () => {
+          const categorySlug = activeCategory.toLowerCase().replace(/\s+/g, '-');
+          return `/category/${categorySlug}`;
+        },
+      });
+    }
+  }
+
+  return [...suggestions, ...locationMatches]
     .sort((a, b) => {
+      // Exact matches first
       const aExact = a.title.toLowerCase() === queryLower;
       const bExact = b.title.toLowerCase() === queryLower;
       if (aExact && !bExact) return -1;
       if (!aExact && bExact) return 1;
-      const aStartsWith = a.title.toLowerCase().startsWith(queryLower);
-      const bStartsWith = b.title.toLowerCase().startsWith(queryLower);
-      if (aStartsWith && !bStartsWith) return -1;
-      if (!aStartsWith && bStartsWith) return 1;
+      
+      // Then by count
       return b.count - a.count;
     })
     .slice(0, 8);
@@ -492,13 +481,14 @@ const MobileSearchModal = ({
   onClose,
   onTyping,
   isVisible,
+  activeCategory,
 }) => {
   const [inputValue, setInputValue] = useState(searchQuery);
   const modalRef = useRef(null);
   const inputRef = useRef(null);
   const suggestions = useMemo(() => {
-    return generateSearchSuggestions(inputValue, listings);
-  }, [inputValue, listings]);
+    return generateSearchSuggestions(inputValue, listings, activeCategory);
+  }, [inputValue, listings, activeCategory]);
 
   const handleInputChange = (e) => {
     const value = e.target.value;
@@ -521,6 +511,9 @@ const MobileSearchModal = ({
     if (e.key === "Enter" && inputValue.trim()) {
       const params = new URLSearchParams();
       params.append("q", inputValue.trim());
+      if (activeCategory !== "All Categories") {
+        params.append("category", activeCategory.toLowerCase());
+      }
       onSuggestionClick(`/search-results?${params.toString()}`);
       onClose();
     }
@@ -569,7 +562,7 @@ const MobileSearchModal = ({
                 value={inputValue}
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
-                placeholder="Search hotels, restaurants, shortlets, vendors..."
+                placeholder={`Search ${activeCategory.toLowerCase()}...`}
                 autoFocus
               />
               {inputValue && (
@@ -621,24 +614,22 @@ const MobileSearchModal = ({
                               <h4 className="font-medium text-gray-900 text-base">{suggestion.title}</h4>
                               <p className="text-sm text-gray-600 mt-1">{suggestion.description}</p>
                             </div>
-                            <span className="text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap bg-gray-200 text-gray-900">
-                              {suggestion.count} {suggestion.count === 1 ? "place" : "places"}
-                            </span>
                           </div>
-                          <div className="mt-3 pt-3 border-t border-gray-100">
-                            <p className="text-xs text-gray-500 mb-2">{suggestion.breakdownText}</p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {suggestion.breakdown.map((item, idx) => (
-                                <div key={idx} className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
-                                  {item.category || item.location} ({item.count})
-                                </div>
-                              ))}
+                          {suggestion.breakdown && suggestion.breakdown.length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-gray-100">
+                              <div className="flex flex-wrap gap-1.5">
+                                {suggestion.breakdown.map((item, idx) => (
+                                  <div key={idx} className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
+                                    {item.location} ({item.count})
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center justify-end mt-4 pt-3 border-t border-gray-100">
-                        <span className="text-sm text-blue-600 font-medium">View all</span>
+                        <span className="text-sm text-blue-600 font-medium">View options</span>
                         <ChevronRight size={16} className="ml-1 text-blue-600" />
                       </div>
                     </button>
@@ -648,6 +639,9 @@ const MobileSearchModal = ({
                   onClick={() => {
                     const params = new URLSearchParams();
                     params.append("q", inputValue.trim());
+                    if (activeCategory !== "All Categories") {
+                      params.append("category", activeCategory.toLowerCase());
+                    }
                     onSuggestionClick(`/search-results?${params.toString()}`);
                     onClose();
                   }}
@@ -656,7 +650,7 @@ const MobileSearchModal = ({
                   <div className="flex items-center justify-between">
                     <div className="text-left">
                       <p className="text-base font-medium">Show all results</p>
-                      <p className="text-sm text-gray-300 mt-1">View all matches for "{inputValue}"</p>
+                      <p className="text-sm text-gray-300 mt-1">View all {activeCategory} matches for "{inputValue}"</p>
                     </div>
                     <ChevronRight size={16} />
                   </div>
@@ -675,6 +669,9 @@ const MobileSearchModal = ({
                   onClick={() => {
                     const params = new URLSearchParams();
                     params.append("q", inputValue.trim());
+                    if (activeCategory !== "All Categories") {
+                      params.append("category", activeCategory.toLowerCase());
+                    }
                     onSuggestionClick(`/search-results?${params.toString()}`);
                     onClose();
                   }}
@@ -691,12 +688,12 @@ const MobileSearchModal = ({
               </div>
               <h3 className="text-xl font-medium text-gray-900 mb-3">Start searching</h3>
               <p className="text-gray-600 text-center max-w-sm mb-10">
-                Search for hotels, restaurants, shortlets, and vendors in Ibadan
+                Search for {activeCategory.toLowerCase()} in Ibadan
               </p>
               <div className="w-full max-w-md px-4">
-                <p className="text-sm font-medium text-gray-500 mb-4 text-center">Popular searches</p>
+                <p className="text-sm font-medium text-gray-500 mb-4 text-center">Popular locations</p>
                 <div className="flex flex-wrap gap-2 justify-center">
-                  {["Hotels", "Restaurants", "Shortlets", "Vendors"].map((term) => (
+                  {["Bodija", "Sango", "UI", "Mokola", "Dugbe"].map((term) => (
                     <button
                       key={term}
                       onClick={() => {
@@ -725,11 +722,12 @@ const DesktopSearchSuggestions = ({
   onClose,
   isVisible,
   searchBarPosition,
+  activeCategory,
 }) => {
   const suggestionsRef = useRef(null);
   const suggestions = useMemo(() => {
-    return generateSearchSuggestions(searchQuery, listings);
-  }, [searchQuery, listings]);
+    return generateSearchSuggestions(searchQuery, listings, activeCategory);
+  }, [searchQuery, listings, activeCategory]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -761,7 +759,7 @@ const DesktopSearchSuggestions = ({
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Search size={16} className="text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">Results for "{searchQuery}"</span>
+              <span className="text-sm font-medium text-gray-700">{activeCategory} results for "{searchQuery}"</span>
             </div>
             <button
               onClick={onClose}
@@ -802,24 +800,19 @@ const DesktopSearchSuggestions = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between mb-1">
                       <h4 className="font-medium text-gray-900 text-sm truncate">{suggestion.title}</h4>
-                      <span className="text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap bg-gray-200 text-gray-900">
-                        {suggestion.count} {suggestion.count === 1 ? "place" : "places"}
-                      </span>
                     </div>
                     <p className="text-xs text-gray-600 mb-2 line-clamp-2">{suggestion.description}</p>
-                    <div className="mt-2">
-                      <p className="text-xs text-gray-500 mb-1">{suggestion.breakdownText}</p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {suggestion.breakdown.slice(0, 3).map((item, idx) => (
-                          <div key={idx} className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded">
-                            {item.category || item.location} ({item.count})
-                          </div>
-                        ))}
-                        {suggestion.breakdown.length > 3 && (
-                          <span className="text-xs text-gray-500 px-2 py-1">+{suggestion.breakdown.length - 3} more</span>
-                        )}
+                    {suggestion.breakdown && suggestion.breakdown.length > 0 && (
+                      <div className="mt-2">
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {suggestion.breakdown.slice(0, 3).map((item, idx) => (
+                            <div key={idx} className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded">
+                              {item.location} ({item.count})
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                   <div className="flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <ChevronRight size={16} className="text-gray-400" />
@@ -831,6 +824,9 @@ const DesktopSearchSuggestions = ({
               onClick={() => {
                 const params = new URLSearchParams();
                 params.append("q", searchQuery.trim());
+                if (activeCategory !== "All Categories") {
+                  params.append("category", activeCategory.toLowerCase());
+                }
                 onSuggestionClick(`/search-results?${params.toString()}`);
                 onClose();
               }}
@@ -839,7 +835,7 @@ const DesktopSearchSuggestions = ({
               <div className="flex items-center justify-between">
                 <div className="text-left">
                   <p className="text-sm font-medium">Show all results</p>
-                  <p className="text-xs text-gray-300 mt-1">View all matches for "{searchQuery}"</p>
+                  <p className="text-xs text-gray-300 mt-1">View all {activeCategory} matches for "{searchQuery}"</p>
                 </div>
                 <ChevronRight size={16} />
               </div>
@@ -924,12 +920,13 @@ const DiscoverIbadan = () => {
       if (e.key === "Enter" && searchQuery.trim()) {
         const params = new URLSearchParams();
         params.append("q", searchQuery.trim());
+        params.append("category", activeTab.toLowerCase());
         navigate(`/search-results?${params.toString()}`);
         setShowSuggestions(false);
         setShowMobileModal(false);
       }
     },
-    [searchQuery, navigate]
+    [searchQuery, navigate, activeTab]
   );
 
   const handleSuggestionClick = useCallback(
@@ -1210,6 +1207,7 @@ const DiscoverIbadan = () => {
           onClose={() => setShowSuggestions(false)}
           isVisible={showSuggestions && !loading}
           searchBarPosition={searchBarPosition}
+          activeCategory={activeTab}
         />
       )}
       {isMobile && (
@@ -1220,6 +1218,7 @@ const DiscoverIbadan = () => {
           onClose={() => setShowMobileModal(false)}
           onTyping={handleSearchChange}
           isVisible={showMobileModal}
+          activeCategory={activeTab}
         />
       )}
 
