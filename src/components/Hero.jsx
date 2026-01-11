@@ -8,21 +8,25 @@ import React, {
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../lib/axios";
-// Lucide Icons
+// FontAwesome Icons
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  Search,
-  X,
-  Calendar,
-  Users,
-  ChevronRight,
-  ChevronLeft,
-  Hotel,
-  Bed,
-  Utensils,
-  Store,
-  MapPin,
-  User,
-} from "lucide-react";
+  faSearch,
+  faTimes,
+  faCalendarAlt,
+  faUsers,
+  faChevronRight,
+  faChevronLeft,
+  faHotel,
+  faBed,
+  faUtensils,
+  faStore,
+  faMapMarkerAlt,
+  faUser,
+  faBuilding,
+  faHome,
+  faTools,
+} from "@fortawesome/free-solid-svg-icons";
 
 /* ---------------- FALLBACKS ---------------- */
 const FALLBACK_IMAGES = {
@@ -401,14 +405,14 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
               disabled={guests.adults <= 1}
               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
             >
-              <ChevronLeft size={16} />
+              <FontAwesomeIcon icon={faChevronLeft} size="sm" />
             </button>
             <span className="w-8 text-center font-medium">{guests.adults}</span>
             <button
               onClick={() => handleGuestChange("adults", 1)}
               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100"
             >
-              <ChevronRight size={16} />
+              <FontAwesomeIcon icon={faChevronRight} size="sm" />
             </button>
           </div>
         </div>
@@ -423,14 +427,14 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
               disabled={guests.children <= 0}
               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
             >
-              <ChevronLeft size={16} />
+              <FontAwesomeIcon icon={faChevronLeft} size="sm" />
             </button>
             <span className="w-8 text-center font-medium">{guests.children}</span>
             <button
               onClick={() => handleGuestChange("children", 1)}
               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100"
             >
-              <ChevronRight size={16} />
+              <FontAwesomeIcon icon={faChevronRight} size="sm" />
             </button>
           </div>
         </div>
@@ -445,14 +449,14 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
               disabled={guests.rooms <= 1}
               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
             >
-              <ChevronLeft size={16} />
+              <FontAwesomeIcon icon={faChevronLeft} size="sm" />
             </button>
             <span className="w-8 text-center font-medium">{guests.rooms}</span>
             <button
               onClick={() => handleGuestChange("rooms", 1)}
               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100"
             >
-              <ChevronRight size={16} />
+              <FontAwesomeIcon icon={faChevronRight} size="sm" />
             </button>
           </div>
         </div>
@@ -549,11 +553,11 @@ const MobileSearchModal = ({
               onClick={onClose}
               className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 cursor-pointer"
             >
-              <ChevronLeft size={20} />
+              <FontAwesomeIcon icon={faChevronLeft} size="lg" />
             </button>
             <div className="flex-1 relative">
               <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                <Search size={16} />
+                <FontAwesomeIcon icon={faSearch} size="sm" />
               </div>
               <input
                 ref={inputRef}
@@ -570,7 +574,7 @@ const MobileSearchModal = ({
                   onClick={handleClearInput}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                 >
-                  <X size={16} />
+                  <FontAwesomeIcon icon={faTimes} size="sm" />
                 </button>
               )}
             </div>
@@ -595,17 +599,15 @@ const MobileSearchModal = ({
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-gray-100">
                           {suggestion.type === "category" ? (
-                            suggestion.title.toLowerCase().includes("hotel") ? (
-                              <Hotel size={20} className="text-gray-700" />
-                            ) : suggestion.title.toLowerCase().includes("restaurant") ? (
-                              <Utensils size={20} className="text-gray-700" />
-                            ) : suggestion.title.toLowerCase().includes("shortlet") ? (
-                              <Bed size={20} className="text-gray-700" />
-                            ) : (
-                              <Store size={20} className="text-gray-700" />
-                            )
+                            <FontAwesomeIcon 
+                              icon={faBuilding} 
+                              className="text-gray-700 text-lg"
+                            />
                           ) : (
-                            <MapPin size={20} className="text-gray-700" />
+                            <FontAwesomeIcon 
+                              icon={faMapMarkerAlt} 
+                              className="text-gray-700 text-lg"
+                            />
                           )}
                         </div>
                         <div className="flex-1">
@@ -630,7 +632,7 @@ const MobileSearchModal = ({
                       </div>
                       <div className="flex items-center justify-end mt-4 pt-3 border-t border-gray-100">
                         <span className="text-sm text-blue-600 font-medium">View options</span>
-                        <ChevronRight size={16} className="ml-1 text-blue-600" />
+                        <FontAwesomeIcon icon={faChevronRight} className="ml-1 text-blue-600" size="sm" />
                       </div>
                     </button>
                   ))}
@@ -652,14 +654,14 @@ const MobileSearchModal = ({
                       <p className="text-base font-medium">Show all results</p>
                       <p className="text-sm text-gray-300 mt-1">View all {activeCategory} matches for "{inputValue}"</p>
                     </div>
-                    <ChevronRight size={16} />
+                    <FontAwesomeIcon icon={faChevronRight} size="sm" />
                   </div>
                 </button>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full py-16 px-4">
                 <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                  <Search size={32} className="text-gray-400" />
+                  <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-2xl" />
                 </div>
                 <h3 className="text-xl font-medium text-gray-900 mb-3">No matches found</h3>
                 <p className="text-gray-600 text-center max-w-sm mb-8">
@@ -684,7 +686,7 @@ const MobileSearchModal = ({
           ) : (
             <div className="flex flex-col items-center justify-center h-full py-16 px-4">
               <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                <Search size={32} className="text-gray-400" />
+                <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-2xl" />
               </div>
               <h3 className="text-xl font-medium text-gray-900 mb-3">Start searching</h3>
               <p className="text-gray-600 text-center max-w-sm mb-10">
@@ -758,7 +760,7 @@ const DesktopSearchSuggestions = ({
         <div className="p-4 border-b border-gray-200">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <Search size={16} className="text-gray-500" />
+              <FontAwesomeIcon icon={faSearch} className="text-gray-500 text-sm" />
               <span className="text-sm font-medium text-gray-700">{activeCategory} results for "{searchQuery}"</span>
             </div>
             <button
@@ -766,7 +768,7 @@ const DesktopSearchSuggestions = ({
               className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded cursor-pointer"
               aria-label="Close suggestions"
             >
-              <X size={16} />
+              <FontAwesomeIcon icon={faTimes} className="text-sm" />
             </button>
           </div>
         </div>
@@ -784,17 +786,15 @@ const DesktopSearchSuggestions = ({
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100 flex-shrink-0">
                     {suggestion.type === "category" ? (
-                      suggestion.title.toLowerCase().includes("hotel") ? (
-                        <Hotel size={16} className="text-gray-700" />
-                      ) : suggestion.title.toLowerCase().includes("restaurant") ? (
-                        <Utensils size={16} className="text-gray-700" />
-                      ) : suggestion.title.toLowerCase().includes("shortlet") ? (
-                        <Bed size={16} className="text-gray-700" />
-                      ) : (
-                        <Store size={16} className="text-gray-700" />
-                      )
+                      <FontAwesomeIcon 
+                        icon={faBuilding} 
+                        className="text-gray-700 text-sm"
+                      />
                     ) : (
-                      <MapPin size={16} className="text-gray-700" />
+                      <FontAwesomeIcon 
+                        icon={faMapMarkerAlt} 
+                        className="text-gray-700 text-sm"
+                      />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -815,7 +815,7 @@ const DesktopSearchSuggestions = ({
                     )}
                   </div>
                   <div className="flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <ChevronRight size={16} className="text-gray-400" />
+                    <FontAwesomeIcon icon={faChevronRight} className="text-gray-400 text-sm" />
                   </div>
                 </div>
               </button>
@@ -837,7 +837,7 @@ const DesktopSearchSuggestions = ({
                   <p className="text-sm font-medium">Show all results</p>
                   <p className="text-xs text-gray-300 mt-1">View all {activeCategory} matches for "{searchQuery}"</p>
                 </div>
-                <ChevronRight size={16} />
+                <FontAwesomeIcon icon={faChevronRight} className="text-sm" />
               </div>
             </button>
           </div>
@@ -1014,7 +1014,7 @@ const DiscoverIbadan = () => {
               </p>
             </div>
 
-            {/* TABS — FIXED ICONS ON MOBILE */}
+            {/* TABS — UPDATED WITH BOLD SOLID ICONS */}
             <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
               <div className="flex justify-between items-center gap-2 p-2.5 bg-white rounded-lg border border-[#f7f7fa]">
                 {["Hotel", "Shortlet", "Restaurant", "Vendor"].map((category) => (
@@ -1027,12 +1027,20 @@ const DiscoverIbadan = () => {
                         : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {/* ✅ Ensure icon doesn't shrink on mobile */}
+                    {/* ✅ UPDATED: Solid bold FontAwesome icons */}
                     <span className="flex-shrink-0">
-                      {category === "Hotel" && <Hotel size={14} />}
-                      {category === "Shortlet" && <Bed size={14} />}
-                      {category === "Restaurant" && <Utensils size={14} />}
-                      {category === "Vendor" && <Store size={14} />}
+                      {category === "Hotel" && (
+                        <FontAwesomeIcon icon={faBuilding} className="w-3.5 h-3.5" />
+                      )}
+                      {category === "Shortlet" && (
+                        <FontAwesomeIcon icon={faHome} className="w-3.5 h-3.5" />
+                      )}
+                      {category === "Restaurant" && (
+                        <FontAwesomeIcon icon={faUtensils} className="w-3.5 h-3.5" />
+                      )}
+                      {category === "Vendor" && (
+                        <FontAwesomeIcon icon={faTools} className="w-3.5 h-3.5" />
+                      )}
                     </span>
                     <span className="text-[12.5px] font-medium">{category}</span>
                   </button>
@@ -1047,7 +1055,8 @@ const DiscoverIbadan = () => {
                   {/* Search Input */}
                   <div className="mb-2 sm:mb-3">
                     <div className="bg-gray-100 rounded-lg px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-gray-200 cursor-pointer">
-                      <Search size={20} className="text-gray-500 flex-shrink-0" />
+                      {/* ✅ UPDATED: Solid search icon */}
+                      <FontAwesomeIcon icon={faSearch} className="text-gray-500 flex-shrink-0" />
                       <input
                         ref={searchInputRef}
                         type="text"
@@ -1063,7 +1072,8 @@ const DiscoverIbadan = () => {
                           onClick={handleClearSearch}
                           className="text-gray-400 hover:text-gray-600 flex-shrink-0 ml-1 cursor-pointer"
                         >
-                          <X size={14} />
+                          {/* ✅ UPDATED: Solid close icon */}
+                          <FontAwesomeIcon icon={faTimes} className="text-sm" />
                         </button>
                       )}
                     </div>
@@ -1077,7 +1087,8 @@ const DiscoverIbadan = () => {
                         className="bg-gray-100 rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
                       >
                         <div className="text-xs text-gray-500 flex items-center justify-center gap-1 mb-0.5">
-                          <Calendar size={14} /> Check-in
+                          {/* ✅ UPDATED: Solid calendar icon */}
+                          <FontAwesomeIcon icon={faCalendarAlt} className="text-sm" /> Check-in
                         </div>
                         <div className="text-xs font-medium text-blue-600">{formatDateLabel(checkInDate)}</div>
                       </div>
@@ -1086,7 +1097,8 @@ const DiscoverIbadan = () => {
                         className="bg-gray-100 rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
                       >
                         <div className="text-xs text-gray-500 flex items-center justify-center gap-1 mb-0.5">
-                          <Calendar size={14} /> Check-out
+                          {/* ✅ UPDATED: Solid calendar icon */}
+                          <FontAwesomeIcon icon={faCalendarAlt} className="text-sm" /> Check-out
                         </div>
                         <div className="text-xs font-medium text-blue-600">
                           {formatDateLabel(new Date(checkInDate.getTime() + 86400000))}
@@ -1100,17 +1112,19 @@ const DiscoverIbadan = () => {
                         className="bg-gray-100 rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
                       >
                         <div className="text-xs text-gray-500 flex items-center justify-center gap-1 mb-0.5">
-                          <Calendar size={14} /> When are you visiting?
+                          {/* ✅ UPDATED: Solid calendar icon */}
+                          <FontAwesomeIcon icon={faCalendarAlt} className="text-sm" /> When are you visiting?
                         </div>
                         <div className="text-xs font-medium text-blue-600">{formatDateLabel(checkInDate)}</div>
                       </div>
-                      {/* ✅ UPDATED: Clickable "Number of People" with User icon */}
+                      {/* ✅ UPDATED: Clickable "Number of People" with solid User icon */}
                       <div
                         onClick={handleGuestClick}
                         className="bg-gray-100 rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
                       >
                         <div className="text-xs text-gray-500 flex items-center justify-center gap-1 mb-0.5">
-                          <User size={14} /> Number of People (optional)
+                          {/* ✅ UPDATED: Solid user icon */}
+                          <FontAwesomeIcon icon={faUser} className="text-sm" /> Number of People (optional)
                         </div>
                         <div className="text-xs font-medium text-blue-600">
                           {totalPeople} {totalPeople === 1 ? "person" : "people"}
@@ -1124,7 +1138,8 @@ const DiscoverIbadan = () => {
                         className="bg-gray-100 rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
                       >
                         <div className="text-xs text-gray-500 flex items-center justify-center gap-1 mb-0.5">
-                          <Calendar size={14} /> Preferred service date (optional)
+                          {/* ✅ UPDATED: Solid calendar icon */}
+                          <FontAwesomeIcon icon={faCalendarAlt} className="text-sm" /> Preferred service date (optional)
                         </div>
                         <div className="text-xs font-medium text-blue-600">{formatDateLabel(checkInDate)}</div>
                       </div>
@@ -1144,10 +1159,11 @@ const DiscoverIbadan = () => {
                             <span className="mx-1">•</span>
                           </>
                         )}
-                        {/* ✅ For Restaurant: Only show total people with User icon */}
+                        {/* ✅ For Restaurant: Only show total people with solid User icon */}
                         {activeTab === "Restaurant" ? (
                           <>
-                            <User size={14} className="mr-1" />
+                            {/* ✅ UPDATED: Solid user icon */}
+                            <FontAwesomeIcon icon={faUser} className="mr-1 text-sm" />
                             <span>{totalPeople} {totalPeople === 1 ? "person" : "people"}</span>
                           </>
                         ) : (
@@ -1171,7 +1187,8 @@ const DiscoverIbadan = () => {
                       onClick={handleSearchSubmit}
                       className="w-full bg-gradient-to-r from-[#00E38C] to-teal-500 hover:from-[#00c97b] hover:to-teal-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      <Search size={14} />
+                      {/* ✅ UPDATED: Solid search icon */}
+                      <FontAwesomeIcon icon={faSearch} className="text-sm" />
                       <span className="text-xs">{getSearchButtonText()}</span>
                     </button>
                   </div>
