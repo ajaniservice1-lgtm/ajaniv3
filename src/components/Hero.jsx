@@ -1023,7 +1023,7 @@ const DiscoverIbadan = () => {
                     onClick={() => handleTabClick(category)}
                     className={`flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all cursor-pointer ${
                       activeTab === category
-                        ? "bg-[#06f49f] text-white"
+                        ? "bg-[#06f49f] text-gray-600"
                         : "bg-gray-100 text-gray-800"
                     }`}
                   >
@@ -1054,7 +1054,7 @@ const DiscoverIbadan = () => {
                 <div className="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg border border-blue-100 p-3 sm:p-3 md:p-4">
                   {/* Search Input */}
                   <div className="mb-2 sm:mb-3">
-                    <div className="bg-gray-100 rounded-lg px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-gray-200 cursor-pointer">
+                    <div className="bg-[#d9d9d9] rounded-lg px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-gray-200 cursor-pointer">
                       {/* ✅ UPDATED: Solid search icon */}
                       <FontAwesomeIcon icon={faSearch} className="text-gray-500 flex-shrink-0" />
                       <input
@@ -1065,12 +1065,12 @@ const DiscoverIbadan = () => {
                         onFocus={handleSearchFocus}
                         onKeyPress={handleKeyPress}
                         placeholder={getSearchPlaceholder()}
-                        className="bg-transparent outline-none w-full text-gray-700 placeholder-gray-500 text-xs min-w-0"
+                        className="bg-transparent outline-none w-full text-gray-900 placeholder-gray-500 text-xs min-w-0"
                       />
                       {searchQuery && (
                         <button
                           onClick={handleClearSearch}
-                          className="text-gray-400 hover:text-gray-600 flex-shrink-0 ml-1 cursor-pointer"
+                          className="text-gray-900 hover:text-gray-600 flex-shrink-0 ml-1 cursor-pointer"
                         >
                           {/* ✅ UPDATED: Solid close icon */}
                           <FontAwesomeIcon icon={faTimes} className="text-sm" />
@@ -1084,9 +1084,9 @@ const DiscoverIbadan = () => {
                     <div className="grid grid-cols-2 gap-2 mb-2">
                       <div
                         onClick={handleCheckInClick}
-                        className="bg-gray-100 rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
+                        className="bg-[#d9d9d9] rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
                       >
-                        <div className="text-xs text-gray-500 flex items-center justify-center gap-1 mb-0.5">
+                        <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
                           {/* ✅ UPDATED: Solid calendar icon */}
                           <FontAwesomeIcon icon={faCalendarAlt} className="text-sm" /> Check-in
                         </div>
@@ -1094,9 +1094,9 @@ const DiscoverIbadan = () => {
                       </div>
                       <div
                         onClick={handleCheckInClick}
-                        className="bg-gray-100 rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
+                        className="bg-[#d9d9d9] rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
                       >
-                        <div className="text-xs text-gray-500 flex items-center justify-center gap-1 mb-0.5">
+                        <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
                           {/* ✅ UPDATED: Solid calendar icon */}
                           <FontAwesomeIcon icon={faCalendarAlt} className="text-sm" /> Check-out
                         </div>
@@ -1109,9 +1109,9 @@ const DiscoverIbadan = () => {
                     <div className="space-y-2 mb-2">
                       <div
                         onClick={handleCheckInClick}
-                        className="bg-gray-100 rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
+                        className="bg-[#d9d9d9] rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
                       >
-                        <div className="text-xs text-gray-500 flex items-center justify-center gap-1 mb-0.5">
+                        <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
                           {/* ✅ UPDATED: Solid calendar icon */}
                           <FontAwesomeIcon icon={faCalendarAlt} className="text-sm" /> When are you visiting?
                         </div>
@@ -1120,9 +1120,9 @@ const DiscoverIbadan = () => {
                       {/* ✅ UPDATED: Clickable "Number of People" with solid User icon */}
                       <div
                         onClick={handleGuestClick}
-                        className="bg-gray-100 rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
+                        className="bg-[#d9d9d9] rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
                       >
-                        <div className="text-xs text-gray-500 flex items-center justify-center gap-1 mb-0.5">
+                        <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
                           {/* ✅ UPDATED: Solid user icon */}
                           <FontAwesomeIcon icon={faUser} className="text-sm" /> Number of People (optional)
                         </div>
@@ -1135,9 +1135,9 @@ const DiscoverIbadan = () => {
                     <div className="space-y-2 mb-2">
                       <div
                         onClick={handleCheckInClick}
-                        className="bg-gray-100 rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
+                        className="bg-[#d9d9d9] rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
                       >
-                        <div className="text-xs text-gray-500 flex items-center justify-center gap-1 mb-0.5">
+                        <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
                           {/* ✅ UPDATED: Solid calendar icon */}
                           <FontAwesomeIcon icon={faCalendarAlt} className="text-sm" /> Preferred service date (optional)
                         </div>
@@ -1151,7 +1151,7 @@ const DiscoverIbadan = () => {
                     <div className="mb-2 w-full">
                       <div
                         onClick={handleGuestClick}
-                        className="inline-flex w-full items-center justify-center rounded-[10px] bg-gray-100 px-4 py-2 text-[12.5px] font-medium text-gray-500 hover:bg-gray-200 cursor-pointer"
+                        className="inline-flex w-full items-center justify-center rounded-[10px] bg-[#d9d9d9] px-4 py-2 text-[12.5px] font-medium text-gray-900 hover:bg-gray-200 cursor-pointer"
                       >
                         {activeTab !== "Restaurant" && (
                           <>
