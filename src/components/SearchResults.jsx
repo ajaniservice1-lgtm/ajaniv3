@@ -29,6 +29,7 @@ import {
   faLandmark,
   faTools,
   faUser,
+  faCalendarAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import { motion } from "framer-motion";
 import { PiSliders } from "react-icons/pi";
@@ -149,6 +150,34 @@ const normalizeLocation = (location) => {
     .replace(/\s+/g, ' ');
 };
 
+// Helper to get plural category name
+const getPluralCategoryName = (category) => {
+  if (!category) return "Places";
+  
+  const categoryLower = category.toLowerCase();
+  if (categoryLower.includes("hotel")) return "Hotels";
+  if (categoryLower.includes("shortlet")) return "Shortlets";
+  if (categoryLower.includes("restaurant")) return "Restaurants";
+  if (categoryLower.includes("vendor") || categoryLower.includes("services")) return "Vendors";
+  if (categoryLower.includes("tourist")) return "Tourist Centers";
+  return category + "s";
+};
+
+// Helper to format date
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+  } catch (error) {
+    return "";
+  }
+};
+
 // ================== FIXED BACKEND HOOK ==================
 
 const useBackendListings = (searchQuery = '', filters = {}) => {
@@ -156,6 +185,7 @@ const useBackendListings = (searchQuery = '', filters = {}) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [apiResponse, setApiResponse] = useState(null);
+  const [filteredCounts, setFilteredCounts] = useState({});
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -167,7 +197,6 @@ const useBackendListings = (searchQuery = '', filters = {}) => {
         const params = new URLSearchParams();
         
         // ✅ CRITICAL FIX 1: Always send category when we have location
-        // If we have location filter but no category, fetch ALL categories for client-side filtering
         const hasLocationFilter = filters.locations && filters.locations.length > 0;
         const hasCategoryFilter = filters.categories && filters.categories.length > 0;
         const isLocationSearch = searchQuery && looksLikeLocation(searchQuery);
@@ -303,16 +332,27 @@ const useBackendListings = (searchQuery = '', filters = {}) => {
             console.log(`✅ After location filtering: ${finalListings.length} listings`);
           }
           
+          // Calculate filtered counts by category
+          const counts = {};
+          finalListings.forEach(item => {
+            const category = item.category || 'Other';
+            const pluralCategory = getPluralCategoryName(category);
+            counts[pluralCategory] = (counts[pluralCategory] || 0) + 1;
+          });
+          setFilteredCounts(counts);
+          
           setListings(finalListings);
         } else {
           console.log('⚠️ No listings data received');
           setListings([]);
+          setFilteredCounts({});
           setError(response.data?.message || 'No data received');
         }
       } catch (err) {
         console.error('❌ Backend API Error:', err.message);
         setError(err.message);
         setListings([]);
+        setFilteredCounts({});
       } finally {
         setLoading(false);
       }
@@ -326,6 +366,7 @@ const useBackendListings = (searchQuery = '', filters = {}) => {
     loading, 
     error, 
     apiResponse,
+    filteredCounts,
     looksLikeLocation: () => looksLikeLocation(searchQuery)
   };
 };
@@ -505,12 +546,15 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
       });
 
       const totalPlaces = locationListings.length;
+      
+      // Get plural category name
+      const categoryPlural = getPluralCategoryName(activeCategory);
 
       return {
         type: "location",
         title: getLocationDisplayName(location),
         count: totalPlaces,
-        description: `${activeCategory} in ${getLocationDisplayName(location)}`,
+        description: `${categoryPlural} in ${getLocationDisplayName(location)}`,
         breakdownText: "",
         breakdown: [],
         action: () => {
@@ -542,12 +586,15 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
       });
 
       const totalPlaces = locationListings.length;
+      
+      // Get plural category name
+      const categoryPlural = getPluralCategoryName(activeCategory);
 
       return {
         type: "location",
         title: getLocationDisplayName(location),
         count: totalPlaces,
-        description: `${activeCategory} in ${getLocationDisplayName(location)}`,
+        description: `${categoryPlural} in ${getLocationDisplayName(location)}`,
         breakdownText: "",
         breakdown: [],
         action: () => {
@@ -569,12 +616,15 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
       const categoryListings = categoryFilteredListings;
       const locationBreakdown = getLocationBreakdown(categoryListings);
       const totalPlaces = categoryListings.length;
+      
+      // Get plural category name
+      const categoryPlural = getPluralCategoryName(activeCategory);
 
       suggestions.push({
         type: "category",
-        title: activeCategory,
+        title: categoryPlural,
         count: totalPlaces,
-        description: `Browse ${activeCategory} options`,
+        description: `Browse ${categoryPlural} options`,
         breakdownText: "",
         breakdown: locationBreakdown.slice(0, 3),
         action: () => {
@@ -646,7 +696,7 @@ const DesktopSearchSuggestions = ({
             <div className="flex items-center gap-2">
               <FontAwesomeIcon icon={faSearch} className="w-4 h-4 text-gray-500" />
               <span className="text-sm font-medium text-gray-700">
-                {activeCategory} results for "{searchQuery}"
+                {getPluralCategoryName(activeCategory)} results for "{searchQuery}"
               </span>
             </div>
             <button
@@ -711,7 +761,7 @@ const DesktopSearchSuggestions = ({
             >
               <div className="flex items-center justify-between">
                 <div className="text-left">
-                  <p className="text-sm font-medium">Show all {activeCategory} results</p>
+                  <p className="text-sm font-medium">Show all {getPluralCategoryName(activeCategory)} results</p>
                   <p className="text-xs text-gray-300 mt-1">
                     View all matches for "{searchQuery}"
                   </p>
@@ -1579,7 +1629,7 @@ const CategoryButtons = ({ selectedCategories, onCategoryClick }) => {
   );
 };
 
-// ================== FIXED FILTER SIDEBAR ==================
+// ================== FIXED FILTER SIDEBAR - REMOVED CLEAR FILTER BUTTON ==================
 
 const FilterSidebar = ({
   onFilterChange,
@@ -1687,16 +1737,7 @@ const FilterSidebar = ({
     onFilterChange(updatedFilters);
   };
 
-  const clearAllFilters = () => {
-    const resetFilters = {
-      locations: [],
-      priceRange: { min: "", max: "" },
-      ratings: [],
-      sortBy: "relevance",
-    };
-    setLocalFilters(resetFilters);
-    onFilterChange(resetFilters);
-  };
+  // REMOVED: clearAllFilters function since we're removing the clear filter button
 
   const sidebarContent = (
     <div
@@ -1999,19 +2040,7 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {(localFilters.locations.length > 0 || 
-        localFilters.priceRange.min || 
-        localFilters.priceRange.max || 
-        localFilters.ratings.length > 0) && (
-        <div className="pt-4 border-t border-gray-200">
-          <button
-            onClick={clearAllFilters}
-            className="w-full py-3 text-sm font-medium text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-lg hover:bg-red-50 transition-colors"
-          >
-            Clear All Filters
-          </button>
-        </div>
-      )}
+      {/* REMOVED: Clear All Filters button section */}
     </div>
   );
 
@@ -2047,6 +2076,15 @@ const FilterSidebar = ({
             }}
           >
             {sidebarContent}
+            {/* ADDED: Apply Filter Button for Mobile */}
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
+              <button
+                onClick={onClose}
+                className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Apply Filters
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>,
@@ -2096,6 +2134,15 @@ const FilterSidebar = ({
           </div>
           <div className="container mx-auto px-4 py-6 max-w-4xl">
             {sidebarContent}
+            {/* ADDED: Apply Filter Button for Desktop Modal */}
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 mt-6">
+              <button
+                onClick={onClose}
+                className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Apply Filters
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>,
@@ -2264,6 +2311,44 @@ const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
   );
 };
 
+// ================== DATE AND GUESTS DISPLAY COMPONENT ==================
+const DateAndGuestsDisplay = ({ checkInDate, checkOutDate, guests }) => {
+  if (!checkInDate && !checkOutDate && !guests) return null;
+
+  return (
+    <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+      <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
+        <FontAwesomeIcon icon={faCalendarAlt} />
+        Your Search Details
+      </h4>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {checkInDate && (
+          <div className="bg-white p-3 rounded border border-blue-200">
+            <p className="text-xs text-blue-600 mb-1">Check-in</p>
+            <p className="font-medium text-blue-900">{formatDate(checkInDate)}</p>
+          </div>
+        )}
+        {checkOutDate && (
+          <div className="bg-white p-3 rounded border border-blue-200">
+            <p className="text-xs text-blue-600 mb-1">Check-out</p>
+            <p className="font-medium text-blue-900">{formatDate(checkOutDate)}</p>
+          </div>
+        )}
+        {guests && (
+          <div className="bg-white p-3 rounded border border-blue-200">
+            <p className="text-xs text-blue-600 mb-1">Guests & Rooms</p>
+            <p className="font-medium text-blue-900">
+              {guests.adults} {guests.adults === 1 ? 'Adult' : 'Adults'}
+              {guests.children > 0 && `, ${guests.children} ${guests.children === 1 ? 'Child' : 'Children'}`}
+              {guests.rooms > 0 && `, ${guests.rooms} ${guests.rooms === 1 ? 'Room' : 'Rooms'}`}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ================== FIXED MAIN SEARCHRESULTS COMPONENT ==================
 
 const SearchResults = () => {
@@ -2278,6 +2363,9 @@ const SearchResults = () => {
   const searchQuery = searchParams.get("q") || "";
   const urlCategory = searchParams.get("category");
   const urlLocation = searchParams.get("location.area") || searchParams.get("location");
+  const checkInDateParam = searchParams.get("checkInDate");
+  const checkOutDateParam = searchParams.get("checkOutDate");
+  const guestsParam = searchParams.get("guests");
   
   const [activeFilters, setActiveFilters] = useState({
     locations: [],
@@ -2309,7 +2397,12 @@ const SearchResults = () => {
   const filterButtonRef = useRef(null);
   const resultsRef = useRef(null);
 
-  const { listings, loading, error, apiResponse } = useBackendListings(searchQuery, activeFilters);
+  // Parse dates and guests from URL
+  const checkInDate = checkInDateParam ? new Date(checkInDateParam) : null;
+  const checkOutDate = checkOutDateParam ? new Date(checkOutDateParam) : null;
+  const guests = guestsParam ? JSON.parse(guestsParam) : null;
+
+  const { listings, loading, error, apiResponse, filteredCounts } = useBackendListings(searchQuery, activeFilters);
 
   useEffect(() => {
     const scrollToTop = () => {
@@ -2525,6 +2618,11 @@ const SearchResults = () => {
         params.set("location.area", activeFilters.locations[0]);
       }
       
+      // Preserve date and guests parameters
+      if (checkInDateParam) params.set("checkInDate", checkInDateParam);
+      if (checkOutDateParam) params.set("checkOutDate", checkOutDateParam);
+      if (guestsParam) params.set("guests", guestsParam);
+      
       setSearchParams(params);
       setShowSuggestions(false);
       setShowMobileSearchModal(false);
@@ -2588,6 +2686,11 @@ const SearchResults = () => {
       params.delete("location.area");
     }
     
+    // Preserve date and guests parameters
+    if (checkInDateParam) params.set("checkInDate", checkInDateParam);
+    if (checkOutDateParam) params.set("checkOutDate", checkOutDateParam);
+    if (guestsParam) params.set("guests", guestsParam);
+    
     // Keep other parameters
     for (const [key, value] of searchParams.entries()) {
       if (!["category", "location", "location.area", "q"].includes(key)) {
@@ -2628,6 +2731,11 @@ const SearchResults = () => {
         params.set("q", searchQuery);
       }
     }
+    // Preserve date and guests parameters
+    if (checkInDateParam) params.set("checkInDate", checkInDateParam);
+    if (checkOutDateParam) params.set("checkOutDate", checkOutDateParam);
+    if (guestsParam) params.set("guests", guestsParam);
+    
     setSearchParams(params);
   };
 
@@ -2663,6 +2771,11 @@ const SearchResults = () => {
     
     // Always set category in URL
     params.set("category", actualCategory);
+    
+    // Preserve date and guests parameters
+    if (checkInDateParam) params.set("checkInDate", checkInDateParam);
+    if (checkOutDateParam) params.set("checkOutDate", checkOutDateParam);
+    if (guestsParam) params.set("guests", guestsParam);
     
     setSearchParams(params);
     
@@ -2793,6 +2906,22 @@ const SearchResults = () => {
     ? activeFilters.categories[0] 
     : "All Categories";
 
+  // ✅ FIXED: Get accurate count for display
+  const getAccurateCountText = () => {
+    if (Object.keys(filteredCounts).length === 0) {
+      return `${listings.length} ${listings.length === 1 ? 'place' : 'places'} found`;
+    }
+    
+    if (Object.keys(filteredCounts).length === 1) {
+      const category = Object.keys(filteredCounts)[0];
+      const count = filteredCounts[category];
+      return `${category} in ${activeFilters.locations.length > 0 ? activeFilters.locations[0] : 'Ibadan'} • ${count} ${count === 1 ? 'place' : 'places'} found`;
+    }
+    
+    const total = listings.length;
+    return `${total} ${total === 1 ? 'place' : 'places'} found`;
+  };
+
   if (loading && isMobile) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -2845,7 +2974,7 @@ const SearchResults = () => {
       </div>
 
       <main
-        className="pb-8  w-full mx-auto max-w-[100vw]"
+        className="pb-8 w-full mx-auto max-w-[100vw]"
         style={{
           paddingLeft: isMobile ? "0.75rem" : "1rem",
           paddingRight: isMobile ? "0" : "1rem",
@@ -2993,6 +3122,15 @@ const SearchResults = () => {
             className="lg:w-3/4 w-full"
             ref={resultsRef}
           >
+            {/* Date and Guests Display */}
+            {(checkInDate || checkOutDate || guests) && (
+              <DateAndGuestsDisplay
+                checkInDate={checkInDate}
+                checkOutDate={checkOutDate}
+                guests={guests}
+              />
+            )}
+
             <div className="mb-6 w-full">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
                 <div className="flex-1 flex items-center gap-3 w-full">
@@ -3003,7 +3141,7 @@ const SearchResults = () => {
                           {getPageTitle()}
                         </h1>
                         <p className="text-sm text-gray-600">
-                          {apiResponse?.results || 0} {apiResponse?.results === 1 ? "place" : "places"} found
+                          {getAccurateCountText()}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -3069,7 +3207,7 @@ const SearchResults = () => {
                         {getPageTitle()}
                       </h1>
                       <p className="text-sm text-gray-600">
-                        {apiResponse?.results || 0} {apiResponse?.results === 1 ? "place" : "places"} found
+                        {getAccurateCountText()}
                       </p>
                     </div>
                   )}
@@ -3175,7 +3313,8 @@ const SearchResults = () => {
                         </div>
                       )}
 
-                      {totalPages > 1 && (
+                      {/* ✅ FIXED: Only show pagination when needed */}
+                      {totalPages > 1 && listings.length > ITEMS_PER_PAGE && (
                         <div className="flex justify-center items-center space-x-2 mt-8 w-full">
                           <button
                             onClick={() => handlePageChange(currentPage - 1)}

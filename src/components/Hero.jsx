@@ -152,7 +152,7 @@ const getLocationBreakdown = (listings) => {
     .sort((a, b) => b.count - a.count);
 };
 
-/* ---------------- UPDATED: CATEGORY-SPECIFIC SEARCH SUGGESTIONS ---------------- */
+/* ---------------- UPDATED: CATEGORY-SPECIFIC SEARCH SUGGESTIONS WITH PLURAL FORMS ---------------- */
 const generateSearchSuggestions = (query, listings, activeCategory) => {
   if (!query.trim() || !listings.length) return [];
 
@@ -192,12 +192,20 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
       });
 
       const totalPlaces = locationListings.length;
+      
+      // Get category display name in plural form
+      let categoryPlural = activeCategory;
+      if (activeCategory === "Hotel") categoryPlural = "Hotels";
+      else if (activeCategory === "Restaurant") categoryPlural = "Restaurants";
+      else if (activeCategory === "Shortlet") categoryPlural = "Shortlets";
+      else if (activeCategory === "Vendor") categoryPlural = "Vendors";
+      else categoryPlural = activeCategory + "s";
 
       return {
         type: "location",
         title: getLocationDisplayName(location),
         count: totalPlaces,
-        description: `${activeCategory} in ${getLocationDisplayName(location)}`,
+        description: `${categoryPlural} in ${getLocationDisplayName(location)}`,
         breakdownText: "",
         breakdown: [],
         action: () => {
@@ -235,12 +243,20 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
       });
 
       const totalPlaces = locationListings.length;
+      
+      // Get category display name in plural form
+      let categoryPlural = activeCategory;
+      if (activeCategory === "Hotel") categoryPlural = "Hotels";
+      else if (activeCategory === "Restaurant") categoryPlural = "Restaurants";
+      else if (activeCategory === "Shortlet") categoryPlural = "Shortlets";
+      else if (activeCategory === "Vendor") categoryPlural = "Vendors";
+      else categoryPlural = activeCategory + "s";
 
       return {
         type: "location",
         title: getLocationDisplayName(location),
         count: totalPlaces,
-        description: `${activeCategory} in ${getLocationDisplayName(location)}`,
+        description: `${categoryPlural} in ${getLocationDisplayName(location)}`,
         breakdownText: "",
         breakdown: [],
         action: () => {
@@ -268,12 +284,20 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
       const categoryListings = categoryFilteredListings;
       const locationBreakdown = getLocationBreakdown(categoryListings);
       const totalPlaces = categoryListings.length;
+      
+      // Get category display name in plural form
+      let categoryPlural = activeCategory;
+      if (activeCategory === "Hotel") categoryPlural = "Hotels";
+      else if (activeCategory === "Restaurant") categoryPlural = "Restaurants";
+      else if (activeCategory === "Shortlet") categoryPlural = "Shortlets";
+      else if (activeCategory === "Vendor") categoryPlural = "Vendors";
+      else categoryPlural = activeCategory + "s";
 
       suggestions.push({
         type: "category",
-        title: activeCategory,
+        title: categoryPlural,
         count: totalPlaces,
-        description: `Browse all ${activeCategory} options`,
+        description: `Browse all ${categoryPlural} options`,
         breakdownText: "",
         breakdown: locationBreakdown.slice(0, 3),
         action: () => {
@@ -519,6 +543,55 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
   );
 };
 
+/* ---------------- EMPTY SEARCH MODAL COMPONENT ---------------- */
+const EmptySearchModal = ({ onClose, onConfirm }) => {
+  const modalRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10000]" onClick={onClose} />
+      <div
+        ref={modalRef}
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl z-[10001] w-80 p-6"
+      >
+        <div className="text-center mb-6">
+          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FontAwesomeIcon icon={faSearch} className="text-yellow-600 text-2xl" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">Search Required</h3>
+          <p className="text-gray-600 text-sm">
+            Please enter a location, area, or business name to search.
+          </p>
+        </div>
+        <div className="space-y-3">
+          <button
+            onClick={onConfirm}
+            className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Enter Search Term
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
+
 /* ---------------- SEARCH MODAL COMPONENTS ---------------- */
 const MobileSearchModal = ({
   searchQuery,
@@ -548,9 +621,11 @@ const MobileSearchModal = ({
     inputRef.current?.focus();
   };
 
-  const handleSuggestionClick = (action) => {
-    onSuggestionClick(action);
-    onClose();
+  // UPDATED: Handle suggestion click to populate input instead of navigating
+  const handleSuggestionClick = (suggestion) => {
+    setInputValue(suggestion.title);
+    onTyping(suggestion.title);
+    inputRef.current?.focus();
   };
 
   const handleKeyPress = (e) => {
@@ -572,7 +647,7 @@ const MobileSearchModal = ({
       const categorySlug = categoryMap[activeCategory] || activeCategory.toLowerCase();
       params.append("category", categorySlug);
       
-      onSuggestionClick(`/search-results?${params.toString()}`);
+      onSuggestionClick(suggestion => suggestion.action());
       onClose();
     }
   };
@@ -647,7 +722,7 @@ const MobileSearchModal = ({
                   {suggestions.map((suggestion, index) => (
                     <button
                       key={index}
-                      onClick={() => handleSuggestionClick(suggestion.action())}
+                      onClick={() => handleSuggestionClick(suggestion)}
                       className="w-full text-left p-4 bg-white rounded-xl border border-gray-200 hover:bg-gray-50 cursor-pointer"
                     >
                       <div className="flex items-start gap-4">
@@ -685,7 +760,7 @@ const MobileSearchModal = ({
                         </div>
                       </div>
                       <div className="flex items-center justify-end mt-4 pt-3 border-t border-gray-100">
-                        <span className="text-sm text-blue-600 font-medium">View options</span>
+                        <span className="text-sm text-blue-600 font-medium">Tap to select</span>
                         <FontAwesomeIcon icon={faChevronRight} className="ml-1 text-blue-600" size="sm" />
                       </div>
                     </button>
@@ -856,7 +931,8 @@ const DesktopSearchSuggestions = ({
               <button
                 key={index}
                 onClick={() => {
-                  onSuggestionClick(suggestion.action());
+                  // UPDATED: Populate input instead of navigating directly
+                  onSuggestionClick(suggestion);
                   onClose();
                 }}
                 className="w-full text-left p-3 bg-white hover:bg-gray-50 rounded-lg mb-1 last:mb-0 cursor-pointer"
@@ -970,7 +1046,7 @@ const looksLikeLocation = (query) => {
   return isIbadanArea || hasLocationSuffix || isShortQuery;
 };
 
-/* ---------------- FIXED MAIN COMPONENT ---------------- */
+/* ---------------- FIXED MAIN COMPONENT WITH ALL REQUESTS ---------------- */
 const DiscoverIbadan = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -988,10 +1064,23 @@ const DiscoverIbadan = () => {
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), today.getDate());
   });
+  const [checkOutDate, setCheckOutDate] = useState(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  });
   const [guests, setGuests] = useState({ adults: 2, children: 0, rooms: 1 });
+  const [clickedSuggestion, setClickedSuggestion] = useState(null);
+  const [isSearchButtonAnimating, setIsSearchButtonAnimating] = useState(false);
+  const [showEmptySearchModal, setShowEmptySearchModal] = useState(false);
+  const [searchParamsForResults, setSearchParamsForResults] = useState({
+    checkInDate: null,
+    checkOutDate: null,
+    guests: null,
+  });
 
   const searchInputRef = useRef(null);
   const searchContainerRef = useRef(null);
+  const searchButtonRef = useRef(null);
   const { listings = [], loading } = useBackendListings();
 
   // ✅ Default active tab is Hotel
@@ -1023,8 +1112,53 @@ const DiscoverIbadan = () => {
     };
   }, [isMobile]);
 
-  // ✅ FIXED: Handle category + location search with proper backend parameters
+  // ✅ FIXED: Handle suggestion click - populate input instead of navigate
+  const handleSuggestionClick = useCallback((suggestion) => {
+    if (suggestion.action) {
+      // If it's an action function, execute it to get the URL
+      const url = suggestion.action();
+      // Store the URL for later navigation
+      setClickedSuggestion({ url, suggestion });
+      // Populate the search input with the suggestion title
+      setSearchQuery(suggestion.title);
+      // Trigger search button animation
+      setIsSearchButtonAnimating(true);
+      setTimeout(() => {
+        setIsSearchButtonAnimating(false);
+      }, 2000);
+    } else if (typeof suggestion === 'string') {
+      // Direct URL navigation
+      setClickedSuggestion({ url: suggestion });
+      setShowSuggestions(false);
+      setShowMobileModal(false);
+      
+      // Add search parameters if available
+      const params = new URLSearchParams(window.location.search);
+      if (searchParamsForResults.checkInDate) {
+        params.append("checkInDate", searchParamsForResults.checkInDate.toISOString());
+      }
+      if (searchParamsForResults.checkOutDate) {
+        params.append("checkOutDate", searchParamsForResults.checkOutDate.toISOString());
+      }
+      if (searchParamsForResults.guests) {
+        params.append("guests", JSON.stringify(searchParamsForResults.guests));
+      }
+      
+      const queryString = params.toString();
+      const finalUrl = queryString ? `${suggestion}${suggestion.includes('?') ? '&' : '?'}${queryString}` : suggestion;
+      
+      navigate(finalUrl);
+    }
+  }, [navigate, searchParamsForResults]);
+
+  // ✅ FIXED: Handle search submit with all parameters
   const handleSearchSubmit = useCallback(() => {
+    // Check if search query is empty
+    if (!searchQuery.trim()) {
+      setShowEmptySearchModal(true);
+      return;
+    }
+    
     const params = new URLSearchParams();
     
     // Always add category (convert display name to backend category)
@@ -1053,13 +1187,26 @@ const DiscoverIbadan = () => {
       params.append("q", searchQuery.trim());
     }
     
+    // Add check-in and check-out dates if available
+    if (checkInDate) {
+      params.append("checkInDate", checkInDate.toISOString());
+    }
+    if (checkOutDate) {
+      params.append("checkOutDate", checkOutDate.toISOString());
+    }
+    
+    // Add guests information if available
+    if (guests) {
+      params.append("guests", JSON.stringify(guests));
+    }
+    
     // Navigate to search results with proper parameters
     const queryString = params.toString();
     console.log("🔍 Search parameters from hero:", queryString);
     navigate(`/search-results?${queryString}`);
     setShowSuggestions(false);
     setShowMobileModal(false);
-  }, [activeTab, searchQuery, navigate]);
+  }, [activeTab, searchQuery, navigate, checkInDate, checkOutDate, guests]);
 
   // ✅ Enter key also triggers search
   const handleKeyPress = useCallback(
@@ -1069,15 +1216,6 @@ const DiscoverIbadan = () => {
       }
     },
     [handleSearchSubmit]
-  );
-
-  const handleSuggestionClick = useCallback(
-    (url) => {
-      navigate(url);
-      setShowSuggestions(false);
-      setShowMobileModal(false);
-    },
-    [navigate]
   );
 
   const handleSearchChange = useCallback((value) => {
@@ -1102,13 +1240,30 @@ const DiscoverIbadan = () => {
   }, [isMobile, searchQuery, handleMobileSearchClick]);
 
   const handleCheckInClick = () => setShowCheckInCalendar(true);
+  
+  const handleCheckOutClick = () => {
+    // For check-out, we want to set date to check-in + 1 day
+    const nextDay = new Date(checkInDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setCheckOutDate(nextDay);
+    setShowCheckInCalendar(true);
+  };
+
   const handleGuestClick = () => setShowGuestSelector(true);
 
   const handleCheckInSelect = (date) => {
     setCheckInDate(date);
+    // Auto-set check-out to check-in + 1 day
+    const nextDay = new Date(date);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setCheckOutDate(nextDay);
   };
 
-  const handleGuestsChange = (newGuests) => setGuests(newGuests);
+  const handleGuestsChange = (newGuests) => {
+    setGuests(newGuests);
+    // Store for search results
+    setSearchParamsForResults(prev => ({ ...prev, guests: newGuests }));
+  };
 
   // ✅ Tab click only changes UI, no navigation
   const handleTabClick = (category) => {
@@ -1132,6 +1287,55 @@ const DiscoverIbadan = () => {
 
   // Compute total people for restaurant
   const totalPeople = guests.adults + guests.children;
+
+  // Animation effect for search button
+  useEffect(() => {
+    if (isSearchButtonAnimating && searchButtonRef.current) {
+      const button = searchButtonRef.current;
+      let scale = 1;
+      const interval = setInterval(() => {
+        scale = scale === 1 ? 1.2 : 1;
+        button.style.transform = `scale(${scale})`;
+      }, 500);
+      
+      setTimeout(() => {
+        clearInterval(interval);
+        button.style.transform = 'scale(1)';
+      }, 2000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isSearchButtonAnimating]);
+
+  // Handle click on search button after suggestion is selected
+  const handleSearchButtonClick = () => {
+    if (clickedSuggestion) {
+      // Navigate to the stored URL
+      const { url } = clickedSuggestion;
+      const params = new URLSearchParams(window.location.search);
+      
+      // Add search parameters if available
+      if (searchParamsForResults.checkInDate) {
+        params.append("checkInDate", searchParamsForResults.checkInDate.toISOString());
+      }
+      if (searchParamsForResults.checkOutDate) {
+        params.append("checkOutDate", searchParamsForResults.checkOutDate.toISOString());
+      }
+      if (searchParamsForResults.guests) {
+        params.append("guests", JSON.stringify(searchParamsForResults.guests));
+      }
+      
+      const queryString = params.toString();
+      const finalUrl = queryString ? `${url}${url.includes('?') ? '&' : '?'}${queryString}` : url;
+      
+      navigate(finalUrl);
+      setClickedSuggestion(null);
+      setShowSuggestions(false);
+      setShowMobileModal(false);
+    } else {
+      handleSearchSubmit();
+    }
+  };
 
   return (
     <div className="min-h-[50%] bg-[#F7F7FA] font-manrope">
@@ -1235,7 +1439,7 @@ const DiscoverIbadan = () => {
                         <div className="text-xs font-medium text-blue-600">{formatDateLabel(checkInDate)}</div>
                       </div>
                       <div
-                        onClick={handleCheckInClick}
+                        onClick={handleCheckOutClick}
                         className="bg-[#d9d9d9] rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
                       >
                         <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
@@ -1243,7 +1447,7 @@ const DiscoverIbadan = () => {
                           <FontAwesomeIcon icon={faCalendarAlt} className="text-sm" /> Check-out
                         </div>
                         <div className="text-xs font-medium text-blue-600">
-                          {formatDateLabel(new Date(checkInDate.getTime() + 86400000))}
+                          {formatDateLabel(checkOutDate)}
                         </div>
                       </div>
                     </div>
@@ -1327,16 +1531,26 @@ const DiscoverIbadan = () => {
                     </div>
                   )}
 
-                  {/* Search Button */}
+                  {/* Search Button with Animation */}
                   <div className="w-full">
                     <button
-                      onClick={handleSearchSubmit}
-                      className="w-full bg-gradient-to-r from-[#00E38C] to-teal-500 hover:from-[#00c97b] hover:to-teal-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer"
+                      ref={searchButtonRef}
+                      onClick={handleSearchButtonClick}
+                      className="w-full bg-gradient-to-r from-[#00E38C] to-teal-500 hover:from-[#00c97b] hover:to-teal-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-transform duration-300"
+                      style={{
+                        transform: isSearchButtonAnimating ? 'scale(1.2)' : 'scale(1)',
+                      }}
                     >
                       {/* ✅ UPDATED: Solid search icon */}
                       <FontAwesomeIcon icon={faSearch} className="text-sm" />
                       <span className="text-xs">{getSearchButtonText()}</span>
+                      {clickedSuggestion && (
+                        <span className="ml-1 text-xs bg-white/20 px-2 py-0.5 rounded-full">
+                          Click to search
+                        </span>
+                      )}
                     </button>
+                   
                   </div>
                 </div>
               </div>
@@ -1359,6 +1573,15 @@ const DiscoverIbadan = () => {
           guests={guests}
           onChange={handleGuestsChange}
           onClose={() => setShowGuestSelector(false)}
+        />
+      )}
+      {showEmptySearchModal && (
+        <EmptySearchModal
+          onClose={() => setShowEmptySearchModal(false)}
+          onConfirm={() => {
+            setShowEmptySearchModal(false);
+            searchInputRef.current?.focus();
+          }}
         />
       )}
 
@@ -1394,8 +1617,13 @@ const DiscoverIbadan = () => {
           from { opacity: 0; }
           to { opacity: 1; }
         }
+        @keyframes pulseScale {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.2); }
+        }
         .animate-slideInUp { animation: slideInUp 0.3s ease-out; }
         .animate-fadeIn { animation: fadeIn 0.2s ease-out; }
+        .animate-pulseScale { animation: pulseScale 0.5s ease-in-out infinite; }
         .line-clamp-2 {
           display: -webkit-box;
           -webkit-line-clamp: 2;
