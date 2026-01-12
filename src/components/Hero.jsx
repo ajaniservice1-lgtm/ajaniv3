@@ -202,12 +202,17 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
         breakdown: [],
         action: () => {
           const params = new URLSearchParams();
-          // Use proper case for location
+          // ✅ FIX: Always include category when searching from hero
           params.append("location.area", normalizeLocationForBackend(location));
           // CRITICAL: Always include category when searching from hero
-          if (activeCategory !== "All Categories") {
-            params.append("category", activeCategory.toLowerCase());
-          }
+          const categoryMap = {
+            'Hotel': 'hotel',
+            'Shortlet': 'shortlet',
+            'Restaurant': 'restaurant',
+            'Vendor': 'services'
+          };
+          const categorySlug = categoryMap[activeCategory] || activeCategory.toLowerCase();
+          params.append("category", categorySlug);
           return `/search-results?${params.toString()}`;
         },
       };
@@ -240,12 +245,17 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
         breakdown: [],
         action: () => {
           const params = new URLSearchParams();
-          // Use proper case for location
+          // ✅ FIX: Always include category when searching from hero
           params.append("location.area", normalizeLocationForBackend(location));
           // CRITICAL: Always include category when searching from hero
-          if (activeCategory !== "All Categories") {
-            params.append("category", activeCategory.toLowerCase());
-          }
+          const categoryMap = {
+            'Hotel': 'hotel',
+            'Shortlet': 'shortlet',
+            'Restaurant': 'restaurant',
+            'Vendor': 'services'
+          };
+          const categorySlug = categoryMap[activeCategory] || activeCategory.toLowerCase();
+          params.append("category", categorySlug);
           return `/search-results?${params.toString()}`;
         },
       };
@@ -552,10 +562,16 @@ const MobileSearchModal = ({
       } else {
         params.append("q", inputValue.trim());
       }
-      // CRITICAL: Always include category when searching from hero
-      if (activeCategory !== "All Categories") {
-        params.append("category", activeCategory.toLowerCase());
-      }
+      // ✅ CRITICAL: Always include category when searching from hero
+      const categoryMap = {
+        'Hotel': 'hotel',
+        'Shortlet': 'shortlet',
+        'Restaurant': 'restaurant',
+        'Vendor': 'services'
+      };
+      const categorySlug = categoryMap[activeCategory] || activeCategory.toLowerCase();
+      params.append("category", categorySlug);
+      
       onSuggestionClick(`/search-results?${params.toString()}`);
       onClose();
     }
@@ -684,10 +700,16 @@ const MobileSearchModal = ({
                     } else {
                       params.append("q", inputValue.trim());
                     }
-                    // CRITICAL: Always include category when searching from hero
-                    if (activeCategory !== "All Categories") {
-                      params.append("category", activeCategory.toLowerCase());
-                    }
+                    // ✅ CRITICAL: Always include category when searching from hero
+                    const categoryMap = {
+                      'Hotel': 'hotel',
+                      'Shortlet': 'shortlet',
+                      'Restaurant': 'restaurant',
+                      'Vendor': 'services'
+                    };
+                    const categorySlug = categoryMap[activeCategory] || activeCategory.toLowerCase();
+                    params.append("category", categorySlug);
+                    
                     onSuggestionClick(`/search-results?${params.toString()}`);
                     onClose();
                   }}
@@ -720,10 +742,16 @@ const MobileSearchModal = ({
                     } else {
                       params.append("q", inputValue.trim());
                     }
-                    // CRITICAL: Always include category when searching from hero
-                    if (activeCategory !== "All Categories") {
-                      params.append("category", activeCategory.toLowerCase());
-                    }
+                    // ✅ CRITICAL: Always include category when searching from hero
+                    const categoryMap = {
+                      'Hotel': 'hotel',
+                      'Shortlet': 'shortlet',
+                      'Restaurant': 'restaurant',
+                      'Vendor': 'services'
+                    };
+                    const categorySlug = categoryMap[activeCategory] || activeCategory.toLowerCase();
+                    params.append("category", categorySlug);
+                    
                     onSuggestionClick(`/search-results?${params.toString()}`);
                     onClose();
                   }}
@@ -879,10 +907,16 @@ const DesktopSearchSuggestions = ({
                 } else {
                   params.append("q", searchQuery.trim());
                 }
-                // CRITICAL: Always include category when searching from hero
-                if (activeCategory !== "All Categories") {
-                  params.append("category", activeCategory.toLowerCase());
-                }
+                // ✅ CRITICAL: Always include category when searching from hero
+                const categoryMap = {
+                  'Hotel': 'hotel',
+                  'Shortlet': 'shortlet',
+                  'Restaurant': 'restaurant',
+                  'Vendor': 'services'
+                };
+                const categorySlug = categoryMap[activeCategory] || activeCategory.toLowerCase();
+                params.append("category", categorySlug);
+                
                 onSuggestionClick(`/search-results?${params.toString()}`);
                 onClose();
               }}
@@ -936,7 +970,7 @@ const looksLikeLocation = (query) => {
   return isIbadanArea || hasLocationSuffix || isShortQuery;
 };
 
-/* ---------------- MAIN COMPONENT ---------------- */
+/* ---------------- FIXED MAIN COMPONENT ---------------- */
 const DiscoverIbadan = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -989,7 +1023,7 @@ const DiscoverIbadan = () => {
     };
   }, [isMobile]);
 
-  // ✅ UPDATED: Handle category + location search with proper backend parameters
+  // ✅ FIXED: Handle category + location search with proper backend parameters
   const handleSearchSubmit = useCallback(() => {
     const params = new URLSearchParams();
     
@@ -1001,8 +1035,13 @@ const DiscoverIbadan = () => {
       Vendor: "services", // Backend expects "services" for vendors
     };
     const categorySlug = categoryMap[activeTab];
+    
+    // ✅ CRITICAL FIX: ALWAYS include category when searching
     if (categorySlug) {
       params.append("category", categorySlug);
+    } else {
+      // Default to hotel if no category selected
+      params.append("category", "hotel");
     }
     
     // Add location search if provided and looks like a location
