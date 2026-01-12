@@ -715,8 +715,8 @@ const Directory = () => {
         {isMobile ? (
           <div className="w-full" style={{ paddingLeft: "0", paddingRight: "0" }}>
             <motion.div ref={headerRef} initial={{ opacity: 0, y: 20 }} animate={headerInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, ease: "easeOut" }} className="mb-4">
-              <h1 className="text-lg font-bold text-center mb-2 text-[#00065A]">Explore Categories</h1>
-              <p className="text-xs text-gray-600 text-center">Find the best places and services in Ibadan</p>
+              <h1 className="text-lg font-bold md:mb-2 text-[#00065A]">Explore Categories</h1>
+              <p className="text-xs text-gray-600 ">Find the best places and services in Ibadan</p>
             </motion.div>
 
             <div className="space-y-6">
