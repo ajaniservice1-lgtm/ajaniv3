@@ -32,6 +32,7 @@ import {
   faUtensils,
   faLandmark,
   faTools,
+  faUser,
   faChevronLeft,
 } from "@fortawesome/free-solid-svg-icons";
 import Footer from "../components/Footer";
@@ -356,7 +357,7 @@ const getCategoryIcon = (category) => {
   if (cat.includes("weekend") || cat.includes("event")) return faCalendarWeek;
   if (cat.includes("restaurant") || cat.includes("food")) return faUtensils;
   if (cat.includes("tourist") || cat.includes("attraction")) return faLandmark;
-  if (cat.includes("services")) return faTools;
+  if (cat.includes("services")) return faUser;
   return faFilter;
 };
 
@@ -991,10 +992,10 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
             {/* Combined Price, Per Text, and Ratings */}
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-baseline gap-1">
-                <span className="text-sm font-manrope text-gray-900">
+                <span className="text-[12px] font-manrope text-gray-900">
                   {priceText}
                 </span>
-                <span className="text-xs text-gray-600">
+                <span className="text-[10px] text-gray-600">
                   {perText}
                 </span>
               </div>
@@ -1062,7 +1063,7 @@ const CategoryButtons = ({ selectedCategory, onCategoryClick }) => {
     { key: "hotel", label: "Hotel", displayName: "Hotels", icon: faBuilding },
     { key: "shortlet", label: "Shortlet", displayName: "Shortlets", icon: faHome },
     { key: "restaurant", label: "Restaurant", displayName: "Restaurants", icon: faUtensils },
-    { key: "vendor", label: "Vendor", displayName: "Vendors", icon: faTools }
+    { key: "vendor", label: "Vendor", displayName: "Vendors", icon: faUser }
   ];
 
   return (
@@ -2501,9 +2502,9 @@ const CategoryResults = () => {
         <Header />
       </div>
 
-      <main className="pb-8 px-4 sm:px-6 md:mt-[-1px]">
+      <main className="pb-8 pl-4 sm:px-6 md:mt-[-1px] ">
         {/* Search Section */}
-        <div className="py-4 md:py-6 relative" id="search-section">
+        <div className="py-4 md:py-6 relative " id="search-section">
           <div className="flex items-center gap-3">
             <BackButton className="md:hidden" />
 
