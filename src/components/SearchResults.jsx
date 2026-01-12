@@ -2792,7 +2792,7 @@ const SearchResults = () => {
         }}
       >
         <div
-          className="z-30 py-4 md:py-6 relative"
+          className="z-30 py-4 md:py-6 relative "
           style={{
             zIndex: 50,
             width: "100%",

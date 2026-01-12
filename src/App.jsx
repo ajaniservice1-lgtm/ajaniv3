@@ -1,11 +1,28 @@
 // src/App.js
 import React, { Suspense, lazy, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ChatProvider } from "./context/ChatContext";
 import TrackingWrapper from "./components/TrackingWrapper";
 import LocalBusinessSchema from "./components/LocalBusinessSchema";
 import { ModalProvider } from "./context/ModalContext";
 import MainLayout from "./components/MainLayout";
+
+/* =======================
+   CREATE QUERY CLIENT
+======================= */
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes
+      refetchOnWindowFocus: false, // Set to true if you want auto-refresh
+      retry: 1,
+      refetchOnMount: true,
+      refetchOnReconnect: true,
+    },
+  },
+});
 
 /* =======================
    LAZY-LOADED PAGES
@@ -256,7 +273,7 @@ function App() {
   }, []);
 
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       <LocalBusinessSchema />
       <ModalProvider>
         <ChatProvider>
@@ -478,7 +495,9 @@ function App() {
           </BrowserRouter>
         </ChatProvider>
       </ModalProvider>
-    </>
+      
+     
+    </QueryClientProvider>
   );
 }
 
