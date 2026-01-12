@@ -14,31 +14,16 @@ import {
   faSearch,
   faTimes,
   faCalendarAlt,
-  faUsers,
   faChevronRight,
   faChevronLeft,
-  faHotel,
-  faBed,
-  faUtensils,
-  faStore,
   faMapMarkerAlt,
   faUser,
   faBuilding,
   faHome,
-  faTools,
+  faUtensils,
+  faBed,
 } from "@fortawesome/free-solid-svg-icons";
-
-/* ---------------- FALLBACKS ---------------- */
-const FALLBACK_IMAGES = {
-  Hotel: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400",
-  Restaurant:
-    "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400",
-  Shortlet:
-    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400",
-  Tourism: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400",
-  Vendor:
-    "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=400",
-};
+import { FaUserCircle } from "react-icons/fa";
 
 /* ---------------- CUSTOM HOOK FOR BACKEND LISTINGS ---------------- */
 const useBackendListings = () => {
@@ -92,10 +77,53 @@ const getCategoryDisplayName = (category) => {
 
 const getLocationDisplayName = (location) => {
   if (!location || location === "All Locations") return "All Locations";
+  
+  // Handle common Ibadan locations
+  const locationMap = {
+    'akobo': 'Akobo',
+    'ringroad': 'Ringroad',
+    'bodija': 'Bodija',
+    'dugbe': 'Dugbe',
+    'mokola': 'Mokola',
+    'sango': 'Sango',
+    'ui': 'UI',
+    'poly': 'Poly',
+    'oke': 'Oke',
+    'agodi': 'Agodi',
+    'jericho': 'Jericho',
+    'gbagi': 'Gbagi',
+    'apata': 'Apata',
+    'secretariat': 'Secretariat',
+    'moniya': 'Moniya',
+    'challenge': 'Challenge',
+    'molete': 'Molete',
+    'agbowo': 'Agbowo',
+    'sabo': 'Sabo',
+    'bashorun': 'Bashorun'
+  };
+  
+  const locLower = location.toLowerCase();
+  if (locationMap[locLower]) {
+    return locationMap[locLower];
+  }
+  
+  // Fallback to proper case
   return location
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+};
+
+// Helper to normalize location for backend (convert to proper case)
+const normalizeLocationForBackend = (location) => {
+  if (!location) return '';
+  
+  // Convert to proper case
+  return location
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 };
 
 const getCategoryBreakdown = (listings) => {
@@ -114,8 +142,8 @@ const getCategoryBreakdown = (listings) => {
 const getLocationBreakdown = (listings) => {
   const locationCounts = {};
   listings.forEach((item) => {
-    if (item.location?.area || item.area) {
-      const location = getLocationDisplayName(item.location?.area || item.area);
+    if (item.location?.area) {
+      const location = getLocationDisplayName(item.location.area);
       locationCounts[location] = (locationCounts[location] || 0) + 1;
     }
   });
@@ -145,7 +173,7 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
   const uniqueLocations = [
     ...new Set(
       categoryFilteredListings
-        .map((item) => item.location?.area || item.area)
+        .map((item) => item.location?.area)
         .filter((loc) => loc && loc.trim() !== "")
         .map((loc) => loc.trim())
     ),
@@ -159,7 +187,7 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
     })
     .map((location) => {
       const locationListings = categoryFilteredListings.filter((item) => {
-        const itemLocation = item.location?.area || item.area;
+        const itemLocation = item.location?.area;
         return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
       });
 
@@ -169,12 +197,14 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
         type: "location",
         title: getLocationDisplayName(location),
         count: totalPlaces,
-        description: `Showing ${activeCategory} options in ${getLocationDisplayName(location)}`,
+        description: `${activeCategory} in ${getLocationDisplayName(location)}`,
         breakdownText: "",
         breakdown: [],
         action: () => {
           const params = new URLSearchParams();
-          params.append("location", location);
+          // Use proper case for location
+          params.append("location.area", normalizeLocationForBackend(location));
+          // CRITICAL: Always include category when searching from hero
           if (activeCategory !== "All Categories") {
             params.append("category", activeCategory.toLowerCase());
           }
@@ -195,7 +225,7 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
     })
     .map((location) => {
       const locationListings = categoryFilteredListings.filter((item) => {
-        const itemLocation = item.location?.area || item.area;
+        const itemLocation = item.location?.area;
         return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
       });
 
@@ -210,7 +240,9 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
         breakdown: [],
         action: () => {
           const params = new URLSearchParams();
-          params.append("location", location);
+          // Use proper case for location
+          params.append("location.area", normalizeLocationForBackend(location));
+          // CRITICAL: Always include category when searching from hero
           if (activeCategory !== "All Categories") {
             params.append("category", activeCategory.toLowerCase());
           }
@@ -419,7 +451,7 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
         <div className="flex justify-between items-center mb-6">
           <div>
             <div className="font-medium text-gray-800">Children</div>
-            <div className="text-sm text-gray-500">Age 0–17</div>
+            <div className="text-sm text-gray-500">Age 0-17</div>
           </div>
           <div className="flex items-center gap-4">
             <button
@@ -514,7 +546,13 @@ const MobileSearchModal = ({
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && inputValue.trim()) {
       const params = new URLSearchParams();
-      params.append("q", inputValue.trim());
+      if (looksLikeLocation(inputValue.trim())) {
+        // Use proper case for location
+        params.append("location.area", normalizeLocationForBackend(inputValue.trim()));
+      } else {
+        params.append("q", inputValue.trim());
+      }
+      // CRITICAL: Always include category when searching from hero
       if (activeCategory !== "All Categories") {
         params.append("category", activeCategory.toLowerCase());
       }
@@ -640,7 +678,13 @@ const MobileSearchModal = ({
                 <button
                   onClick={() => {
                     const params = new URLSearchParams();
-                    params.append("q", inputValue.trim());
+                    if (looksLikeLocation(inputValue.trim())) {
+                      // Use proper case for location
+                      params.append("location.area", normalizeLocationForBackend(inputValue.trim()));
+                    } else {
+                      params.append("q", inputValue.trim());
+                    }
+                    // CRITICAL: Always include category when searching from hero
                     if (activeCategory !== "All Categories") {
                       params.append("category", activeCategory.toLowerCase());
                     }
@@ -670,7 +714,13 @@ const MobileSearchModal = ({
                 <button
                   onClick={() => {
                     const params = new URLSearchParams();
-                    params.append("q", inputValue.trim());
+                    if (looksLikeLocation(inputValue.trim())) {
+                      // Use proper case for location
+                      params.append("location.area", normalizeLocationForBackend(inputValue.trim()));
+                    } else {
+                      params.append("q", inputValue.trim());
+                    }
+                    // CRITICAL: Always include category when searching from hero
                     if (activeCategory !== "All Categories") {
                       params.append("category", activeCategory.toLowerCase());
                     }
@@ -695,7 +745,7 @@ const MobileSearchModal = ({
               <div className="w-full max-w-md px-4">
                 <p className="text-sm font-medium text-gray-500 mb-4 text-center">Popular locations</p>
                 <div className="flex flex-wrap gap-2 justify-center">
-                  {["Bodija", "Sango", "UI", "Mokola", "Dugbe"].map((term) => (
+                  {["Akobo", "Bodija", "Sango", "UI", "Mokola", "Dugbe", "Ringroad"].map((term) => (
                     <button
                       key={term}
                       onClick={() => {
@@ -823,7 +873,13 @@ const DesktopSearchSuggestions = ({
             <button
               onClick={() => {
                 const params = new URLSearchParams();
-                params.append("q", searchQuery.trim());
+                if (looksLikeLocation(searchQuery.trim())) {
+                  // Use proper case for location
+                  params.append("location.area", normalizeLocationForBackend(searchQuery.trim()));
+                } else {
+                  params.append("q", searchQuery.trim());
+                }
+                // CRITICAL: Always include category when searching from hero
                 if (activeCategory !== "All Categories") {
                   params.append("category", activeCategory.toLowerCase());
                 }
@@ -845,6 +901,39 @@ const DesktopSearchSuggestions = ({
       </div>
     </>
   );
+};
+
+/* ---------------- LOCATION DETECTION HELPER ---------------- */
+const looksLikeLocation = (query) => {
+  if (!query || query.trim() === '') return false;
+  
+  const queryLower = query.toLowerCase().trim();
+  
+  // Common Ibadan areas
+  const ibadanAreas = [
+    'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly', 'oke', 'agodi', 
+    'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
+    'molete', 'agbowo', 'sabo', 'bashorun', 'ondo road', 'ogbomoso', 'ife road',
+    'akinyele', 'bodija market', 'dugbe market', 'mokola hill', 'sango roundabout'
+  ];
+  
+  // Location suffixes
+  const locationSuffixes = [
+    'road', 'street', 'avenue', 'drive', 'lane', 'close', 'way', 'estate',
+    'area', 'zone', 'district', 'quarters', 'extension', 'phase', 'junction',
+    'bypass', 'expressway', 'highway', 'roundabout', 'market', 'station'
+  ];
+  
+  // Check if query contains any Ibadan area
+  const isIbadanArea = ibadanAreas.some(area => queryLower.includes(area));
+  
+  // Check if query contains location suffix
+  const hasLocationSuffix = locationSuffixes.some(suffix => queryLower.includes(suffix));
+  
+  // Check if query is short (likely a location name)
+  const isShortQuery = queryLower.split(/\s+/).length <= 3 && queryLower.length <= 15;
+  
+  return isIbadanArea || hasLocationSuffix || isShortQuery;
 };
 
 /* ---------------- MAIN COMPONENT ---------------- */
@@ -900,33 +989,47 @@ const DiscoverIbadan = () => {
     };
   }, [isMobile]);
 
-  // ✅ "Find X" button: GO STRAIGHT TO CATEGORY PAGE — NO QUERY
+  // ✅ UPDATED: Handle category + location search with proper backend parameters
   const handleSearchSubmit = useCallback(() => {
+    const params = new URLSearchParams();
+    
+    // Always add category (convert display name to backend category)
     const categoryMap = {
       Hotel: "hotel",
       Shortlet: "shortlet",
       Restaurant: "restaurant",
-      Vendor: "services",
+      Vendor: "services", // Backend expects "services" for vendors
     };
-    const slug = categoryMap[activeTab];
-    navigate(slug ? `/category/${slug}` : "/search-results");
+    const categorySlug = categoryMap[activeTab];
+    if (categorySlug) {
+      params.append("category", categorySlug);
+    }
+    
+    // Add location search if provided and looks like a location
+    if (searchQuery.trim() && looksLikeLocation(searchQuery.trim())) {
+      // Use proper case for location
+      params.append("location.area", normalizeLocationForBackend(searchQuery.trim()));
+    } else if (searchQuery.trim()) {
+      // Regular search query
+      params.append("q", searchQuery.trim());
+    }
+    
+    // Navigate to search results with proper parameters
+    const queryString = params.toString();
+    console.log("🔍 Search parameters from hero:", queryString);
+    navigate(`/search-results?${queryString}`);
     setShowSuggestions(false);
     setShowMobileModal(false);
-  }, [activeTab, navigate]);
+  }, [activeTab, searchQuery, navigate]);
 
-  // ✅ Only Enter key uses the search query
+  // ✅ Enter key also triggers search
   const handleKeyPress = useCallback(
     (e) => {
-      if (e.key === "Enter" && searchQuery.trim()) {
-        const params = new URLSearchParams();
-        params.append("q", searchQuery.trim());
-        params.append("category", activeTab.toLowerCase());
-        navigate(`/search-results?${params.toString()}`);
-        setShowSuggestions(false);
-        setShowMobileModal(false);
+      if (e.key === "Enter") {
+        handleSearchSubmit();
       }
     },
-    [searchQuery, navigate, activeTab]
+    [handleSearchSubmit]
   );
 
   const handleSuggestionClick = useCallback(
@@ -1027,7 +1130,7 @@ const DiscoverIbadan = () => {
                         : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {/* ✅ UPDATED: Solid bold FontAwesome icons */}
+                    {/* ✅ UPDATED: Fixed icons - Vendor uses profile icon */}
                     <span className="flex-shrink-0">
                       {category === "Hotel" && (
                         <FontAwesomeIcon icon={faBuilding} className="w-3.5 h-3.5" />
@@ -1039,7 +1142,7 @@ const DiscoverIbadan = () => {
                         <FontAwesomeIcon icon={faUtensils} className="w-3.5 h-3.5" />
                       )}
                       {category === "Vendor" && (
-                        <FontAwesomeIcon icon={faTools} className="w-3.5 h-3.5" />
+                        <FaUserCircle className="w-3.5 h-3.5" />
                       )}
                     </span>
                     <span className="text-[12.5px] font-medium">{category}</span>
@@ -1155,6 +1258,8 @@ const DiscoverIbadan = () => {
                       >
                         {activeTab !== "Restaurant" && (
                           <>
+                            {/* ✅ UPDATED: Room icon for Rooms */}
+                            <FontAwesomeIcon icon={faBed} className="mr-1 text-sm" />
                             <span>{guests.rooms} {guests.rooms === 1 ? "Room" : "Rooms"}</span>
                             <span className="mx-1">•</span>
                           </>
@@ -1168,6 +1273,8 @@ const DiscoverIbadan = () => {
                           </>
                         ) : (
                           <>
+                            {/* ✅ UPDATED: Adult icon for Adults */}
+                            <FontAwesomeIcon icon={faUser} className="mr-1 text-sm" />
                             <span>{guests.adults} {guests.adults === 1 ? "Adult" : "Adults"}</span>
                             {guests.children > 0 && (
                               <>

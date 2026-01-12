@@ -28,11 +28,13 @@ import {
   faUtensils,
   faLandmark,
   faTools,
+  faUser,
 } from "@fortawesome/free-solid-svg-icons";
 import { motion } from "framer-motion";
 import { PiSliders } from "react-icons/pi";
 import { MdFavoriteBorder } from "react-icons/md";
 import { FaLessThan, FaGreaterThan } from "react-icons/fa";
+import { FaUserCircle } from "react-icons/fa";
 import Header from "./Header";
 import Footer from "./Footer";
 import Meta from "./Meta";
@@ -41,37 +43,99 @@ import axiosInstance from "../lib/axios";
 
 // ================== HELPER FUNCTIONS ==================
 
+// Helper to normalize location for backend (convert to proper case)
+const normalizeLocationForBackend = (location) => {
+  if (!location) return '';
+  
+  // Convert to proper case
+  return location
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+// Helper to get location display name
+const getLocationDisplayName = (location) => {
+  if (!location || location === "All Locations" || location === "All")
+    return "All Locations";
+  
+  // Handle common Ibadan locations
+  const locationMap = {
+    'akobo': 'Akobo',
+    'ringroad': 'Ringroad',
+    'bodija': 'Bodija',
+    'dugbe': 'Dugbe',
+    'mokola': 'Mokola',
+    'sango': 'Sango',
+    'ui': 'UI',
+    'poly': 'Poly',
+    'oke': 'Oke',
+    'agodi': 'Agodi',
+    'jericho': 'Jericho',
+    'gbagi': 'Gbagi',
+    'apata': 'Apata',
+    'secretariat': 'Secretariat',
+    'moniya': 'Moniya',
+    'challenge': 'Challenge',
+    'molete': 'Molete',
+    'agbowo': 'Agbowo',
+    'sabo': 'Sabo',
+    'bashorun': 'Bashorun'
+  };
+  
+  const locLower = location.toLowerCase();
+  if (locationMap[locLower]) {
+    return locationMap[locLower];
+  }
+  
+  // Fallback to proper case
+  const parts = location.split(".");
+  if (parts.length > 1) {
+    const afterDot = parts.slice(1).join(".").trim();
+    return afterDot
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  }
+
+  return location
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
 // Helper to check if search query looks like a location
 const looksLikeLocation = (query) => {
   if (!query || query.trim() === '') return false;
   
   const queryLower = query.toLowerCase().trim();
   
-  // Common Ibadan/place indicators
-  const locationIndicators = [
-    // Ibadan areas
+  // Common Ibadan areas
+  const ibadanAreas = [
     'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly', 'oke', 'agodi', 
     'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
     'molete', 'agbowo', 'sabo', 'bashorun', 'ondo road', 'ogbomoso', 'ife road',
-    'akinyele', 'bodija market', 'dugbe market', 'mokola hill', 'sango roundabout',
-    
-    // Location suffixes
-    'road', 'street', 'avenue', 'drive', 'lane', 'close', 'way', 'estate',
-    'area', 'zone', 'district', 'quarters', 'extension', 'phase', 'junction',
-    'bypass', 'expressway', 'highway', 'roundabout', 'market', 'station',
-    
-    // Nigerian states/cities
-    'ibadan', 'lagos', 'abuja', 'oyo', 'ogun', 'ondo', 'ekiti', 'osun',
-    'abeokuta', 'ilorin', 'benin', 'port harcourt', 'kano', 'kaduna'
+    'akinyele', 'bodija market', 'dugbe market', 'mokola hill', 'sango roundabout'
   ];
   
-  // Check if query contains any location indicator
-  const isLocation = locationIndicators.some(indicator => queryLower.includes(indicator));
+  // Location suffixes
+  const locationSuffixes = [
+    'road', 'street', 'avenue', 'drive', 'lane', 'close', 'way', 'estate',
+    'area', 'zone', 'district', 'quarters', 'extension', 'phase', 'junction',
+    'bypass', 'expressway', 'highway', 'roundabout', 'market', 'station'
+  ];
   
-  // Also check if query is short (likely a location name)
+  // Check if query contains any Ibadan area
+  const isIbadanArea = ibadanAreas.some(area => queryLower.includes(area));
+  
+  // Check if query contains location suffix
+  const hasLocationSuffix = locationSuffixes.some(suffix => queryLower.includes(suffix));
+  
+  // Check if query is short (likely a location name)
   const isShortQuery = queryLower.split(/\s+/).length <= 3 && queryLower.length <= 15;
   
-  return isLocation || isShortQuery;
+  return isIbadanArea || hasLocationSuffix || isShortQuery;
 };
 
 // Helper to normalize location text for matching
@@ -85,7 +149,7 @@ const normalizeLocation = (location) => {
     .replace(/\s+/g, ' ');
 };
 
-// ================== CUSTOM BACKEND HOOK ==================
+// ================== FIXED BACKEND HOOK ==================
 
 const useBackendListings = (searchQuery = '', filters = {}) => {
   const [listings, setListings] = useState([]);
@@ -102,13 +166,14 @@ const useBackendListings = (searchQuery = '', filters = {}) => {
         let url = '/listings';
         const params = new URLSearchParams();
         
-        // Add search query
-        if (searchQuery && !looksLikeLocation(searchQuery)) {
-          params.append('q', searchQuery);
-        }
+        // ✅ CRITICAL FIX 1: Always send category when we have location
+        // If we have location filter but no category, fetch ALL categories for client-side filtering
+        const hasLocationFilter = filters.locations && filters.locations.length > 0;
+        const hasCategoryFilter = filters.categories && filters.categories.length > 0;
+        const isLocationSearch = searchQuery && looksLikeLocation(searchQuery);
         
-        // Add category filter (ALWAYS filter by category if provided)
-        if (filters.categories && filters.categories.length > 0) {
+        // ✅ FIX: Send category to backend ONLY when we have it
+        if (hasCategoryFilter) {
           const backendCategories = filters.categories.map(cat => {
             const categoryMap = {
               'hotel': 'hotel',
@@ -117,16 +182,40 @@ const useBackendListings = (searchQuery = '', filters = {}) => {
               'vendor': 'services',
               'services': 'services'
             };
-            return categoryMap[cat.toLowerCase()] || cat;
+            const catLower = cat.toLowerCase();
+            return categoryMap[catLower] || catLower;
           });
-          params.append('categories', backendCategories.join(','));
+          params.append('category', backendCategories[0]);
+        } 
+        // ✅ FIX 2: If searching by location (hero search), we need to handle it differently
+        else if (isLocationSearch && !hasCategoryFilter) {
+          // When user searches "Bodija" from hero, fetch all listings
+          // We'll filter client-side based on URL params
+          console.log('📍 Hero location search detected, fetching all listings for client-side filtering');
+        }
+        // ✅ FIX 3: If we have URL category but no filters.categories yet (initial load)
+        else if (!hasCategoryFilter && !isLocationSearch) {
+          // Don't send category param, let backend return all
+        }
+        
+        // ✅ FIX 4: Send location filter to backend (proper case)
+        if (hasLocationFilter) {
+          const properCaseLocation = normalizeLocationForBackend(filters.locations[0]);
+          params.append('location.area', properCaseLocation);
+          console.log(`📍 Sending location to backend: "${properCaseLocation}"`);
+        } else if (isLocationSearch && !hasLocationFilter) {
+          // If search query is a location but no location filter in URL
+          const properCaseLocation = normalizeLocationForBackend(searchQuery);
+          params.append('location.area', properCaseLocation);
+          console.log(`📍 Sending search query as location to backend: "${properCaseLocation}"`);
+        }
+        
+        // ✅ FIX 5: Regular search query (non-location)
+        if (searchQuery && !looksLikeLocation(searchQuery) && !hasLocationFilter) {
+          params.append('q', searchQuery);
         }
         
         // Add other filters
-        if (filters.locations && filters.locations.length > 0) {
-          params.append('locations', filters.locations.join(','));
-        }
-        
         if (filters.priceRange?.min) {
           params.append('minPrice', filters.priceRange.min);
         }
@@ -139,7 +228,6 @@ const useBackendListings = (searchQuery = '', filters = {}) => {
           params.append('minRating', Math.min(...filters.ratings));
         }
         
-        // Add sorting
         if (filters.sortBy && filters.sortBy !== 'relevance') {
           params.append('sort', filters.sortBy);
         }
@@ -150,33 +238,74 @@ const useBackendListings = (searchQuery = '', filters = {}) => {
         }
         
         console.log('📡 Backend API Request:', url);
+        console.log('🔍 Search Query:', searchQuery);
+        console.log('🎯 Filters:', filters);
+        console.log('📊 Parameters:', queryString);
         
         const response = await axiosInstance.get(url);
         setApiResponse(response.data);
         
         if (response.data && response.data.status === 'success' && response.data.data?.listings) {
-          const allListings = response.data.data.listings;
+          let allListings = response.data.data.listings;
           
-          // Apply strict location filtering if search query looks like a location
+          console.log(`📦 Received ${allListings.length} listings from backend`);
+          
+          // ✅ CRITICAL FIX 6: Apply STRICT client-side filtering based on URL params
           let finalListings = allListings;
           
-          if (searchQuery && looksLikeLocation(searchQuery)) {
-            finalListings = filterByLocation(allListings, searchQuery);
-          }
+          // Get URL params directly for accurate filtering
+          const urlParams = new URLSearchParams(window.location.search);
+          const urlCategory = urlParams.get('category');
+          const urlLocation = urlParams.get('location.area');
           
-          // CRITICAL: If category filter is active, ensure we only show that category
-          if (filters.categories && filters.categories.length > 0) {
-            const activeCategory = filters.categories[0].toLowerCase();
+          console.log('🔗 URL Params for filtering:', { urlCategory, urlLocation });
+          
+          // Filter by URL category (if exists)
+          if (urlCategory) {
+            const activeCategory = urlCategory.toLowerCase();
+            console.log(`🔧 Filtering by URL category: ${activeCategory}`);
+            
             finalListings = finalListings.filter(item => {
               const itemCategory = (item.category || '').toLowerCase();
-              return itemCategory.includes(activeCategory) || 
+              const matchesCategory = itemCategory.includes(activeCategory) || 
                      activeCategory.includes(itemCategory) ||
-                     (activeCategory === 'services' && itemCategory === 'vendor');
+                     (activeCategory === 'services' && itemCategory === 'vendor') ||
+                     (activeCategory === 'vendor' && itemCategory === 'services');
+              
+              if (!matchesCategory) {
+                console.log(`❌ Item filtered out - Category mismatch: ${item.title} (${itemCategory}) vs ${activeCategory}`);
+              }
+              return matchesCategory;
             });
+            
+            console.log(`✅ After category filtering: ${finalListings.length} listings`);
+          }
+          
+          // Filter by URL location (if exists) - EXACT MATCH
+          if (urlLocation) {
+            const searchLocation = urlLocation.toLowerCase();
+            console.log(`📍 Filtering by URL location: ${searchLocation}`);
+            
+            finalListings = finalListings.filter(item => {
+              const itemLocation = (item.location?.area || '').toLowerCase();
+              
+              // Check for exact or partial match
+              const matchesLocation = itemLocation.includes(searchLocation) || 
+                                      searchLocation.includes(itemLocation) ||
+                                      normalizeLocation(itemLocation) === normalizeLocation(searchLocation);
+              
+              if (!matchesLocation) {
+                console.log(`❌ Item filtered out - Location mismatch: ${item.title} (${item.location?.area}) vs ${searchLocation}`);
+              }
+              return matchesLocation;
+            });
+            
+            console.log(`✅ After location filtering: ${finalListings.length} listings`);
           }
           
           setListings(finalListings);
         } else {
+          console.log('⚠️ No listings data received');
           setListings([]);
           setError(response.data?.message || 'No data received');
         }
@@ -190,90 +319,7 @@ const useBackendListings = (searchQuery = '', filters = {}) => {
     };
 
     fetchListings();
-  }, [searchQuery, JSON.stringify(filters)]);
-
-  // Function to filter listings based on location search
-  const filterByLocation = useCallback((allListings, query) => {
-    if (!query.trim()) return allListings;
-    
-    const queryLower = query.toLowerCase().trim();
-    const isLocationSearch = looksLikeLocation(query);
-    
-    if (!isLocationSearch) {
-      // Regular search - filter by name, category, description
-      return allListings.filter(item => {
-        const itemName = (item.title || item.name || '').toLowerCase();
-        const itemCategory = (item.category || '').toLowerCase();
-        const itemLocation = (item.location?.area || item.area || item.location || '').toLowerCase();
-        const itemDescription = (item.description || '').toLowerCase();
-        const itemTags = (item.tags || '').toLowerCase();
-        
-        return itemName.includes(queryLower) ||
-               itemCategory.includes(queryLower) ||
-               itemLocation.includes(queryLower) ||
-               itemDescription.includes(queryLower) ||
-               itemTags.includes(queryLower);
-      });
-    }
-    
-    // LOCATION SEARCH - Strict filtering
-    console.log(`📍 STRICT Location search detected for: "${query}"`);
-    
-    // First, get all possible location fields from items
-    const itemsWithLocations = allListings.map(item => ({
-      ...item,
-      normalizedLocations: [
-        normalizeLocation(item.location?.area),
-        normalizeLocation(item.area),
-        normalizeLocation(item.location),
-        normalizeLocation(item.address),
-        normalizeLocation(item.city)
-      ].filter(loc => loc && loc.length > 0)
-    }));
-    
-    // Strict filtering: Only include items that have EXACT or CLOSE location matches
-    const locationMatches = itemsWithLocations.filter(item => {
-      const queryWords = queryLower.split(/\s+/).filter(w => w.length > 1);
-      
-      // Check each normalized location field
-      for (const location of item.normalizedLocations) {
-        // 1. EXACT MATCH (highest priority)
-        if (location === queryLower) {
-          return true;
-        }
-        
-        // 2. Location CONTAINS the entire query
-        if (location.includes(queryLower)) {
-          return true;
-        }
-        
-        // 3. Query contains location words (e.g., "bodija" in "bodija area")
-        const locationWords = location.split(/\s+/);
-        const hasLocationWordMatch = locationWords.some(locWord => 
-          locWord.length > 2 && queryLower.includes(locWord)
-        );
-        
-        if (hasLocationWordMatch) {
-          return true;
-        }
-        
-        // 4. For multi-word queries, check if any query word matches location
-        const hasQueryWordMatch = queryWords.some(queryWord => 
-          queryWord.length > 2 && location.includes(queryWord)
-        );
-        
-        if (hasQueryWordMatch) {
-          return true;
-        }
-      }
-      
-      return false;
-    });
-    
-    console.log(`📍 Found ${locationMatches.length} strict location matches for "${query}"`);
-    
-    return locationMatches;
-  }, []);
+  }, [searchQuery, JSON.stringify(filters), window.location.search]); // Added window.location.search dependency
 
   return { 
     listings, 
@@ -374,26 +420,6 @@ const getCategoryDisplayName = (category) => {
     .join(" ");
 };
 
-// Helper function to get location display name
-const getLocationDisplayName = (location) => {
-  if (!location || location === "All Locations" || location === "All")
-    return "All Locations";
-
-  const parts = location.split(".");
-  if (parts.length > 1) {
-    const afterDot = parts.slice(1).join(".").trim();
-    return afterDot
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  }
-
-  return location
-    .split(" ")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
-
 // Helper function to get category icon
 const getCategoryIcon = (category) => {
   const cat = category.toLowerCase();
@@ -402,7 +428,7 @@ const getCategoryIcon = (category) => {
   if (cat.includes("weekend") || cat.includes("event")) return faCalendarWeek;
   if (cat.includes("restaurant") || cat.includes("food")) return faUtensils;
   if (cat.includes("tourist") || cat.includes("attraction")) return faLandmark;
-  if (cat.includes("services")) return faTools;
+  if (cat.includes("services") || cat.includes("vendor")) return faUser;
   return faFilter;
 };
 
@@ -419,7 +445,7 @@ const getCardImages = (item) => {
   if (cat.includes("cafe")) return [FALLBACK_IMAGES.cafe];
   if (cat.includes("bar") || cat.includes("lounge"))
     return [FALLBACK_IMAGES.bar];
-  if (cat.includes("services")) return [FALLBACK_IMAGES.services];
+  if (cat.includes("services") || cat.includes("vendor")) return [FALLBACK_IMAGES.services];
   if (cat.includes("event")) return [FALLBACK_IMAGES.event];
   if (cat.includes("hall") || cat.includes("weekend"))
     return [FALLBACK_IMAGES.hall];
@@ -431,7 +457,7 @@ const getCardImages = (item) => {
 const getLocationBreakdown = (listings) => {
   const locationCounts = {};
   listings.forEach((item) => {
-    const location = getLocationDisplayName(item.location?.area || item.area || "Unknown");
+    const location = getLocationDisplayName(item.location?.area || "Unknown");
     locationCounts[location] = (locationCounts[location] || 0) + 1;
   });
 
@@ -460,7 +486,7 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
   const uniqueLocations = [
     ...new Set(
       categoryFilteredListings
-        .map((item) => item.location?.area || item.area)
+        .map((item) => item.location?.area)
         .filter((loc) => loc && loc.trim() !== "")
         .map((loc) => loc.trim())
     ),
@@ -474,7 +500,7 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
     })
     .map((location) => {
       const locationListings = categoryFilteredListings.filter((item) => {
-        const itemLocation = item.location?.area || item.area;
+        const itemLocation = item.location?.area;
         return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
       });
 
@@ -489,7 +515,8 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
         breakdown: [],
         action: () => {
           const params = new URLSearchParams();
-          params.append("location", location);
+          // Use proper case for location
+          params.append("location.area", normalizeLocationForBackend(location));
           if (activeCategory !== "All Categories") {
             params.append("category", activeCategory.toLowerCase());
           }
@@ -510,7 +537,7 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
     })
     .map((location) => {
       const locationListings = categoryFilteredListings.filter((item) => {
-        const itemLocation = item.location?.area || item.area;
+        const itemLocation = item.location?.area;
         return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
       });
 
@@ -525,7 +552,8 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
         breakdown: [],
         action: () => {
           const params = new URLSearchParams();
-          params.append("location", location);
+          // Use proper case for location
+          params.append("location.area", normalizeLocationForBackend(location));
           if (activeCategory !== "All Categories") {
             params.append("category", activeCategory.toLowerCase());
           }
@@ -667,7 +695,12 @@ const DesktopSearchSuggestions = ({
             <button
               onClick={() => {
                 const params = new URLSearchParams();
-                params.append("q", searchQuery.trim());
+                if (looksLikeLocation(searchQuery.trim())) {
+                  // Use proper case for location
+                  params.append("location.area", normalizeLocationForBackend(searchQuery.trim()));
+                } else {
+                  params.append("q", searchQuery.trim());
+                }
                 if (activeCategory !== "All Categories") {
                   params.append("category", activeCategory.toLowerCase());
                 }
@@ -731,7 +764,12 @@ const MobileSearchModal = ({
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && inputValue.trim()) {
       const params = new URLSearchParams();
-      params.append("q", inputValue.trim());
+      if (looksLikeLocation(inputValue.trim())) {
+        // Use proper case for location
+        params.append("location.area", normalizeLocationForBackend(inputValue.trim()));
+      } else {
+        params.append("q", inputValue.trim());
+      }
       if (activeCategory !== "All Categories") {
         params.append("category", activeCategory.toLowerCase());
       }
@@ -851,7 +889,12 @@ const MobileSearchModal = ({
                   <button
                     onClick={() => {
                       const params = new URLSearchParams();
-                      params.append("q", inputValue.trim());
+                      if (looksLikeLocation(inputValue.trim())) {
+                        // Use proper case for location
+                        params.append("location.area", normalizeLocationForBackend(inputValue.trim()));
+                      } else {
+                        params.append("q", inputValue.trim());
+                      }
                       if (activeCategory !== "All Categories") {
                         params.append("category", activeCategory.toLowerCase());
                       }
@@ -883,7 +926,12 @@ const MobileSearchModal = ({
                   <button
                     onClick={() => {
                       const params = new URLSearchParams();
-                      params.append("q", inputValue.trim());
+                      if (looksLikeLocation(inputValue.trim())) {
+                        // Use proper case for location
+                        params.append("location.area", normalizeLocationForBackend(inputValue.trim()));
+                      } else {
+                        params.append("q", inputValue.trim());
+                      }
                       if (activeCategory !== "All Categories") {
                         params.append("category", activeCategory.toLowerCase());
                       }
@@ -909,7 +957,7 @@ const MobileSearchModal = ({
               <div className="w-full max-w-md px-4">
                 <p className="text-sm font-medium text-gray-500 mb-4 text-center">Popular locations</p>
                 <div className="flex flex-wrap gap-2 justify-center">
-                  {["Bodija", "Sango", "UI", "Mokola", "Dugbe"].map((term) => (
+                  {["Akobo", "Bodija", "Sango", "UI", "Mokola", "Dugbe", "Ringroad"].map((term) => (
                     <button
                       key={term}
                       onClick={() => {
@@ -1067,7 +1115,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
 
   const priceText = getPriceText();
   const perText = getPerText();
-  const locationText = item.location?.area || item.area || "Ibadan";
+  const locationText = getLocationDisplayName(item.location?.area) || "Ibadan";
   const rating = item.rating || "4.9";
   const businessName = item.title || item.name || "Business Name";
   const subcategory = getSubcategory(category);
@@ -1103,7 +1151,9 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
       toast.innerHTML = `
       <div class="flex items-start gap-3">
         <div class="${
-          type === "success" ? "text-green-600" : "text-blue-600"
+          type === "success"
+            ? "text-green-600"
+            : "text-blue-600"
         } mt-0.5">
           ${
             type === "success"
@@ -1368,15 +1418,13 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
               {locationText}
             </p>
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1 flex-wrap">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-xs md:text-xs font-manrope text-gray-900">
-                    {priceText}
-                  </span>
-                  <span className="text-[9px] md:text-xs text-gray-600">
-                    {perText}
-                  </span>
-                </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xs md:text-xs font-manrope text-gray-900">
+                  {priceText}
+                </span>
+                <span className="text-[9px] md:text-xs text-gray-600">
+                  {perText}
+                </span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="flex items-center gap-1 text-gray-800 text-[9px] md:text-xs">
@@ -1421,12 +1469,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
 const CategoryButtons = ({ selectedCategories, onCategoryClick }) => {
   const buttonConfigs = [
     { 
-      key: "all", 
-      label: "All Categories", 
-      displayName: "All Categories",
-      icon: faFilter 
-    },
-    { 
       key: "hotel", 
       label: "Hotel", 
       displayName: "Hotels",
@@ -1448,7 +1490,7 @@ const CategoryButtons = ({ selectedCategories, onCategoryClick }) => {
       key: "vendor", 
       label: "Vendor", 
       displayName: "Vendors",
-      icon: faTools 
+      icon: FaUserCircle
     }
   ];
 
@@ -1478,20 +1520,21 @@ const CategoryButtons = ({ selectedCategories, onCategoryClick }) => {
                     flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-full
                     whitespace-nowrap transition-all duration-200 font-medium
                     ${isSelected 
-                      ? 'bg-[#00065A] text-white shadow-sm' 
+                      ? 'bg-[#06f49f] text-white shadow-sm'
                       : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
                     }
-                    ${button.key === 'all' 
-                      ? 'text-sm font-semibold' 
-                      : 'text-xs'
-                    }
+                    text-xs
                   `}
                   style={{ minWidth: 'auto' }}
                 >
-                  <FontAwesomeIcon 
-                    icon={button.icon} 
-                    className={`${isSelected ? 'text-white' : 'text-gray-500'} text-xs`}
-                  />
+                  {button.icon === FaUserCircle ? (
+                    <button.icon className={`${isSelected ? 'text-white' : 'text-gray-500'} text-xs`} />
+                  ) : (
+                    <FontAwesomeIcon 
+                      icon={button.icon} 
+                      className={`${isSelected ? 'text-white' : 'text-gray-500'} text-xs`}
+                    />
+                  )}
                   <span>{button.displayName}</span>
                 </button>
               );
@@ -1512,15 +1555,19 @@ const CategoryButtons = ({ selectedCategories, onCategoryClick }) => {
                     flex items-center justify-center gap-2 px-4 py-3.5 rounded-lg
                     transition-all duration-200 font-medium text-base
                     ${isSelected 
-                      ? 'bg-[#00065A] text-white shadow-sm' 
+                      ? 'bg-[#06f49f] text-white shadow-sm'
                       : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
                     }
                   `}
                 >
-                  <FontAwesomeIcon 
-                    icon={button.icon} 
-                    className={`${isSelected ? 'text-white' : 'text-gray-500'} text-sm`}
-                  />
+                  {button.icon === FaUserCircle ? (
+                    <button.icon className={`${isSelected ? 'text-white' : 'text-gray-500'} text-sm`} />
+                  ) : (
+                    <FontAwesomeIcon 
+                      icon={button.icon} 
+                      className={`${isSelected ? 'text-white' : 'text-gray-500'} text-sm`}
+                    />
+                  )}
                   <span>{button.displayName}</span>
                 </button>
               );
@@ -1532,7 +1579,7 @@ const CategoryButtons = ({ selectedCategories, onCategoryClick }) => {
   );
 };
 
-// ================== FILTER SIDEBAR ==================
+// ================== FIXED FILTER SIDEBAR ==================
 
 const FilterSidebar = ({
   onFilterChange,
@@ -1590,12 +1637,13 @@ const FilterSidebar = ({
     }
   }, [currentFilters, isInitialized]);
 
+  // ✅ FIX: Allow multiple locations to be selected
   const handleLocationChange = (location) => {
     const updatedFilters = {
       ...localFilters,
       locations: localFilters.locations.includes(location)
-        ? localFilters.locations.filter((l) => l !== location)
-        : [...localFilters.locations, location],
+        ? localFilters.locations.filter((l) => l !== location) // Remove if already selected
+        : [...localFilters.locations, location], // Add if not selected
     };
     setLocalFilters(updatedFilters);
     onFilterChange(updatedFilters);
@@ -2216,7 +2264,7 @@ const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
   );
 };
 
-// ================== MAIN SEARCHRESULTS COMPONENT ==================
+// ================== FIXED MAIN SEARCHRESULTS COMPONENT ==================
 
 const SearchResults = () => {
   useEffect(() => {
@@ -2229,10 +2277,11 @@ const SearchResults = () => {
 
   const searchQuery = searchParams.get("q") || "";
   const urlCategory = searchParams.get("category");
+  const urlLocation = searchParams.get("location.area") || searchParams.get("location");
   
   const [activeFilters, setActiveFilters] = useState({
     locations: [],
-    categories: urlCategory ? [getCategoryDisplayName(urlCategory)] : [],
+    categories: [],
     priceRange: { min: "", max: "" },
     ratings: [],
     sortBy: "relevance",
@@ -2253,9 +2302,7 @@ const SearchResults = () => {
     bottom: 0,
     width: 0,
   });
-  const [selectedCategoryButtons, setSelectedCategoryButtons] = useState(
-    urlCategory ? [urlCategory.toLowerCase()] : ["all"]
-  );
+  const [selectedCategoryButtons, setSelectedCategoryButtons] = useState([]);
   const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
   
   const searchContainerRef = useRef(null);
@@ -2326,7 +2373,7 @@ const SearchResults = () => {
 
   useEffect(() => {
     if (!loading && !error && listings.length > 0) {
-      const uniqueLocations = [...new Set(listings.map(item => item.location?.area || item.area).filter(Boolean))];
+      const uniqueLocations = [...new Set(listings.map(item => item.location?.area).filter(Boolean))];
       const uniqueCategories = [...new Set(listings.map(item => item.category).filter(Boolean))];
       setAllLocations(uniqueLocations);
       setAllCategories(uniqueCategories);
@@ -2346,9 +2393,8 @@ const SearchResults = () => {
     setLocalSearchQuery(searchQuery);
   }, [searchQuery]);
 
+  // ✅ CRITICAL FIX: Initialize filters from URL parameters
   useEffect(() => {
-    if (!listings.length && !loading) return;
-    
     const initialFilters = {
       locations: [],
       categories: [],
@@ -2358,53 +2404,45 @@ const SearchResults = () => {
       amenities: [],
     };
 
-    // Collect all location parameters
-    const locationParams = [];
-    for (const [key, value] of searchParams.entries()) {
-      if (key.startsWith("location")) {
-        const displayName = getLocationDisplayName(value);
-        if (displayName !== "All Locations" && displayName !== "All") {
-          locationParams.push(displayName);
-        }
+    // Set category from URL
+    if (urlCategory) {
+      const displayName = getCategoryDisplayName(urlCategory);
+      if (displayName !== "All Categories" && displayName !== "All") {
+        initialFilters.categories = [displayName];
+        
+        // Set selected category button
+        const buttonKey = getCategoryButtonKey(urlCategory.toLowerCase());
+        setSelectedCategoryButtons([buttonKey]);
       }
     }
 
-    // Collect all category parameters
-    const categoryParams = [];
-    for (const [key, value] of searchParams.entries()) {
-      if (key.startsWith("category")) {
-        const displayName = getCategoryDisplayName(value);
-        if (displayName !== "All Categories" && displayName !== "All") {
-          categoryParams.push(displayName);
-        }
+    // Set location from URL - use proper case
+    if (urlLocation) {
+      const displayName = getLocationDisplayName(urlLocation);
+      if (displayName !== "All Locations" && displayName !== "All") {
+        initialFilters.locations = [displayName];
       }
-    }
-
-    // Set locations from URL params
-    if (locationParams.length > 0) {
-      initialFilters.locations = [...new Set(locationParams)];
-    }
-
-    // Set categories from URL params
-    if (categoryParams.length > 0) {
-      initialFilters.categories = [...new Set(categoryParams)];
-      const firstCategory = categoryParams[0].toLowerCase();
-      const buttonKey = getCategoryButtonKey(firstCategory);
-      setSelectedCategoryButtons([buttonKey]);
     }
 
     setActiveFilters(initialFilters);
     setFiltersInitialized(true);
-  }, [listings.length, searchParams.toString(), loading]);
+    
+    console.log("🔧 Initialized filters from URL:", {
+      urlCategory,
+      urlLocation,
+      initialFilters,
+      selectedCategoryButtons
+    });
+  }, [urlCategory, urlLocation]);
 
   const getCategoryButtonKey = (categoryName) => {
     const catLower = categoryName.toLowerCase();
-    if (catLower.includes("services")) return "vendor";
+    if (catLower.includes("services") || catLower.includes("vendor")) return "vendor";
     if (catLower.includes("shortlet")) return "shortlet";
     if (catLower.includes("tourist")) return "tourist";
     if (catLower.includes("hotel")) return "hotel";
     if (catLower.includes("restaurant")) return "restaurant";
-    return "all";
+    return "hotel";
   };
 
   const handleSearchChange = (value) => {
@@ -2447,11 +2485,46 @@ const SearchResults = () => {
     e?.preventDefault();
     if (localSearchQuery.trim()) {
       const params = new URLSearchParams();
-      params.set("q", localSearchQuery.trim());
-      // Preserve category filter if active
-      if (activeFilters.categories.length > 0) {
-        params.set("category", activeFilters.categories[0].toLowerCase());
+      
+      // ✅ FIX: Handle location vs regular search
+      if (looksLikeLocation(localSearchQuery.trim())) {
+        // Use proper case for location
+        params.set("location.area", normalizeLocationForBackend(localSearchQuery.trim()));
+        
+        // ✅ CRITICAL: When searching by location, ALWAYS include category if we have one
+        if (activeFilters.categories.length > 0) {
+          const categorySlug = activeFilters.categories[0].toLowerCase().replace(/\s+/g, '-');
+          params.set("category", categorySlug);
+        } else if (selectedCategoryButtons.length > 0) {
+          // If no category filter but we have selected category button
+          const categoryMap = {
+            'hotel': 'hotel',
+            'restaurant': 'restaurant',
+            'shortlet': 'shortlet',
+            'vendor': 'services'
+          };
+          const actualCategory = categoryMap[selectedCategoryButtons[0]] || selectedCategoryButtons[0];
+          params.set("category", actualCategory);
+        } else {
+          // Default to hotel if no category selected
+          params.set("category", "hotel");
+        }
+      } else {
+        // Regular search query
+        params.set("q", localSearchQuery.trim());
+        
+        // Keep existing category filter
+        if (activeFilters.categories.length > 0) {
+          const categorySlug = activeFilters.categories[0].toLowerCase().replace(/\s+/g, '-');
+          params.set("category", categorySlug);
+        }
       }
+      
+      // Preserve existing location filter (if not overriding with new search)
+      if (!looksLikeLocation(localSearchQuery.trim()) && activeFilters.locations.length > 0) {
+        params.set("location.area", activeFilters.locations[0]);
+      }
+      
       setSearchParams(params);
       setShowSuggestions(false);
       setShowMobileSearchModal(false);
@@ -2466,44 +2539,63 @@ const SearchResults = () => {
     setShowDesktopFilters(!showDesktopFilters);
   };
 
+  // ✅ FIXED: Handle filter changes with proper URL updates
   const handleFilterChange = (newFilters) => {
     setActiveFilters(newFilters);
-    if (!isMobile) {
-      const params = new URLSearchParams();
-      if (searchQuery) {
+    
+    // Update URL with filters
+    const params = new URLSearchParams();
+    
+    // Keep search query
+    if (searchQuery) {
+      if (looksLikeLocation(searchQuery)) {
+        params.set("location.area", searchQuery);
+      } else {
         params.set("q", searchQuery);
       }
-      for (const [key] of searchParams.entries()) {
-        if (key.startsWith("category") || key.startsWith("location")) {
-          params.delete(key);
-        }
-      }
-      newFilters.categories.forEach((categoryDisplayName, index) => {
-        const selectedCategory = allCategories.find(
-          (cat) => getCategoryDisplayName(cat) === categoryDisplayName
-        );
-        if (selectedCategory) {
-          if (index === 0) {
-            params.set("category", selectedCategory);
-          } else {
-            params.set(`category${index + 1}`, selectedCategory);
-          }
-        }
-      });
-      newFilters.locations.forEach((locationDisplayName, index) => {
-        const selectedLocation = allLocations.find(
-          (loc) => getLocationDisplayName(loc) === locationDisplayName
-        );
-        if (selectedLocation) {
-          if (index === 0) {
-            params.set("location", selectedLocation);
-          } else {
-            params.set(`location${index + 1}`, selectedLocation);
-          }
-        }
-      });
-      setSearchParams(params);
     }
+    
+    // ✅ CRITICAL: Always include category when we have filters
+    if (newFilters.categories.length > 0) {
+      const categorySlug = newFilters.categories[0].toLowerCase().replace(/\s+/g, '-');
+      params.set("category", categorySlug);
+    } else if (newFilters.locations.length > 0) {
+      // If user selects location but no category, keep existing or default to hotel
+      const existingCategory = searchParams.get("category");
+      if (existingCategory) {
+        params.set("category", existingCategory);
+      } else {
+        params.set("category", "hotel");
+      }
+    } else if (selectedCategoryButtons.length > 0) {
+      // Use selected category button
+      const categoryMap = {
+        'hotel': 'hotel',
+        'restaurant': 'restaurant',
+        'shortlet': 'shortlet',
+        'vendor': 'services'
+      };
+      const actualCategory = categoryMap[selectedCategoryButtons[0]] || selectedCategoryButtons[0];
+      params.set("category", actualCategory);
+    }
+    
+    // ✅ FIX: Handle multiple locations - send only first to backend
+    if (newFilters.locations.length > 0) {
+      // Use proper case for the location sent to backend
+      params.set("location.area", normalizeLocationForBackend(newFilters.locations[0]));
+    } else {
+      // Remove location filter if no locations selected
+      params.delete("location.area");
+    }
+    
+    // Keep other parameters
+    for (const [key, value] of searchParams.entries()) {
+      if (!["category", "location", "location.area", "q"].includes(key)) {
+        params.set(key, value);
+      }
+    }
+    
+    setSearchParams(params);
   };
 
   const handleSuggestionClick = useCallback(
@@ -2525,36 +2617,39 @@ const SearchResults = () => {
       amenities: [],
     };
     setActiveFilters(resetFilters);
-    setSelectedCategoryButtons(["all"]);
+    setSelectedCategoryButtons([]);
+    
+    // Clear URL parameters but keep search query
     const params = new URLSearchParams();
     if (searchQuery) {
-      params.set("q", searchQuery);
+      if (looksLikeLocation(searchQuery)) {
+        params.set("location.area", searchQuery);
+      } else {
+        params.set("q", searchQuery);
+      }
     }
     setSearchParams(params);
   };
 
+  // ✅ FIXED: Handle category button clicks
   const handleCategoryButtonClick = (categoryKey) => {
     const params = new URLSearchParams();
     
     // Keep existing search query if any
     if (searchQuery) {
-      params.set("q", searchQuery);
-    }
-    
-    // Keep existing location filters
-    for (const [key, value] of searchParams.entries()) {
-      if (key.startsWith("location")) {
-        params.set(key, value);
+      if (looksLikeLocation(searchQuery)) {
+        params.set("location.area", searchQuery);
+      } else {
+        params.set("q", searchQuery);
       }
     }
     
-    // Clear previous category parameters
-    for (const [key] of searchParams.entries()) {
-      if (key.startsWith("category")) {
-        params.delete(key);
-      }
+    // Keep existing location filters (if any)
+    if (activeFilters.locations.length > 0) {
+      params.set("location.area", activeFilters.locations[0]);
     }
     
+    // Set category
     const categoryMap = {
       'hotel': 'hotel',
       'restaurant': 'restaurant',
@@ -2562,56 +2657,40 @@ const SearchResults = () => {
       'vendor': 'services'
     };
     
-    if (categoryKey === "all") {
-      setSelectedCategoryButtons(["all"]);
-      const updatedFilters = {
-        ...activeFilters,
-        categories: [],
-      };
-      setActiveFilters(updatedFilters);
-      setSearchParams(params);
-    } else {
-      const actualCategory = categoryMap[categoryKey] || categoryKey;
-      const newSelectedCategories = [categoryKey];
-      setSelectedCategoryButtons(newSelectedCategories);
-      
-      if (newSelectedCategories[0] !== "all") {
-        params.set("category", actualCategory);
-      }
-      setSearchParams(params);
-      
-      const displayName = getCategoryDisplayName(actualCategory);
-      const updatedFilters = {
-        ...activeFilters,
-        categories: newSelectedCategories.includes("all") ? [] : [displayName],
-      };
-      setActiveFilters(updatedFilters);
-      
-      if (categoryKey !== "all") {
-        navigate(`/category/${actualCategory}`);
-      }
-    }
+    const actualCategory = categoryMap[categoryKey] || categoryKey;
+    const newSelectedCategories = [categoryKey];
+    setSelectedCategoryButtons(newSelectedCategories);
+    
+    // Always set category in URL
+    params.set("category", actualCategory);
+    
+    setSearchParams(params);
+    
+    const displayName = getCategoryDisplayName(actualCategory);
+    const updatedFilters = {
+      ...activeFilters,
+      categories: [displayName],
+    };
+    setActiveFilters(updatedFilters);
+    
+    console.log("🔧 Category button clicked:", {
+      categoryKey,
+      actualCategory,
+      displayName,
+      params: params.toString()
+    });
   };
 
   const getPageTitle = () => {
     const locationParams = [];
-    for (const [key, value] of searchParams.entries()) {
-      if (key.startsWith("location")) {
-        const displayName = getLocationDisplayName(value);
-        if (displayName !== "All Locations" && displayName !== "All") {
-          locationParams.push(displayName);
-        }
-      }
+    const categoryParams = [];
+
+    if (activeFilters.locations.length > 0) {
+      locationParams.push(...activeFilters.locations);
     }
 
-    const categoryParams = [];
-    for (const [key, value] of searchParams.entries()) {
-      if (key.startsWith("category")) {
-        const displayName = getCategoryDisplayName(value);
-        if (displayName !== "All Categories" && displayName !== "All") {
-          categoryParams.push(displayName);
-        }
-      }
+    if (activeFilters.categories.length > 0) {
+      categoryParams.push(...activeFilters.categories);
     }
 
     if (searchQuery) {
@@ -2630,16 +2709,6 @@ const SearchResults = () => {
       return `${categoriesText} in Ibadan`;
     } else if (locationParams.length > 0) {
       return `Places in ${locationParams.join(", ")}`;
-    } else if (
-      activeFilters.locations.length > 0 ||
-      activeFilters.categories.length > 0
-    ) {
-      const parts = [];
-      if (activeFilters.categories.length > 0)
-        parts.push(activeFilters.categories.join(", "));
-      if (activeFilters.locations.length > 0)
-        parts.push(activeFilters.locations.join(", "));
-      return `Places in ${parts.join(" • ")}`;
     } else {
       return "All Places in Ibadan";
     }
@@ -2647,23 +2716,14 @@ const SearchResults = () => {
 
   const getPageDescription = () => {
     const locationParams = [];
-    for (const [key, value] of searchParams.entries()) {
-      if (key.startsWith("location")) {
-        const displayName = getLocationDisplayName(value);
-        if (displayName !== "All Locations" && displayName !== "All") {
-          locationParams.push(displayName);
-        }
-      }
+    const categoryParams = [];
+
+    if (activeFilters.locations.length > 0) {
+      locationParams.push(...activeFilters.locations);
     }
 
-    const categoryParams = [];
-    for (const [key, value] of searchParams.entries()) {
-      if (key.startsWith("category")) {
-        const displayName = getCategoryDisplayName(value);
-        if (displayName !== "All Categories" && displayName !== "All") {
-          categoryParams.push(displayName);
-        }
-      }
+    if (activeFilters.categories.length > 0) {
+      categoryParams.push(...activeFilters.categories);
     }
 
     if (searchQuery) {
@@ -2772,7 +2832,7 @@ const SearchResults = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 font-manrope">
+    <div className="min-h-screen bg-gray-50 font-manrope w-full overflow-x-hidden">
       <Meta
         title={`${getPageTitle()} | Ajani Directory`}
         description={getPageDescription()}
@@ -2785,14 +2845,14 @@ const SearchResults = () => {
       </div>
 
       <main
-        className="pb-8 md:mt-14"
+        className="pb-8 md:mt-14 w-full mx-auto max-w-[100vw]"
         style={{
           paddingLeft: isMobile ? "0.75rem" : "1rem",
           paddingRight: isMobile ? "0.75rem" : "1rem",
         }}
       >
         <div
-          className="z-30 py-4 md:py-6 relative "
+          className="z-30 py-4 md:py-6 relative w-full"
           style={{
             zIndex: 50,
             width: "100%",
@@ -2812,17 +2872,16 @@ const SearchResults = () => {
             <div className="flex items-center gap-3">
               <BackButton className="md:hidden" />
               <div className="flex-1">
-                <div className="flex justify-center">
+                <div className="flex justify-center w-full">
                   <div
-                    className="w-full relative"
+                    className="w-full relative max-w-[100vw]"
                     ref={searchContainerRef}
-                    style={{ width: "100%" }}
                   >
                     <form onSubmit={handleSearchSubmit}>
-                      <div className="flex items-center justify-center">
+                      <div className="flex items-center justify-center w-full">
                         <div
-                          className="flex items-center bg-gray-200 rounded-full shadow-sm relative z-40"
-                          style={{ width: isMobile ? "100%" : "27%" }}
+                          className="flex items-center bg-gray-200 rounded-full shadow-sm relative z-40 w-full"
+                          style={{ maxWidth: isMobile ? "100%" : "27%" }}
                         >
                           <div className="pl-3 sm:pl-4 text-gray-500">
                             <FontAwesomeIcon icon={faSearch} className="h-4 w-4" />
@@ -2835,7 +2894,7 @@ const SearchResults = () => {
                             value={localSearchQuery}
                             onChange={(e) => handleSearchChange(e.target.value)}
                             onFocus={handleSearchFocus}
-                            className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope"
+                            className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope w-full"
                             autoFocus={false}
                             aria-label="Search input"
                             role="searchbox"
@@ -2916,14 +2975,7 @@ const SearchResults = () => {
         )}
 
         <div
-          className="flex flex-col lg:flex-row gap-6"
-          style={{
-            width: "100%",
-            marginLeft: "0",
-            marginRight: "0",
-            paddingLeft: "0",
-            paddingRight: "0",
-          }}
+          className="flex flex-col lg:flex-row gap-6 w-full"
         >
           {!isMobile && filtersInitialized && (
             <div className="lg:w-1/4">
@@ -2938,60 +2990,91 @@ const SearchResults = () => {
           )}
 
           <div
-            className="lg:w-3/4"
+            className="lg:w-3/4 w-full"
             ref={resultsRef}
-            style={{
-              width: "100%",
-              paddingLeft: isMobile ? "0" : "0",
-              paddingRight: isMobile ? "0" : "0",
-            }}
           >
-            <div className="mb-6" style={{ paddingLeft: "0", paddingRight: "0" }}>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex-1 flex items-center gap-3">
+            <div className="mb-6 w-full">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+                <div className="flex-1 flex items-center gap-3 w-full">
                   {isMobile && filtersInitialized && (
-                    <button
-                      onClick={toggleMobileFilters}
-                      className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm"
-                      aria-label="Open filters"
-                      ref={filterButtonRef}
-                    >
-                      <div className="relative">
-                        <PiSliders className="text-gray-600 text-lg" />
-                        {Object.keys(activeFilters).some((key) => {
-                          if (key === "priceRange") {
-                            return (
-                              activeFilters.priceRange.min ||
-                              activeFilters.priceRange.max
-                            );
-                          }
-                          return Array.isArray(activeFilters[key])
-                            ? activeFilters[key].length > 0
-                            : activeFilters[key] !== "relevance";
-                        }) && (
-                          <span className="absolute -top-1 -right-1 bg-[#06EAFC] text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
-                            {Object.values(activeFilters).reduce((acc, val) => {
-                              if (Array.isArray(val)) return acc + val.length;
-                              if (typeof val === "object" && val !== null) {
-                                return acc + (val.min || val.max ? 1 : 0);
-                              }
-                              return acc + (val && val !== "relevance" ? 1 : 0);
-                            }, 0)}
-                          </span>
-                        )}
+                    <div className="flex items-center justify-between w-full">
+                      <div className="text-left">
+                        <h1 className="text-xl font-bold text-[#00065A] mb-1">
+                          {getPageTitle()}
+                        </h1>
+                        <p className="text-sm text-gray-600">
+                          {apiResponse?.results || 0} {apiResponse?.results === 1 ? "place" : "places"} found
+                        </p>
                       </div>
-                    </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={toggleMobileFilters}
+                          className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm"
+                          aria-label="Open filters"
+                          ref={filterButtonRef}
+                        >
+                          <div className="relative">
+                            <PiSliders className="text-gray-600 text-lg" />
+                            {Object.keys(activeFilters).some((key) => {
+                              if (key === "priceRange") {
+                                return (
+                                  activeFilters.priceRange.min ||
+                                  activeFilters.priceRange.max
+                                );
+                              }
+                              return Array.isArray(activeFilters[key])
+                                ? activeFilters[key].length > 0
+                                : activeFilters[key] !== "relevance";
+                            }) && (
+                              <span className="absolute -top-1 -right-1 bg-[#06EAFC] text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                                {Object.values(activeFilters).reduce((acc, val) => {
+                                  if (Array.isArray(val)) return acc + val.length;
+                                  if (typeof val === "object" && val !== null) {
+                                    return acc + (val.min || val.max ? 1 : 0);
+                                  }
+                                  return acc + (val && val !== "relevance" ? 1 : 0);
+                                }, 0)}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                        <div className="relative">
+                          <select
+                            value={activeFilters.sortBy}
+                            onChange={(e) => {
+                              const updatedFilters = {
+                                ...activeFilters,
+                                sortBy: e.target.value,
+                              };
+                              handleFilterChange(updatedFilters);
+                            }}
+                            className="appearance-none px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-8"
+                          >
+                            <option value="relevance">Sort by: Relevance</option>
+                            <option value="price_low">Price: Low to High</option>
+                            <option value="price_high">Price: High to Low</option>
+                            <option value="rating">Highest Rated</option>
+                            <option value="name">Name: A to Z</option>
+                          </select>
+                          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                            <FontAwesomeIcon icon={faChevronDown} className="text-gray-500 text-xs" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   )}
-                  <div className="flex-1">
-                    <h1 className="text-xl font-bold text-[#00065A] mb-1">
-                      {getPageTitle()}
-                    </h1>
-                    <p className="text-sm text-gray-600">
-                      {apiResponse?.results || 0} {apiResponse?.results === 1 ? "place" : "places"} found
-                    </p>
-                  </div>
+                  {!isMobile && (
+                    <div className="flex-1">
+                      <h1 className="text-xl font-bold text-[#00065A] mb-1">
+                        {getPageTitle()}
+                      </h1>
+                      <p className="text-sm text-gray-600">
+                        {apiResponse?.results || 0} {apiResponse?.results === 1 ? "place" : "places"} found
+                      </p>
+                    </div>
+                  )}
                 </div>
-                {(isMobile || window.innerWidth >= 1024) && filtersInitialized && (
+                {!isMobile && filtersInitialized && (
                   <div className="flex items-center gap-2">
                     {!isMobile && (
                       <div className="relative">
@@ -3022,45 +3105,16 @@ const SearchResults = () => {
                         </div>
                       </div>
                     )}
-                    {isMobile && filtersInitialized && (
-                      <div className="relative">
-                        <select
-                          value={activeFilters.sortBy}
-                          onChange={(e) => {
-                            const updatedFilters = {
-                              ...activeFilters,
-                              sortBy: e.target.value,
-                            };
-                            handleFilterChange(updatedFilters);
-                          }}
-                          className="appearance-none px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-8"
-                        >
-                          <option value="relevance">Sort by: Relevance</option>
-                          <option value="price_low">Price: Low to High</option>
-                          <option value="price_high">Price: High to Low</option>
-                          <option value="rating">Highest Rated</option>
-                          <option value="name">Name: A to Z</option>
-                        </select>
-                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                          <FontAwesomeIcon icon={faChevronDown} className="text-gray-500 text-xs" />
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
             </div>
 
             <div
-              className="space-y-6"
-              style={{
-                width: "100%",
-                paddingLeft: "0",
-                paddingRight: "0",
-              }}
+              className="space-y-6 w-full"
             >
               {listings.length === 0 && filtersInitialized && (
-                <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+                <div className="text-center py-12 bg-white rounded-xl border border-gray-200 w-full">
                   <FontAwesomeIcon
                     icon={faSearch}
                     className="text-4xl text-gray-300 mb-4 block"
@@ -3080,17 +3134,15 @@ const SearchResults = () => {
                     <>
                       {isMobile ? (
                         <div
-                          className="space-y-4"
-                          style={{ paddingLeft: "0", paddingRight: "0" }}
+                          className="space-y-4 w-full"
                         >
                           {Array.from({
                             length: Math.ceil(currentListings.length / 5),
                           }).map((_, rowIndex) => (
                             <div
                               key={rowIndex}
-                              className="flex overflow-x-auto scrollbar-hide gap-2 pb-4"
+                              className="flex overflow-x-auto scrollbar-hide gap-2 pb-4 w-full"
                               style={{
-                                width: "100%",
                                 paddingLeft: "0",
                                 paddingRight: "8px",
                               }}
@@ -3110,8 +3162,7 @@ const SearchResults = () => {
                         </div>
                       ) : (
                         <div
-                          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-                          style={{ width: "100%" }}
+                          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full"
                         >
                           {currentListings.map((listing, index) => (
                             <SearchResultBusinessCard
@@ -3125,7 +3176,7 @@ const SearchResults = () => {
                       )}
 
                       {totalPages > 1 && (
-                        <div className="flex justify-center items-center space-x-2 mt-8">
+                        <div className="flex justify-center items-center space-x-2 mt-8 w-full">
                           <button
                             onClick={() => handlePageChange(currentPage - 1)}
                             disabled={currentPage === 1}
@@ -3263,7 +3314,7 @@ const SearchResults = () => {
           select.bg-transparent:hover { color: #00065a; }
         }
         @media (min-width: 768px) {
-          main { padding-left: 1rem !important; padding-right: 1rem !important; }
+          main { padding-left: 1rem !important; paddingRight: 1rem !important; }
         }
         .category-button { transition: all 0.2s ease; }
         .category-button:hover {
@@ -3271,7 +3322,7 @@ const SearchResults = () => {
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         .category-button.selected {
-          box-shadow: 0 4px 12px rgba(0, 6, 90, 0.15);
+          box-shadow: 0 4px 12px rgba(6, 244, 159, 0.15);
         }
         .category-button-mobile { min-height: 42px; }
         .category-button-desktop { min-height: 56px; }
