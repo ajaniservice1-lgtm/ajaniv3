@@ -319,7 +319,7 @@ const useBackendListings = (searchQuery = '', filters = {}) => {
     };
 
     fetchListings();
-  }, [searchQuery, JSON.stringify(filters), window.location.search]); // Added window.location.search dependency
+  }, [searchQuery, JSON.stringify(filters), window.location.search]);
 
   return { 
     listings, 
@@ -2845,10 +2845,10 @@ const SearchResults = () => {
       </div>
 
       <main
-        className="pb-8 md:mt-14 w-full mx-auto max-w-[100vw]"
+        className="pb-8  w-full mx-auto max-w-[100vw]"
         style={{
           paddingLeft: isMobile ? "0.75rem" : "1rem",
-          paddingRight: isMobile ? "0.75rem" : "1rem",
+          paddingRight: isMobile ? "0" : "1rem",
         }}
       >
         <div
@@ -2880,8 +2880,8 @@ const SearchResults = () => {
                     <form onSubmit={handleSearchSubmit}>
                       <div className="flex items-center justify-center w-full">
                         <div
-                          className="flex items-center bg-gray-200 rounded-full shadow-sm relative z-40 w-full"
-                          style={{ maxWidth: isMobile ? "100%" : "27%" }}
+                          className="flex items-center bg-gray-200 rounded-full shadow-sm relative z-40 w-full mr-2.5 md:mr-0"
+                          style={{ maxWidth: isMobile ? "100%" : "30%" }}
                         >
                           <div className="pl-3 sm:pl-4 text-gray-500">
                             <FontAwesomeIcon icon={faSearch} className="h-4 w-4" />
@@ -2894,7 +2894,7 @@ const SearchResults = () => {
                             value={localSearchQuery}
                             onChange={(e) => handleSearchChange(e.target.value)}
                             onFocus={handleSearchFocus}
-                            className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope w-full"
+                            className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope md:w-full"
                             autoFocus={false}
                             aria-label="Search input"
                             role="searchbox"
@@ -3245,7 +3245,7 @@ const SearchResults = () => {
         </div>
       </main>
       <Footer />
-      <style jsx global>{`
+      {/* <style jsx global>{`
         html { scroll-behavior: smooth; }
         img { max-width: 100%; height: auto; display: block; }
         .search-result-card {
@@ -3326,7 +3326,7 @@ const SearchResults = () => {
         }
         .category-button-mobile { min-height: 42px; }
         .category-button-desktop { min-height: 56px; }
-      `}</style>
+      `}</style> */}
     </div>
   );
 };

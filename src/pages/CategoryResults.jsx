@@ -2501,7 +2501,7 @@ const CategoryResults = () => {
         <Header />
       </div>
 
-      <main className="pb-8 md:mt-14 px-4 sm:px-6 md:mt-[-1px]">
+      <main className="pb-8 px-4 sm:px-6 md:mt-[-1px]">
         {/* Search Section */}
         <div className="py-4 md:py-6 relative" id="search-section">
           <div className="flex items-center gap-3">
