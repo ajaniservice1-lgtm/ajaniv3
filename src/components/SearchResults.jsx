@@ -195,6 +195,19 @@ const formatDateForLargeScreen = (date) => {
   }
 };
 
+// Format date in "13 Jan" format
+const formatShortDate = (date) => {
+  if (!date) return '';
+  try {
+    const d = new Date(date);
+    const day = d.getDate();
+    const month = d.toLocaleDateString('en-US', { month: 'short' }).toLowerCase();
+    return `${day} ${month}`;
+  } catch (error) {
+    return '';
+  }
+};
+
 // ================== SIMPLE CALENDAR FOR EDITING DATES ==================
 const SimpleCalendar = ({ onSelect, onClose, selectedDate: propSelectedDate, isCheckOut = false }) => {
   const modalRef = useRef(null);
@@ -418,200 +431,344 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
   );
 };
 
-// ================== MOBILE GUEST SELECTOR MODAL ==================
-const MobileGuestSelector = ({ 
-  guests, 
-  onChange, 
+// ================== MOBILE SEARCH MODAL - With Apply & Search Button ==================
+const MobileSearchModal = ({
+  searchQuery,
+  listings,
+  onSuggestionClick,
   onClose,
-  onFocusSearch,
+  onTyping,
+  isVisible,
+  activeCategory,
+  guests,
+  onGuestChange,
   checkInDate,
-  checkOutDate
+  checkOutDate,
 }) => {
+  const [inputValue, setInputValue] = useState(searchQuery);
+  const [showGuestSelector, setShowGuestSelector] = useState(false);
+  const [tempGuests, setTempGuests] = useState(guests || { adults: 2, children: 0, rooms: 1 });
+  const [tempCheckInDate, setTempCheckInDate] = useState(checkInDate);
+  const [tempCheckOutDate, setTempCheckOutDate] = useState(checkOutDate);
+  const [showCheckInCalendar, setShowCheckInCalendar] = useState(false);
+  const [showCheckOutCalendar, setShowCheckOutCalendar] = useState(false);
+  const [selectedSuggestion, setSelectedSuggestion] = useState(null);
   const modalRef = useRef(null);
+  const inputRef = useRef(null);
+  
+  const suggestions = useMemo(() => {
+    return generateSearchSuggestions(inputValue, listings, activeCategory);
+  }, [inputValue, listings, activeCategory]);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (modalRef.current && !modalRef.current.contains(event.target)) {
-        onClose();
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [onClose]);
-
-  const handleGuestChange = (type, value) => {
-    const newGuests = { ...guests };
-    newGuests[type] = Math.max(0, newGuests[type] + value);
-    onChange(newGuests);
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setInputValue(value);
+    onTyping(value);
+    setSelectedSuggestion(null); // Clear selection when typing
   };
 
-  const totalGuests = guests.adults + guests.children;
+  const handleClearInput = () => {
+    setInputValue("");
+    onTyping("");
+    setSelectedSuggestion(null);
+    inputRef.current?.focus();
+  };
 
-  return (
+  const handleSuggestionClick = (suggestion) => {
+    setSelectedSuggestion(suggestion);
+    setInputValue(suggestion.title); // Fill input with selected suggestion
+  };
+
+  const handleApplyAndSearch = () => {
+    if (selectedSuggestion) {
+      // Use the selected suggestion's action
+      onSuggestionClick(selectedSuggestion.action());
+      onClose();
+    } else if (inputValue.trim()) {
+      // If no suggestion selected but there's input, create params from input
+      const params = new URLSearchParams();
+      if (looksLikeLocation(inputValue.trim())) {
+        params.append("location.area", normalizeLocationForBackend(inputValue.trim()));
+      } else {
+        params.append("q", inputValue.trim());
+      }
+      if (activeCategory !== "All Categories") {
+        params.append("category", activeCategory.toLowerCase());
+      }
+      
+      // Add dates and guests if they exist
+      if (tempCheckInDate) {
+        params.append("checkInDate", tempCheckInDate.toISOString());
+      }
+      if (tempCheckOutDate) {
+        params.append("checkOutDate", tempCheckOutDate.toISOString());
+      }
+      if (tempGuests) {
+        params.append("guests", JSON.stringify(tempGuests));
+      }
+      
+      onSuggestionClick(`/search-results?${params.toString()}`);
+      onClose();
+    }
+  };
+
+  useEffect(() => {
+    if (isVisible && inputRef.current) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [isVisible]);
+
+  useEffect(() => {
+    if (isVisible) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isVisible]);
+
+  useEffect(() => {
+    setInputValue(searchQuery);
+    setTempGuests(guests || { adults: 2, children: 0, rooms: 1 });
+    setTempCheckInDate(checkInDate);
+    setTempCheckOutDate(checkOutDate);
+    setSelectedSuggestion(null);
+  }, [searchQuery, guests, checkInDate, checkOutDate]);
+
+  if (!isVisible) return null;
+
+  return createPortal(
     <>
-      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[10000]" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9990]" onClick={onClose} />
       <div
         ref={modalRef}
-        className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-[10001] p-6 max-h-[80vh] overflow-y-auto"
+        className="fixed inset-0 bg-white z-[9991] animate-slideInUp flex flex-col"
+        style={{ boxShadow: "0 -25px 50px -12px rgba(0, 0, 0, 0.1)" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="font-semibold text-gray-800 text-lg">Edit Search</h3>
-            <p className="text-sm text-gray-500">Modify your search criteria</p>
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClose}
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors duration-200 cursor-pointer"
+            >
+              <FontAwesomeIcon icon={faChevronLeft} className="w-5 h-5" />
+            </button>
+            <div className="flex-1 relative">
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                <FontAwesomeIcon icon={faSearch} className="w-4 h-4" />
+              </div>
+              <input
+                ref={inputRef}
+                type="text"
+                className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-gray-900 text-base placeholder:text-gray-500 cursor-text"
+                value={inputValue}
+                onChange={handleInputChange}
+                placeholder={`Search ${activeCategory.toLowerCase()}...`}
+                autoFocus
+              />
+              {inputValue && (
+                <button
+                  onClick={handleClearInput}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                >
+                  <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
+        </div>
+
+        {/* Search Details Section */}
+        <div className="px-4 py-3 border-b border-gray-200">
+          <div className="space-y-3">
+            {/* Dates */}
+            <div className="grid grid-cols-2 gap-2">
+              <div 
+                className="bg-gray-100 rounded-lg p-3 hover:bg-gray-200 cursor-pointer"
+                onClick={() => setShowCheckInCalendar(true)}
+              >
+                <div className="text-xs text-gray-600 mb-1">Check-in</div>
+                <div className="font-medium text-gray-900">
+                  {tempCheckInDate ? formatShortDate(tempCheckInDate) : "Add date"}
+                </div>
+              </div>
+              <div 
+                className="bg-gray-100 rounded-lg p-3 hover:bg-gray-200 cursor-pointer"
+                onClick={() => setShowCheckOutCalendar(true)}
+              >
+                <div className="text-xs text-gray-600 mb-1">Check-out</div>
+                <div className="font-medium text-gray-900">
+                  {tempCheckOutDate ? formatShortDate(tempCheckOutDate) : "Add date"}
+                </div>
+              </div>
+            </div>
+            
+            {/* Guests */}
+            <div 
+              className="bg-gray-100 rounded-lg p-3 hover:bg-gray-200 cursor-pointer"
+              onClick={() => setShowGuestSelector(true)}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-gray-600 mb-1">Guests</div>
+                  <div className="font-medium text-gray-900">
+                    {tempGuests.adults + tempGuests.children} guest{(tempGuests.adults + tempGuests.children) !== 1 ? 's' : ''}
+                  </div>
+                </div>
+                <FontAwesomeIcon icon={faChevronRight} className="text-gray-400" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Suggestions Content */}
+        <div className="flex-1 overflow-y-auto pb-24"> {/* Added padding for button */}
+          {inputValue.trim() ? (
+            <>
+              {suggestions.length > 0 ? (
+                <div className="p-5">
+                  <div className="mb-6">
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+                      Suggestions ({suggestions.length})
+                    </h3>
+                  </div>
+                  <div className="space-y-3">
+                    {suggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSuggestionClick(suggestion)}
+                        className={`w-full text-left p-4 bg-white rounded-xl border hover:bg-gray-50 transition-colors duration-200 group cursor-pointer ${
+                          selectedSuggestion?.title === suggestion.title 
+                            ? 'border-blue-500 bg-blue-50' 
+                            : 'border-gray-200'
+                        }`}
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-gray-100">
+                            <FontAwesomeIcon
+                              icon={suggestion.type === "category" ? faBuilding : faMapMarkerAlt}
+                              className="w-5 h-5 text-gray-700"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <h4 className="font-medium text-gray-900 text-base">
+                                  {suggestion.title}
+                                </h4>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  {suggestion.description}
+                                </p>
+                              </div>
+                              {selectedSuggestion?.title === suggestion.title && (
+                                <FontAwesomeIcon icon={faCheck} className="text-blue-500" />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-end mt-4 pt-3 border-t border-gray-100">
+                          <span className="text-sm text-blue-600 font-medium">View options</span>
+                          <FontAwesomeIcon icon={faChevronRight} className="ml-1 text-blue-600 w-3 h-3" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full py-16 px-4">
+                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                    <FontAwesomeIcon icon={faSearch} className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-xl font-medium text-gray-900 mb-3">No matches found</h3>
+                  <p className="text-gray-600 text-center max-w-sm mb-8">
+                    Try different keywords or browse our categories
+                  </p>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full py-16 px-4">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                <FontAwesomeIcon icon={faSearch} className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-medium text-gray-900 mb-3">Start searching</h3>
+              <p className="text-gray-600 text-center max-w-sm mb-10">
+                Search for {activeCategory.toLowerCase()} in Ibadan
+              </p>
+              <div className="w-full max-w-md px-4">
+                <p className="text-sm font-medium text-gray-500 mb-4 text-center">Popular locations</p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {["Akobo", "Bodija", "Sango", "UI", "Mokola", "Dugbe", "Ringroad"].map((term) => (
+                    <button
+                      key={term}
+                      onClick={() => {
+                        setInputValue(term);
+                        onTyping(term);
+                      }}
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors duration-200 cursor-pointer"
+                    >
+                      {term}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Fixed Apply & Search Button at Bottom */}
+        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
           <button
-            onClick={onClose}
-            className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 cursor-pointer"
+            onClick={handleApplyAndSearch}
+            disabled={!inputValue.trim() && !selectedSuggestion}
+            className={`w-full py-4 text-white font-semibold rounded-xl transition-colors cursor-pointer ${
+              inputValue.trim() || selectedSuggestion
+                ? 'bg-gradient-to-r from-[#00E38C] to-teal-500 hover:from-[#00c97b] hover:to-teal-600'
+                : 'bg-gray-300 cursor-not-allowed'
+            }`}
           >
-            <FontAwesomeIcon icon={faTimes} className="text-gray-600" />
+            {selectedSuggestion ? `Search ${selectedSuggestion.title}` : 'Apply & Search'}
           </button>
         </div>
-
-        {/* Search Input Section */}
-        <div className="mb-6">
-          <div 
-            onClick={onFocusSearch}
-            className="bg-gray-100 rounded-xl p-4 flex items-center justify-between hover:bg-gray-200 cursor-pointer"
-          >
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <FontAwesomeIcon icon={faSearch} className="text-gray-500" />
-                <span className="font-medium text-gray-900">Location</span>
-              </div>
-              <p className="text-sm text-gray-600">Tap to change location</p>
-            </div>
-            <FontAwesomeIcon icon={faChevronRight} className="text-gray-400" />
-          </div>
-        </div>
-
-        {/* Dates Section */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <FontAwesomeIcon icon={faCalendarAlt} className="text-blue-500" />
-              <h4 className="font-medium text-gray-800">Dates</h4>
-            </div>
-            <button className="text-blue-600 text-sm font-medium">Edit</button>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-xs text-gray-500 mb-1">Check-in</p>
-              <p className="font-medium text-gray-900">
-                {checkInDate ? formatDate(checkInDate) : "Select date"}
-              </p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-xs text-gray-500 mb-1">Check-out</p>
-              <p className="font-medium text-gray-900">
-                {checkOutDate ? formatDate(checkOutDate) : "Select date"}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Guests & Rooms Section */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <FontAwesomeIcon icon={faUser} className="text-blue-500" />
-              <h4 className="font-medium text-gray-800">Guests & Rooms</h4>
-            </div>
-          </div>
-
-          {/* Adults */}
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <div className="font-medium text-gray-800">Adults</div>
-              <div className="text-sm text-gray-500">Age 18+</div>
-            </div>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => handleGuestChange("adults", -1)}
-                disabled={guests.adults <= 1}
-                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 cursor-pointer"
-              >
-                <FontAwesomeIcon icon={faChevronLeft} size="sm" />
-              </button>
-              <span className="w-8 text-center font-medium">{guests.adults}</span>
-              <button
-                onClick={() => handleGuestChange("adults", 1)}
-                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 cursor-pointer"
-              >
-                <FontAwesomeIcon icon={faChevronRight} size="sm" />
-              </button>
-            </div>
-          </div>
-
-          {/* Children */}
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <div className="font-medium text-gray-800">Children</div>
-              <div className="text-sm text-gray-500">Age 0-17</div>
-            </div>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => handleGuestChange("children", -1)}
-                disabled={guests.children <= 0}
-                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 cursor-pointer"
-              >
-                <FontAwesomeIcon icon={faChevronLeft} size="sm" />
-              </button>
-              <span className="w-8 text-center font-medium">{guests.children}</span>
-              <button
-                onClick={() => handleGuestChange("children", 1)}
-                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 cursor-pointer"
-              >
-                <FontAwesomeIcon icon={faChevronRight} size="sm" />
-              </button>
-            </div>
-          </div>
-
-          {/* Rooms */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <div className="font-medium text-gray-800">Rooms</div>
-              <div className="text-sm text-gray-500">Number of rooms</div>
-            </div>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => handleGuestChange("rooms", -1)}
-                disabled={guests.rooms <= 1}
-                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 cursor-pointer"
-              >
-                <FontAwesomeIcon icon={faChevronLeft} size="sm" />
-              </button>
-              <span className="w-8 text-center font-medium">{guests.rooms}</span>
-              <button
-                onClick={() => handleGuestChange("rooms", 1)}
-                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 cursor-pointer"
-              >
-                <FontAwesomeIcon icon={faChevronRight} size="sm" />
-              </button>
-            </div>
-          </div>
-
-          {/* Total Guests Summary */}
-          <div className="bg-blue-50 rounded-xl p-4">
-            <div className="text-center">
-              <div className="text-sm text-gray-600">Total Guests</div>
-              <div className="text-2xl font-bold text-blue-600">{totalGuests}</div>
-              <p className="text-xs text-gray-500 mt-1">
-                {guests.rooms} {guests.rooms === 1 ? 'room' : 'rooms'} selected
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Apply Button */}
-        <button
-          onClick={onClose}
-          className="w-full py-4 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors cursor-pointer"
-        >
-          Apply Changes
-        </button>
       </div>
-    </>
+
+      {/* Calendar Modals */}
+      {showCheckInCalendar && (
+        <SimpleCalendar
+          onSelect={(date) => {
+            setTempCheckInDate(date);
+            setShowCheckInCalendar(false);
+          }}
+          onClose={() => setShowCheckInCalendar(false)}
+          selectedDate={tempCheckInDate}
+        />
+      )}
+      
+      {showCheckOutCalendar && (
+        <SimpleCalendar
+          onSelect={(date) => {
+            setTempCheckOutDate(date);
+            setShowCheckOutCalendar(false);
+          }}
+          onClose={() => setShowCheckOutCalendar(false)}
+          selectedDate={tempCheckOutDate}
+          isCheckOut={true}
+        />
+      )}
+      
+      {/* Guest Selector */}
+      {showGuestSelector && (
+        <GuestSelector
+          guests={tempGuests}
+          onChange={setTempGuests}
+          onClose={() => setShowGuestSelector(false)}
+        />
+      )}
+    </>,
+    document.body
   );
 };
 
@@ -1226,419 +1383,6 @@ const DesktopSearchSuggestions = ({
   );
 };
 
-// ================== MOBILE SEARCH MODAL - FULL SCREEN ==================
-const MobileSearchModal = ({
-  searchQuery,
-  listings,
-  onSuggestionClick,
-  onClose,
-  onTyping,
-  isVisible,
-  activeCategory,
-  guests,
-  onGuestChange,
-  checkInDate,
-  checkOutDate,
-}) => {
-  const [inputValue, setInputValue] = useState(searchQuery);
-  const [showGuestSelector, setShowGuestSelector] = useState(false);
-  const [tempGuests, setTempGuests] = useState(guests);
-  const [tempCheckInDate, setTempCheckInDate] = useState(checkInDate);
-  const [tempCheckOutDate, setTempCheckOutDate] = useState(checkOutDate);
-  const [showCheckInCalendar, setShowCheckInCalendar] = useState(false);
-  const [showCheckOutCalendar, setShowCheckOutCalendar] = useState(false);
-  const modalRef = useRef(null);
-  const inputRef = useRef(null);
-  const suggestions = useMemo(() => {
-    return generateSearchSuggestions(inputValue, listings, activeCategory);
-  }, [inputValue, listings, activeCategory]);
-
-  const handleInputChange = (e) => {
-    const value = e.target.value;
-    setInputValue(value);
-  };
-
-  const handleClearInput = () => {
-    setInputValue("");
-    inputRef.current?.focus();
-  };
-
-  const handleSuggestionClick = (action) => {
-    onSuggestionClick(action);
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && inputValue.trim()) {
-      // Just update the input, don't close
-      inputRef.current?.focus();
-    }
-  };
-
-  // Format dates for mobile display
-  const formatDateForMobile = (date) => {
-    if (!date) return 'Select date';
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    return `${day}-${month}`;
-  };
-
-  const handleApplyChanges = () => {
-    // Pass all temp values back to parent
-    onTyping(inputValue.trim());
-    onGuestChange(tempGuests);
-    
-    // Create a navigate function with all parameters
-    const params = new URLSearchParams();
-    
-    if (inputValue.trim()) {
-      if (looksLikeLocation(inputValue.trim())) {
-        params.append("location.area", normalizeLocationForBackend(inputValue.trim()));
-      } else {
-        params.append("q", inputValue.trim());
-      }
-    }
-    
-    if (activeCategory !== "All Categories") {
-      const categorySlug = activeCategory.toLowerCase().replace(/\s+/g, '-');
-      params.append("category", categorySlug);
-    }
-    
-    if (tempCheckInDate) {
-      params.append("checkInDate", tempCheckInDate.toISOString());
-    }
-    
-    if (tempCheckOutDate) {
-      params.append("checkOutDate", tempCheckOutDate.toISOString());
-    }
-    
-    params.append("guests", JSON.stringify(tempGuests));
-    
-    // Use the suggestion click handler to navigate
-    onSuggestionClick(`/search-results?${params.toString()}`);
-    onClose();
-  };
-
-  useEffect(() => {
-    if (isVisible && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
-  }, [isVisible]);
-
-  useEffect(() => {
-    if (isVisible) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
-    return () => (document.body.style.overflow = "");
-  }, [isVisible]);
-
-  useEffect(() => {
-    setInputValue(searchQuery);
-    setTempGuests(guests);
-    setTempCheckInDate(checkInDate);
-    setTempCheckOutDate(checkOutDate);
-  }, [searchQuery, guests, checkInDate, checkOutDate]);
-
-  if (!isVisible) return null;
-
-  return (
-    <>
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9990]" onClick={onClose} />
-      <div
-        ref={modalRef}
-        className="fixed inset-0 bg-white z-[9991] flex flex-col"
-        style={{ 
-          boxShadow: "0 -25px 50px -12px rgba(0, 0, 0, 0.1)",
-          height: "100vh",
-          maxHeight: "100vh",
-          overflow: "hidden"
-        }}
-      >
-        {/* Header with back button */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onClose}
-              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 cursor-pointer"
-            >
-              <FontAwesomeIcon icon={faChevronLeft} size="lg" />
-            </button>
-            <div className="flex-1 relative">
-              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                <FontAwesomeIcon icon={faSearch} size="sm" />
-              </div>
-              
-              <input
-                ref={inputRef}
-                type="text"
-                className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none text-gray-900 placeholder:text-gray-500 cursor-text"
-                value={inputValue}
-                onChange={handleInputChange}
-                onKeyPress={handleKeyPress}
-                placeholder={`Search ${activeCategory.toLowerCase()}...`}
-                autoFocus
-              />
-              {inputValue && (
-                <button
-                  onClick={handleClearInput}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                >
-                  <FontAwesomeIcon icon={faTimes} size="sm" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Search Filters Section */}
-        <div className="px-4 py-3 border-b border-gray-200">
-          <div className="space-y-3">
-            {/* Dates Section */}
-            {(activeCategory === "Hotel" || activeCategory === "Shortlet") && (
-              <div className="grid grid-cols-2 gap-3">
-                <div 
-                  className="bg-gray-100 rounded-lg p-3 flex flex-col hover:bg-gray-200 cursor-pointer"
-                  onClick={() => setShowCheckInCalendar(true)}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-600" />
-                    <span className="text-sm font-medium text-gray-900">Check-in</span>
-                  </div>
-                  <div className="text-sm text-gray-700">
-                    {formatDateForMobile(tempCheckInDate)}
-                  </div>
-                </div>
-                <div 
-                  className="bg-gray-100 rounded-lg p-3 flex flex-col hover:bg-gray-200 cursor-pointer"
-                  onClick={() => setShowCheckOutCalendar(true)}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-600" />
-                    <span className="text-sm font-medium text-gray-900">Check-out</span>
-                  </div>
-                  <div className="text-sm text-gray-700">
-                    {formatDateForMobile(tempCheckOutDate)}
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Guest Selector */}
-            <div 
-              className="bg-gray-100 rounded-lg p-3 hover:bg-gray-200 cursor-pointer"
-              onClick={() => setShowGuestSelector(true)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FontAwesomeIcon icon={faUser} className="text-gray-600" />
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">Guests & Rooms</div>
-                    <div className="text-xs text-gray-600">
-                      {tempGuests.adults} adults • {tempGuests.children} children • {tempGuests.rooms} {tempGuests.rooms === 1 ? 'room' : 'rooms'}
-                    </div>
-                  </div>
-                </div>
-                <FontAwesomeIcon icon={faChevronRight} className="text-gray-400" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Suggestions List */}
-        <div className="flex-1 overflow-y-auto">
-          {inputValue.trim() ? (
-            suggestions.length > 0 ? (
-              <div className="p-4">
-                <div className="mb-4">
-                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-                    Suggestions ({suggestions.length})
-                  </h3>
-                </div>
-                <div className="space-y-2">
-                  {suggestions.map((suggestion, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleSuggestionClick(suggestion.action())}
-                      className="w-full text-left p-3 bg-white rounded-xl border border-gray-200 hover:bg-gray-50 cursor-pointer"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100">
-                          {suggestion.type === "category" ? (
-                            <FontAwesomeIcon icon={faBuilding} className="text-gray-700" />
-                          ) : (
-                            <FontAwesomeIcon icon={faMapMarkerAlt} className="text-gray-700" />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between mb-1">
-                            <div>
-                              <h4 className="font-medium text-gray-900 text-sm">{suggestion.title}</h4>
-                              <p className="text-xs text-gray-600 mt-1">{suggestion.description}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full py-16 px-4">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                  <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-xl" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No matches found</h3>
-                <p className="text-gray-600 text-center max-w-sm mb-6">
-                  Try different keywords or browse our categories
-                </p>
-              </div>
-            )
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full py-16 px-4">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-xl" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Start searching</h3>
-              <p className="text-gray-600 text-center max-w-sm mb-6">
-                Search for {activeCategory.toLowerCase()} in Ibadan
-              </p>
-              <div className="w-full max-w-md px-4">
-                <p className="text-sm font-medium text-gray-500 mb-3 text-center">Popular locations</p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {["Akobo", "Bodija", "Sango", "UI", "Mokola", "Dugbe", "Ringroad"].map((term) => (
-                    <button
-                      key={term}
-                      onClick={() => {
-                        setInputValue(term);
-                      }}
-                      className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg cursor-pointer text-sm"
-                    >
-                      {term}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Apply Changes Button - Fixed at bottom */}
-        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
-          <button
-            onClick={handleApplyChanges}
-            className="w-full py-3 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold rounded-lg hover:from-[#00c97b] hover:to-teal-600 transition-all duration-300 cursor-pointer"
-          >
-            Apply Changes & Search
-          </button>
-        </div>
-      </div>
-
-      {/* Guest Selector Modal */}
-      {showGuestSelector && (
-        <GuestSelector
-          guests={tempGuests}
-          onChange={setTempGuests}
-          onClose={() => setShowGuestSelector(false)}
-        />
-      )}
-
-      {/* Calendar Modals */}
-      {showCheckInCalendar && (
-        <SimpleCalendar
-          onSelect={(date) => {
-            setTempCheckInDate(date);
-            setShowCheckInCalendar(false);
-          }}
-          onClose={() => setShowCheckInCalendar(false)}
-          selectedDate={tempCheckInDate}
-        />
-      )}
-      
-      {showCheckOutCalendar && (
-        <SimpleCalendar
-          onSelect={(date) => {
-            setTempCheckOutDate(date);
-            setShowCheckOutCalendar(false);
-          }}
-          onClose={() => setShowCheckOutCalendar(false)}
-          selectedDate={tempCheckOutDate}
-          isCheckOut={true}
-        />
-      )}
-    </>
-  );
-};
-
-// ================== CUSTOM HOOK FOR FAVORITES ==================
-
-const useIsFavorite = (itemId) => {
-  const [isFavorite, setIsFavorite] = useState(false);
-
-  const checkFavoriteStatus = useCallback(() => {
-    try {
-      const saved = JSON.parse(
-        localStorage.getItem("userSavedListings") || "[]"
-      );
-      const isAlreadySaved = saved.some((savedItem) => savedItem.id === itemId);
-      setIsFavorite(isAlreadySaved);
-    } catch (error) {
-      console.error("Error checking favorite status:", error);
-      setIsFavorite(false);
-    }
-  }, [itemId]);
-
-  useEffect(() => {
-    checkFavoriteStatus();
-    const handleSavedListingsChange = () => {
-      checkFavoriteStatus();
-    };
-    const handleStorageChange = (e) => {
-      if (e.key === "userSavedListings") {
-        checkFavoriteStatus();
-      }
-    };
-    window.addEventListener("savedListingsUpdated", handleSavedListingsChange);
-    window.addEventListener("storage", handleStorageChange);
-    const pollInterval = setInterval(checkFavoriteStatus, 1000);
-    return () => {
-      window.removeEventListener("savedListingsUpdated", handleSavedListingsChange);
-      window.removeEventListener("storage", handleStorageChange);
-      clearInterval(pollInterval);
-    };
-  }, [itemId, checkFavoriteStatus]);
-
-  return isFavorite;
-};
-
-const useAuthStatus = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  const checkAuth = useCallback(() => {
-    const token = localStorage.getItem("auth_token");
-    const userProfile = localStorage.getItem("userProfile");
-    const isLoggedIn = !!token && !!userProfile;
-    setIsAuthenticated(isLoggedIn);
-    return isLoggedIn;
-  }, []);
-
-  useEffect(() => {
-    checkAuth();
-    const handleAuthChange = () => {
-      checkAuth();
-    };
-    window.addEventListener("storage", handleAuthChange);
-    window.addEventListener("authChange", handleAuthChange);
-    window.addEventListener("loginSuccess", handleAuthChange);
-    window.addEventListener("logout", handleAuthChange);
-    return () => {
-      window.removeEventListener("storage", handleAuthChange);
-      window.removeEventListener("authChange", handleAuthChange);
-      window.removeEventListener("loginSuccess", handleAuthChange);
-      window.removeEventListener("logout", handleAuthChange);
-    };
-  }, [checkAuth]);
-
-  return isAuthenticated;
-};
-
 // ================== SEARCH RESULT BUSINESS CARD ==================
 
 const SearchResultBusinessCard = ({ item, category, isMobile }) => {
@@ -2049,6 +1793,78 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none"></div>
     </div>
   );
+};
+
+// ================== CUSTOM HOOK FOR FAVORITES ==================
+
+const useIsFavorite = (itemId) => {
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  const checkFavoriteStatus = useCallback(() => {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem("userSavedListings") || "[]"
+      );
+      const isAlreadySaved = saved.some((savedItem) => savedItem.id === itemId);
+      setIsFavorite(isAlreadySaved);
+    } catch (error) {
+      console.error("Error checking favorite status:", error);
+      setIsFavorite(false);
+    }
+  }, [itemId]);
+
+  useEffect(() => {
+    checkFavoriteStatus();
+    const handleSavedListingsChange = () => {
+      checkFavoriteStatus();
+    };
+    const handleStorageChange = (e) => {
+      if (e.key === "userSavedListings") {
+        checkFavoriteStatus();
+      }
+    };
+    window.addEventListener("savedListingsUpdated", handleSavedListingsChange);
+    window.addEventListener("storage", handleStorageChange);
+    const pollInterval = setInterval(checkFavoriteStatus, 1000);
+    return () => {
+      window.removeEventListener("savedListingsUpdated", handleSavedListingsChange);
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(pollInterval);
+    };
+  }, [itemId, checkFavoriteStatus]);
+
+  return isFavorite;
+};
+
+const useAuthStatus = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const checkAuth = useCallback(() => {
+    const token = localStorage.getItem("auth_token");
+    const userProfile = localStorage.getItem("userProfile");
+    const isLoggedIn = !!token && !!userProfile;
+    setIsAuthenticated(isLoggedIn);
+    return isLoggedIn;
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+    const handleAuthChange = () => {
+      checkAuth();
+    };
+    window.addEventListener("storage", handleAuthChange);
+    window.addEventListener("authChange", handleAuthChange);
+    window.addEventListener("loginSuccess", handleAuthChange);
+    window.addEventListener("logout", handleAuthChange);
+    return () => {
+      window.removeEventListener("storage", handleAuthChange);
+      window.removeEventListener("authChange", handleAuthChange);
+      window.removeEventListener("loginSuccess", handleAuthChange);
+      window.removeEventListener("logout", handleAuthChange);
+    };
+  }, [checkAuth]);
+
+  return isAuthenticated;
 };
 
 // ================== CATEGORY BUTTONS COMPONENT ==================
@@ -2895,12 +2711,12 @@ const SearchResults = () => {
   });
   const [selectedCategoryButtons, setSelectedCategoryButtons] = useState([]);
   const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
-  const [showMobileGuestSelector, setShowMobileGuestSelector] = useState(false);
   
-  // ✅ State for editing dates and guests
+  const [editingCheckIn, setEditingCheckIn] = useState(false);
+  const [editingCheckOut, setEditingCheckOut] = useState(false);
+  const [editingGuests, setEditingGuests] = useState(false);
   const [showEditCalendar, setShowEditCalendar] = useState(false);
   const [showEditGuestSelector, setShowEditGuestSelector] = useState(false);
-  const [editingCheckIn, setEditingCheckIn] = useState(false);
   
   const searchContainerRef = useRef(null);
   const filterButtonRef = useRef(null);
@@ -3142,7 +2958,6 @@ const SearchResults = () => {
       setSearchParams(params);
       setShowSuggestions(false);
       setShowMobileSearchModal(false);
-      setShowMobileGuestSelector(false);
     }
   };
 
@@ -3230,7 +3045,6 @@ const SearchResults = () => {
       navigate(url);
       setShowSuggestions(false);
       setShowMobileSearchModal(false);
-      setShowMobileGuestSelector(false);
     },
     [navigate]
   );
@@ -3332,39 +3146,40 @@ const SearchResults = () => {
     });
   };
 
-  // ✅ Handle date editing
-  const handleEditDates = () => {
+  // Handle date editing
+  const handleEditCheckIn = () => {
     setEditingCheckIn(true);
+    setEditingCheckOut(false);
+    setShowEditCalendar(true);
+  };
+
+  const handleEditCheckOut = () => {
+    setEditingCheckIn(false);
+    setEditingCheckOut(true);
     setShowEditCalendar(true);
   };
 
   const handleEditGuests = () => {
-    if (isMobile) {
-      setShowMobileGuestSelector(true);
-    } else {
-      setShowEditGuestSelector(true);
-    }
+    setEditingGuests(true);
+    setShowEditGuestSelector(true);
   };
 
   const handleDateSelect = (date) => {
+    const params = new URLSearchParams(window.location.search);
+    
     if (editingCheckIn) {
-      // Update check-in date
-      const params = new URLSearchParams(window.location.search);
       params.set("checkInDate", date.toISOString());
-      
       // Auto-set check-out to check-in + 1 day
       const nextDay = new Date(date);
       nextDay.setDate(nextDay.getDate() + 1);
       params.set("checkOutDate", nextDay.toISOString());
-      
-      setSearchParams(params);
-      setEditingCheckIn(false);
-    } else {
-      // Update check-out date
-      const params = new URLSearchParams(window.location.search);
+    } else if (editingCheckOut) {
       params.set("checkOutDate", date.toISOString());
-      setSearchParams(params);
     }
+    
+    setSearchParams(params);
+    setEditingCheckIn(false);
+    setEditingCheckOut(false);
     setShowEditCalendar(false);
   };
 
@@ -3372,11 +3187,26 @@ const SearchResults = () => {
     const params = new URLSearchParams(window.location.search);
     params.set("guests", JSON.stringify(newGuests));
     setSearchParams(params);
+    setEditingGuests(false);
     setShowEditGuestSelector(false);
-    setShowMobileGuestSelector(false);
   };
 
-  // Helper function for search placeholder
+  // Helper function for mobile search placeholder
+  const getMobileSearchPlaceholder = () => {
+    const location = getLocationDisplayName(urlLocation || searchQuery) || "Where to?";
+    
+    let datesText = "Select dates";
+    if (checkInDate && checkOutDate) {
+      datesText = `${formatShortDate(checkInDate)} - ${formatShortDate(checkOutDate)}`;
+    }
+    
+    const guestCount = (guests?.adults || 0) + (guests?.children || 0);
+    const guestsText = guestCount > 0 ? `• ${guestCount} guest${guestCount !== 1 ? 's' : ''}` : "• Add guests";
+    
+    return `${location}\n${datesText} ${guestsText}`;
+  };
+
+  // Get search placeholder for desktop
   const getSearchPlaceholder = () => {
     const category = activeFilters.categories[0] || "places";
     if (category.toLowerCase().includes("vendor")) return "What service do you need?";
@@ -3386,7 +3216,6 @@ const SearchResults = () => {
     return "Search...";
   };
 
-  // Handle key press for search
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
       handleSearchSubmit();
@@ -3606,7 +3435,7 @@ const SearchResults = () => {
                   >
                     <form onSubmit={handleSearchSubmit}>
                       <div className="flex items-center justify-center w-full">
-                        {/* DESKTOP SEARCH BAR - Hero styling for large screens */}
+                        {/* DESKTOP SEARCH BAR - Full hero design with dates and guests */}
                         {!isMobile ? (
                           <div className="hidden lg:block w-full max-w-6xl mx-auto">
                             <div className="relative w-full">
@@ -3639,10 +3468,10 @@ const SearchResults = () => {
                                     </div>
                                   </div>
                                   
-                                  {/* Dates */}
+                                  {/* Dates Section */}
                                   <div className="flex items-center gap-2">
                                     <div
-                                      onClick={handleEditDates}
+                                      onClick={handleEditCheckIn}
                                       className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
                                     >
                                       <div className="text-xs text-gray-600 mb-1">Check-in</div>
@@ -3654,10 +3483,7 @@ const SearchResults = () => {
                                     <div className="text-gray-400">→</div>
                                     
                                     <div
-                                      onClick={() => {
-                                        setEditingCheckIn(false);
-                                        setShowEditCalendar(true);
-                                      }}
+                                      onClick={handleEditCheckOut}
                                       className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
                                     >
                                       <div className="text-xs text-gray-600 mb-1">Check-out</div>
@@ -3696,15 +3522,24 @@ const SearchResults = () => {
                             </div>
                           </div>
                         ) : (
-                          // MOBILE - Simple search input
+                          // MOBILE - Search input with hero data
                           <div 
                             onClick={handleSearchFocus}
-                            className="bg-[#d9d9d9] rounded-lg px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-gray-200 cursor-pointer w-full"
+                            className="bg-[#d9d9d9] rounded-lg px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-200 cursor-pointer w-full"
                           >
                             <FontAwesomeIcon icon={faSearch} className="text-gray-500 flex-shrink-0" />
-                            <span className="text-gray-900 truncate">
-                              {localSearchQuery || getSearchPlaceholder()}
-                            </span>
+                            <div className="flex flex-col text-left truncate w-full">
+                              <span className="text-gray-900 font-medium text-[10px] truncate">
+                                {getLocationDisplayName(urlLocation || searchQuery) || "Where to?"}
+                              </span>
+                              <span className="text-gray-600 text-[9px] truncate">
+                                {checkInDate && checkOutDate ? (
+                                  `${formatDate(checkInDate).split(' ').slice(1).join(' ')} - ${formatDate(checkOutDate).split(' ').slice(1).join(' ')} • ${(guests?.adults || 0) + (guests?.children || 0)} guest${((guests?.adults || 0) + (guests?.children || 0)) !== 1 ? 's' : ''}`
+                                ) : (
+                                  "Select dates • Add guests"
+                                )}
+                              </span>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -3751,21 +3586,6 @@ const SearchResults = () => {
           />
         )}
 
-        {/* Mobile Guest Selector Modal */}
-        {isMobile && showMobileGuestSelector && (
-          <MobileGuestSelector
-            guests={guests || { adults: 2, children: 0, rooms: 1 }}
-            onChange={handleGuestsUpdate}
-            onClose={() => setShowMobileGuestSelector(false)}
-            onFocusSearch={() => {
-              setShowMobileGuestSelector(false);
-              setShowMobileSearchModal(true);
-            }}
-            checkInDate={checkInDate}
-            checkOutDate={checkOutDate}
-          />
-        )}
-
         {!isMobile && showDesktopFilters && (
           <FilterSidebar
             onFilterChange={handleFilterChange}
@@ -3797,18 +3617,22 @@ const SearchResults = () => {
             onClose={() => {
               setShowEditCalendar(false);
               setEditingCheckIn(false);
+              setEditingCheckOut(false);
             }}
             selectedDate={editingCheckIn ? checkInDate : checkOutDate}
-            isCheckOut={!editingCheckIn}
+            isCheckOut={editingCheckOut}
           />
         )}
 
         {/* Guest selector for editing (desktop) */}
-        {showEditGuestSelector && (
+        {showEditGuestSelector && editingGuests && (
           <GuestSelector
             guests={guests || { adults: 2, children: 0, rooms: 1 }}
             onChange={handleGuestsUpdate}
-            onClose={() => setShowEditGuestSelector(false)}
+            onClose={() => {
+              setShowEditGuestSelector(false);
+              setEditingGuests(false);
+            }}
           />
         )}
 
@@ -3831,8 +3655,6 @@ const SearchResults = () => {
             className="lg:w-3/4 w-full"
             ref={resultsRef}
           >
-            {/* REMOVED: Date and Guests Display Section */}
-
             <div className="mb-6 w-full">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
                 <div className="flex-1 flex items-center gap-3 w-full">
@@ -4086,9 +3908,8 @@ const SearchResults = () => {
         </div>
       </main>
       <Footer />
-     
     </div>
   );
 };
 
-export default SearchResults;      
+export default SearchResults;
