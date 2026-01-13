@@ -242,10 +242,19 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
   };
 
   const handleRoomSelect = (room) => {
-    setSelectedRoom(room);
-    setSelectedRoomsCount(1);
-    if (onRoomSelect) {
-      onRoomSelect(room);
+    // Toggle selection: if clicking the same room, deselect it
+    if (selectedRoom?.id === room.id) {
+      setSelectedRoom(null);
+      setSelectedRoomsCount(1);
+      if (onRoomSelect) {
+        onRoomSelect(null);
+      }
+    } else {
+      setSelectedRoom(room);
+      setSelectedRoomsCount(1);
+      if (onRoomSelect) {
+        onRoomSelect(room);
+      }
     }
   };
 
@@ -288,7 +297,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
 
   return (
     <div className="w-full bg-white md:max-w-[1250px] md:mx-auto">
-      <div className="px-4 sm:px-6 lg:px-4 py-6">
+      <div className="px-2 sm:px-6 lg:px-4 py-6">
         <h2 className="text-lg md:text-xl font-bold text-[#00065A] mb-6">
           Select Your Room
         </h2>
@@ -585,6 +594,14 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                 >
                   Book Now
                 </button>
+                
+                {/* Deselect Button */}
+                <button
+                  onClick={() => handleRoomSelect(selectedRoom)}
+                  className="px-4 py-2 bg-white/20 text-white rounded-lg font-medium hover:bg-white/30 transition-all duration-300"
+                >
+                  Deselect
+                </button>
               </div>
             </div>
           </div>
@@ -834,6 +851,22 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                 >
                   Close
                 </button>
+                
+                {/* Toggle Selection Button in Modal */}
+                <button
+                  onClick={() => {
+                    handleRoomSelect(modalRoom);
+                    handleCloseModal();
+                  }}
+                  className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+                    selectedRoom?.id === modalRoom.id
+                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      : 'bg-[#06EAFC] text-white hover:bg-[#05d9eb]'
+                  }`}
+                >
+                  {selectedRoom?.id === modalRoom.id ? 'Deselect Room' : 'Select This Room'}
+                </button>
+                
                 <button
                   onClick={() => {
                     setSelectedRoom(modalRoom);
