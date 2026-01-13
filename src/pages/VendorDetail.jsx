@@ -805,13 +805,13 @@ const VendorDetail = () => {
     <div className="min-h-screen font-manrope">
       <Header />
       
-      <main className="pt-14 md:pt-14">
+      <main className="md:pt-5 pt-1">
         {/* Breadcrumb with Back Button for Mobile */}
-        <div className="px-4 sm:px-2 md:px-0">
+        <div className="px-4 sm:px-2 md:pl-130 pl-13">
           <nav className="flex items-center space-x-2 text-xs text-gray-600 mb-2 md:mb-2 font-manrope">
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-1 hover:text-[#06EAFC] transition-colors mr-2"
+              className="flex items-center gap-1 hover:text-[#06EAFC] transition-colors"
             >
               <FontAwesomeIcon icon={faArrowLeft} className="text-gray-800 text-sm" />
               <span className="hidden sm:inline">Back</span>
@@ -839,10 +839,10 @@ const VendorDetail = () => {
 
         <div className="space-y-3 md:space-y-6">
           {/* Vendor Header Section */}
-          <div className="px-4 sm:px-2 md:px-4 lg:px-8 py-3 md:py-6 bg-white rounded-xl md:rounded-2xl mx-0 md:mx-0 hover:shadow-lg transition-shadow duration-300">
+          <div className="px-4 sm:px-2 md:px-4 lg:px-8 py-3 md:py-3 bg-white rounded-xl  mx-0 md:mx-0">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6">
               <div className="flex-1">
-                <div className="flex flex-col md:flex-row md:items-center justify-between md:gap-4 mb-1 md:mb-2">
+                <div className="flex flex-col md:flex-row md:items-center justify-between md:gap-4 md:mb-2">
                   <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-0">
                     <h1 className="text-lg md:text-xl lg:text-3xl font-bold text-gray-900 font-manrope line-clamp-2">
                       {vendor.title || vendor.name}
@@ -851,17 +851,17 @@ const VendorDetail = () => {
                   </div>
                   
                   {/* Vendor Info for Desktop */}
-                  <div className="hidden md:block">
+                  {/* <div className="hidden md:block">
                     {vendorInfo?.email && (
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <FontAwesomeIcon icon={faEnvelope} className="text-gray-400" />
                         <span>{vendorInfo.email}</span>
                       </div>
                     )}
-                  </div>
+                  </div> */}
                 </div>
 
-                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 lg:gap-8">
+                <div className="flex flex-row md:flex-row md:items-center gap-2 md:gap-4 lg:gap-8">
                   <div className="flex items-center gap-2">
                     <span className="text-gray-700 font-medium py-1 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200">
                       {categoryDisplay}
@@ -894,7 +894,7 @@ const VendorDetail = () => {
                   </div>
                 </div>
                 
-                {vendorInfo && (
+                {/* {vendorInfo && (
                   <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200 md:hidden">
                     <div className="flex items-center gap-3 mb-2">
                       <div className="w-8 h-8 bg-[#06EAFC] rounded-full flex items-center justify-center">
@@ -921,7 +921,7 @@ const VendorDetail = () => {
                       </div>
                     )}
                   </div>
-                )}
+                )} */}
               </div>
 
               <div className="flex flex-col items-end gap-2 md:gap-4 mt-2 md:mt-0">
@@ -1048,6 +1048,7 @@ const VendorDetail = () => {
             </div>
           </div>
 
+
           <div className="hidden md:block px-4 lg:px-8">
             <div className="flex gap-4">
               <div className="flex flex-col gap-4">
@@ -1125,45 +1126,7 @@ const VendorDetail = () => {
             </div>
           </div>
 
-          {/* Price Range - Centered for all screens */}
-          <div className="px-0 md:px-0">
-            <div className="text-center bg-white py-4 md:py-6 mx-0 md:mx-0 hover:shadow-md transition-shadow duration-300 rounded-xl">
-              <p className="text-[#00065A] font-manrope text-base md:text-xl font-bold mb-2 hover:text-[#06EAFC] transition-colors duration-300">
-                Price Range
-              </p>
-              <div className="flex flex-col items-center justify-center gap-1 md:gap-3">
-                <div className="flex items-center gap-1 md:gap-2 hover:scale-105 transition-transform duration-300">
-                  <span className="text-xl md:text-2xl text-gray-900 font-manrope font-bold hover:text-[#06EAFC] transition-colors duration-300">
-                    {formatPrice(vendor.price || vendor.price_from)}
-                  </span>
-                  <span className="text-gray-500 text-xl hover:text-gray-700 transition-colors duration-300">
-                    -
-                  </span>
-                  <span className="text-xl md:text-2xl text-gray-900 font-manrope font-bold hover:text-[#06EAFC] transition-colors duration-300">
-                    {formatPrice(vendor.price_to || vendor.price || vendor.price_from)}
-                  </span>
-                </div>
-                <span className="text-gray-600 text-sm md:text-base mt-1 hover:text-gray-800 transition-colors duration-300">
-                  {category === 'hotel' ? 'per night' : 
-                   category === 'restaurant' ? 'per meal' : 
-                   'per guest'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Room Selection Section - Only for Hotels */}
-          {category === 'hotel' && (
-            <div className="px-0 md:px-0 mt-4">
-              <RoomSelection 
-                category={category}
-                onRoomSelect={handleRoomSelect}
-                onRoomBookNow={handleRoomBookNow}
-              />
-            </div>
-          )}
-
-          {/* Action Buttons */}
+ {/* Action Buttons */}
           <div className="flex justify-center px-0 md:px-0">
             <div className="w-full md:w-[600px] h-14 md:h-16 bg-gray-200 rounded-none md:rounded-3xl flex items-center justify-between px-4 md:px-12 mx-0 md:mx-0 hover:shadow-lg transition-all duration-300 hover:bg-gray-300/50">
               <button
@@ -1237,7 +1200,35 @@ const VendorDetail = () => {
             </div>
           </div>
 
-          {/* About Section */}
+          {/* Price Range - Centered for all screens */}
+          <div className="px-0 md:px-0">
+            <div className="text-center bg-white md:py-3 mx-0 md:mx-0">
+              <p className="text-[#00065A] font-manrope text-base md:text-xl font-bold mb-1">
+                Price Range
+              </p>
+              <div className="flex flex-col items-center justify-center gap-1 md:gap-3">
+                <div className="flex items-center gap-1 md:gap-2 ">
+                  <span className="text-[15px] md:text-2xl text-gray-900 font-manrope font-bold">
+                    {formatPrice(vendor.price || vendor.price_from)}
+                  </span>
+                  <span className="text-gray-500 text-[12px] hover:text-gray-700 transition-colors duration-300">
+                    -
+                  </span>
+                  <span className="text-[15px] md:text-2xl text-gray-900 font-manrope font-bold">
+                    {formatPrice(vendor.price_to || vendor.price || vendor.price_from)}
+                  </span>
+                </div>
+                <span className="text-gray-600 text-sm md:text-base mt-1 hover:text-gray-800 transition-colors duration-300">
+                  {category === 'hotel' ? 'per night' : 
+                   category === 'restaurant' ? 'per meal' : 
+                   'per guest'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+
+            {/* About Section */}
           <section className="w-full bg-[#F7F7FA] rounded-none md:rounded-3xl hover:shadow-lg transition-shadow duration-300">
             <div className="px-4 sm:px-4 md:px-6 lg:px-8 py-6 md:py-8">
               <div className="mb-8 md:mb-12">
@@ -1574,6 +1565,21 @@ const VendorDetail = () => {
               )}
             </div>
           </div>
+
+          {/* Room Selection Section - Only for Hotels */}
+          {category === 'hotel' && (
+            <div className="px-0 md:px-0 mt-4">
+              <RoomSelection 
+                category={category}
+                onRoomSelect={handleRoomSelect}
+                onRoomBookNow={handleRoomBookNow}
+              />
+            </div>
+          )}
+
+         
+
+        
           
           {/* Other Listings from This Vendor */}
           {vendorListings.length > 0 && (

@@ -30,6 +30,7 @@ import {
   faTools,
   faUser,
   faCalendarAlt,
+  faPencilAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import { motion } from "framer-motion";
 import { PiSliders } from "react-icons/pi";
@@ -176,6 +177,229 @@ const formatDate = (dateString) => {
   } catch (error) {
     return "";
   }
+};
+
+// ================== SIMPLE CALENDAR FOR EDITING DATES ==================
+const SimpleCalendar = ({ onSelect, onClose, selectedDate: propSelectedDate, isCheckOut = false }) => {
+  const modalRef = useRef(null);
+  const [currentDate, setCurrentDate] = useState(propSelectedDate || new Date());
+  const [selectedDate, setSelectedDate] = useState(propSelectedDate || new Date());
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
+
+  const getDaysInMonth = (year, month) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const getMonthName = (date) => {
+    return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  };
+
+  const handleDateClick = (day) => {
+    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    setSelectedDate(newDate);
+    onSelect(newDate);
+    onClose();
+  };
+
+  const nextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  const prevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+
+  const renderCalendar = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const daysInMonth = getDaysInMonth(year, month);
+    const firstDay = new Date(year, month, 1).getDay();
+    const days = [];
+    for (let i = 0; i < firstDay; i++) {
+      days.push(<div key={`empty-${i}`} className="h-8 w-8"></div>);
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      const isToday = date.toDateString() === new Date().toDateString();
+      const isSelected = date.toDateString() === selectedDate.toDateString();
+      days.push(
+        <button
+          key={day}
+          onClick={() => handleDateClick(day)}
+          className={`h-8 w-8 rounded-full flex items-center justify-center text-sm
+            ${isToday ? "border border-blue-500" : ""}
+            ${isSelected ? "bg-blue-500 text-white" : "hover:bg-gray-100"}
+          `}
+        >
+          {day}
+        </button>
+      );
+    }
+    return days;
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[10000]" onClick={onClose} />
+      <div
+        ref={modalRef}
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl z-[10001] w-80 p-4"
+      >
+        <div className="flex justify-between items-center mb-4">
+          <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded">
+            ←
+          </button>
+          <h3 className="font-semibold text-gray-800">{getMonthName(currentDate)}</h3>
+          <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded">
+            →
+          </button>
+        </div>
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+            <div key={day} className="text-center text-xs text-gray-500 font-medium">
+              {day}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">{renderCalendar()}</div>
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <button
+            onClick={() => {
+              const today = new Date();
+              setSelectedDate(today);
+              onSelect(today);
+              onClose();
+            }}
+            className="w-full py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          >
+            Select Today
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ================== GUEST SELECTOR FOR EDITING ==================
+const GuestSelector = ({ guests, onChange, onClose }) => {
+  const modalRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
+
+  const handleGuestChange = (type, value) => {
+    const newGuests = { ...guests };
+    newGuests[type] = Math.max(0, newGuests[type] + value);
+    onChange(newGuests);
+  };
+
+  const totalGuests = guests.adults + guests.children;
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[10000]" onClick={onClose} />
+      <div
+        ref={modalRef}
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl z-[10001] w-80 p-6"
+      >
+        <h3 className="font-semibold text-gray-800 mb-6 text-center">Guests & Rooms</h3>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <div className="font-medium text-gray-800">Adults</div>
+            <div className="text-sm text-gray-500">Age 18+</div>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => handleGuestChange("adults", -1)}
+              disabled={guests.adults <= 1}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+            >
+              <FontAwesomeIcon icon={faChevronLeft} size="sm" />
+            </button>
+            <span className="w-8 text-center font-medium">{guests.adults}</span>
+            <button
+              onClick={() => handleGuestChange("adults", 1)}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100"
+            >
+              <FontAwesomeIcon icon={faChevronRight} size="sm" />
+            </button>
+          </div>
+        </div>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <div className="font-medium text-gray-800">Children</div>
+            <div className="text-sm text-gray-500">Age 0-17</div>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => handleGuestChange("children", -1)}
+              disabled={guests.children <= 0}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+            >
+              <FontAwesomeIcon icon={faChevronLeft} size="sm" />
+            </button>
+            <span className="w-8 text-center font-medium">{guests.children}</span>
+            <button
+              onClick={() => handleGuestChange("children", 1)}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100"
+            >
+              <FontAwesomeIcon icon={faChevronRight} size="sm" />
+            </button>
+          </div>
+        </div>
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <div className="font-medium text-gray-800">Rooms</div>
+            <div className="text-sm text-gray-500">Number of rooms</div>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => handleGuestChange("rooms", -1)}
+              disabled={guests.rooms <= 1}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+            >
+              <FontAwesomeIcon icon={faChevronLeft} size="sm" />
+            </button>
+            <span className="w-8 text-center font-medium">{guests.rooms}</span>
+            <button
+              onClick={() => handleGuestChange("rooms", 1)}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100"
+            >
+              <FontAwesomeIcon icon={faChevronRight} size="sm" />
+            </button>
+          </div>
+        </div>
+        <div className="pt-4 border-t border-gray-200">
+          <div className="text-center mb-4">
+            <div className="text-sm text-gray-600">Total Guests</div>
+            <div className="text-xl font-bold text-blue-600">{totalGuests}</div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-full py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </>
+  );
 };
 
 // ================== FIXED BACKEND HOOK ==================
@@ -2327,39 +2551,99 @@ const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
   );
 };
 
-// ================== DATE AND GUESTS DISPLAY COMPONENT ==================
-const DateAndGuestsDisplay = ({ checkInDate, checkOutDate, guests }) => {
+// ================== UPDATED: DATE AND GUESTS DISPLAY COMPONENT ==================
+const DateAndGuestsDisplay = ({ 
+  checkInDate, 
+  checkOutDate, 
+  guests,
+  onEditDates,
+  onEditGuests
+}) => {
   if (!checkInDate && !checkOutDate && !guests) return null;
 
   return (
-    <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-      <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
-        <FontAwesomeIcon icon={faCalendarAlt} />
-        Your Search Details
-      </h4>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="mb-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
+        <div>
+          <h4 className="font-bold text-xl text-gray-900 mb-1 flex items-center gap-2">
+            <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-600" />
+            Your Search Details
+          </h4>
+        </div>
+      
+      </div>
+      <div className="flex gap-4">
         {checkInDate && (
-          <div className="bg-white p-3 rounded border border-blue-200">
-            <p className="text-xs text-blue-600 mb-1">Check-in</p>
-            <p className="font-medium text-blue-900">{formatDate(checkInDate)}</p>
+          <div 
+            onClick={onEditDates}
+            className="bg-white p-4 rounded-xl border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition-all duration-200 group relative"
+          >
+            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+            </div>
+            <p className="text-xs text-gray-600 mb-1 font-medium">Check-in</p>
+            <p className="font-bold text-[13px] text-gray-900">{formatDate(checkInDate)}</p>
+           
           </div>
         )}
         {checkOutDate && (
-          <div className="bg-white p-3 rounded border border-blue-200">
-            <p className="text-xs text-blue-600 mb-1">Check-out</p>
-            <p className="font-medium text-blue-900">{formatDate(checkOutDate)}</p>
+          <div 
+            onClick={onEditDates}
+            className="bg-white p-4 rounded-xl border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition-all duration-200 group relative"
+          >
+            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+            </div>
+            <p className="text-xs text-gray-600 mb-1 font-medium">Check-out</p>
+            <p className="font-bold text-[13px] text-gray-900">{formatDate(checkOutDate)}</p>
+          
           </div>
         )}
         {guests && (
-          <div className="bg-white p-3 rounded border border-blue-200">
-            <p className="text-xs text-blue-600 mb-1">Guests & Rooms</p>
-            <p className="font-medium text-blue-900">
-              {guests.adults} {guests.adults === 1 ? 'Adult' : 'Adults'}
-              {guests.children > 0 && `, ${guests.children} ${guests.children === 1 ? 'Child' : 'Children'}`}
-              {guests.rooms > 0 && `, ${guests.rooms} ${guests.rooms === 1 ? 'Room' : 'Rooms'}`}
-            </p>
+          <div 
+            onClick={onEditGuests}
+            className="bg-white p-4 rounded-xl border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition-all duration-200 group relative"
+          >
+            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+            </div>
+            <p className="text-xs text-gray-600 mb-1 font-medium">Guests & Rooms</p>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-800">Adults:</span>
+                <span className="font-bold text-gray-900">{guests.adults}</span>
+              </div>
+              {guests.children > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-800">Children:</span>
+                  <span className="font-bold text-gray-900">{guests.children}</span>
+                </div>
+              )}
+              {guests.rooms > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-800">Rooms:</span>
+                  <span className="font-bold text-gray-900">{guests.rooms}</span>
+                </div>
+              )}
+            </div>
+          
           </div>
         )}
+      </div>
+      <div className="mt-4 pt-4 border-t border-blue-200">
+        <div className="flex flex-wrap gap-2">
+          <div className="text-xs text-gray-700 bg-blue-100 px-3 py-1.5 rounded-full">
+            <FontAwesomeIcon icon={faUser} className="mr-1" />
+            Total: {guests ? guests.adults + guests.children : 0} guests
+          </div>
+          <div className="text-xs text-gray-700 bg-blue-100 px-3 py-1.5 rounded-full">
+            <FontAwesomeIcon icon={faBed} className="mr-1" />
+            Rooms: {guests?.rooms || 0}
+          </div>
+          <div className="text-xs text-gray-700 bg-blue-100 px-3 py-1.5 rounded-full">
+            <FontAwesomeIcon icon={faCalendarAlt} className="mr-1" />
+            Stay: {checkInDate && checkOutDate ? 
+              `${Math.ceil((new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24))} nights` : 
+              'Flexible'}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -2408,6 +2692,11 @@ const SearchResults = () => {
   });
   const [selectedCategoryButtons, setSelectedCategoryButtons] = useState([]);
   const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
+  
+  // ✅ FIX 2: State for editing dates and guests
+  const [showEditCalendar, setShowEditCalendar] = useState(false);
+  const [showEditGuestSelector, setShowEditGuestSelector] = useState(false);
+  const [editingCheckIn, setEditingCheckIn] = useState(false);
   
   const searchContainerRef = useRef(null);
   const filterButtonRef = useRef(null);
@@ -2837,6 +3126,45 @@ const SearchResults = () => {
     });
   };
 
+  // ✅ FIX 2: Handle date editing
+  const handleEditDates = () => {
+    setEditingCheckIn(true);
+    setShowEditCalendar(true);
+  };
+
+  const handleEditGuests = () => {
+    setShowEditGuestSelector(true);
+  };
+
+  const handleDateSelect = (date) => {
+    if (editingCheckIn) {
+      // Update check-in date
+      const params = new URLSearchParams(window.location.search);
+      params.set("checkInDate", date.toISOString());
+      
+      // Auto-set check-out to check-in + 1 day
+      const nextDay = new Date(date);
+      nextDay.setDate(nextDay.getDate() + 1);
+      params.set("checkOutDate", nextDay.toISOString());
+      
+      setSearchParams(params);
+      setEditingCheckIn(false);
+    } else {
+      // Update check-out date
+      const params = new URLSearchParams(window.location.search);
+      params.set("checkOutDate", date.toISOString());
+      setSearchParams(params);
+    }
+    setShowEditCalendar(false);
+  };
+
+  const handleGuestsUpdate = (newGuests) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("guests", JSON.stringify(newGuests));
+    setSearchParams(params);
+    setShowEditGuestSelector(false);
+  };
+
   const getPageTitle = () => {
     const locationParams = [];
     const categoryParams = [];
@@ -3145,6 +3473,28 @@ const SearchResults = () => {
           />
         )}
 
+        {/* ✅ FIX 2: Calendar for editing dates */}
+        {showEditCalendar && (
+          <SimpleCalendar
+            onSelect={handleDateSelect}
+            onClose={() => {
+              setShowEditCalendar(false);
+              setEditingCheckIn(false);
+            }}
+            selectedDate={editingCheckIn ? checkInDate : checkOutDate}
+            isCheckOut={!editingCheckIn}
+          />
+        )}
+
+        {/* ✅ FIX 2: Guest selector for editing */}
+        {showEditGuestSelector && (
+          <GuestSelector
+            guests={guests || { adults: 2, children: 0, rooms: 1 }}
+            onChange={handleGuestsUpdate}
+            onClose={() => setShowEditGuestSelector(false)}
+          />
+        )}
+
         <div
           className="flex flex-col lg:flex-row gap-6 w-full"
         >
@@ -3164,12 +3514,14 @@ const SearchResults = () => {
             className="lg:w-3/4 w-full"
             ref={resultsRef}
           >
-            {/* Date and Guests Display */}
+            {/* ✅ FIX 2: Updated Date and Guests Display with clickable editing */}
             {(checkInDate || checkOutDate || guests) && (
               <DateAndGuestsDisplay
                 checkInDate={checkInDate}
                 checkOutDate={checkOutDate}
                 guests={guests}
+                onEditDates={handleEditDates}
+                onEditGuests={handleEditGuests}
               />
             )}
 

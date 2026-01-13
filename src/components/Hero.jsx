@@ -323,10 +323,10 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
 };
 
 /* ---------------- CALENDAR COMPONENT ---------------- */
-const SimpleCalendar = ({ onSelect, onClose }) => {
+const SimpleCalendar = ({ onSelect, onClose, selectedDate: propSelectedDate, isCheckOut = false }) => {
   const modalRef = useRef(null);
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(propSelectedDate || new Date());
+  const [selectedDate, setSelectedDate] = useState(propSelectedDate || new Date());
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -417,7 +417,9 @@ const SimpleCalendar = ({ onSelect, onClose }) => {
         <div className="mt-4 pt-4 border-t border-gray-200">
           <button
             onClick={() => {
-              onSelect(new Date());
+              const today = new Date();
+              setSelectedDate(today);
+              onSelect(today);
               onClose();
             }}
             className="w-full py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
@@ -621,33 +623,21 @@ const MobileSearchModal = ({
     inputRef.current?.focus();
   };
 
-  // UPDATED: Handle suggestion click to populate input instead of navigating
+  // ✅ FIX 1: Handle suggestion click to populate input without navigating
   const handleSuggestionClick = (suggestion) => {
-    setInputValue(suggestion.title);
-    onTyping(suggestion.title);
+    // Set the input value to the suggestion title
+    const title = suggestion.title || suggestion;
+    setInputValue(title);
+    onTyping(title);
     inputRef.current?.focus();
+    // Close the modal after selecting
+    onClose();
   };
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && inputValue.trim()) {
-      const params = new URLSearchParams();
-      if (looksLikeLocation(inputValue.trim())) {
-        // Use proper case for location
-        params.append("location.area", normalizeLocationForBackend(inputValue.trim()));
-      } else {
-        params.append("q", inputValue.trim());
-      }
-      // ✅ CRITICAL: Always include category when searching from hero
-      const categoryMap = {
-        'Hotel': 'hotel',
-        'Shortlet': 'shortlet',
-        'Restaurant': 'restaurant',
-        'Vendor': 'services'
-      };
-      const categorySlug = categoryMap[activeCategory] || activeCategory.toLowerCase();
-      params.append("category", categorySlug);
-      
-      onSuggestionClick(suggestion => suggestion.action());
+      // When Enter is pressed, we just populate the input and close
+      onTyping(inputValue.trim());
       onClose();
     }
   };
@@ -745,6 +735,11 @@ const MobileSearchModal = ({
                               <h4 className="font-medium text-gray-900 text-base">{suggestion.title}</h4>
                               <p className="text-sm text-gray-600 mt-1">{suggestion.description}</p>
                             </div>
+                            {suggestion.count && (
+                              <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                {suggestion.count}
+                              </span>
+                            )}
                           </div>
                           {suggestion.breakdown && suggestion.breakdown.length > 0 && (
                             <div className="mt-3 pt-3 border-t border-gray-100">
@@ -768,24 +763,8 @@ const MobileSearchModal = ({
                 </div>
                 <button
                   onClick={() => {
-                    const params = new URLSearchParams();
-                    if (looksLikeLocation(inputValue.trim())) {
-                      // Use proper case for location
-                      params.append("location.area", normalizeLocationForBackend(inputValue.trim()));
-                    } else {
-                      params.append("q", inputValue.trim());
-                    }
-                    // ✅ CRITICAL: Always include category when searching from hero
-                    const categoryMap = {
-                      'Hotel': 'hotel',
-                      'Shortlet': 'shortlet',
-                      'Restaurant': 'restaurant',
-                      'Vendor': 'services'
-                    };
-                    const categorySlug = categoryMap[activeCategory] || activeCategory.toLowerCase();
-                    params.append("category", categorySlug);
-                    
-                    onSuggestionClick(`/search-results?${params.toString()}`);
+                    // This will populate the input with the current value
+                    onTyping(inputValue.trim());
                     onClose();
                   }}
                   className="w-full mt-6 p-4 bg-gray-900 hover:bg-black text-white font-medium rounded-xl cursor-pointer"
@@ -810,24 +789,7 @@ const MobileSearchModal = ({
                 </p>
                 <button
                   onClick={() => {
-                    const params = new URLSearchParams();
-                    if (looksLikeLocation(inputValue.trim())) {
-                      // Use proper case for location
-                      params.append("location.area", normalizeLocationForBackend(inputValue.trim()));
-                    } else {
-                      params.append("q", inputValue.trim());
-                    }
-                    // ✅ CRITICAL: Always include category when searching from hero
-                    const categoryMap = {
-                      'Hotel': 'hotel',
-                      'Shortlet': 'shortlet',
-                      'Restaurant': 'restaurant',
-                      'Vendor': 'services'
-                    };
-                    const categorySlug = categoryMap[activeCategory] || activeCategory.toLowerCase();
-                    params.append("category", categorySlug);
-                    
-                    onSuggestionClick(`/search-results?${params.toString()}`);
+                    onTyping(inputValue.trim());
                     onClose();
                   }}
                   className="px-6 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-black cursor-pointer"
@@ -931,11 +893,11 @@ const DesktopSearchSuggestions = ({
               <button
                 key={index}
                 onClick={() => {
-                  // UPDATED: Populate input instead of navigating directly
+                  // ✅ FIX: Populate input instead of navigating directly
                   onSuggestionClick(suggestion);
                   onClose();
                 }}
-                className="w-full text-left p-3 bg-white hover:bg-gray-50 rounded-lg mb-1 last:mb-0 cursor-pointer"
+                className="w-full text-left p-3 bg-white hover:bg-gray-50 rounded-lg mb-1 last:mb-0 cursor-pointer group"
               >
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100 flex-shrink-0">
@@ -954,6 +916,11 @@ const DesktopSearchSuggestions = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between mb-1">
                       <h4 className="font-medium text-gray-900 text-sm truncate">{suggestion.title}</h4>
+                      {suggestion.count && (
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                          {suggestion.count}
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-gray-600 mb-2 line-clamp-2">{suggestion.description}</p>
                     {suggestion.breakdown && suggestion.breakdown.length > 0 && (
@@ -968,32 +935,19 @@ const DesktopSearchSuggestions = ({
                       </div>
                     )}
                   </div>
-                  <div className="flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex-shrink-0 ml-2">
                     <FontAwesomeIcon icon={faChevronRight} className="text-gray-400 text-sm" />
                   </div>
+                </div>
+                {/* Add "Tap to select" text like in the image */}
+                <div className="flex items-center justify-end mt-2 pt-2 border-t border-gray-100">
+                  <span className="text-xs text-blue-600 font-medium">Tap to select</span>
                 </div>
               </button>
             ))}
             <button
               onClick={() => {
-                const params = new URLSearchParams();
-                if (looksLikeLocation(searchQuery.trim())) {
-                  // Use proper case for location
-                  params.append("location.area", normalizeLocationForBackend(searchQuery.trim()));
-                } else {
-                  params.append("q", searchQuery.trim());
-                }
-                // ✅ CRITICAL: Always include category when searching from hero
-                const categoryMap = {
-                  'Hotel': 'hotel',
-                  'Shortlet': 'shortlet',
-                  'Restaurant': 'restaurant',
-                  'Vendor': 'services'
-                };
-                const categorySlug = categoryMap[activeCategory] || activeCategory.toLowerCase();
-                params.append("category", categorySlug);
-                
-                onSuggestionClick(`/search-results?${params.toString()}`);
+                onSuggestionClick({ title: searchQuery.trim() });
                 onClose();
               }}
               className="w-full mt-3 p-3 bg-gray-900 hover:bg-black text-white font-medium rounded-lg cursor-pointer"
@@ -1112,41 +1066,22 @@ const DiscoverIbadan = () => {
     };
   }, [isMobile]);
 
-  // ✅ FIXED: Handle suggestion click - populate input instead of navigate
+  // ✅ FIX 1: Handle suggestion click - populate input instead of navigate
   const handleSuggestionClick = useCallback((suggestion) => {
-    if (suggestion.action) {
-      // If it's an action function, execute it to get the URL
-      const url = suggestion.action();
-      // Store the URL for later navigation
-      setClickedSuggestion({ url, suggestion });
-      // Populate the search input with the suggestion title
+    if (typeof suggestion === 'object' && suggestion.title) {
+      // Just populate the search query with the suggestion title
       setSearchQuery(suggestion.title);
-      // Close the modal on mobile when location is selected
-      if (isMobile) {
-        setShowMobileModal(false);
-      }
-    } else if (typeof suggestion === 'string') {
-      // Direct URL navigation
-      setClickedSuggestion({ url: suggestion });
+      // Store the suggestion action for later use when search button is clicked
+      setClickedSuggestion(suggestion);
+      // Close suggestions
       setShowSuggestions(false);
       setShowMobileModal(false);
-      
-      // Add search parameters if available
-      const params = new URLSearchParams(window.location.search);
-      // ✅ FIX 2: Pass default dates if no date is selected
-      const checkInToUse = checkInDate || new Date();
-      const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
-      
-      params.append("checkInDate", checkInToUse.toISOString());
-      params.append("checkOutDate", checkOutToUse.toISOString());
-      params.append("guests", JSON.stringify(guests));
-      
-      const queryString = params.toString();
-      const finalUrl = queryString ? `${suggestion}${suggestion.includes('?') ? '&' : '?'}${queryString}` : suggestion;
-      
-      navigate(finalUrl);
+    } else if (typeof suggestion === 'string') {
+      // If it's a string (from desktop), just update the search query
+      setSearchQuery(suggestion);
+      setShowSuggestions(false);
     }
-  }, [navigate, checkInDate, checkOutDate, guests, isMobile]);
+  }, []);
 
   // ✅ FIXED: Handle search submit with all parameters
   const handleSearchSubmit = useCallback(() => {
@@ -1202,6 +1137,7 @@ const DiscoverIbadan = () => {
     navigate(`/search-results?${queryString}`);
     setShowSuggestions(false);
     setShowMobileModal(false);
+    setClickedSuggestion(null); // Clear clicked suggestion after navigation
   }, [activeTab, searchQuery, navigate, checkInDate, checkOutDate, guests]);
 
   // ✅ Enter key also triggers search
@@ -1223,6 +1159,7 @@ const DiscoverIbadan = () => {
   const handleClearSearch = useCallback(() => {
     setSearchQuery("");
     setShowSuggestions(false);
+    setClickedSuggestion(null);
     searchInputRef.current?.focus();
   }, []);
 
@@ -1311,10 +1248,10 @@ const DiscoverIbadan = () => {
 
   // Handle click on search button after suggestion is selected
   const handleSearchButtonClick = () => {
-    if (clickedSuggestion) {
-      // Navigate to the stored URL
-      const { url } = clickedSuggestion;
-      const params = new URLSearchParams(window.location.search);
+    if (clickedSuggestion && clickedSuggestion.action) {
+      // Execute the stored action to get the URL
+      const url = clickedSuggestion.action();
+      const params = new URLSearchParams();
       
       // ✅ FIX 2: Pass default dates if no date is selected
       const checkInToUse = checkInDate || new Date();
@@ -1322,7 +1259,11 @@ const DiscoverIbadan = () => {
       
       params.append("checkInDate", checkInToUse.toISOString());
       params.append("checkOutDate", checkOutToUse.toISOString());
-      params.append("guests", JSON.stringify(guests));
+      
+      // Add guests information if available
+      if (guests) {
+        params.append("guests", JSON.stringify(guests));
+      }
       
       const queryString = params.toString();
       const finalUrl = queryString ? `${url}${url.includes('?') ? '&' : '?'}${queryString}` : url;
@@ -1530,21 +1471,20 @@ const DiscoverIbadan = () => {
                     </div>
                   )}
 
-                  {/* Search Button with Animation - FIX 1: Subtle animation */}
+                  {/* Search Button with Animation */}
                   <div className="w-full">
                     <button
                       ref={searchButtonRef}
                       onClick={handleSearchButtonClick}
-                      className="w-full bg-gradient-to-r from-[#00E38C] to-teal-500 hover:from-[#00c97b] hover:to-teal-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                      className={`w-full bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 ${
+                        clickedSuggestion ? 'ring-2 ring-blue-400 ring-offset-2' : 'hover:from-[#00c97b] hover:to-teal-600'
+                      }`}
                     >
                       {/* ✅ UPDATED: Solid search icon */}
                       <FontAwesomeIcon icon={faSearch} className="text-sm" />
-                      <span className="text-xs">{getSearchButtonText()}</span>
-                      {clickedSuggestion && (
-                        <span className="ml-1 text-xs bg-white/20 px-2 py-0.5 rounded-full">
-                          Click to search
-                        </span>
-                      )}
+                      <span className="text-xs">
+                        {clickedSuggestion ? `Search ${clickedSuggestion.title}` : getSearchButtonText()}
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -1561,6 +1501,7 @@ const DiscoverIbadan = () => {
         <SimpleCalendar
           onSelect={handleCheckInSelect}
           onClose={() => setShowCheckInCalendar(false)}
+          selectedDate={checkInDate}
         />
       )}
       {showGuestSelector && (
