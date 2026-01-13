@@ -843,699 +843,694 @@ const VendorDetail = () => {
       <Header />
       
       <main className="md:pt-5 pt-1">
-        {/* Breadcrumb with Back Button for Mobile */}
-        <div className="px-4 sm:px-2 md:pl-130 pl-13">
-          <nav className="flex items-center space-x-2 text-xs text-gray-600 mb-2 md:mb-2 font-manrope">
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-1 hover:text-[#06EAFC] transition-colors"
-            >
-              <FontAwesomeIcon icon={faArrowLeft} className="text-gray-800 text-sm" />
-              <span className="hidden sm:inline">Back</span>
-            </button>
-            <span className="hidden sm:inline">/</span>
-            <Link
-              to="/"
-              className="hover:text-[#06EAFC] transition-colors hover:underline"
-            >
-              Home
-            </Link>
-            <span>/</span>
-            <Link
-              to={`/category/${category.toLowerCase().replace(/\s+/g, "-")}`}
-              className="hover:text-[#06EAFC] transition-colors hover:underline"
-            >
-              {categoryDisplay}
-            </Link>
-            <span>/</span>
-            <span className="text-gray-900 truncate max-w-[120px] md:max-w-xs">
-              {vendor.title || vendor.name}
-            </span>
-          </nav>
-        </div>
+        {/* MOBILE: Edge-to-edge content */}
+        <div className="md:max-w-[1245px] md:mx-auto">
+          {/* Breadcrumb with Back Button for Mobile */}
+          <div className="px-4 md:px-4">
+            <nav className="flex items-center space-x-2 text-xs text-gray-600 mb-2 md:mb-2 font-manrope">
+              <button
+                onClick={() => navigate(-1)}
+                className="flex items-center gap-1 hover:text-[#06EAFC] transition-colors"
+              >
+                <FontAwesomeIcon icon={faArrowLeft} className="text-gray-800 text-sm" />
+                <span className="hidden sm:inline">Back</span>
+              </button>
+              <span className="hidden sm:inline">/</span>
+              <Link
+                to="/"
+                className="hover:text-[#06EAFC] transition-colors hover:underline"
+              >
+                Home
+              </Link>
+              <span>/</span>
+              <Link
+                to={`/category/${category.toLowerCase().replace(/\s+/g, "-")}`}
+                className="hover:text-[#06EAFC] transition-colors hover:underline"
+              >
+                {categoryDisplay}
+              </Link>
+              <span>/</span>
+              <span className="text-gray-900 truncate max-w-[120px] md:max-w-xs">
+                {vendor.title || vendor.name}
+              </span>
+            </nav>
+          </div>
 
-        <div className="space-y-3 md:space-y-6">
-          {/* Vendor Header Section - MOBILE: Share and Bookmark on same line with h1 */}
-          <div className="px-4 sm:px-2 md:px-4 lg:px-8 py-3 md:py-3 bg-white rounded-xl mx-0 md:mx-0">
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6">
-              <div className="flex-1">
-                {/* MOBILE: h1 and action buttons in same line */}
-                <div className="flex items-center justify-between md:justify-start gap-3 md:gap-4 mb-2">
-                  <div className="flex items-center gap-2 md:gap-3">
-                    <h1 className="text-lg md:text-xl lg:text-3xl font-bold text-gray-900 font-manrope line-clamp-2 flex-1">
-                      {vendor.title || vendor.name}
-                    </h1>
-                    <VscVerifiedFilled className="text-green-500 text-base md:text-xl hover:scale-110 transition-transform duration-200" />
-                  </div>
-                  
-                  {/* MOBILE: Share and Bookmark buttons inline */}
-                  <div className="flex md:hidden items-center gap-2">
-                    <button
-                      onClick={handleShareClick}
-                      className="w-8 h-8 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 hover:scale-110 hover:shadow-md transition-all duration-300 cursor-pointer"
-                    >
-                      <RiShare2Line className="text-gray-600 text-base hover:text-[#06EAFC] transition-colors duration-300" />
-                    </button>
-                    
-                    <button
-                      onClick={handleFavoriteToggle}
-                      disabled={isProcessing}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 border cursor-pointer ${
-                        isFavorite
-                          ? "bg-gradient-to-br from-red-500 to-pink-500 border-red-200 hover:from-red-600 hover:to-pink-600 hover:scale-110 hover:shadow-lg"
-                          : "bg-white border-gray-200 hover:bg-gray-50 hover:scale-110 hover:shadow-md"
-                      } ${isProcessing ? "opacity-70 cursor-not-allowed" : "cursor-pointer"}`}
-                    >
-                      {isProcessing ? (
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      ) : isFavorite ? (
-                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"/>
-                        </svg>
-                      ) : (
-                        <CiBookmark className="text-base text-gray-600 hover:text-[#06EAFC] transition-all duration-300" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex flex-row md:flex-row md:items-center gap-2 md:gap-4 lg:gap-8">
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-700 font-medium py-1 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200">
-                      {categoryDisplay}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 hover:scale-105 transition-transform duration-200">
-                      <FontAwesomeIcon
-                        icon={faStar}
-                        className="text-yellow-400 text-xs md:text-sm hover:text-yellow-500 transition-colors duration-200"
-                      />
+          <div className="space-y-3 md:space-y-6">
+            {/* Vendor Header Section - Mobile edge-to-edge, Desktop centered */}
+            <div className="px-4 md:px-4 py-3 md:py-3 bg-white">
+              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6">
+                <div className="flex-1">
+                  {/* MOBILE: h1 and action buttons in same line */}
+                  <div className="flex items-center justify-between md:justify-start gap-3 md:gap-4 mb-2">
+                    <div className="flex items-center gap-2 md:gap-3">
+                      <h1 className="text-lg md:text-xl lg:text-3xl font-bold text-gray-900 font-manrope line-clamp-2 flex-1">
+                        {vendor.title || vendor.name}
+                      </h1>
+                      <VscVerifiedFilled className="text-green-500 text-base md:text-xl hover:scale-110 transition-transform duration-200" />
                     </div>
-                    <span className="font-bold text-gray-900 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200">
-                      {vendor.rating || "4.5"}
-                    </span>
-                    <span className="text-gray-600 font-manrope text-xs md:text-sm hover:text-gray-800 transition-colors duration-200">
-                      ({reviewCount} Reviews)
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-gray-700 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200">
-                    <FontAwesomeIcon
-                      icon={faMapMarkerAlt}
-                      className="text-gray-500 text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200"
-                    />
-                    <span className="truncate max-w-[150px] md:max-w-none">
-                      {vendor.location?.area || vendor.area || "Ibadan"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* DESKTOP: Share and Bookmark buttons */}
-              <div className="hidden md:flex flex-col items-end gap-2 md:gap-4 mt-2 md:mt-0">
-                <div className="flex gap-4 md:gap-6 items-center">
-                  <div className="flex items-center gap-1 md:gap-2 group relative">
-                    <button
-                      onClick={handleShareClick}
-                      className="w-8 h-8 md:w-10 md:h-10 bg-white border border-gray-200 md:border-2 rounded-full flex items-center justify-center hover:bg-gray-50 hover:scale-110 hover:shadow-md transition-all duration-300 cursor-pointer"
-                    >
-                      <RiShare2Line className="text-gray-600 text-base md:text-xl group-hover:text-[#06EAFC] transition-colors duration-300" />
-                    </button>
-                    <span className="text-gray-600 text-xs md:text-sm font-manrope hidden md:inline group-hover:text-[#06EAFC] transition-colors duration-300">
-                      Share
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1 md:gap-2 group relative">
-                    <button
-                      onClick={handleFavoriteToggle}
-                      disabled={isProcessing}
-                      className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-300 border md:border-2 cursor-pointer group
-                        ${
+                    
+                    {/* MOBILE: Share and Bookmark buttons inline */}
+                    <div className="flex md:hidden items-center gap-2">
+                      <button
+                        onClick={handleShareClick}
+                        className="w-8 h-8 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 hover:scale-110 hover:shadow-md transition-all duration-300 cursor-pointer"
+                      >
+                        <RiShare2Line className="text-gray-600 text-base hover:text-[#06EAFC] transition-colors duration-300" />
+                      </button>
+                      
+                      <button
+                        onClick={handleFavoriteToggle}
+                        disabled={isProcessing}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 border cursor-pointer ${
                           isFavorite
                             ? "bg-gradient-to-br from-red-500 to-pink-500 border-red-200 hover:from-red-600 hover:to-pink-600 hover:scale-110 hover:shadow-lg"
                             : "bg-white border-gray-200 hover:bg-gray-50 hover:scale-110 hover:shadow-md"
-                        } ${
-                        isProcessing
-                          ? "opacity-70 cursor-not-allowed"
-                          : "cursor-pointer"
-                      }`}
-                    >
-                      {isProcessing ? (
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      ) : isFavorite ? (
-                        <svg
-                          className="w-5 h-5 text-white group-hover:scale-110 transition-transform duration-300"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      ) : (
-                        <CiBookmark className="text-base md:text-xl text-gray-600 group-hover:text-[#06EAFC] group-hover:scale-110 transition-all duration-300" />
-                      )}
-                    </button>
-                    <span className="text-gray-600 text-xs md:text-sm font-manrope hidden md:inline group-hover:text-[#06EAFC] transition-colors duration-300">
-                      {isProcessing
-                        ? "Processing..."
-                        : isFavorite
-                        ? "Saved"
-                        : "Save"}
-                    </span>
+                        } ${isProcessing ? "opacity-70 cursor-not-allowed" : "cursor-pointer"}`}
+                      >
+                        {isProcessing ? (
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : isFavorite ? (
+                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"/>
+                          </svg>
+                        ) : (
+                          <CiBookmark className="text-base text-gray-600 hover:text-[#06EAFC] transition-all duration-300" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-row md:flex-row md:items-center gap-2 md:gap-4 lg:gap-8">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-700 font-medium py-1 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200">
+                        {categoryDisplay}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 hover:scale-105 transition-transform duration-200">
+                        <FontAwesomeIcon
+                          icon={faStar}
+                          className="text-yellow-400 text-xs md:text-sm hover:text-yellow-500 transition-colors duration-200"
+                        />
+                      </div>
+                      <span className="font-bold text-gray-900 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200">
+                        {vendor.rating || "4.5"}
+                      </span>
+                      <span className="text-gray-600 font-manrope text-xs md:text-sm hover:text-gray-800 transition-colors duration-200">
+                        ({reviewCount} Reviews)
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-gray-700 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200">
+                      <FontAwesomeIcon
+                        icon={faMapMarkerAlt}
+                        className="text-gray-500 text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200"
+                      />
+                      <span className="truncate max-w-[150px] md:max-w-none">
+                        {vendor.location?.area || vendor.area || "Ibadan"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* DESKTOP: Share and Bookmark buttons */}
+                <div className="hidden md:flex flex-col items-end gap-2 md:gap-4 mt-2 md:mt-0">
+                  <div className="flex gap-4 md:gap-6 items-center">
+                    <div className="flex items-center gap-1 md:gap-2 group relative">
+                      <button
+                        onClick={handleShareClick}
+                        className="w-8 h-8 md:w-10 md:h-10 bg-white border border-gray-200 md:border-2 rounded-full flex items-center justify-center hover:bg-gray-50 hover:scale-110 hover:shadow-md transition-all duration-300 cursor-pointer"
+                      >
+                        <RiShare2Line className="text-gray-600 text-base md:text-xl group-hover:text-[#06EAFC] transition-colors duration-300" />
+                      </button>
+                      <span className="text-gray-600 text-xs md:text-sm font-manrope hidden md:inline group-hover:text-[#06EAFC] transition-colors duration-300">
+                        Share
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 md:gap-2 group relative">
+                      <button
+                        onClick={handleFavoriteToggle}
+                        disabled={isProcessing}
+                        className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-300 border md:border-2 cursor-pointer group
+                          ${
+                            isFavorite
+                              ? "bg-gradient-to-br from-red-500 to-pink-500 border-red-200 hover:from-red-600 hover:to-pink-600 hover:scale-110 hover:shadow-lg"
+                              : "bg-white border-gray-200 hover:bg-gray-50 hover:scale-110 hover:shadow-md"
+                          } ${
+                          isProcessing
+                            ? "opacity-70 cursor-not-allowed"
+                            : "cursor-pointer"
+                        }`}
+                      >
+                        {isProcessing ? (
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : isFavorite ? (
+                          <svg
+                            className="w-5 h-5 text-white group-hover:scale-110 transition-transform duration-300"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        ) : (
+                          <CiBookmark className="text-base md:text-xl text-gray-600 group-hover:text-[#06EAFC] group-hover:scale-110 transition-all duration-300" />
+                        )}
+                      </button>
+                      <span className="text-gray-600 text-xs md:text-sm font-manrope hidden md:inline group-hover:text-[#06EAFC] transition-colors duration-300">
+                        {isProcessing
+                          ? "Processing..."
+                          : isFavorite
+                          ? "Saved"
+                          : "Save"}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Images Section for Mobile */}
-          <div className="block md:hidden px-0">
-            <div className="relative w-full">
-              {/* Main Image Card */}
-              <div className="relative w-full h-[300px]">
-                <button
+            {/* Images Section for Mobile - Edge-to-edge */}
+            <div className="block md:hidden">
+              <div className="relative w-full">
+                {/* Main Image Card */}
+                <div 
+                  className="relative w-full h-[300px]"
                   onClick={() => handleMobileImageClick(0)}
-                  className="w-full h-full"
                 >
                   <img
                     src={mobileImages[0]}
                     alt={`${vendor.title || vendor.name} - Main image`}
                     className="w-full h-full object-cover"
-                    style={{ pointerEvents: 'none' }} // Prevent zooming on mobile
                   />
-                </button>
-
-                <button
-                  onClick={prevImage}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white hover:scale-110 hover:shadow-lg transition-all duration-300 cursor-pointer"
-                >
-                  <IoIosArrowBack className="text-gray-800 text-lg hover:text-[#06EAFC] transition-colors duration-300" />
-                </button>
-
-                <button
-                  onClick={nextImage}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white hover:scale-110 hover:shadow-lg transition-all duration-300 cursor-pointer"
-                >
-                  <IoIosArrowForward className="text-gray-800 text-lg hover:text-[#06EAFC] transition-colors duration-300" />
-                </button>
-
-                <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-manrope backdrop-blur-sm hover:bg-black/80 transition-colors duration-300">
-                  {activeImageIndex + 1}/{images.length}
-                </div>
-              </div>
-
-              {/* 4 Small Image Cards Below - AGODA style */}
-              <div className="grid grid-cols-2 gap-2 mt-2 px-2">
-                {mobileImages.slice(1, 5).map((img, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleMobileThumbnailClick(index + 1)}
-                    className="relative h-32 rounded-lg overflow-hidden border border-gray-300 hover:border-blue-400 transition-all duration-300"
-                  >
-                    <img
-                      src={img}
-                      alt={`Thumbnail ${index + 2}`}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                    {index === 3 && mobileImages.length > 5 && (
-                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">
-                          +{mobileImages.length - 5}
-                        </span>
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Desktop Images Section */}
-          <div className="hidden md:block px-4 lg:px-8">
-            <div className="flex gap-4">
-              <div className="flex flex-col gap-4">
-                {images.slice(1, 3).map((img, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setActiveImageIndex(i + 1)}
-                    className="hover:scale-105 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer overflow-visible"
-                  >
-                    <img
-                      src={img}
-                      className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
-                      style={{
-                        width: "305px",
-                        height: "162px",
-                        borderRadius: "16px",
-                        objectFit: "cover",
-                      }}
-                    />
-                  </button>
-                ))}
-              </div>
-
-              <div className="relative group overflow-visible">
-                <img
-                  src={images[activeImageIndex]}
-                  className="group-hover:scale-105 transition-transform duration-500"
-                  style={{
-                    width: "630px",
-                    height: "324px",
-                    borderRadius: "16px",
-                    objectFit: "cover",
-                  }}
-                />
-
-                <button
-                  onClick={prevImage}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white hover:scale-110 hover:shadow-xl transition-all duration-300 cursor-pointer"
-                >
-                  <IoIosArrowBack className="text-gray-800 text-xl hover:text-[#06EAFC] transition-colors duration-300" />
-                </button>
-
-                <button
-                  onClick={nextImage}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white hover:scale-110 hover:shadow-xl transition-all duration-300 cursor-pointer"
-                >
-                  <IoIosArrowForward className="text-gray-800 text-xl hover:text-[#06EAFC] transition-colors duration-300" />
-                </button>
-
-                <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-manrope hover:bg-black/80 transition-colors duration-300">
-                  {activeImageIndex + 1}/{images.length}
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-4">
-                {images.slice(3, 5).map((img, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setActiveImageIndex(i + 3)}
-                    className="hover:scale-105 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer overflow-visible"
-                  >
-                    <img
-                      src={img}
-                      className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
-                      style={{
-                        width: "305px",
-                        height: "162px",
-                        borderRadius: "16px",
-                        objectFit: "cover",
-                      }}
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Mobile Gallery Modal */}
-          {showGallery && (
-            <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
-              <div className="relative w-full h-full flex flex-col">
-                {/* Close Button */}
-                <button
-                  onClick={handleCloseGallery}
-                  className="absolute top-4 right-4 z-50 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
-                >
-                  <IoClose className="text-white text-2xl" />
-                </button>
-
-                {/* Main Image */}
-                <div className="flex-1 relative flex items-center justify-center">
-                  <img
-                    src={mobileImages[galleryActiveIndex]}
-                    alt={`Gallery ${galleryActiveIndex + 1}`}
-                    className="max-w-full max-h-full object-contain"
-                  />
+                  
+                  <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-manrope">
+                    {activeImageIndex + 1}/{images.length}
+                  </div>
                 </div>
 
-                {/* Navigation Buttons */}
-                <button
-                  onClick={handleGalleryPrev}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
-                >
-                  <IoIosArrowBack className="text-white text-xl" />
-                </button>
-
-                <button
-                  onClick={handleGalleryNext}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
-                >
-                  <IoIosArrowForward className="text-white text-xl" />
-                </button>
-
-                {/* Thumbnails */}
-                <div className="h-24 bg-black/70 flex items-center justify-center gap-2 p-2">
-                  {mobileImages.map((img, index) => (
+                {/* 4 Small Square Image Cards - AGODA style */}
+                <div className="grid grid-cols-4 gap-2 px-2 mt-2">
+                  {mobileImages.slice(1, 5).map((img, index) => (
                     <button
                       key={index}
-                      onClick={() => setGalleryActiveIndex(index)}
-                      className={`w-16 h-16 rounded overflow-hidden flex-shrink-0 border-2 ${
-                        index === galleryActiveIndex
-                          ? "border-blue-500"
-                          : "border-transparent"
-                      }`}
+                      onClick={() => handleMobileThumbnailClick(index + 1)}
+                      className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 hover:border-blue-400 transition-all duration-200"
                     >
                       <img
                         src={img}
-                        alt={`Thumb ${index + 1}`}
+                        alt={`Thumbnail ${index + 2}`}
                         className="w-full h-full object-cover"
+                      />
+                      {index === 3 && mobileImages.length > 5 && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">
+                            +{mobileImages.length - 5}
+                          </span>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Images Section - Centered with max-w-[1245px] */}
+            <div className="hidden md:block px-4 lg:px-4">
+              <div className="flex gap-4">
+                <div className="flex flex-col gap-4">
+                  {images.slice(1, 3).map((img, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActiveImageIndex(i + 1)}
+                      className="rounded-2xl overflow-hidden cursor-pointer"
+                    >
+                      <img
+                        src={img}
+                        className="w-full h-full object-cover"
+                        style={{
+                          width: "305px",
+                          height: "162px",
+                          borderRadius: "16px",
+                          objectFit: "cover",
+                        }}
                       />
                     </button>
                   ))}
                 </div>
 
-                {/* Image Counter */}
-                <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm">
-                  {galleryActiveIndex + 1}/{mobileImages.length}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex justify-center px-0 md:px-0">
-            <div className="w-full md:w-[600px] h-14 md:h-16 bg-gray-200 rounded-none md:rounded-3xl flex items-center justify-between px-4 md:px-12 mx-0 md:mx-0 hover:shadow-lg transition-all duration-300 hover:bg-gray-300/50">
-              <button
-                onClick={() => (vendor.contact || vendorInfo?.phone) && (window.location.href = `tel:${vendor.contact || vendorInfo?.phone}`)}
-                className="flex flex-col items-center transition-all duration-300 px-2 group relative"
-              >
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-blue-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
-                  <FontAwesomeIcon
-                    icon={faPhone}
-                    size={20}
-                    className="text-gray-700 group-hover:text-blue-600 transition-all duration-300 transform group-hover:scale-110"
+                <div className="relative group overflow-visible">
+                  <img
+                    src={images[activeImageIndex]}
+                    style={{
+                      width: "630px",
+                      height: "324px",
+                      borderRadius: "16px",
+                      objectFit: "cover",
+                    }}
                   />
-                </div>
-                <span className="text-xs mt-1 font-manrope text-gray-700 group-hover:text-blue-600 transition-colors duration-300 relative">
-                  Call
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 group-hover:w-full transition-all duration-300"></span>
-                </span>
-              </button>
 
-              <button
-                onClick={() => showToast("Chat feature coming soon!", "info")}
-                className="flex flex-col items-center transition-all duration-300 px-2 group relative"
-              >
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-green-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
-                  <IoChatbubbleEllipsesOutline
-                    size={22}
-                    className="text-gray-700 group-hover:text-green-600 transition-all duration-300 transform group-hover:scale-110"
-                  />
-                </div>
-                <span className="text-xs mt-1 font-manrope text-gray-700 group-hover:text-green-600 transition-colors duration-300 relative">
-                  Chat
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 group-hover:w-full transition-all duration-300"></span>
-                </span>
-              </button>
+                  <button
+                    onClick={prevImage}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white hover:scale-110 hover:shadow-xl transition-all duration-300 cursor-pointer"
+                  >
+                    <IoIosArrowBack className="text-gray-800 text-xl hover:text-[#06EAFC] transition-colors duration-300" />
+                  </button>
 
-              <button
-                onClick={handleBookingClick}
-                className="flex flex-col items-center transition-all duration-300 px-2 group relative"
-              >
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-purple-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
-                  <FaBookOpen
-                    size={20}
-                    className="text-gray-700 group-hover:text-purple-600 transition-all duration-300 transform group-hover:scale-110"
-                  />
-                </div>
-                <span className="text-xs mt-1 font-manrope text-gray-700 group-hover:text-purple-600 transition-colors duration-300 relative">
-                  Book
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-600 group-hover:w-full transition-all duration-300"></span>
-                </span>
-              </button>
+                  <button
+                    onClick={nextImage}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white hover:scale-110 hover:shadow-xl transition-all duration-300 cursor-pointer"
+                  >
+                    <IoIosArrowForward className="text-gray-800 text-xl hover:text-[#06EAFC] transition-colors duration-300" />
+                  </button>
 
-              <button
-                onClick={() => showToast("Map feature coming soon!", "info")}
-                className="flex flex-col items-center transition-all duration-300 px-2 group relative"
-              >
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-red-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
-                  <HiLocationMarker
-                    size={22}
-                    className="text-gray-700 group-hover:text-red-600 transition-all duration-300 transform group-hover:scale-110"
-                  />
-                </div>
-                <span className="text-xs mt-1 font-manrope text-gray-700 group-hover:text-red-600 transition-colors duration-300 relative">
-                  Map
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-red-600 group-hover:w-full transition-all duration-300"></span>
-                </span>
-              </button>
-            </div>
-          </div>
-
-          {/* Price Range - Centered for all screens */}
-          <div className="px-0 md:px-0">
-            <div className="text-center bg-white md:py-3 mx-0 md:mx-0">
-              <p className="text-[#00065A] font-manrope text-base md:text-xl font-bold mb-1">
-                Price Range
-              </p>
-              <div className="flex flex-col items-center justify-center gap-1 md:gap-3">
-                <div className="flex items-center gap-1 md:gap-2 ">
-                  <span className="text-[15px] md:text-2xl text-gray-900 font-manrope font-bold">
-                    {formatPrice(vendor.price || vendor.price_from)}
-                  </span>
-                  <span className="text-gray-500 text-[12px] hover:text-gray-700 transition-colors duration-300">
-                    -
-                  </span>
-                  <span className="text-[15px] md:text-2xl text-gray-900 font-manrope font-bold">
-                    {formatPrice(vendor.price_to || vendor.price || vendor.price_from)}
-                  </span>
-                </div>
-                <span className="text-gray-600 text-sm md:text-base mt-1 hover:text-gray-800 transition-colors duration-300">
-                  {category === 'hotel' ? 'per night' : 
-                   category === 'restaurant' ? 'per meal' : 
-                   'per guest'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Room Selection Section - Only for Hotels */}
-          {category === 'hotel' && (
-            <div className="px-4 md:px-8">
-              <RoomSelection 
-                category={category}
-                onRoomSelect={handleRoomSelect}
-                onRoomBookNow={handleRoomBookNow}
-                vendorData={vendor}
-              />
-            </div>
-          )}
-
-          {/* About Section */}
-          <section className="w-full bg-[#F7F7FA] rounded-none md:rounded-3xl hover:shadow-lg transition-shadow duration-300">
-            <div className="px-4 sm:px-4 md:px-6 lg:px-8 py-6 md:py-8">
-              <div className="mb-8 md:mb-12">
-                <h2 className="text-lg md:text-xl font-bold text-[#06F49F] mb-3 md:mb-4 font-manrope hover:text-[#05d9eb] transition-colors duration-300">
-                  About
-                </h2>
-                <p className="text-gray-700 leading-relaxed text-sm md:text-base font-manrope hover:text-gray-800 transition-colors duration-300">
-                  {vendor.description ||
-                    "Welcome to our premium venue, offering exceptional service and unforgettable experiences. With modern amenities and professional staff, we ensure your stay is comfortable and memorable."}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-                <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
-                  <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-4 md:mb-6 font-manrope hover:text-[#06EAFC] transition-colors duration-300">
-                    What They Do
-                  </h3>
-                  <div className="space-y-3 md:space-y-4">
-                    {services.map((service, index) => (
-                      <div
-                        key={index}
-                        className="flex items-start gap-3 md:gap-4 hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
-                      >
-                        <div className="flex-shrink-0 mt-0.5 md:mt-1 group-hover:scale-110 transition-transform duration-300">
-                          <FontAwesomeIcon
-                            icon={faCheckCircle}
-                            size={18}
-                            className="text-[#06EAFC] group-hover:text-[#05d9eb] transition-colors duration-300"
-                          />
-                        </div>
-                        <span className="text-gray-700 font-manrope leading-relaxed text-sm md:text-sm group-hover:text-gray-900 transition-colors duration-300">
-                          {service}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-manrope hover:bg-black/80 transition-colors duration-300">
+                    {activeImageIndex + 1}/{images.length}
                   </div>
                 </div>
 
-                <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
-                  <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-4 md:mb-6 font-manrope hover:text-[#06EAFC] transition-colors duration-300">
-                    Key Features
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
-                    {features.map((feature, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 md:gap-3 hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
-                      >
-                        <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                          <FontAwesomeIcon
-                            icon={feature.icon}
-                            className="text-sm md:text-base text-gray-900 group-hover:text-[#06EAFC] transition-colors duration-300"
-                          />
-                        </div>
-                        <span className="font-medium text-gray-900 font-manrope text-xs md:text-sm group-hover:text-gray-700 transition-colors duration-300">
-                          {feature.name}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                <div className="flex flex-col gap-4">
+                  {images.slice(3, 5).map((img, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActiveImageIndex(i + 3)}
+                      className="rounded-2xl overflow-hidden cursor-pointer"
+                    >
+                      <img
+                        src={img}
+                        className="w-full h-full object-cover"
+                        style={{
+                          width: "305px",
+                          height: "162px",
+                          borderRadius: "16px",
+                          objectFit: "cover",
+                        }}
+                      />
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
-          </section>
 
-          {/* Reviews Section */}
-          <div className="px-4 md:px-8">
-            <div className="bg-white rounded-xl p-6">
-              <h2 className="text-xl font-bold text-[#00065A] mb-6">
-                Reviews
-                <span className="text-sm font-normal text-gray-500 ml-2">
-                  ({reviewCount} reviews)
-                </span>
-              </h2>
-              
-              <div className="space-y-6">
-                <div className="flex items-center gap-4">
-                  <div className="text-5xl font-bold text-gray-900">{vendor.rating || "4.5"}</div>
-                  <div>
-                    <div className="flex items-center gap-1 mb-2">
-                      {[...Array(5)].map((_, i) => (
-                        <FontAwesomeIcon 
-                          key={i} 
-                          icon={faStar} 
-                          className={i < Math.floor(vendor.rating || 4.5) ? "text-yellow-500" : "text-gray-300"} 
+            {/* Mobile Gallery Modal */}
+            {showGallery && (
+              <div className="fixed inset-0 z-50 bg-black">
+                <div className="relative h-full w-full">
+                  {/* Header with counter and close button */}
+                  <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
+                    <div className="text-white text-sm">
+                      {galleryActiveIndex + 1} / {mobileImages.length}
+                    </div>
+                    <button
+                      onClick={handleCloseGallery}
+                      className="w-10 h-10 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
+                    >
+                      <IoClose className="text-white text-2xl" />
+                    </button>
+                  </div>
+
+                  {/* Main Image with vertical scroll */}
+                  <div 
+                    className="h-full overflow-y-auto snap-y snap-mandatory"
+                    style={{ scrollBehavior: 'smooth' }}
+                  >
+                    {mobileImages.map((img, index) => (
+                      <div 
+                        key={index}
+                        className="h-full w-full flex items-center justify-center snap-center p-4"
+                        onClick={handleCloseGallery}
+                      >
+                        <img
+                          src={img}
+                          alt={`Gallery ${index + 1}`}
+                          className="max-w-full max-h-full object-contain"
                         />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Thumbnails at bottom */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-2 overflow-x-auto">
+                    <div className="flex space-x-2">
+                      {mobileImages.map((img, index) => (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            const container = document.querySelector('.overflow-y-auto');
+                            const target = container?.children[index];
+                            target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            setGalleryActiveIndex(index);
+                          }}
+                          className={`flex-shrink-0 w-16 h-16 rounded overflow-hidden border-2 ${
+                            index === galleryActiveIndex
+                              ? "border-blue-500"
+                              : "border-transparent"
+                          }`}
+                        >
+                          <img
+                            src={img}
+                            alt={`Thumb ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
                       ))}
                     </div>
-                    <p className="text-gray-600">Based on {reviewCount} reviews</p>
+                  </div>
+
+                  {/* Navigation hint text */}
+                  <div className="absolute bottom-20 left-0 right-0 text-center">
+                    <p className="text-white/70 text-sm">Scroll up/down to view all images</p>
                   </div>
                 </div>
+              </div>
+            )}
+
+ {/* Price Range - Edge-to-edge on mobile, centered on desktop */}
+            <div className="px-2">
+              <div className=" text-start bg-white py-3 mx-auto">
+                <p className="text-[#00065A]  font-manrope text-base md:text-xl font-bold mb-1">
+                  Price Range
+                </p>
+                <div className="flex flex-col justify-center gap-1 md:gap-3">
+                  <div className="flex items-center gap-1 md:gap-2 ">
+                    <span className="text-[15px] md:text-2xl text-gray-900 font-manrope font-bold">
+                      {formatPrice(vendor.price || vendor.price_from)}
+                    </span>
+                    <span className="text-gray-900 text-[12px]">
+                      -
+                    </span>
+                    <span className="text-[15px] md:text-2xl text-gray-900 font-manrope font-bold">
+                      {formatPrice(vendor.price_to || vendor.price || vendor.price_from)}
+                    </span>
+                  </div>
+                  <span className="text-gray-900 text-sm md:text-base mt-1">
+                    {category === 'hotel' ? 'per night' : 
+                     category === 'restaurant' ? 'per meal' : 
+                     'per guest'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons - Edge-to-edge on mobile, centered on desktop */}
+            <div className="px-2">
+              <div className="w-full h-14 md:h-16 bg-gray-200 rounded-[13px] md:rounded-3xl flex items-center justify-between px-4 md:px-12 mx-auto md:max-w-[600px] hover:shadow-lg transition-all duration-300 hover:bg-gray-300/50">
+                <button
+                  onClick={() => (vendor.contact || vendorInfo?.phone) && (window.location.href = `tel:${vendor.contact || vendorInfo?.phone}`)}
+                  className="flex flex-col items-center transition-all duration-300 px-2 group relative"
+                >
+                  <div className="relative">
+                    <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-blue-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
+                    <FontAwesomeIcon
+                      icon={faPhone}
+                      size={20}
+                      className="text-gray-700 group-hover:text-blue-600 transition-all duration-300 transform group-hover:scale-110"
+                    />
+                  </div>
+                  <span className="text-xs mt-1 font-manrope text-gray-700 group-hover:text-blue-600 transition-colors duration-300 relative">
+                    Call
+                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 group-hover:w-full transition-all duration-300"></span>
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => showToast("Chat feature coming soon!", "info")}
+                  className="flex flex-col items-center transition-all duration-300 px-2 group relative"
+                >
+                  <div className="relative">
+                    <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-green-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
+                    <IoChatbubbleEllipsesOutline
+                      size={22}
+                      className="text-gray-700 group-hover:text-green-600 transition-all duration-300 transform group-hover:scale-110"
+                    />
+                  </div>
+                  <span className="text-xs mt-1 font-manrope text-gray-700 group-hover:text-green-600 transition-colors duration-300 relative">
+                    Chat
+                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 group-hover:w-full transition-all duration-300"></span>
+                  </span>
+                </button>
+
+                <button
+                  onClick={handleBookingClick}
+                  className="flex flex-col items-center transition-all duration-300 px-2 group relative"
+                >
+                  <div className="relative">
+                    <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-purple-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
+                    <FaBookOpen
+                      size={20}
+                      className="text-gray-700 group-hover:text-purple-600 transition-all duration-300 transform group-hover:scale-110"
+                    />
+                  </div>
+                  <span className="text-xs mt-1 font-manrope text-gray-700 group-hover:text-purple-600 transition-colors duration-300 relative">
+                    Book
+                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-600 group-hover:w-full transition-all duration-300"></span>
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => showToast("Map feature coming soon!", "info")}
+                  className="flex flex-col items-center transition-all duration-300 px-2 group relative"
+                >
+                  <div className="relative">
+                    <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-red-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
+                    <HiLocationMarker
+                      size={22}
+                      className="text-gray-700 group-hover:text-red-600 transition-all duration-300 transform group-hover:scale-110"
+                    />
+                  </div>
+                  <span className="text-xs mt-1 font-manrope text-gray-700 group-hover:text-red-600 transition-colors duration-300 relative">
+                    Map
+                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-red-600 group-hover:w-full transition-all duration-300"></span>
+                  </span>
+                </button>
+              </div>
+            </div>
+
+           
+
+             {/* About Section - Edge-to-edge on mobile, centered on desktop */}
+            <section className="w-full bg-[#F7F7FA] rounded-none md:rounded-3xl">
+              <div className="px-4 sm:px-4 md:px-6 lg:px-8 py-6 md:py-8">
+                <div className="mb-8 md:mb-12">
+                  <h2 className="text-lg md:text-xl font-bold text-[#06F49F] mb-3 md:mb-4 font-manrope">
+                    About
+                  </h2>
+                  <p className="text-gray-900 text-sm md:[15px] font-manrope hover:text-gray-800">
+                    {vendor.description ||
+                      "Welcome to our premium venue, offering exceptional service and unforgettable experiences. With modern amenities and professional staff, we ensure your stay is comfortable and memorable."}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+                  <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6">
+                    <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-4 md:mb-6 font-manrope">
+                      What we Do
+                    </h3>
+                    <div className="space-y-3 md:space-y-4">
+                      {services.map((service, index) => (
+                        <div
+                          key={index}
+                          className="flex items-start gap-3 md:gap-4 hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
+                        >
+                          <div className="flex-shrink-0 mt-0.5 md:mt-1 group-hover:scale-110 transition-transform duration-300">
+                            <FontAwesomeIcon
+                              icon={faCheckCircle}
+                              size={18}
+                              className="text-[#06EAFC] group-hover:text-[#05d9eb] transition-colors duration-300"
+                            />
+                          </div>
+                          <span className="text-gray-700 font-manrope leading-relaxed text-sm md:text-sm group-hover:text-gray-900 transition-colors duration-300">
+                            {service}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6">
+                    <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-4 md:mb-6 font-manrope ">
+                      Key Features
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+                      {features.map((feature, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-2 md:gap-3 hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
+                        >
+                          <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                            <FontAwesomeIcon
+                              icon={feature.icon}
+                              className="text-sm md:text-base text-gray-900 group-hover:text-[#06EAFC] transition-colors duration-300"
+                            />
+                          </div>
+                          <span className="font-medium text-gray-900 font-manrope text-xs md:text-sm group-hover:text-gray-700 transition-colors duration-300">
+                            {feature.name}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Room Selection Section - Only for Hotels */}
+            {category === 'hotel' && (
+              <div className="px-4 md:px-4">
+                <RoomSelection 
+                  category={category}
+                  onRoomSelect={handleRoomSelect}
+                  onRoomBookNow={handleRoomBookNow}
+                  vendorData={vendor}
+                />
+              </div>
+            )}
+
+           
+
+            {/* Reviews Section - Edge-to-edge on mobile, centered on desktop */}
+            <div className="px-4 md:px-4">
+              <div className="bg-white rounded-xl p-6">
+                <h2 className="text-xl font-bold text-[#00065A] mb-6">
+                  Reviews
+                  <span className="text-sm font-normal text-gray-500 ml-2">
+                    ({reviewCount} reviews)
+                  </span>
+                </h2>
                 
-                <div className="space-y-4">
-                  {[1, 2, 3].map((_, index) => (
-                    <div key={index} className="border-t pt-4">
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h4 className="font-bold text-gray-900">John D.</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            <div className="flex">
-                              {[...Array(5)].map((_, i) => (
-                                <FontAwesomeIcon 
-                                  key={i} 
-                                  icon={faStar} 
-                                  className="text-yellow-500 text-sm" 
-                                />
-                              ))}
+                <div className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="text-5xl font-bold text-gray-900">{vendor.rating || "4.5"}</div>
+                    <div>
+                      <div className="flex items-center gap-1 mb-2">
+                        {[...Array(5)].map((_, i) => (
+                          <FontAwesomeIcon 
+                            key={i} 
+                            icon={faStar} 
+                            className={i < Math.floor(vendor.rating || 4.5) ? "text-yellow-500" : "text-gray-300"} 
+                          />
+                        ))}
+                      </div>
+                      <p className="text-gray-600">Based on {reviewCount} reviews</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {[1, 2, 3].map((_, index) => (
+                      <div key={index} className="border-t pt-4">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h4 className="font-bold text-gray-900">John D.</h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <div className="flex">
+                                {[...Array(5)].map((_, i) => (
+                                  <FontAwesomeIcon 
+                                    key={i} 
+                                    icon={faStar} 
+                                    className="text-yellow-500 text-sm" 
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-sm text-gray-600">2 weeks ago</span>
                             </div>
-                            <span className="text-sm text-gray-600">2 weeks ago</span>
                           </div>
                         </div>
+                        <p className="text-gray-600">
+                          "Excellent service and beautiful venue. The staff were very accommodating and the facilities were top-notch."
+                        </p>
                       </div>
-                      <p className="text-gray-600">
-                        "Excellent service and beautiful venue. The staff were very accommodating and the facilities were top-notch."
-                      </p>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Location Section */}
-          <div className="px-4 md:px-8">
-            <div className="bg-white rounded-xl p-6">
-              <h2 className="text-xl font-bold text-[#00065A] mb-6">
-                Location
-              </h2>
-              
-              <div className="space-y-6">
-                <div className="bg-gray-200 rounded-xl h-64 flex items-center justify-center">
-                  <div className="text-center">
-                    <FontAwesomeIcon icon={faMapMarkerAlt} className="text-4xl text-gray-400 mb-4" />
-                    <p className="text-gray-600">Map would be displayed here</p>
-                    <p className="text-sm text-gray-500 mt-2">Google Maps integration available</p>
-                  </div>
-                </div>
+            {/* Location Section - Edge-to-edge on mobile, centered on desktop */}
+            <div className="px-4 md:px-4">
+              <div className="bg-white rounded-xl p-6">
+                <h2 className="text-xl font-bold text-[#00065A] mb-6">
+                  Location
+                </h2>
                 
-                <div>
-                  <h4 className="font-bold text-gray-900 mb-4">Location Details</h4>
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Address</p>
-                      <p className="font-medium">{vendor.address || `${vendor.title || vendor.name}, ${vendor.location?.area || vendor.area || "Ibadan"}`}</p>
+                <div className="space-y-6">
+                  <div className="bg-gray-200 rounded-xl h-64 flex items-center justify-center">
+                    <div className="text-center">
+                      <FontAwesomeIcon icon={faMapMarkerAlt} className="text-4xl text-gray-400 mb-4" />
+                      <p className="text-gray-600">Map would be displayed here</p>
+                      <p className="text-sm text-gray-500 mt-2">Google Maps integration available</p>
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Area</p>
-                      <p className="font-medium">{vendor.location?.area || vendor.area || "Ibadan"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Contact</p>
-                      <p className="font-medium">{vendor.contact || vendorInfo?.phone || "Not provided"}</p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-4">Location Details</h4>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Address</p>
+                        <p className="font-medium">{vendor.address || `${vendor.title || vendor.name}, ${vendor.location?.area || vendor.area || "Ibadan"}`}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Area</p>
+                        <p className="font-medium">{vendor.location?.area || vendor.area || "Ibadan"}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Contact</p>
+                        <p className="font-medium">{vendor.contact || vendorInfo?.phone || "Not provided"}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Other Listings from This Vendor */}
-          {vendorListings.length > 0 && (
-            <div className="px-4 sm:px-2 md:px-4 lg:px-8 py-6 bg-white rounded-xl">
-              <h2 className="text-xl font-bold text-[#00065A] mb-6">
-                Other Listings from This Vendor
-                <span className="text-sm font-normal text-gray-500 ml-2">
-                  ({vendorListings.length} {vendorListings.length === 1 ? 'listing' : 'listings'})
-                </span>
-              </h2>
-              
-              {loadingVendorListings ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#06EAFC]"></div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {vendorListings.slice(0, 4).map((listing, index) => (
-                    <VendorListingCard
-                      key={listing._id || index}
-                      listing={listing}
-                      onClick={() => handleOtherListingClick(listing._id || listing.id)}
-                    />
-                  ))}
-                </div>
-              )}
-              
-              {vendorListings.length > 4 && (
-                <div className="text-center mt-6">
-                  <button
-                    onClick={() => {
-                      if (vendorId) {
-                        navigate(`/vendor-listings/${vendorId}`);
-                      }
-                    }}
-                    className="px-4 py-2 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors"
-                  >
-                    View All {vendorListings.length} Listings
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-          
-         
+            {/* Other Listings from This Vendor - Edge-to-edge on mobile, centered on desktop */}
+            {vendorListings.length > 0 && (
+              <div className="px-4 sm:px-4 md:px-4 lg:px-4 py-6 bg-white">
+                <h2 className="text-xl font-bold text-[#00065A] mb-6">
+                  Other Listings from This Vendor
+                  <span className="text-sm font-normal text-gray-500 ml-2">
+                    ({vendorListings.length} {vendorListings.length === 1 ? 'listing' : 'listings'})
+                  </span>
+                </h2>
+                
+                {loadingVendorListings ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#06EAFC]"></div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {vendorListings.slice(0, 4).map((listing, index) => (
+                      <VendorListingCard
+                        key={listing._id || index}
+                        listing={listing}
+                        onClick={() => handleOtherListingClick(listing._id || listing.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+                
+                {vendorListings.length > 4 && (
+                  <div className="text-center mt-6">
+                    <button
+                      onClick={() => {
+                        if (vendorId) {
+                          navigate(`/vendor-listings/${vendorId}`);
+                        }
+                      }}
+                      className="px-4 py-2 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors"
+                    >
+                      View All {vendorListings.length} Listings
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </main>
       

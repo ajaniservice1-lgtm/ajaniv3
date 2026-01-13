@@ -735,11 +735,7 @@ const MobileSearchModal = ({
                               <h4 className="font-medium text-gray-900 text-base">{suggestion.title}</h4>
                               <p className="text-sm text-gray-600 mt-1">{suggestion.description}</p>
                             </div>
-                            {suggestion.count && (
-                              <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                                {suggestion.count}
-                              </span>
-                            )}
+                         
                           </div>
                           {suggestion.breakdown && suggestion.breakdown.length > 0 && (
                             <div className="mt-3 pt-3 border-t border-gray-100">
@@ -916,11 +912,7 @@ const DesktopSearchSuggestions = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between mb-1">
                       <h4 className="font-medium text-gray-900 text-sm truncate">{suggestion.title}</h4>
-                      {suggestion.count && (
-                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                          {suggestion.count}
-                        </span>
-                      )}
+                    
                     </div>
                     <p className="text-xs text-gray-600 mb-2 line-clamp-2">{suggestion.description}</p>
                     {suggestion.breakdown && suggestion.breakdown.length > 0 && (
