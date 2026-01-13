@@ -1,4 +1,3 @@
-// src/components/VendorDetail.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -29,6 +28,7 @@ import { HiLocationMarker } from "react-icons/hi";
 import { RiShare2Line } from "react-icons/ri";
 import { VscVerifiedFilled } from "react-icons/vsc";
 import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
+import { IoClose } from "react-icons/io5";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import RoomSelection from "../components/RoomSelection";
@@ -276,6 +276,9 @@ const VendorDetail = () => {
   const [touchEnd, setTouchEnd] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [showGallery, setShowGallery] = useState(false);
+  const [galleryActiveIndex, setGalleryActiveIndex] = useState(0);
+  const [mobileImages, setMobileImages] = useState([]);
   const imageRef = useRef(null);
   
   const isAuthenticated = useAuthStatus();
@@ -308,6 +311,10 @@ const VendorDetail = () => {
           
           const savedListings = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
           setIsFavorite(savedListings.some(item => item.id === id || item.id === foundVendor._id));
+          
+          // Prepare mobile images layout
+          const allImages = getVendorImages(foundVendor);
+          setMobileImages(allImages);
         } else {
           setError(result.message || "Vendor not found or invalid response");
         }
@@ -761,6 +768,36 @@ const VendorDetail = () => {
     return defaultServices;
   };
 
+  // Mobile gallery functions
+  const handleMobileImageClick = (index) => {
+    setGalleryActiveIndex(index);
+    setShowGallery(true);
+    document.body.style.overflow = 'hidden';
+  };
+
+  const handleCloseGallery = () => {
+    setShowGallery(false);
+    document.body.style.overflow = 'auto';
+  };
+
+  const handleGalleryPrev = () => {
+    setGalleryActiveIndex((prev) => (prev - 1 + mobileImages.length) % mobileImages.length);
+  };
+
+  const handleGalleryNext = () => {
+    setGalleryActiveIndex((prev) => (prev + 1) % mobileImages.length);
+  };
+
+  // Shuffle mobile thumbnails when clicked
+  const handleMobileThumbnailClick = (index) => {
+    if (index === 0) return; // Main image doesn't shuffle
+    const newImages = [...mobileImages];
+    // Swap the clicked thumbnail with the main image
+    [newImages[0], newImages[index]] = [newImages[index], newImages[0]];
+    setMobileImages(newImages);
+    setActiveImageIndex(0);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -838,27 +875,48 @@ const VendorDetail = () => {
         </div>
 
         <div className="space-y-3 md:space-y-6">
-          {/* Vendor Header Section */}
-          <div className="px-4 sm:px-2 md:px-4 lg:px-8 py-3 md:py-3 bg-white rounded-xl  mx-0 md:mx-0">
+          {/* Vendor Header Section - MOBILE: Share and Bookmark on same line with h1 */}
+          <div className="px-4 sm:px-2 md:px-4 lg:px-8 py-3 md:py-3 bg-white rounded-xl mx-0 md:mx-0">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6">
               <div className="flex-1">
-                <div className="flex flex-col md:flex-row md:items-center justify-between md:gap-4 md:mb-2">
-                  <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-0">
-                    <h1 className="text-lg md:text-xl lg:text-3xl font-bold text-gray-900 font-manrope line-clamp-2">
+                {/* MOBILE: h1 and action buttons in same line */}
+                <div className="flex items-center justify-between md:justify-start gap-3 md:gap-4 mb-2">
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <h1 className="text-lg md:text-xl lg:text-3xl font-bold text-gray-900 font-manrope line-clamp-2 flex-1">
                       {vendor.title || vendor.name}
                     </h1>
                     <VscVerifiedFilled className="text-green-500 text-base md:text-xl hover:scale-110 transition-transform duration-200" />
                   </div>
                   
-                  {/* Vendor Info for Desktop */}
-                  {/* <div className="hidden md:block">
-                    {vendorInfo?.email && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <FontAwesomeIcon icon={faEnvelope} className="text-gray-400" />
-                        <span>{vendorInfo.email}</span>
-                      </div>
-                    )}
-                  </div> */}
+                  {/* MOBILE: Share and Bookmark buttons inline */}
+                  <div className="flex md:hidden items-center gap-2">
+                    <button
+                      onClick={handleShareClick}
+                      className="w-8 h-8 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 hover:scale-110 hover:shadow-md transition-all duration-300 cursor-pointer"
+                    >
+                      <RiShare2Line className="text-gray-600 text-base hover:text-[#06EAFC] transition-colors duration-300" />
+                    </button>
+                    
+                    <button
+                      onClick={handleFavoriteToggle}
+                      disabled={isProcessing}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 border cursor-pointer ${
+                        isFavorite
+                          ? "bg-gradient-to-br from-red-500 to-pink-500 border-red-200 hover:from-red-600 hover:to-pink-600 hover:scale-110 hover:shadow-lg"
+                          : "bg-white border-gray-200 hover:bg-gray-50 hover:scale-110 hover:shadow-md"
+                      } ${isProcessing ? "opacity-70 cursor-not-allowed" : "cursor-pointer"}`}
+                    >
+                      {isProcessing ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : isFavorite ? (
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"/>
+                        </svg>
+                      ) : (
+                        <CiBookmark className="text-base text-gray-600 hover:text-[#06EAFC] transition-all duration-300" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex flex-row md:flex-row md:items-center gap-2 md:gap-4 lg:gap-8">
@@ -893,43 +951,15 @@ const VendorDetail = () => {
                     </span>
                   </div>
                 </div>
-                
-                {/* {vendorInfo && (
-                  <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200 md:hidden">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 bg-[#06EAFC] rounded-full flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">
-                          {vendorInfo.name?.charAt(0)?.toUpperCase() || "V"}
-                        </span>
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900 text-sm">
-                          {vendorInfo.name || "Vendor"}
-                          {vendorInfo.verified && (
-                            <VscVerifiedFilled className="inline-block text-green-500 ml-1" />
-                          )}
-                        </h3>
-                        <p className="text-xs text-gray-600">
-                          Vendor ID: {vendorId?.substring(0, 8)}...
-                        </p>
-                      </div>
-                    </div>
-                    {vendorInfo.email && (
-                      <div className="flex items-center gap-2 mt-2 text-xs text-gray-600">
-                        <FontAwesomeIcon icon={faEnvelope} className="text-gray-400" />
-                        <span>{vendorInfo.email}</span>
-                      </div>
-                    )}
-                  </div>
-                )} */}
               </div>
 
-              <div className="flex flex-col items-end gap-2 md:gap-4 mt-2 md:mt-0">
+              {/* DESKTOP: Share and Bookmark buttons */}
+              <div className="hidden md:flex flex-col items-end gap-2 md:gap-4 mt-2 md:mt-0">
                 <div className="flex gap-4 md:gap-6 items-center">
                   <div className="flex items-center gap-1 md:gap-2 group relative">
                     <button
                       onClick={handleShareClick}
-                      className="w-8 h-8 md:w-10 md:h-10 bg-white border border-gray-200 md:border-2 rounded-full flex items-center justify-center hover:bg-gray-50 hover:scale-110 hover:shadow-md transition-all duration-300 cursor-pointer group"
+                      className="w-8 h-8 md:w-10 md:h-10 bg-white border border-gray-200 md:border-2 rounded-full flex items-center justify-center hover:bg-gray-50 hover:scale-110 hover:shadow-md transition-all duration-300 cursor-pointer"
                     >
                       <RiShare2Line className="text-gray-600 text-base md:text-xl group-hover:text-[#06EAFC] transition-colors duration-300" />
                     </button>
@@ -952,13 +982,6 @@ const VendorDetail = () => {
                           ? "opacity-70 cursor-not-allowed"
                           : "cursor-pointer"
                       }`}
-                      title={isFavorite ? "Remove from saved" : "Add to saved"}
-                      aria-label={
-                        isFavorite ? "Remove from saved" : "Save this vendor"
-                      }
-                      style={{
-                        cursor: isProcessing ? "not-allowed" : "pointer",
-                      }}
                     >
                       {isProcessing ? (
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -991,21 +1014,22 @@ const VendorDetail = () => {
             </div>
           </div>
 
-          {/* Images Section */}
+          {/* Images Section for Mobile */}
           <div className="block md:hidden px-0">
             <div className="relative w-full">
-              <div
-                className="relative w-full h-[300px] rounded-none md:rounded-2xl overflow-hidden" 
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                ref={imageRef}
-              >
-                <img
-                  src={images[activeImageIndex]}
-                  alt={`${vendor.title || vendor.name} - Image ${activeImageIndex + 1}`}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                />
+              {/* Main Image Card */}
+              <div className="relative w-full h-[300px]">
+                <button
+                  onClick={() => handleMobileImageClick(0)}
+                  className="w-full h-full"
+                >
+                  <img
+                    src={mobileImages[0]}
+                    alt={`${vendor.title || vendor.name} - Main image`}
+                    className="w-full h-full object-cover"
+                    style={{ pointerEvents: 'none' }} // Prevent zooming on mobile
+                  />
+                </button>
 
                 <button
                   onClick={prevImage}
@@ -1026,29 +1050,33 @@ const VendorDetail = () => {
                 </div>
               </div>
 
-              <div className="flex gap-2 overflow-x-auto pb-2 px-4 mt-0">
-                {images.map((img, index) => (
+              {/* 4 Small Image Cards Below - AGODA style */}
+              <div className="grid grid-cols-2 gap-2 mt-2 px-2">
+                {mobileImages.slice(1, 5).map((img, index) => (
                   <button
                     key={index}
-                    onClick={() => setActiveImageIndex(index)}
-                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 hover:scale-105 hover:shadow-md transition-all duration-300 cursor-pointer ${
-                      index === activeImageIndex
-                        ? "border-blue-500"
-                        : "border-transparent hover:border-blue-300"
-                    }`}
+                    onClick={() => handleMobileThumbnailClick(index + 1)}
+                    className="relative h-32 rounded-lg overflow-hidden border border-gray-300 hover:border-blue-400 transition-all duration-300"
                   >
                     <img
                       src={img}
-                      alt={`Thumbnail ${index + 1}`}
-                      className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                      alt={`Thumbnail ${index + 2}`}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                     />
+                    {index === 3 && mobileImages.length > 5 && (
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                        <span className="text-white font-bold text-lg">
+                          +{mobileImages.length - 5}
+                        </span>
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
             </div>
           </div>
 
-
+          {/* Desktop Images Section */}
           <div className="hidden md:block px-4 lg:px-8">
             <div className="flex gap-4">
               <div className="flex flex-col gap-4">
@@ -1056,7 +1084,7 @@ const VendorDetail = () => {
                   <button
                     key={i}
                     onClick={() => setActiveImageIndex(i + 1)}
-                    className="hover:scale-105 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer"
+                    className="hover:scale-105 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer overflow-visible"
                   >
                     <img
                       src={img}
@@ -1072,7 +1100,7 @@ const VendorDetail = () => {
                 ))}
               </div>
 
-              <div className="relative group">
+              <div className="relative group overflow-visible">
                 <img
                   src={images[activeImageIndex]}
                   className="group-hover:scale-105 transition-transform duration-500"
@@ -1108,7 +1136,7 @@ const VendorDetail = () => {
                   <button
                     key={i}
                     onClick={() => setActiveImageIndex(i + 3)}
-                    className="hover:scale-105 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer"
+                    className="hover:scale-105 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer overflow-visible"
                   >
                     <img
                       src={img}
@@ -1126,7 +1154,72 @@ const VendorDetail = () => {
             </div>
           </div>
 
- {/* Action Buttons */}
+          {/* Mobile Gallery Modal */}
+          {showGallery && (
+            <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
+              <div className="relative w-full h-full flex flex-col">
+                {/* Close Button */}
+                <button
+                  onClick={handleCloseGallery}
+                  className="absolute top-4 right-4 z-50 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
+                >
+                  <IoClose className="text-white text-2xl" />
+                </button>
+
+                {/* Main Image */}
+                <div className="flex-1 relative flex items-center justify-center">
+                  <img
+                    src={mobileImages[galleryActiveIndex]}
+                    alt={`Gallery ${galleryActiveIndex + 1}`}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
+
+                {/* Navigation Buttons */}
+                <button
+                  onClick={handleGalleryPrev}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
+                >
+                  <IoIosArrowBack className="text-white text-xl" />
+                </button>
+
+                <button
+                  onClick={handleGalleryNext}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
+                >
+                  <IoIosArrowForward className="text-white text-xl" />
+                </button>
+
+                {/* Thumbnails */}
+                <div className="h-24 bg-black/70 flex items-center justify-center gap-2 p-2">
+                  {mobileImages.map((img, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setGalleryActiveIndex(index)}
+                      className={`w-16 h-16 rounded overflow-hidden flex-shrink-0 border-2 ${
+                        index === galleryActiveIndex
+                          ? "border-blue-500"
+                          : "border-transparent"
+                      }`}
+                    >
+                      <img
+                        src={img}
+                        alt={`Thumb ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+
+                {/* Image Counter */}
+                <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm">
+                  {galleryActiveIndex + 1}/{mobileImages.length}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
           <div className="flex justify-center px-0 md:px-0">
             <div className="w-full md:w-[600px] h-14 md:h-16 bg-gray-200 rounded-none md:rounded-3xl flex items-center justify-between px-4 md:px-12 mx-0 md:mx-0 hover:shadow-lg transition-all duration-300 hover:bg-gray-300/50">
               <button
@@ -1227,8 +1320,19 @@ const VendorDetail = () => {
             </div>
           </div>
 
+          {/* Room Selection Section - Only for Hotels */}
+          {category === 'hotel' && (
+            <div className="px-4 md:px-8">
+              <RoomSelection 
+                category={category}
+                onRoomSelect={handleRoomSelect}
+                onRoomBookNow={handleRoomBookNow}
+                vendorData={vendor}
+              />
+            </div>
+          )}
 
-            {/* About Section */}
+          {/* About Section */}
           <section className="w-full bg-[#F7F7FA] rounded-none md:rounded-3xl hover:shadow-lg transition-shadow duration-300">
             <div className="px-4 sm:px-4 md:px-6 lg:px-8 py-6 md:py-8">
               <div className="mb-8 md:mb-12">
@@ -1294,293 +1398,100 @@ const VendorDetail = () => {
             </div>
           </section>
 
-          {/* Tabs Section */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-            <div className="border-b border-gray-200">
-              <nav className="flex space-x-8">
-                {["overview", "amenities", "reviews", "location", "vendor"].map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`py-4 px-1 font-medium text-sm border-b-2 transition-colors ${
-                      activeTab === tab
-                        ? "border-[#06EAFC] text-[#06EAFC]"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    }`}
-                  >
-                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                  </button>
-                ))}
-              </nav>
-            </div>
-            
-            <div className="py-6">
-              {activeTab === "overview" && (
-                <div className="space-y-6">
-                  <h3 className="text-xl font-bold text-gray-900">About {vendor.title || vendor.name}</h3>
-                  <p className="text-gray-600 leading-relaxed">
-                    {vendor.description || `Welcome to ${vendor.title || vendor.name}, one of the finest ${category}s in ${vendor.location?.area || vendor.area || "Ibadan"}. 
-                    With a rating of ${vendor.rating || "4.5"} stars, we pride ourselves on delivering exceptional service and 
-                    unforgettable experiences.`}
-                  </p>
-                  
-                  <div className="grid md:grid-cols-2 gap-6 mt-6">
-                    <div className="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition-shadow duration-300">
-                      <h4 className="font-bold text-gray-900 mb-4 hover:text-[#06EAFC] transition-colors duration-300">Key Features</h4>
-                      <ul className="space-y-3">
-                        <li className="flex items-center gap-3 hover:translate-x-1 transition-transform duration-300">
-                          <div className="w-8 h-8 rounded-full bg-[#06EAFC]/10 flex items-center justify-center hover:scale-110 transition-transform duration-300">
-                            <FontAwesomeIcon icon={faCalendar} className="text-[#06EAFC] hover:text-[#05d9eb] transition-colors duration-300" />
-                          </div>
-                          <span className="hover:text-[#06EAFC] transition-colors duration-300">Available for booking year-round</span>
-                        </li>
-                        {vendor.capacity && (
-                          <li className="flex items-center gap-3 hover:translate-x-1 transition-transform duration-300">
-                            <div className="w-8 h-8 rounded-full bg-[#06EAFC]/10 flex items-center justify-center hover:scale-110 transition-transform duration-300">
-                              <FontAwesomeIcon icon={faUsers} className="text-[#06EAFC] hover:text-[#05d9eb] transition-colors duration-300" />
-                            </div>
-                            <span className="hover:text-[#06EAFC] transition-colors duration-300">Capacity: {vendor.capacity} guests</span>
-                          </li>
-                        )}
-                        <li className="flex items-center gap-3 hover:translate-x-1 transition-transform duration-300">
-                          <div className="w-8 h-8 rounded-full bg-[#06EAFC]/10 flex items-center justify-center hover:scale-110 transition-transform duration-300">
-                            <FontAwesomeIcon icon={getCategoryIcon(category)} className="text-[#06EAFC] hover:text-[#05d9eb] transition-colors duration-300" />
-                          </div>
-                          <span className="hover:text-[#06EAFC] transition-colors duration-300 capitalize">{category} services</span>
-                        </li>
-                      </ul>
-                    </div>
-                    
-                    <div className="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition-shadow duration-300">
-                      <h4 className="font-bold text-gray-900 mb-4 hover:text-[#06EAFC] transition-colors duration-300">Pricing Information</h4>
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center hover:bg-gray-100 p-2 rounded-lg transition-colors duration-300">
-                          <span className="hover:text-gray-800 transition-colors duration-300">Standard Rate</span>
-                          <span className="font-bold hover:text-[#06EAFC] transition-colors duration-300">{formatPrice(vendor.price || vendor.price_from)}</span>
-                        </div>
-                        {vendor.price_to && vendor.price_to !== (vendor.price || vendor.price_from) && (
-                          <div className="flex justify-between items-center hover:bg-gray-100 p-2 rounded-lg transition-colors duration-300">
-                            <span className="hover:text-gray-800 transition-colors duration-300">Premium Rate</span>
-                            <span className="font-bold hover:text-[#06EAFC] transition-colors duration-300">{formatPrice(vendor.price_to)}</span>
-                          </div>
-                        )}
-                        <div className="pt-4 border-t border-gray-200">
-                          <p className="text-sm text-gray-600 hover:text-gray-800 transition-colors duration-300">
-                            *Prices may vary based on season, availability, and special requirements
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+          {/* Reviews Section */}
+          <div className="px-4 md:px-8">
+            <div className="bg-white rounded-xl p-6">
+              <h2 className="text-xl font-bold text-[#00065A] mb-6">
+                Reviews
+                <span className="text-sm font-normal text-gray-500 ml-2">
+                  ({reviewCount} reviews)
+                </span>
+              </h2>
               
-              {activeTab === "amenities" && (
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-6 hover:text-[#06EAFC] transition-colors duration-300">Amenities & Services</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {amenities.map((amenity, index) => (
-                      <div key={index} className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 hover:scale-105 transition-all duration-300 group cursor-pointer">
-                        <div className="w-10 h-10 rounded-full bg-[#06EAFC]/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                          <FontAwesomeIcon icon={getAmenityIcon(amenity)} className="text-[#06EAFC] group-hover:text-[#05d9eb] transition-colors duration-300" />
-                        </div>
-                        <span className="font-medium group-hover:text-[#06EAFC] transition-colors duration-300">{amenity}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {activeTab === "reviews" && (
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-6 hover:text-[#06EAFC] transition-colors duration-300">Customer Reviews</h3>
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-4">
-                      <div className="text-5xl font-bold text-gray-900 hover:text-[#06EAFC] transition-colors duration-300">{vendor.rating || "4.5"}</div>
-                      <div>
-                        <div className="flex items-center gap-1 mb-2">
-                          {[...Array(5)].map((_, i) => (
-                            <FontAwesomeIcon 
-                              key={i} 
-                              icon={faStar} 
-                              className={i < Math.floor(vendor.rating || 4.5) ? "text-yellow-500 hover:text-yellow-600 transition-colors duration-300" : "text-gray-300 hover:text-gray-400 transition-colors duration-300"} 
-                            />
-                          ))}
-                        </div>
-                        <p className="text-gray-600 hover:text-gray-800 transition-colors duration-300">Based on {vendor.review_count || "50+"} reviews</p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      {[1, 2, 3].map((_, index) => (
-                        <div key={index} className="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition-shadow duration-300 group">
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
-                              <h4 className="font-bold text-gray-900 group-hover:text-[#06EAFC] transition-colors duration-300">John D.</h4>
-                              <div className="flex items-center gap-2 mt-1">
-                                <div className="flex">
-                                  {[...Array(5)].map((_, i) => (
-                                    <FontAwesomeIcon 
-                                      key={i} 
-                                      icon={faStar} 
-                                      className="text-yellow-500 text-sm hover:scale-110 transition-transform duration-300" 
-                                    />
-                                  ))}
-                                </div>
-                                <span className="text-sm text-gray-600 group-hover:text-gray-800 transition-colors duration-300">2 weeks ago</span>
-                              </div>
-                            </div>
-                          </div>
-                          <p className="text-gray-600 group-hover:text-gray-800 transition-colors duration-300">
-                            "Excellent service and beautiful venue. The staff were very accommodating and the facilities were top-notch."
-                          </p>
-                        </div>
+              <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <div className="text-5xl font-bold text-gray-900">{vendor.rating || "4.5"}</div>
+                  <div>
+                    <div className="flex items-center gap-1 mb-2">
+                      {[...Array(5)].map((_, i) => (
+                        <FontAwesomeIcon 
+                          key={i} 
+                          icon={faStar} 
+                          className={i < Math.floor(vendor.rating || 4.5) ? "text-yellow-500" : "text-gray-300"} 
+                        />
                       ))}
                     </div>
+                    <p className="text-gray-600">Based on {reviewCount} reviews</p>
                   </div>
                 </div>
-              )}
-              
-              {activeTab === "location" && (
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-6 hover:text-[#06EAFC] transition-colors duration-300">Location</h3>
-                  <div className="grid lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2">
-                      <div className="bg-gray-200 rounded-xl h-[400px] flex items-center justify-center hover:shadow-lg transition-shadow duration-300">
-                        <div className="text-center">
-                          <FontAwesomeIcon icon={faMapMarkerAlt} className="text-4xl text-gray-400 mb-4 hover:text-[#06EAFC] transition-colors duration-300" />
-                          <p className="text-gray-600 hover:text-gray-800 transition-colors duration-300">Map would be displayed here</p>
-                          <p className="text-sm text-gray-500 mt-2 hover:text-gray-700 transition-colors duration-300">Google Maps integration available</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition-shadow duration-300">
-                        <h4 className="font-bold text-gray-900 mb-4 hover:text-[#06EAFC] transition-colors duration-300">Location Details</h4>
-                        <div className="space-y-4">
-                          <div>
-                            <p className="text-sm text-gray-600 mb-1 hover:text-gray-800 transition-colors duration-300">Address</p>
-                            <p className="font-medium hover:text-[#06EAFC] transition-colors duration-300">{vendor.address || `${vendor.title || vendor.name}, ${vendor.location?.area || vendor.area || "Ibadan"}`}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-600 mb-1 hover:text-gray-800 transition-colors duration-300">Area</p>
-                            <p className="font-medium hover:text-[#06EAFC] transition-colors duration-300">{vendor.location?.area || vendor.area || "Ibadan"}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-600 mb-1 hover:text-gray-800 transition-colors duration-300">Contact</p>
-                            <p className="font-medium hover:text-[#06EAFC] transition-colors duration-300">{vendor.contact || vendorInfo?.phone || "Not provided"}</p>
-                          </div>
-                          <div className="pt-4">
-                            <p className="text-sm text-gray-600 hover:text-gray-800 transition-colors duration-300">
-                              Easily accessible from major roads and public transportation
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {activeTab === "vendor" && (
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-6 hover:text-[#06EAFC] transition-colors duration-300">Vendor Information</h3>
-                  
-                  {vendorInfo ? (
-                    <div className="space-y-6">
-                      <div className="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition-shadow duration-300">
-                        <div className="flex items-center gap-4 mb-6">
-                          <div className="w-16 h-16 bg-[#06EAFC] rounded-full flex items-center justify-center">
-                            <span className="text-white font-bold text-2xl">
-                              {vendorInfo.name?.charAt(0)?.toUpperCase() || "V"}
-                            </span>
-                          </div>
-                          <div>
-                            <h4 className="text-xl font-bold text-gray-900 hover:text-[#06EAFC] transition-colors duration-300">
-                              {vendorInfo.name || "Vendor"}
-                              {vendorInfo.verified && (
-                                <VscVerifiedFilled className="inline-block text-green-500 ml-2" />
-                              )}
-                            </h4>
-                            <p className="text-gray-600 hover:text-gray-800 transition-colors duration-300">Vendor ID: {vendorId}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-4">
-                          {vendorInfo.email && (
-                            <div className="flex items-center gap-3 p-3 bg-white rounded-lg hover:bg-gray-100 transition-colors duration-300">
-                              <FontAwesomeIcon icon={faEnvelope} className="text-[#06EAFC]" />
-                              <div>
-                                <p className="text-sm text-gray-600">Email</p>
-                                <p className="font-medium hover:text-[#06EAFC] transition-colors duration-300">{vendorInfo.email}</p>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {vendorInfo.phone && (
-                            <div className="flex items-center gap-3 p-3 bg-white rounded-lg hover:bg-gray-100 transition-colors duration-300">
-                              <FontAwesomeIcon icon={faPhone} className="text-[#06EAFC]" />
-                              <div>
-                                <p className="text-sm text-gray-600">Phone</p>
-                                <p className="font-medium hover:text-[#06EAFC] transition-colors duration-300">{vendorInfo.phone}</p>
-                              </div>
-                            </div>
-                          )}
-                          
-                          <div className="mt-6">
-                            <h5 className="font-bold text-gray-900 mb-3 hover:text-[#06EAFC] transition-colors duration-300">Other Listings</h5>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              {vendorListings.slice(0, 2).map((listing, index) => (
-                                <div 
-                                  key={index}
-                                  onClick={() => handleOtherListingClick(listing._id || listing.id)}
-                                  className="p-3 bg-white rounded-lg border border-gray-200 hover:border-[#06EAFC] hover:shadow-md transition-all duration-300 cursor-pointer"
-                                >
-                                  <p className="font-medium text-sm line-clamp-1 hover:text-[#06EAFC] transition-colors duration-300">
-                                    {listing.title || listing.name}
-                                  </p>
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    {normalizeCategory(listing.category).charAt(0).toUpperCase() + normalizeCategory(listing.category).slice(1)}
-                                  </p>
-                                </div>
+                
+                <div className="space-y-4">
+                  {[1, 2, 3].map((_, index) => (
+                    <div key={index} className="border-t pt-4">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h4 className="font-bold text-gray-900">John D.</h4>
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className="flex">
+                              {[...Array(5)].map((_, i) => (
+                                <FontAwesomeIcon 
+                                  key={i} 
+                                  icon={faStar} 
+                                  className="text-yellow-500 text-sm" 
+                                />
                               ))}
                             </div>
-                            {vendorListings.length > 2 && (
-                              <p className="text-sm text-gray-600 mt-3 hover:text-gray-800 transition-colors duration-300">
-                                + {vendorListings.length - 2} more listings from this vendor
-                              </p>
-                            )}
+                            <span className="text-sm text-gray-600">2 weeks ago</span>
                           </div>
                         </div>
                       </div>
+                      <p className="text-gray-600">
+                        "Excellent service and beautiful venue. The staff were very accommodating and the facilities were top-notch."
+                      </p>
                     </div>
-                  ) : (
-                    <div className="bg-gray-50 rounded-xl p-6 text-center">
-                      <FontAwesomeIcon icon={faUsers} className="text-4xl text-gray-400 mb-4" />
-                      <p className="text-gray-600">Vendor information not available</p>
-                      <p className="text-sm text-gray-500 mt-2">The vendor details could not be loaded from this listing</p>
-                    </div>
-                  )}
+                  ))}
                 </div>
-              )}
+              </div>
             </div>
           </div>
 
-          {/* Room Selection Section - Only for Hotels */}
-          {category === 'hotel' && (
-            <div className="px-0 md:px-0 mt-4">
-              <RoomSelection 
-                category={category}
-                onRoomSelect={handleRoomSelect}
-                onRoomBookNow={handleRoomBookNow}
-              />
+          {/* Location Section */}
+          <div className="px-4 md:px-8">
+            <div className="bg-white rounded-xl p-6">
+              <h2 className="text-xl font-bold text-[#00065A] mb-6">
+                Location
+              </h2>
+              
+              <div className="space-y-6">
+                <div className="bg-gray-200 rounded-xl h-64 flex items-center justify-center">
+                  <div className="text-center">
+                    <FontAwesomeIcon icon={faMapMarkerAlt} className="text-4xl text-gray-400 mb-4" />
+                    <p className="text-gray-600">Map would be displayed here</p>
+                    <p className="text-sm text-gray-500 mt-2">Google Maps integration available</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="font-bold text-gray-900 mb-4">Location Details</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Address</p>
+                      <p className="font-medium">{vendor.address || `${vendor.title || vendor.name}, ${vendor.location?.area || vendor.area || "Ibadan"}`}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Area</p>
+                      <p className="font-medium">{vendor.location?.area || vendor.area || "Ibadan"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Contact</p>
+                      <p className="font-medium">{vendor.contact || vendorInfo?.phone || "Not provided"}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
+          </div>
 
-         
-
-        
-          
           {/* Other Listings from This Vendor */}
           {vendorListings.length > 0 && (
             <div className="px-4 sm:px-2 md:px-4 lg:px-8 py-6 bg-white rounded-xl">
@@ -1624,21 +1535,7 @@ const VendorDetail = () => {
             </div>
           )}
           
-          {/* Call to Action Section */}
-          <div className="bg-gradient-to-r from-[#06EAFC] to-[#06F49F] mt-10 py-12">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-              <h2 className="text-3xl font-bold text-white mb-4 hover:scale-105 transition-transform duration-300">Ready to Book?</h2>
-              <p className="text-white/90 mb-8 max-w-2xl mx-auto hover:text-white transition-colors duration-300">
-                Reserve your spot at {vendor.title || vendor.name} today and enjoy an unforgettable experience
-              </p>
-              <button
-                onClick={handleBookingClick}
-                className="px-8 py-4 bg-white text-[#06EAFC] rounded-xl font-bold hover:bg-gray-100 hover:scale-105 hover:shadow-xl transition-all duration-300"
-              >
-                Book Now - {formatPrice(vendor.price || vendor.price_from)}
-              </button>
-            </div>
-          </div>
+         
         </div>
       </main>
       

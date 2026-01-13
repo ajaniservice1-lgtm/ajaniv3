@@ -1,4 +1,3 @@
-// src/components/RoomSelection.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -6,6 +5,7 @@ import { faCheck, faTimes, faWifi, faTv, faCoffee, faSnowflake, faBath, faCar, f
 
 const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData }) => {
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [selectedRoomsCount, setSelectedRoomsCount] = useState(1);
   const navigate = useNavigate();
   
   // Sample room data with images
@@ -44,7 +44,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData }) => {
           amenities: ['Pay at hotel', 'Free WiFi', 'Parking']
         }
       ],
-      roomsAvailable: 5,
+      maxRooms: 5,
       discount: '-3DX'
     },
     {
@@ -73,7 +73,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData }) => {
           amenities: ['Pay at hotel', 'Free WiFi', 'Parking']
         }
       ],
-      roomsAvailable: 3,
+      maxRooms: 3,
       discount: '-2DX'
     },
     {
@@ -113,7 +113,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData }) => {
           amenities: ['Pay at hotel', 'Free WiFi', 'Parking']
         }
       ],
-      roomsAvailable: 8
+      maxRooms: 8
     }
   ];
 
@@ -137,6 +137,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData }) => {
 
   const handleRoomSelect = (room) => {
     setSelectedRoom(room);
+    setSelectedRoomsCount(1); // Reset to 1 when selecting new room
     if (onRoomSelect) {
       onRoomSelect(room);
     }
@@ -157,11 +158,12 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData }) => {
         description: 'Premium hotel with excellent amenities and services'
       },
       selectedRoom: selectedRoom,
+      selectedRoomsCount: selectedRoomsCount,
       bookingDetails: {
         checkInDate: new Date().toISOString().split('T')[0],
         checkOutDate: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
         numberOfNights: 1,
-        numberOfRooms: 1,
+        numberOfRooms: selectedRoomsCount,
         numberOfGuests: selectedRoom.occupancy[0]?.guests || 2
       }
     };
@@ -177,6 +179,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData }) => {
       state: {
         vendorData: bookingData.vendorData,
         selectedRoom: bookingData.selectedRoom,
+        selectedRoomsCount: bookingData.selectedRoomsCount,
         bookingDetails: bookingData.bookingDetails
       }
     });
@@ -237,9 +240,6 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData }) => {
                         {room.discount}
                       </div>
                     )}
-                    <div className="absolute bottom-3 left-3 bg-black/70 text-white px-3 py-1 rounded-full text-xs">
-                      {room.roomsAvailable} rooms left
-                    </div>
                   </div>
                   
                   {/* Additional Images */}
@@ -350,11 +350,25 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData }) => {
                     {/* Right Section - Booking Action */}
                     <div className="lg:w-48">
                       <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
-                        <div className="text-center mb-4">
-                          <span className="text-3xl font-bold text-[#06EAFC]">
-                            {room.roomsAvailable}
-                          </span>
-                          <div className="text-gray-700 text-sm">rooms left</div>
+                        {/* Number of Rooms Dropdown */}
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Number of Rooms
+                          </label>
+                          <select
+                            value={selectedRoomsCount}
+                            onChange={(e) => setSelectedRoomsCount(parseInt(e.target.value))}
+                            className="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
+                          >
+                            {[...Array(room.maxRooms).keys()].map(num => (
+                              <option key={num + 1} value={num + 1}>
+                                {num + 1} room{num + 1 > 1 ? 's' : ''}
+                              </option>
+                            ))}
+                          </select>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Max: {room.maxRooms} rooms available
+                          </p>
                         </div>
                         
                         <button
@@ -398,7 +412,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData }) => {
                     Selected: {selectedRoom.name}
                   </h3>
                   <p className="text-white/90 text-sm">
-                    Best price guaranteed • Free cancellation
+                    {selectedRoomsCount} room{selectedRoomsCount > 1 ? 's' : ''} • Best price guaranteed • Free cancellation
                   </p>
                 </div>
               </div>
@@ -406,10 +420,10 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData }) => {
               <div className="flex items-center gap-4">
                 <div className="text-right">
                   <div className="text-2xl font-bold text-white">
-                    {formatPrice(selectedRoom.occupancy[0]?.price)}
+                    {formatPrice(selectedRoom.occupancy[0]?.price * selectedRoomsCount)}
                   </div>
                   <div className="text-white/90 text-sm">
-                    {selectedRoom.occupancy[0]?.description}
+                    Total for {selectedRoomsCount} room{selectedRoomsCount > 1 ? 's' : ''}
                   </div>
                 </div>
                 
