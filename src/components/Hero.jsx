@@ -1121,11 +1121,10 @@ const DiscoverIbadan = () => {
       setClickedSuggestion({ url, suggestion });
       // Populate the search input with the suggestion title
       setSearchQuery(suggestion.title);
-      // Trigger search button animation
-      setIsSearchButtonAnimating(true);
-      setTimeout(() => {
-        setIsSearchButtonAnimating(false);
-      }, 2000);
+      // Close the modal on mobile when location is selected
+      if (isMobile) {
+        setShowMobileModal(false);
+      }
     } else if (typeof suggestion === 'string') {
       // Direct URL navigation
       setClickedSuggestion({ url: suggestion });
@@ -1134,22 +1133,20 @@ const DiscoverIbadan = () => {
       
       // Add search parameters if available
       const params = new URLSearchParams(window.location.search);
-      if (searchParamsForResults.checkInDate) {
-        params.append("checkInDate", searchParamsForResults.checkInDate.toISOString());
-      }
-      if (searchParamsForResults.checkOutDate) {
-        params.append("checkOutDate", searchParamsForResults.checkOutDate.toISOString());
-      }
-      if (searchParamsForResults.guests) {
-        params.append("guests", JSON.stringify(searchParamsForResults.guests));
-      }
+      // ✅ FIX 2: Pass default dates if no date is selected
+      const checkInToUse = checkInDate || new Date();
+      const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
+      
+      params.append("checkInDate", checkInToUse.toISOString());
+      params.append("checkOutDate", checkOutToUse.toISOString());
+      params.append("guests", JSON.stringify(guests));
       
       const queryString = params.toString();
       const finalUrl = queryString ? `${suggestion}${suggestion.includes('?') ? '&' : '?'}${queryString}` : suggestion;
       
       navigate(finalUrl);
     }
-  }, [navigate, searchParamsForResults]);
+  }, [navigate, checkInDate, checkOutDate, guests, isMobile]);
 
   // ✅ FIXED: Handle search submit with all parameters
   const handleSearchSubmit = useCallback(() => {
@@ -1187,13 +1184,12 @@ const DiscoverIbadan = () => {
       params.append("q", searchQuery.trim());
     }
     
-    // Add check-in and check-out dates if available
-    if (checkInDate) {
-      params.append("checkInDate", checkInDate.toISOString());
-    }
-    if (checkOutDate) {
-      params.append("checkOutDate", checkOutDate.toISOString());
-    }
+    // ✅ FIX 2: Always pass dates (use default if none selected)
+    const checkInToUse = checkInDate || new Date();
+    const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
+    
+    params.append("checkInDate", checkInToUse.toISOString());
+    params.append("checkOutDate", checkOutToUse.toISOString());
     
     // Add guests information if available
     if (guests) {
@@ -1288,22 +1284,28 @@ const DiscoverIbadan = () => {
   // Compute total people for restaurant
   const totalPeople = guests.adults + guests.children;
 
-  // Animation effect for search button
+  // Animation effect for search button - FIX 1: Reduced animation
   useEffect(() => {
     if (isSearchButtonAnimating && searchButtonRef.current) {
       const button = searchButtonRef.current;
-      let scale = 1;
-      const interval = setInterval(() => {
-        scale = scale === 1 ? 1.2 : 1;
-        button.style.transform = `scale(${scale})`;
-      }, 500);
+      
+      // Create a subtle pulse animation
+      const keyframes = [
+        { transform: 'scale(1)', easing: 'ease-in-out' },
+        { transform: 'scale(1.05)', easing: 'ease-in-out' },
+        { transform: 'scale(1)', easing: 'ease-in-out' }
+      ];
+      
+      const options = {
+        duration: 400,
+        iterations: 2
+      };
+      
+      button.animate(keyframes, options);
       
       setTimeout(() => {
-        clearInterval(interval);
         button.style.transform = 'scale(1)';
-      }, 2000);
-      
-      return () => clearInterval(interval);
+      }, 800);
     }
   }, [isSearchButtonAnimating]);
 
@@ -1314,16 +1316,13 @@ const DiscoverIbadan = () => {
       const { url } = clickedSuggestion;
       const params = new URLSearchParams(window.location.search);
       
-      // Add search parameters if available
-      if (searchParamsForResults.checkInDate) {
-        params.append("checkInDate", searchParamsForResults.checkInDate.toISOString());
-      }
-      if (searchParamsForResults.checkOutDate) {
-        params.append("checkOutDate", searchParamsForResults.checkOutDate.toISOString());
-      }
-      if (searchParamsForResults.guests) {
-        params.append("guests", JSON.stringify(searchParamsForResults.guests));
-      }
+      // ✅ FIX 2: Pass default dates if no date is selected
+      const checkInToUse = checkInDate || new Date();
+      const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
+      
+      params.append("checkInDate", checkInToUse.toISOString());
+      params.append("checkOutDate", checkOutToUse.toISOString());
+      params.append("guests", JSON.stringify(guests));
       
       const queryString = params.toString();
       const finalUrl = queryString ? `${url}${url.includes('?') ? '&' : '?'}${queryString}` : url;
@@ -1531,15 +1530,12 @@ const DiscoverIbadan = () => {
                     </div>
                   )}
 
-                  {/* Search Button with Animation */}
+                  {/* Search Button with Animation - FIX 1: Subtle animation */}
                   <div className="w-full">
                     <button
                       ref={searchButtonRef}
                       onClick={handleSearchButtonClick}
-                      className="w-full bg-gradient-to-r from-[#00E38C] to-teal-500 hover:from-[#00c97b] hover:to-teal-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-transform duration-300"
-                      style={{
-                        transform: isSearchButtonAnimating ? 'scale(1.2)' : 'scale(1)',
-                      }}
+                      className="w-full bg-gradient-to-r from-[#00E38C] to-teal-500 hover:from-[#00c97b] hover:to-teal-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                     >
                       {/* ✅ UPDATED: Solid search icon */}
                       <FontAwesomeIcon icon={faSearch} className="text-sm" />
@@ -1550,7 +1546,6 @@ const DiscoverIbadan = () => {
                         </span>
                       )}
                     </button>
-                   
                   </div>
                 </div>
               </div>
@@ -1617,13 +1612,8 @@ const DiscoverIbadan = () => {
           from { opacity: 0; }
           to { opacity: 1; }
         }
-        @keyframes pulseScale {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.2); }
-        }
         .animate-slideInUp { animation: slideInUp 0.3s ease-out; }
         .animate-fadeIn { animation: fadeIn 0.2s ease-out; }
-        .animate-pulseScale { animation: pulseScale 0.5s ease-in-out infinite; }
         .line-clamp-2 {
           display: -webkit-box;
           -webkit-line-clamp: 2;

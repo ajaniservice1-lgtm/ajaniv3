@@ -279,15 +279,16 @@ const useBackendListings = (searchQuery = '', filters = {}) => {
           
           console.log(`📦 Received ${allListings.length} listings from backend`);
           
-          // ✅ CRITICAL FIX 6: Apply STRICT client-side filtering based on URL params
+          // ✅ FIX 4: Apply proper client-side filtering for editable data
           let finalListings = allListings;
           
           // Get URL params directly for accurate filtering
           const urlParams = new URLSearchParams(window.location.search);
           const urlCategory = urlParams.get('category');
           const urlLocation = urlParams.get('location.area');
+          const urlSearchQuery = urlParams.get('q');
           
-          console.log('🔗 URL Params for filtering:', { urlCategory, urlLocation });
+          console.log('🔗 URL Params for filtering:', { urlCategory, urlLocation, urlSearchQuery });
           
           // Filter by URL category (if exists)
           if (urlCategory) {
@@ -301,9 +302,6 @@ const useBackendListings = (searchQuery = '', filters = {}) => {
                      (activeCategory === 'services' && itemCategory === 'vendor') ||
                      (activeCategory === 'vendor' && itemCategory === 'services');
               
-              if (!matchesCategory) {
-                console.log(`❌ Item filtered out - Category mismatch: ${item.title} (${itemCategory}) vs ${activeCategory}`);
-              }
               return matchesCategory;
             });
             
@@ -323,13 +321,27 @@ const useBackendListings = (searchQuery = '', filters = {}) => {
                                       searchLocation.includes(itemLocation) ||
                                       normalizeLocation(itemLocation) === normalizeLocation(searchLocation);
               
-              if (!matchesLocation) {
-                console.log(`❌ Item filtered out - Location mismatch: ${item.title} (${item.location?.area}) vs ${searchLocation}`);
-              }
               return matchesLocation;
             });
             
             console.log(`✅ After location filtering: ${finalListings.length} listings`);
+          }
+          
+          // Filter by search query if not a location
+          if (urlSearchQuery && !looksLikeLocation(urlSearchQuery)) {
+            console.log(`🔍 Filtering by search query: ${urlSearchQuery}`);
+            
+            finalListings = finalListings.filter(item => {
+              const title = (item.title || '').toLowerCase();
+              const description = (item.description || '').toLowerCase();
+              const category = (item.category || '').toLowerCase();
+              
+              return title.includes(urlSearchQuery.toLowerCase()) ||
+                     description.includes(urlSearchQuery.toLowerCase()) ||
+                     category.includes(urlSearchQuery.toLowerCase());
+            });
+            
+            console.log(`✅ After search query filtering: ${finalListings.length} listings`);
           }
           
           // Calculate filtered counts by category
@@ -1514,7 +1526,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   );
 };
 
-// ================== CATEGORY BUTTONS COMPONENT ==================
+// ================== CATEGORY BUTTONS COMPONENT - FIX 5: Improved styling ==================
 
 const CategoryButtons = ({ selectedCategories, onCategoryClick }) => {
   const buttonConfigs = [
@@ -1545,12 +1557,20 @@ const CategoryButtons = ({ selectedCategories, onCategoryClick }) => {
   ];
 
   const [isMobile, setIsMobile] = useState(false);
+  const [isMd, setIsMd] = useState(false);
+  const [isLg, setIsLg] = useState(false);
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 768);
+      setIsMd(width >= 768 && width < 1024);
+      setIsLg(width >= 1024);
+    };
+    
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
   return (
@@ -1602,23 +1622,26 @@ const CategoryButtons = ({ selectedCategories, onCategoryClick }) => {
                   key={button.key}
                   onClick={() => onCategoryClick(button.key)}
                   className={`
-                    flex items-center justify-center gap-2 px-4 py-3.5 rounded-lg
-                    transition-all duration-200 font-medium text-base
+                    flex items-center justify-center gap-2 px-3 py-2.5 rounded-[15px]
+                    transition-all duration-200 font-medium
                     ${isSelected 
                       ? 'bg-[#06f49f] text-white shadow-sm'
                       : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
                     }
+                    ${isMd ? 'text-sm px-3 py-2.5' : 'text-base px-4 py-3'}
                   `}
                 >
                   {button.icon === FaUserCircle ? (
-                    <button.icon className={`${isSelected ? 'text-white' : 'text-gray-500'} text-sm`} />
+                    <button.icon className={`${isSelected ? 'text-white' : 'text-gray-500'} ${isMd ? 'text-sm' : 'text-base'}`} />
                   ) : (
                     <FontAwesomeIcon 
                       icon={button.icon} 
-                      className={`${isSelected ? 'text-white' : 'text-gray-500'} text-sm`}
+                      className={`${isSelected ? 'text-white' : 'text-gray-500'} ${isMd ? 'text-sm' : 'text-base'}`}
                     />
                   )}
-                  <span>{button.displayName}</span>
+                  <span className={isMd ? 'text-sm' : 'text-base'}>
+                    {button.displayName}
+                  </span>
                 </button>
               );
             })}
@@ -1629,7 +1652,7 @@ const CategoryButtons = ({ selectedCategories, onCategoryClick }) => {
   );
 };
 
-// ================== FIXED FILTER SIDEBAR - REMOVED CLEAR FILTER BUTTON ==================
+// ================== FIXED FILTER SIDEBAR ==================
 
 const FilterSidebar = ({
   onFilterChange,
@@ -1687,13 +1710,12 @@ const FilterSidebar = ({
     }
   }, [currentFilters, isInitialized]);
 
-  // ✅ FIX: Allow multiple locations to be selected
   const handleLocationChange = (location) => {
     const updatedFilters = {
       ...localFilters,
       locations: localFilters.locations.includes(location)
-        ? localFilters.locations.filter((l) => l !== location) // Remove if already selected
-        : [...localFilters.locations, location], // Add if not selected
+        ? localFilters.locations.filter((l) => l !== location)
+        : [...localFilters.locations, location],
     };
     setLocalFilters(updatedFilters);
     onFilterChange(updatedFilters);
@@ -1736,8 +1758,6 @@ const FilterSidebar = ({
     setLocalFilters(updatedFilters);
     onFilterChange(updatedFilters);
   };
-
-  // REMOVED: clearAllFilters function since we're removing the clear filter button
 
   const sidebarContent = (
     <div
@@ -2039,8 +2059,6 @@ const FilterSidebar = ({
           </div>
         )}
       </div>
-
-      {/* REMOVED: Clear All Filters button section */}
     </div>
   );
 
@@ -2076,7 +2094,6 @@ const FilterSidebar = ({
             }}
           >
             {sidebarContent}
-            {/* ADDED: Apply Filter Button for Mobile */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
               <button
                 onClick={onClose}
@@ -2134,7 +2151,6 @@ const FilterSidebar = ({
           </div>
           <div className="container mx-auto px-4 py-6 max-w-4xl">
             {sidebarContent}
-            {/* ADDED: Apply Filter Button for Desktop Modal */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 mt-6">
               <button
                 onClick={onClose}
@@ -2618,10 +2634,17 @@ const SearchResults = () => {
         params.set("location.area", activeFilters.locations[0]);
       }
       
-      // Preserve date and guests parameters
-      if (checkInDateParam) params.set("checkInDate", checkInDateParam);
-      if (checkOutDateParam) params.set("checkOutDate", checkOutDateParam);
-      if (guestsParam) params.set("guests", guestsParam);
+      // ✅ FIX 2: Always pass dates (use defaults if none selected)
+      const checkInToUse = checkInDate || new Date();
+      const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
+      
+      params.set("checkInDate", checkInToUse.toISOString());
+      params.set("checkOutDate", checkOutToUse.toISOString());
+      
+      // Pass guests if available
+      if (guests) {
+        params.set("guests", JSON.stringify(guests));
+      }
       
       setSearchParams(params);
       setShowSuggestions(false);
@@ -2686,10 +2709,17 @@ const SearchResults = () => {
       params.delete("location.area");
     }
     
-    // Preserve date and guests parameters
-    if (checkInDateParam) params.set("checkInDate", checkInDateParam);
-    if (checkOutDateParam) params.set("checkOutDate", checkOutDateParam);
-    if (guestsParam) params.set("guests", guestsParam);
+    // ✅ FIX 2: Always pass dates (use defaults if none selected)
+    const checkInToUse = checkInDate || new Date();
+    const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
+    
+    params.set("checkInDate", checkInToUse.toISOString());
+    params.set("checkOutDate", checkOutToUse.toISOString());
+    
+    // Pass guests if available
+    if (guests) {
+      params.set("guests", JSON.stringify(guests));
+    }
     
     // Keep other parameters
     for (const [key, value] of searchParams.entries()) {
@@ -2731,10 +2761,17 @@ const SearchResults = () => {
         params.set("q", searchQuery);
       }
     }
-    // Preserve date and guests parameters
-    if (checkInDateParam) params.set("checkInDate", checkInDateParam);
-    if (checkOutDateParam) params.set("checkOutDate", checkOutDateParam);
-    if (guestsParam) params.set("guests", guestsParam);
+    
+    // ✅ FIX 2: Still pass dates even when clearing filters
+    const checkInToUse = checkInDate || new Date();
+    const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
+    
+    params.set("checkInDate", checkInToUse.toISOString());
+    params.set("checkOutDate", checkOutToUse.toISOString());
+    
+    if (guests) {
+      params.set("guests", JSON.stringify(guests));
+    }
     
     setSearchParams(params);
   };
@@ -2772,10 +2809,16 @@ const SearchResults = () => {
     // Always set category in URL
     params.set("category", actualCategory);
     
-    // Preserve date and guests parameters
-    if (checkInDateParam) params.set("checkInDate", checkInDateParam);
-    if (checkOutDateParam) params.set("checkOutDate", checkOutDateParam);
-    if (guestsParam) params.set("guests", guestsParam);
+    // ✅ FIX 2: Always pass dates
+    const checkInToUse = checkInDate || new Date();
+    const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
+    
+    params.set("checkInDate", checkInToUse.toISOString());
+    params.set("checkOutDate", checkOutToUse.toISOString());
+    
+    if (guests) {
+      params.set("guests", JSON.stringify(guests));
+    }
     
     setSearchParams(params);
     
@@ -2906,7 +2949,6 @@ const SearchResults = () => {
     ? activeFilters.categories[0] 
     : "All Categories";
 
-  // ✅ FIXED: Get accurate count for display
   const getAccurateCountText = () => {
     if (Object.keys(filteredCounts).length === 0) {
       return `${listings.length} ${listings.length === 1 ? 'place' : 'places'} found`;
