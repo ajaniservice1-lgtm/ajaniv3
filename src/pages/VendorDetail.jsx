@@ -259,6 +259,77 @@ const VendorListingCard = ({ listing, onClick }) => {
   );
 };
 
+// SmallImage Component for Gallery
+const SmallImage = ({ src, onClick }) => {
+  return (
+    <div 
+      onClick={onClick}
+      className="overflow-hidden cursor-pointer rounded-lg"
+    >
+      <img
+        src={src}
+        className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+      />
+    </div>
+  );
+};
+
+// StarRating Component
+const StarRating = ({ rating, onRatingChange = null, interactive = false, size = "sm" }) => {
+  const [hoverRating, setHoverRating] = useState(0);
+  
+  const sizes = {
+    sm: "w-4 h-4",
+    md: "w-5 h-5",
+    lg: "w-6 h-6",
+    xl: "w-8 h-8"
+  };
+
+  const handleClick = (starIndex) => {
+    if (interactive && onRatingChange) {
+      onRatingChange(starIndex + 1);
+    }
+  };
+
+  const handleMouseEnter = (starIndex) => {
+    if (interactive) {
+      setHoverRating(starIndex + 1);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (interactive) {
+      setHoverRating(0);
+    }
+  };
+
+  return (
+    <div className="flex">
+      {[...Array(5)].map((_, i) => {
+        const isFilled = interactive 
+          ? (hoverRating ? i < hoverRating : i < rating)
+          : i < rating;
+        
+        return (
+          <svg
+            key={i}
+            className={`${sizes[size]} ${isFilled ? "text-yellow-400" : "text-gray-300"} ${
+              interactive ? "cursor-pointer hover:scale-110 transition-transform" : ""
+            }`}
+            fill="currentColor"
+            viewBox="0 0 20 20"
+            onClick={() => handleClick(i)}
+            onMouseEnter={() => handleMouseEnter(i)}
+            onMouseLeave={handleMouseLeave}
+          >
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.173c.969 0 1.371 1.24.588 1.81l-3.377 2.455a1 1 0 00-.364 1.118l1.286 3.966c.3.922-.755 1.688-1.54 1.118l-3.377-2.454a1 1 0 00-1.176 0l-3.377 2.454c-.784.57-1.838-.196-1.539-1.118l1.286-3.966a1 1 0 00-.364-1.118L2.02 9.394c-.783-.57-.38-1.81.588-1.81h4.173a1 1 0 00.95-.69l1.286-3.967z" />
+          </svg>
+        );
+      })}
+    </div>
+  );
+};
+
 const VendorDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -268,34 +339,74 @@ const VendorDetail = () => {
   const [loading, setLoading] = useState(true);
   const [loadingVendorListings, setLoadingVendorListings] = useState(false);
   const [error, setError] = useState(null);
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
-  const [isMobile, setIsMobile] = useState(false);
-  const [touchStart, setTouchStart] = useState(null);
-  const [touchEnd, setTouchEnd] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const [showGallery, setShowGallery] = useState(false);
-  const [galleryActiveIndex, setGalleryActiveIndex] = useState(0);
-  const [mobileImages, setMobileImages] = useState([]);
-  const imageRef = useRef(null);
+  
+  // Gallery state
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  
+  // Review States
+  const [reviews, setReviews] = useState([]);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [newReview, setNewReview] = useState({
+    rating: 5,
+    comment: "",
+    title: ""
+  });
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   
   const isAuthenticated = useAuthStatus();
+
+  // Reviews data
+  const initialReviews = [
+    {
+      id: 1,
+      name: "Angela Bassey",
+      image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&auto=format&fit=crop",
+      rating: 4,
+      text: `Beautiful place. The rooms were clean, the staff were very polite, and check-in was smooth. I loved the breakfast and the calm environment. Definitely coming back.`,
+      date: "2 weeks ago",
+    },
+    {
+      id: 2,
+      name: "Tola & Fola",
+      image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop",
+      rating: 4,
+      text: `They hosted a small event here and everything went perfectly. The hall was clean, the AC worked well, and the staff were helpful throughout. Highly recommended.`,
+      date: "1 month ago",
+    },
+    {
+      id: 3,
+      name: "Ibrahim O",
+      image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&auto=format&fit=crop",
+      rating: 4,
+      text: `The hotel is well maintained and the service quality is very good. WiFi was fast, and the location is perfect for moving around Ibadan. The only issue was slight noise from the hallway at night.`,
+      date: "3 weeks ago",
+    },
+    {
+      id: 4,
+      name: "Popoola Basit",
+      image: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop",
+      rating: 4,
+      text: `I really enjoyed their service, they are very professional, arrived on time, their decoration was beautiful and made my event colourful as well. I absolutely love them.`,
+      date: "2 months ago",
+    },
+  ];
+
+  // Review statistics
+  const reviewStats = [
+    { stars: 5, percentage: 61 },
+    { stars: 4, percentage: 60 },
+    { stars: 3, percentage: 44 },
+    { stars: 2, percentage: 91 },
+    { stars: 1, percentage: 94 }
+  ];
 
   // Scroll to top on component mount
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [id]);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
 
   useEffect(() => {
     const fetchVendorData = async () => {
@@ -312,9 +423,8 @@ const VendorDetail = () => {
           const savedListings = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
           setIsFavorite(savedListings.some(item => item.id === id || item.id === foundVendor._id));
           
-          // Prepare mobile images layout
-          const allImages = getVendorImages(foundVendor);
-          setMobileImages(allImages);
+          // Initialize reviews
+          setReviews(initialReviews);
         } else {
           setError(result.message || "Vendor not found or invalid response");
         }
@@ -394,37 +504,6 @@ const VendorDetail = () => {
     return ["Not specified"];
   };
 
-  const nextImage = () => {
-    const images = getVendorImages(vendor);
-    setActiveImageIndex((prev) => (prev + 1) % images.length);
-  };
-
-  const prevImage = () => {
-    const images = getVendorImages(vendor);
-    setActiveImageIndex((prev) => (prev - 1 + images.length) % images.length);
-  };
-
-  const handleTouchStart = (e) => {
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchMove = (e) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
-
-    if (isLeftSwipe) nextImage();
-    if (isRightSwipe) prevImage();
-
-    setTouchStart(null);
-    setTouchEnd(null);
-  };
-
   const handleRoomSelect = (room) => {
     console.log("Room selected:", room);
     setSelectedRoom(room);
@@ -433,7 +512,7 @@ const VendorDetail = () => {
   const handleShareClick = () => {
     const currentUrl = window.location.href;
     
-    if (navigator.share && isMobile) {
+    if (navigator.share && window.innerWidth < 768) {
       navigator.share({
         title: vendor?.title || vendor?.name || 'Check out this vendor',
         text: `Check out ${vendor?.title || vendor?.name || 'this amazing vendor'} on Ajani!`,
@@ -566,7 +645,7 @@ const VendorDetail = () => {
         ? "bg-green-50 border-green-200 text-green-800" 
         : "bg-blue-50 border-blue-200 text-blue-800"
     }`;
-    toast.style.top = isMobile ? "15px" : "15px";
+    toast.style.top = "15px";
     toast.style.right = "15px";
     toast.style.maxWidth = "320px";
     toast.style.animation = "slideInRight 0.3s ease-out forwards";
@@ -768,34 +847,104 @@ const VendorDetail = () => {
     return defaultServices;
   };
 
-  // Mobile gallery functions
-  const handleMobileImageClick = (index) => {
-    setGalleryActiveIndex(index);
-    setShowGallery(true);
-    document.body.style.overflow = 'hidden';
+  // Review Functions
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!isAuthenticated) {
+      showToast("Please login to submit a review", "info");
+      navigate("/login");
+      return;
+    }
+    
+    if (!newReview.comment.trim()) {
+      showToast("Please enter your review comment", "info");
+      return;
+    }
+    
+    setIsSubmittingReview(true);
+    
+    try {
+      // Get user info from localStorage
+      const userProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      
+      // Create new review object
+      const userReview = {
+        id: Date.now(),
+        name: userProfile.name || "Anonymous User",
+        image: userProfile.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop",
+        rating: newReview.rating,
+        text: newReview.comment,
+        title: newReview.title || "",
+        date: "Just now",
+        userId: userProfile._id || userProfile.id
+      };
+      
+      // Add to reviews
+      setReviews(prev => [userReview, ...prev]);
+      
+      // Reset form
+      setNewReview({
+        rating: 5,
+        comment: "",
+        title: ""
+      });
+      
+      // Hide form
+      setShowReviewForm(false);
+      
+      showToast("Review submitted successfully!", "success");
+      
+      // In a real app, you would send this to your backend
+      // await reviewService.submitReview(vendorId, newReview);
+      
+    } catch (error) {
+      showToast("Failed to submit review. Please try again.", "info");
+      console.error("Review submission error:", error);
+    } finally {
+      setIsSubmittingReview(false);
+    }
   };
 
-  const handleCloseGallery = () => {
-    setShowGallery(false);
-    document.body.style.overflow = 'auto';
+  const handleWriteReviewClick = () => {
+    if (!isAuthenticated) {
+      showToast("Please login to write a review", "info");
+      navigate("/login");
+      return;
+    }
+    
+    setShowReviewForm(true);
   };
 
-  const handleGalleryPrev = () => {
-    setGalleryActiveIndex((prev) => (prev - 1 + mobileImages.length) % mobileImages.length);
+  // Get Ibadan location coordinates
+  const getIbadanLocation = () => {
+    // Coordinates for Ibadan, Nigeria
+    return {
+      lat: 7.3775,
+      lng: 3.9470
+    };
   };
 
-  const handleGalleryNext = () => {
-    setGalleryActiveIndex((prev) => (prev + 1) % mobileImages.length);
+  // Generate Google Maps embed URL for Ibadan
+  const getGoogleMapsUrl = () => {
+    const location = getIbadanLocation();
+    const zoom = 13;
+    return `https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d31715.418336948303!2d${location.lng}!3d${location.lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sng!4v${Date.now()}!5m2!1sen!2sng`;
   };
 
-  // Shuffle mobile thumbnails when clicked
-  const handleMobileThumbnailClick = (index) => {
-    if (index === 0) return; // Main image doesn't shuffle
-    const newImages = [...mobileImages];
-    // Swap the clicked thumbnail with the main image
-    [newImages[0], newImages[index]] = [newImages[index], newImages[0]];
-    setMobileImages(newImages);
-    setActiveImageIndex(0);
+  // Get images for gallery
+  const getGalleryImages = () => {
+    const images = getVendorImages(vendor);
+    // Return exactly 5 images for the gallery layout
+    if (images.length >= 5) {
+      return images.slice(0, 5);
+    }
+    // If we have fewer than 5 images, duplicate some to fill
+    const filledImages = [...images];
+    while (filledImages.length < 5) {
+      filledImages.push(images[0] || FALLBACK_IMAGES.default);
+    }
+    return filledImages.slice(0, 5);
   };
 
   if (loading) {
@@ -830,6 +979,7 @@ const VendorDetail = () => {
   }
 
   const images = getVendorImages(vendor);
+  const galleryImages = getGalleryImages();
   const category = normalizeCategory(vendor.category);
   const amenities = getAmenities();
   const features = getFeatures();
@@ -837,15 +987,15 @@ const VendorDetail = () => {
   const reviewCount = getReviewCount();
   const categoryDisplay = getCategoryDisplay(vendor);
   const vendorId = getVendorIdFromListing(vendor);
+  const averageRating = vendor?.rating ? parseFloat(vendor.rating) : 4.5;
 
   return (
     <div className="min-h-screen font-manrope">
       <Header />
       
       <main className="md:pt-5 pt-1">
-        {/* MOBILE: Edge-to-edge content */}
         <div className="md:max-w-[1245px] md:mx-auto">
-          {/* Breadcrumb with Back Button for Mobile */}
+          {/* Breadcrumb with Back Button */}
           <div className="px-4 md:px-4">
             <nav className="flex items-center space-x-2 text-xs text-gray-600 mb-2 md:mb-2 font-manrope">
               <button
@@ -877,11 +1027,10 @@ const VendorDetail = () => {
           </div>
 
           <div className="space-y-3 md:space-y-6">
-            {/* Vendor Header Section - Mobile edge-to-edge, Desktop centered */}
+            {/* Vendor Header Section */}
             <div className="px-4 md:px-4 py-3 md:py-3 bg-white">
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6">
                 <div className="flex-1">
-                  {/* MOBILE: h1 and action buttons in same line */}
                   <div className="flex items-center justify-between md:justify-start gap-3 md:gap-4 mb-2">
                     <div className="flex items-center gap-2 md:gap-3">
                       <h1 className="text-lg md:text-xl lg:text-3xl font-bold text-gray-900 font-manrope line-clamp-2 flex-1">
@@ -1016,202 +1165,119 @@ const VendorDetail = () => {
               </div>
             </div>
 
-            {/* Images Section for Mobile - Edge-to-edge */}
-            <div className="block md:hidden">
-              <div className="relative w-full">
-                {/* Main Image Card */}
-                <div 
-                  className="relative w-full h-[300px]"
-                  onClick={() => handleMobileImageClick(0)}
+            {/* ================= IMAGE GALLERY SECTION ================= */}
+            {/* Desktop Gallery Layout (lg and above) */}
+            <section className="hidden lg:block px-4">
+              <div className="relative grid grid-cols-4 grid-rows-2 gap-3 h-[360px] overflow-hidden rounded-xl">
+                {/* LEFT TOP */}
+                <SmallImage 
+                  src={galleryImages[0]} 
+                  onClick={() => setGalleryOpen(true)}
+                />
+
+                {/* LEFT BOTTOM */}
+                <SmallImage 
+                  src={galleryImages[1]} 
+                  onClick={() => setGalleryOpen(true)}
+                />
+
+                {/* CENTER BIG */}
+                <div
+                  onClick={() => setGalleryOpen(true)}
+                  className="col-span-2 row-span-2 overflow-hidden cursor-pointer rounded-lg"
                 >
                   <img
-                    src={mobileImages[0]}
-                    alt={`${vendor.title || vendor.name} - Main image`}
-                    className="w-full h-full object-cover"
+                    src={galleryImages[2]}
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                   />
-                  
-                  <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-manrope">
-                    {activeImageIndex + 1}/{images.length}
-                  </div>
                 </div>
 
-                {/* 4 Small Square Image Cards - AGODA style */}
-                <div className="grid grid-cols-4 gap-2 px-2 mt-2">
-                  {mobileImages.slice(1, 5).map((img, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleMobileThumbnailClick(index + 1)}
-                      className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 hover:border-blue-400 transition-all duration-200"
-                    >
-                      <img
-                        src={img}
-                        alt={`Thumbnail ${index + 2}`}
-                        className="w-full h-full object-cover"
-                      />
-                      {index === 3 && mobileImages.length > 5 && (
-                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                          <span className="text-white font-bold text-sm">
-                            +{mobileImages.length - 5}
-                          </span>
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
+                {/* RIGHT TOP */}
+                <SmallImage 
+                  src={galleryImages[3]} 
+                  onClick={() => setGalleryOpen(true)}
+                />
+
+                {/* RIGHT BOTTOM */}
+                <SmallImage 
+                  src={galleryImages[4]} 
+                  onClick={() => setGalleryOpen(true)}
+                />
+
+                {/* View all photos button */}
+                <button
+                  onClick={() => setGalleryOpen(true)}
+                  className="absolute bottom-4 right-4 bg-white text-sm font-medium px-4 py-2 rounded-lg shadow hover:bg-gray-100 transition-colors"
+                >
+                  View all photos
+                </button>
               </div>
-            </div>
+            </section>
 
-            {/* Desktop Images Section - Centered with max-w-[1245px] */}
-            <div className="hidden md:block px-4 lg:px-4">
-              <div className="flex gap-4">
-                <div className="flex flex-col gap-4">
-                  {images.slice(1, 3).map((img, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setActiveImageIndex(i + 1)}
-                      className="rounded-2xl overflow-hidden cursor-pointer"
-                    >
-                      <img
-                        src={img}
-                        className="w-full h-full object-cover"
-                        style={{
-                          width: "305px",
-                          height: "162px",
-                          borderRadius: "16px",
-                          objectFit: "cover",
-                        }}
-                      />
-                    </button>
-                  ))}
-                </div>
-
-                <div className="relative group overflow-visible">
+            {/* Mobile Gallery Layout */}
+            <section className="lg:hidden px-4">
+              <div className="space-y-2">
+                {/* Main image */}
+                <div onClick={() => setGalleryOpen(true)} className="cursor-pointer">
                   <img
-                    src={images[activeImageIndex]}
-                    style={{
-                      width: "630px",
-                      height: "324px",
-                      borderRadius: "16px",
-                      objectFit: "cover",
-                    }}
+                    src={galleryImages[2]}
+                    className="w-full h-64 object-cover rounded-lg"
                   />
-
-                  <button
-                    onClick={prevImage}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white hover:scale-110 hover:shadow-xl transition-all duration-300 cursor-pointer"
-                  >
-                    <IoIosArrowBack className="text-gray-800 text-xl hover:text-[#06EAFC] transition-colors duration-300" />
-                  </button>
-
-                  <button
-                    onClick={nextImage}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white hover:scale-110 hover:shadow-xl transition-all duration-300 cursor-pointer"
-                  >
-                    <IoIosArrowForward className="text-gray-800 text-xl hover:text-[#06EAFC] transition-colors duration-300" />
-                  </button>
-
-                  <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-manrope hover:bg-black/80 transition-colors duration-300">
-                    {activeImageIndex + 1}/{images.length}
-                  </div>
                 </div>
 
-                <div className="flex flex-col gap-4">
-                  {images.slice(3, 5).map((img, i) => (
-                    <button
+                {/* Thumbnails */}
+                <div className="flex gap-2 px-2 overflow-x-auto pb-2">
+                  {galleryImages.map((img, i) => (
+                    <div
                       key={i}
-                      onClick={() => setActiveImageIndex(i + 3)}
-                      className="rounded-2xl overflow-hidden cursor-pointer"
+                      onClick={() => setGalleryOpen(true)}
+                      className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg cursor-pointer"
                     >
                       <img
                         src={img}
                         className="w-full h-full object-cover"
-                        style={{
-                          width: "305px",
-                          height: "162px",
-                          borderRadius: "16px",
-                          objectFit: "cover",
-                        }}
                       />
-                    </button>
+                    </div>
                   ))}
                 </div>
               </div>
-            </div>
+            </section>
 
-            {/* Mobile Gallery Modal */}
-            {showGallery && (
+            {/* ================= GALLERY MODAL ================= */}
+            {galleryOpen && (
               <div className="fixed inset-0 z-50 bg-black">
-                <div className="relative h-full w-full">
-                  {/* Header with counter and close button */}
-                  <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
-                    <div className="text-white text-sm">
-                      {galleryActiveIndex + 1} / {mobileImages.length}
-                    </div>
-                    <button
-                      onClick={handleCloseGallery}
-                      className="w-10 h-10 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
-                    >
-                      <IoClose className="text-white text-2xl" />
-                    </button>
-                  </div>
+                <button
+                  onClick={() => setGalleryOpen(false)}
+                  className="fixed top-4 right-4 z-50 bg-white rounded-full px-4 py-2 text-sm font-medium hover:bg-gray-100 transition-colors"
+                >
+                  ✕ Close
+                </button>
 
-                  {/* Main Image with vertical scroll */}
-                  <div 
-                    className="h-full overflow-y-auto snap-y snap-mandatory"
-                    style={{ scrollBehavior: 'smooth' }}
-                  >
-                    {mobileImages.map((img, index) => (
-                      <div 
-                        key={index}
-                        className="h-full w-full flex items-center justify-center snap-center p-4"
-                        onClick={handleCloseGallery}
-                      >
-                        <img
-                          src={img}
-                          alt={`Gallery ${index + 1}`}
-                          className="max-w-full max-h-full object-contain"
-                        />
-                      </div>
-                    ))}
-                  </div>
+                {/* MOBILE SCROLL (Agoda style) */}
+                <div className="lg:hidden h-full overflow-y-auto">
+                  {galleryImages.map((img, i) => (
+                    <img
+                      key={i}
+                      src={img}
+                      className="w-full object-cover mb-[2px]"
+                    />
+                  ))}
+                </div>
 
-                  {/* Thumbnails at bottom */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-2 overflow-x-auto">
-                    <div className="flex space-x-2">
-                      {mobileImages.map((img, index) => (
-                        <button
-                          key={index}
-                          onClick={() => {
-                            const container = document.querySelector('.overflow-y-auto');
-                            const target = container?.children[index];
-                            target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            setGalleryActiveIndex(index);
-                          }}
-                          className={`flex-shrink-0 w-16 h-16 rounded overflow-hidden border-2 ${
-                            index === galleryActiveIndex
-                              ? "border-blue-500"
-                              : "border-transparent"
-                          }`}
-                        >
-                          <img
-                            src={img}
-                            alt={`Thumb ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Navigation hint text */}
-                  <div className="absolute bottom-20 left-0 right-0 text-center">
-                    <p className="text-white/70 text-sm">Scroll up/down to view all images</p>
-                  </div>
+                {/* DESKTOP GRID GALLERY */}
+                <div className="hidden lg:grid grid-cols-3 gap-2 p-6 overflow-y-auto h-full">
+                  {galleryImages.map((img, i) => (
+                    <img
+                      key={i}
+                      src={img}
+                      className="w-full h-64 object-cover rounded hover:scale-105 transition-transform duration-300"
+                    />
+                  ))}
                 </div>
               </div>
             )}
 
- {/* Price Range - Edge-to-edge on mobile, centered on desktop */}
+            {/* Price Range */}
             <div className="px-2">
               <div className=" text-start bg-white py-3 mx-auto">
                 <p className="text-[#00065A]  font-manrope text-base md:text-xl font-bold mb-1">
@@ -1238,7 +1304,7 @@ const VendorDetail = () => {
               </div>
             </div>
 
-            {/* Action Buttons - Edge-to-edge on mobile, centered on desktop */}
+            {/* Action Buttons */}
             <div className="px-2">
               <div className="w-full h-14 md:h-16 bg-gray-200 rounded-[13px] md:rounded-3xl flex items-center justify-between px-4 md:px-12 mx-auto md:max-w-[600px] hover:shadow-lg transition-all duration-300 hover:bg-gray-300/50">
                 <button
@@ -1312,9 +1378,7 @@ const VendorDetail = () => {
               </div>
             </div>
 
-           
-
-             {/* About Section - Edge-to-edge on mobile, centered on desktop */}
+            {/* About Section */}
             <section className="w-full bg-[#F7F7FA] rounded-none md:rounded-3xl">
               <div className="px-4 sm:px-4 md:px-6 lg:px-8 py-6 md:py-8">
                 <div className="mb-8 md:mb-12">
@@ -1392,95 +1456,263 @@ const VendorDetail = () => {
               </div>
             )}
 
-           
-
-            {/* Reviews Section - Edge-to-edge on mobile, centered on desktop */}
-            <div className="px-4 md:px-4">
-              <div className="bg-white rounded-xl p-6">
-                <h2 className="text-xl font-bold text-[#00065A] mb-6">
+            {/* Reviews Section */}
+            <section className="w-full bg-white px-4 sm:px-4 md:px-4 py-6 md:py-8">
+              <div className="mb-8">
+                <h2 className="text-xl md:text-2xl font-bold text-[#06F49F] mb-2 font-manrope">
                   Reviews
-                  <span className="text-sm font-normal text-gray-500 ml-2">
+                  <span className="text-sm md:text-base font-normal text-gray-500 ml-2">
                     ({reviewCount} reviews)
                   </span>
                 </h2>
                 
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="text-5xl font-bold text-gray-900">{vendor.rating || "4.5"}</div>
-                    <div>
-                      <div className="flex items-center gap-1 mb-2">
-                        {[...Array(5)].map((_, i) => (
-                          <FontAwesomeIcon 
-                            key={i} 
-                            icon={faStar} 
-                            className={i < Math.floor(vendor.rating || 4.5) ? "text-yellow-500" : "text-gray-300"} 
-                          />
-                        ))}
+                {/* Rating Summary - Mobile Optimized */}
+                <div className="flex flex-col items-center md:flex-row md:items-start gap-6 md:gap-8 mb-8 p-4 bg-gray-50 rounded-xl">
+                  {/* Average Rating - Center on mobile */}
+                  <div className="flex flex-col items-center md:items-start gap-3">
+                    <div className="text-4xl md:text-5xl font-bold text-gray-900 text-center md:text-left">
+                      {averageRating.toFixed(1)}
+                    </div>
+                    <div className="flex flex-col items-center md:items-start">
+                      <div className="flex items-center gap-1 mb-1">
+                        <StarRating rating={Math.round(averageRating)} size="md" />
                       </div>
-                      <p className="text-gray-600">Based on {reviewCount} reviews</p>
+                      <p className="text-gray-600 text-sm text-center md:text-left">
+                        Based on {reviewCount} reviews
+                      </p>
                     </div>
                   </div>
                   
-                  <div className="space-y-4">
-                    {[1, 2, 3].map((_, index) => (
-                      <div key={index} className="border-t pt-4">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <h4 className="font-bold text-gray-900">John D.</h4>
-                            <div className="flex items-center gap-2 mt-1">
-                              <div className="flex">
-                                {[...Array(5)].map((_, i) => (
-                                  <FontAwesomeIcon 
-                                    key={i} 
-                                    icon={faStar} 
-                                    className="text-yellow-500 text-sm" 
-                                  />
-                                ))}
-                              </div>
-                              <span className="text-sm text-gray-600">2 weeks ago</span>
-                            </div>
-                          </div>
+                  {/* Rating Breakdown - Stack vertically on mobile */}
+                  <div className="flex-1 w-full space-y-3">
+                    {reviewStats.map((stat, index) => (
+                      <div key={index} className="flex items-center gap-3">
+                        <span className="text-sm text-gray-600 w-12">{stat.stars} star</span>
+                        <div className="flex-1 h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-yellow-500 rounded-full transition-all duration-500"
+                            style={{ width: `${stat.percentage}%` }}
+                          ></div>
                         </div>
-                        <p className="text-gray-600">
-                          "Excellent service and beautiful venue. The staff were very accommodating and the facilities were top-notch."
-                        </p>
+                        <span className="text-sm text-gray-600 w-12 text-right">{stat.percentage}%</span>
                       </div>
                     ))}
                   </div>
                 </div>
-              </div>
-            </div>
+                
+                {/* Review Form - Only shows when authenticated */}
+                {showReviewForm && (
+                  <div className="mb-8 p-4 md:p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
+                    <h3 className="text-lg font-bold text-[#00065A] mb-4 font-manrope">
+                      Write a Review
+                    </h3>
+                    <form onSubmit={handleReviewSubmit}>
+                      <div className="mb-4">
+                        <label className="block text-gray-700 text-sm font-medium mb-2">
+                          Your Rating
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <StarRating 
+                            rating={newReview.rating} 
+                            onRatingChange={(rating) => setNewReview({...newReview, rating})}
+                            interactive={true}
+                            size="lg"
+                          />
+                          <span className="text-gray-600 ml-2">
+                            {newReview.rating} out of 5
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="mb-4">
+                        <label className="block text-gray-700 text-sm font-medium mb-2">
+                          Review Title (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={newReview.title}
+                          onChange={(e) => setNewReview({...newReview, title: e.target.value})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
+                          placeholder="Summarize your experience"
+                          maxLength={100}
+                        />
+                      </div>
+                      
+                      <div className="mb-6">
+                        <label className="block text-gray-700 text-sm font-medium mb-2">
+                          Your Review *
+                        </label>
+                        <textarea
+                          value={newReview.comment}
+                          onChange={(e) => setNewReview({...newReview, comment: e.target.value})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent min-h-[120px]"
+                          placeholder="Share details of your experience..."
+                          required
+                          maxLength={1000}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Minimum 10 characters, maximum 1000 characters
+                        </p>
+                      </div>
+                      
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <button
+                          type="submit"
+                          disabled={isSubmittingReview}
+                          className="px-6 py-3 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors font-manrope font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isSubmittingReview ? (
+                            <span className="flex items-center gap-2">
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              Submitting...
+                            </span>
+                          ) : (
+                            "Submit Review"
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowReviewForm(false)}
+                          className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-manrope font-medium"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+                
+                {/* Reviews Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {reviews.map((review) => (
+                    <div
+                      key={review.id}
+                      className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300"
+                    >
+                      <div className="flex items-center gap-4 mb-4">
+                        <img
+                          src={review.image}
+                          alt={review.name}
+                          className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-2 border-gray-100"
+                        />
+                        <div className="flex-1">
+                          <div className="flex flex-col md:flex-row md:justify-between md:items-start">
+                            <div>
+                              <p className="font-medium text-gray-900 font-manrope text-sm md:text-base">
+                                {review.name}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <StarRating rating={review.rating} size="sm" />
+                                <span className="text-xs text-gray-500">{review.date}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
 
-            {/* Location Section - Edge-to-edge on mobile, centered on desktop */}
+                      <p className="text-gray-600 text-sm leading-relaxed font-manrope">
+                        {review.text}
+                      </p>
+                      
+                      {/* Review Helpful Button */}
+                      <div className="mt-4 flex items-center gap-4">
+                        <button className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905a3.61 3.61 0 01-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                          </svg>
+                          Helpful
+                        </button>
+                        <button className="text-xs text-gray-500 hover:text-gray-700">
+                          Reply
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Load More Reviews Button */}
+                {reviewCount > 4 && (
+                  <div className="text-center mt-8">
+                    <button className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-manrope font-medium">
+                      Load More Reviews
+                    </button>
+                  </div>
+                )}
+                
+                {/* Write Review Button - Shows conditionally */}
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                  <button 
+                    onClick={handleWriteReviewClick}
+                    className="w-full md:w-auto px-6 py-3 border-2 border-[#06EAFC] text-[#06EAFC] rounded-lg hover:bg-[#06EAFC] hover:text-white transition-colors font-manrope font-medium flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    {isAuthenticated ? "Write a Review" : "Login to Write a Review"}
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            {/* Location Section with Google Maps */}
             <div className="px-4 md:px-4">
-              <div className="bg-white rounded-xl p-6">
-                <h2 className="text-xl font-bold text-[#00065A] mb-6">
+              <div className="bg-white rounded-xl p-4 md:p-6">
+                <h2 className="text-xl font-bold text-[#00065A] mb-6 font-manrope">
                   Location
                 </h2>
                 
                 <div className="space-y-6">
-                  <div className="bg-gray-200 rounded-xl h-64 flex items-center justify-center">
-                    <div className="text-center">
-                      <FontAwesomeIcon icon={faMapMarkerAlt} className="text-4xl text-gray-400 mb-4" />
-                      <p className="text-gray-600">Map would be displayed here</p>
-                      <p className="text-sm text-gray-500 mt-2">Google Maps integration available</p>
-                    </div>
+                  {/* Google Maps Embed - Ibadan focused */}
+                  <div className="bg-gray-100 rounded-xl overflow-hidden h-64 md:h-96">
+                    <iframe
+                      src={getGoogleMapsUrl()}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen=""
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title="Location Map - Ibadan, Nigeria"
+                      className="rounded-xl"
+                    ></iframe>
                   </div>
                   
                   <div>
-                    <h4 className="font-bold text-gray-900 mb-4">Location Details</h4>
+                    <h4 className="font-bold text-gray-900 mb-4 font-manrope">Location Details</h4>
                     <div className="space-y-4">
                       <div>
                         <p className="text-sm text-gray-600 mb-1">Address</p>
-                        <p className="font-medium">{vendor.address || `${vendor.title || vendor.name}, ${vendor.location?.area || vendor.area || "Ibadan"}`}</p>
+                        <p className="font-medium text-gray-900">
+                          {vendor.address || `${vendor.title || vendor.name}, ${vendor.location?.area || vendor.area || "Ibadan"}`}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600 mb-1">Area</p>
-                        <p className="font-medium">{vendor.location?.area || vendor.area || "Ibadan"}</p>
+                        <div className="flex items-center gap-2">
+                          <FontAwesomeIcon icon={faMapMarkerAlt} className="text-gray-400" />
+                          <p className="font-medium text-gray-900">
+                            {vendor.location?.area || vendor.area || "Ibadan, Nigeria"}
+                          </p>
+                        </div>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600 mb-1">Contact</p>
-                        <p className="font-medium">{vendor.contact || vendorInfo?.phone || "Not provided"}</p>
+                        <p className="font-medium text-gray-900">
+                          {vendor.contact || vendorInfo?.phone || "Not provided"}
+                        </p>
+                      </div>
+                      <div className="pt-4">
+                        <a
+                          href={`https://www.google.com/maps/dir//${encodeURIComponent(vendor.address || vendor.title || vendor.name + " Ibadan Nigeria")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors font-manrope font-medium"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                          </svg>
+                          Get Directions
+                        </a>
                       </div>
                     </div>
                   </div>
@@ -1488,7 +1720,7 @@ const VendorDetail = () => {
               </div>
             </div>
 
-            {/* Other Listings from This Vendor - Edge-to-edge on mobile, centered on desktop */}
+            {/* Other Listings from This Vendor */}
             {vendorListings.length > 0 && (
               <div className="px-4 sm:px-4 md:px-4 lg:px-4 py-6 bg-white">
                 <h2 className="text-xl font-bold text-[#00065A] mb-6">

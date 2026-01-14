@@ -22,15 +22,89 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
   const hotelInfo = {
     name: 'WETLAND HOTELS',
     location: 'Mokola, Rd. 2314',
-    rating: 4.3,
+    rating: 4.78,
     description: 'Premium hotel with excellent amenities and services in the heart of the city',
     image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80'
   };
 
-  // Sample room data with images
+  // Room data matching the original 3 rooms with their exact content
   const roomTypes = [
     {
       id: 'room-1',
+      title: 'Superior Twin Room',
+      name: 'Superior Twin Room',
+      description: 'Comfortable room with twin beds and courtyard view',
+      size: '35 m²',
+      beds: '2 Single Beds',
+      maxOccupancy: 6,
+      image: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
+      images: [
+        'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
+        'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80',
+        'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
+        'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=80'
+      ],
+      subImages: [
+        'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=400&q=80',
+        'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&q=80',
+        'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=400&q=80'
+      ],
+      specifications: [
+        { icon: faRuler, label: 'Room Size', value: '35 m²' },
+        { icon: faBed, label: 'Bed Type', value: 'Twin Beds' },
+        { icon: faUsers, label: 'Max Occupancy', value: '6 Guests' },
+        { icon: faExpand, label: 'View', value: 'Courtyard View' },
+        { icon: faDoorClosed, label: 'Room Type', value: 'Standard' },
+        { icon: faClock, label: 'Check-in', value: '3:00 PM' }
+      ],
+      features: [
+        { name: 'WiFi', included: true, icon: faWifi },
+        { name: 'Air conditioning', included: true, icon: faSnowflake },
+        { name: 'Iron facilities', included: true, icon: faConciergeBell },
+        { name: 'Cable channel', included: true, icon: faTv }
+      ],
+      amenities: [
+        'Flat-screen TV',
+        'Minibar',
+        'Coffee/tea maker',
+        'Safe',
+        'Work desk',
+        'Iron/ironing board',
+        'Hairdryer',
+        'Toiletries'
+      ],
+      occupancy: [
+        { 
+          adults: "2 adults", 
+          price: 435865,
+          originalPrice: 534928,
+          discount: '-30%',
+          breakfast: 'Very good breakfast available (₦43,013)',
+          benefits: ['Pay at hotel', 'Free cancellation', 'No prepayment needed'],
+          amenities: ['Pay at hotel', 'Free WiFi', 'Parking']
+        },
+        { 
+          adults: "4 adults", 
+          price: 375865,
+          breakfast: 'Very good breakfast available (₦43,013)',
+          benefits: ['Pay at hotel', 'Free cancellation', 'Best price guarantee'],
+          amenities: ['Pay at hotel', 'Free WiFi', 'Parking']
+        },
+        { 
+          adults: "6 adults", 
+          price: null,
+          breakfast: 'Very good breakfast available (₦43,013)',
+          benefits: ['Pay at hotel', 'Free cancellation'],
+          amenities: ['Pay at hotel', 'Free WiFi', 'Parking']
+        }
+      ],
+      maxRooms: 8,
+      rating: 4.78,
+      reviewCount: 23
+    },
+    {
+      id: 'room-2',
+      title: '2 Bedroom pymont view suite',
       name: '2 Bedroom Pymont View Suite',
       description: 'Luxury suite with panoramic views of the city skyline',
       size: '65 m²',
@@ -57,7 +131,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
         { icon: faClock, label: 'Check-in', value: '2:00 PM' }
       ],
       features: [
-        { name: 'Free WIFI', included: true, icon: faWifi },
+        { name: 'Free WiFi', included: true, icon: faWifi },
         { name: 'Non first floor', included: false, icon: faTimes },
         { name: 'Cable channel', included: true, icon: faTv },
         { name: 'Free Breakfast', included: true, icon: faCoffee },
@@ -78,29 +152,27 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
       ],
       occupancy: [
         { 
-          guests: 2, 
-          price: 534098, 
-          description: 'Per night before taxes',
-          breakfast: 'Very good breakfast available',
+          adults: "4 adults", 
+          price: 445865,
+          breakfast: 'Very good breakfast available (₦43,013)',
           benefits: ['Free cancellation', 'Pay at hotel', 'No prepayment needed'],
           amenities: ['Pay at hotel', 'Free WiFi', 'Parking', 'Breakfast included']
         },
         { 
-          guests: 4, 
-          price: 634098, 
-          description: 'Per night before taxes',
-          breakfast: 'Very good breakfast available',
-          benefits: ['Free cancellation', 'Pay at hotel', 'No prepayment needed'],
-          amenities: ['Pay at hotel', 'Free WiFi', 'Parking', 'Breakfast included']
+          adults: "2 adults", 
+          price: 405865,
+          breakfast: 'Very good breakfast available (₦43,013)',
+          benefits: ['Free cancellation', 'Pay later option', 'Breakfast included'],
+          amenities: ['Pay at hotel', 'Free WiFi', 'Parking', 'Room service']
         }
       ],
       maxRooms: 5,
-      discount: '-3DX',
       rating: 4.8,
       reviewCount: 124
     },
     {
-      id: 'room-2',
+      id: 'room-3',
+      title: 'One bedroom suite',
       name: 'One Bedroom Suite',
       description: 'Elegant suite with modern amenities and garden view',
       size: '45 m²',
@@ -127,9 +199,9 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
         { icon: faClock, label: 'Check-in', value: '2:00 PM' }
       ],
       features: [
-        { name: 'WIFI', included: true, icon: faWifi },
+        { name: 'WiFi', included: true, icon: faWifi },
         { name: 'Non first floor', included: true, icon: faCheck },
-        { name: 'Cable channel', included: false, icon: faTv },
+        { name: 'Cable channel', included: true, icon: faTv },
         { name: 'Room Service', included: true, icon: faUtensils },
         { name: 'Parking', included: true, icon: faCar },
         { name: 'Air Conditioning', included: true, icon: faSnowflake },
@@ -147,79 +219,16 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
       ],
       occupancy: [
         { 
-          guests: 2, 
-          price: 434098, 
-          description: 'Per night before taxes',
-          breakfast: 'Very good breakfast available',
+          adults: "2 adults", 
+          price: 534865,
+          breakfast: 'Very good breakfast available (₦43,013)',
           benefits: ['Free cancellation', 'Pay later option', 'Breakfast included'],
           amenities: ['Pay at hotel', 'Free WiFi', 'Parking', 'Room service']
         }
       ],
       maxRooms: 3,
-      discount: '-2DX',
       rating: 4.6,
       reviewCount: 89
-    },
-    {
-      id: 'room-3',
-      name: 'Superior Twin Room',
-      description: 'Comfortable room with twin beds and courtyard view',
-      size: '35 m²',
-      beds: '2 Single Beds',
-      maxOccupancy: 2,
-      image: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
-      images: [
-        'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
-        'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80',
-        'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
-        'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=80'
-      ],
-      subImages: [
-        'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=400&q=80',
-        'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&q=80',
-        'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=400&q=80'
-      ],
-      specifications: [
-        { icon: faRuler, label: 'Room Size', value: '35 m²' },
-        { icon: faBed, label: 'Bed Type', value: 'Twin Beds' },
-        { icon: faUsers, label: 'Max Occupancy', value: '2 Guests' },
-        { icon: faExpand, label: 'View', value: 'Courtyard View' },
-        { icon: faDoorClosed, label: 'Room Type', value: 'Standard' },
-        { icon: faClock, label: 'Check-in', value: '3:00 PM' }
-      ],
-      features: [
-        { name: 'WIFI', included: true, icon: faWifi },
-        { name: 'Iron bed tires', included: true, icon: faCheck },
-        { name: 'Minibar', included: true, icon: faCheck },
-        { name: 'Ocean View', included: true, icon: faCheck },
-        { name: 'Balcony', included: true, icon: faCheck },
-        { name: 'Air Conditioning', included: true, icon: faWind }
-      ],
-      amenities: [
-        'LED TV',
-        'Minibar',
-        'Tea/coffee facilities',
-        'Safe',
-        'Desk',
-        'Iron',
-        'Hairdryer',
-        'Toiletries'
-      ],
-      occupancy: [
-        { 
-          guests: 2, 
-          price: 375865, 
-          description: 'Per night before taxes', 
-          discount: '-10%', 
-          originalPrice: 534098,
-          breakfast: 'Very good breakfast available',
-          benefits: ['Free cancellation', 'Best price guarantee', 'No booking fees'],
-          amenities: ['Pay at hotel', 'Free WiFi', 'Parking', '24/7 reception']
-        }
-      ],
-      maxRooms: 8,
-      rating: 4.4,
-      reviewCount: 156
     }
   ];
 
@@ -242,19 +251,14 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
   };
 
   const handleRoomSelect = (room) => {
-    // Toggle selection: if clicking the same room, deselect it
     if (selectedRoom?.id === room.id) {
       setSelectedRoom(null);
       setSelectedRoomsCount(1);
-      if (onRoomSelect) {
-        onRoomSelect(null);
-      }
+      if (onRoomSelect) onRoomSelect(null);
     } else {
       setSelectedRoom(room);
       setSelectedRoomsCount(1);
-      if (onRoomSelect) {
-        onRoomSelect(room);
-      }
+      if (onRoomSelect) onRoomSelect(room);
     }
   };
 
@@ -297,7 +301,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
 
   return (
     <div className="w-full bg-white md:max-w-[1250px] md:mx-auto">
-      <div className="px-2 sm:px-6 lg:px-4 py-6">
+      <div className="sm:px-6 lg:px-4 py-6">
         <h2 className="text-lg md:text-xl font-bold text-[#00065A] mb-6">
           Select Your Room
         </h2>
@@ -326,7 +330,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
           {roomTypes.map((room) => (
             <div 
               key={room.id}
-              className={`border rounded-xl p-4 sm:p-6 transition-all duration-300 ${
+              className={`border rounded-xl p-3 sm:p-6 transition-all duration-300 ${
                 selectedRoom?.id === room.id 
                   ? 'border-[#06EAFC] bg-blue-50' 
                   : 'border-gray-200 hover:border-gray-300'
@@ -335,21 +339,15 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
               <div className="flex flex-col lg:flex-row gap-6">
                 {/* Room Images Section */}
                 <div className="lg:w-64 flex-shrink-0">
-                  <div className="relative h-48 lg:h-48 rounded-xl overflow-hidden mb-3">
+                  <div className="relative h-48 lg:h-48 rounded-xl overflow-hidden mb-3 cursor-pointer" onClick={() => handleViewDetails(room)}>
                     <img 
                       src={room.image} 
-                      alt={room.name}
+                      alt={room.title}
                       className="w-full h-full object-cover"
                     />
-                    {room.discount && (
-                      <div className="absolute top-3 right-3 bg-red-600 text-white px-2 py-1 rounded-lg text-xs font-bold">
-                        {room.discount}
-                      </div>
-                    )}
-                    {/* Hotel Rating Badge */}
                     <div className="absolute bottom-3 left-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
-                      <FontAwesomeIcon icon={faStar} className="text-yellow-400 text-xs" />
-                      <span>{hotelInfo.rating}</span>
+                      <FontAwesomeIcon icon={faStar} className="text-black" />
+                      <span>{room.rating}</span>
                     </div>
                   </div>
                   
@@ -363,7 +361,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                       >
                         <img 
                           src={img} 
-                          alt={`${room.name} view ${index + 1}`}
+                          alt={`${room.title} view ${index + 1}`}
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -373,20 +371,46 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                   {/* Hotel Information */}
                   <div className="mt-3 space-y-2">
                     <div className="flex items-center gap-1">
-                      <FontAwesomeIcon icon={faStar} className="text-yellow-400 text-sm" />
-                      <span className="text-sm font-medium">{hotelInfo.rating}</span>
+                      <FontAwesomeIcon icon={faStar} className="text-black" />
+                      <span className="text-sm font-medium">{room.rating}</span>
+                      <span className="text-sm text-gray-500">({room.reviewCount})</span>
                     </div>
-                    <h4 className="font-bold text-gray-900">{hotelInfo.name}</h4>
+                    <h4 className="font-bold text-gray-900">{room.title}</h4>
                     <div className="flex items-center gap-1 text-sm text-gray-600">
-                      <FontAwesomeIcon icon={faMapMarkerAlt} className="text-gray-400" />
+                      <FontAwesomeIcon icon={faMapMarkerAlt} className="text-black" />
                       <span>{hotelInfo.location}</span>
                     </div>
-                    <p className="text-xs text-gray-500">{hotelInfo.description}</p>
+                    
+                    {/* Room Description - Placed under Preview Room button */}
+                    <p className="text-sm text-gray-600 mt-2">{room.description}</p>
+                    
+                    {/* Key Features Section - Moved here */}
+                    <div className="mt-3">
+                      <h5 className="text-sm font-medium text-gray-700 mb-2">Key Features</h5>
+                      <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
+                        <span className="flex items-center gap-2">
+                          <FontAwesomeIcon icon={faWifi} className="text-black" />
+                          <span>WiFi</span>
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <FontAwesomeIcon icon={faSnowflake} className="text-black" />
+                          <span>Air conditioning</span>
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <FontAwesomeIcon icon={faConciergeBell} className="text-black" />
+                          <span>Iron facilities</span>
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <FontAwesomeIcon icon={faTv} className="text-black" />
+                          <span>Cable channel</span>
+                        </span>
+                      </div>
+                    </div>
                     
                     {/* Preview Room Button */}
                     <button
                       onClick={() => handleViewDetails(room)}
-                      className="w-full mt-2 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg text-sm font-medium hover:from-green-600 hover:to-green-700 transition-all duration-300"
+                      className="w-full mt-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium transition-all duration-300 cursor-pointer"
                     >
                       Preview Room
                     </button>
@@ -400,7 +424,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-3">
                         <h3 className="text-lg font-bold text-gray-900">
-                          {room.name}
+                          {room.title}
                         </h3>
                         <div className="text-right">
                           <div className="text-2xl font-bold text-gray-900">
@@ -410,40 +434,21 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                         </div>
                       </div>
                       
-                      <p className="text-gray-600 text-sm mb-4">{room.description}</p>
-                      
-                      {/* Quick Features */}
-                      <div className="mb-4">
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">Key Features</h4>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                          {room.features.slice(0, 6).map((feature, index) => (
-                            <div key={index} className="flex items-center gap-1.5">
-                              <div className={`w-5 h-5 rounded flex items-center justify-center ${
-                                feature.included ? 'bg-green-100' : 'bg-gray-100'
-                              }`}>
-                                {feature.included ? (
-                                  <FontAwesomeIcon icon={faCheck} className="text-green-600 text-xs" />
-                                ) : (
-                                  <FontAwesomeIcon icon={faTimes} className="text-gray-400 text-xs" />
-                                )}
-                              </div>
-                              <span className="text-sm text-gray-600">{feature.name}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
                       {/* Occupancy Options */}
                       <div className="space-y-4">
                         {room.occupancy.map((option, index) => (
                           <div key={index} className="bg-gray-50 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-3">
                               <div>
-                                <span className="text-sm font-medium text-gray-700">
-                                  {option.guests} {option.guests === 1 ? 'person' : 'people'}
+                                <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                                  <FontAwesomeIcon icon={faUser} className="text-black" />
+                                  {option.adults}
                                 </span>
                                 {option.breakfast && (
-                                  <p className="text-xs text-gray-600 mt-1">{option.breakfast}</p>
+                                  <p className="text-xs text-gray-600 mt-1 flex items-center gap-2">
+                                    <FontAwesomeIcon icon={faCoffee} className="text-black" />
+                                    {option.breakfast}
+                                  </p>
                                 )}
                               </div>
                               <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
@@ -483,15 +488,33 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                                   </div>
                                 )}
                                 
-                                {!option.discount && (
+                                {!option.discount && option.price && (
                                   <div className="text-lg font-bold text-gray-900 mb-1">
                                     {formatPrice(option.price)}
                                   </div>
                                 )}
                                 
-                                <p className="text-xs text-gray-500">{option.description}</p>
+                                {!option.price && (
+                                  <div className="text-lg font-bold text-gray-900 mb-1">
+                                    {formatPrice(option.price)}
+                                  </div>
+                                )}
+                                
+                                <p className="text-xs text-gray-500">Per night before taxes</p>
                               </div>
                             </div>
+
+                            {/* Amenities */}
+                            {option.amenities && (
+                              <ul className="text-sm text-green-600 mt-3 space-y-1">
+                                {option.amenities.slice(0, 3).map((amenity, idx) => (
+                                  <li key={idx} className="flex items-center gap-1">
+                                    <FontAwesomeIcon icon={faCheck} className="text-black" />
+                                    {amenity}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -508,7 +531,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                           <select
                             value={selectedRoomsCount}
                             onChange={(e) => setSelectedRoomsCount(parseInt(e.target.value))}
-                            className="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
+                            className="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent cursor-pointer"
                           >
                             {[...Array(room.maxRooms).keys()].map(num => (
                               <option key={num + 1} value={num + 1}>
@@ -524,14 +547,14 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                         <div className="space-y-3">
                           <button
                             onClick={() => handleViewDetails(room)}
-                            className="w-full py-2 text-[#06EAFC] border border-[#06EAFC] rounded-lg hover:bg-blue-50 transition-colors"
+                            className="w-full py-2 text-[#06EAFC] border border-[#06EAFC] rounded-lg hover:bg-blue-50 transition-colors cursor-pointer"
                           >
                             View Full Details
                           </button>
                           
                           <button
                             onClick={() => handleRoomSelect(room)}
-                            className={`w-full py-3 rounded-lg font-medium transition-all duration-300 ${
+                            className={`w-full py-3 rounded-lg font-medium transition-all duration-300 cursor-pointer ${
                               selectedRoom?.id === room.id
                                 ? 'bg-[#06EAFC] text-white hover:bg-[#05d9eb]'
                                 : 'bg-white text-[#06EAFC] border border-[#06EAFC] hover:bg-blue-50'
@@ -542,7 +565,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                           
                           <button
                             onClick={() => handleBookNow(room)}
-                            className="w-full py-3 bg-gradient-to-r from-[#06EAFC] to-[#06F49F] text-white rounded-lg font-medium hover:opacity-90 transition-all duration-300"
+                            className="w-full py-3 bg-gradient-to-r from-[#06EAFC] to-[#06F49F] text-white rounded-lg font-medium hover:opacity-90 transition-all duration-300 cursor-pointer"
                           >
                             Book Now
                           </button>
@@ -561,19 +584,19 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
           <div className="mt-8 p-6 bg-gradient-to-r from-[#06EAFC] to-[#06F49F] rounded-xl">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-lg overflow-hidden">
+                <div className="w-16 h-16 rounded-lg overflow-hidden cursor-pointer" onClick={() => handleViewDetails(selectedRoom)}>
                   <img 
                     src={selectedRoom.image} 
-                    alt={selectedRoom.name}
+                    alt={selectedRoom.title}
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white mb-1">
-                    Selected: {selectedRoom.name}
+                    Selected: {selectedRoom.title}
                   </h3>
                   <p className="text-white/90 text-sm">
-                    {selectedRoomsCount} room{selectedRoomsCount > 1 ? 's' : ''} • {selectedRoom.occupancy[0]?.guests} guests • Free cancellation
+                    {selectedRoomsCount} room{selectedRoomsCount > 1 ? 's' : ''} • {selectedRoom.occupancy[0]?.adults} • Free cancellation
                   </p>
                 </div>
               </div>
@@ -590,7 +613,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                 
                 <button
                   onClick={() => handleBookNow(selectedRoom)}
-                  className="px-8 py-3 bg-white text-[#06EAFC] rounded-lg font-bold hover:bg-gray-100 hover:scale-105 transition-all duration-300"
+                  className="px-8 py-3 bg-white text-[#06EAFC] rounded-lg font-bold hover:bg-gray-100 hover:scale-105 transition-all duration-300 cursor-pointer"
                 >
                   Book Now
                 </button>
@@ -598,7 +621,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                 {/* Deselect Button */}
                 <button
                   onClick={() => handleRoomSelect(selectedRoom)}
-                  className="px-4 py-2 bg-white/20 text-white rounded-lg font-medium hover:bg-white/30 transition-all duration-300"
+                  className="px-4 py-2 bg-white/20 text-white rounded-lg font-medium hover:bg-white/30 transition-all duration-300 cursor-pointer"
                 >
                   Deselect
                 </button>
@@ -614,7 +637,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-blue-600 font-bold">$</span>
+                  <FontAwesomeIcon icon={faCar} className="text-black" />
                 </div>
                 <span className="font-medium">Pay at Hotel</span>
               </div>
@@ -626,7 +649,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <span className="text-green-600 font-bold">✓</span>
+                  <FontAwesomeIcon icon={faCheck} className="text-black" />
                 </div>
                 <span className="font-medium">Free Cancellation</span>
               </div>
@@ -638,7 +661,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                  <span className="text-purple-600 font-bold">⏰</span>
+                  <FontAwesomeIcon icon={faClock} className="text-black" />
                 </div>
                 <span className="font-medium">Pay Later Option</span>
               </div>
@@ -654,7 +677,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
             {/* Glass effect background */}
             <div 
-              className="absolute inset-0 bg-black/50"
+              className="absolute inset-0 bg-black/50 cursor-pointer"
               onClick={handleCloseModal}
             />
             
@@ -664,19 +687,20 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
               <div className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-white/20 px-6 py-4 flex justify-between items-center z-10">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <FontAwesomeIcon icon={faStar} className="text-yellow-400" />
-                    <span className="font-medium">{hotelInfo.rating}</span>
+                    <FontAwesomeIcon icon={faStar} className="text-black" />
+                    <span className="font-medium">{modalRoom.rating}</span>
+                    <span className="text-sm text-gray-500">({modalRoom.reviewCount} reviews)</span>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900">{modalRoom.name}</h3>
+                  <h3 className="text-xl font-bold text-gray-900">{modalRoom.title}</h3>
                   <p className="text-gray-600 text-sm">{modalRoom.description}</p>
                   <div className="flex items-center gap-1 mt-1 text-sm text-gray-500">
-                    <FontAwesomeIcon icon={faMapMarkerAlt} />
+                    <FontAwesomeIcon icon={faMapMarkerAlt} className="text-black" />
                     <span>{hotelInfo.location}</span>
                   </div>
                 </div>
                 <button
                   onClick={handleCloseModal}
-                  className="p-2 hover:bg-gray-100/50 rounded-full transition-colors backdrop-blur-sm"
+                  className="p-2 hover:bg-gray-100/50 rounded-full transition-colors backdrop-blur-sm cursor-pointer"
                 >
                   <IoClose className="text-2xl text-gray-600" />
                 </button>
@@ -688,10 +712,10 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                 <div className="mb-8">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {modalRoom.images?.map((img, index) => (
-                      <div key={index} className="rounded-xl overflow-hidden h-48 shadow-lg">
+                      <div key={index} className="rounded-xl overflow-hidden h-48 shadow-lg cursor-pointer" onClick={() => window.open(img, '_blank')}>
                         <img
                           src={img}
-                          alt={`${modalRoom.name} - ${index + 1}`}
+                          alt={`${modalRoom.title} - ${index + 1}`}
                           className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
                         />
                       </div>
@@ -706,7 +730,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                     {modalRoom.specifications.map((spec, index) => (
                       <div key={index} className="bg-white/80 backdrop-blur-sm p-4 rounded-lg border border-gray-100 shadow-sm">
                         <div className="flex items-center gap-3 mb-2">
-                          <FontAwesomeIcon icon={spec.icon} className="text-[#06EAFC]" />
+                          <FontAwesomeIcon icon={spec.icon} className="text-black" />
                           <p className="font-medium text-gray-700">{spec.label}</p>
                         </div>
                         <p className="text-gray-900 font-semibold">{spec.value}</p>
@@ -725,12 +749,12 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                           {feature.icon ? (
                             <FontAwesomeIcon 
                               icon={feature.icon} 
-                              className={feature.included ? "text-green-500" : "text-gray-300"} 
+                              className="text-black" 
                             />
                           ) : feature.included ? (
-                            <FontAwesomeIcon icon={faCheck} className="text-green-500" />
+                            <FontAwesomeIcon icon={faCheck} className="text-black" />
                           ) : (
-                            <FontAwesomeIcon icon={faTimes} className="text-gray-300" />
+                            <FontAwesomeIcon icon={faTimes} className="text-black" />
                           )}
                           <span className={feature.included ? "text-gray-700" : "text-gray-400"}>
                             {feature.name}
@@ -760,11 +784,15 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                         <div key={index} className="bg-white/80 backdrop-blur-sm p-4 rounded-lg border border-gray-200 shadow-sm">
                           <div className="flex justify-between items-center mb-3">
                             <div>
-                              <span className="font-medium text-gray-900">
-                                {option.guests} {option.guests === 1 ? 'Person' : 'People'}
+                              <span className="font-medium text-gray-900 flex items-center gap-2">
+                                <FontAwesomeIcon icon={faUser} className="text-black" />
+                                {option.adults}
                               </span>
                               {option.breakfast && (
-                                <p className="text-sm text-gray-600 mt-1">{option.breakfast}</p>
+                                <p className="text-sm text-gray-600 mt-1 flex items-center gap-2">
+                                  <FontAwesomeIcon icon={faCoffee} className="text-black" />
+                                  {option.breakfast}
+                                </p>
                               )}
                             </div>
                             <div className="text-right">
@@ -784,12 +812,18 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                                 </div>
                               )}
                               
-                              {!option.discount && (
+                              {!option.discount && option.price && (
                                 <div className="text-2xl font-bold text-gray-900">
                                   {formatPrice(option.price)}
                                 </div>
                               )}
-                              <div className="text-sm text-gray-600">{option.description}</div>
+                              
+                              {!option.price && (
+                                <div className="text-2xl font-bold text-gray-900">
+                                  {formatPrice(option.price)}
+                                </div>
+                              )}
+                              <div className="text-sm text-gray-600">Per night before taxes</div>
                             </div>
                           </div>
                           
@@ -811,7 +845,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                             <div className="space-y-1">
                               {option.amenities.map((amenity, idx) => (
                                 <div key={idx} className="flex items-center gap-1.5 text-xs text-gray-600">
-                                  <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
+                                  <FontAwesomeIcon icon={faCheck} className="text-black" />
                                   {amenity}
                                 </div>
                               ))}
@@ -847,7 +881,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
               <div className="sticky bottom-0 bg-white/80 backdrop-blur-md border-t border-white/20 px-6 py-4 flex flex-col sm:flex-row justify-end gap-3">
                 <button
                   onClick={handleCloseModal}
-                  className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50/50 transition-colors backdrop-blur-sm"
+                  className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50/50 transition-colors backdrop-blur-sm cursor-pointer"
                 >
                   Close
                 </button>
@@ -858,7 +892,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                     handleRoomSelect(modalRoom);
                     handleCloseModal();
                   }}
-                  className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+                  className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 cursor-pointer ${
                     selectedRoom?.id === modalRoom.id
                       ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                       : 'bg-[#06EAFC] text-white hover:bg-[#05d9eb]'
@@ -872,7 +906,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                     setSelectedRoom(modalRoom);
                     handleBookNow(modalRoom);
                   }}
-                  className="px-6 py-3 bg-gradient-to-r from-[#06EAFC] to-[#06F49F] text-white rounded-lg font-bold hover:opacity-90 transition-all duration-300 shadow-lg"
+                  className="px-6 py-3 bg-gradient-to-r from-[#06EAFC] to-[#06F49F] text-white rounded-lg font-bold hover:opacity-90 transition-all duration-300 shadow-lg cursor-pointer"
                 >
                   Book This Room
                 </button>
