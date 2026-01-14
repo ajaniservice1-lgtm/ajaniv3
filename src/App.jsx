@@ -40,10 +40,6 @@ const HelpCenterPage = lazy(() => import("./pages/HelpCenter"));
 const AddBusinessPage = lazy(() => import("./pages/AddBusinessPage"));
 const ChatPage = lazy(() => import("./pages/ChatPage"));
 
-/* =======================
-   NEW COMPONENTS
-======================= */
-const ComingSoonModal = lazy(() => import("./components/ComingSoonModal"));
 
 /* =======================
    PROFILE PAGES
@@ -87,7 +83,6 @@ const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 /* =======================
    ADMIN PAGES - ADDED
 ======================= */
-const AdminLayout = lazy(() => import("./components/AdminLayout"));
 const Overview = lazy(() => import("./pages/admin/Overview"));
 
 /* =======================
@@ -280,7 +275,6 @@ function App() {
           <BrowserRouter>
             <TrackingWrapper>
               <Suspense fallback={<LoadingDots />}>
-                <ComingSoonModal />
                 
                 <Routes>
                   {/* PUBLIC ROUTES */}
@@ -463,10 +457,10 @@ function App() {
                     path="/admincpanel"
                     element={
                       // Removed AdminRoute wrapper - now public
-                      <AdminLayout />
+                      <Overview />
                     }
                   >
-                    <Route index element={<Overview />} />
+                    {/* <Route index element={<Overview />} /> */}
                   </Route>
 
                   {/* 404 ROUTE */}
