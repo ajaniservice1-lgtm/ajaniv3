@@ -3525,14 +3525,14 @@ const SearchResults = () => {
                           // MOBILE - Search input with hero data
                           <div 
                             onClick={handleSearchFocus}
-                            className="bg-[#d9d9d9] rounded-lg px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-200 cursor-pointer w-full"
+                            className="bg-[#d9d9d9] rounded-[15px] mr-2 px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-200 cursor-pointer w-full"
                           >
-                            <FontAwesomeIcon icon={faSearch} className="text-gray-500 flex-shrink-0" />
+                            <FontAwesomeIcon icon={faSearch} className="text-gray-700 text-[15px] flex-shrink-0" />
                             <div className="flex flex-col text-left truncate w-full">
-                              <span className="text-gray-900 font-medium text-[10px] truncate">
+                              <span className="text-gray-900 font-medium text-[13px] truncate">
                                 {getLocationDisplayName(urlLocation || searchQuery) || "Where to?"}
                               </span>
-                              <span className="text-gray-600 text-[9px] truncate">
+                              <span className="text-gray-600 text-[12px] truncate">
                                 {checkInDate && checkOutDate ? (
                                   `${formatDate(checkInDate).split(' ').slice(1).join(' ')} - ${formatDate(checkOutDate).split(' ').slice(1).join(' ')} • ${(guests?.adults || 0) + (guests?.children || 0)} guest${((guests?.adults || 0) + (guests?.children || 0)) !== 1 ? 's' : ''}`
                                 ) : (
