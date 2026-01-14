@@ -25,6 +25,105 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FaUserCircle } from "react-icons/fa";
 
+/* ---------------- GLASSMORPHISM CSS STYLES ---------------- */
+const glassStyles = `
+  /* Glass effect classes */
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .glass-dark {
+    background: rgba(217, 217, 217, 0.2);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  .glass-light {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+  }
+
+  .glass-pronounced {
+    background: linear-gradient(
+      135deg,
+      rgba(217, 217, 217, 0.25) 0%,
+      rgba(217, 217, 217, 0.1) 100%
+    );
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 
+      0 10px 30px rgba(0, 0, 0, 0.1),
+      0 1px 8px rgba(0, 0, 0, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  .glass-background {
+    background: linear-gradient(
+      135deg,
+      rgba(217, 217, 217, 0.1) 0%,
+      rgba(217, 217, 217, 0.05) 100%
+    );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* Hover states for glass elements */
+  .glass-dark:hover, .glass-light:hover, .glass-pronounced:hover {
+    background: rgba(217, 217, 217, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+  }
+
+  /* Fallback for browsers that don't support backdrop-filter */
+  @supports not (backdrop-filter: blur(10px)) {
+    .glass-effect,
+    .glass-dark,
+    .glass-light,
+    .glass-pronounced {
+      background: rgba(245, 245, 245, 0.95);
+      border: 1px solid rgba(229, 231, 235, 0.8);
+    }
+    .glass-background {
+      background: #F7F7FA;
+    }
+  }
+
+  /* Custom animations */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+  }
+
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(0, 227, 140, 0.3); }
+    50% { box-shadow: 0 0 30px rgba(0, 227, 140, 0.5); }
+  }
+
+  .floating {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .glowing {
+    animation: glow 3s ease-in-out infinite;
+  }
+`;
+
 /* ---------------- CUSTOM HOOK FOR BACKEND LISTINGS ---------------- */
 const useBackendListings = () => {
   const [listings, setListings] = useState([]);
@@ -1291,11 +1390,20 @@ const DiscoverIbadan = () => {
 
   return (
     <div className="min-h-[50%] bg-[#F7F7FA] font-manrope">
-      <section className="pt-14 lg:pt-12 text-center bg-[#F7F7FA] overflow-hidden relative">
-        {/* Background Pattern */}
-        <div
-          className={`absolute inset-0 bg-[url('image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20`}
-        ></div>
+      {/* Inject glassmorphism styles */}
+      <style>{glassStyles}</style>
+      
+      <section className="pt-14 lg:pt-12 text-center glass-background overflow-hidden relative">
+        {/* Background Pattern with enhanced glass effect */}
+        <div className="absolute inset-0 bg-[url('image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-10"></div>
+        
+        {/* Gradient overlay for depth */}
+        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-white/5 pointer-events-none"></div>
+        
+        {/* Subtle floating elements for visual interest */}
+        <div className="absolute top-10 left-10 w-20 h-20 rounded-full bg-gradient-to-r from-blue-400/20 to-teal-400/20 filter blur-xl floating"></div>
+        <div className="absolute bottom-10 right-10 w-24 h-24 rounded-full bg-gradient-to-r from-green-400/20 to-blue-400/20 filter blur-xl floating" style={{animationDelay: '2s'}}></div>
+        
         <div className="relative max-w-7xl mx-auto w-full py-4 lg:py-4 lg:mt-[-70px] mt-[-60px]">
           <div className="flex flex-col items-center text-center space-y-4 md:space-y-5 lg:space-y-4">
             {/* Hero Title */}
@@ -1314,7 +1422,7 @@ const DiscoverIbadan = () => {
 
             {/* TABS — UPDATED WITH BOLD SOLID ICONS */}
             <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
-              <div className="flex justify-between items-center gap-2 p-2.5 bg-white rounded-lg border border-[#f7f7fa]">
+              <div className="flex justify-between items-center gap-2 p-2.5 bg-white rounded-lg border border-[#f7f7fa] shadow-sm">
                 {["Hotel", "Shortlet", "Restaurant", "Vendor"].map((category) => (
                   <button
                     key={category}
@@ -1346,13 +1454,13 @@ const DiscoverIbadan = () => {
               </div>
             </div>
 
-            {/* SEARCH BAR */}
+            {/* SEARCH BAR WITH GLASS EFFECT */}
             <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
-              <div ref={searchContainerRef} className="relative w-full">
-                <div className="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg border border-blue-100 p-3 sm:p-3 md:p-4">
+              <div ref={searchContainerRef} className="relative w-full floating">
+                <div className="glass-pronounced rounded-xl sm:rounded-2xl border border-white/40 p-3 sm:p-3 md:p-4 shadow-2xl">
                   {/* Search Input */}
                   <div className="mb-2 sm:mb-3">
-                    <div className="bg-[#d9d9d9] rounded-lg px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-gray-200 cursor-pointer">
+                    <div className="glass-dark rounded-lg px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-gray-200/30 cursor-pointer transition-all duration-300">
                       {/* ✅ UPDATED: Solid search icon */}
                       <FontAwesomeIcon icon={faSearch} className="text-gray-500 flex-shrink-0" />
                       <input
@@ -1387,7 +1495,7 @@ const DiscoverIbadan = () => {
                     <div className="grid grid-cols-2 gap-2 mb-2">
                       <div
                         onClick={handleCheckInClick}
-                        className="bg-[#d9d9d9] rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
+                        className="glass-dark rounded-lg p-2 text-center hover:bg-gray-200/30 cursor-pointer transition-all duration-300"
                       >
                         <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
                           {/* ✅ UPDATED: Solid calendar icon */}
@@ -1397,7 +1505,7 @@ const DiscoverIbadan = () => {
                       </div>
                       <div
                         onClick={handleCheckOutClick}
-                        className="bg-[#d9d9d9] rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
+                        className="glass-dark rounded-lg p-2 text-center hover:bg-gray-200/30 cursor-pointer transition-all duration-300"
                       >
                         <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
                           {/* ✅ UPDATED: Solid calendar icon */}
@@ -1412,7 +1520,7 @@ const DiscoverIbadan = () => {
                     <div className="space-y-2 mb-2">
                       <div
                         onClick={handleCheckInClick}
-                        className="bg-[#d9d9d9] rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
+                        className="glass-dark rounded-lg p-2 text-center hover:bg-gray-200/30 cursor-pointer transition-all duration-300"
                       >
                         <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
                           {/* ✅ UPDATED: Solid calendar icon */}
@@ -1423,7 +1531,7 @@ const DiscoverIbadan = () => {
                       {/* ✅ UPDATED: Clickable "Number of People" with solid User icon */}
                       <div
                         onClick={handleGuestClick}
-                        className="bg-[#d9d9d9] rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
+                        className="glass-dark rounded-lg p-2 text-center hover:bg-gray-200/30 cursor-pointer transition-all duration-300"
                       >
                         <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
                           {/* ✅ UPDATED: Solid user icon */}
@@ -1438,7 +1546,7 @@ const DiscoverIbadan = () => {
                     <div className="space-y-2 mb-2">
                       <div
                         onClick={handleCheckInClick}
-                        className="bg-[#d9d9d9] rounded-lg p-2 text-center hover:bg-gray-200 cursor-pointer"
+                        className="glass-dark rounded-lg p-2 text-center hover:bg-gray-200/30 cursor-pointer transition-all duration-300"
                       >
                         <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
                           {/* ✅ UPDATED: Solid calendar icon */}
@@ -1454,7 +1562,7 @@ const DiscoverIbadan = () => {
                     <div className="mb-2 w-full">
                       <div
                         onClick={handleGuestClick}
-                        className="inline-flex w-full items-center justify-center rounded-[10px] bg-[#d9d9d9] px-4 py-2 text-[12.5px] font-medium text-gray-900 hover:bg-gray-200 cursor-pointer"
+                        className="glass-dark inline-flex w-full items-center justify-center rounded-[10px] px-4 py-2 text-[12.5px] font-medium text-gray-900 hover:bg-gray-200/30 cursor-pointer transition-all duration-300"
                       >
                         {activeTab !== "Restaurant" && (
                           <>
@@ -1493,7 +1601,7 @@ const DiscoverIbadan = () => {
                     <button
                       ref={searchButtonRef}
                       onClick={handleSearchButtonClick}
-                      className={`w-full bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 ${
+                      className={`w-full bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 glowing ${
                         clickedSuggestion ? 'ring-2 ring-blue-400 ring-offset-2' : 'hover:from-[#00c97b] hover:to-teal-600'
                       }`}
                     >
@@ -1578,6 +1686,21 @@ const DiscoverIbadan = () => {
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
+        }
+        
+        /* Ensure backdrop-filter works properly */
+        .glass-background::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.1) 0%,
+            rgba(255, 255, 255, 0.05) 100%
+          );
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          z-index: -1;
         }
       `}</style>
     </div>
