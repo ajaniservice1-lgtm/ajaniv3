@@ -378,7 +378,7 @@ const SimpleCalendar = ({ onSelect, onClose, selectedDate: propSelectedDate, isC
         <button
           key={day}
           onClick={() => handleDateClick(day)}
-          className={`h-8 w-8 rounded-full flex items-center justify-center text-sm
+          className={`h-8 w-8 rounded-full flex items-center justify-center text-sm cursor-pointer
             ${isToday ? "border border-blue-500" : ""}
             ${isSelected ? "bg-blue-500 text-white" : "hover:bg-gray-100"}
           `}
@@ -398,11 +398,11 @@ const SimpleCalendar = ({ onSelect, onClose, selectedDate: propSelectedDate, isC
         className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl z-[10001] w-80 p-4"
       >
         <div className="flex justify-between items-center mb-4">
-          <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded">
+          <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded cursor-pointer">
             ←
           </button>
           <h3 className="font-semibold text-gray-800">{getMonthName(currentDate)}</h3>
-          <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded">
+          <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded cursor-pointer">
             →
           </button>
         </div>
@@ -422,7 +422,7 @@ const SimpleCalendar = ({ onSelect, onClose, selectedDate: propSelectedDate, isC
               onSelect(today);
               onClose();
             }}
-            className="w-full py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            className="w-full py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 cursor-pointer"
           >
             Select Today
           </button>
@@ -432,8 +432,8 @@ const SimpleCalendar = ({ onSelect, onClose, selectedDate: propSelectedDate, isC
   );
 };
 
-/* ---------------- GUEST SELECTOR COMPONENT ---------------- */
-const GuestSelector = ({ guests, onChange, onClose }) => {
+/* ---------------- GUEST SELECTOR COMPONENT (UPDATED FOR CATEGORIES) ---------------- */
+const GuestSelector = ({ guests, onChange, onClose, category = 'hotel' }) => {
   const modalRef = useRef(null);
 
   useEffect(() => {
@@ -461,7 +461,36 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
         ref={modalRef}
         className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl z-[10001] w-80 p-6"
       >
-        <h3 className="font-semibold text-gray-800 mb-6 text-center">Guests & Rooms</h3>
+        <h3 className="font-semibold text-gray-800 mb-6 text-center">
+          {category.includes('restaurant') ? 'Number of People' : 'Guests & Rooms'}
+        </h3>
+        
+        {/* ROOMS SECTION - NOT FOR RESTAURANTS */}
+        {!category.includes('restaurant') && (
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <div className="font-medium text-gray-800">Rooms</div>
+              <div className="text-sm text-gray-500">Number of rooms</div>
+            </div>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => handleGuestChange("rooms", -1)}
+                disabled={guests.rooms <= 1}
+                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 cursor-pointer"
+              >
+                <FontAwesomeIcon icon={faChevronLeft} size="sm" />
+              </button>
+              <span className="w-8 text-center font-medium">{guests.rooms}</span>
+              <button
+                onClick={() => handleGuestChange("rooms", 1)}
+                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 cursor-pointer"
+              >
+                <FontAwesomeIcon icon={faChevronRight} size="sm" />
+              </button>
+            </div>
+          </div>
+        )}
+        
         <div className="flex justify-between items-center mb-6">
           <div>
             <div className="font-medium text-gray-800">Adults</div>
@@ -471,14 +500,14 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
             <button
               onClick={() => handleGuestChange("adults", -1)}
               disabled={guests.adults <= 1}
-              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 cursor-pointer"
             >
               <FontAwesomeIcon icon={faChevronLeft} size="sm" />
             </button>
             <span className="w-8 text-center font-medium">{guests.adults}</span>
             <button
               onClick={() => handleGuestChange("adults", 1)}
-              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100"
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 cursor-pointer"
             >
               <FontAwesomeIcon icon={faChevronRight} size="sm" />
             </button>
@@ -493,49 +522,28 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
             <button
               onClick={() => handleGuestChange("children", -1)}
               disabled={guests.children <= 0}
-              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 cursor-pointer"
             >
               <FontAwesomeIcon icon={faChevronLeft} size="sm" />
             </button>
             <span className="w-8 text-center font-medium">{guests.children}</span>
             <button
               onClick={() => handleGuestChange("children", 1)}
-              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100"
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 cursor-pointer"
             >
               <FontAwesomeIcon icon={faChevronRight} size="sm" />
             </button>
           </div>
         </div>
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <div className="font-medium text-gray-800">Rooms</div>
-            <div className="text-sm text-gray-500">Number of rooms</div>
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => handleGuestChange("rooms", -1)}
-              disabled={guests.rooms <= 1}
-              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-            >
-              <FontAwesomeIcon icon={faChevronLeft} size="sm" />
-            </button>
-            <span className="w-8 text-center font-medium">{guests.rooms}</span>
-            <button
-              onClick={() => handleGuestChange("rooms", 1)}
-              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100"
-            >
-              <FontAwesomeIcon icon={faChevronRight} size="sm" />
-            </button>
-          </div>
-        </div>
+        
         <div className="pt-4 border-t border-gray-200">
           <div className="text-center mb-4">
-            <div className="text-sm text-gray-600">Total Guests</div>
+            <div className="text-sm text-gray-600">Total {category.includes('restaurant') ? 'People' : 'Guests'}</div>
             <div className="text-xl font-bold text-blue-600">{totalGuests}</div>
           </div>
           <button
             onClick={onClose}
-            className="w-full py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium"
+            className="w-full py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium cursor-pointer"
           >
             Done
           </button>
@@ -578,13 +586,13 @@ const EmptySearchModal = ({ onClose, onConfirm }) => {
         <div className="space-y-3">
           <button
             onClick={onConfirm}
-            className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
           >
             Enter Search Term
           </button>
           <button
             onClick={onClose}
-            className="w-full py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+            className="w-full py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
           >
             Cancel
           </button>
@@ -681,9 +689,21 @@ const MobileSearchModal = ({
               <input
                 ref={inputRef}
                 type="text"
-                className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none text-gray-900 placeholder:text-gray-500"
+                className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none text-gray-900 placeholder:text-gray-500 cursor-text"
                 value={inputValue}
                 onChange={handleInputChange}
+                onFocus={() => {
+                  // ✅ LOCATION CLEARING FIX: Clear location when focused
+                  const params = new URLSearchParams(window.location.search);
+                  const urlLocation = params.get("location.area") || params.get("location");
+                  if (urlLocation && looksLikeLocation(urlLocation)) {
+                    // Clear the input if it contains a location
+                    if (looksLikeLocation(inputValue)) {
+                      setInputValue("");
+                      onTyping("");
+                    }
+                  }
+                }}
                 onKeyPress={handleKeyPress}
                 placeholder={`Search ${activeCategory.toLowerCase()}...`}
                 autoFocus
@@ -1340,10 +1360,15 @@ const DiscoverIbadan = () => {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => handleSearchChange(e.target.value)}
-                        onFocus={handleSearchFocus}
+                        onFocus={() => {
+                          // ✅ LOCATION CLEARING FIX: Clear location when focused
+                          if (looksLikeLocation(searchQuery)) {
+                            setSearchQuery("");
+                          }
+                        }}
                         onKeyPress={handleKeyPress}
                         placeholder={getSearchPlaceholder()}
-                        className="bg-transparent outline-none w-full text-gray-900 placeholder-gray-500 text-xs min-w-0"
+                        className="bg-transparent outline-none w-full text-gray-900 placeholder-gray-500 text-xs min-w-0 cursor-text"
                       />
                       {searchQuery && (
                         <button
@@ -1501,6 +1526,7 @@ const DiscoverIbadan = () => {
           guests={guests}
           onChange={handleGuestsChange}
           onClose={() => setShowGuestSelector(false)}
+          category={activeTab.toLowerCase()}
         />
       )}
       {showEmptySearchModal && (

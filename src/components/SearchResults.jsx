@@ -318,8 +318,8 @@ const SimpleCalendar = ({ onSelect, onClose, selectedDate: propSelectedDate, isC
   );
 };
 
-// ================== GUEST SELECTOR FOR EDITING ==================
-const GuestSelector = ({ guests, onChange, onClose }) => {
+// ================== GUEST SELECTOR FOR EDITING (UPDATED FOR DIFFERENT CATEGORIES) ==================
+const GuestSelector = ({ guests, onChange, onClose, category = 'hotel' }) => {
   const modalRef = useRef(null);
 
   useEffect(() => {
@@ -347,7 +347,36 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
         ref={modalRef}
         className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl z-[10001] w-80 p-6"
       >
-        <h3 className="font-semibold text-gray-800 mb-6 text-center">Guests & Rooms</h3>
+        <h3 className="font-semibold text-gray-800 mb-6 text-center">
+          {category.includes('restaurant') ? 'Number of People' : 'Guests & Rooms'}
+        </h3>
+        
+        {/* ROOMS SECTION - NOT FOR RESTAURANTS */}
+        {!category.includes('restaurant') && (
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <div className="font-medium text-gray-800">Rooms</div>
+              <div className="text-sm text-gray-500">Number of rooms</div>
+            </div>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => handleGuestChange("rooms", -1)}
+                disabled={guests.rooms <= 1}
+                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 cursor-pointer"
+              >
+                <FontAwesomeIcon icon={faChevronLeft} size="sm" />
+              </button>
+              <span className="w-8 text-center font-medium">{guests.rooms}</span>
+              <button
+                onClick={() => handleGuestChange("rooms", 1)}
+                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 cursor-pointer"
+              >
+                <FontAwesomeIcon icon={faChevronRight} size="sm" />
+              </button>
+            </div>
+          </div>
+        )}
+        
         <div className="flex justify-between items-center mb-6">
           <div>
             <div className="font-medium text-gray-800">Adults</div>
@@ -392,31 +421,10 @@ const GuestSelector = ({ guests, onChange, onClose }) => {
             </button>
           </div>
         </div>
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <div className="font-medium text-gray-800">Rooms</div>
-            <div className="text-sm text-gray-500">Number of rooms</div>
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => handleGuestChange("rooms", -1)}
-              disabled={guests.rooms <= 1}
-              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 cursor-pointer"
-            >
-              <FontAwesomeIcon icon={faChevronLeft} size="sm" />
-            </button>
-            <span className="w-8 text-center font-medium">{guests.rooms}</span>
-            <button
-              onClick={() => handleGuestChange("rooms", 1)}
-              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 cursor-pointer"
-            >
-              <FontAwesomeIcon icon={faChevronRight} size="sm" />
-            </button>
-          </div>
-        </div>
+        
         <div className="pt-4 border-t border-gray-200">
           <div className="text-center mb-4">
-            <div className="text-sm text-gray-600">Total Guests</div>
+            <div className="text-sm text-gray-600">Total {category.includes('restaurant') ? 'People' : 'Guests'}</div>
             <div className="text-xl font-bold text-blue-600">{totalGuests}</div>
           </div>
           <button
@@ -567,7 +575,7 @@ const MobileSearchModal = ({
                 value={inputValue}
                 onChange={handleInputChange}
                 onFocus={() => {
-                  // Clear current location when focused
+                  // ✅ LOCATION CLEARING FIX: Clear current location when focused
                   const urlParams = new URLSearchParams(window.location.search);
                   const urlLocation = urlParams.get("location.area") || urlParams.get("location");
                   if (urlLocation && looksLikeLocation(urlLocation)) {
@@ -575,6 +583,12 @@ const MobileSearchModal = ({
                     urlParams.delete("location.area");
                     urlParams.delete("location");
                     window.history.replaceState({}, '', `${window.location.pathname}?${urlParams.toString()}`);
+                    
+                    // Clear the input if it contains a location
+                    if (looksLikeLocation(inputValue)) {
+                      setInputValue("");
+                      onTyping("");
+                    }
                   }
                 }}
                 placeholder={`Search ${activeCategory.toLowerCase()}...`}
@@ -776,6 +790,7 @@ const MobileSearchModal = ({
           guests={tempGuests}
           onChange={setTempGuests}
           onClose={() => setShowGuestSelector(false)}
+          category={activeCategory.toLowerCase()}
         />
       )}
     </>,
@@ -1394,6 +1409,89 @@ const DesktopSearchSuggestions = ({
   );
 };
 
+// ================== CATEGORY SWITCH LOADER COMPONENT ==================
+
+const CategorySwitchLoader = ({ isMobile = false, previousCategory = '', newCategory = '' }) => {
+  return (
+    <div 
+      className={`fixed inset-0 z-[99999] flex items-center justify-center transition-all duration-300 ${
+        isMobile ? 'bg-white/95' : 'bg-white/90 backdrop-blur-sm'
+      }`}
+      style={{
+        pointerEvents: 'all',
+        animation: 'fadeIn 0.3s ease-out'
+      }}
+    >
+      <div className={`flex flex-col items-center justify-center ${isMobile ? 'p-4' : 'p-6'}`}>
+        {/* Animated spinner */}
+        <div className="relative mb-6">
+          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-[#06EAFC]/10 rounded-full`}></div>
+          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-transparent border-t-[#06EAFC] rounded-full absolute top-0 left-0 animate-spin`}></div>
+          <div className={`${isMobile ? 'w-8 h-8' : 'w-12 h-12'} border-4 border-transparent border-b-[#00E38C] rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-spin`} style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+        </div>
+        
+        {/* Loading text with category transition */}
+        <div className="text-center max-w-sm">
+          <p className={`font-bold text-gray-900 ${isMobile ? 'text-base' : 'text-xl'} mb-2`}>
+            Switching Categories
+          </p>
+          <div className={`flex items-center justify-center gap-2 ${isMobile ? 'text-sm' : 'text-base'} text-gray-600 mb-4`}>
+            {previousCategory && (
+              <>
+                <span className="px-3 py-1 bg-gray-100 rounded-lg">{previousCategory}</span>
+                <FontAwesomeIcon icon={faChevronRight} className="text-[#06EAFC]" />
+              </>
+            )}
+            {newCategory && (
+              <span className="px-3 py-1 bg-[#06EAFC]/10 text-[#06EAFC] font-medium rounded-lg">{newCategory}</span>
+            )}
+          </div>
+          <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+            Loading new listings...
+          </p>
+        </div>
+        
+        {/* Animated dots */}
+        <div className="flex space-x-1 mt-6">
+          <div className="w-2 h-2 bg-[#06EAFC] rounded-full animate-pulse"></div>
+          <div className="w-2 h-2 bg-[#06EAFC] rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+          <div className="w-2 h-2 bg-[#06EAFC] rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+        </div>
+      </div>
+      
+      {/* Embedded CSS styles */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.9); }
+        }
+        
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+        
+        .animate-pulse {
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        .category-switch-loader {
+          animation: fadeIn 0.3s ease-out;
+        }
+      `}</style>
+    </div>
+  );
+};
+
 // ================== SEARCH RESULT BUSINESS CARD ==================
 
 const SearchResultBusinessCard = ({ item, category, isMobile }) => {
@@ -1880,7 +1978,7 @@ const useAuthStatus = () => {
 
 // ================== CATEGORY BUTTONS COMPONENT ==================
 
-const CategoryButtons = ({ selectedCategories, onCategoryClick }) => {
+const CategoryButtons = ({ selectedCategories, onCategoryClick, isSwitchingCategory = false }) => {
   const buttonConfigs = [
     { 
       key: "hotel", 
@@ -1926,7 +2024,16 @@ const CategoryButtons = ({ selectedCategories, onCategoryClick }) => {
   }, []);
 
   return (
-    <div className="mt-4 md:mt-6 mb-4 md:mb-6">
+    <div className="mt-4 md:mt-6 mb-4 md:mb-6 relative">
+      {isSwitchingCategory && (
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-xs z-10 rounded-xl flex items-center justify-center">
+          <div className="flex flex-col items-center">
+            <div className="w-8 h-8 border-3 border-[#06EAFC] border-t-transparent rounded-full animate-spin mb-2"></div>
+            <span className="text-xs text-gray-600">Switching...</span>
+          </div>
+        </div>
+      )}
+      
       <div className="relative">
         <div className="md:hidden overflow-x-auto scrollbar-hide pb-2">
           <div className="flex space-x-2 min-w-max px-1">
@@ -1938,6 +2045,7 @@ const CategoryButtons = ({ selectedCategories, onCategoryClick }) => {
                 <button
                   key={button.key}
                   onClick={() => onCategoryClick(button.key)}
+                  disabled={isSwitchingCategory}
                   className={`
                     flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-full
                     whitespace-nowrap transition-all duration-200 font-medium
@@ -1945,6 +2053,7 @@ const CategoryButtons = ({ selectedCategories, onCategoryClick }) => {
                       ? 'bg-[#06f49f] text-white shadow-sm'
                       : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
                     }
+                    ${isSwitchingCategory ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}
                     text-xs
                   `}
                   style={{ minWidth: 'auto' }}
@@ -1973,6 +2082,7 @@ const CategoryButtons = ({ selectedCategories, onCategoryClick }) => {
                 <button
                   key={button.key}
                   onClick={() => onCategoryClick(button.key)}
+                  disabled={isSwitchingCategory}
                   className={`
                     flex items-center justify-center gap-2 px-3 py-2.5 rounded-[15px]
                     transition-all duration-200 font-medium
@@ -1980,6 +2090,7 @@ const CategoryButtons = ({ selectedCategories, onCategoryClick }) => {
                       ? 'bg-[#06f49f] text-white shadow-sm'
                       : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
                     }
+                    ${isSwitchingCategory ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}
                     ${isMd ? 'text-sm px-3 py-2.5' : 'text-base px-4 py-3'}
                   `}
                 >
@@ -2004,7 +2115,7 @@ const CategoryButtons = ({ selectedCategories, onCategoryClick }) => {
   );
 };
 
-// ================== FIXED FILTER SIDEBAR ==================
+// ================== FIXED FILTER SIDEBAR (WITH LOCATION CLEARING FIX) ==================
 
 const FilterSidebar = ({
   onFilterChange,
@@ -2111,6 +2222,24 @@ const FilterSidebar = ({
     onFilterChange(updatedFilters);
   };
 
+  // ✅ LOCATION CLEARING FIX: Clear location when user focuses on location search input
+  const handleLocationSearchFocus = () => {
+    if (localFilters.locations.length > 0) {
+      const updatedFilters = {
+        ...localFilters,
+        locations: []
+      };
+      setLocalFilters(updatedFilters);
+      onFilterChange(updatedFilters);
+      
+      // Also clear from URL
+      const params = new URLSearchParams(window.location.search);
+      params.delete("location.area");
+      params.delete("location");
+      window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+    }
+  };
+
   const sidebarContent = (
     <div
       className={`space-y-6 ${isMobileModal ? "px-0" : ""}`}
@@ -2172,6 +2301,7 @@ const FilterSidebar = ({
                   placeholder="Search locations..."
                   value={locationSearch}
                   onChange={(e) => setLocationSearch(e.target.value)}
+                  onFocus={handleLocationSearchFocus} // ✅ LOCATION CLEARING FIX
                   className="w-full pl-10 pr-8 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-text"
                 />
                 {locationSearch && (
@@ -2679,6 +2809,88 @@ const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
   );
 };
 
+// ================== CSS STYLES FOR LOADER ==================
+
+const loaderStyles = `
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.9); }
+  }
+  
+  @keyframes slideInUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  @keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
+  @keyframes slideOutRight {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+  }
+  
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  @keyframes loadingProgress {
+    0% { width: 0%; transform: translateX(0); }
+    50% { width: 70%; transform: translateX(0); }
+    100% { width: 100%; transform: translateX(0); }
+  }
+  
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+  
+  .animate-pulse {
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  
+  .animate-bounce {
+    animation: bounce 0.6s ease-in-out infinite;
+  }
+  
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  .animate-slideInUp {
+    animation: slideInUp 0.3s ease-out;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .backdrop-blur-xs {
+    backdrop-filter: blur(2px);
+  }
+  
+  .category-switch-loader {
+    animation: fadeIn 0.3s ease-out;
+  }
+`;
+
 // ================== FIXED MAIN SEARCHRESULTS COMPONENT ==================
 
 const SearchResults = () => {
@@ -2723,6 +2935,11 @@ const SearchResults = () => {
   const [selectedCategoryButtons, setSelectedCategoryButtons] = useState([]);
   const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
   
+  // Category switching loader states
+  const [isSwitchingCategory, setIsSwitchingCategory] = useState(false);
+  const [previousCategory, setPreviousCategory] = useState('');
+  const [newCategory, setNewCategory] = useState('');
+  
   const [editingCheckIn, setEditingCheckIn] = useState(false);
   const [editingCheckOut, setEditingCheckOut] = useState(false);
   const [editingGuests, setEditingGuests] = useState(false);
@@ -2740,6 +2957,171 @@ const SearchResults = () => {
   const guests = guestsParam ? JSON.parse(guestsParam) : null;
 
   const { listings, loading, error, apiResponse, filteredCounts } = useBackendListings(searchQuery, activeFilters);
+
+  // ================== HELPER FUNCTIONS FOR DYNAMIC SEARCH FIELDS ==================
+  
+  // Helper to render category-specific search fields
+  const renderCategorySpecificFields = () => {
+    const activeCategory = activeFilters.categories[0]?.toLowerCase() || urlCategory?.toLowerCase() || 'hotel';
+    
+    // Hotel or Shortlet category
+    if (activeCategory.includes('hotel') || activeCategory.includes('shortlet')) {
+      return (
+        <>
+          {/* Dates Section */}
+          <div className="flex items-center gap-2">
+            <div
+              onClick={handleEditCheckIn}
+              className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
+            >
+              <div className="text-xs text-gray-600 mb-1">Check-in</div>
+              <div className="font-medium text-gray-900 text-sm">
+                {checkInDate ? formatDateForLargeScreen(checkInDate) : "Select date"}
+              </div>
+            </div>
+            
+            <div className="text-gray-400">→</div>
+            
+            <div
+              onClick={handleEditCheckOut}
+              className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
+            >
+              <div className="text-xs text-gray-600 mb-1">Check-out</div>
+              <div className="font-medium text-gray-900 text-sm">
+                {checkOutDate ? formatDateForLargeScreen(checkOutDate) : "Select date"}
+              </div>
+            </div>
+          </div>
+          
+          {/* Guests & Rooms */}
+          <div
+            onClick={handleEditGuests}
+            className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
+          >
+            <div className="text-xs text-gray-600 mb-1">Guests & Rooms</div>
+            <div className="font-medium text-gray-900 text-sm">
+              {guests ? `${guests.adults} adult${guests.adults !== 1 ? 's' : ''} • ${guests.rooms} room${guests.rooms !== 1 ? 's' : ''}` : "Select"}
+            </div>
+            {guests && guests.children > 0 && (
+              <div className="text-xs text-gray-500">
+                +{guests.children} child{guests.children !== 1 ? 'ren' : ''}
+              </div>
+            )}
+          </div>
+        </>
+      );
+    }
+    
+    // Restaurant category
+    else if (activeCategory.includes('restaurant')) {
+      return (
+        <>
+          {/* When are you visiting? */}
+          <div
+            onClick={handleEditCheckIn}
+            className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
+          >
+            <div className="text-xs text-gray-600 mb-1">When are you visiting?</div>
+            <div className="font-medium text-gray-900 text-sm">
+              {checkInDate ? formatDateForLargeScreen(checkInDate) : "Select date"}
+            </div>
+          </div>
+          
+          {/* Number of People */}
+          <div
+            onClick={handleEditGuests}
+            className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
+          >
+            <div className="text-xs text-gray-600 mb-1">Number of People</div>
+            <div className="font-medium text-gray-900 text-sm">
+              {guests ? `${guests.adults + guests.children} ${(guests.adults + guests.children) === 1 ? 'person' : 'people'}` : "Select"}
+            </div>
+            {guests && guests.children > 0 && (
+              <div className="text-xs text-gray-500">
+                ({guests.adults} adult{guests.adults !== 1 ? 's' : ''}, {guests.children} child{guests.children !== 1 ? 'ren' : ''})
+              </div>
+            )}
+          </div>
+        </>
+      );
+    }
+    
+    // Vendor/Services category
+    else if (activeCategory.includes('vendor') || activeCategory.includes('services')) {
+      return (
+        <div
+          onClick={handleEditCheckIn}
+          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
+        >
+          <div className="text-xs text-gray-600 mb-1">Preferred service date</div>
+          <div className="font-medium text-gray-900 text-sm">
+            {checkInDate ? formatDateForLargeScreen(checkInDate) : "Select date"}
+          </div>
+        </div>
+      );
+    }
+    
+    // Default (similar to hotel)
+    return (
+      <>
+        <div
+          onClick={handleEditCheckIn}
+          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
+        >
+          <div className="text-xs text-gray-600 mb-1">Check-in</div>
+          <div className="font-medium text-gray-900 text-sm">
+            {checkInDate ? formatDateForLargeScreen(checkInDate) : "Select date"}
+          </div>
+        </div>
+        
+        <div
+          onClick={handleEditCheckOut}
+          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
+        >
+          <div className="text-xs text-gray-600 mb-1">Check-out</div>
+          <div className="font-medium text-gray-900 text-sm">
+            {checkOutDate ? formatDateForLargeScreen(checkOutDate) : "Select date"}
+          </div>
+        </div>
+        
+        <div
+          onClick={handleEditGuests}
+          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
+        >
+          <div className="text-xs text-gray-600 mb-1">Guests & Rooms</div>
+          <div className="font-medium text-gray-900 text-sm">
+            {guests ? `${guests.adults} adult${guests.adults !== 1 ? 's' : ''} • ${guests.rooms} room${guests.rooms !== 1 ? 's' : ''}` : "Select"}
+          </div>
+        </div>
+      </>
+    );
+  };
+
+  // Get search button text based on category
+  const getSearchButtonText = () => {
+    const activeCategory = activeFilters.categories[0]?.toLowerCase() || urlCategory?.toLowerCase() || 'hotel';
+    
+    if (activeCategory.includes('restaurant')) return "Find Restaurant";
+    if (activeCategory.includes('shortlet')) return "Find Shortlet";
+    if (activeCategory.includes('vendor') || activeCategory.includes('services')) return "Find Vendor";
+    return "Find Hotel";
+  };
+
+  // Get mobile search summary
+  const getMobileSearchSummary = () => {
+    const activeCategory = activeFilters.categories[0]?.toLowerCase() || urlCategory?.toLowerCase() || 'hotel';
+    
+    if (checkInDate && checkOutDate) {
+      if (activeCategory.includes('restaurant')) {
+        return `${formatDate(checkInDate).split(' ').slice(1).join(' ')} • ${(guests?.adults || 0) + (guests?.children || 0)} ${((guests?.adults || 0) + (guests?.children || 0)) === 1 ? 'person' : 'people'}`;
+      } else if (activeCategory.includes('vendor') || activeCategory.includes('services')) {
+        return `${formatDate(checkInDate).split(' ').slice(1).join(' ')}`;
+      } else {
+        return `${formatDate(checkInDate).split(' ').slice(1).join(' ')} - ${formatDate(checkOutDate).split(' ').slice(1).join(' ')} • ${(guests?.adults || 0) + (guests?.children || 0)} guest${((guests?.adults || 0) + (guests?.children || 0)) !== 1 ? 's' : ''}`;
+      }
+    }
+    return "Select dates • Add guests";
+  };
 
   useEffect(() => {
     const scrollToTop = () => {
@@ -2875,6 +3257,7 @@ const SearchResults = () => {
     return "hotel";
   };
 
+  // ✅ LOCATION CLEARING FIX: Handle search focus to clear location
   const handleSearchFocus = () => {
     // Clear current location when focused
     if (urlLocation && looksLikeLocation(urlLocation)) {
@@ -2889,6 +3272,11 @@ const SearchResults = () => {
         locations: []
       };
       setActiveFilters(updatedFilters);
+      
+      // Clear the input if it contains a location
+      if (looksLikeLocation(localSearchQuery)) {
+        setLocalSearchQuery("");
+      }
     }
     
     if (isMobile) {
@@ -3066,6 +3454,88 @@ const SearchResults = () => {
     setSearchParams(params);
   };
 
+  // ✅ CATEGORY SWITCHING: Updated handler with loader
+  const handleCategoryButtonClick = (categoryKey) => {
+    // Set loading state
+    setIsSwitchingCategory(true);
+    const currentCategory = activeFilters.categories[0] || 
+                           (selectedCategoryButtons[0] ? 
+                            getCategoryDisplayName(selectedCategoryButtons[0]) : 
+                            'All Categories');
+    setPreviousCategory(currentCategory);
+    
+    const categoryMap = {
+      'hotel': 'Hotels',
+      'restaurant': 'Restaurants',
+      'shortlet': 'Shortlets',
+      'vendor': 'Vendors'
+    };
+    setNewCategory(categoryMap[categoryKey] || categoryKey);
+    
+    const params = new URLSearchParams();
+    
+    // Keep existing search query if any
+    if (searchQuery) {
+      if (looksLikeLocation(searchQuery)) {
+        params.set("location.area", searchQuery);
+      } else {
+        params.set("q", searchQuery);
+      }
+    }
+    
+    // Keep existing location filters (if any)
+    if (activeFilters.locations.length > 0) {
+      params.set("location.area", activeFilters.locations[0]);
+    }
+    
+    // Set category
+    const categoryActualMap = {
+      'hotel': 'hotel',
+      'restaurant': 'restaurant',
+      'shortlet': 'shortlet',
+      'vendor': 'services'
+    };
+    
+    const actualCategory = categoryActualMap[categoryKey] || categoryKey;
+    const newSelectedCategories = [categoryKey];
+    setSelectedCategoryButtons(newSelectedCategories);
+    
+    // Always set category in URL
+    params.set("category", actualCategory);
+    
+    // ✅ FIX 2: Always pass dates
+    const checkInToUse = checkInDate || new Date();
+    const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
+    
+    params.set("checkInDate", checkInToUse.toISOString());
+    params.set("checkOutDate", checkOutToUse.toISOString());
+    
+    if (guests) {
+      params.set("guests", JSON.stringify(guests));
+    }
+    
+    setSearchParams(params);
+    
+    const displayName = getCategoryDisplayName(actualCategory);
+    const updatedFilters = {
+      ...activeFilters,
+      categories: [displayName],
+    };
+    setActiveFilters(updatedFilters);
+    
+    console.log("🔧 Category button clicked:", {
+      categoryKey,
+      actualCategory,
+      displayName,
+      params: params.toString()
+    });
+    
+    // Auto-hide loader after data loads or timeout
+    setTimeout(() => {
+      setIsSwitchingCategory(false);
+    }, 1500);
+  };
+
   const handleSuggestionClick = useCallback(
     (url) => {
       navigate(url);
@@ -3109,67 +3579,6 @@ const SearchResults = () => {
     }
     
     setSearchParams(params);
-  };
-
-  // ✅ FIXED: Handle category button clicks
-  const handleCategoryButtonClick = (categoryKey) => {
-    const params = new URLSearchParams();
-    
-    // Keep existing search query if any
-    if (searchQuery) {
-      if (looksLikeLocation(searchQuery)) {
-        params.set("location.area", searchQuery);
-      } else {
-        params.set("q", searchQuery);
-      }
-    }
-    
-    // Keep existing location filters (if any)
-    if (activeFilters.locations.length > 0) {
-      params.set("location.area", activeFilters.locations[0]);
-    }
-    
-    // Set category
-    const categoryMap = {
-      'hotel': 'hotel',
-      'restaurant': 'restaurant',
-      'shortlet': 'shortlet',
-      'vendor': 'services'
-    };
-    
-    const actualCategory = categoryMap[categoryKey] || categoryKey;
-    const newSelectedCategories = [categoryKey];
-    setSelectedCategoryButtons(newSelectedCategories);
-    
-    // Always set category in URL
-    params.set("category", actualCategory);
-    
-    // ✅ FIX 2: Always pass dates
-    const checkInToUse = checkInDate || new Date();
-    const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
-    
-    params.set("checkInDate", checkInToUse.toISOString());
-    params.set("checkOutDate", checkOutToUse.toISOString());
-    
-    if (guests) {
-      params.set("guests", JSON.stringify(guests));
-    }
-    
-    setSearchParams(params);
-    
-    const displayName = getCategoryDisplayName(actualCategory);
-    const updatedFilters = {
-      ...activeFilters,
-      categories: [displayName],
-    };
-    setActiveFilters(updatedFilters);
-    
-    console.log("🔧 Category button clicked:", {
-      categoryKey,
-      actualCategory,
-      displayName,
-      params: params.toString()
-    });
   };
 
   // Handle date editing
@@ -3234,11 +3643,12 @@ const SearchResults = () => {
 
   // Get search placeholder for desktop
   const getSearchPlaceholder = () => {
-    const category = activeFilters.categories[0] || "places";
-    if (category.toLowerCase().includes("vendor")) return "What service do you need?";
-    if (category.toLowerCase().includes("restaurant")) return "Search by restaurant name, cuisine, or area...";
-    if (category.toLowerCase().includes("shortlet")) return "Search by shortlet name, area, or location...";
-    if (category.toLowerCase().includes("hotel")) return "Search by hotel name, area, or location...";
+    const activeCategory = activeFilters.categories[0]?.toLowerCase() || urlCategory?.toLowerCase() || 'hotel';
+    
+    if (activeCategory.includes('vendor') || activeCategory.includes('services')) return "What service do you need?";
+    if (activeCategory.includes('restaurant')) return "Search by restaurant name, cuisine, or area...";
+    if (activeCategory.includes('shortlet')) return "Search by shortlet name, area, or location...";
+    if (activeCategory.includes('hotel')) return "Search by hotel name, area, or location...";
     return "Search...";
   };
 
@@ -3336,6 +3746,21 @@ const SearchResults = () => {
     };
   }, [showDesktopFilters]);
 
+  // Auto-hide loader timeout
+  useEffect(() => {
+    let timeoutId;
+    
+    if (isSwitchingCategory) {
+      timeoutId = setTimeout(() => {
+        setIsSwitchingCategory(false);
+      }, 5000); // Auto-hide after 5 seconds max
+    }
+    
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isSwitchingCategory]);
+
   const ITEMS_PER_PAGE = 20;
   const totalPages = Math.ceil((apiResponse?.results || 0) / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -3375,7 +3800,7 @@ const SearchResults = () => {
     return `${total} ${total === 1 ? 'place' : 'places'} found`;
   };
 
-  if (loading && isMobile) {
+  if (loading && isMobile && !isSwitchingCategory) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center">
@@ -3422,6 +3847,18 @@ const SearchResults = () => {
         image="https://ajani.ai/images/search-og.jpg"
       />
 
+      {/* Add the CSS styles */}
+      <style>{loaderStyles}</style>
+      
+      {/* Category Switch Loader */}
+      {isSwitchingCategory && (
+        <CategorySwitchLoader 
+          isMobile={isMobile} 
+          previousCategory={previousCategory}
+          newCategory={newCategory}
+        />
+      )}
+
       <div className="hidden md:block">
         <Header />
       </div>
@@ -3461,7 +3898,7 @@ const SearchResults = () => {
                   >
                     <form onSubmit={handleSearchSubmit}>
                       <div className="flex items-center justify-center w-full">
-                        {/* DESKTOP SEARCH BAR - Full hero design with dates and guests */}
+                        {/* DESKTOP SEARCH BAR - Dynamic based on category */}
                         {!isMobile ? (
                           <div className="hidden lg:block w-full max-w-6xl mx-auto">
                             <div className="relative w-full">
@@ -3478,13 +3915,7 @@ const SearchResults = () => {
                                         type="text"
                                         value={localSearchQuery}
                                         onChange={(e) => handleSearchChange(e.target.value)}
-                                        onFocus={() => {
-                                          handleSearchFocus();
-                                          // Clear the search input if it contains a location
-                                          if (urlLocation && looksLikeLocation(localSearchQuery)) {
-                                            setLocalSearchQuery("");
-                                          }
-                                        }}
+                                        onFocus={handleSearchFocus}
                                         onKeyPress={handleKeyPress}
                                         placeholder={getSearchPlaceholder()}
                                         className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 cursor-text"
@@ -3500,46 +3931,8 @@ const SearchResults = () => {
                                     </div>
                                   </div>
                                   
-                                  {/* Dates Section */}
-                                  <div className="flex items-center gap-2">
-                                    <div
-                                      onClick={handleEditCheckIn}
-                                      className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
-                                    >
-                                      <div className="text-xs text-gray-600 mb-1">Check-in</div>
-                                      <div className="font-medium text-gray-900 text-sm">
-                                        {checkInDate ? formatDateForLargeScreen(checkInDate) : "Select date"}
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="text-gray-400">→</div>
-                                    
-                                    <div
-                                      onClick={handleEditCheckOut}
-                                      className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
-                                    >
-                                      <div className="text-xs text-gray-600 mb-1">Check-out</div>
-                                      <div className="font-medium text-gray-900 text-sm">
-                                        {checkOutDate ? formatDateForLargeScreen(checkOutDate) : "Select date"}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Guests & Rooms */}
-                                  <div
-                                    onClick={handleEditGuests}
-                                    className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
-                                  >
-                                    <div className="text-xs text-gray-600 mb-1">Guests & Rooms</div>
-                                    <div className="font-medium text-gray-900 text-sm">
-                                      {guests ? `${guests.adults} adult${guests.adults !== 1 ? 's' : ''} • ${guests.rooms} room${guests.rooms !== 1 ? 's' : ''}` : "Select"}
-                                    </div>
-                                    {guests && guests.children > 0 && (
-                                      <div className="text-xs text-gray-500">
-                                        +{guests.children} child{guests.children !== 1 ? 'ren' : ''}
-                                      </div>
-                                    )}
-                                  </div>
+                                  {/* DYNAMIC FIELDS BASED ON CATEGORY */}
+                                  {renderCategorySpecificFields()}
                                   
                                   {/* Search Button */}
                                   <button
@@ -3547,7 +3940,7 @@ const SearchResults = () => {
                                     className="px-6 py-3 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold rounded-lg hover:from-[#00c97b] hover:to-teal-600 transition-all duration-300 cursor-pointer"
                                   >
                                     <FontAwesomeIcon icon={faSearch} className="mr-2" />
-                                    Search
+                                    {getSearchButtonText()}
                                   </button>
                                 </div>
                               </div>
@@ -3568,11 +3961,7 @@ const SearchResults = () => {
                                 {getLocationDisplayName(urlLocation || searchQuery) || "Where to?"}
                               </span>
                               <span className="text-gray-600 text-[12px] truncate">
-                                {checkInDate && checkOutDate ? (
-                                  `${formatDate(checkInDate).split(' ').slice(1).join(' ')} - ${formatDate(checkOutDate).split(' ').slice(1).join(' ')} • ${(guests?.adults || 0) + (guests?.children || 0)} guest${((guests?.adults || 0) + (guests?.children || 0)) !== 1 ? 's' : ''}`
-                                ) : (
-                                  "Select dates • Add guests"
-                                )}
+                                {getMobileSearchSummary()}
                               </span>
                             </div>
                           </div>
@@ -3589,6 +3978,7 @@ const SearchResults = () => {
             <CategoryButtons
               selectedCategories={selectedCategoryButtons}
               onCategoryClick={handleCategoryButtonClick}
+              isSwitchingCategory={isSwitchingCategory}
             />
           </div>
         </div>
@@ -3668,6 +4058,7 @@ const SearchResults = () => {
               setShowEditGuestSelector(false);
               setEditingGuests(false);
             }}
+            category={activeCategory.toLowerCase()}
           />
         )}
 
