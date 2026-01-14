@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
@@ -19,7 +19,9 @@ import {
   faCheckCircle,
   faArrowLeft,
   faCheck,
-  faTimes
+  faTimes,
+  faChevronLeft,
+  faChevronRight
 } from "@fortawesome/free-solid-svg-icons";
 import { CiBookmark } from "react-icons/ci";
 import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
@@ -27,8 +29,6 @@ import { FaBookOpen } from "react-icons/fa";
 import { HiLocationMarker } from "react-icons/hi";
 import { RiShare2Line } from "react-icons/ri";
 import { VscVerifiedFilled } from "react-icons/vsc";
-import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
-import { IoClose } from "react-icons/io5";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import RoomSelection from "../components/RoomSelection";
@@ -269,6 +269,7 @@ const SmallImage = ({ src, onClick }) => {
       <img
         src={src}
         className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+        alt="Gallery thumbnail"
       />
     </div>
   );
@@ -345,6 +346,8 @@ const VendorDetail = () => {
   
   // Gallery state
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [singleImageView, setSingleImageView] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
   // Review States
   const [reviews, setReviews] = useState([]);
@@ -661,7 +664,7 @@ const VendorDetail = () => {
           <p class="font-medium">${message}</p>
           <p class="text-sm opacity-80 mt-1">${vendor?.title || vendor?.name || "Vendor"}</p>
         </div>
-        <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70 transition-opacity">
+        <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70 transition-opacity cursor-pointer">
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
           </svg>
@@ -947,6 +950,56 @@ const VendorDetail = () => {
     return filledImages.slice(0, 5);
   };
 
+  // Gallery navigation functions
+  const nextImage = () => {
+    const galleryImages = getGalleryImages();
+    setCurrentImageIndex((prev) => (prev + 1) % galleryImages.length);
+  };
+
+  const prevImage = () => {
+    const galleryImages = getGalleryImages();
+    setCurrentImageIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
+  };
+
+  // Handle keyboard navigation in gallery
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!galleryOpen) return;
+      
+      if (e.key === 'Escape') {
+        if (singleImageView) {
+          setSingleImageView(false);
+        } else {
+          setGalleryOpen(false);
+        }
+      } else if (e.key === 'ArrowRight') {
+        nextImage();
+      } else if (e.key === 'ArrowLeft') {
+        prevImage();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [galleryOpen, singleImageView]);
+
+  // Handle image click in gallery
+  const handleImageClick = (index) => {
+    setCurrentImageIndex(index);
+    setSingleImageView(true);
+  };
+
+  // Handle back from single image view
+  const handleSingleImageBack = () => {
+    setSingleImageView(false);
+  };
+
+  // Handle close gallery
+  const handleCloseGallery = () => {
+    setGalleryOpen(false);
+    setSingleImageView(false);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -968,7 +1021,7 @@ const VendorDetail = () => {
           <p className="text-gray-600 mb-6">{error || "The vendor you're looking for doesn't exist or has been removed."}</p>
           <button 
             onClick={() => navigate("/")}
-            className="px-6 py-3 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors"
+            className="px-6 py-3 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors cursor-pointer"
           >
             Return Home
           </button>
@@ -995,34 +1048,41 @@ const VendorDetail = () => {
       
       <main className="md:pt-5 pt-1">
         <div className="md:max-w-[1245px] md:mx-auto">
-          {/* Breadcrumb with Back Button */}
+          {/* Breadcrumb with Back Button - FIXED ROUTE CENTERED */}
           <div className="px-4 md:px-4">
-            <nav className="flex items-center space-x-2 text-xs text-gray-600 mb-2 md:mb-2 font-manrope">
+            <nav className="flex items-center justify-between text-xs text-gray-600 mb-2 md:mb-2 font-manrope">
+              {/* Back Button - Far Left */}
               <button
                 onClick={() => navigate(-1)}
-                className="flex items-center gap-1 hover:text-[#06EAFC] transition-colors"
+                className="flex items-center gap-1 hover:text-[#06EAFC] transition-colors cursor-pointer"
               >
                 <FontAwesomeIcon icon={faArrowLeft} className="text-gray-800 text-sm" />
                 <span className="hidden sm:inline">Back</span>
               </button>
-              <span className="hidden sm:inline">/</span>
-              <Link
-                to="/"
-                className="hover:text-[#06EAFC] transition-colors hover:underline"
-              >
-                Home
-              </Link>
-              <span>/</span>
-              <Link
-                to={`/category/${category.toLowerCase().replace(/\s+/g, "-")}`}
-                className="hover:text-[#06EAFC] transition-colors hover:underline"
-              >
-                {categoryDisplay}
-              </Link>
-              <span>/</span>
-              <span className="text-gray-900 truncate max-w-[120px] md:max-w-xs">
-                {vendor.title || vendor.name}
-              </span>
+
+              {/* Centered Route */}
+              <div className="flex items-center space-x-2 absolute left-1/2 transform -translate-x-1/2">
+                <Link
+                  to="/"
+                  className="hover:text-[#06EAFC] transition-colors hover:underline cursor-pointer"
+                >
+                  Home
+                </Link>
+                <span>/</span>
+                <Link
+                  to={`/category/${category.toLowerCase().replace(/\s+/g, "-")}`}
+                  className="hover:text-[#06EAFC] transition-colors hover:underline cursor-pointer"
+                >
+                  {categoryDisplay}
+                </Link>
+                <span>/</span>
+                <span className="text-gray-900 truncate max-w-[100px] md:max-w-xs">
+                  {vendor.title || vendor.name}
+                </span>
+              </div>
+
+              {/* Empty div for spacing */}
+              <div className="w-10"></div>
             </nav>
           </div>
 
@@ -1036,7 +1096,7 @@ const VendorDetail = () => {
                       <h1 className="text-lg md:text-xl lg:text-3xl font-bold text-gray-900 font-manrope line-clamp-2 flex-1">
                         {vendor.title || vendor.name}
                       </h1>
-                      <VscVerifiedFilled className="text-green-500 text-base md:text-xl hover:scale-110 transition-transform duration-200" />
+                      <VscVerifiedFilled className="text-green-500 text-base md:text-xl hover:scale-110 transition-transform duration-200 cursor-pointer" />
                     </div>
                     
                     {/* MOBILE: Share and Bookmark buttons inline */}
@@ -1072,27 +1132,27 @@ const VendorDetail = () => {
 
                   <div className="flex flex-row md:flex-row md:items-center gap-2 md:gap-4 lg:gap-8">
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-700 font-medium py-1 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200">
+                      <span className="text-gray-700 font-medium py-1 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200 cursor-pointer">
                         {categoryDisplay}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1 hover:scale-105 transition-transform duration-200">
+                      <div className="flex items-center gap-1 hover:scale-105 transition-transform duration-200 cursor-pointer">
                         <FontAwesomeIcon
                           icon={faStar}
                           className="text-yellow-400 text-xs md:text-sm hover:text-yellow-500 transition-colors duration-200"
                         />
                       </div>
-                      <span className="font-bold text-gray-900 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200">
+                      <span className="font-bold text-gray-900 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200 cursor-pointer">
                         {vendor.rating || "4.5"}
                       </span>
-                      <span className="text-gray-600 font-manrope text-xs md:text-sm hover:text-gray-800 transition-colors duration-200">
+                      <span className="text-gray-600 font-manrope text-xs md:text-sm hover:text-gray-800 transition-colors duration-200 cursor-pointer">
                         ({reviewCount} Reviews)
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 text-gray-700 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200">
+                    <div className="flex items-center gap-2 text-gray-700 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200 cursor-pointer">
                       <FontAwesomeIcon
                         icon={faMapMarkerAlt}
                         className="text-gray-500 text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200"
@@ -1114,7 +1174,7 @@ const VendorDetail = () => {
                       >
                         <RiShare2Line className="text-gray-600 text-base md:text-xl group-hover:text-[#06EAFC] transition-colors duration-300" />
                       </button>
-                      <span className="text-gray-600 text-xs md:text-sm font-manrope hidden md:inline group-hover:text-[#06EAFC] transition-colors duration-300">
+                      <span className="text-gray-600 text-xs md:text-sm font-manrope hidden md:inline group-hover:text-[#06EAFC] transition-colors duration-300 cursor-pointer">
                         Share
                       </span>
                     </div>
@@ -1152,7 +1212,7 @@ const VendorDetail = () => {
                           <CiBookmark className="text-base md:text-xl text-gray-600 group-hover:text-[#06EAFC] group-hover:scale-110 transition-all duration-300" />
                         )}
                       </button>
-                      <span className="text-gray-600 text-xs md:text-sm font-manrope hidden md:inline group-hover:text-[#06EAFC] transition-colors duration-300">
+                      <span className="text-gray-600 text-xs md:text-sm font-manrope hidden md:inline group-hover:text-[#06EAFC] transition-colors duration-300 cursor-pointer">
                         {isProcessing
                           ? "Processing..."
                           : isFavorite
@@ -1168,74 +1228,129 @@ const VendorDetail = () => {
             {/* ================= IMAGE GALLERY SECTION ================= */}
             {/* Desktop Gallery Layout (lg and above) */}
             <section className="hidden lg:block px-4">
-              <div className="relative grid grid-cols-4 grid-rows-2 gap-3 h-[360px] overflow-hidden rounded-xl">
+              <div className="relative grid grid-cols-4 grid-rows-2 gap-3 h-[340px] overflow-hidden rounded-xl">
                 {/* LEFT TOP */}
-                <SmallImage 
-                  src={galleryImages[0]} 
-                  onClick={() => setGalleryOpen(true)}
-                />
+                <div 
+                  onClick={() => {
+                    setCurrentImageIndex(0);
+                    setGalleryOpen(true);
+                  }}
+                  className="overflow-hidden cursor-pointer rounded-lg"
+                >
+                  <img
+                    src={galleryImages[0]}
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                    alt="Gallery thumbnail"
+                  />
+                </div>
 
                 {/* LEFT BOTTOM */}
-                <SmallImage 
-                  src={galleryImages[1]} 
-                  onClick={() => setGalleryOpen(true)}
-                />
+                <div 
+                  onClick={() => {
+                    setCurrentImageIndex(1);
+                    setGalleryOpen(true);
+                  }}
+                  className="overflow-hidden cursor-pointer rounded-lg"
+                >
+                  <img
+                    src={galleryImages[1]}
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                    alt="Gallery thumbnail"
+                  />
+                </div>
 
                 {/* CENTER BIG */}
                 <div
-                  onClick={() => setGalleryOpen(true)}
+                  onClick={() => {
+                    setCurrentImageIndex(2);
+                    setGalleryOpen(true);
+                  }}
                   className="col-span-2 row-span-2 overflow-hidden cursor-pointer rounded-lg"
                 >
                   <img
                     src={galleryImages[2]}
                     className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                    alt="Main gallery image"
                   />
                 </div>
 
                 {/* RIGHT TOP */}
-                <SmallImage 
-                  src={galleryImages[3]} 
-                  onClick={() => setGalleryOpen(true)}
-                />
+                <div 
+                  onClick={() => {
+                    setCurrentImageIndex(3);
+                    setGalleryOpen(true);
+                  }}
+                  className="overflow-hidden cursor-pointer rounded-lg"
+                >
+                  <img
+                    src={galleryImages[3]}
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                    alt="Gallery thumbnail"
+                  />
+                </div>
 
                 {/* RIGHT BOTTOM */}
-                <SmallImage 
-                  src={galleryImages[4]} 
-                  onClick={() => setGalleryOpen(true)}
-                />
+                <div 
+                  onClick={() => {
+                    setCurrentImageIndex(4);
+                    setGalleryOpen(true);
+                  }}
+                  className="overflow-hidden cursor-pointer rounded-lg"
+                >
+                  <img
+                    src={galleryImages[4]}
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                    alt="Gallery thumbnail"
+                  />
+                </div>
 
                 {/* View all photos button */}
                 <button
                   onClick={() => setGalleryOpen(true)}
-                  className="absolute bottom-4 right-4 bg-white text-sm font-medium px-4 py-2 rounded-lg shadow hover:bg-gray-100 transition-colors"
+                  className="absolute bottom-4 right-4 bg-white text-sm font-medium px-4 py-2 rounded-lg shadow hover:bg-gray-100 transition-colors cursor-pointer"
                 >
                   View all photos
                 </button>
               </div>
             </section>
 
-            {/* Mobile Gallery Layout */}
+            {/* Mobile Gallery Layout - NORMAL GALLERY STYLE */}
             <section className="lg:hidden px-4">
-              <div className="space-y-2">
-                {/* Main image */}
-                <div onClick={() => setGalleryOpen(true)} className="cursor-pointer">
+              <div className="space-y-3">
+                {/* Main image - Reduced height by 20px */}
+                <div 
+                  onClick={() => {
+                    setCurrentImageIndex(2);
+                    setGalleryOpen(true);
+                  }} 
+                  className="cursor-pointer relative"
+                >
                   <img
                     src={galleryImages[2]}
-                    className="w-full h-64 object-cover rounded-lg"
+                    className="w-full h-56 object-cover rounded-lg"
+                    alt="Main image"
                   />
+                  {/* View all overlay */}
+                  <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm">
+                    View all photos
+                  </div>
                 </div>
 
                 {/* Thumbnails */}
-                <div className="flex gap-2 px-2 overflow-x-auto pb-2">
+                <div className="flex gap-2 px-1 overflow-x-auto pb-2">
                   {galleryImages.map((img, i) => (
                     <div
                       key={i}
-                      onClick={() => setGalleryOpen(true)}
-                      className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg cursor-pointer"
+                      onClick={() => {
+                        setCurrentImageIndex(i);
+                        setGalleryOpen(true);
+                      }}
+                      className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                     >
                       <img
                         src={img}
                         className="w-full h-full object-cover"
+                        alt={`Thumbnail ${i + 1}`}
                       />
                     </div>
                   ))}
@@ -1245,35 +1360,82 @@ const VendorDetail = () => {
 
             {/* ================= GALLERY MODAL ================= */}
             {galleryOpen && (
-              <div className="fixed inset-0 z-50 bg-black">
+              <div className="fixed inset-0 z-[9999] bg-black">
+                {/* Main Close Button */}
                 <button
-                  onClick={() => setGalleryOpen(false)}
-                  className="fixed top-4 right-4 z-50 bg-white rounded-full px-4 py-2 text-sm font-medium hover:bg-gray-100 transition-colors"
+                  onClick={handleCloseGallery}
+                  className="fixed top-6 right-6 z-[10000] bg-white/90 hover:bg-white rounded-full w-12 h-12 flex items-center justify-center text-gray-800 font-medium hover:scale-110 transition-all duration-300 shadow-lg cursor-pointer"
+                  aria-label="Close gallery"
                 >
-                  ✕ Close
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
 
-                {/* MOBILE SCROLL (Agoda style) */}
-                <div className="lg:hidden h-full overflow-y-auto">
-                  {galleryImages.map((img, i) => (
-                    <img
-                      key={i}
-                      src={img}
-                      className="w-full object-cover mb-[2px]"
-                    />
-                  ))}
-                </div>
+                {/* SINGLE IMAGE VIEW */}
+                {singleImageView ? (
+                  <div className="h-full w-full">
+                    {/* Back Button for Single Image View */}
+                    <button
+                      onClick={handleSingleImageBack}
+                      className="fixed top-6 left-6 z-[10001] bg-white/90 hover:bg-white rounded-full w-12 h-12 flex items-center justify-center text-gray-800 font-medium hover:scale-110 transition-all duration-300 shadow-lg cursor-pointer"
+                      aria-label="Back to gallery"
+                    >
+                      <FontAwesomeIcon icon={faChevronLeft} className="w-5 h-5" />
+                    </button>
 
-                {/* DESKTOP GRID GALLERY */}
-                <div className="hidden lg:grid grid-cols-3 gap-2 p-6 overflow-y-auto h-full">
-                  {galleryImages.map((img, i) => (
-                    <img
-                      key={i}
-                      src={img}
-                      className="w-full h-64 object-cover rounded hover:scale-105 transition-transform duration-300"
-                    />
-                  ))}
-                </div>
+                    {/* Single Image Display */}
+                    <div className="flex items-center justify-center h-full w-full p-4">
+                      <img
+                        src={galleryImages[currentImageIndex]}
+                        className="max-w-full max-h-full object-contain rounded-lg"
+                        alt={`Gallery image ${currentImageIndex + 1}`}
+                      />
+                    </div>
+
+                    {/* Image Counter */}
+                    <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-[10000] bg-black/60 text-white px-3 py-1.5 rounded-full text-sm font-medium">
+                      {currentImageIndex + 1} / {galleryImages.length}
+                    </div>
+                  </div>
+                ) : (
+                  /* GALLERY GRID VIEW */
+                  <>
+                    {/* MOBILE SCROLL VIEW */}
+                    <div className="lg:hidden h-full overflow-y-auto pt-20 pb-10">
+                      {galleryImages.map((img, i) => (
+                        <div 
+                          key={i} 
+                          className="mb-[2px] cursor-pointer"
+                          onClick={() => handleImageClick(i)}
+                        >
+                          <img
+                            src={img}
+                            className="w-full h-auto object-cover"
+                            alt={`Gallery image ${i + 1}`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* DESKTOP GRID VIEW */}
+                    <div className="hidden lg:grid grid-cols-3 gap-4 p-8 overflow-y-auto h-full">
+                      {galleryImages.map((img, i) => (
+                        <div 
+                          key={i} 
+                          className="overflow-hidden rounded-lg hover:scale-105 transition-transform duration-300 cursor-pointer"
+                          onClick={() => handleImageClick(i)}
+                        >
+                          <img
+                            src={img}
+                            className="w-full h-64 object-cover"
+                            alt={`Gallery image ${i + 1}`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -1295,7 +1457,7 @@ const VendorDetail = () => {
                       {formatPrice(vendor.price_to || vendor.price || vendor.price_from)}
                     </span>
                   </div>
-                  <span className="text-gray-900 text-sm md:text-base mt-1">
+                  <span className="text-gray-900 text-sm md:text-base mt-1 cursor-pointer">
                     {category === 'hotel' ? 'per night' : 
                      category === 'restaurant' ? 'per meal' : 
                      'per guest'}
@@ -1309,7 +1471,7 @@ const VendorDetail = () => {
               <div className="w-full h-14 md:h-16 bg-gray-200 rounded-[13px] md:rounded-3xl flex items-center justify-between px-4 md:px-12 mx-auto md:max-w-[600px] hover:shadow-lg transition-all duration-300 hover:bg-gray-300/50">
                 <button
                   onClick={() => (vendor.contact || vendorInfo?.phone) && (window.location.href = `tel:${vendor.contact || vendorInfo?.phone}`)}
-                  className="flex flex-col items-center transition-all duration-300 px-2 group relative"
+                  className="flex flex-col items-center transition-all duration-300 px-2 group relative cursor-pointer"
                 >
                   <div className="relative">
                     <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-blue-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
@@ -1327,7 +1489,7 @@ const VendorDetail = () => {
 
                 <button
                   onClick={() => showToast("Chat feature coming soon!", "info")}
-                  className="flex flex-col items-center transition-all duration-300 px-2 group relative"
+                  className="flex flex-col items-center transition-all duration-300 px-2 group relative cursor-pointer"
                 >
                   <div className="relative">
                     <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-green-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
@@ -1344,7 +1506,7 @@ const VendorDetail = () => {
 
                 <button
                   onClick={handleBookingClick}
-                  className="flex flex-col items-center transition-all duration-300 px-2 group relative"
+                  className="flex flex-col items-center transition-all duration-300 px-2 group relative cursor-pointer"
                 >
                   <div className="relative">
                     <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-purple-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
@@ -1361,7 +1523,7 @@ const VendorDetail = () => {
 
                 <button
                   onClick={() => showToast("Map feature coming soon!", "info")}
-                  className="flex flex-col items-center transition-all duration-300 px-2 group relative"
+                  className="flex flex-col items-center transition-all duration-300 px-2 group relative cursor-pointer"
                 >
                   <div className="relative">
                     <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-red-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
@@ -1385,7 +1547,7 @@ const VendorDetail = () => {
                   <h2 className="text-lg md:text-xl font-bold text-[#06F49F] mb-3 md:mb-4 font-manrope">
                     About
                   </h2>
-                  <p className="text-gray-900 text-sm md:[15px] font-manrope hover:text-gray-800">
+                  <p className="text-gray-900 text-sm md:[15px] font-manrope hover:text-gray-800 cursor-pointer">
                     {vendor.description ||
                       "Welcome to our premium venue, offering exceptional service and unforgettable experiences. With modern amenities and professional staff, we ensure your stay is comfortable and memorable."}
                   </p>
@@ -1477,7 +1639,7 @@ const VendorDetail = () => {
                       <div className="flex items-center gap-1 mb-1">
                         <StarRating rating={Math.round(averageRating)} size="md" />
                       </div>
-                      <p className="text-gray-600 text-sm text-center md:text-left">
+                      <p className="text-gray-600 text-sm text-center md:text-left cursor-pointer">
                         Based on {reviewCount} reviews
                       </p>
                     </div>
@@ -1487,14 +1649,14 @@ const VendorDetail = () => {
                   <div className="flex-1 w-full space-y-3">
                     {reviewStats.map((stat, index) => (
                       <div key={index} className="flex items-center gap-3">
-                        <span className="text-sm text-gray-600 w-12">{stat.stars} star</span>
+                        <span className="text-sm text-gray-600 w-12 cursor-pointer">{stat.stars} star</span>
                         <div className="flex-1 h-2.5 bg-gray-200 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-yellow-500 rounded-full transition-all duration-500"
                             style={{ width: `${stat.percentage}%` }}
                           ></div>
                         </div>
-                        <span className="text-sm text-gray-600 w-12 text-right">{stat.percentage}%</span>
+                        <span className="text-sm text-gray-600 w-12 text-right cursor-pointer">{stat.percentage}%</span>
                       </div>
                     ))}
                   </div>
@@ -1508,7 +1670,7 @@ const VendorDetail = () => {
                     </h3>
                     <form onSubmit={handleReviewSubmit}>
                       <div className="mb-4">
-                        <label className="block text-gray-700 text-sm font-medium mb-2">
+                        <label className="block text-gray-700 text-sm font-medium mb-2 cursor-pointer">
                           Your Rating
                         </label>
                         <div className="flex items-center gap-2">
@@ -1518,39 +1680,39 @@ const VendorDetail = () => {
                             interactive={true}
                             size="lg"
                           />
-                          <span className="text-gray-600 ml-2">
+                          <span className="text-gray-600 ml-2 cursor-pointer">
                             {newReview.rating} out of 5
                           </span>
                         </div>
                       </div>
                       
                       <div className="mb-4">
-                        <label className="block text-gray-700 text-sm font-medium mb-2">
+                        <label className="block text-gray-700 text-sm font-medium mb-2 cursor-pointer">
                           Review Title (Optional)
                         </label>
                         <input
                           type="text"
                           value={newReview.title}
                           onChange={(e) => setNewReview({...newReview, title: e.target.value})}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent cursor-pointer"
                           placeholder="Summarize your experience"
                           maxLength={100}
                         />
                       </div>
                       
                       <div className="mb-6">
-                        <label className="block text-gray-700 text-sm font-medium mb-2">
+                        <label className="block text-gray-700 text-sm font-medium mb-2 cursor-pointer">
                           Your Review *
                         </label>
                         <textarea
                           value={newReview.comment}
                           onChange={(e) => setNewReview({...newReview, comment: e.target.value})}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent min-h-[120px]"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent min-h-[120px] cursor-pointer"
                           placeholder="Share details of your experience..."
                           required
                           maxLength={1000}
                         />
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 mt-1 cursor-pointer">
                           Minimum 10 characters, maximum 1000 characters
                         </p>
                       </div>
@@ -1559,7 +1721,7 @@ const VendorDetail = () => {
                         <button
                           type="submit"
                           disabled={isSubmittingReview}
-                          className="px-6 py-3 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors font-manrope font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-6 py-3 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors font-manrope font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
                           {isSubmittingReview ? (
                             <span className="flex items-center gap-2">
@@ -1573,7 +1735,7 @@ const VendorDetail = () => {
                         <button
                           type="button"
                           onClick={() => setShowReviewForm(false)}
-                          className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-manrope font-medium"
+                          className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-manrope font-medium cursor-pointer"
                         >
                           Cancel
                         </button>
@@ -1587,7 +1749,7 @@ const VendorDetail = () => {
                   {reviews.map((review) => (
                     <div
                       key={review.id}
-                      className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300"
+                      className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 cursor-pointer"
                     >
                       <div className="flex items-center gap-4 mb-4">
                         <img
@@ -1598,31 +1760,31 @@ const VendorDetail = () => {
                         <div className="flex-1">
                           <div className="flex flex-col md:flex-row md:justify-between md:items-start">
                             <div>
-                              <p className="font-medium text-gray-900 font-manrope text-sm md:text-base">
+                              <p className="font-medium text-gray-900 font-manrope text-sm md:text-base cursor-pointer">
                                 {review.name}
                               </p>
                               <div className="flex items-center gap-2 mt-1">
                                 <StarRating rating={review.rating} size="sm" />
-                                <span className="text-xs text-gray-500">{review.date}</span>
+                                <span className="text-xs text-gray-500 cursor-pointer">{review.date}</span>
                               </div>
                             </div>
                           </div>
                         </div>
                       </div>
 
-                      <p className="text-gray-600 text-sm leading-relaxed font-manrope">
+                      <p className="text-gray-600 text-sm leading-relaxed font-manrope cursor-pointer">
                         {review.text}
                       </p>
                       
                       {/* Review Helpful Button */}
                       <div className="mt-4 flex items-center gap-4">
-                        <button className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                        <button className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 cursor-pointer">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905a3.61 3.61 0 01-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
                           </svg>
                           Helpful
                         </button>
-                        <button className="text-xs text-gray-500 hover:text-gray-700">
+                        <button className="text-xs text-gray-500 hover:text-gray-700 cursor-pointer">
                           Reply
                         </button>
                       </div>
@@ -1633,7 +1795,7 @@ const VendorDetail = () => {
                 {/* Load More Reviews Button */}
                 {reviewCount > 4 && (
                   <div className="text-center mt-8">
-                    <button className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-manrope font-medium">
+                    <button className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-manrope font-medium cursor-pointer">
                       Load More Reviews
                     </button>
                   </div>
@@ -1643,7 +1805,7 @@ const VendorDetail = () => {
                 <div className="mt-8 pt-6 border-t border-gray-200">
                   <button 
                     onClick={handleWriteReviewClick}
-                    className="w-full md:w-auto px-6 py-3 border-2 border-[#06EAFC] text-[#06EAFC] rounded-lg hover:bg-[#06EAFC] hover:text-white transition-colors font-manrope font-medium flex items-center justify-center gap-2"
+                    className="w-full md:w-auto px-6 py-3 border-2 border-[#06EAFC] text-[#06EAFC] rounded-lg hover:bg-[#06EAFC] hover:text-white transition-colors font-manrope font-medium flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -1678,26 +1840,26 @@ const VendorDetail = () => {
                   </div>
                   
                   <div>
-                    <h4 className="font-bold text-gray-900 mb-4 font-manrope">Location Details</h4>
+                    <h4 className="font-bold text-gray-900 mb-4 font-manrope cursor-pointer">Location Details</h4>
                     <div className="space-y-4">
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">Address</p>
-                        <p className="font-medium text-gray-900">
+                        <p className="text-sm text-gray-600 mb-1 cursor-pointer">Address</p>
+                        <p className="font-medium text-gray-900 cursor-pointer">
                           {vendor.address || `${vendor.title || vendor.name}, ${vendor.location?.area || vendor.area || "Ibadan"}`}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">Area</p>
+                        <p className="text-sm text-gray-600 mb-1 cursor-pointer">Area</p>
                         <div className="flex items-center gap-2">
                           <FontAwesomeIcon icon={faMapMarkerAlt} className="text-gray-400" />
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-gray-900 cursor-pointer">
                             {vendor.location?.area || vendor.area || "Ibadan, Nigeria"}
                           </p>
                         </div>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">Contact</p>
-                        <p className="font-medium text-gray-900">
+                        <p className="text-sm text-gray-600 mb-1 cursor-pointer">Contact</p>
+                        <p className="font-medium text-gray-900 cursor-pointer">
                           {vendor.contact || vendorInfo?.phone || "Not provided"}
                         </p>
                       </div>
@@ -1706,7 +1868,7 @@ const VendorDetail = () => {
                           href={`https://www.google.com/maps/dir//${encodeURIComponent(vendor.address || vendor.title || vendor.name + " Ibadan Nigeria")}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors font-manrope font-medium"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors font-manrope font-medium cursor-pointer"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
@@ -1754,7 +1916,7 @@ const VendorDetail = () => {
                           navigate(`/vendor-listings/${vendorId}`);
                         }
                       }}
-                      className="px-4 py-2 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors"
+                      className="px-4 py-2 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors cursor-pointer"
                     >
                       View All {vendorListings.length} Listings
                     </button>
