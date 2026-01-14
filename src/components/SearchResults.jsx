@@ -566,6 +566,17 @@ const MobileSearchModal = ({
                 className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-gray-900 text-base placeholder:text-gray-500 cursor-text"
                 value={inputValue}
                 onChange={handleInputChange}
+                onFocus={() => {
+                  // Clear current location when focused
+                  const urlParams = new URLSearchParams(window.location.search);
+                  const urlLocation = urlParams.get("location.area") || urlParams.get("location");
+                  if (urlLocation && looksLikeLocation(urlLocation)) {
+                    // Clear location from URL
+                    urlParams.delete("location.area");
+                    urlParams.delete("location");
+                    window.history.replaceState({}, '', `${window.location.pathname}?${urlParams.toString()}`);
+                  }
+                }}
                 placeholder={`Search ${activeCategory.toLowerCase()}...`}
                 autoFocus
               />
@@ -625,7 +636,7 @@ const MobileSearchModal = ({
         </div>
 
         {/* Suggestions Content */}
-        <div className="flex-1 overflow-y-auto pb-24"> {/* Added padding for button */}
+        <div className="flex-1 overflow-y-auto pb-24">
           {inputValue.trim() ? (
             <>
               {suggestions.length > 0 ? (
@@ -2864,20 +2875,35 @@ const SearchResults = () => {
     return "hotel";
   };
 
+  const handleSearchFocus = () => {
+    // Clear current location when focused
+    if (urlLocation && looksLikeLocation(urlLocation)) {
+      const params = new URLSearchParams(window.location.search);
+      params.delete("location.area");
+      params.delete("location");
+      setSearchParams(params);
+      
+      // Also clear from active filters
+      const updatedFilters = {
+        ...activeFilters,
+        locations: []
+      };
+      setActiveFilters(updatedFilters);
+    }
+    
+    if (isMobile) {
+      setShowMobileSearchModal(true);
+    } else if (localSearchQuery.trim().length > 0) {
+      setShowSuggestions(true);
+    }
+  };
+
   const handleSearchChange = (value) => {
     setLocalSearchQuery(value);
     if (!isMobile && value.trim().length > 0) {
       setShowSuggestions(true);
     } else {
       setShowSuggestions(false);
-    }
-  };
-
-  const handleSearchFocus = () => {
-    if (isMobile) {
-      setShowMobileSearchModal(true);
-    } else if (localSearchQuery.trim().length > 0) {
-      setShowSuggestions(true);
     }
   };
 
@@ -3452,7 +3478,13 @@ const SearchResults = () => {
                                         type="text"
                                         value={localSearchQuery}
                                         onChange={(e) => handleSearchChange(e.target.value)}
-                                        onFocus={handleSearchFocus}
+                                        onFocus={() => {
+                                          handleSearchFocus();
+                                          // Clear the search input if it contains a location
+                                          if (urlLocation && looksLikeLocation(localSearchQuery)) {
+                                            setLocalSearchQuery("");
+                                          }
+                                        }}
                                         onKeyPress={handleKeyPress}
                                         placeholder={getSearchPlaceholder()}
                                         className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 cursor-text"
@@ -3524,7 +3556,10 @@ const SearchResults = () => {
                         ) : (
                           // MOBILE - Search input with hero data
                           <div 
-                            onClick={handleSearchFocus}
+                            onClick={() => {
+                              handleSearchFocus();
+                              setShowMobileSearchModal(true);
+                            }}
                             className="bg-[#d9d9d9] rounded-[15px] mr-2 px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-200 cursor-pointer w-full"
                           >
                             <FontAwesomeIcon icon={faSearch} className="text-gray-700 text-[15px] flex-shrink-0" />
