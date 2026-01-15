@@ -16,6 +16,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
   const [selectedRoomsCount, setSelectedRoomsCount] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [modalRoom, setModalRoom] = useState(null);
+  const [selectedOccupancy, setSelectedOccupancy] = useState(null);
   const navigate = useNavigate();
   
   // Vendor/Hotel Information
@@ -26,6 +27,18 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
     description: 'Premium hotel with excellent amenities and services in the heart of the city',
     image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80'
   };
+
+  // Amenities filter options
+  const amenities = [
+    { name: 'Breakfast Included', value: false },
+    { name: 'Free Cancellation', value: false },
+    { name: 'Pay later option', value: false },
+    { name: 'Pay at the hotel', value: true },
+    { name: 'Non-smoking', value: true },
+    { name: 'Kitchen', value: false },
+    { name: 'Balcony', value: false },
+    { name: 'King Bed', value: false }
+  ];
 
   // Room data matching the original 3 rooms with their exact content
   const roomTypes = [
@@ -75,27 +88,33 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
       ],
       occupancy: [
         { 
+          id: 'occ-1',
           adults: "2 adults", 
           price: 435865,
           originalPrice: 534928,
           discount: '-30%',
           breakfast: 'Very good breakfast available (₦43,013)',
           benefits: ['Pay at hotel', 'Free cancellation', 'No prepayment needed'],
-          amenities: ['Pay at hotel', 'Free WiFi', 'Parking']
+          amenities: ['Pay at hotel', 'Free WiFi', 'Parking'],
+          isAvailable: true
         },
         { 
+          id: 'occ-2',
           adults: "4 adults", 
           price: 375865,
           breakfast: 'Very good breakfast available (₦43,013)',
           benefits: ['Pay at hotel', 'Free cancellation', 'Best price guarantee'],
-          amenities: ['Pay at hotel', 'Free WiFi', 'Parking']
+          amenities: ['Pay at hotel', 'Free WiFi', 'Parking'],
+          isAvailable: true
         },
         { 
+          id: 'occ-3',
           adults: "6 adults", 
           price: null,
           breakfast: 'Very good breakfast available (₦43,013)',
           benefits: ['Pay at hotel', 'Free cancellation'],
-          amenities: ['Pay at hotel', 'Free WiFi', 'Parking']
+          amenities: ['Pay at hotel', 'Free WiFi', 'Parking'],
+          isAvailable: false
         }
       ],
       maxRooms: 8,
@@ -152,18 +171,22 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
       ],
       occupancy: [
         { 
+          id: 'occ-4',
           adults: "4 adults", 
           price: 445865,
           breakfast: 'Very good breakfast available (₦43,013)',
           benefits: ['Free cancellation', 'Pay at hotel', 'No prepayment needed'],
-          amenities: ['Pay at hotel', 'Free WiFi', 'Parking', 'Breakfast included']
+          amenities: ['Pay at hotel', 'Free WiFi', 'Parking', 'Breakfast included'],
+          isAvailable: true
         },
         { 
+          id: 'occ-5',
           adults: "2 adults", 
           price: 405865,
           breakfast: 'Very good breakfast available (₦43,013)',
           benefits: ['Free cancellation', 'Pay later option', 'Breakfast included'],
-          amenities: ['Pay at hotel', 'Free WiFi', 'Parking', 'Room service']
+          amenities: ['Pay at hotel', 'Free WiFi', 'Parking', 'Room service'],
+          isAvailable: true
         }
       ],
       maxRooms: 5,
@@ -219,28 +242,19 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
       ],
       occupancy: [
         { 
+          id: 'occ-6',
           adults: "2 adults", 
           price: 534865,
           breakfast: 'Very good breakfast available (₦43,013)',
           benefits: ['Free cancellation', 'Pay later option', 'Breakfast included'],
-          amenities: ['Pay at hotel', 'Free WiFi', 'Parking', 'Room service']
+          amenities: ['Pay at hotel', 'Free WiFi', 'Parking', 'Room service'],
+          isAvailable: true
         }
       ],
       maxRooms: 3,
       rating: 4.6,
       reviewCount: 89
     }
-  ];
-
-  const amenities = [
-    { name: 'Breakfast Included', value: false },
-    { name: 'Free Cancellation', value: false },
-    { name: 'Pay later option', value: false },
-    { name: 'Pay at the hotel', value: true },
-    { name: 'Non-smoking', value: true },
-    { name: 'Kitchen', value: false },
-    { name: 'Balcony', value: false },
-    { name: 'King Bed', value: false }
   ];
 
   const formatPrice = (price) => {
@@ -250,15 +264,17 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
     return `₦${num.toLocaleString()}`;
   };
 
-  const handleRoomSelect = (room) => {
-    if (selectedRoom?.id === room.id) {
+  const handleRoomSelect = (room, occupancyOption) => {
+    if (selectedRoom?.id === room.id && selectedOccupancy?.id === occupancyOption.id) {
       setSelectedRoom(null);
+      setSelectedOccupancy(null);
       setSelectedRoomsCount(1);
       if (onRoomSelect) onRoomSelect(null);
     } else {
       setSelectedRoom(room);
+      setSelectedOccupancy(occupancyOption);
       setSelectedRoomsCount(1);
-      if (onRoomSelect) onRoomSelect(room);
+      if (onRoomSelect) onRoomSelect({ room, occupancy: occupancyOption });
     }
   };
 
@@ -274,9 +290,9 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
     document.body.style.overflow = 'auto';
   };
 
-  const handleBookNow = (room) => {
+  const handleBookNow = (room, occupancyOption) => {
     if (onRoomBookNow) {
-      onRoomBookNow(room);
+      onRoomBookNow({ room, occupancy: occupancyOption });
     } else {
       const bookingData = {
         vendorData: vendorData || {
@@ -285,6 +301,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
           category: 'hotel'
         },
         selectedRoom: room,
+        selectedOccupancy: occupancyOption,
         selectedRoomsCount: selectedRoomsCount,
       };
       
@@ -293,6 +310,11 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
       
       navigate('/booking');
     }
+  };
+
+  const handleOccupancySelect = (room, occupancy) => {
+    setSelectedRoom(room);
+    setSelectedOccupancy(occupancy);
   };
 
   if (category !== 'hotel') {
@@ -330,218 +352,219 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
           {roomTypes.map((room) => (
             <div 
               key={room.id}
-              className={`border rounded-xl p-3 sm:p-6 transition-all duration-300 ${
+              className={`border rounded-xl p-4 sm:p-6 transition-all duration-300 ${
                 selectedRoom?.id === room.id 
                   ? 'border-[#06EAFC] bg-blue-50' 
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
-              <div className="flex flex-col lg:flex-row gap-6 ">
-                {/* Room Images Section */}
-            
-                <div className="lg:w-64 flex-shrink-0  bg-[#f9f9f9]">
-                  <div className="relative h-48 lg:h-48 rounded-xl overflow-hidden mb-3 cursor-pointer" onClick={() => handleViewDetails(room)}>
-                    <img 
-                      src={room.image} 
-                      alt={room.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute bottom-3 left-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
-                      <FontAwesomeIcon icon={faStar} className="text-[#ffc802]" />
-                      <span>{room.rating}</span>
-                    </div>
-                  </div>
-                  
-                  {/* Three Small Sub Images */}
-                  <div className="grid grid-cols-3 gap-2">
-                    {room.subImages?.map((img, index) => (
-                      <div 
-                        key={index} 
-                        className="h-20 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={() => handleViewDetails(room)}
-                      >
-                        <img 
-                          src={img} 
-                          alt={`${room.title} view ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Hotel Information */}
-                  <div className="mt-3 space-y-2">
-                    <div className="flex gap-3">
-                       <h4 className="font-bold text-gray-900">{room.title}</h4>
-                        <div className="flex items-center gap-1 p-0.5 bg-amber-100 rotate-[15px]">
-                      <FontAwesomeIcon icon={faStar} className="text-[#ffc802]" />
-
-                      <span className="text-sm font-medium">{room.rating}</span>
-                      <span className="text-sm text-gray-500">({room.reviewCount})</span>
-                    </div>
-                    </div>
-                   
-
- <div className="flex items-center gap-1 text-sm text-gray-600">
-                      <span>{hotelInfo.location}</span>
-                    </div>
-                    
-                   
-                   
-                    {/* Room Description - Placed under Preview Room button */}
-                    {/* <p className="text-sm text-gray-600 mt-2">{room.description}</p> */}
-                    
-                    {/* Key Features Section - Moved here */}
-                    <div className="mt-3">
-                      <h5 className="text-sm font-medium text-gray-700 mb-2">Key Features</h5>
-                      <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
-                        <span className="flex items-center gap-2">
-                          <FontAwesomeIcon icon={faWifi} className="text-black" />
-                          <span>WiFi</span>
-                        </span>
-                        <span className="flex items-center gap-2">
-                          <FontAwesomeIcon icon={faSnowflake} className="text-black" />
-                          <span>Air conditioning</span>
-                        </span>
-                        <span className="flex items-center gap-2">
-                          <FontAwesomeIcon icon={faConciergeBell} className="text-black" />
-                          <span>Iron facilities</span>
-                        </span>
-                        <span className="flex items-center gap-2">
-                          <FontAwesomeIcon icon={faTv} className="text-black" />
-                          <span>Cable channel</span>
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Preview Room Button */}
-                    <button
+              {/* Main 4-column layout for large screens */}
+              <div className="flex flex-col lg:flex-row lg:items-stretch lg:gap-0">
+                
+                {/* Column 1: Room Images and Info - 25% width */}
+                <div className="lg:w-1/4 lg:border-r lg:border-gray-200 lg:pr-6 mb-6 lg:mb-0">
+                  <div className="flex flex-col h-full">
+                    {/* Main Image */}
+                    <div 
+                      className="relative h-48 w-full rounded-xl overflow-hidden mb-4 cursor-pointer"
                       onClick={() => handleViewDetails(room)}
-                      className="w-full mt-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium transition-all duration-300 cursor-pointer"
                     >
-                      Preview Room
-                    </button>
-                  </div>
-                </div>
-
-                {/* Room Details */}
-                <div className="flex-1">
-                  <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                    {/* Left Section - Room Info */}
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-3">
-                       
-                        <div className="text-right">
-                          <div className="text-2xl font-bold text-gray-900">
-                            {formatPrice(room.occupancy[0]?.price)}
-                          </div>
-                          <div className="text-sm text-gray-500">per night</div>
+                      <img 
+                        src={room.image} 
+                        alt={room.title}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute bottom-3 left-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                        <FontAwesomeIcon icon={faStar} className="text-[#ffc802]" />
+                        <span>{room.rating}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Small Images */}
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      {room.subImages?.map((img, index) => (
+                        <div 
+                          key={index} 
+                          className="h-20 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => handleViewDetails(room)}
+                        >
+                          <img 
+                            src={img} 
+                            alt={`${room.title} view ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Room Title and Rating */}
+                    <div className="mb-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-bold text-gray-900 text-lg">{room.title}</h3>
+                        <div className="flex items-center gap-1 bg-amber-100 px-2 py-1 rounded-md">
+                          <FontAwesomeIcon icon={faStar} className="text-[#ffc802]" />
+                          <span className="text-sm font-medium">{room.rating}</span>
+                          <span className="text-xs text-gray-500">({room.reviewCount})</span>
                         </div>
                       </div>
                       
-                      {/* Occupancy Options */}
-                      <div className="space-y-4">
-                        {room.occupancy.map((option, index) => (
-                          <div key={index} className="bg-gray-50 rounded-lg p-4">
-                            <div className="flex items-center justify-between mb-3">
-                              <div>
-                                <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                  <FontAwesomeIcon icon={faUser} className="text-black" />
-                                  {option.adults}
-                                </span>
-                                {option.breakfast && (
-                                  <p className="text-xs text-gray-600 mt-1 flex items-center gap-2">
-                                    <FontAwesomeIcon icon={faCoffee} className="text-black" />
-                                    {option.breakfast}
-                                  </p>
-                                )}
-                              </div>
-                              <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
-                                Available
-                              </span>
-                            </div>
-                            
-                            {/* Benefits */}
-                            {option.benefits && (
-                              <div className="mb-3">
-                                <div className="flex flex-wrap gap-1 mb-2">
-                                  {option.benefits.map((benefit, idx) => (
-                                    <span key={idx} className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded">
-                                      {benefit}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            
-                            {/* Price */}
-                            <div className="flex items-center justify-between">
-                              <div>
-                                {option.discount && (
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-lg font-bold text-gray-900">
-                                      {formatPrice(option.price)}
-                                    </span>
-                                    {option.originalPrice && (
-                                      <span className="text-sm text-gray-500 line-through">
-                                        {formatPrice(option.originalPrice)}
-                                      </span>
-                                    )}
-                                    <span className="text-xs font-medium text-green-600 bg-green-100 px-2 py-0.5 rounded">
-                                      {option.discount}
-                                    </span>
-                                  </div>
-                                )}
-                                
-                                {!option.discount && option.price && (
-                                  <div className="text-lg font-bold text-gray-900 mb-1">
-                                    {formatPrice(option.price)}
-                                  </div>
-                                )}
-                                
-                                {!option.price && (
-                                  <div className="text-lg font-bold text-gray-900 mb-1">
-                                    {formatPrice(option.price)}
-                                  </div>
-                                )}
-                                
-                                <p className="text-xs text-gray-500">Per night before taxes</p>
-                              </div>
-                            </div>
-
-                            {/* Amenities */}
-                            {option.amenities && (
-                              <ul className="text-sm text-green-600 mt-3 space-y-1">
-                                {option.amenities.slice(0, 3).map((amenity, idx) => (
-                                  <li key={idx} className="flex items-center gap-1">
-                                    <FontAwesomeIcon icon={faCheck} className="text-black" />
-                                    {amenity}
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
+                      {/* Location */}
+                      <div className="flex items-center gap-1 text-sm text-gray-600 mb-3">
+                        <FontAwesomeIcon icon={faMapMarkerAlt} className="text-black" />
+                        <span>{hotelInfo.location}</span>
+                      </div>
+                      
+                      {/* Room Description */}
+                      <p className="text-sm text-gray-600 mb-4">{room.description}</p>
+                    </div>
+                    
+                    {/* Key Features */}
+                    <div className="mt-auto">
+                      <h5 className="text-sm font-medium text-gray-700 mb-2">Key Features</h5>
+                      <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
+                        {room.features.slice(0, 4).map((feature, idx) => (
+                          <span key={idx} className="flex items-center gap-2">
+                            <FontAwesomeIcon icon={feature.icon} className="text-black" />
+                            <span>{feature.name}</span>
+                          </span>
                         ))}
                       </div>
-                    </div>
-
-                    {/* Right Section - Booking Action */}
-                    <div className="lg:w-48">
-                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
-                        
-                        <div className="space-y-3">     
-                          <button
-                            onClick={() => handleBookNow(room)}
-                            className="w-full py-3 bg-gradient-to-r from-[#2C83F9] to-[#06E] text-white rounded-lg font-medium hover:opacity-90 transition-all duration-300 cursor-pointer"
-                          >
-                            Book
-                          </button>
-                          <p className="text-[11px] ">it only takes two minutes</p>
-                          <p className="text-[11px] text-[#FF5C39]">limited availability</p>
-                        </div>
-                      </div>
+                      
+                      {/* Preview Room Button */}
+                      <button
+                        onClick={() => handleViewDetails(room)}
+                        className="w-full mt-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium transition-all duration-300 cursor-pointer"
+                      >
+                        Preview Room
+                      </button>
                     </div>
                   </div>
+                </div>
+
+                {/* Occupancy Options - 75% width divided equally */}
+                <div className="lg:w-3/4 lg:flex">
+                  {room.occupancy.map((option, index) => (
+                    <React.Fragment key={option.id}>
+                      <div className={`lg:w-1/${room.occupancy.length} ${
+                        index < room.occupancy.length - 1 ? 'lg:border-r lg:border-gray-200' : ''
+                      } ${index > 0 ? 'lg:px-6' : 'lg:pl-6 lg:pr-4'}`}>
+                        
+                        {/* Occupancy Header */}
+                        <div className="mb-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                              <FontAwesomeIcon icon={faUser} className="text-black" />
+                              {option.adults}
+                            </span>
+                            
+                            {/* Availability Badge */}
+                            {option.isAvailable ? (
+                              <span className="text-xs text-[#FF5C39] bg-amber-50 px-2 py-1 rounded">
+                                Available
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                Not Available
+                              </span>
+                            )}
+                          </div>
+                          
+                          {option.breakfast && (
+                            <p className="text-xs text-gray-600 mt-1 flex items-center gap-2">
+                              <FontAwesomeIcon icon={faCoffee} className="text-black" />
+                              {option.breakfast}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Price Section - Only show price if available */}
+                        {option.isAvailable && option.price ? (
+                          <div className="mb-4">
+                            {option.discount ? (
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-lg font-bold text-gray-900">
+                                  {formatPrice(option.price)}
+                                </span>
+                                {option.originalPrice && (
+                                  <span className="text-sm text-gray-500 line-through">
+                                    {formatPrice(option.originalPrice)}
+                                  </span>
+                                )}
+                                <span className="text-xs font-medium text-green-600 bg-green-100 px-2 py-0.5 rounded">
+                                  {option.discount}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="text-lg font-bold text-gray-900 mb-1">
+                                {formatPrice(option.price)}
+                              </div>
+                            )}
+                            
+                            <p className="text-xs text-gray-500">Per night before taxes</p>
+                          </div>
+                        ) : !option.isAvailable && (
+                          <div className="mb-4">
+                            <div className="text-lg font-bold text-gray-900 mb-1">
+                              {formatPrice(option.price)}
+                            </div>
+                            <p className="text-xs text-gray-500">Per night before taxes</p>
+                          </div>
+                        )}
+
+                        {/* Amenities */}
+                        {option.amenities && (
+                          <ul className="text-xs text-green-600 space-y-1 mb-6">
+                            {option.amenities.slice(0, 3).map((amenity, idx) => (
+                              <li key={idx} className="flex items-center gap-1">
+                                <FontAwesomeIcon icon={faCheck} className="text-black" />
+                                {amenity}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+
+                        {/* Book Now Button - Only show if available */}
+                        <div className="mt-4">
+                          {option.isAvailable && option.price ? (
+                            <>
+                              <button
+                                onClick={() => handleBookNow(room, option)}
+                                className="w-full py-3 bg-gradient-to-r from-[#2C83F9] to-[#06E] text-white rounded-lg font-medium hover:opacity-90 transition-all duration-300 cursor-pointer mb-2"
+                              >
+                                Book Now
+                              </button>
+                              <p className="text-[11px] text-gray-500">It only takes two minutes</p>
+                              <p className="text-[11px] text-[#FF5C39]">Limited availability</p>
+                            </>
+                          ) : !option.isAvailable && (
+                            <button
+                              disabled
+                              className="w-full py-3 bg-gray-300 text-gray-500 rounded-lg font-medium cursor-not-allowed"
+                            >
+                              Not Available
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Select Option Button */}
+                        {option.isAvailable && option.price && (
+                          <button
+                            onClick={() => handleOccupancySelect(room, option)}
+                            className={`w-full mt-3 py-2 border rounded-lg text-sm font-medium transition-all duration-300 cursor-pointer ${
+                              selectedRoom?.id === room.id && selectedOccupancy?.id === option.id
+                                ? 'border-[#06EAFC] bg-blue-50 text-[#06EAFC]'
+                                : 'border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50'
+                            }`}
+                          >
+                            {selectedRoom?.id === room.id && selectedOccupancy?.id === option.id
+                              ? 'Selected'
+                              : 'Select Option'
+                            }
+                          </button>
+                        )}
+                      </div>
+                    </React.Fragment>
+                  ))}
                 </div>
               </div>
             </div>
@@ -549,7 +572,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
         </div>
 
         {/* Selected Room Summary */}
-        {selectedRoom && (
+        {selectedRoom && selectedOccupancy && (
           <div className="mt-8 p-6 bg-gradient-to-r from-[#06EAFC] to-[#06F49F] rounded-xl">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
@@ -565,23 +588,39 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                     Selected: {selectedRoom.title}
                   </h3>
                   <p className="text-white/90 text-sm">
-                    {selectedRoomsCount} room{selectedRoomsCount > 1 ? 's' : ''} • {selectedRoom.occupancy[0]?.adults} • Free cancellation
+                    {selectedOccupancy.adults} • {selectedRoomsCount} room{selectedRoomsCount > 1 ? 's' : ''} • Free cancellation
+                  </p>
+                  <p className="text-white/90 text-sm">
+                    {selectedOccupancy.breakfast && selectedOccupancy.breakfast.split('(')[0].trim()}
                   </p>
                 </div>
               </div>
               
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-white">
-                    {formatPrice(selectedRoom.occupancy[0]?.price * selectedRoomsCount)}
-                  </div>
+                  {selectedOccupancy.price ? (
+                    <>
+                      <div className="text-2xl font-bold text-white">
+                        {formatPrice(selectedOccupancy.price * selectedRoomsCount)}
+                      </div>
+                      {selectedOccupancy.originalPrice && (
+                        <div className="text-white/80 text-sm line-through">
+                          {formatPrice(selectedOccupancy.originalPrice * selectedRoomsCount)}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-2xl font-bold text-white">
+                      {formatPrice(selectedOccupancy.price)}
+                    </div>
+                  )}
                   <div className="text-white/90 text-sm">
                     Total for {selectedRoomsCount} room{selectedRoomsCount > 1 ? 's' : ''}
                   </div>
                 </div>
                 
                 <button
-                  onClick={() => handleBookNow(selectedRoom)}
+                  onClick={() => handleBookNow(selectedRoom, selectedOccupancy)}
                   className="px-8 py-3 bg-white text-[#06EAFC] rounded-lg font-bold hover:bg-gray-100 hover:scale-105 transition-all duration-300 cursor-pointer"
                 >
                   Book Now
@@ -589,7 +628,10 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                 
                 {/* Deselect Button */}
                 <button
-                  onClick={() => handleRoomSelect(selectedRoom)}
+                  onClick={() => {
+                    setSelectedRoom(null);
+                    setSelectedOccupancy(null);
+                  }}
                   className="px-4 py-2 bg-white/20 text-white rounded-lg font-medium hover:bg-white/30 transition-all duration-300 cursor-pointer"
                 >
                   Deselect
@@ -745,12 +787,12 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                     </div>
                   </div>
 
-                  {/* Pricing */}
+                  {/* Pricing & Occupancy Options */}
                   <div>
                     <h4 className="text-lg font-semibold text-gray-900 mb-4">Pricing & Options</h4>
                     <div className="space-y-4">
-                      {modalRoom.occupancy.map((option, index) => (
-                        <div key={index} className="bg-white/80 backdrop-blur-sm p-4 rounded-lg border border-gray-200 shadow-sm">
+                      {modalRoom.occupancy.map((option) => (
+                        <div key={option.id} className="bg-white/80 backdrop-blur-sm p-4 rounded-lg border border-gray-200 shadow-sm">
                           <div className="flex justify-between items-center mb-3">
                             <div>
                               <span className="font-medium text-gray-900 flex items-center gap-2">
@@ -765,7 +807,21 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                               )}
                             </div>
                             <div className="text-right">
-                              {option.discount && (
+                              {option.isAvailable ? (
+                                <span className="text-xs text-[#FF5C39] bg-amber-50 px-2 py-1 rounded">
+                                  Available
+                                </span>
+                              ) : (
+                                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  Not Available
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {option.isAvailable && option.price ? (
+                            <div className="mb-3">
+                              {option.discount ? (
                                 <div className="flex items-center gap-2 mb-1">
                                   <span className="text-2xl font-bold text-gray-900">
                                     {formatPrice(option.price)}
@@ -779,22 +835,21 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                                     {option.discount}
                                   </span>
                                 </div>
-                              )}
-                              
-                              {!option.discount && option.price && (
-                                <div className="text-2xl font-bold text-gray-900">
-                                  {formatPrice(option.price)}
-                                </div>
-                              )}
-                              
-                              {!option.price && (
+                              ) : (
                                 <div className="text-2xl font-bold text-gray-900">
                                   {formatPrice(option.price)}
                                 </div>
                               )}
                               <div className="text-sm text-gray-600">Per night before taxes</div>
                             </div>
-                          </div>
+                          ) : !option.isAvailable && (
+                            <div className="mb-3">
+                              <div className="text-2xl font-bold text-gray-900">
+                                {formatPrice(option.price)}
+                              </div>
+                              <div className="text-sm text-gray-600">Per night before taxes</div>
+                            </div>
+                          )}
                           
                           {/* Benefits */}
                           {option.benefits && (
@@ -809,16 +864,18 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                             </div>
                           )}
                           
-                          {/* Amenities */}
-                          {option.amenities && (
-                            <div className="space-y-1">
-                              {option.amenities.map((amenity, idx) => (
-                                <div key={idx} className="flex items-center gap-1.5 text-xs text-gray-600">
-                                  <FontAwesomeIcon icon={faCheck} className="text-black" />
-                                  {amenity}
-                                </div>
-                              ))}
-                            </div>
+                          {/* Book Button */}
+                          {option.isAvailable && option.price && (
+                            <button
+                              onClick={() => {
+                                setSelectedRoom(modalRoom);
+                                setSelectedOccupancy(option);
+                                handleBookNow(modalRoom, option);
+                              }}
+                              className="w-full py-2.5 bg-gradient-to-r from-[#06EAFC] to-[#06F49F] text-white rounded-lg font-medium hover:opacity-90 transition-all duration-300 cursor-pointer"
+                            >
+                              Book This Option
+                            </button>
                           )}
                         </div>
                       ))}
@@ -855,10 +912,11 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                   Close
                 </button>
                 
-                {/* Toggle Selection Button in Modal */}
                 <button
                   onClick={() => {
-                    handleRoomSelect(modalRoom);
+                    if (modalRoom.occupancy[0]?.isAvailable) {
+                      handleOccupancySelect(modalRoom, modalRoom.occupancy[0]);
+                    }
                     handleCloseModal();
                   }}
                   className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 cursor-pointer ${
@@ -868,16 +926,6 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                   }`}
                 >
                   {selectedRoom?.id === modalRoom.id ? 'Deselect Room' : 'Select This Room'}
-                </button>
-                
-                <button
-                  onClick={() => {
-                    setSelectedRoom(modalRoom);
-                    handleBookNow(modalRoom);
-                  }}
-                  className="px-6 py-3 bg-gradient-to-r from-[#06EAFC] to-[#06F49F] text-white rounded-lg font-bold hover:opacity-90 transition-all duration-300 shadow-lg cursor-pointer"
-                >
-                  Book This Room
                 </button>
               </div>
             </div>
