@@ -17,6 +17,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
   const [showModal, setShowModal] = useState(false);
   const [modalRoom, setModalRoom] = useState(null);
   const [selectedOccupancy, setSelectedOccupancy] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const navigate = useNavigate();
   
   // Vendor/Hotel Information
@@ -290,6 +291,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
 
   const handleViewDetails = (room) => {
     setModalRoom(room);
+    setCurrentImageIndex(0);
     setShowModal(true);
     document.body.style.overflow = 'hidden';
   };
@@ -297,6 +299,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
   const handleCloseModal = () => {
     setShowModal(false);
     setModalRoom(null);
+    setCurrentImageIndex(0);
     document.body.style.overflow = 'auto';
   };
 
@@ -325,6 +328,14 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
   const handleOccupancySelect = (room, occupancy) => {
     setSelectedRoom(room);
     setSelectedOccupancy(occupancy);
+  };
+
+  const handlePrevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + modalRoom.images.length) % modalRoom.images.length);
+  };
+
+  const handleNextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % modalRoom.images.length);
   };
 
   if (category !== 'hotel') {
@@ -371,7 +382,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
               {/* Main layout - Left card + Right options */}
               <div className="flex flex-col lg:flex-row lg:items-stretch gap-6">
                 
-                {/* LEFT ROOM CARD - Updated layout */}
+                {/* LEFT ROOM CARD */}
                 <div className="lg:w-[270px] bg-[#f5f5f5] rounded-lg p-3 flex-shrink-0">
                   {/* Main Big Image */}
                   <img
@@ -381,7 +392,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                     onClick={() => handleViewDetails(room)}
                   />
 
-                  {/* Small Images Row UNDER the big image */}
+                  {/* Small Images Row */}
                   <div className="grid grid-cols-3 gap-2 mb-4">
                     {room.subImages?.map((img, index) => (
                       <div 
@@ -424,12 +435,12 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                     Preview Room
                   </button>
 
-                  {/* Key Features Heading BEFORE the features */}
+                  {/* Key Features Heading */}
                   <h4 className="text-sm font-medium text-gray-700 mt-4 mb-2">
                     Key Features
                   </h4>
 
-                  {/* Key Features - Grid layout */}
+                  {/* Key Features */}
                   <div className="grid grid-cols-2 gap-y-2 text-sm text-gray-700">
                     <span className="flex items-center gap-1">
                       <FontAwesomeIcon icon={faWifi} className="text-black" />
@@ -459,7 +470,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                         index < room.occupancy.length - 1 ? 'mb-4' : ''
                       }`}
                     >
-                      {/* Mobile Layout - Updated */}
+                      {/* Mobile Layout */}
                       <div className="lg:hidden">
                         {/* Header with adults and breakfast */}
                         <div className="mb-4">
@@ -469,7 +480,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                           </p>
                         </div>
 
-                        {/* Benefits with checkmarks (not checkboxes) */}
+                        {/* Benefits with checkmarks */}
                         <div className="space-y-2 mb-4">
                           {option.benefits.map((benefit, idx) => (
                             <div key={idx} className="flex items-center gap-3">
@@ -482,7 +493,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                           ))}
                         </div>
 
-                        {/* Price and Availability Section - Updated alignment */}
+                        {/* Price and Availability Section */}
                         <div className="border-t pt-4">
                           <div className="flex items-start justify-between mb-3">
                             {/* Left side: Price info */}
@@ -515,7 +526,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                             </div>
                           </div>
 
-                          {/* Book Button - Centered */}
+                          {/* Book Button */}
                           <div className="text-center">
                             {option.isAvailable ? (
                               <>
@@ -544,7 +555,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                         </div>
                       </div>
 
-                      {/* Desktop Layout - Only on lg and above */}
+                      {/* Desktop Layout */}
                       <div className="hidden lg:flex items-stretch h-full">
                         {/* COLUMN 1: Info */}
                         <div className="flex-1 flex flex-col justify-between pr-8">
@@ -564,7 +575,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                           </div>
                         </div>
 
-                        {/* VERTICAL SEPARATOR 1 - Full dynamic height */}
+                        {/* VERTICAL SEPARATOR 1 */}
                         <div className="flex items-center">
                           <div className="w-px bg-gray-300 h-full"></div>
                         </div>
@@ -596,7 +607,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                           </div>
                         </div>
 
-                        {/* VERTICAL SEPARATOR 2 - Full dynamic height */}
+                        {/* VERTICAL SEPARATOR 2 */}
                         <div className="flex items-center">
                           <div className="w-px bg-gray-300 h-full"></div>
                         </div>
@@ -745,214 +756,163 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
           </div>
         </div>
 
-        {/* Modal for Room Details */}
+        {/* Modal for Room Details - Exact design from second component */}
         {showModal && modalRoom && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-            {/* Background overlay */}
-            <div 
-              className="absolute inset-0 bg-black/50 cursor-pointer"
-              onClick={handleCloseModal}
-            />
-            
-            {/* Modal Container */}
-            <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl w-full max-w-[1245px] max-h-[90vh] overflow-y-auto border border-white/20 shadow-2xl">
-              {/* Modal Header */}
-              <div className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-white/20 px-6 py-4 flex justify-between items-center z-10">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">{modalRoom.title}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="flex items-center gap-1 text-sm">
-                      <FontAwesomeIcon icon={faStar} className="text-[#ffc802]" />
-                      <span className="font-medium">{modalRoom.rating}</span>
-                      <span className="text-gray-500">({modalRoom.reviewCount} reviews)</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-gray-500">
-                      <FontAwesomeIcon icon={faMapMarkerAlt} className="text-black" />
-                      <span>{hotelInfo.location}</span>
-                    </div>
-                  </div>
-                </div>
-                <button
+          <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-screen overflow-y-auto">
+              {/* Close Button */}
+              <div className="p-4">
+                <button 
                   onClick={handleCloseModal}
-                  className="p-2 hover:bg-gray-100/50 rounded-full transition-colors backdrop-blur-sm cursor-pointer"
-                >
-                  <IoClose className="text-2xl text-gray-600" />
-                </button>
-              </div>
-
-              {/* Modal Content */}
-              <div className="p-6">
-                {/* Room Images Grid - Big image first, then small images */}
-                <div className="mb-8">
-                  {/* Big Main Image */}
-                  <div className="rounded-xl overflow-hidden h-64 shadow-lg cursor-pointer mb-3" onClick={() => window.open(modalRoom.image, '_blank')}>
-                    <img
-                      src={modalRoom.image}
-                      alt={modalRoom.title}
-                      className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
-                    />
-                  </div>
-                  
-                  {/* Small Images Row */}
-                  <div className="grid grid-cols-3 gap-3">
-                    {modalRoom.subImages?.map((img, index) => (
-                      <div key={index} className="rounded-xl overflow-hidden h-32 shadow-lg cursor-pointer" onClick={() => window.open(img, '_blank')}>
-                        <img
-                          src={img}
-                          alt={`${modalRoom.title} - ${index + 1}`}
-                          className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Specifications Grid */}
-                <div className="mb-8">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Room Specifications</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {modalRoom.specifications.map((spec, index) => (
-                      <div key={index} className="bg-white/80 backdrop-blur-sm p-4 rounded-lg border border-gray-100 shadow-sm">
-                        <div className="flex items-center gap-3 mb-2">
-                          <FontAwesomeIcon icon={spec.icon} className="text-black" />
-                          <p className="font-medium text-gray-700">{spec.label}</p>
-                        </div>
-                        <p className="text-gray-900 font-semibold">{spec.value}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Key Features Section */}
-                <div className="mb-8">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Key Features</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {modalRoom.features.map((feature, index) => (
-                      <div key={index} className="flex items-center gap-3">
-                        {feature.icon ? (
-                          <FontAwesomeIcon icon={feature.icon} className="text-black" />
-                        ) : feature.included ? (
-                          <FontAwesomeIcon icon={faCheck} className="text-green-500" />
-                        ) : (
-                          <FontAwesomeIcon icon={faTimes} className="text-red-500" />
-                        )}
-                        <span className="text-gray-700">{feature.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Occupancy Options in Modal */}
-                <div className="mb-8">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Available Options</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {modalRoom.occupancy.map((option) => (
-                      <div key={option.id} className="bg-white/80 backdrop-blur-sm p-4 rounded-lg border border-gray-200 shadow-sm">
-                        <div className="mb-4">
-                          <h5 className="font-medium text-gray-900">{option.adults}</h5>
-                          <p className="text-sm text-gray-600 mt-1">
-                            {option.breakfast} ({option.breakfastPrice})
-                          </p>
-                          
-                          {/* Benefits */}
-                          <ul className="mt-3 space-y-1 text-sm">
-                            {option.benefits.map((benefit, idx) => (
-                              <li key={idx} className="flex items-center gap-2 text-green-600">
-                                <FontAwesomeIcon icon={faCheck} className="text-green-500" />
-                                <span>{benefit}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        
-                        {/* Price */}
-                        <div className="mb-4">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-lg font-bold text-gray-900">
-                              {formatPrice(option.originalPrice)}
-                            </span>
-                            <span className="text-xs font-medium text-red-500">
-                              {option.discount}
-                            </span>
-                          </div>
-                          <div className="text-2xl font-bold text-gray-900">
-                            {formatPrice(option.price)}
-                          </div>
-                          <p className="text-sm text-gray-600">Per night before taxes</p>
-                        </div>
-                        
-                        {/* Book Button */}
-                        <button
-                          onClick={() => {
-                            setSelectedRoom(modalRoom);
-                            setSelectedOccupancy(option);
-                            handleBookNow(modalRoom, option);
-                          }}
-                          className="w-full py-2.5 bg-gradient-to-r from-[#2C83F9] to-[#06E] text-white rounded-lg font-medium hover:opacity-90 transition-all duration-300 cursor-pointer"
-                        >
-                          BOOK NOW
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Additional Amenities */}
-                <div className="mb-8">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Additional Amenities</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {modalRoom.amenities.map((amenity, index) => (
-                      <span key={index} className="px-3 py-1 bg-white/80 backdrop-blur-sm text-gray-700 rounded-full text-sm border border-gray-100">
-                        {amenity}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Room Policies */}
-                <div className="pt-6 border-t border-gray-200">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Room Policies</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-blue-50/80 backdrop-blur-sm p-4 rounded-lg border border-blue-100">
-                      <h5 className="font-medium text-blue-700 mb-2">Cancellation Policy</h5>
-                      <p className="text-sm text-gray-600">Free cancellation up to 24 hours before check-in</p>
-                    </div>
-                    <div className="bg-green-50/80 backdrop-blur-sm p-4 rounded-lg border border-green-100">
-                      <h5 className="font-medium text-green-700 mb-2">Check-in/Check-out</h5>
-                      <p className="text-sm text-gray-600">Check-in: 2:00 PM • Check-out: 11:00 AM</p>
-                    </div>
-                    <div className="bg-purple-50/80 backdrop-blur-sm p-4 rounded-lg border border-purple-100">
-                      <h5 className="font-medium text-purple-700 mb-2">House Rules</h5>
-                      <p className="text-sm text-gray-600">No smoking • Maximum: {modalRoom.maxOccupancy} guests</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="sticky bottom-0 bg-white/80 backdrop-blur-md border-t border-white/20 px-6 py-4 flex flex-col sm:flex-row justify-end gap-3">
-                <button
-                  onClick={handleCloseModal}
-                  className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50/50 transition-colors backdrop-blur-sm cursor-pointer"
+                  className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 cursor-pointer"
                 >
                   Close
                 </button>
+              </div>
+
+              {/* Main Content */}
+              <div className="flex flex-col md:flex-row gap-4 p-4">
+                {/* Left Side - Image Carousel */}
+                <div className="md:w-3/5 relative">
+                  {/* Main Image */}
+                  <div className="relative overflow-hidden rounded-lg h-96 md:h-[500px]">
+                    <img 
+                      src={modalRoom.images[currentImageIndex]} 
+                      alt="Hotel Room" 
+                      className="w-full h-full object-cover"
+                    />
+                    
+                    {/* Navigation Arrows */}
+                    <button 
+                      onClick={handlePrevImage}
+                      className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-50 hover:bg-opacity-75 rounded-full p-2 transition-all duration-200 cursor-pointer"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    
+                    <button 
+                      onClick={handleNextImage}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-50 hover:bg-opacity-75 rounded-full p-2 transition-all duration-200 cursor-pointer"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  {/* Pagination Dots */}
+                  <div className="flex justify-center mt-4 space-x-2">
+                    {modalRoom.images.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentImageIndex(index)}
+                        className={`w-3 h-3 rounded-full transition-colors duration-200 cursor-pointer ${
+                          currentImageIndex === index ? 'bg-blue-500' : 'bg-gray-300'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  
+                  {/* Thumbnail Images */}
+                  <div className="flex space-x-2 mt-4 overflow-x-auto pb-2">
+                    {modalRoom.images.map((image, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentImageIndex(index)}
+                        className={`flex-shrink-0 w-24 h-16 rounded-md overflow-hidden border-2 transition-all duration-200 cursor-pointer ${
+                          currentImageIndex === index ? 'border-blue-500' : 'border-gray-200'
+                        }`}
+                      >
+                        <img 
+                          src={image} 
+                          alt={`Thumbnail ${index + 1}`} 
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 
-                <button
-                  onClick={() => {
-                    if (modalRoom.occupancy[0]?.isAvailable) {
-                      handleOccupancySelect(modalRoom, modalRoom.occupancy[0]);
-                    }
-                    handleCloseModal();
-                  }}
-                  className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 cursor-pointer ${
-                    selectedRoom?.id === modalRoom.id
-                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      : 'bg-[#06EAFC] text-white hover:bg-[#05d9eb]'
-                  }`}
-                >
-                  {selectedRoom?.id === modalRoom.id ? 'Deselect Room' : 'Select This Room'}
-                </button>
+                {/* Right Side - Hotel Information */}
+                <div className="md:w-2/5 bg-gray-50 p-4 rounded-lg">
+                  {/* Hotel Header */}
+                  <div className="mb-4">
+                    <h2 className="text-xl font-bold text-indigo-800">{hotelInfo.name}</h2>
+                    <img 
+                      src={modalRoom.images[0]} 
+                      alt="Hotel" 
+                      className="w-full h-24 object-cover rounded-md mt-2"
+                    />
+                  </div>
+                  
+                  {/* Room Type and Rating */}
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold">{modalRoom.title}</h3>
+                    <div className="flex items-center mt-1">
+                      <span className="text-yellow-500">★</span>
+                      <span className="ml-1 text-sm">{modalRoom.rating} ({modalRoom.reviewCount})</span>
+                    </div>
+                  </div>
+                  
+                  {/* Specifications */}
+                  <div className="mb-4">
+                    <h4 className="font-semibold mb-2">Specification</h4>
+                    <ul className="space-y-1 text-sm">
+                      {modalRoom.specifications.map((spec, index) => (
+                        <li key={index} className="flex items-start">
+                          <span className="mr-2">•</span>
+                          <span>{spec.label}: {spec.value}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  {/* Amenities */}
+                  <div className="mb-4">
+                    <h4 className="font-semibold mb-2">Amenities</h4>
+                    <ul className="space-y-1 text-sm">
+                      {modalRoom.amenities.map((amenity, index) => (
+                        <li key={index} className="flex items-start">
+                          <span className="mr-2">•</span>
+                          <span>{amenity}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  {/* Pricing */}
+                  <div className="mt-6 pt-4 border-t border-gray-200">
+                    <div className="flex items-center mb-2">
+                      <span className="text-gray-500 line-through mr-2">{formatPrice(modalRoom.occupancy[0]?.originalPrice)}</span>
+                      <span className="text-red-600 font-bold">{modalRoom.occupancy[0]?.discount}</span>
+                    </div>
+                    <div className="text-3xl font-bold text-orange-600">
+                      {formatPrice(modalRoom.occupancy[0]?.price)}
+                    </div>
+                    <div className="text-sm text-gray-600 mt-1">Per night before taxes</div>
+                  </div>
+
+                  {/* Book Button */}
+                  <div className="mt-6">
+                    <button
+                      onClick={() => {
+                        if (modalRoom.occupancy[0]?.isAvailable) {
+                          handleOccupancySelect(modalRoom, modalRoom.occupancy[0]);
+                          handleBookNow(modalRoom, modalRoom.occupancy[0]);
+                        }
+                      }}
+                      className={`w-full py-3 rounded-lg font-medium transition-all duration-300 cursor-pointer ${
+                        selectedRoom?.id === modalRoom.id
+                          ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          : 'bg-[#06EAFC] text-white hover:bg-[#05d9eb]'
+                      }`}
+                    >
+                      {selectedRoom?.id === modalRoom.id ? 'Deselect Room' : 'Select & Book This Room'}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
