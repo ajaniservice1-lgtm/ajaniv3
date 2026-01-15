@@ -450,65 +450,140 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                   </div>
                 </div>
 
-                {/* RIGHT OPTIONS - Updated with thin lines */}
+                {/* RIGHT OPTIONS */}
                 <div className="flex-1 space-y-4">
                   {room.occupancy.map((option, index) => (
                     <div
                       key={option.id}
-                      className={`bg-[#f5f5f5] rounded-lg p-5 ${
+                      className={`bg-[#f5f5f5] rounded-lg p-4 ${
                         index < room.occupancy.length - 1 ? 'mb-4' : ''
                       }`}
                     >
-                      <div className="grid grid-cols-1 md:grid-cols-3 items-start gap-6 md:gap-4">
-                        
-                        {/* INFO COLUMN */}
-                        <div className="space-y-3">
-                          <p className="font-semibold text-gray-900 text-sm">{option.adults}</p>
-                          
-                          {/* Breakfast */}
+                      {/* Mobile Layout - Updated */}
+                      <div className="lg:hidden">
+                        {/* Header with adults and breakfast */}
+                        <div className="mb-4">
+                          <p className="font-semibold text-gray-900 text-base mb-1">{option.adults}</p>
+                          <p className="text-sm text-gray-600">
+                            {option.breakfast} ({option.breakfastPrice})
+                          </p>
+                        </div>
+
+                        {/* Benefits with checkmarks (not checkboxes) */}
+                        <div className="space-y-2 mb-4">
+                          {option.benefits.map((benefit, idx) => (
+                            <div key={idx} className="flex items-center gap-3">
+                              <FontAwesomeIcon 
+                                icon={faCheck} 
+                                className={`text-xs ${benefit.includes('Pay at hotel') ? 'text-green-500' : 'text-gray-400'}`} 
+                              />
+                              <span className="text-sm text-gray-700">{benefit}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Price and Availability Section - Updated alignment */}
+                        <div className="border-t pt-4">
+                          <div className="flex items-start justify-between mb-3">
+                            {/* Left side: Price info */}
+                            <div>
+                              <div className="text-sm text-gray-400 line-through mb-1">
+                                {formatPrice(option.originalPrice)}
+                              </div>
+                              <div className="text-xs font-medium text-red-500 mb-2">
+                                {option.discount}
+                              </div>
+                              <div className="text-xl font-bold text-gray-900 mb-1">
+                                {formatPrice(option.price)}
+                              </div>
+                              <p className="text-xs text-gray-500">
+                                Per night before taxes
+                              </p>
+                            </div>
+                            
+                            {/* Right side: Availability */}
+                            <div className="text-right">
+                              {option.isAvailable ? (
+                                <span className="inline-block text-sm text-green-700 font-medium">
+                                  Available
+                                </span>
+                              ) : (
+                                <span className="inline-block text-sm text-gray-500">
+                                  Not Available
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Book Button - Centered */}
+                          <div className="text-center">
+                            {option.isAvailable ? (
+                              <>
+                                <button
+                                  onClick={() => handleBookNow(room, option)}
+                                  className="w-full bg-gradient-to-r from-[#2C83F9] to-[#06E] text-white py-3 rounded-full font-semibold text-base hover:opacity-90 transition-opacity cursor-pointer mb-2"
+                                >
+                                  BOOK
+                                </button>
+                                <p className="text-xs text-gray-500">
+                                  It only takes 2 minutes
+                                </p>
+                                <p className="text-xs text-[#FF5C39] mt-1">
+                                  Limited availability...
+                                </p>
+                              </>
+                            ) : (
+                              <button
+                                disabled
+                                className="w-full bg-gray-300 text-gray-500 py-3 rounded-full font-semibold text-base cursor-not-allowed"
+                              >
+                                Not Available
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Desktop Layout - Only on lg and above */}
+                      <div className="hidden lg:flex items-stretch h-full">
+                        {/* COLUMN 1: Info */}
+                        <div className="flex-1 flex flex-col justify-between pr-8">
                           <div>
-                            <p className="text-xs text-gray-600 leading-tight">
+                            <p className="font-semibold text-gray-900 text-sm mb-2">{option.adults}</p>
+                            <p className="text-xs text-gray-600 mb-3">
                               {option.breakfast} ({option.breakfastPrice})
                             </p>
-                          </div>
-
-                          {/* Benefits with checkmarks */}
-                          <div className="space-y-1">
-                            {option.benefits.map((benefit, idx) => (
-                              <div key={idx} className="flex items-center gap-2">
-                                <FontAwesomeIcon icon={faCheck} className="text-green-500 text-xs" />
-                                <span className="text-xs text-gray-700">{benefit}</span>
-                              </div>
-                            ))}
+                            <div className="space-y-1">
+                              {option.benefits.map((benefit, idx) => (
+                                <div key={idx} className="flex items-center gap-2">
+                                  <FontAwesomeIcon icon={faCheck} className="text-green-500 text-xs" />
+                                  <span className="text-xs text-gray-700">{benefit}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
 
-                        {/* THIN VERTICAL LINE - Desktop only */}
-                        <div className="hidden md:block relative">
-                          <div className="absolute left-0 top-0 bottom-0 w-px bg-gray-300"></div>
+                        {/* VERTICAL SEPARATOR 1 - Full dynamic height */}
+                        <div className="flex items-center">
+                          <div className="w-px bg-gray-300 h-full"></div>
                         </div>
 
-                        {/* PRICE COLUMN */}
-                        <div className="space-y-2">
-                          <div>
-                            <div className="text-sm text-gray-400 line-through">
-                              {formatPrice(option.originalPrice)}
-                            </div>
-                            <div className="text-xs font-medium text-red-500">
-                              {option.discount}
-                            </div>
+                        {/* COLUMN 2: Price */}
+                        <div className="flex-1 px-8 flex flex-col justify-center">
+                          <div className="text-sm text-gray-400 line-through text-center">
+                            {formatPrice(option.originalPrice)}
                           </div>
-                          
-                          <div className="text-xl font-bold text-gray-900">
+                          <div className="text-xs font-medium text-red-500 text-center mb-1">
+                            {option.discount}
+                          </div>
+                          <div className="text-xl font-bold text-gray-900 text-center mb-1">
                             {formatPrice(option.price)}
                           </div>
-                          
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-500 text-center mb-2">
                             Per night before taxes
                           </p>
-
-                          {/* Availability */}
-                          <div className="mt-2">
+                          <div className="text-center">
                             {option.isAvailable ? (
                               <span className="inline-block text-xs text-[#FF5C39] font-medium">
                                 Available
@@ -521,32 +596,32 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                           </div>
                         </div>
 
-                        {/* THIN VERTICAL LINE - Desktop only */}
-                        <div className="hidden md:block relative">
-                          <div className="absolute left-0 top-0 bottom-0 w-px bg-gray-300"></div>
+                        {/* VERTICAL SEPARATOR 2 - Full dynamic height */}
+                        <div className="flex items-center">
+                          <div className="w-px bg-gray-300 h-full"></div>
                         </div>
 
-                        {/* ACTION COLUMN */}
-                        <div className="space-y-2">
+                        {/* COLUMN 3: Action */}
+                        <div className="flex-1 pl-8 flex flex-col justify-center items-center">
                           {option.isAvailable ? (
                             <>
                               <button
                                 onClick={() => handleBookNow(room, option)}
-                                className="w-full bg-gradient-to-r from-[#2C83F9] to-[#06E] text-white py-2.5 rounded-full font-semibold text-sm hover:opacity-90 transition-opacity cursor-pointer"
+                                className="w-full max-w-[120px] bg-gradient-to-r from-[#2C83F9] to-[#06E] text-white py-2.5 rounded-full font-semibold text-sm hover:opacity-90 transition-opacity cursor-pointer"
                               >
                                 BOOK
                               </button>
-                              <p className="text-xs text-gray-500 text-center">
+                              <p className="text-xs text-gray-500 mt-2 text-center">
                                 It only takes 2 minutes
                               </p>
-                              <p className="text-xs text-[#FF5C39] text-center">
+                              <p className="text-xs text-[#FF5C39] mt-1 text-center">
                                 Limited availability...
                               </p>
                             </>
                           ) : (
                             <button
                               disabled
-                              className="w-full bg-gray-300 text-gray-500 py-2.5 rounded-full font-semibold text-sm cursor-not-allowed"
+                              className="w-full max-w-[120px] bg-gray-300 text-gray-500 py-2.5 rounded-full font-semibold text-sm cursor-not-allowed"
                             >
                               Not Available
                             </button>
@@ -554,9 +629,9 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                         </div>
                       </div>
 
-                      {/* HORIZONTAL THIN LINE FOR MOBILE - Between options */}
+                      {/* Horizontal line between options on mobile */}
                       {index < room.occupancy.length - 1 && (
-                        <div className="md:hidden w-full h-px bg-gray-300 mt-4"></div>
+                        <div className="lg:hidden w-full h-px bg-gray-300 mt-4"></div>
                       )}
                     </div>
                   ))}
