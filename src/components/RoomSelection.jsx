@@ -336,9 +336,10 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
-              <div className="flex flex-col lg:flex-row gap-6">
+              <div className="flex flex-col lg:flex-row gap-6 ">
                 {/* Room Images Section */}
-                <div className="lg:w-64 flex-shrink-0">
+            
+                <div className="lg:w-64 flex-shrink-0  bg-[#f9f9f9]">
                   <div className="relative h-48 lg:h-48 rounded-xl overflow-hidden mb-3 cursor-pointer" onClick={() => handleViewDetails(room)}>
                     <img 
                       src={room.image} 
@@ -346,7 +347,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute bottom-3 left-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
-                      <FontAwesomeIcon icon={faStar} className="text-black" />
+                      <FontAwesomeIcon icon={faStar} className="text-[#ffc802]" />
                       <span>{room.rating}</span>
                     </div>
                   </div>
@@ -370,19 +371,25 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                   
                   {/* Hotel Information */}
                   <div className="mt-3 space-y-2">
-                    <div className="flex items-center gap-1">
-                      <FontAwesomeIcon icon={faStar} className="text-black" />
+                    <div className="flex gap-3">
+                       <h4 className="font-bold text-gray-900">{room.title}</h4>
+                        <div className="flex items-center gap-1 p-0.5 bg-amber-100 rotate-[15px]">
+                      <FontAwesomeIcon icon={faStar} className="text-[#ffc802]" />
+
                       <span className="text-sm font-medium">{room.rating}</span>
                       <span className="text-sm text-gray-500">({room.reviewCount})</span>
                     </div>
-                    <h4 className="font-bold text-gray-900">{room.title}</h4>
-                    <div className="flex items-center gap-1 text-sm text-gray-600">
-                      <FontAwesomeIcon icon={faMapMarkerAlt} className="text-black" />
+                    </div>
+                   
+
+ <div className="flex items-center gap-1 text-sm text-gray-600">
                       <span>{hotelInfo.location}</span>
                     </div>
                     
+                   
+                   
                     {/* Room Description - Placed under Preview Room button */}
-                    <p className="text-sm text-gray-600 mt-2">{room.description}</p>
+                    {/* <p className="text-sm text-gray-600 mt-2">{room.description}</p> */}
                     
                     {/* Key Features Section - Moved here */}
                     <div className="mt-3">
@@ -423,9 +430,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                     {/* Left Section - Room Info */}
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-3">
-                        <h3 className="text-lg font-bold text-gray-900">
-                          {room.title}
-                        </h3>
+                       
                         <div className="text-right">
                           <div className="text-2xl font-bold text-gray-900">
                             {formatPrice(room.occupancy[0]?.price)}
@@ -523,52 +528,16 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                     {/* Right Section - Booking Action */}
                     <div className="lg:w-48">
                       <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
-                        {/* Number of Rooms Dropdown */}
-                        <div className="mb-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Number of Rooms
-                          </label>
-                          <select
-                            value={selectedRoomsCount}
-                            onChange={(e) => setSelectedRoomsCount(parseInt(e.target.value))}
-                            className="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent cursor-pointer"
-                          >
-                            {[...Array(room.maxRooms).keys()].map(num => (
-                              <option key={num + 1} value={num + 1}>
-                                {num + 1} room{num + 1 > 1 ? 's' : ''}
-                              </option>
-                            ))}
-                          </select>
-                          <p className="text-xs text-gray-500 mt-1">
-                            Max: {room.maxRooms} rooms available
-                          </p>
-                        </div>
                         
-                        <div className="space-y-3">
-                          <button
-                            onClick={() => handleViewDetails(room)}
-                            className="w-full py-2 text-[#06EAFC] border border-[#06EAFC] rounded-lg hover:bg-blue-50 transition-colors cursor-pointer"
-                          >
-                            View Full Details
-                          </button>
-                          
-                          <button
-                            onClick={() => handleRoomSelect(room)}
-                            className={`w-full py-3 rounded-lg font-medium transition-all duration-300 cursor-pointer ${
-                              selectedRoom?.id === room.id
-                                ? 'bg-[#06EAFC] text-white hover:bg-[#05d9eb]'
-                                : 'bg-white text-[#06EAFC] border border-[#06EAFC] hover:bg-blue-50'
-                            }`}
-                          >
-                            {selectedRoom?.id === room.id ? 'Selected ✓' : 'Select Room'}
-                          </button>
-                          
+                        <div className="space-y-3">     
                           <button
                             onClick={() => handleBookNow(room)}
-                            className="w-full py-3 bg-gradient-to-r from-[#06EAFC] to-[#06F49F] text-white rounded-lg font-medium hover:opacity-90 transition-all duration-300 cursor-pointer"
+                            className="w-full py-3 bg-gradient-to-r from-[#2C83F9] to-[#06E] text-white rounded-lg font-medium hover:opacity-90 transition-all duration-300 cursor-pointer"
                           >
-                            Book Now
+                            Book
                           </button>
+                          <p className="text-[11px] ">it only takes two minutes</p>
+                          <p className="text-[11px] text-[#FF5C39]">limited availability</p>
                         </div>
                       </div>
                     </div>
