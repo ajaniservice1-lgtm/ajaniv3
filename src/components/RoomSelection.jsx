@@ -758,7 +758,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
 
         {/* Modal for Room Details - Exact design from second component */}
         {showModal && modalRoom && (
-          <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-[1000] p-4">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-screen overflow-y-auto">
               {/* Close Button */}
               <div className="p-4">
