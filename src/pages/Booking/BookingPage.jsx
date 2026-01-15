@@ -43,6 +43,18 @@ const BookingPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
 
+  // Fix: Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  // Additional fix: Also scroll to top when data loads
+  useEffect(() => {
+    if (vendorData) {
+      window.scrollTo(0, 0);
+    }
+  }, [vendorData]);
+
   useEffect(() => {
     // Get data from location state or localStorage
     if (location.state) {

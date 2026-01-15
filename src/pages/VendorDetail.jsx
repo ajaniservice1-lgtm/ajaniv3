@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
@@ -353,23 +353,19 @@ const StarRating = ({ rating, onRatingChange = null, interactive = false, size =
   );
 };
 
-// Helper function to get location string safely - IMPROVED VERSION
+// Helper function to get location string safely
 const getLocationString = (location, fallback = "Ibadan, Nigeria") => {
   if (!location) return fallback;
   
-  // Handle string case
   if (typeof location === 'string') {
     return location.trim() || fallback;
   }
   
-  // Handle number case
   if (typeof location === 'number') {
     return String(location);
   }
   
-  // Handle object case
   if (typeof location === 'object') {
-    // Try common location properties
     if (location.area && typeof location.area === 'string') return location.area.trim() || fallback;
     if (location.name && typeof location.name === 'string') return location.name.trim() || fallback;
     if (location.address && typeof location.address === 'string') return location.address.trim() || fallback;
@@ -377,23 +373,19 @@ const getLocationString = (location, fallback = "Ibadan, Nigeria") => {
     if (location.state && typeof location.state === 'string') return location.state.trim() || fallback;
     if (location.country && typeof location.country === 'string') return location.country.trim() || fallback;
     
-    // Handle geolocation object
     if (location.geolocation) {
       if (typeof location.geolocation === 'string') {
         return location.geolocation.trim() || fallback;
       }
       if (typeof location.geolocation === 'object') {
-        // Try to create a string from geolocation coordinates
         if (location.geolocation.lat && location.geolocation.lng) {
           return `${location.geolocation.lat}, ${location.geolocation.lng}`;
         }
       }
     }
     
-    // Last resort: try to stringify safely
     try {
       const stringified = JSON.stringify(location);
-      // If it's too long or looks like an object, use fallback
       if (stringified.length > 100 || stringified.includes('{') || stringified.includes('[')) {
         return fallback;
       }
@@ -403,11 +395,10 @@ const getLocationString = (location, fallback = "Ibadan, Nigeria") => {
     }
   }
   
-  // For any other type (boolean, function, etc.)
   return fallback;
 };
 
-// Helper function to get category display safely - IMPROVED VERSION
+// Helper function to get category display safely
 const getCategoryDisplay = (vendor) => {
   if (!vendor) return "Business";
   
@@ -418,7 +409,6 @@ const getCategoryDisplay = (vendor) => {
     if (typeof rawCategory === 'string') {
       categoryStr = rawCategory;
     } else if (typeof rawCategory === 'object') {
-      // Try to get a string representation from the object
       if (rawCategory.name) {
         categoryStr = safeToString(rawCategory.name, "");
       } else if (rawCategory.value) {
@@ -426,7 +416,6 @@ const getCategoryDisplay = (vendor) => {
       } else if (rawCategory.label) {
         categoryStr = safeToString(rawCategory.label, "");
       } else {
-        // Try to stringify as a last resort
         try {
           categoryStr = JSON.stringify(rawCategory);
         } catch {
@@ -438,7 +427,6 @@ const getCategoryDisplay = (vendor) => {
     }
   }
   
-  // If we still don't have a category string, try to infer from name
   if (!categoryStr.trim()) {
     const name = safeToString(vendor?.title || vendor?.name || "", "").toLowerCase();
     if (name.includes("hotel")) return "Hotel";
@@ -448,7 +436,6 @@ const getCategoryDisplay = (vendor) => {
     return "Business";
   }
   
-  // Clean up the category string
   let cleanedCategory = categoryStr.trim().replace(/^\d+\.\s*/, "");
   
   if (cleanedCategory.includes(".")) {
@@ -494,6 +481,9 @@ const VendorDetail = () => {
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   
   const isAuthenticated = useAuthStatus();
+
+  // Ref for room selection section
+  const roomSelectionRef = useRef(null);
 
   // Reviews data
   const initialReviews = [
@@ -677,6 +667,29 @@ const VendorDetail = () => {
   };
 
   const handleBookingClick = () => {
+    // Check if we're in hotel or shortlet category
+    const currentCategory = normalizeCategory(vendor?.category);
+    
+    if ((currentCategory === 'hotel' || currentCategory === 'shortlet') && roomSelectionRef.current) {
+      // Scroll to room selection section with smooth animation
+      roomSelectionRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+      
+      // Add highlight effect
+      roomSelectionRef.current.classList.add('highlight-section');
+      setTimeout(() => {
+        if (roomSelectionRef.current) {
+          roomSelectionRef.current.classList.remove('highlight-section');
+        }
+      }, 1500);
+      
+      showToast("Scroll to room selection for booking", "info");
+      return; // Stop further execution for hotel/shortlet categories
+    }
+    
+    // Original booking logic for other categories
     console.log("Booking clicked for vendor:", vendor);
     
     if (!vendor) {
@@ -692,7 +705,7 @@ const VendorDetail = () => {
     const vendorBookingData = {
       id: vendorId,
       name: safeToString(vendor.title || vendor.name, "Vendor"),
-      category: normalizeCategory(vendor.category),
+      category: currentCategory,
       originalCategory: safeToString(vendor.category),
       priceFrom: vendor.price || vendor.price_from,
       priceTo: vendor.price_to || vendor.price,
@@ -771,20 +784,29 @@ const VendorDetail = () => {
     navigate(`/vendor-detail/${listingId}`);
   };
 
+  // FIXED: Toast notification function with proper z-index and positioning
   const showToast = (message, type = "success") => {
+    // Remove any existing toast
     const existingToast = document.getElementById("toast-notification");
-    if (existingToast) existingToast.remove();
+    if (existingToast) {
+      existingToast.remove();
+    }
 
+    // Create new toast element
     const toast = document.createElement("div");
     toast.id = "toast-notification";
-    toast.className = `fixed z-50 px-4 py-3 rounded-lg shadow-lg border ${
+    toast.className = `fixed z-[99999] px-4 py-3 rounded-lg shadow-lg border ${
       type === "success" 
         ? "bg-green-50 border-green-200 text-green-800" 
         : "bg-blue-50 border-blue-200 text-blue-800"
     }`;
-    toast.style.top = "15px";
+    
+    // Set inline styles for positioning
+    toast.style.top = "80px"; // Position below header
     toast.style.right = "15px";
     toast.style.maxWidth = "320px";
+    toast.style.boxShadow = "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)";
+    toast.style.backdropFilter = "blur(10px)";
     toast.style.animation = "slideInRight 0.3s ease-out forwards";
 
     toast.innerHTML = `
@@ -806,13 +828,17 @@ const VendorDetail = () => {
       </div>
     `;
 
+    // Add toast to body
     document.body.appendChild(toast);
 
+    // Auto-remove toast after 3 seconds
     setTimeout(() => {
       if (toast.parentElement) {
         toast.style.animation = "slideOutRight 0.3s ease-in forwards";
         setTimeout(() => {
-          if (toast.parentElement) toast.remove();
+          if (toast.parentElement) {
+            toast.remove();
+          }
         }, 300);
       }
     }, 3000);
@@ -1148,12 +1174,102 @@ const VendorDetail = () => {
     <div className="min-h-screen font-manrope">
       <Header />
       
+      {/* Embedded CSS for smooth scrolling, highlight effects, and toast styling */}
+      <style jsx>{`
+        @keyframes highlightPulse {
+          0% {
+            background-color: rgba(6, 234, 252, 0.05);
+            box-shadow: 0 0 0 0 rgba(6, 234, 252, 0.4);
+          }
+          50% {
+            background-color: rgba(6, 234, 252, 0.15);
+            box-shadow: 0 0 0 10px rgba(6, 234, 252, 0);
+          }
+          100% {
+            background-color: rgba(6, 234, 252, 0.05);
+            box-shadow: 0 0 0 0 rgba(6, 234, 252, 0);
+          }
+        }
+        
+        @keyframes slideInRight {
+          from {
+            opacity: 0;
+            transform: translateX(100%);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes slideOutRight {
+          from {
+            opacity: 1;
+            transform: translateX(0);
+          }
+          to {
+            opacity: 0;
+            transform: translateX(100%);
+          }
+        }
+        
+        .highlight-section {
+          animation: highlightPulse 1.5s ease-in-out;
+          border-radius: 1rem;
+          position: relative;
+          z-index: 1;
+        }
+        
+        .smooth-scroll-target {
+          scroll-margin-top: 20px;
+          transition: all 0.5s ease;
+        }
+        
+        /* Ensure smooth scrolling for the whole page */
+        html {
+          scroll-behavior: smooth;
+        }
+        
+        /* Toast specific styles - with high z-index and proper positioning */
+        #toast-notification {
+          position: fixed !important;
+          z-index: 99999 !important;
+          top: 80px !important;
+          right: 15px !important;
+          max-width: 320px;
+          animation: slideInRight 0.3s ease-out forwards;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+          backdrop-filter: blur(10px);
+        }
+        
+        /* Mobile optimization for toast */
+        @media (max-width: 768px) {
+          #toast-notification {
+            top: 70px !important;
+            right: 10px !important;
+            left: 10px !important;
+            max-width: calc(100% - 20px);
+          }
+        }
+        
+        /* Mobile optimization for other elements */
+        @media (max-width: 768px) {
+          .smooth-scroll-target {
+            scroll-margin-top: 10px;
+          }
+          
+          .highlight-section {
+            animation: highlightPulse 1s ease-in-out;
+          }
+        }
+      `}</style>
+      
       <main className="md:pt-5 pt-1">
         <div className="md:max-w-[1245px] md:mx-auto">
-          {/* Breadcrumb with Back Button - FIXED ROUTE CENTERED */}
+          {/* Breadcrumb with Back Button */}
           <div className="px-4 md:px-4">
             <nav className="flex items-center justify-between text-xs text-gray-600 mb-2 md:mb-2 font-manrope">
-              {/* Back Button - Far Left */}
+              {/* Back Button */}
               <button
                 onClick={() => navigate(-1)}
                 className="flex items-center gap-1 hover:text-[#06EAFC] transition-colors cursor-pointer"
@@ -1162,7 +1278,7 @@ const VendorDetail = () => {
                 <span className="hidden sm:inline">Back</span>
               </button>
 
-              {/* Centered Route with safe rendering */}
+              {/* Centered Route */}
               <div className="flex items-center space-x-2 absolute left-1/2 transform -translate-x-1/2">
                 <Link
                   to="/"
@@ -1201,7 +1317,7 @@ const VendorDetail = () => {
                       <VscVerifiedFilled className="text-green-500 text-base md:text-xl hover:scale-110 transition-transform duration-200 cursor-pointer" />
                     </div>
                     
-                    {/* MOBILE: Share and Bookmark buttons inline */}
+                    {/* MOBILE: Share and Bookmark buttons */}
                     <div className="flex md:hidden items-center gap-2">
                       <button
                         onClick={handleShareClick}
@@ -1328,7 +1444,7 @@ const VendorDetail = () => {
             </div>
 
             {/* ================= IMAGE GALLERY SECTION ================= */}
-            {/* Desktop Gallery Layout (lg and above) */}
+            {/* Desktop Gallery Layout */}
             <section className="hidden lg:block px-4">
               <div className="relative grid grid-cols-4 grid-rows-2 gap-3 h-[340px] overflow-hidden rounded-xl">
                 {/* LEFT TOP */}
@@ -1416,10 +1532,10 @@ const VendorDetail = () => {
               </div>
             </section>
 
-            {/* Mobile Gallery Layout - NORMAL GALLERY STYLE */}
+            {/* Mobile Gallery Layout */}
             <section className="lg:hidden px-4">
               <div className="space-y-3">
-                {/* Main image - Reduced height by 20px */}
+                {/* Main image */}
                 <div 
                   onClick={() => {
                     setCurrentImageIndex(2);
@@ -1606,6 +1722,7 @@ const VendorDetail = () => {
                   </span>
                 </button>
 
+                {/* BOOKING BUTTON - Now scrolls to RoomSelection for hotel/shortlet */}
                 <button
                   onClick={handleBookingClick}
                   className="flex flex-col items-center transition-all duration-300 px-2 group relative cursor-pointer"
@@ -1621,6 +1738,12 @@ const VendorDetail = () => {
                     Book
                     <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-600 group-hover:w-full transition-all duration-300"></span>
                   </span>
+                  {/* Tooltip for hotel/shortlet categories */}
+                  {(category === 'hotel' || category === 'shortlet') && (
+                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none">
+                      Select room first
+                    </div>
+                  )}
                 </button>
 
                 <button
@@ -1707,9 +1830,13 @@ const VendorDetail = () => {
               </div>
             </section>
 
-            {/* Room Selection Section - Only for Hotels */}
-            {category === 'hotel' && (
-              <div className="px-4 md:px-4">
+            {/* Room Selection Section - Only for Hotels/Shortlets with smooth scroll target */}
+            {(category === 'hotel' || category === 'shortlet') && (
+              <div 
+                ref={roomSelectionRef}
+                id="room-selection-section"
+                className="smooth-scroll-target px-4 md:px-4"
+              >
                 <RoomSelection 
                   category={category}
                   onRoomSelect={handleRoomSelect}
@@ -1729,9 +1856,9 @@ const VendorDetail = () => {
                   </span>
                 </h2>
                 
-                {/* Rating Summary - Mobile Optimized */}
+                {/* Rating Summary */}
                 <div className="flex flex-col items-center md:flex-row md:items-start gap-6 md:gap-8 mb-8 p-4 bg-gray-50 rounded-xl">
-                  {/* Average Rating - Center on mobile */}
+                  {/* Average Rating */}
                   <div className="flex flex-col items-center md:items-start gap-3">
                     <div className="text-4xl md:text-5xl font-bold text-gray-900 text-center md:text-left">
                       {averageRating.toFixed(1)}
@@ -1746,7 +1873,7 @@ const VendorDetail = () => {
                     </div>
                   </div>
                   
-                  {/* Rating Breakdown - Stack vertically on mobile */}
+                  {/* Rating Breakdown */}
                   <div className="flex-1 w-full space-y-3">
                     {reviewStats.map((stat, index) => (
                       <div key={index} className="flex items-center gap-3">
@@ -1763,7 +1890,7 @@ const VendorDetail = () => {
                   </div>
                 </div>
                 
-                {/* Review Form - Only shows when authenticated */}
+                {/* Review Form */}
                 {showReviewForm && (
                   <div className="mb-8 p-4 md:p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
                     <h3 className="text-lg font-bold text-[#00065A] mb-4 font-manrope">
@@ -1902,7 +2029,7 @@ const VendorDetail = () => {
                   </div>
                 )}
                 
-                {/* Write Review Button - Shows conditionally */}
+                {/* Write Review Button */}
                 <div className="mt-8 pt-6 border-t border-gray-200">
                   <button 
                     onClick={handleWriteReviewClick}
@@ -1925,7 +2052,7 @@ const VendorDetail = () => {
                 </h2>
                 
                 <div className="space-y-6">
-                  {/* Google Maps Embed - Ibadan focused */}
+                  {/* Google Maps Embed */}
                   <div className="bg-gray-100 rounded-xl overflow-hidden h-64 md:h-96">
                     <iframe
                       src={getGoogleMapsUrl()}
@@ -1972,7 +2099,7 @@ const VendorDetail = () => {
                           className="inline-flex items-center gap-2 px-4 py-2 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors font-manrope font-medium cursor-pointer"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 13V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                           </svg>
                           Get Directions
                         </a>
