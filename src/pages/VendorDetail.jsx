@@ -44,10 +44,32 @@ const FALLBACK_IMAGES = {
   default: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&q=80"
 };
 
+// Helper function to safely convert values to strings
+const safeToString = (value, defaultValue = '') => {
+  if (value === null || value === undefined) return defaultValue;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (typeof value === 'object') {
+    // Try common properties
+    if (value.name) return safeToString(value.name, defaultValue);
+    if (value.title) return safeToString(value.title, defaultValue);
+    if (value.area) return safeToString(value.area, defaultValue);
+    if (value.address) return safeToString(value.address, defaultValue);
+    if (value.value) return safeToString(value.value, defaultValue);
+    // Last resort: JSON stringify
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return defaultValue;
+    }
+  }
+  return defaultValue;
+};
+
 const normalizeCategory = (category) => {
   if (!category) return 'restaurant';
   
-  const cat = category.toString().toLowerCase().trim();
+  const cat = safeToString(category).toLowerCase().trim();
   
   if (cat.includes("/")) {
     const parts = cat.split("/").map(part => part.trim());
@@ -129,9 +151,9 @@ const getVendorInfo = (listing) => {
   if (listing.vendorId && typeof listing.vendorId === 'object') {
     return {
       id: listing.vendorId._id || listing.vendorId.id,
-      name: listing.vendorId.name || listing.vendorId.username || listing.vendorId.email,
-      email: listing.vendorId.email,
-      phone: listing.vendorId.phone,
+      name: safeToString(listing.vendorId.name || listing.vendorId.username || listing.vendorId.email, 'Vendor'),
+      email: safeToString(listing.vendorId.email),
+      phone: safeToString(listing.vendorId.phone),
       verified: listing.vendorId.verified || false
     };
   }
@@ -139,9 +161,9 @@ const getVendorInfo = (listing) => {
   if (listing.vendor && typeof listing.vendor === 'object') {
     return {
       id: listing.vendor._id || listing.vendor.id,
-      name: listing.vendor.name || listing.vendor.username || listing.vendor.email,
-      email: listing.vendor.email,
-      phone: listing.vendor.phone,
+      name: safeToString(listing.vendor.name || listing.vendor.username || listing.vendor.email, 'Vendor'),
+      email: safeToString(listing.vendor.email),
+      phone: safeToString(listing.vendor.phone),
       verified: listing.vendor.verified || false
     };
   }
@@ -199,7 +221,7 @@ const VendorListingCard = ({ listing, onClick }) => {
   
   const formatPrice = (price) => {
     if (!price) return "₦ --";
-    const num = parseInt(price.toString().replace(/[^\d]/g, ""));
+    const num = parseInt(safeToString(price).replace(/[^\d]/g, ""));
     if (isNaN(num)) return "₦ --";
     return `₦${num.toLocaleString()}`;
   };
@@ -222,20 +244,20 @@ const VendorListingCard = ({ listing, onClick }) => {
       <div className="relative h-48 overflow-hidden">
         <img 
           src={images[0]} 
-          alt={listing.title || listing.name}
+          alt={safeToString(listing.title || listing.name, "Listing")}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
         <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-full text-xs">
           {formatPrice(listing.price || listing.price_from)}
         </div>
         <div className="absolute bottom-2 left-2 bg-[#06EAFC] text-white px-2 py-1 rounded-full text-xs">
-          {listing.status === 'active' ? 'Active' : listing.status}
+          {safeToString(listing.status) === 'active' ? 'Active' : safeToString(listing.status)}
         </div>
       </div>
       <div className="p-4">
         <div className="flex items-start justify-between mb-2">
           <h3 className="font-bold text-gray-900 line-clamp-1 flex-1">
-            {listing.title || listing.name}
+            {safeToString(listing.title || listing.name, "Unnamed Listing")}
           </h3>
           <FontAwesomeIcon 
             icon={getCategoryIcon()} 
@@ -243,15 +265,15 @@ const VendorListingCard = ({ listing, onClick }) => {
           />
         </div>
         <p className="text-gray-600 text-sm line-clamp-2 mb-3">
-          {listing.description?.substring(0, 100)}...
+          {safeToString(listing.description, "").substring(0, 100)}...
         </p>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
             <FontAwesomeIcon icon={faStar} className="text-yellow-500 text-xs" />
-            <span className="text-xs font-semibold">{listing.rating || "4.5"}</span>
+            <span className="text-xs font-semibold">{safeToString(listing.rating, "4.5")}</span>
           </div>
           <span className="text-xs text-gray-500">
-            {listing.location?.area || listing.area || "Ibadan"}
+            {safeToString(listing.location?.area || listing.area, "Ibadan")}
           </span>
         </div>
       </div>
@@ -329,6 +351,118 @@ const StarRating = ({ rating, onRatingChange = null, interactive = false, size =
       })}
     </div>
   );
+};
+
+// Helper function to get location string safely - IMPROVED VERSION
+const getLocationString = (location, fallback = "Ibadan, Nigeria") => {
+  if (!location) return fallback;
+  
+  // Handle string case
+  if (typeof location === 'string') {
+    return location.trim() || fallback;
+  }
+  
+  // Handle number case
+  if (typeof location === 'number') {
+    return String(location);
+  }
+  
+  // Handle object case
+  if (typeof location === 'object') {
+    // Try common location properties
+    if (location.area && typeof location.area === 'string') return location.area.trim() || fallback;
+    if (location.name && typeof location.name === 'string') return location.name.trim() || fallback;
+    if (location.address && typeof location.address === 'string') return location.address.trim() || fallback;
+    if (location.city && typeof location.city === 'string') return location.city.trim() || fallback;
+    if (location.state && typeof location.state === 'string') return location.state.trim() || fallback;
+    if (location.country && typeof location.country === 'string') return location.country.trim() || fallback;
+    
+    // Handle geolocation object
+    if (location.geolocation) {
+      if (typeof location.geolocation === 'string') {
+        return location.geolocation.trim() || fallback;
+      }
+      if (typeof location.geolocation === 'object') {
+        // Try to create a string from geolocation coordinates
+        if (location.geolocation.lat && location.geolocation.lng) {
+          return `${location.geolocation.lat}, ${location.geolocation.lng}`;
+        }
+      }
+    }
+    
+    // Last resort: try to stringify safely
+    try {
+      const stringified = JSON.stringify(location);
+      // If it's too long or looks like an object, use fallback
+      if (stringified.length > 100 || stringified.includes('{') || stringified.includes('[')) {
+        return fallback;
+      }
+      return stringified;
+    } catch {
+      return fallback;
+    }
+  }
+  
+  // For any other type (boolean, function, etc.)
+  return fallback;
+};
+
+// Helper function to get category display safely - IMPROVED VERSION
+const getCategoryDisplay = (vendor) => {
+  if (!vendor) return "Business";
+  
+  const rawCategory = vendor?.category;
+  let categoryStr = "";
+  
+  if (rawCategory) {
+    if (typeof rawCategory === 'string') {
+      categoryStr = rawCategory;
+    } else if (typeof rawCategory === 'object') {
+      // Try to get a string representation from the object
+      if (rawCategory.name) {
+        categoryStr = safeToString(rawCategory.name, "");
+      } else if (rawCategory.value) {
+        categoryStr = safeToString(rawCategory.value, "");
+      } else if (rawCategory.label) {
+        categoryStr = safeToString(rawCategory.label, "");
+      } else {
+        // Try to stringify as a last resort
+        try {
+          categoryStr = JSON.stringify(rawCategory);
+        } catch {
+          categoryStr = "";
+        }
+      }
+    } else {
+      categoryStr = safeToString(rawCategory, "");
+    }
+  }
+  
+  // If we still don't have a category string, try to infer from name
+  if (!categoryStr.trim()) {
+    const name = safeToString(vendor?.title || vendor?.name || "", "").toLowerCase();
+    if (name.includes("hotel")) return "Hotel";
+    if (name.includes("restaurant")) return "Restaurant";
+    if (name.includes("shortlet")) return "Shortlet";
+    if (name.includes("event")) return "Event Center";
+    return "Business";
+  }
+  
+  // Clean up the category string
+  let cleanedCategory = categoryStr.trim().replace(/^\d+\.\s*/, "");
+  
+  if (cleanedCategory.includes(".")) {
+    const parts = cleanedCategory.split(".");
+    cleanedCategory = parts[parts.length - 1].trim();
+  }
+  
+  cleanedCategory = cleanedCategory.replace(/['"]/g, "").trim();
+  
+  if (!cleanedCategory) {
+    return "Business";
+  }
+  
+  return cleanedCategory.charAt(0).toUpperCase() + cleanedCategory.slice(1).toLowerCase();
 };
 
 const VendorDetail = () => {
@@ -480,7 +614,7 @@ const VendorDetail = () => {
 
   const formatPrice = (price) => {
     if (!price) return "₦ --";
-    const num = parseInt(price.toString().replace(/[^\d]/g, ""));
+    const num = parseInt(safeToString(price).replace(/[^\d]/g, ""));
     if (isNaN(num)) return "₦ --";
     return `₦${num.toLocaleString()}`;
   };
@@ -517,8 +651,8 @@ const VendorDetail = () => {
     
     if (navigator.share && window.innerWidth < 768) {
       navigator.share({
-        title: vendor?.title || vendor?.name || 'Check out this vendor',
-        text: `Check out ${vendor?.title || vendor?.name || 'this amazing vendor'} on Ajani!`,
+        title: safeToString(vendor?.title || vendor?.name, 'Check out this vendor'),
+        text: `Check out ${safeToString(vendor?.title || vendor?.name, 'this amazing vendor')} on Ajani!`,
         url: currentUrl,
       })
       .then(() => showToast("Link shared successfully!", "success"))
@@ -557,16 +691,16 @@ const VendorDetail = () => {
     
     const vendorBookingData = {
       id: vendorId,
-      name: vendor.title || vendor.name,
+      name: safeToString(vendor.title || vendor.name, "Vendor"),
       category: normalizeCategory(vendor.category),
-      originalCategory: vendor.category,
+      originalCategory: safeToString(vendor.category),
       priceFrom: vendor.price || vendor.price_from,
       priceTo: vendor.price_to || vendor.price,
-      area: vendor.location?.area || vendor.area,
-      contact: vendor.contact || vendorInfo?.phone,
-      email: vendor.email || vendorInfo?.email,
-      description: vendor.description,
-      rating: vendor.rating,
+      area: getLocationString(vendor.location || vendor.area),
+      contact: safeToString(vendor.contact || vendorInfo?.phone),
+      email: safeToString(vendor.email || vendorInfo?.email),
+      description: safeToString(vendor.description),
+      rating: parseFloat(safeToString(vendor.rating, "4.5")),
       capacity: vendor.capacity,
       amenities: vendor.amenities,
       images: getVendorImages(vendor),
@@ -601,16 +735,16 @@ const VendorDetail = () => {
     
     const vendorBookingData = {
       id: vendor._id || vendor.id,
-      name: vendor.title || vendor.name,
+      name: safeToString(vendor.title || vendor.name, "Vendor"),
       category: normalizeCategory(vendor.category),
-      originalCategory: vendor.category,
+      originalCategory: safeToString(vendor.category),
       priceFrom: vendor.price || vendor.price_from,
       priceTo: vendor.price_to || vendor.price,
-      area: vendor.location?.area || vendor.area,
-      contact: vendor.contact || vendorInfo?.phone,
-      email: vendor.email || vendorInfo?.email,
-      description: vendor.description,
-      rating: vendor.rating,
+      area: getLocationString(vendor.location || vendor.area),
+      contact: safeToString(vendor.contact || vendorInfo?.phone),
+      email: safeToString(vendor.email || vendorInfo?.email),
+      description: safeToString(vendor.description),
+      rating: parseFloat(safeToString(vendor.rating, "4.5")),
       capacity: vendor.capacity,
       amenities: vendor.amenities,
       images: getVendorImages(vendor),
@@ -662,7 +796,7 @@ const VendorDetail = () => {
         </div>
         <div class="flex-1">
           <p class="font-medium">${message}</p>
-          <p class="text-sm opacity-80 mt-1">${vendor?.title || vendor?.name || "Vendor"}</p>
+          <p class="text-sm opacity-80 mt-1">${safeToString(vendor?.title || vendor?.name, "Vendor")}</p>
         </div>
         <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70 transition-opacity cursor-pointer">
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -703,16 +837,16 @@ const VendorDetail = () => {
 
         const itemToSaveAfterLogin = {
           id: vendorId,
-          name: vendor.title || vendor.name,
+          name: safeToString(vendor.title || vendor.name, "Vendor"),
           price: formatPrice(vendor.price || vendor.price_from),
           perText: normalizeCategory(vendor.category) === 'hotel' ? 'per night' : 
                    normalizeCategory(vendor.category) === 'restaurant' ? 'per meal' : 
                    'per guest',
-          rating: parseFloat(vendor.rating || "4.5"),
+          rating: parseFloat(safeToString(vendor.rating, "4.5")),
           tag: "Guest Favorite",
           image: getVendorImages(vendor)[0],
-          category: vendor.category || "Business",
-          location: vendor.location?.area || vendor.area || "Ibadan",
+          category: safeToString(vendor.category, "Business"),
+          location: getLocationString(vendor.location || vendor.area, "Ibadan"),
           originalData: vendor
         };
 
@@ -737,16 +871,16 @@ const VendorDetail = () => {
         const category = normalizeCategory(vendor.category);
         const listingToSave = {
           id: vendorId,
-          name: vendor.title || vendor.name,
+          name: safeToString(vendor.title || vendor.name, "Vendor"),
           price: formatPrice(vendor.price || vendor.price_from),
           perText: category === 'hotel' ? 'per night' : 
                    category === 'restaurant' ? 'per meal' : 
                    'per guest',
-          rating: parseFloat(vendor.rating || "4.5"),
+          rating: parseFloat(safeToString(vendor.rating, "4.5")),
           tag: "Guest Favorite",
           image: getVendorImages(vendor)[0],
-          category: vendor.category || "Business",
-          location: vendor.location?.area || vendor.area || "Ibadan",
+          category: safeToString(vendor.category, "Business"),
+          location: getLocationString(vendor.location || vendor.area, "Ibadan"),
           savedDate: new Date().toISOString().split("T")[0],
           originalData: vendor
         };
@@ -784,41 +918,9 @@ const VendorDetail = () => {
     return faCheckCircle;
   };
 
-  const getCategoryDisplay = (vendor) => {
-    if (vendor?.category) {
-      const category = vendor.category.toString().trim();
-      let cleanedCategory = category.replace(/^\d+\.\s*/, "");
-      
-      if (cleanedCategory.includes(".")) {
-        const parts = cleanedCategory.split(".");
-        cleanedCategory = parts[parts.length - 1].trim();
-      }
-      
-      cleanedCategory = cleanedCategory.replace(/['"]/g, "").trim();
-      
-      if (!cleanedCategory) {
-        return getFallbackCategory(vendor);
-      }
-      
-      return cleanedCategory.charAt(0).toUpperCase() + cleanedCategory.slice(1).toLowerCase();
-    }
-    
-    return getFallbackCategory(vendor);
-  };
-
-  const getFallbackCategory = (vendor) => {
-    if (!vendor) return "Business";
-    const name = (vendor.title || vendor.name || "").toLowerCase();
-    if (name.includes("hotel")) return "Hotel";
-    if (name.includes("restaurant")) return "Restaurant";
-    if (name.includes("shortlet")) return "Shortlet";
-    if (name.includes("event")) return "Event Center";
-    return "Business";
-  };
-
   const getReviewCount = () => {
     if (vendor?.review_count) {
-      const count = parseInt(vendor.review_count);
+      const count = parseInt(safeToString(vendor.review_count));
       return isNaN(count) ? 9 : count;
     }
     return 9;
@@ -836,7 +938,8 @@ const VendorDetail = () => {
 
   const getServices = () => {
     if (vendor?.description) {
-      const sentences = vendor.description.split(/[.!?]+/).filter(s => s.trim().length > 10);
+      const description = safeToString(vendor.description);
+      const sentences = description.split(/[.!?]+/).filter(s => s.trim().length > 10);
       return sentences.slice(0, 5).map(s => s.trim() + ".");
     }
     
@@ -874,8 +977,8 @@ const VendorDetail = () => {
       // Create new review object
       const userReview = {
         id: Date.now(),
-        name: userProfile.name || "Anonymous User",
-        image: userProfile.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop",
+        name: safeToString(userProfile.name, "Anonymous User"),
+        image: safeToString(userProfile.avatar, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop"),
         rating: newReview.rating,
         text: newReview.comment,
         title: newReview.title || "",
@@ -897,9 +1000,6 @@ const VendorDetail = () => {
       setShowReviewForm(false);
       
       showToast("Review submitted successfully!", "success");
-      
-      // In a real app, you would send this to your backend
-      // await reviewService.submitReview(vendorId, newReview);
       
     } catch (error) {
       showToast("Failed to submit review. Please try again.", "info");
@@ -1040,7 +1140,9 @@ const VendorDetail = () => {
   const reviewCount = getReviewCount();
   const categoryDisplay = getCategoryDisplay(vendor);
   const vendorId = getVendorIdFromListing(vendor);
-  const averageRating = vendor?.rating ? parseFloat(vendor.rating) : 4.5;
+  const averageRating = vendor?.rating ? parseFloat(safeToString(vendor.rating)) : 4.5;
+  const locationString = getLocationString(vendor.location || vendor.area, "Ibadan, Nigeria");
+  const safeTitle = safeToString(vendor.title || vendor.name, "Vendor Details");
 
   return (
     <div className="min-h-screen font-manrope">
@@ -1060,7 +1162,7 @@ const VendorDetail = () => {
                 <span className="hidden sm:inline">Back</span>
               </button>
 
-              {/* Centered Route */}
+              {/* Centered Route with safe rendering */}
               <div className="flex items-center space-x-2 absolute left-1/2 transform -translate-x-1/2">
                 <Link
                   to="/"
@@ -1070,14 +1172,14 @@ const VendorDetail = () => {
                 </Link>
                 <span>/</span>
                 <Link
-                  to={`/category/${category.toLowerCase().replace(/\s+/g, "-")}`}
+                  to={`/category/${typeof category === 'string' ? category.toLowerCase().replace(/\s+/g, "-") : 'other'}`}
                   className="hover:text-[#06EAFC] transition-colors hover:underline cursor-pointer"
                 >
                   {categoryDisplay}
                 </Link>
                 <span>/</span>
                 <span className="text-gray-900 truncate max-w-[100px] md:max-w-xs">
-                  {vendor.title || vendor.name}
+                  {safeTitle}
                 </span>
               </div>
 
@@ -1094,7 +1196,7 @@ const VendorDetail = () => {
                   <div className="flex items-center justify-between md:justify-start gap-3 md:gap-4 mb-2">
                     <div className="flex items-center gap-2 md:gap-3">
                       <h1 className="text-lg md:text-xl lg:text-3xl font-bold text-gray-900 font-manrope line-clamp-2 flex-1">
-                        {vendor.title || vendor.name}
+                        {safeTitle}
                       </h1>
                       <VscVerifiedFilled className="text-green-500 text-base md:text-xl hover:scale-110 transition-transform duration-200 cursor-pointer" />
                     </div>
@@ -1145,7 +1247,7 @@ const VendorDetail = () => {
                         />
                       </div>
                       <span className="font-bold text-gray-900 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200 cursor-pointer">
-                        {vendor.rating || "4.5"}
+                        {safeToString(vendor.rating, "4.5")}
                       </span>
                       <span className="text-gray-600 font-manrope text-xs md:text-sm hover:text-gray-800 transition-colors duration-200 cursor-pointer">
                         ({reviewCount} Reviews)
@@ -1158,7 +1260,7 @@ const VendorDetail = () => {
                         className="text-gray-500 text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200"
                       />
                       <span className="truncate max-w-[150px] md:max-w-none">
-                        {vendor.location?.area || vendor.area || "Ibadan"}
+                        {locationString}
                       </span>
                     </div>
                   </div>
@@ -1470,7 +1572,7 @@ const VendorDetail = () => {
             <div className="px-2">
               <div className="w-full h-14 md:h-16 bg-gray-200 rounded-[13px] md:rounded-3xl flex items-center justify-between px-4 md:px-12 mx-auto md:max-w-[600px] hover:shadow-lg transition-all duration-300 hover:bg-gray-300/50">
                 <button
-                  onClick={() => (vendor.contact || vendorInfo?.phone) && (window.location.href = `tel:${vendor.contact || vendorInfo?.phone}`)}
+                  onClick={() => (safeToString(vendor.contact || vendorInfo?.phone) && (window.location.href = `tel:${safeToString(vendor.contact || vendorInfo?.phone)}`))}
                   className="flex flex-col items-center transition-all duration-300 px-2 group relative cursor-pointer"
                 >
                   <div className="relative">
@@ -1548,8 +1650,7 @@ const VendorDetail = () => {
                     About
                   </h2>
                   <p className="text-gray-900 text-sm md:[15px] font-manrope hover:text-gray-800 cursor-pointer">
-                    {vendor.description ||
-                      "Welcome to our premium venue, offering exceptional service and unforgettable experiences. With modern amenities and professional staff, we ensure your stay is comfortable and memorable."}
+                    {safeToString(vendor.description, "Welcome to our premium venue, offering exceptional service and unforgettable experiences. With modern amenities and professional staff, we ensure your stay is comfortable and memorable.")}
                   </p>
                 </div>
 
@@ -1845,7 +1946,7 @@ const VendorDetail = () => {
                       <div>
                         <p className="text-sm text-gray-600 mb-1 cursor-pointer">Address</p>
                         <p className="font-medium text-gray-900 cursor-pointer">
-                          {vendor.address || `${vendor.title || vendor.name}, ${vendor.location?.area || vendor.area || "Ibadan"}`}
+                          {safeToString(vendor.address, `${safeToString(vendor.title || vendor.name, "Vendor")}, ${locationString}`)}
                         </p>
                       </div>
                       <div>
@@ -1853,19 +1954,19 @@ const VendorDetail = () => {
                         <div className="flex items-center gap-2">
                           <FontAwesomeIcon icon={faMapMarkerAlt} className="text-gray-400" />
                           <p className="font-medium text-gray-900 cursor-pointer">
-                            {vendor.location?.area || vendor.area || "Ibadan, Nigeria"}
+                            {locationString}
                           </p>
                         </div>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600 mb-1 cursor-pointer">Contact</p>
                         <p className="font-medium text-gray-900 cursor-pointer">
-                          {vendor.contact || vendorInfo?.phone || "Not provided"}
+                          {safeToString(vendor.contact || vendorInfo?.phone, "Not provided")}
                         </p>
                       </div>
                       <div className="pt-4">
                         <a
-                          href={`https://www.google.com/maps/dir//${encodeURIComponent(vendor.address || vendor.title || vendor.name + " Ibadan Nigeria")}`}
+                          href={`https://www.google.com/maps/dir//${encodeURIComponent(safeToString(vendor.address || vendor.title || vendor.name, "") + " Ibadan Nigeria")}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-2 px-4 py-2 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors font-manrope font-medium cursor-pointer"
