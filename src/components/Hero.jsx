@@ -309,9 +309,7 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
         breakdown: [],
         action: () => {
           const params = new URLSearchParams();
-          // ✅ FIX: Always include category when searching from hero
           params.append("location.area", normalizeLocationForBackend(location));
-          // CRITICAL: Always include category when searching from hero
           const categoryMap = {
             'Hotel': 'hotel',
             'Shortlet': 'shortlet',
@@ -360,9 +358,7 @@ const generateSearchSuggestions = (query, listings, activeCategory) => {
         breakdown: [],
         action: () => {
           const params = new URLSearchParams();
-          // ✅ FIX: Always include category when searching from hero
           params.append("location.area", normalizeLocationForBackend(location));
-          // CRITICAL: Always include category when searching from hero
           const categoryMap = {
             'Hotel': 'hotel',
             'Shortlet': 'shortlet',
@@ -701,7 +697,7 @@ const EmptySearchModal = ({ onClose, onConfirm }) => {
   );
 };
 
-/* ---------------- SEARCH MODAL COMPONENTS ---------------- */
+/* ---------------- FIXED MOBILE SEARCH MODAL COMPONENT ---------------- */
 const MobileSearchModal = ({
   searchQuery,
   listings,
@@ -730,21 +726,62 @@ const MobileSearchModal = ({
     inputRef.current?.focus();
   };
 
-  // ✅ FIX 1: Handle suggestion click to populate input without navigating
+  // ✅ FIXED: Handle suggestion click - populate input and close modal
   const handleSuggestionClick = (suggestion) => {
     // Set the input value to the suggestion title
     const title = suggestion.title || suggestion;
     setInputValue(title);
+    // This will update the parent component's searchQuery
     onTyping(title);
-    inputRef.current?.focus();
-    // Close the modal after selecting
+    // Close the modal
     onClose();
+    // IMPORTANT: Also trigger the onSuggestionClick callback
+    // This will store the suggestion in parent for when search button is clicked
+    if (typeof suggestion === 'object' && onSuggestionClick) {
+      onSuggestionClick(suggestion);
+    }
   };
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && inputValue.trim()) {
-      // When Enter is pressed, we just populate the input and close
+      // When Enter is pressed, populate and close
       onTyping(inputValue.trim());
+      onClose();
+    }
+  };
+
+  // ✅ Handle "Search anyway" button
+  const handleSearchAnyway = () => {
+    if (inputValue.trim()) {
+      // Create a suggestion object for the raw search term
+      const rawSuggestion = {
+        title: inputValue.trim(),
+        description: `Search for "${inputValue.trim()}"`,
+        type: "search",
+        action: () => {
+          const params = new URLSearchParams();
+          const categoryMap = {
+            'Hotel': 'hotel',
+            'Shortlet': 'shortlet',
+            'Restaurant': 'restaurant',
+            'Vendor': 'services',
+          };
+          const categorySlug = categoryMap[activeCategory];
+          
+          if (categorySlug) {
+            params.append("category", categorySlug);
+          }
+          
+          if (looksLikeLocation(inputValue.trim())) {
+            params.append("location.area", normalizeLocationForBackend(inputValue.trim()));
+          } else {
+            params.append("q", inputValue.trim());
+          }
+          
+          return `/search-results?${params.toString()}`;
+        }
+      };
+      onSuggestionClick(rawSuggestion);
       onClose();
     }
   };
@@ -761,7 +798,9 @@ const MobileSearchModal = ({
     return () => (document.body.style.overflow = "");
   }, [isVisible]);
 
-  useEffect(() => setInputValue(searchQuery), [searchQuery]);
+  useEffect(() => {
+    setInputValue(searchQuery);
+  }, [searchQuery]);
 
   if (!isVisible) return null;
 
@@ -791,18 +830,6 @@ const MobileSearchModal = ({
                 className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none text-gray-900 placeholder:text-gray-500 cursor-text"
                 value={inputValue}
                 onChange={handleInputChange}
-                onFocus={() => {
-                  // ✅ LOCATION CLEARING FIX: Clear location when focused
-                  const params = new URLSearchParams(window.location.search);
-                  const urlLocation = params.get("location.area") || params.get("location");
-                  if (urlLocation && looksLikeLocation(urlLocation)) {
-                    // Clear the input if it contains a location
-                    if (looksLikeLocation(inputValue)) {
-                      setInputValue("");
-                      onTyping("");
-                    }
-                  }
-                }}
                 onKeyPress={handleKeyPress}
                 placeholder={`Search ${activeCategory.toLowerCase()}...`}
                 autoFocus
@@ -854,7 +881,6 @@ const MobileSearchModal = ({
                               <h4 className="font-medium text-gray-900 text-base">{suggestion.title}</h4>
                               <p className="text-sm text-gray-600 mt-1">{suggestion.description}</p>
                             </div>
-                         
                           </div>
                           {suggestion.breakdown && suggestion.breakdown.length > 0 && (
                             <div className="mt-3 pt-3 border-t border-gray-100">
@@ -877,11 +903,7 @@ const MobileSearchModal = ({
                   ))}
                 </div>
                 <button
-                  onClick={() => {
-                    // This will populate the input with the current value
-                    onTyping(inputValue.trim());
-                    onClose();
-                  }}
+                  onClick={handleSearchAnyway}
                   className="w-full mt-6 p-4 bg-gray-900 hover:bg-black text-white font-medium rounded-xl cursor-pointer"
                 >
                   <div className="flex items-center justify-between">
@@ -903,10 +925,7 @@ const MobileSearchModal = ({
                   Try different keywords or browse our categories
                 </p>
                 <button
-                  onClick={() => {
-                    onTyping(inputValue.trim());
-                    onClose();
-                  }}
+                  onClick={handleSearchAnyway}
                   className="px-6 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-black cursor-pointer"
                 >
                   Search anyway
@@ -929,8 +948,25 @@ const MobileSearchModal = ({
                     <button
                       key={term}
                       onClick={() => {
-                        setInputValue(term);
-                        onTyping(term);
+                        const suggestion = {
+                          title: term,
+                          description: `${activeCategory} in ${term}`,
+                          type: "location",
+                          action: () => {
+                            const params = new URLSearchParams();
+                            params.append("location.area", normalizeLocationForBackend(term));
+                            const categoryMap = {
+                              'Hotel': 'hotel',
+                              'Shortlet': 'shortlet',
+                              'Restaurant': 'restaurant',
+                              'Vendor': 'services'
+                            };
+                            const categorySlug = categoryMap[activeCategory];
+                            params.append("category", categorySlug);
+                            return `/search-results?${params.toString()}`;
+                          }
+                        };
+                        handleSuggestionClick(suggestion);
                       }}
                       className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg cursor-pointer"
                     >
@@ -1008,7 +1044,6 @@ const DesktopSearchSuggestions = ({
               <button
                 key={index}
                 onClick={() => {
-                  // ✅ FIX: Populate input instead of navigating directly
                   onSuggestionClick(suggestion);
                   onClose();
                 }}
@@ -1050,7 +1085,6 @@ const DesktopSearchSuggestions = ({
                     <FontAwesomeIcon icon={faChevronRight} className="text-gray-400 text-sm" />
                   </div>
                 </div>
-                {/* Add "Tap to select" text like in the image */}
                 <div className="flex items-center justify-end mt-2 pt-2 border-t border-gray-100">
                   <span className="text-xs text-blue-600 font-medium">Tap to select</span>
                 </div>
@@ -1058,7 +1092,34 @@ const DesktopSearchSuggestions = ({
             ))}
             <button
               onClick={() => {
-                onSuggestionClick({ title: searchQuery.trim() });
+                const rawSuggestion = {
+                  title: searchQuery.trim(),
+                  description: `Search for "${searchQuery.trim()}"`,
+                  type: "search",
+                  action: () => {
+                    const params = new URLSearchParams();
+                    const categoryMap = {
+                      'Hotel': 'hotel',
+                      'Shortlet': 'shortlet',
+                      'Restaurant': 'restaurant',
+                      'Vendor': 'services',
+                    };
+                    const categorySlug = categoryMap[activeCategory];
+                    
+                    if (categorySlug) {
+                      params.append("category", categorySlug);
+                    }
+                    
+                    if (looksLikeLocation(searchQuery.trim())) {
+                      params.append("location.area", normalizeLocationForBackend(searchQuery.trim()));
+                    } else {
+                      params.append("q", searchQuery.trim());
+                    }
+                    
+                    return `/search-results?${params.toString()}`;
+                  }
+                };
+                onSuggestionClick(rawSuggestion);
                 onClose();
               }}
               className="w-full mt-3 p-3 bg-gray-900 hover:bg-black text-white font-medium rounded-lg cursor-pointer"
@@ -1191,8 +1252,36 @@ const DiscoverIbadan = () => {
       // If it's a string (from desktop), just update the search query
       setSearchQuery(suggestion);
       setShowSuggestions(false);
+      // Create a basic suggestion object for the string
+      setClickedSuggestion({
+        title: suggestion,
+        description: `Search for "${suggestion}"`,
+        type: "search",
+        action: () => {
+          const params = new URLSearchParams();
+          const categoryMap = {
+            Hotel: "hotel",
+            Shortlet: "shortlet",
+            Restaurant: "restaurant",
+            Vendor: "services",
+          };
+          const categorySlug = categoryMap[activeTab];
+          
+          if (categorySlug) {
+            params.append("category", categorySlug);
+          }
+          
+          if (looksLikeLocation(suggestion)) {
+            params.append("location.area", normalizeLocationForBackend(suggestion));
+          } else {
+            params.append("q", suggestion);
+          }
+          
+          return `/search-results?${params.toString()}`;
+        }
+      });
     }
-  }, []);
+  }, [activeTab]);
 
   // ✅ FIXED: Handle search submit with all parameters
   const handleSearchSubmit = useCallback(() => {
@@ -1305,7 +1394,6 @@ const DiscoverIbadan = () => {
 
   const handleGuestsChange = (newGuests) => {
     setGuests(newGuests);
-    // Store for search results
     setSearchParamsForResults(prev => ({ ...prev, guests: newGuests }));
   };
 
@@ -1357,14 +1445,23 @@ const DiscoverIbadan = () => {
     }
   }, [isSearchButtonAnimating]);
 
-  // Handle click on search button after suggestion is selected
+  // ✅ FIXED: Handle search button click for both mobile and desktop
   const handleSearchButtonClick = () => {
+    // Check if search query is empty
+    if (!searchQuery.trim()) {
+      setShowEmptySearchModal(true);
+      return;
+    }
+    
+    // If we have a clicked suggestion (from mobile or desktop), use its action
     if (clickedSuggestion && clickedSuggestion.action) {
       // Execute the stored action to get the URL
       const url = clickedSuggestion.action();
+      
+      // Create URLSearchParams for dates and guests
       const params = new URLSearchParams();
       
-      // ✅ FIX 2: Pass default dates if no date is selected
+      // ✅ Always pass dates (use default if none selected)
       const checkInToUse = checkInDate || new Date();
       const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
       
@@ -1384,6 +1481,7 @@ const DiscoverIbadan = () => {
       setShowSuggestions(false);
       setShowMobileModal(false);
     } else {
+      // Regular search without suggestion
       handleSearchSubmit();
     }
   };
@@ -1433,7 +1531,6 @@ const DiscoverIbadan = () => {
                         : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {/* ✅ UPDATED: Fixed icons - Vendor uses profile icon */}
                     <span className="flex-shrink-0">
                       {category === "Hotel" && (
                         <FontAwesomeIcon icon={faBuilding} className="w-3.5 h-3.5" />
@@ -1461,19 +1558,13 @@ const DiscoverIbadan = () => {
                   {/* Search Input */}
                   <div className="mb-2 sm:mb-3">
                     <div className="glass-dark rounded-lg px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-gray-200/30 cursor-pointer transition-all duration-300">
-                      {/* ✅ UPDATED: Solid search icon */}
                       <FontAwesomeIcon icon={faSearch} className="text-gray-500 flex-shrink-0" />
                       <input
                         ref={searchInputRef}
                         type="text"
                         value={searchQuery}
                         onChange={(e) => handleSearchChange(e.target.value)}
-                        onFocus={() => {
-                          // ✅ LOCATION CLEARING FIX: Clear location when focused
-                          if (looksLikeLocation(searchQuery)) {
-                            setSearchQuery("");
-                          }
-                        }}
+                        onFocus={handleSearchFocus}
                         onKeyPress={handleKeyPress}
                         placeholder={getSearchPlaceholder()}
                         className="bg-transparent outline-none w-full text-gray-900 placeholder-gray-500 text-xs min-w-0 cursor-text"
@@ -1483,7 +1574,6 @@ const DiscoverIbadan = () => {
                           onClick={handleClearSearch}
                           className="text-gray-900 hover:text-gray-600 flex-shrink-0 ml-1 cursor-pointer"
                         >
-                          {/* ✅ UPDATED: Solid close icon */}
                           <FontAwesomeIcon icon={faTimes} className="text-sm" />
                         </button>
                       )}
@@ -1498,7 +1588,6 @@ const DiscoverIbadan = () => {
                         className="glass-dark rounded-lg p-2 text-center hover:bg-gray-200/30 cursor-pointer transition-all duration-300"
                       >
                         <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
-                          {/* ✅ UPDATED: Solid calendar icon */}
                           <FontAwesomeIcon icon={faCalendarAlt} className="text-sm" /> Check-in
                         </div>
                         <div className="text-xs font-medium text-blue-600">{formatDateLabel(checkInDate)}</div>
@@ -1508,7 +1597,6 @@ const DiscoverIbadan = () => {
                         className="glass-dark rounded-lg p-2 text-center hover:bg-gray-200/30 cursor-pointer transition-all duration-300"
                       >
                         <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
-                          {/* ✅ UPDATED: Solid calendar icon */}
                           <FontAwesomeIcon icon={faCalendarAlt} className="text-sm" /> Check-out
                         </div>
                         <div className="text-xs font-medium text-blue-600">
@@ -1523,18 +1611,15 @@ const DiscoverIbadan = () => {
                         className="glass-dark rounded-lg p-2 text-center hover:bg-gray-200/30 cursor-pointer transition-all duration-300"
                       >
                         <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
-                          {/* ✅ UPDATED: Solid calendar icon */}
                           <FontAwesomeIcon icon={faCalendarAlt} className="text-sm" /> When are you visiting?
                         </div>
                         <div className="text-xs font-medium text-blue-600">{formatDateLabel(checkInDate)}</div>
                       </div>
-                      {/* ✅ UPDATED: Clickable "Number of People" with solid User icon */}
                       <div
                         onClick={handleGuestClick}
                         className="glass-dark rounded-lg p-2 text-center hover:bg-gray-200/30 cursor-pointer transition-all duration-300"
                       >
                         <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
-                          {/* ✅ UPDATED: Solid user icon */}
                           <FontAwesomeIcon icon={faUser} className="text-sm" /> Number of People (optional)
                         </div>
                         <div className="text-xs font-medium text-blue-600">
@@ -1549,7 +1634,6 @@ const DiscoverIbadan = () => {
                         className="glass-dark rounded-lg p-2 text-center hover:bg-gray-200/30 cursor-pointer transition-all duration-300"
                       >
                         <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
-                          {/* ✅ UPDATED: Solid calendar icon */}
                           <FontAwesomeIcon icon={faCalendarAlt} className="text-sm" /> Preferred service date (optional)
                         </div>
                         <div className="text-xs font-medium text-blue-600">{formatDateLabel(checkInDate)}</div>
@@ -1566,22 +1650,18 @@ const DiscoverIbadan = () => {
                       >
                         {activeTab !== "Restaurant" && (
                           <>
-                            {/* ✅ UPDATED: Room icon for Rooms */}
                             <FontAwesomeIcon icon={faBed} className="mr-1 text-sm" />
                             <span>{guests.rooms} {guests.rooms === 1 ? "Room" : "Rooms"}</span>
                             <span className="mx-1">•</span>
                           </>
                         )}
-                        {/* ✅ For Restaurant: Only show total people with solid User icon */}
                         {activeTab === "Restaurant" ? (
                           <>
-                            {/* ✅ UPDATED: Solid user icon */}
                             <FontAwesomeIcon icon={faUser} className="mr-1 text-sm" />
                             <span>{totalPeople} {totalPeople === 1 ? "person" : "people"}</span>
                           </>
                         ) : (
                           <>
-                            {/* ✅ UPDATED: Adult icon for Adults */}
                             <FontAwesomeIcon icon={faUser} className="mr-1 text-sm" />
                             <span>{guests.adults} {guests.adults === 1 ? "Adult" : "Adults"}</span>
                             {guests.children > 0 && (
@@ -1605,7 +1685,6 @@ const DiscoverIbadan = () => {
                         clickedSuggestion ? 'ring-2 ring-blue-400 ring-offset-2' : 'hover:from-[#00c97b] hover:to-teal-600'
                       }`}
                     >
-                      {/* ✅ UPDATED: Solid search icon */}
                       <FontAwesomeIcon icon={faSearch} className="text-sm" />
                       <span className="text-xs">
                         {clickedSuggestion ? `Search ${clickedSuggestion.title}` : getSearchButtonText()}
