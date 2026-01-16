@@ -626,6 +626,8 @@ const VendorDetail = () => {
       return ["Outdoor Seating", "Live Music", "Parking", "Takeaway", "Vegetarian Options", "Alcohol Served"];
     } else if (category === 'event') {
       return ["Stage", "Sound System", "Lighting", "Parking", "Catering Service", "Decoration Service"];
+    } else if (category === 'shortlet') {
+      return ["Full Kitchen", "WiFi", "Air Conditioning", "Parking", "Laundry", "24/7 Check-in"];
     }
     
     return ["Not specified"];
@@ -666,44 +668,13 @@ const VendorDetail = () => {
       });
   };
 
+  // UPDATED: Main booking click handler with category-based routing
   const handleBookingClick = () => {
-    // Check if we're in hotel or shortlet category
     const currentCategory = normalizeCategory(vendor?.category);
     
-    if ((currentCategory === 'hotel' || currentCategory === 'shortlet') && roomSelectionRef.current) {
-      // Scroll to room selection section with smooth animation
-      roomSelectionRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
-      
-      // Add highlight effect
-      roomSelectionRef.current.classList.add('highlight-section');
-      setTimeout(() => {
-        if (roomSelectionRef.current) {
-          roomSelectionRef.current.classList.remove('highlight-section');
-        }
-      }, 1500);
-      
-      showToast("Scroll to room selection for booking", "info");
-      return; // Stop further execution for hotel/shortlet categories
-    }
-    
-    // Original booking logic for other categories
-    console.log("Booking clicked for vendor:", vendor);
-    
-    if (!vendor) {
-      console.error("No vendor data available");
-      showToast("Unable to book. Vendor data not available.", "info");
-      return;
-    }
-    
-    const vendorId = vendor._id || vendor.id;
-    console.log("Vendor ID:", vendorId);
-    console.log("Selected room:", selectedRoom);
-    
+    // Prepare vendor data for booking
     const vendorBookingData = {
-      id: vendorId,
+      id: vendor._id || vendor.id,
       name: safeToString(vendor.title || vendor.name, "Vendor"),
       category: currentCategory,
       originalCategory: safeToString(vendor.category),
@@ -720,36 +691,76 @@ const VendorDetail = () => {
       vendorId: getVendorIdFromListing(vendor),
       vendorInfo: vendorInfo,
       image: getVendorImages(vendor)[0],
-      selectedRoom: selectedRoom,
-      bookingType: selectedRoom ? 'room-booking' : 'standard-booking'
+      bookingType: currentCategory,
+      selectedRoom: selectedRoom
     };
     
-    console.log("Storing vendor data with room:", vendorBookingData);
+    console.log("Booking vendor data:", vendorBookingData);
     
-    // Store the data in localStorage
+    // Store data in multiple locations for redundancy
     localStorage.setItem('currentVendorBooking', JSON.stringify(vendorBookingData));
-    
-    // Also store in session storage for immediate access
     sessionStorage.setItem('currentVendorBooking', JSON.stringify(vendorBookingData));
     
-    // Navigate to booking page with the selected room data
-    navigate('/booking', { 
-      state: { 
-        vendorData: vendorBookingData,
-        vendorId: vendorId,
-        selectedRoom: selectedRoom
-      } 
-    });
+    // Handle different booking flows based on category
+    if (currentCategory === 'hotel') {
+      // For hotels, check if room is selected
+      if (!selectedRoom && roomSelectionRef.current) {
+        // No room selected, scroll to room selection
+        roomSelectionRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+        
+        // Add highlight effect
+        roomSelectionRef.current.classList.add('highlight-section');
+        setTimeout(() => {
+          if (roomSelectionRef.current) {
+            roomSelectionRef.current.classList.remove('highlight-section');
+          }
+        }, 1500);
+        
+        showToast("Please select a room first", "info");
+        return;
+      }
+      
+      // Room is selected, proceed to hotel booking
+      navigate('/booking', { 
+        state: { 
+          vendorData: vendorBookingData,
+          category: currentCategory
+        } 
+      });
+      
+    } else if (currentCategory === 'restaurant' || currentCategory === 'shortlet') {
+      // For restaurant and shortlet, go directly to booking page
+      navigate('/booking', { 
+        state: { 
+          vendorData: vendorBookingData,
+          category: currentCategory
+        } 
+      });
+      
+    } else {
+      // Default fallback
+      navigate('/booking', { 
+        state: { 
+          vendorData: vendorBookingData,
+          category: currentCategory
+        } 
+      });
+    }
   };
 
+  // Handle "Book Now" from room selection
   const handleRoomBookNow = (room) => {
     console.log("Room Book Now clicked:", room);
     setSelectedRoom(room);
     
+    // Prepare vendor data
     const vendorBookingData = {
       id: vendor._id || vendor.id,
       name: safeToString(vendor.title || vendor.name, "Vendor"),
-      category: normalizeCategory(vendor.category),
+      category: 'hotel', // Force hotel category
       originalCategory: safeToString(vendor.category),
       priceFrom: vendor.price || vendor.price_from,
       priceTo: vendor.price_to || vendor.price,
@@ -765,17 +776,18 @@ const VendorDetail = () => {
       vendorInfo: vendorInfo,
       image: getVendorImages(vendor)[0],
       selectedRoom: room,
-      bookingType: 'room-booking'
+      bookingType: 'hotel'
     };
     
+    // Store data
     localStorage.setItem('currentVendorBooking', JSON.stringify(vendorBookingData));
     sessionStorage.setItem('currentVendorBooking', JSON.stringify(vendorBookingData));
     
+    // Navigate to booking page
     navigate('/booking', { 
       state: { 
         vendorData: vendorBookingData,
-        vendorId: vendor._id || vendor.id,
-        selectedRoom: room
+        category: 'hotel'
       } 
     });
   };
@@ -784,7 +796,7 @@ const VendorDetail = () => {
     navigate(`/vendor-detail/${listingId}`);
   };
 
-  // FIXED: Toast notification function with proper z-index and positioning
+  // Toast notification function
   const showToast = (message, type = "success") => {
     // Remove any existing toast
     const existingToast = document.getElementById("toast-notification");
@@ -927,6 +939,7 @@ const VendorDetail = () => {
       case 'hotel': return faBed;
       case 'restaurant': return faUtensils;
       case 'event': return faMusic;
+      case 'shortlet': return faHome;
       default: return faUtensils;
     }
   };
@@ -953,13 +966,37 @@ const VendorDetail = () => {
   };
 
   const getFeatures = () => {
-    const defaultFeatures = [
+    const category = normalizeCategory(vendor?.category);
+    
+    if (category === 'hotel') {
+      return [
+        { icon: faWifi, name: "WiFi" },
+        { icon: faSwimmingPool, name: "Swimming Pool" },
+        { icon: faCar, name: "Parking" },
+        { icon: faUtensils, name: "Restaurant" },
+      ];
+    } else if (category === 'restaurant') {
+      return [
+        { icon: faUtensils, name: "Fine Dining" },
+        { icon: faWifi, name: "Free WiFi" },
+        { icon: faCar, name: "Parking" },
+        { icon: faMusic, name: "Live Music" },
+      ];
+    } else if (category === 'shortlet') {
+      return [
+        { icon: faWifi, name: "WiFi" },
+        { icon: faUtensils, name: "Kitchen" },
+        { icon: faCar, name: "Parking" },
+        { icon: faHome, name: "Self Check-in" },
+      ];
+    }
+    
+    return [
       { icon: faWifi, name: "WiFi" },
       { icon: faSwimmingPool, name: "Swimming Pool" },
       { icon: faCar, name: "Parking" },
       { icon: faUtensils, name: "Restaurant" },
     ];
-    return defaultFeatures;
   };
 
   const getServices = () => {
@@ -969,14 +1006,40 @@ const VendorDetail = () => {
       return sentences.slice(0, 5).map(s => s.trim() + ".");
     }
     
-    const defaultServices = [
+    const category = normalizeCategory(vendor?.category);
+    if (category === 'hotel') {
+      return [
+        "Standard, Deluxe & Executive Rooms",
+        "Restaurant & Bar",
+        "Event & Meeting Spaces",
+        "Airport Pickup",
+        "Laundry & Concierge Services",
+      ];
+    } else if (category === 'restaurant') {
+      return [
+        "Indoor & Outdoor Seating",
+        "Private Dining Rooms",
+        "Catering Services",
+        "Event Hosting",
+        "Takeaway & Delivery",
+      ];
+    } else if (category === 'shortlet') {
+      return [
+        "Fully Furnished Apartments",
+        "Monthly & Weekly Rates",
+        "24/7 Check-in",
+        "Cleaning Services",
+        "Utilities Included",
+      ];
+    }
+    
+    return [
       "Standard, Deluxe & Executive Rooms",
       "Restaurant & Bar",
       "Event & Meeting Spaces",
       "Airport Pickup",
       "Laundry & Concierge Services",
     ];
-    return defaultServices;
   };
 
   // Review Functions
@@ -1678,6 +1741,7 @@ const VendorDetail = () => {
                   <span className="text-gray-900 text-sm md:text-base mt-1 cursor-pointer">
                     {category === 'hotel' ? 'per night' : 
                      category === 'restaurant' ? 'per meal' : 
+                     category === 'shortlet' ? 'per night' :
                      'per guest'}
                   </span>
                 </div>
@@ -1722,7 +1786,7 @@ const VendorDetail = () => {
                   </span>
                 </button>
 
-                {/* BOOKING BUTTON - Now scrolls to RoomSelection for hotel/shortlet */}
+                {/* BOOKING BUTTON - Updated with category-based logic */}
                 <button
                   onClick={handleBookingClick}
                   className="flex flex-col items-center transition-all duration-300 px-2 group relative cursor-pointer"
@@ -1738,10 +1802,10 @@ const VendorDetail = () => {
                     Book
                     <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-600 group-hover:w-full transition-all duration-300"></span>
                   </span>
-                  {/* Tooltip for hotel/shortlet categories */}
-                  {(category === 'hotel' || category === 'shortlet') && (
+                  {/* Tooltip for hotel category */}
+                  {category === 'hotel' && (
                     <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none">
-                      Select room first
+                      {selectedRoom ? "Ready to book" : "Select room first"}
                     </div>
                   )}
                 </button>
@@ -1830,8 +1894,8 @@ const VendorDetail = () => {
               </div>
             </section>
 
-            {/* Room Selection Section - Only for Hotels/Shortlets with smooth scroll target */}
-            {(category === 'hotel' || category === 'shortlet') && (
+            {/* Room Selection Section - Only for Hotels with smooth scroll target */}
+            {category === 'hotel' && (
               <div 
                 ref={roomSelectionRef}
                 id="room-selection-section"

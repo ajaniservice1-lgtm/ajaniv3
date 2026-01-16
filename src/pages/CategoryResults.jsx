@@ -34,6 +34,8 @@ import {
   faTools,
   faUser,
   faChevronLeft,
+  faCalendarAlt,
+  faPencilAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
@@ -44,8 +46,92 @@ import { motion } from "framer-motion";
 import { createPortal } from "react-dom";
 import BackButton from "../components/BackButton";
 import axiosInstance from "../lib/axios";
+import { FaUserCircle } from "react-icons/fa";
 
-// ================== CUSTOM BACKEND HOOK ==================
+// ================== CATEGORY SWITCH LOADER COMPONENT ==================
+
+const CategorySwitchLoader = ({ isMobile = false, previousCategory = '', newCategory = '' }) => {
+  return (
+    <div 
+      className={`fixed inset-0 z-[99999] flex items-center justify-center transition-all duration-300 ${
+        isMobile ? 'bg-white/95' : 'bg-white/90 backdrop-blur-sm'
+      }`}
+      style={{
+        pointerEvents: 'all',
+        animation: 'fadeIn 0.3s ease-out'
+      }}
+    >
+      <div className={`flex flex-col items-center justify-center ${isMobile ? 'p-4' : 'p-6'}`}>
+        {/* Animated spinner */}
+        <div className="relative mb-6">
+          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-[#06EAFC]/10 rounded-full`}></div>
+          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-transparent border-t-[#06EAFC] rounded-full absolute top-0 left-0 animate-spin`}></div>
+          <div className={`${isMobile ? 'w-8 h-8' : 'w-12 h-12'} border-4 border-transparent border-b-[#00E38C] rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-spin`} style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+        </div>
+        
+        {/* Loading text with category transition */}
+        <div className="text-center max-w-sm">
+          <p className={`font-bold text-gray-900 ${isMobile ? 'text-base' : 'text-xl'} mb-2`}>
+            Switching Categories
+          </p>
+          <div className={`flex items-center justify-center gap-2 ${isMobile ? 'text-sm' : 'text-base'} text-gray-600 mb-4`}>
+            {previousCategory && (
+              <>
+                <span className="px-3 py-1 bg-gray-100 rounded-lg">{previousCategory}</span>
+                <FontAwesomeIcon icon={faChevronRight} className="text-[#06EAFC]" />
+              </>
+            )}
+            {newCategory && (
+              <span className="px-3 py-1 bg-[#06EAFC]/10 text-[#06EAFC] font-medium rounded-lg">{newCategory}</span>
+            )}
+          </div>
+          <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+            Loading new listings...
+          </p>
+        </div>
+        
+        {/* Animated dots */}
+        <div className="flex space-x-1 mt-6">
+          <div className="w-2 h-2 bg-[#06EAFC] rounded-full animate-pulse"></div>
+          <div className="w-2 h-2 bg-[#06EAFC] rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+          <div className="w-2 h-2 bg-[#06EAFC] rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+        </div>
+      </div>
+      
+      {/* Embedded CSS styles */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.9); }
+        }
+        
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+        
+        .animate-pulse {
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        .category-switch-loader {
+          animation: fadeIn 0.3s ease-out;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+// ================== UPDATED CUSTOM BACKEND HOOK ==================
 
 const useBackendListings = (category = null, searchQuery = '', filters = {}) => {
   const [listings, setListings] = useState([]);
@@ -53,101 +139,48 @@ const useBackendListings = (category = null, searchQuery = '', filters = {}) => 
   const [error, setError] = useState(null);
   const [apiResponse, setApiResponse] = useState(null);
 
+  // Helper to normalize location for backend (convert to proper case)
+  const normalizeLocationForBackend = (location) => {
+    if (!location) return '';
+    return location
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   // Helper to check if search query looks like a location
   const looksLikeLocation = (query) => {
     if (!query || query.trim() === '') return false;
     
     const queryLower = query.toLowerCase().trim();
     
-    const locationIndicators = [
+    // Common Ibadan areas
+    const ibadanAreas = [
       'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly', 'oke', 'agodi', 
       'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
       'molete', 'agbowo', 'sabo', 'bashorun', 'ondo road', 'ogbomoso', 'ife road',
-      'akinyele', 'bodija market', 'dugbe market', 'mokola hill', 'sango roundabout',
-      
-      'road', 'street', 'avenue', 'drive', 'lane', 'close', 'way', 'estate',
-      'area', 'zone', 'district', 'quarters', 'extension', 'phase', 'junction',
-      'bypass', 'expressway', 'highway', 'roundabout', 'market', 'station',
-      
-      'ibadan', 'lagos', 'abuja', 'oyo', 'ogun', 'ondo', 'ekiti', 'osun',
-      'abeokuta', 'ilorin', 'benin', 'port harcourt', 'kano', 'kaduna'
+      'akinyele', 'bodija market', 'dugbe market', 'mokola hill', 'sango roundabout'
     ];
     
-    const isLocation = locationIndicators.some(indicator => queryLower.includes(indicator));
+    // Location suffixes
+    const locationSuffixes = [
+      'road', 'street', 'avenue', 'drive', 'lane', 'close', 'way', 'estate',
+      'area', 'zone', 'district', 'quarters', 'extension', 'phase', 'junction',
+      'bypass', 'expressway', 'highway', 'roundabout', 'market', 'station'
+    ];
+    
+    // Check if query contains any Ibadan area
+    const isIbadanArea = ibadanAreas.some(area => queryLower.includes(area));
+    
+    // Check if query contains location suffix
+    const hasLocationSuffix = locationSuffixes.some(suffix => queryLower.includes(suffix));
+    
+    // Check if query is short (likely a location name)
     const isShortQuery = queryLower.split(/\s+/).length <= 3 && queryLower.length <= 15;
     
-    return isLocation || isShortQuery;
+    return isIbadanArea || hasLocationSuffix || isShortQuery;
   };
-
-  // Helper to normalize location text for matching
-  const normalizeLocation = (location) => {
-    if (!location) return '';
-    return location
-      .toLowerCase()
-      .trim()
-      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
-      .replace(/\s+/g, ' ');
-  };
-
-  // Function to filter listings based on location search
-  const filterByLocation = useCallback((allListings, query) => {
-    if (!query.trim()) return allListings;
-    
-    const queryLower = query.toLowerCase().trim();
-    const isLocationSearch = looksLikeLocation(query);
-    
-    if (!isLocationSearch) {
-      return allListings.filter(item => {
-        const itemName = (item.title || item.name || '').toLowerCase();
-        const itemCategory = (item.category || '').toLowerCase();
-        const itemLocation = (item.location?.area || item.area || item.location || '').toLowerCase();
-        const itemDescription = (item.description || '').toLowerCase();
-        const itemTags = (item.tags || '').toLowerCase();
-        
-        return itemName.includes(queryLower) ||
-               itemCategory.includes(queryLower) ||
-               itemLocation.includes(queryLower) ||
-               itemDescription.includes(queryLower) ||
-               itemTags.includes(queryLower);
-      });
-    }
-    
-    // LOCATION SEARCH - Strict filtering
-    const itemsWithLocations = allListings.map(item => ({
-      ...item,
-      normalizedLocations: [
-        normalizeLocation(item.location?.area),
-        normalizeLocation(item.area),
-        normalizeLocation(item.location),
-        normalizeLocation(item.address),
-        normalizeLocation(item.city)
-      ].filter(loc => loc && loc.length > 0)
-    }));
-    
-    const locationMatches = itemsWithLocations.filter(item => {
-      const queryWords = queryLower.split(/\s+/).filter(w => w.length > 1);
-      
-      for (const location of item.normalizedLocations) {
-        if (location === queryLower) return true;
-        if (location.includes(queryLower)) return true;
-        
-        const locationWords = location.split(/\s+/);
-        const hasLocationWordMatch = locationWords.some(locWord => 
-          locWord.length > 2 && queryLower.includes(locWord)
-        );
-        if (hasLocationWordMatch) return true;
-        
-        const hasQueryWordMatch = queryWords.some(queryWord => 
-          queryWord.length > 2 && location.includes(queryWord)
-        );
-        if (hasQueryWordMatch) return true;
-      }
-      
-      return false;
-    });
-    
-    return locationMatches;
-  }, []);
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -158,27 +191,37 @@ const useBackendListings = (category = null, searchQuery = '', filters = {}) => 
         let url = '/listings';
         const params = new URLSearchParams();
         
-        // Add category filter
+        // Add category filter - IMPORTANT: Always send category
         if (category) {
           const categoryMap = {
             'hotel': 'hotel',
             'restaurant': 'restaurant',
             'shortlet': 'shortlet',
-            'services': 'services',
-            'vendor': 'services'
+            'vendor': 'services',
+            'services': 'services'
           };
           const backendCategory = categoryMap[category] || category;
           params.append('category', backendCategory);
         }
         
-        // Add search query - but DON'T send location queries to backend
-        if (searchQuery && !looksLikeLocation(searchQuery)) {
+        // ✅ FIX 2: When searching for hotel or any location, handle like search results
+        // If search query looks like a location, send it as location.area to backend
+        if (searchQuery && looksLikeLocation(searchQuery)) {
+          // Use proper case for location
+          params.append('location.area', normalizeLocationForBackend(searchQuery));
+          console.log(`📍 Category page: Sending location to backend: "${searchQuery}" as "${normalizeLocationForBackend(searchQuery)}"`);
+        } 
+        // If it's a regular search query (not location)
+        else if (searchQuery && !looksLikeLocation(searchQuery)) {
           params.append('q', searchQuery);
         }
         
-        // Add location filters
+        // Add location filters from active filters
         if (filters.locations && filters.locations.length > 0) {
-          params.append('locations', filters.locations.join(','));
+          // Use proper case for location filter
+          const properCaseLocation = normalizeLocationForBackend(filters.locations[0]);
+          params.append('location.area', properCaseLocation);
+          console.log(`📍 Category page: Sending filter location to backend: "${properCaseLocation}"`);
         }
         
         // Add price filters
@@ -205,23 +248,39 @@ const useBackendListings = (category = null, searchQuery = '', filters = {}) => 
           url += `?${queryString}`;
         }
         
-        console.log('📡 Backend API Request:', url);
+        console.log('📡 Category Backend API Request:', url);
         
         const response = await axiosInstance.get(url);
         setApiResponse(response.data);
         
         if (response.data && response.data.status === 'success' && response.data.data?.listings) {
-          const allListings = response.data.data.listings;
+          let allListings = response.data.data.listings;
           
-          // Apply strict location filtering if search query looks like a location
+          console.log(`📦 Received ${allListings.length} listings for category page`);
+          
+          // ✅ FIX 2: Additional filtering for location searches
           let finalListings = allListings;
           
+          // If search query is a location, do additional filtering for accuracy
           if (searchQuery && looksLikeLocation(searchQuery)) {
-            finalListings = filterByLocation(allListings, searchQuery);
+            const searchLocation = searchQuery.toLowerCase();
+            console.log(`📍 Applying strict location filtering for: ${searchLocation}`);
             
-            console.log(`📍 STRICT Location filtering applied for "${searchQuery}":`);
-            console.log(`   - Total listings from backend: ${allListings.length}`);
-            console.log(`   - After strict location filtering: ${finalListings.length}`);
+            finalListings = allListings.filter(item => {
+              const itemLocation = (item.location?.area || '').toLowerCase();
+              
+              // Check for partial matches
+              const matchesLocation = itemLocation.includes(searchLocation) || 
+                                      searchLocation.includes(itemLocation) ||
+                                      (itemLocation && searchLocation && 
+                                       itemLocation.split(' ').some(word => 
+                                         word.length > 2 && searchLocation.includes(word)
+                                       ));
+              
+              return matchesLocation;
+            });
+            
+            console.log(`✅ After strict location filtering: ${finalListings.length} listings`);
           }
           
           setListings(finalListings);
@@ -230,7 +289,7 @@ const useBackendListings = (category = null, searchQuery = '', filters = {}) => 
           setError(response.data?.message || 'No data received');
         }
       } catch (err) {
-        console.error('❌ Backend API Error:', err.message);
+        console.error('❌ Category Backend API Error:', err.message);
         setError(err.message);
         setListings([]);
       } finally {
@@ -239,7 +298,7 @@ const useBackendListings = (category = null, searchQuery = '', filters = {}) => 
     };
 
     fetchListings();
-  }, [category, searchQuery, JSON.stringify(filters), filterByLocation]);
+  }, [category, searchQuery, JSON.stringify(filters)]);
 
   return { listings, loading, error, apiResponse };
 };
@@ -321,223 +380,132 @@ const getLocationDisplayName = (location) => {
     .join(" ");
 };
 
-const getLocationBreakdown = (listings) => {
-  const locationCounts = {};
-  listings.forEach((item) => {
-    const location = getLocationDisplayName(item.location?.area || item.area || "Unknown");
-    locationCounts[location] = (locationCounts[location] || 0) + 1;
-  });
-
-  return Object.entries(locationCounts)
-    .map(([location, count]) => ({ location, count }))
-    .sort((a, b) => b.count - a.count);
+// Helper to check if search query looks like a location
+const looksLikeLocation = (query) => {
+  if (!query || query.trim() === '') return false;
+  
+  const queryLower = query.toLowerCase().trim();
+  
+  // Common Ibadan areas
+  const ibadanAreas = [
+    'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly', 'oke', 'agodi', 
+    'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
+    'molete', 'agbowo', 'sabo', 'bashorun', 'ondo road', 'ogbomoso', 'ife road',
+    'akinyele', 'bodija market', 'dugbe market', 'mokola hill', 'sango roundabout'
+  ];
+  
+  // Location suffixes
+  const locationSuffixes = [
+    'road', 'street', 'avenue', 'drive', 'lane', 'close', 'way', 'estate',
+    'area', 'zone', 'district', 'quarters', 'extension', 'phase', 'junction',
+    'bypass', 'expressway', 'highway', 'roundabout', 'market', 'station'
+  ];
+  
+  // Check if query contains any Ibadan area
+  const isIbadanArea = ibadanAreas.some(area => queryLower.includes(area));
+  
+  // Check if query contains location suffix
+  const hasLocationSuffix = locationSuffixes.some(suffix => queryLower.includes(suffix));
+  
+  // Check if query is short (likely a location name)
+  const isShortQuery = queryLower.split(/\s+/).length <= 3 && queryLower.length <= 15;
+  
+  return isIbadanArea || hasLocationSuffix || isShortQuery;
 };
 
-const getCategoryBreakdownForLocation = (listings, targetLocation) => {
-  const filteredListings = listings.filter((item) => {
-    const itemLocation = getLocationDisplayName(item.location?.area || item.area || "Unknown");
-    return itemLocation.toLowerCase() === targetLocation.toLowerCase();
-  });
-
-  const categoryCounts = {};
-  filteredListings.forEach((item) => {
-    const category = getCategoryDisplayName(item.category || "other.other");
-    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-  });
-
-  return Object.entries(categoryCounts)
-    .map(([category, count]) => ({ category, count }))
-    .sort((a, b) => b.count - a.count);
+// Helper to get plural category name
+const getPluralCategoryName = (category) => {
+  if (!category) return "Places";
+  
+  const categoryLower = category.toLowerCase();
+  if (categoryLower.includes("hotel")) return "Hotels";
+  if (categoryLower.includes("shortlet")) return "Shortlets";
+  if (categoryLower.includes("restaurant")) return "Restaurants";
+  if (categoryLower.includes("vendor") || categoryLower.includes("services")) return "Vendors";
+  if (categoryLower.includes("tourist")) return "Tourist Centers";
+  return category + "s";
 };
 
-const getCategoryIcon = (category) => {
-  const cat = category.toLowerCase();
-  if (cat.includes("hotel") || cat.includes("accommodation")) return faBuilding;
-  if (cat.includes("shortlet") || cat.includes("apartment")) return faHome;
-  if (cat.includes("weekend") || cat.includes("event")) return faCalendarWeek;
-  if (cat.includes("restaurant") || cat.includes("food")) return faUtensils;
-  if (cat.includes("tourist") || cat.includes("attraction")) return faLandmark;
-  if (cat.includes("services")) return faUser;
-  return faFilter;
-};
-
-// ================== SEARCH SUGGESTIONS HELPERS ==================
-
-const generateSearchSuggestions = (query, listings) => {
+// ✅ FIX 1: UPDATED SEARCH SUGGESTIONS FOR CATEGORY PAGES (NO COUNTS)
+const generateSearchSuggestions = (query, listings, activeCategory = '') => {
   if (!query.trim() || !listings.length) return [];
 
   const queryLower = query.toLowerCase().trim();
   const suggestions = [];
 
-  // Get unique categories and locations
-  const uniqueCategories = [
-    ...new Set(
-      listings
-        .map((item) => item.category)
-        .filter((cat) => cat && cat.trim() !== "")
-        .map((cat) => cat.trim())
-    ),
-  ];
+  // For category pages, we should focus on suggestions within the current category
+  const categoryFilteredListings = activeCategory 
+    ? listings.filter(item => {
+        const itemCategory = (item.category || '').toLowerCase();
+        const activeCategoryLower = activeCategory.toLowerCase();
+        return itemCategory.includes(activeCategoryLower) || 
+               activeCategoryLower.includes(itemCategory) ||
+               (activeCategoryLower === 'services' && itemCategory === 'vendor') ||
+               (activeCategoryLower === 'vendor' && itemCategory === 'services');
+      })
+    : listings;
 
+  // Get unique locations from category-filtered listings
   const uniqueLocations = [
     ...new Set(
-      listings
+      categoryFilteredListings
         .map((item) => item.location?.area || item.area)
         .filter((loc) => loc && loc.trim() !== "")
         .map((loc) => loc.trim())
     ),
   ];
 
-  // 1. First check for EXACT matches (highest priority)
-  const exactCategoryMatches = uniqueCategories
-    .filter((category) => {
-      const displayName = getCategoryDisplayName(category).toLowerCase();
-      return displayName === queryLower;
-    })
-    .map((category) => {
-      const categoryListings = listings.filter(
-        (item) =>
-          item.category &&
-          item.category.toLowerCase() === category.toLowerCase()
-      );
-
-      const locationBreakdown = getLocationBreakdown(categoryListings);
-      const totalPlaces = categoryListings.length;
-
-      return {
-        type: "category",
-        title: getCategoryDisplayName(category),
-        count: totalPlaces,
-        description: `${totalPlaces} ${totalPlaces === 1 ? "place" : "places"} found`,
-        breakdownText: `${totalPlaces} ${getCategoryDisplayName(category)} options available`,
-        breakdown: locationBreakdown.slice(0, 3),
-        action: () => {
-          const categorySlug = category.toLowerCase().replace(/\s+/g, '-');
-          return `/category/${categorySlug}`;
-        },
-      };
-    });
-
-  const exactLocationMatches = uniqueLocations
-    .filter((location) => {
-      const displayName = getLocationDisplayName(location).toLowerCase();
-      return displayName === queryLower;
-    })
-    .map((location) => {
-      const locationListings = listings.filter(
-        (item) => {
-          const itemLocation = item.location?.area || item.area;
-          return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
-        }
-      );
-
-      const categoryBreakdown = getCategoryBreakdownForLocation(
-        locationListings,
-        location
-      );
-      const totalPlaces = locationListings.length;
-
-      return {
-        type: "location",
-        title: getLocationDisplayName(location),
-        count: totalPlaces,
-        description: `${totalPlaces} ${totalPlaces === 1 ? "place" : "places"} found`,
-        breakdownText: `Places in ${getLocationDisplayName(location)}`,
-        breakdown: categoryBreakdown.slice(0, 4),
-        action: () => {
-          const params = new URLSearchParams();
-          params.append("location", location);
-          return `/search-results?${params.toString()}`;
-        },
-      };
-    });
-
-  // 2. If there are exact matches, return ONLY those
-  if (exactCategoryMatches.length > 0 || exactLocationMatches.length > 0) {
-    return [...exactCategoryMatches, ...exactLocationMatches]
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 4);
-  }
-
-  // 3. If no exact matches, show general suggestions
-  const categoryMatches = uniqueCategories
-    .filter((category) => {
-      const displayName = getCategoryDisplayName(category).toLowerCase();
-      return displayName.includes(queryLower);
-    })
-    .map((category) => {
-      const categoryListings = listings.filter(
-        (item) =>
-          item.category &&
-          item.category.toLowerCase() === category.toLowerCase()
-      );
-
-      const locationBreakdown = getLocationBreakdown(categoryListings);
-      const totalPlaces = categoryListings.length;
-
-      return {
-        type: "category",
-        title: getCategoryDisplayName(category),
-        count: totalPlaces,
-        description: `${totalPlaces} ${totalPlaces === 1 ? "place" : "places"} found`,
-        breakdownText: `${totalPlaces} ${getCategoryDisplayName(category)} options available`,
-        breakdown: locationBreakdown.slice(0, 3),
-        action: () => {
-          const params = new URLSearchParams();
-          params.append("category", category);
-          return `/category/${category.toLowerCase().replace(/\s+/g, '-')}`;
-        },
-      };
-    });
-
+  // For category pages, focus on location suggestions within the category
   const locationMatches = uniqueLocations
     .filter((location) => {
       const displayName = getLocationDisplayName(location).toLowerCase();
       return displayName.includes(queryLower);
     })
     .map((location) => {
-      const locationListings = listings.filter(
-        (item) => {
-          const itemLocation = item.location?.area || item.area;
-          return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
-        }
-      );
-
-      const categoryBreakdown = getCategoryBreakdownForLocation(
-        locationListings,
-        location
-      );
-      const totalPlaces = locationListings.length;
-
+      // ✅ FIX 1: No count in description for category pages
       return {
         type: "location",
         title: getLocationDisplayName(location),
-        count: totalPlaces,
-        description: `${totalPlaces} ${totalPlaces === 1 ? "place" : "places"} found`,
-        breakdownText: `Places in ${getLocationDisplayName(location)}`,
-        breakdown: categoryBreakdown.slice(0, 4),
+        description: `${getPluralCategoryName(activeCategory)} in ${getLocationDisplayName(location)}`,
         action: () => {
           const params = new URLSearchParams();
-          params.append("location", location);
+          params.append("location.area", location);
+          if (activeCategory) {
+            params.append("category", activeCategory.toLowerCase());
+          }
           return `/search-results?${params.toString()}`;
         },
       };
     });
 
-  // Combine and sort by relevance
-  return [...categoryMatches, ...locationMatches]
+  // Also check for exact category matches
+  if (activeCategory) {
+    const categoryLower = activeCategory.toLowerCase();
+    if (categoryLower.includes(queryLower) || queryLower.includes(categoryLower)) {
+      const categoryPlural = getPluralCategoryName(activeCategory);
+      
+      suggestions.push({
+        type: "category",
+        title: categoryPlural,
+        description: `Browse ${categoryPlural} options`,
+        action: () => {
+          const categorySlug = activeCategory.toLowerCase().replace(/\s+/g, '-');
+          return `/category/${categorySlug}`;
+        },
+      });
+    }
+  }
+
+  return [...suggestions, ...locationMatches]
     .sort((a, b) => {
+      // Exact matches first
       const aExact = a.title.toLowerCase() === queryLower;
       const bExact = b.title.toLowerCase() === queryLower;
       if (aExact && !bExact) return -1;
       if (!aExact && bExact) return 1;
-
-      const aStartsWith = a.title.toLowerCase().startsWith(queryLower);
-      const bStartsWith = b.title.toLowerCase().startsWith(queryLower);
-      if (aStartsWith && !bStartsWith) return -1;
-      if (!aStartsWith && bStartsWith) return 1;
-
-      return b.count - a.count;
+      
+      // Then by title length (shorter titles first)
+      return a.title.length - b.title.length;
     })
     .slice(0, 8);
 };
@@ -1048,26 +1016,62 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
 
 // ================== CATEGORY BUTTONS ==================
 
-const CategoryButtons = ({ selectedCategory, onCategoryClick }) => {
+const CategoryButtons = ({ selectedCategory, onCategoryClick, isSwitchingCategory = false }) => {
   const [isMobile, setIsMobile] = useState(false);
+  const [isMd, setIsMd] = useState(false);
+  const [isLg, setIsLg] = useState(false);
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 768);
+      setIsMd(width >= 768 && width < 1024);
+      setIsLg(width >= 1024);
+    };
+    
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
   const buttonConfigs = [
-    // { key: "all", label: "All", displayName: "All Categories", icon: faBuilding },
-    { key: "hotel", label: "Hotel", displayName: "Hotels", icon: faBuilding },
-    { key: "shortlet", label: "Shortlet", displayName: "Shortlets", icon: faHome },
-    { key: "restaurant", label: "Restaurant", displayName: "Restaurants", icon: faUtensils },
-    { key: "vendor", label: "Vendor", displayName: "Vendors", icon: faUser }
+    { 
+      key: "hotel", 
+      label: "Hotel", 
+      displayName: "Hotels",
+      icon: faBuilding 
+    },
+    { 
+      key: "restaurant", 
+      label: "Restaurant", 
+      displayName: "Restaurants",
+      icon: faUtensils 
+    },
+    { 
+      key: "shortlet", 
+      label: "Shortlet", 
+      displayName: "Shortlets",
+      icon: faHome 
+    },
+    { 
+      key: "vendor", 
+      label: "Vendor", 
+      displayName: "Vendors",
+      icon: FaUserCircle
+    }
   ];
 
   return (
-    <div className="mt-4 md:mt-6 mb-4 md:mb-6">
+    <div className="mt-4 md:mt-6 mb-4 md:mb-6 relative">
+      {isSwitchingCategory && (
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-xs z-10 rounded-xl flex items-center justify-center">
+          <div className="flex flex-col items-center">
+            <div className="w-8 h-8 border-3 border-[#06EAFC] border-t-transparent rounded-full animate-spin mb-2"></div>
+            <span className="text-xs text-gray-600">Switching...</span>
+          </div>
+        </div>
+      )}
+      
       <div className="relative">
         {/* Mobile: Horizontal scroll */}
         <div className="md:hidden overflow-x-auto scrollbar-hide pb-2">
@@ -1079,24 +1083,27 @@ const CategoryButtons = ({ selectedCategory, onCategoryClick }) => {
                 <button
                   key={button.key}
                   onClick={() => onCategoryClick(button.key)}
+                  disabled={isSwitchingCategory}
                   className={`
                     flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-full
                     whitespace-nowrap transition-all duration-200 font-medium
                     ${isSelected 
-                      ? 'bg-[#06f49f] text-white shadow-sm' 
+                      ? 'bg-[#06f49f] text-white shadow-sm'
                       : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
                     }
-                    ${button.key === 'all' 
-                      ? 'text-sm font-semibold' 
-                      : 'text-xs'
-                    }
+                    ${isSwitchingCategory ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}
+                    text-xs
                   `}
                   style={{ minWidth: 'auto' }}
                 >
-                  <FontAwesomeIcon 
-                    icon={button.icon} 
-                    className={`${isSelected ? 'text-white' : 'text-gray-500'} text-xs`}
-                  />
+                  {button.icon === FaUserCircle ? (
+                    <button.icon className={`${isSelected ? 'text-white' : 'text-gray-500'} text-xs`} />
+                  ) : (
+                    <FontAwesomeIcon 
+                      icon={button.icon} 
+                      className={`${isSelected ? 'text-white' : 'text-gray-500'} text-xs`}
+                    />
+                  )}
                   <span>{button.displayName}</span>
                 </button>
               );
@@ -1114,20 +1121,29 @@ const CategoryButtons = ({ selectedCategory, onCategoryClick }) => {
                 <button
                   key={button.key}
                   onClick={() => onCategoryClick(button.key)}
+                  disabled={isSwitchingCategory}
                   className={`
-                    flex items-center justify-center gap-2 px-4 py-3.5 rounded-lg
-                    transition-all duration-200 font-medium text-base
+                    flex items-center justify-center gap-2 px-3 py-2.5 rounded-[15px]
+                    transition-all duration-200 font-medium
                     ${isSelected 
-                      ? 'bg-[#06f49f] text-white shadow-sm' 
+                      ? 'bg-[#06f49f] text-white shadow-sm'
                       : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
                     }
+                    ${isSwitchingCategory ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}
+                    ${isMd ? 'text-sm px-3 py-2.5' : 'text-base px-4 py-3'}
                   `}
                 >
-                  <FontAwesomeIcon 
-                    icon={button.icon} 
-                    className={`${isSelected ? 'text-white' : 'text-gray-500'} text-sm`}
-                  />
-                  <span>{button.displayName}</span>
+                  {button.icon === FaUserCircle ? (
+                    <button.icon className={`${isSelected ? 'text-white' : 'text-gray-500'} ${isMd ? 'text-sm' : 'text-base'}`} />
+                  ) : (
+                    <FontAwesomeIcon 
+                      icon={button.icon} 
+                      className={`${isSelected ? 'text-white' : 'text-gray-500'} ${isMd ? 'text-sm' : 'text-base'}`}
+                    />
+                  )}
+                  <span className={isMd ? 'text-sm' : 'text-base'}>
+                    {button.displayName}
+                  </span>
                 </button>
               );
             })}
@@ -1163,6 +1179,7 @@ const FilterSidebar = ({
     location: true,
     price: true,
     rating: true,
+    sort: true,
   });
 
   const [locationSearch, setLocationSearch] = useState("");
@@ -1275,7 +1292,7 @@ const FilterSidebar = ({
           </div>
           <button
             onClick={onClose}
-            className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl"
+            className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl cursor-pointer"
             aria-label="Close filters"
           >
             ×
@@ -1287,7 +1304,7 @@ const FilterSidebar = ({
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("location")}
-          className="w-full flex justify-between items-center mb-3"
+          className="w-full flex justify-between items-center mb-3 cursor-pointer"
         >
           <div className="flex items-center gap-2">
             <FontAwesomeIcon icon={faMapMarkerAlt} className="text-blue-500" />
@@ -1317,12 +1334,12 @@ const FilterSidebar = ({
                   placeholder="Search locations..."
                   value={locationSearch}
                   onChange={(e) => setLocationSearch(e.target.value)}
-                  className="w-full pl-10 pr-8 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="w-full pl-10 pr-8 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-text"
                 />
                 {locationSearch && (
                   <button
                     onClick={() => setLocationSearch("")}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                   >
                     <FontAwesomeIcon icon={faTimes} className="text-sm" />
                   </button>
@@ -1331,7 +1348,7 @@ const FilterSidebar = ({
               <div className="flex justify-between mb-2">
                 <button
                   onClick={handleSelectAllLocations}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
                 >
                   {localFilters.locations.length === uniqueLocationDisplayNames.length
                     ? "Clear All Locations"
@@ -1358,7 +1375,7 @@ const FilterSidebar = ({
                         type="checkbox"
                         checked={localFilters.locations.includes(location)}
                         onChange={() => handleLocationChange(location)}
-                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors cursor-pointer"
                       />
                       <span
                         className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
@@ -1398,7 +1415,7 @@ const FilterSidebar = ({
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("price")}
-          className="w-full flex justify-between items-center mb-3"
+          className="w-full flex justify-between items-center mb-3 cursor-pointer"
         >
           <div className="flex items-center gap-2">
             <FontAwesomeIcon icon={faDollarSign} className="text-yellow-500" />
@@ -1433,7 +1450,7 @@ const FilterSidebar = ({
                     placeholder="2,500"
                     value={localFilters.priceRange.min}
                     onChange={(e) => handlePriceChange("min", e.target.value)}
-                    className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-text"
                   />
                 </div>
               </div>
@@ -1451,7 +1468,7 @@ const FilterSidebar = ({
                     placeholder="50,000"
                     value={localFilters.priceRange.max}
                     onChange={(e) => handlePriceChange("max", e.target.value)}
-                    className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-text"
                   />
                 </div>
               </div>
@@ -1467,7 +1484,7 @@ const FilterSidebar = ({
                     setLocalFilters(updatedFilters);
                     onFilterChange(updatedFilters);
                   }}
-                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   Clear Price Range
                 </button>
@@ -1481,7 +1498,7 @@ const FilterSidebar = ({
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("rating")}
-          className="w-full flex justify-between items-center mb-3"
+          className="w-full flex justify-between items-center mb-3 cursor-pointer"
         >
           <div className="flex items-center gap-2">
             <FontAwesomeIcon icon={faStar} className="text-yellow-500" />
@@ -1511,7 +1528,7 @@ const FilterSidebar = ({
                   type="checkbox"
                   checked={localFilters.ratings.includes(stars)}
                   onChange={() => handleRatingChange(stars)}
-                  className="w-4 h-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500 transition-colors"
+                  className="w-4 h-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500 transition-colors cursor-pointer"
                 />
                 <div className="flex items-center space-x-2">
                   <div className="flex">
@@ -1548,7 +1565,7 @@ const FilterSidebar = ({
                     setLocalFilters(updatedFilters);
                     onFilterChange(updatedFilters);
                   }}
-                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   Clear Ratings
                 </button>
@@ -1566,7 +1583,7 @@ const FilterSidebar = ({
         <div className="pt-4 border-t border-gray-200">
           <button
             onClick={clearAllFilters}
-            className="w-full py-3 text-sm font-medium text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+            className="w-full py-3 text-sm font-medium text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
           >
             Clear All Filters
           </button>
@@ -1585,6 +1602,14 @@ const FilterSidebar = ({
       >
         <div className="h-full overflow-y-auto p-4">
           {sidebarContent}
+          <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
+            <button
+              onClick={onClose}
+              className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+            >
+              Apply Filters
+            </button>
+          </div>
         </div>
       </motion.div>,
       document.body
@@ -1612,7 +1637,7 @@ const FilterSidebar = ({
               </div>
               <button
                 onClick={onClose}
-                className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl"
+                className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl cursor-pointer"
                 aria-label="Close filters"
               >
                 ×
@@ -1621,6 +1646,14 @@ const FilterSidebar = ({
           </div>
           <div className="p-6 max-w-4xl mx-auto">
             {sidebarContent}
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 mt-6">
+              <button
+                onClick={onClose}
+                className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+              >
+                Apply Filters
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>,
@@ -1635,8 +1668,9 @@ const FilterSidebar = ({
   );
 };
 
-// ================== SEARCH MODALS ==================
+// ================== UPDATED SEARCH MODALS ==================
 
+// ✅ FIX 1: Desktop Search Suggestions for Category Pages (No Counts)
 const DesktopSearchSuggestions = ({
   searchQuery,
   listings,
@@ -1644,12 +1678,13 @@ const DesktopSearchSuggestions = ({
   onClose,
   isVisible,
   searchBarPosition,
+  activeCategory = '',
 }) => {
   const suggestionsRef = useRef(null);
 
   const suggestions = useMemo(() => {
-    return generateSearchSuggestions(searchQuery, listings);
-  }, [searchQuery, listings]);
+    return generateSearchSuggestions(searchQuery, listings, activeCategory);
+  }, [searchQuery, listings, activeCategory]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -1678,7 +1713,7 @@ const DesktopSearchSuggestions = ({
   return createPortal(
     <>
       <div
-        className="fixed inset-0 bg-transparent z-[9980]"
+        className="fixed inset-0 bg-transparent z-[9980] cursor-pointer"
         onClick={onClose}
       />
 
@@ -1698,12 +1733,12 @@ const DesktopSearchSuggestions = ({
             <div className="flex items-center gap-2">
               <FontAwesomeIcon icon={faSearch} className="w-4 h-4 text-gray-500" />
               <span className="text-sm font-medium text-gray-700">
-                Results for "{searchQuery}"
+                Suggestions for "{searchQuery}"
               </span>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded transition-colors"
+              className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded transition-colors cursor-pointer"
               aria-label="Close suggestions"
             >
               <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
@@ -1720,7 +1755,7 @@ const DesktopSearchSuggestions = ({
                   onSuggestionClick(suggestion.action());
                   onClose();
                 }}
-                className="w-full text-left p-3 bg-white hover:bg-gray-50 rounded-lg transition-colors duration-150 mb-1 last:mb-0 group"
+                className="w-full text-left p-3 bg-white hover:bg-gray-50 rounded-lg transition-colors duration-150 mb-1 last:mb-0 group cursor-pointer"
               >
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100 flex-shrink-0">
@@ -1735,42 +1770,11 @@ const DesktopSearchSuggestions = ({
                       <h4 className="font-medium text-gray-900 text-sm truncate">
                         {suggestion.title}
                       </h4>
-                      <span
-                        className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ml-2 ${
-                          suggestion.type === "category" 
-                            ? "bg-blue-50 text-blue-700" 
-                            : "bg-purple-50 text-purple-700"
-                        }`}
-                      >
-                        {suggestion.count} {suggestion.count === 1 ? "place" : "places"}
-                      </span>
                     </div>
 
                     <p className="text-xs text-gray-600 mb-2 line-clamp-2">
                       {suggestion.description}
                     </p>
-
-                    <div className="mt-2">
-                      <p className="text-xs text-gray-500 mb-1">
-                        {suggestion.breakdownText}
-                      </p>
-
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {suggestion.breakdown.slice(0, 3).map((item, idx) => (
-                          <div
-                            key={idx}
-                            className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded"
-                          >
-                            {item.category || item.location} ({item.count})
-                          </div>
-                        ))}
-                        {suggestion.breakdown.length > 3 && (
-                          <span className="text-xs text-gray-500 px-2 py-1">
-                            +{suggestion.breakdown.length - 3} more
-                          </span>
-                        )}
-                      </div>
-                    </div>
                   </div>
 
                   <div className="flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1784,10 +1788,13 @@ const DesktopSearchSuggestions = ({
               onClick={() => {
                 const params = new URLSearchParams();
                 params.append("q", searchQuery.trim());
+                if (activeCategory) {
+                  params.append("category", activeCategory.toLowerCase());
+                }
                 onSuggestionClick(`/search-results?${params.toString()}`);
                 onClose();
               }}
-              className="w-full mt-3 p-3 bg-gray-900 hover:bg-black text-white font-medium rounded-lg transition-colors duration-150"
+              className="w-full mt-3 p-3 bg-gray-900 hover:bg-black text-white font-medium rounded-lg transition-colors duration-150 cursor-pointer"
             >
               <div className="flex items-center justify-between">
                 <div className="text-left">
@@ -1807,6 +1814,7 @@ const DesktopSearchSuggestions = ({
   );
 };
 
+// ✅ FIX 1: Mobile Search Modal for Category Pages (No Counts)
 const MobileSearchModal = ({
   searchQuery,
   listings,
@@ -1814,14 +1822,15 @@ const MobileSearchModal = ({
   onClose,
   onTyping,
   isVisible,
+  activeCategory = '',
 }) => {
   const [inputValue, setInputValue] = useState(searchQuery);
   const modalRef = useRef(null);
   const inputRef = useRef(null);
 
   const suggestions = useMemo(() => {
-    return generateSearchSuggestions(inputValue, listings);
-  }, [inputValue, listings]);
+    return generateSearchSuggestions(inputValue, listings, activeCategory);
+  }, [inputValue, listings, activeCategory]);
 
   const handleInputChange = (e) => {
     const value = e.target.value;
@@ -1844,6 +1853,9 @@ const MobileSearchModal = ({
     if (e.key === "Enter" && inputValue.trim()) {
       const params = new URLSearchParams();
       params.append("q", inputValue.trim());
+      if (activeCategory) {
+        params.append("category", activeCategory.toLowerCase());
+      }
       onSuggestionClick(`/search-results?${params.toString()}`);
       onClose();
     }
@@ -1878,7 +1890,7 @@ const MobileSearchModal = ({
   return createPortal(
     <>
       <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9990] animate-fadeIn"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9990] animate-fadeIn cursor-pointer"
         onClick={onClose}
       />
 
@@ -1893,7 +1905,7 @@ const MobileSearchModal = ({
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors duration-200"
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors duration-200 cursor-pointer"
             >
               <FontAwesomeIcon icon={faChevronLeft} className="w-5 h-5" />
             </button>
@@ -1904,17 +1916,17 @@ const MobileSearchModal = ({
               <input
                 ref={inputRef}
                 type="text"
-                className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-gray-900 text-base placeholder:text-gray-500"
+                className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-gray-900 text-base placeholder:text-gray-500 cursor-text"
                 value={inputValue}
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
-                placeholder="Search hotels, restaurants, shortlets, vendors..."
+                placeholder={`Search ${activeCategory || 'hotels, restaurants, shortlets, vendors'}...`}
                 autoFocus
               />
               {inputValue && (
                 <button
                   onClick={handleClearInput}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                 >
                   <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
                 </button>
@@ -1939,7 +1951,7 @@ const MobileSearchModal = ({
                       <button
                         key={index}
                         onClick={() => handleSuggestionClick(suggestion.action())}
-                        className="w-full text-left p-4 bg-white rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors duration-200 group"
+                        className="w-full text-left p-4 bg-white rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors duration-200 group cursor-pointer"
                       >
                         <div className="flex items-start gap-4">
                           <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${suggestion.type === "category" ? "bg-gray-100" : "bg-gray-100"}`}>
@@ -1958,28 +1970,6 @@ const MobileSearchModal = ({
                                 <p className="text-sm text-gray-600 mt-1">
                                   {suggestion.description}
                                 </p>
-                              </div>
-                              <span
-                                className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${suggestion.type === "category" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"}`}
-                              >
-                                {suggestion.count} {suggestion.count === 1 ? "place" : "places"}
-                              </span>
-                            </div>
-
-                            <div className="mt-3 pt-3 border-t border-gray-100">
-                              <p className="text-xs text-gray-500 mb-2">
-                                {suggestion.breakdownText}
-                              </p>
-
-                              <div className="flex flex-wrap gap-1.5">
-                                {suggestion.breakdown.map((item, idx) => (
-                                  <div
-                                    key={idx}
-                                    className={`text-xs px-2 py-1 rounded ${suggestion.type === "category" ? "bg-gray-100 text-gray-700" : "bg-gray-100 text-gray-700"}`}
-                                  >
-                                    {item.category || item.location} ({item.count})
-                                  </div>
-                                ))}
                               </div>
                             </div>
                           </div>
@@ -2002,10 +1992,13 @@ const MobileSearchModal = ({
                     onClick={() => {
                       const params = new URLSearchParams();
                       params.append("q", inputValue.trim());
+                      if (activeCategory) {
+                        params.append("category", activeCategory.toLowerCase());
+                      }
                       onSuggestionClick(`/search-results?${params.toString()}`);
                       onClose();
                     }}
-                    className="w-full mt-6 p-4 bg-gray-900 hover:bg-black text-white font-medium rounded-xl transition-colors duration-200"
+                    className="w-full mt-6 p-4 bg-gray-900 hover:bg-black text-white font-medium rounded-xl transition-colors duration-200 cursor-pointer"
                   >
                     <div className="flex items-center justify-between">
                       <div className="text-left">
@@ -2033,10 +2026,13 @@ const MobileSearchModal = ({
                     onClick={() => {
                       const params = new URLSearchParams();
                       params.append("q", inputValue.trim());
+                      if (activeCategory) {
+                        params.append("category", activeCategory.toLowerCase());
+                      }
                       onSuggestionClick(`/search-results?${params.toString()}`);
                       onClose();
                     }}
-                    className="px-6 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-black transition-colors"
+                    className="px-6 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-black transition-colors cursor-pointer"
                   >
                     Search anyway
                   </button>
@@ -2067,7 +2063,7 @@ const MobileSearchModal = ({
                         setInputValue(term);
                         onTyping(term);
                       }}
-                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors duration-200"
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors duration-200 cursor-pointer"
                     >
                       {term}
                     </button>
@@ -2096,6 +2092,13 @@ const CategoryResults = () => {
   const location = useLocation();
 
   const searchQuery = searchParams.get("q") || "";
+  const urlLocation = searchParams.get("location.area") || searchParams.get("location");
+  
+  // Category switching loader states
+  const [isSwitchingCategory, setIsSwitchingCategory] = useState(false);
+  const [previousCategory, setPreviousCategory] = useState('');
+  const [newCategory, setNewCategory] = useState('');
+  
   const [activeFilters, setActiveFilters] = useState({
     locations: [],
     priceRange: { min: "", max: "" },
@@ -2116,19 +2119,20 @@ const CategoryResults = () => {
     bottom: 0,
     width: 0,
   });
-  const [selectedCategoryButton, setSelectedCategoryButton] = useState(category || "all");
+  const [selectedCategoryButton, setSelectedCategoryButton] = useState(category || "hotel");
   const searchContainerRef = useRef(null);
   const filterButtonRef = useRef(null);
   const resultsRef = useRef(null);
   const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
 
+  // ✅ FIX 2: Use the updated backend hook
   const { listings, loading, error, apiResponse } = useBackendListings(category, searchQuery, activeFilters);
 
   useEffect(() => {
     if (category) {
       setSelectedCategoryButton(category);
     } else {
-      setSelectedCategoryButton("all");
+      setSelectedCategoryButton("hotel");
     }
   }, [category]);
 
@@ -2230,12 +2234,11 @@ const CategoryResults = () => {
     };
 
     const locationParams = [];
-    for (const [key, value] of searchParams.entries()) {
-      if (key.startsWith("location")) {
-        const displayName = getLocationDisplayName(value);
-        if (displayName !== "All Locations" && displayName !== "All") {
-          locationParams.push(displayName);
-        }
+    // Check for location in URL
+    if (urlLocation) {
+      const displayName = getLocationDisplayName(urlLocation);
+      if (displayName !== "All Locations" && displayName !== "All") {
+        locationParams.push(displayName);
       }
     }
 
@@ -2245,7 +2248,7 @@ const CategoryResults = () => {
 
     setActiveFilters(initialFilters);
     setFiltersInitialized(true);
-  }, [listings.length, searchParams.toString(), loading]);
+  }, [listings.length, searchParams.toString(), loading, urlLocation]);
 
   const handleSearchChange = (value) => {
     setLocalSearchQuery(value);
@@ -2283,11 +2286,29 @@ const CategoryResults = () => {
     }, 50);
   };
 
+  // ✅ FIX 2: Updated search submit to handle locations properly
   const handleSearchSubmit = (e) => {
     e?.preventDefault();
     if (localSearchQuery.trim()) {
       const params = new URLSearchParams();
-      params.set("q", localSearchQuery.trim());
+      
+      // ✅ FIX 2: Check if it's a location search
+      if (looksLikeLocation(localSearchQuery.trim())) {
+        params.set("location.area", localSearchQuery.trim());
+      } else {
+        params.set("q", localSearchQuery.trim());
+      }
+      
+      // Keep category in URL
+      if (category) {
+        params.set("category", category);
+      }
+      
+      // Preserve existing filters
+      if (urlLocation && !looksLikeLocation(localSearchQuery.trim())) {
+        params.set("location.area", urlLocation);
+      }
+      
       setSearchParams(params);
       setShowSuggestions(false);
       setShowMobileSearchModal(false);
@@ -2308,46 +2329,63 @@ const CategoryResults = () => {
     if (!isMobile) {
       const params = new URLSearchParams();
       if (searchQuery) {
-        params.set("q", searchQuery);
+        if (looksLikeLocation(searchQuery)) {
+          params.set("location.area", searchQuery);
+        } else {
+          params.set("q", searchQuery);
+        }
       }
 
+      // Clear existing location params
       for (const [key] of searchParams.entries()) {
         if (key.startsWith("location")) {
           params.delete(key);
         }
       }
 
+      // Add new location filters
       newFilters.locations.forEach((locationDisplayName, index) => {
         const selectedLocation = allLocations.find(
           (loc) => getLocationDisplayName(loc) === locationDisplayName
         );
         if (selectedLocation) {
           if (index === 0) {
-            params.set("location", selectedLocation);
-          } else {
-            params.set(`location${index + 1}`, selectedLocation);
+            params.set("location.area", selectedLocation);
           }
         }
       });
+
+      // Keep category
+      if (category) {
+        params.set("category", category);
+      }
 
       setSearchParams(params);
     }
   };
 
+  // ✅ UPDATED: Category switching with loader
   const handleCategoryButtonClick = (categoryKey) => {
-    if (categoryKey === "all") {
-      navigate("/search-results");
-    } else {
-      const categoryMap = {
-        "Hotel": "hotel",
-        "Restaurant": "restaurant",
-        "Shortlet": "shortlet",
-        "Vendor": "services",
-      };
-      
-      const categorySlug = categoryMap[categoryKey] || categoryKey.toLowerCase();
-      navigate(`/category/${categorySlug}`);
-    }
+    // Set loading state
+    setIsSwitchingCategory(true);
+    const currentCategory = category || "all";
+    setPreviousCategory(getCategoryDisplayName(currentCategory));
+    
+    const categoryMap = {
+      'hotel': 'Hotels',
+      'restaurant': 'Restaurants',
+      'shortlet': 'Shortlets',
+      'vendor': 'Vendors'
+    };
+    setNewCategory(categoryMap[categoryKey] || categoryKey);
+    
+    const categorySlug = categoryKey.toLowerCase();
+    navigate(`/category/${categorySlug}`);
+    
+    // Auto-hide loader after 1.5 seconds
+    setTimeout(() => {
+      setIsSwitchingCategory(false);
+    }, 1500);
   };
 
   const handleSuggestionClick = useCallback(
@@ -2370,20 +2408,26 @@ const CategoryResults = () => {
 
     const params = new URLSearchParams();
     if (searchQuery) {
-      params.set("q", searchQuery);
+      if (looksLikeLocation(searchQuery)) {
+        params.set("location.area", searchQuery);
+      } else {
+        params.set("q", searchQuery);
+      }
+    }
+    // Keep category
+    if (category) {
+      params.set("category", category);
     }
     setSearchParams(params);
   };
 
+  // ✅ UPDATED: Dynamic search header like search results page
   const getPageTitle = () => {
     const locationParams = [];
-    for (const [key, value] of searchParams.entries()) {
-      if (key.startsWith("location")) {
-        const displayName = getLocationDisplayName(value);
-        if (displayName !== "All Locations" && displayName !== "All") {
-          locationParams.push(displayName);
-        }
-      }
+    if (activeFilters.locations.length > 0) {
+      locationParams.push(...activeFilters.locations);
+    } else if (urlLocation) {
+      locationParams.push(getLocationDisplayName(urlLocation));
     }
 
     const categoryTitle = category
@@ -2392,7 +2436,13 @@ const CategoryResults = () => {
 
     if (searchQuery) {
       if (locationParams.length > 0) {
+        if (looksLikeLocation(searchQuery)) {
+          return `${categoryTitle} in ${getLocationDisplayName(searchQuery)}`;
+        }
         return `${categoryTitle} matching "${searchQuery}" in ${locationParams.join(", ")}`;
+      }
+      if (looksLikeLocation(searchQuery)) {
+        return `${categoryTitle} in ${getLocationDisplayName(searchQuery)}`;
       }
       return `${categoryTitle} matching "${searchQuery}"`;
     } else if (locationParams.length > 0) {
@@ -2404,13 +2454,10 @@ const CategoryResults = () => {
 
   const getPageDescription = () => {
     const locationParams = [];
-    for (const [key, value] of searchParams.entries()) {
-      if (key.startsWith("location")) {
-        const displayName = getLocationDisplayName(value);
-        if (displayName !== "All Locations" && displayName !== "All") {
-          locationParams.push(displayName);
-        }
-      }
+    if (activeFilters.locations.length > 0) {
+      locationParams.push(...activeFilters.locations);
+    } else if (urlLocation) {
+      locationParams.push(getLocationDisplayName(urlLocation));
     }
 
     const categoryTitle = category
@@ -2419,7 +2466,13 @@ const CategoryResults = () => {
 
     if (searchQuery) {
       if (locationParams.length > 0) {
+        if (looksLikeLocation(searchQuery)) {
+          return `Find the best ${categoryTitle.toLowerCase()} in ${getLocationDisplayName(searchQuery)}. Browse prices, reviews, and book directly.`;
+        }
         return `Find the best ${categoryTitle.toLowerCase()} in ${locationParams.join(", ")} matching "${searchQuery}". Browse prices, reviews, and book directly.`;
+      }
+      if (looksLikeLocation(searchQuery)) {
+        return `Discover amazing ${categoryTitle.toLowerCase()} in ${getLocationDisplayName(searchQuery)}. Find top-rated places, compare prices, and book directly.`;
       }
       return `Find the best ${categoryTitle.toLowerCase()} in Ibadan matching "${searchQuery}". Browse prices, reviews, and book directly.`;
     } else if (locationParams.length > 0) {
@@ -2427,6 +2480,24 @@ const CategoryResults = () => {
     } else {
       return `Find the best ${categoryTitle.toLowerCase()} in Ibadan. Browse prices, reviews, and book directly.`;
     }
+  };
+
+  // ✅ UPDATED: Get accurate count text like search results page
+  const getAccurateCountText = () => {
+    const total = listings.length;
+    const categoryTitle = getCategoryDisplayName(category || "All Categories");
+    
+    if (searchQuery && looksLikeLocation(searchQuery)) {
+      return `${categoryTitle} in ${getLocationDisplayName(searchQuery)} • ${total} ${total === 1 ? 'place' : 'places'} found`;
+    } else if (activeFilters.locations.length > 0) {
+      return `${categoryTitle} in ${activeFilters.locations[0]} • ${total} ${total === 1 ? 'place' : 'places'} found`;
+    } else if (urlLocation) {
+      return `${categoryTitle} in ${getLocationDisplayName(urlLocation)} • ${total} ${total === 1 ? 'place' : 'places'} found`;
+    } else if (searchQuery) {
+      return `${categoryTitle} matching "${searchQuery}" • ${total} ${total === 1 ? 'place' : 'places'} found`;
+    }
+    
+    return `${total} ${total === 1 ? 'place' : 'places'} found`;
   };
 
   const handlePageChange = (page) => {
@@ -2452,12 +2523,27 @@ const CategoryResults = () => {
     };
   }, [showDesktopFilters]);
 
+  // Auto-hide loader timeout
+  useEffect(() => {
+    let timeoutId;
+    
+    if (isSwitchingCategory) {
+      timeoutId = setTimeout(() => {
+        setIsSwitchingCategory(false);
+      }, 5000); // Auto-hide after 5 seconds max
+    }
+    
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isSwitchingCategory]);
+
   const ITEMS_PER_PAGE = 20;
   const totalPages = Math.ceil((apiResponse?.results || 0) / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const currentListings = listings.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  if (loading && isMobile) {
+  if (loading && isMobile && !isSwitchingCategory) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center">
@@ -2489,6 +2575,9 @@ const CategoryResults = () => {
     );
   }
 
+  // Get active category name for search suggestions
+  const activeCategoryName = category ? getCategoryDisplayName(category) : '';
+
   return (
     <div className="min-h-screen bg-gray-50 font-manrope">
       <Meta
@@ -2498,77 +2587,143 @@ const CategoryResults = () => {
         image="https://ajani.ai/images/category-og.jpg"
       />
 
+      {/* Category Switch Loader */}
+      {isSwitchingCategory && (
+        <CategorySwitchLoader 
+          isMobile={isMobile} 
+          previousCategory={previousCategory}
+          newCategory={newCategory}
+        />
+      )}
+
       <div className="hidden md:block">
         <Header />
       </div>
 
-      <main className="pb-8 pl-4 sm:px-6 md:mt-[-1px] ">
-        {/* Search Section */}
-        <div className="py-4 md:py-6 relative " id="search-section">
-          <div className="flex items-center gap-3">
-            <BackButton className="md:hidden" />
+      <main className="pb-8 w-full mx-auto max-w-[100vw]" style={{
+        paddingLeft: isMobile ? "0.75rem" : "1rem",
+        paddingRight: isMobile ? "0" : "1rem",
+      }}>
+        {/* Search Section - Updated with dynamic header */}
+        <div className="z-30 py-4 md:py-6 relative w-full" style={{
+          zIndex: 50,
+          width: "100%",
+          marginLeft: "0",
+          marginRight: "0",
+          paddingLeft: "0",
+          paddingRight: "0",
+        }} id="search-section">
+          <div style={{
+            paddingLeft: isMobile ? "0" : "0",
+            paddingRight: isMobile ? "0" : "0",
+          }}>
+            <div className="flex items-center gap-3">
+              <BackButton className="md:hidden" />
 
-            <div className="flex-1">
-              <div className="flex justify-center">
-                <div className="w-full relative" ref={searchContainerRef}>
-                  <form onSubmit={handleSearchSubmit}>
-                    <div className="flex items-center justify-center">
-                      <div
-                        className="flex items-center bg-gray-200 rounded-full shadow-sm relative z-40"
-                        style={{ width: isMobile ? "100%" : "27%" }}
-                      >
-                        <div className="pl-3 sm:pl-4 text-gray-500">
-                          <FontAwesomeIcon icon={faSearch} className="h-4 w-4" />
-                        </div>
-                        <input
-                          type="text"
-                          placeholder={`Search ${category ? getCategoryDisplayName(category).toLowerCase() : ""} in Ibadan...`}
-                          value={localSearchQuery}
-                          onChange={(e) => handleSearchChange(e.target.value)}
-                          onFocus={handleSearchFocus}
-                          className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope"
-                          autoFocus={false}
-                          aria-label="Search input"
-                          role="searchbox"
-                        />
-                        {localSearchQuery && (
-                          <button
-                            type="button"
-                            onClick={handleClearSearch}
-                            className="p-1 mr-2 text-gray-500 hover:text-gray-700 transition-colors"
-                            aria-label="Clear search"
+              <div className="flex-1">
+                <div className="flex justify-center w-full">
+                  <div className="w-full relative max-w-[100vw]" ref={searchContainerRef}>
+                    <form onSubmit={handleSearchSubmit}>
+                      <div className="flex items-center justify-center w-full">
+                        {/* DESKTOP SEARCH BAR - Similar to search results page */}
+                        {!isMobile ? (
+                          <div className="hidden lg:block w-full max-w-6xl mx-auto">
+                            <div className="relative w-full">
+                              <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4">
+                                <div className="flex items-center gap-4">
+                                  {/* Search Input */}
+                                  <div className="flex-1">
+                                    <div className="relative">
+                                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                        <FontAwesomeIcon icon={faSearch} />
+                                      </div>
+                                      <input
+                                        type="text"
+                                        value={localSearchQuery}
+                                        onChange={(e) => handleSearchChange(e.target.value)}
+                                        onFocus={handleSearchFocus}
+                                        onKeyPress={(e) => {
+                                          if (e.key === "Enter") {
+                                            handleSearchSubmit(e);
+                                          }
+                                        }}
+                                        placeholder={`Search ${activeCategoryName.toLowerCase()}...`}
+                                        className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 cursor-text"
+                                      />
+                                      {localSearchQuery && (
+                                        <button
+                                          onClick={handleClearSearch}
+                                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                                        >
+                                          <FontAwesomeIcon icon={faTimes} />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Search Button */}
+                                  <button
+                                    onClick={handleSearchSubmit}
+                                    className="px-6 py-3 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold rounded-lg hover:from-[#00c97b] hover:to-teal-600 transition-all duration-300 cursor-pointer"
+                                  >
+                                    <FontAwesomeIcon icon={faSearch} className="mr-2" />
+                                    Search
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          // MOBILE - Search input with similar styling to search results page
+                          <div 
+                            onClick={() => {
+                              handleSearchFocus();
+                              setShowMobileSearchModal(true);
+                            }}
+                            className="bg-[#d9d9d9] rounded-[15px] mr-2 px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-200 cursor-pointer w-full"
                           >
-                            <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
-                          </button>
+                            <FontAwesomeIcon icon={faSearch} className="text-gray-700 text-[15px] flex-shrink-0" />
+                            <div className="flex flex-col text-left truncate w-full">
+                              <span className="text-gray-900 font-medium text-[13px] truncate">
+                                {getLocationDisplayName(urlLocation || (searchQuery && looksLikeLocation(searchQuery) ? searchQuery : '')) || `Search ${activeCategoryName.toLowerCase()}...`}
+                              </span>
+                              <span className="text-gray-600 text-[12px] truncate">
+                                {searchQuery || "Enter search terms..."}
+                              </span>
+                            </div>
+                          </div>
                         )}
                       </div>
-
-                      <div className="ml-2">
-                        {/* <button
-                          type="submit"
-                          className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope"
-                          aria-label="Perform search"
-                        >
-                          Search
-                        </button> */}
-                      </div>
-                    </div>
-                  </form>
+                    </form>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Category Buttons */}
+          {/* Category Buttons with switching loader */}
           <div className="mt-4 md:mt-6">
             <CategoryButtons
               selectedCategory={selectedCategoryButton}
               onCategoryClick={handleCategoryButtonClick}
+              isSwitchingCategory={isSwitchingCategory}
             />
           </div>
         </div>
 
-        {/* Search Modals */}
+        {/* ✅ FIX 1 & 2: Updated Search Modals for Category Pages */}
+        {!isMobile && (
+          <DesktopSearchSuggestions
+            searchQuery={localSearchQuery}
+            listings={listings}
+            onSuggestionClick={handleSuggestionClick}
+            onClose={() => setShowSuggestions(false)}
+            isVisible={showSuggestions && !loading}
+            searchBarPosition={searchBarPosition}
+            activeCategory={activeCategoryName}
+          />
+        )}
+
         {!isMobile && showDesktopFilters && (
           <FilterSidebar
             onFilterChange={handleFilterChange}
@@ -2593,18 +2748,6 @@ const CategoryResults = () => {
           />
         )}
 
-        {/* Search Suggestions */}
-        {!isMobile && (
-          <DesktopSearchSuggestions
-            searchQuery={localSearchQuery}
-            listings={listings}
-            onSuggestionClick={handleSuggestionClick}
-            onClose={() => setShowSuggestions(false)}
-            isVisible={showSuggestions && !loading}
-            searchBarPosition={searchBarPosition}
-          />
-        )}
-
         {isMobile && (
           <MobileSearchModal
             searchQuery={localSearchQuery}
@@ -2613,11 +2756,12 @@ const CategoryResults = () => {
             onClose={() => setShowMobileSearchModal(false)}
             onTyping={handleSearchChange}
             isVisible={showMobileSearchModal}
+            activeCategory={activeCategoryName}
           />
         )}
 
         {/* Main Content */}
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col lg:flex-row gap-6 w-full">
           {/* Desktop Filter Sidebar */}
           {!isMobile && filtersInitialized && (
             <div className="lg:w-1/4">
@@ -2632,54 +2776,90 @@ const CategoryResults = () => {
           )}
 
           {/* Results Content */}
-          <div className="lg:w-3/4" ref={resultsRef}>
-            {/* Page Header */}
-            <div className="mb-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex-1 flex items-center gap-3">
+          <div className="lg:w-3/4 w-full" ref={resultsRef}>
+            {/* Page Header - Updated with dynamic header like search results page */}
+            <div className="mb-6 w-full">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+                <div className="flex-1 flex items-center gap-3 w-full">
                   {isMobile && filtersInitialized && (
-                    <button
-                      onClick={toggleMobileFilters}
-                      className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm"
-                      aria-label="Open filters"
-                      ref={filterButtonRef}
-                    >
-                      <div className="relative">
-                        <PiSliders className="text-gray-600 text-lg" />
-                        {Object.keys(activeFilters).some((key) => {
-                          if (key === "priceRange") {
-                            return activeFilters.priceRange.min || activeFilters.priceRange.max;
-                          }
-                          return Array.isArray(activeFilters[key])
-                            ? activeFilters[key].length > 0
-                            : activeFilters[key] !== "relevance";
-                        }) && (
-                          <span className="absolute -top-1 -right-1 bg-[#06EAFC] text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
-                            {Object.values(activeFilters).reduce((acc, val) => {
-                              if (Array.isArray(val)) return acc + val.length;
-                              if (typeof val === "object" && val !== null) {
-                                return acc + (val.min || val.max ? 1 : 0);
-                              }
-                              return acc + (val && val !== "relevance" ? 1 : 0);
-                            }, 0)}
-                          </span>
-                        )}
+                    <div className="flex items-center justify-between w-full">
+                      <div className="text-left">
+                        <h1 className="text-xl font-bold text-[#00065A] mb-1">
+                          {getPageTitle()}
+                        </h1>
+                        <p className="text-sm text-gray-600">
+                          {getAccurateCountText()}
+                        </p>
                       </div>
-                    </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={toggleMobileFilters}
+                          className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm cursor-pointer"
+                          aria-label="Open filters"
+                          ref={filterButtonRef}
+                        >
+                          <div className="relative">
+                            <PiSliders className="text-gray-600 text-lg" />
+                            {Object.keys(activeFilters).some((key) => {
+                              if (key === "priceRange") {
+                                return (
+                                  activeFilters.priceRange.min ||
+                                  activeFilters.priceRange.max
+                                );
+                              }
+                              return Array.isArray(activeFilters[key])
+                                ? activeFilters[key].length > 0
+                                : activeFilters[key] !== "relevance";
+                            }) && (
+                              <span className="absolute -top-1 -right-1 bg-[#06EAFC] text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                                {Object.values(activeFilters).reduce((acc, val) => {
+                                  if (Array.isArray(val)) return acc + val.length;
+                                  if (typeof val === "object" && val !== null) {
+                                    return acc + (val.min || val.max ? 1 : 0);
+                                  }
+                                  return acc + (val && val !== "relevance" ? 1 : 0);
+                                }, 0)}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                        <div className="relative">
+                          <select
+                            value={activeFilters.sortBy}
+                            onChange={(e) => {
+                              const updatedFilters = {
+                                ...activeFilters,
+                                sortBy: e.target.value,
+                              };
+                              handleFilterChange(updatedFilters);
+                            }}
+                            className="appearance-none px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-8"
+                          >
+                            <option value="relevance">Sort by: Relevance</option>
+                            <option value="price_low">Price: Low to High</option>
+                            <option value="price_high">Price: High to Low</option>
+                            <option value="rating">Highest Rated</option>
+                            <option value="name">Name: A to Z</option>
+                          </select>
+                          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                            <FontAwesomeIcon icon={faChevronDown} className="text-gray-500 text-xs" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   )}
-
-                  <div className="flex-1">
-                    <h1 className="text-xl font-bold text-[#00065A] mb-1">
-                      {getPageTitle()}
-                    </h1>
-                    <p className="text-sm text-gray-600">
-                      {apiResponse?.results || 0} {apiResponse?.results === 1 ? "place" : "places"} found
-                    </p>
-                  </div>
+                  {!isMobile && (
+                    <div className="flex-1">
+                      <h1 className="text-xl font-bold text-[#00065A] mb-1">
+                        {getPageTitle()}
+                      </h1>
+                      <p className="text-sm text-gray-600">
+                        {getAccurateCountText()}
+                      </p>
+                    </div>
+                  )}
                 </div>
-
-                {/* Sort Dropdown */}
-                {(isMobile || window.innerWidth >= 1024) && filtersInitialized && (
+                {!isMobile && filtersInitialized && (
                   <div className="flex items-center gap-2">
                     {!isMobile && (
                       <div className="relative">
@@ -2693,6 +2873,11 @@ const CategoryResults = () => {
                             handleFilterChange(updatedFilters);
                           }}
                           className="appearance-none px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-0 cursor-pointer pr-8 bg-transparent border-0"
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            boxShadow: "none",
+                          }}
                         >
                           <option value="relevance">Sort by: Relevance</option>
                           <option value="price_low">Price: Low to High</option>
@@ -2705,40 +2890,15 @@ const CategoryResults = () => {
                         </div>
                       </div>
                     )}
-
-                    {isMobile && filtersInitialized && (
-                      <div className="relative">
-                        <select
-                          value={activeFilters.sortBy}
-                          onChange={(e) => {
-                            const updatedFilters = {
-                              ...activeFilters,
-                              sortBy: e.target.value,
-                            };
-                            handleFilterChange(updatedFilters);
-                          }}
-                          className="appearance-none px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-8"
-                        >
-                          <option value="relevance">Sort by: Relevance</option>
-                          <option value="price_low">Price: Low to High</option>
-                          <option value="price_high">Price: High to Low</option>
-                          <option value="rating">Highest Rated</option>
-                          <option value="name">Name: A to Z</option>
-                        </select>
-                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                          <FontAwesomeIcon icon={faChevronDown} className="text-gray-500 text-xs" />
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Results Display */}
-            <div className="space-y-6">
+            {/* Results Display - Updated with mobile responsiveness like search results page */}
+            <div className="space-y-6 w-full">
               {listings.length === 0 && filtersInitialized && (
-                <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+                <div className="text-center py-12 bg-white rounded-xl border border-gray-200 w-full">
                   <FontAwesomeIcon
                     icon={faSearch}
                     className="text-4xl text-gray-300 mb-4 block"
@@ -2746,31 +2906,6 @@ const CategoryResults = () => {
                   <h3 className="text-xl text-gray-800 mb-2">
                     No matching results found
                   </h3>
-                  <p className="text-gray-600 mb-4 max-w-md mx-auto px-4">
-                    {searchQuery
-                      ? `No ${getCategoryDisplayName(category).toLowerCase()} found for "${searchQuery}" with the selected filters.`
-                      : `No ${getCategoryDisplayName(category).toLowerCase()} match your current filters.`}
-                  </p>
-                  <div className="flex flex-wrap gap-2 justify-center px-4">
-                    <button
-                      onClick={clearAllFilters}
-                      className="bg-[#06EAFC] text-white px-4 py-2 rounded-lg hover:bg-[#05d9eb] transition-colors text-sm"
-                    >
-                      Clear All Filters
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (isMobile) {
-                          setShowMobileFilters(true);
-                        } else {
-                          setShowDesktopFilters(true);
-                        }
-                      }}
-                      className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors text-sm"
-                    >
-                      Adjust Filters
-                    </button>
-                  </div>
                   <p className="text-sm text-gray-500 mt-4">
                     Tip: Try selecting fewer filters or different combinations
                   </p>
@@ -2780,14 +2915,17 @@ const CategoryResults = () => {
               {listings.length > 0 && filtersInitialized && (
                 <>
                   {isMobile ? (
-                    <div className="space-y-4">
+                    <div className="space-y-4 w-full">
                       {Array.from({
                         length: Math.ceil(currentListings.length / 5),
                       }).map((_, rowIndex) => (
                         <div
                           key={rowIndex}
-                          className="flex overflow-x-auto scrollbar-hide gap-2 pb-4"
-                          style={{ paddingRight: "8px" }}
+                          className="flex overflow-x-auto scrollbar-hide gap-2 pb-4 w-full"
+                          style={{
+                            paddingLeft: "0",
+                            paddingRight: "8px",
+                          }}
                         >
                           {currentListings
                             .slice(rowIndex * 5, (rowIndex + 1) * 5)
@@ -2803,7 +2941,7 @@ const CategoryResults = () => {
                       ))}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
                       {currentListings.map((listing, index) => (
                         <SearchResultBusinessCard
                           key={listing._id || index}
@@ -2815,20 +2953,19 @@ const CategoryResults = () => {
                     </div>
                   )}
 
-                  {totalPages > 1 && (
-                    <div className="flex justify-center items-center space-x-2 mt-8">
+                  {totalPages > 1 && listings.length > ITEMS_PER_PAGE && (
+                    <div className="flex justify-center items-center space-x-2 mt-8 w-full">
                       <button
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
                         className={`px-4 py-2 rounded-lg border ${
                           currentPage === 1
                             ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                            : "bg-white text-gray-700 hover:bg-gray-50"
+                            : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
                         }`}
                       >
                         Previous
                       </button>
-
                       <div className="flex space-x-1">
                         {Array.from(
                           { length: Math.min(totalPages, 5) },
@@ -2840,21 +2977,20 @@ const CategoryResults = () => {
                             className={`w-10 h-10 rounded-lg border ${
                               currentPage === page
                                 ? "bg-[#06EAFC] text-white border-[#06EAFC]"
-                                : "bg-white text-gray-700 hover:bg-gray-50"
+                                : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
                             }`}
                           >
                             {page}
                           </button>
                         ))}
                       </div>
-
                       <button
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
                         className={`px-4 py-2 rounded-lg border ${
                           currentPage === totalPages
                             ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                            : "bg-white text-gray-700 hover:bg-gray-50"
+                            : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
                         }`}
                       >
                         Next
@@ -2990,6 +3126,23 @@ const CategoryResults = () => {
 
         .animate-scaleIn {
           animation: scaleIn 0.2s ease-out;
+        }
+        
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        
+        .animate-bounce {
+          animation: bounce 0.6s ease-in-out infinite;
+        }
+        
+        .animate-pulse {
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        .animate-spin {
+          animation: spin 1s linear infinite;
         }
       `}</style>
     </div>

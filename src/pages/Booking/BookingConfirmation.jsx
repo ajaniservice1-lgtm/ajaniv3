@@ -1,52 +1,103 @@
+// BookingConfirmation.jsx
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import Stepper from "../../components/Stepper";
+import { useNavigate, useParams } from "react-router-dom";
+import { 
+  CheckCircle, 
+  Mail, 
+  Phone, 
+  Home, 
+  FileText, 
+  Share2,
+  Calendar,
+  Users,
+  Clock
+} from "lucide-react";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
-import { CheckCircle, Mail, Phone, Home, FileText, Share2 } from "lucide-react";
 
-const BookingCompletion = () => {
+const BookingConfirmation = () => {
   const navigate = useNavigate();
-  const [bookingReference, setBookingReference] = useState("");
+  const { type } = useParams();
+  
   const [bookingData, setBookingData] = useState(null);
+  const [bookingReference, setBookingReference] = useState("");
 
   useEffect(() => {
     // Generate booking reference
     const generateReference = () => {
+      const prefix = type === 'restaurant' ? 'REST-' : 
+                     type === 'shortlet' ? 'SHORT-' : 
+                     type === 'hotel' ? 'HOTEL-' : 'AJN-';
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      let result = 'AJN-';
+      let result = prefix;
       for (let i = 0; i < 8; i++) {
-        result += chars.charAt(Math.floor(Math.floor(Math.random() * chars.length)));
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
       }
       return result;
     };
     
-    const reference = generateReference();
-    setBookingReference(reference);
+    setBookingReference(generateReference());
     
-    // Load booking data
-    const savedBookingData = localStorage.getItem('bookingData');
-    if (savedBookingData) {
-      setBookingData(JSON.parse(savedBookingData));
-    }
-  }, []);
-
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Your Ajani Booking Confirmation',
-          text: `Booking Reference: ${bookingReference}`,
-          url: window.location.href,
-        });
-      } catch (error) {
-        console.log('Error sharing:', error);
+    // Load booking data based on type
+    const loadBookingData = () => {
+      let data = null;
+      
+      switch(type) {
+        case 'restaurant':
+          data = localStorage.getItem('restaurantBooking');
+          break;
+        case 'shortlet':
+          data = localStorage.getItem('shortletBooking');
+          break;
+        case 'hotel':
+          data = localStorage.getItem('completeBooking') || 
+                 localStorage.getItem('roomBookingData');
+          break;
+        default:
+          // Try all possible storage keys
+          data = localStorage.getItem('completeBooking') || 
+                 localStorage.getItem('restaurantBooking') || 
+                 localStorage.getItem('shortletBooking');
       }
-    } else {
-      // Fallback: Copy to clipboard
-      navigator.clipboard.writeText(`Booking Reference: ${bookingReference}`);
-      alert('Booking reference copied to clipboard!');
+      
+      if (data) {
+        setBookingData(JSON.parse(data));
+      }
+    };
+    
+    loadBookingData();
+  }, [type]);
+
+  const getTitle = () => {
+    switch(type) {
+      case 'restaurant':
+        return "Table Reservation Request Sent!";
+      case 'shortlet':
+        return "Shortlet Booking Request Sent!";
+      case 'hotel':
+        return "Hotel Booking Confirmed!";
+      default:
+        return "Booking Request Received!";
     }
+  };
+
+  const getMessage = () => {
+    switch(type) {
+      case 'restaurant':
+        return "Your table reservation request has been sent to the restaurant. You'll receive confirmation within 24 hours.";
+      case 'shortlet':
+        return "Your shortlet booking request has been sent to the property owner. They'll contact you shortly to confirm availability.";
+      case 'hotel':
+        return "Your hotel booking has been confirmed! Check your email for the booking confirmation.";
+      default:
+        return "Your booking request has been successfully received.";
+    }
+  };
+
+  const getVendorName = () => {
+    return bookingData?.vendorData?.name || 
+           bookingData?.hotel?.name || 
+           "Vendor";
   };
 
   return (
@@ -55,41 +106,19 @@ const BookingCompletion = () => {
       
       <div className="pt-20">
         <div className="max-w-4xl mx-auto px-4 py-10">
-          <Stepper currentStep={3} />
-          
           <div className="bg-white rounded-xl shadow-sm p-6">
+            {/* Success Icon & Title */}
             <div className="text-center mb-8">
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-12 h-12 text-green-600" />
               </div>
               
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Thank you for booking with Ajani!
+                {getTitle()}
               </h1>
               <p className="text-gray-600">
-                Your booking request has been successfully received.
+                {getMessage()}
               </p>
-            </div>
-
-            {/* Booking Status Card */}
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Mail className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-blue-900 mb-2">
-                    Booking Processing
-                  </h3>
-                  <p className="text-blue-800 mb-3">
-                    <span className="font-semibold">Ajani</span> is now checking availability with{' '}
-                    <span className="font-semibold">JAGZ Restaurant</span> for your selected date and details.
-                  </p>
-                  <p className="text-blue-800">
-                    Once availability is confirmed, we'll notify you via phone call, SMS, or WhatsApp with the next steps.
-                  </p>
-                </div>
-              </div>
             </div>
 
             {/* Booking Details */}
@@ -104,114 +133,103 @@ const BookingCompletion = () => {
                 
                 <div className="flex justify-between items-center py-3 border-b border-gray-200">
                   <span className="text-gray-600">Service Type</span>
-                  <span className="font-medium">Hotels</span>
+                  <span className="font-medium capitalize">{type || "Booking"}</span>
                 </div>
                 
                 <div className="flex justify-between items-center py-3 border-b border-gray-200">
                   <span className="text-gray-600">Vendor</span>
-                  <span className="font-medium">JAGZ Hotel</span>
+                  <span className="font-medium">{getVendorName()}</span>
                 </div>
                 
-                <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                  <span className="text-gray-600">Lead Guest</span>
-                  <span className="font-medium">
-                    {bookingData ? `${bookingData.firstName} ${bookingData.lastName}` : 'John Adesoye'}
-                  </span>
-                </div>
-                
-                <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                  <span className="text-gray-600">Contact Email</span>
-                  <span className="font-medium">
-                    {bookingData?.email || 'examplepgd@gmail.com'}
-                  </span>
-                </div>
+                {/* Display booking-specific details */}
+                {bookingData?.bookingData && (
+                  <>
+                    {bookingData.bookingData.date && (
+                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                        <span className="text-gray-600">Date</span>
+                        <span className="font-medium">{bookingData.bookingData.date}</span>
+                      </div>
+                    )}
+                    
+                    {bookingData.bookingData.time && (
+                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                        <span className="text-gray-600">Time</span>
+                        <span className="font-medium">{bookingData.bookingData.time}</span>
+                      </div>
+                    )}
+                    
+                    {bookingData.bookingData.checkInDate && (
+                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                        <span className="text-gray-600">Check-in</span>
+                        <span className="font-medium">{bookingData.bookingData.checkInDate}</span>
+                      </div>
+                    )}
+                    
+                    {bookingData.bookingData.checkOutDate && (
+                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                        <span className="text-gray-600">Check-out</span>
+                        <span className="font-medium">{bookingData.bookingData.checkOutDate}</span>
+                      </div>
+                    )}
+                    
+                    {bookingData.bookingData.numberOfGuests && (
+                      <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                        <span className="text-gray-600">Guests</span>
+                        <span className="font-medium">{bookingData.bookingData.numberOfGuests}</span>
+                      </div>
+                    )}
+                  </>
+                )}
                 
                 <div className="flex justify-between items-center py-3">
-                  <span className="text-gray-600">Estimated Response Time</span>
-                  <span className="font-medium text-emerald-600">Within 24 hours</span>
+                  <span className="text-gray-600">Status</span>
+                  <span className="font-medium text-emerald-600">
+                    {type === 'hotel' ? 'Confirmed' : 'Pending Confirmation'}
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Room Summary */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
-              <h3 className="font-semibold text-gray-900 mb-4">Room Summary</h3>
-              
-              <div className="flex flex-col md:flex-row gap-6">
-                <div className="md:w-1/3">
-                  <div className="bg-gray-100 rounded-lg p-4">
-                    <h4 className="font-medium text-gray-900 mb-2">Superior Twin Room</h4>
-                    <ul className="text-sm text-gray-600 space-y-1">
-                      <li>• Bed: 1 double or 2 single beds</li>
-                      <li>• Room Size: 18-20 sqm</li>
-                      <li>• Private bathroom</li>
-                      <li>• City view</li>
-                    </ul>
-                  </div>
-                </div>
-                
-                <div className="md:w-2/3">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h5 className="text-sm font-medium text-gray-700 mb-2">Amenities Included</h5>
-                      <ul className="text-sm text-gray-600 space-y-1">
-                        <li>✓ Free Wi-Fi</li>
-                        <li>✓ Air Conditioning</li>
-                        <li>✓ TV</li>
-                        <li>✓ Washing Machine</li>
-                      </ul>
-                    </div>
-                    
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h5 className="text-sm font-medium text-gray-700 mb-2">Payment Details</h5>
-                      <ul className="text-sm text-gray-600 space-y-1">
-                        <li>Method: Pay at Hotel</li>
-                        <li>Amount: ₦52,500</li>
-                        <li>Status: Pending</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
+            {/* CTA Buttons */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               <button
-                onClick={handleShare}
+                onClick={() => {
+                  navigator.clipboard.writeText(bookingReference);
+                  alert('Booking reference copied to clipboard!');
+                }}
                 className="flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <Share2 className="w-5 h-5" />
-                Share Booking Details
+                Copy Reference
               </button>
               
               <button className="flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
                 <FileText className="w-5 h-5" />
-                Download Receipt
+                View Details
               </button>
             </div>
 
-            {/* CTA Buttons */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Link
-                to="/"
+            {/* Main Action Buttons */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+              <button
+                onClick={() => navigate("/")}
                 className="flex items-center justify-center gap-2 px-6 py-4 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors font-medium"
               >
                 <Home className="w-5 h-5" />
                 Return to Home
-              </Link>
+              </button>
               
-              <Link
-                to="/hotels"
+              <button
+                onClick={() => navigate(`/category/${type || 'hotel'}`)}
                 className="flex items-center justify-center gap-2 px-6 py-4 border border-emerald-500 text-emerald-500 rounded-lg hover:bg-emerald-50 transition-colors font-medium"
               >
-                Browse More Hotels
-              </Link>
+                Browse More {type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Hotels'}
+              </button>
             </div>
 
             {/* Support Information */}
             <div className="mt-8 pt-8 border-t border-gray-200 text-center">
-              <p className="text-gray-600 mb-4">Need immediate assistance?</p>
+              <p className="text-gray-600 mb-4">Need assistance with your booking?</p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <a
                   href="mailto:support@ajani.com"
@@ -238,4 +256,4 @@ const BookingCompletion = () => {
   );
 };
 
-export default BookingCompletion;
+export default BookingConfirmation;

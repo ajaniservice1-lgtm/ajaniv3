@@ -1,24 +1,38 @@
-import { CheckCircle, CreditCard, Check } from "lucide-react";
+// src/components/Stepper.jsx
+import React from "react";
+import { CheckCircle, CreditCard, Check, Calendar, Users } from "lucide-react";
 
-const steps = [
-  {
-    id: 1,
-    label: "Customer Information",
-    icon: CheckCircle,
-  },
-  {
-    id: 2,
-    label: "Payment Information",
-    icon: CreditCard,
-  },
-  {
-    id: 3,
-    label: "Booking is Confirmed",
-    icon: Check,
-  },
-];
+const Stepper = ({ currentStep, type = "hotel" }) => {
+  // Define steps based on booking type
+  const getSteps = () => {
+    switch(type) {
+      case "hotel":
+        return [
+          { id: 1, label: "Customer Information", icon: Users },
+          { id: 2, label: "Payment Information", icon: CreditCard },
+          { id: 3, label: "Booking is Confirmed", icon: Check },
+        ];
+      case "restaurant":
+        return [
+          { id: 1, label: "Booking Details", icon: Calendar },
+          { id: 2, label: "Booking Confirmed", icon: Check },
+        ];
+      case "shortlet":
+        return [
+          { id: 1, label: "Booking Details", icon: Calendar },
+          { id: 2, label: "Booking Confirmed", icon: Check },
+        ];
+      default:
+        return [
+          { id: 1, label: "Customer Information", icon: Users },
+          { id: 2, label: "Payment Information", icon: CreditCard },
+          { id: 3, label: "Booking is Confirmed", icon: Check },
+        ];
+    }
+  };
 
-const Stepper = ({ currentStep }) => {
+  const steps = getSteps();
+
   return (
     <div className="w-full mb-10 flex items-center justify-between relative">
       {/* Progress line */}

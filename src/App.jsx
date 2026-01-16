@@ -47,11 +47,14 @@ const BuyerProfilePage = lazy(() => import("./pages/BuyerProfilePage"));
 const VendorProfilePage = lazy(() => import("./pages/VendorProfilePage"));
 
 /* =======================
-   BOOKING PAGES - UPDATED NAMES
+   BOOKING PAGES - UPDATED FOR CATEGORY-BASED FLOW
 ======================= */
-const BookingPage = lazy(() => import("./pages/Booking/BookingPage"));
+const BookingRouter = lazy(() => import("./pages/Booking/BookingRouter"));
+const HotelBooking = lazy(() => import("./pages/Booking/HotelBooking"));
+const RestaurantBooking = lazy(() => import("./pages/Booking/RestaurantBooking"));
+const ShortletBooking = lazy(() => import("./pages/Booking/ShortletBooking"));
 const PaymentPage = lazy(() => import("./pages/Booking/PaymentPage"));
-const BookingCompletion = lazy(() => import("./pages/Booking/BookingCompletion"));
+const BookingConfirmation = lazy(() => import("./pages/Booking/BookingConfirmation"));
 const BookingFailed = lazy(() => import("./pages/Booking/BookingFailed"));
 
 /* =======================
@@ -291,15 +294,44 @@ function App() {
                   <Route path="/category/:category" element={<MainLayout><CategoryResults /></MainLayout>} />
                   <Route path="/search-results" element={<MainLayout><SearchResults /></MainLayout>} />
 
-                  {/* BOOKING ROUTES - UPDATED FOR 3-STEP FLOW */}
+                  {/* BOOKING ROUTES - CATEGORY-BASED FLOW */}
+                  {/* Main booking router - handles all categories */}
                   <Route 
                     path="/booking" 
                     element={
                       <ProtectedRoute>
-                        <MainLayout><BookingPage /></MainLayout>
+                        <MainLayout><BookingRouter /></MainLayout>
                       </ProtectedRoute>
                     } 
                   />
+                  
+                  {/* Direct booking routes for specific categories (optional) */}
+                  <Route 
+                    path="/booking/hotel" 
+                    element={
+                      <ProtectedRoute>
+                        <MainLayout><HotelBooking /></MainLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/booking/restaurant" 
+                    element={
+                      <ProtectedRoute>
+                        <MainLayout><RestaurantBooking /></MainLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/booking/shortlet" 
+                    element={
+                      <ProtectedRoute>
+                        <MainLayout><ShortletBooking /></MainLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
+                  {/* Hotel payment page (only for hotels) */}
                   <Route 
                     path="/booking/payment" 
                     element={
@@ -308,14 +340,17 @@ function App() {
                       </ProtectedRoute>
                     } 
                   />
+                  
+                  {/* Unified confirmation page for all booking types */}
                   <Route 
-                    path="/booking/confirmation" 
+                    path="/booking-confirmation/:type?" 
                     element={
                       <ProtectedRoute>
-                        <MainLayout><BookingCompletion /></MainLayout>
+                        <MainLayout><BookingConfirmation /></MainLayout>
                       </ProtectedRoute>
                     } 
                   />
+                  
                   <Route 
                     path="/booking-failed" 
                     element={

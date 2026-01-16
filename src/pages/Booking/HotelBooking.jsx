@@ -1,3 +1,4 @@
+// src/pages/Booking/HotelBooking.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Stepper from "../../components/Stepper";
@@ -7,10 +8,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
   faCalendar, faUsers, faBed, 
   faWifi, faCar, faUtensils,
-  faCheck, faStar
+  faCheck, faStar, faPhone,
+  faEnvelope, faMapMarkerAlt
 } from "@fortawesome/free-solid-svg-icons";
 
-const BookingPage = () => {
+const HotelBooking = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -18,7 +20,7 @@ const BookingPage = () => {
     firstName: "",
     lastName: "",
     email: "",
-    country: "",
+    country: "Nigeria",
     phone: "+234 (0) ",
     specialRequests: ""
   });
@@ -26,24 +28,89 @@ const BookingPage = () => {
   const [selectedPayment, setSelectedPayment] = useState("hotel");
   const [roomData, setRoomData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [hotelData, setHotelData] = useState(null);
+  const [currentStep, setCurrentStep] = useState(1);
 
-  // Load booking data from localStorage or location state
   useEffect(() => {
     const loadBookingData = () => {
       setLoading(true);
       
-      // Try to get from location state first
-      if (location.state?.bookingData) {
-        setRoomData(location.state.bookingData);
-        console.log("📦 Room data loaded from location state:", location.state.bookingData);
-      } 
-      // Then try localStorage
-      else {
-        const savedData = localStorage.getItem('roomBookingData');
-        if (savedData) {
-          const parsedData = JSON.parse(savedData);
-          setRoomData(parsedData);
-          console.log("📦 Room data loaded from localStorage:", parsedData);
+      // Load vendor data
+      const vendorDataFromState = location.state?.vendorData;
+      const fromLocalStorage = localStorage.getItem('currentVendorBooking');
+      const fromSession = sessionStorage.getItem('currentVendorBooking');
+      
+      let vendorData = null;
+      if (vendorDataFromState) {
+        vendorData = vendorDataFromState;
+      } else if (fromLocalStorage) {
+        vendorData = JSON.parse(fromLocalStorage);
+      } else if (fromSession) {
+        vendorData = JSON.parse(fromSession);
+      }
+      
+      if (vendorData) {
+        setHotelData(vendorData);
+      }
+      
+      // Load room data
+      const savedRoomData = localStorage.getItem('roomBookingData');
+      if (savedRoomData) {
+        const parsedData = JSON.parse(savedRoomData);
+        setRoomData(parsedData);
+      } else if (vendorData?.selectedRoom) {
+        // Create room data from selected room
+        const roomInfo = vendorData.selectedRoom;
+        setRoomData({
+          hotel: {
+            id: vendorData.id,
+            name: vendorData.name,
+            location: vendorData.area,
+            rating: vendorData.rating || 4.5,
+            image: vendorData.image,
+            category: vendorData.category
+          },
+          room: {
+            title: roomInfo.title || "Standard Room",
+            name: roomInfo.name || "Standard Room",
+            image: roomInfo.image || vendorData.image,
+            size: roomInfo.size || "Not specified",
+            beds: roomInfo.beds || "1 Double Bed",
+            maxOccupancy: roomInfo.maxOccupancy || 2,
+            features: roomInfo.features || [],
+            amenities: roomInfo.amenities || [],
+            rating: roomInfo.rating || 4.5,
+            reviewCount: roomInfo.reviewCount || 0
+          },
+          booking: {
+            checkIn: "Sat, Jan 24",
+            checkOut: "Sun, Jan 25",
+            adults: roomInfo.occupancy?.[0]?.adults || 2,
+            nights: 1,
+            price: roomInfo.occupancy?.[0]?.price || vendorData.priceFrom || 0,
+            originalPrice: roomInfo.occupancy?.[0]?.originalPrice || vendorData.priceTo || 0,
+            discount: roomInfo.occupancy?.[0]?.discount || "",
+            breakfast: roomInfo.occupancy?.[0]?.breakfast || "",
+            breakfastPrice: roomInfo.occupancy?.[0]?.breakfastPrice || "",
+            benefits: roomInfo.occupancy?.[0]?.benefits || ["Pay at hotel", "Free WiFi"],
+            checkInTime: "15:00",
+            totalPrice: roomInfo.occupancy?.[0]?.price || vendorData.priceFrom || 0,
+            perNight: roomInfo.occupancy?.[0]?.price || vendorData.priceFrom || 0
+          }
+        });
+      }
+      
+      // Check for any guest info saved
+      const savedGuestInfo = localStorage.getItem('bookingData');
+      if (savedGuestInfo) {
+        try {
+          const guestData = JSON.parse(savedGuestInfo);
+          setBookingData(prev => ({
+            ...prev,
+            ...guestData
+          }));
+        } catch (error) {
+          console.error("Failed to parse guest info:", error);
         }
       }
       
@@ -67,19 +134,25 @@ const BookingPage = () => {
       return;
     }
 
+    // Save guest information
+    localStorage.setItem('bookingData', JSON.stringify(bookingData));
+    
     // Combine booking data
     const completeBooking = {
       ...bookingData,
       paymentMethod: selectedPayment,
       roomData: roomData,
+      hotelData: hotelData,
+      bookingType: 'hotel',
       bookingDate: new Date().toISOString(),
-      bookingId: 'AJ' + Date.now().toString().slice(-8)
+      bookingId: 'HOTEL-' + Date.now().toString().slice(-8)
     };
 
     // Save complete booking data
     localStorage.setItem('completeBooking', JSON.stringify(completeBooking));
+    localStorage.setItem('hotelBooking', JSON.stringify(completeBooking));
     
-    // Navigate to payment page with all data
+    // Navigate to payment page for hotels
     navigate('/booking/payment', { 
       state: { 
         bookingData: completeBooking 
@@ -88,7 +161,7 @@ const BookingPage = () => {
   };
 
   const formatPrice = (price) => {
-    if (!price) return "₦ --";
+    if (!price && price !== 0) return "₦ --";
     const num = parseInt(price.toString().replace(/[^\d]/g, ""));
     if (isNaN(num)) return "₦ --";
     return `₦${num.toLocaleString()}`;
@@ -116,7 +189,7 @@ const BookingPage = () => {
             <p className="text-gray-600 mb-6">Please select a room before proceeding to booking.</p>
             <button
               onClick={() => navigate(-1)}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition"
+              className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition cursor-pointer"
             >
               Go Back & Select Room
             </button>
@@ -139,7 +212,7 @@ const BookingPage = () => {
       
       <div className="pt-8">
         <div className="max-w-6xl mx-auto px-4 py-10">
-          <Stepper currentStep={1} />
+          <Stepper currentStep={currentStep} type="hotel" />
           
           <div className="bg-white rounded-xl shadow-sm p-6">
             {/* Back Button */}
@@ -154,7 +227,7 @@ const BookingPage = () => {
               {/* Left Column - Form */}
               <div className="lg:col-span-2">
                 <h1 className="text-2xl font-bold text-gray-900 mb-8">
-                  Complete Your Bookingkkk
+                  Complete Your Booking
                 </h1>
 
                 {/* Hotel & Room Summary at Top */}
@@ -163,7 +236,7 @@ const BookingPage = () => {
                     {/* Hotel Main Image */}
                     <div className="md:w-1/3">
                       <img 
-                        src={roomData.hotel.mainImage || roomData.hotel.image} 
+                        src={roomData.hotel.image || hotelData?.image} 
                         alt={roomData.hotel.name}
                         className="w-full h-48 object-cover rounded-lg"
                       />
@@ -184,19 +257,29 @@ const BookingPage = () => {
                       </h4>
                       
                       {/* Room Image Gallery */}
-                      <div className="mb-4">
-                        <div className="flex space-x-2 overflow-x-auto pb-2">
-                          {roomData.room.images?.slice(0, 4).map((img, index) => (
-                            <div key={index} className="flex-shrink-0">
-                              <img 
-                                src={img} 
-                                alt={`Room view ${index + 1}`}
-                                className="w-20 h-20 object-cover rounded-md"
-                              />
-                            </div>
-                          ))}
+                      {roomData.room.images && roomData.room.images.length > 0 ? (
+                        <div className="mb-4">
+                          <div className="flex space-x-2 overflow-x-auto pb-2">
+                            {roomData.room.images.slice(0, 4).map((img, index) => (
+                              <div key={index} className="flex-shrink-0">
+                                <img 
+                                  src={img} 
+                                  alt={`Room view ${index + 1}`}
+                                  className="w-20 h-20 object-cover rounded-md"
+                                />
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="mb-4">
+                          <img 
+                            src={roomData.room.image} 
+                            alt={roomData.room.title}
+                            className="w-40 h-32 object-cover rounded-md"
+                          />
+                        </div>
+                      )}
                       
                       {/* Room Features */}
                       <div className="grid grid-cols-2 gap-2 text-sm">
@@ -421,7 +504,7 @@ const BookingPage = () => {
                     onClick={handleSubmit}
                     className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-4 rounded-lg transition cursor-pointer"
                   >
-                    Next: Final Step
+                    Next: Payment
                   </button>
                 </div>
               </div>
@@ -431,66 +514,183 @@ const BookingPage = () => {
                 <div className="bg-gray-50 rounded-xl p-6 space-y-6 sticky top-24">
                   <h3 className="font-semibold text-gray-800">Booking Summary</h3>
                   
-                  {/* Room Selected */}
-                  <div>
-                    <p className="text-sm text-gray-500 mb-2">Room Selected</p>
-                    <div className="bg-white rounded-lg p-4">
+                  {/* Hotel Information */}
+                  <div className="bg-white rounded-lg p-4 border">
+                    <div className="flex items-start gap-3 mb-3">
                       <img 
-                        src={roomData.room.mainImage} 
-                        alt={roomData.room.title}
-                        className="w-full h-40 object-cover rounded-md mb-3"
+                        src={roomData.hotel.image} 
+                        alt={roomData.hotel.name}
+                        className="w-16 h-16 object-cover rounded-md"
                       />
-                      <ul className="text-sm text-gray-600 space-y-1">
-                      <h4 className="font-medium text-[15px] text-gray-900 mb-2">{roomData.room.title}</h4>
-
-                        <li className="flex items-center gap-2">
-                          <FontAwesomeIcon icon={faBed} className="text-gray-400" />
-                          <span>{roomData.room.beds}</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <FontAwesomeIcon icon={faUsers} className="text-gray-400" />
-                          <span>{roomData.room.maxOccupancy} Guests max</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-4 text-center">📏</span>
-                          <span>{roomData.room.size}</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <FontAwesomeIcon icon={faWifi} className="text-gray-400" />
-                          <span>Free WiFi</span>
-                        </li>
-                      </ul>
+                      <div>
+                        <h4 className="font-bold text-gray-900 text-sm">{roomData.hotel.name}</h4>
+                        <div className="flex items-center gap-1 mt-1">
+                          <FontAwesomeIcon icon={faMapMarkerAlt} className="w-3 h-3 text-gray-500" />
+                          <p className="text-xs text-gray-500">{roomData.hotel.location}</p>
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          <FontAwesomeIcon icon={faStar} className="w-3 h-3 text-yellow-500" />
+                          <span className="text-xs font-medium">{roomData.hotel.rating}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Stay Details */}
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <FontAwesomeIcon icon={faCalendar} className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm text-gray-700">Dates</span>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium">{roomData.booking.checkIn}</p>
+                            <p className="text-xs text-gray-500">to {roomData.booking.checkOut}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <FontAwesomeIcon icon={faUsers} className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm text-gray-700">Guests</span>
+                          </div>
+                          <span className="text-sm font-medium">{roomData.booking.adults} adults</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-700">Nights</span>
+                          <span className="text-sm font-medium">{roomData.booking.nights} night</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   
-                  {/* Price Breakdown */}
-                  <div>
-                    <p className="text-sm text-gray-500 mb-2">Price Breakdown</p>
-                    <div className="space-y-3">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Room x {roomData.booking.nights} night</span>
-                        <span className="font-medium">{formatPrice(roomData.booking.price)}</span>
+                  {/* Room Selected */}
+                  <div className="bg-white rounded-lg p-4 border">
+                    <div className="flex items-center justify-between mb-3">
+                      <h5 className="font-medium text-gray-800">Room Selected</h5>
+                      <span className="text-sm font-semibold text-emerald-600">
+                        {formatPrice(roomData.booking.price)}
+                      </span>
+                    </div>
+                    
+                    <div className="mb-3">
+                      <h6 className="font-semibold text-gray-900 text-sm mb-1">{roomData.room.title}</h6>
+                      <img 
+                        src={roomData.room.image} 
+                        alt={roomData.room.title}
+                        className="w-full h-32 object-cover rounded-md"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Size</span>
+                        <span className="font-medium">{roomData.room.size}</span>
                       </div>
-                      
-                      {roomData.booking.breakfastPrice && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Breakfast</span>
-                          <span className="font-medium">{roomData.booking.breakfastPrice}</span>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Beds</span>
+                        <span className="font-medium">{roomData.room.beds}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Max Guests</span>
+                        <span className="font-medium">{roomData.room.maxOccupancy}</span>
+                      </div>
+                      {roomData.room.rating && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Room Rating</span>
+                          <div className="flex items-center gap-1">
+                            <FontAwesomeIcon icon={faStar} className="text-yellow-500 text-xs" />
+                            <span className="font-medium">{roomData.room.rating}</span>
+                            <span className="text-gray-500 text-xs">({roomData.room.reviewCount})</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Room Features */}
+                    {roomData.room.features && roomData.room.features.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <p className="text-sm font-medium text-gray-700 mb-2">Room Features</p>
+                        <div className="flex flex-wrap gap-2">
+                          {roomData.room.features.slice(0, 4).map((feature, index) => (
+                            feature?.included && (
+                              <div key={index} className="flex items-center gap-1">
+                                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                                <span className="text-xs text-gray-600">{feature.name}</span>
+                              </div>
+                            )
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Breakfast & Benefits */}
+                  {(roomData.booking.breakfast || roomData.booking.benefits.length > 0) && (
+                    <div className="bg-white rounded-lg p-4 border">
+                      {roomData.booking.breakfast && (
+                        <div className="mb-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <FontAwesomeIcon icon={faUtensils} className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm font-medium text-gray-700">Breakfast</span>
+                          </div>
+                          <p className="text-sm text-gray-600">{roomData.booking.breakfast}</p>
+                          {roomData.booking.breakfastPrice && (
+                            <p className="text-sm font-medium text-emerald-600 mt-1">
+                              {roomData.booking.breakfastPrice}
+                            </p>
+                          )}
                         </div>
                       )}
                       
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Taxes & fees</span>
-                        <span className="font-medium">{formatPrice(taxes)}</span>
+                      {roomData.booking.benefits.length > 0 && (
+                        <div className="pt-3 border-t border-gray-200">
+                          <p className="text-sm font-medium text-gray-700 mb-2">Benefits Included</p>
+                          <div className="space-y-2">
+                            {roomData.booking.benefits.map((benefit, index) => (
+                              <div key={index} className="flex items-center gap-2 text-sm">
+                                <FontAwesomeIcon icon={faCheck} className="text-emerald-500 text-xs" />
+                                <span className="text-gray-600">{benefit}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Price Breakdown */}
+                  <div className="bg-white rounded-lg p-4 border">
+                    <h5 className="font-medium text-gray-800 mb-3">Price Breakdown</h5>
+                    
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Room x {roomData.booking.nights} night</span>
+                          <span className="font-medium">{formatPrice(roomData.booking.price)}</span>
+                        </div>
+                        
+                        {roomData.booking.breakfastPrice && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Breakfast</span>
+                            <span className="font-medium">{roomData.booking.breakfastPrice}</span>
+                          </div>
+                        )}
+                        
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Taxes & fees</span>
+                          <span className="font-medium">{formatPrice(taxes)}</span>
+                        </div>
+                        
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Service fee</span>
+                          <span className="font-medium">{formatPrice(serviceFee)}</span>
+                        </div>
                       </div>
                       
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Service fee</span>
-                        <span className="font-medium">{formatPrice(serviceFee)}</span>
-                      </div>
-                      
-                      {/* Original Price with Discount */}
-                      {roomData.booking.originalPrice && (
+                      {/* Discount Section */}
+                      {roomData.booking.discount && (
                         <div className="pt-2 border-t border-gray-200">
                           <div className="flex justify-between text-sm">
                             <span className="text-gray-400 line-through">
@@ -507,32 +707,30 @@ const BookingPage = () => {
                         </div>
                       )}
                       
-                      {/* Final Total */}
+                      {/* Total */}
                       <div className="pt-3 border-t border-gray-300">
                         <div className="flex justify-between items-center">
-                          <span className="font-bold text-gray-900">Total</span>
-                          <span className="text-lg font-bold text-emerald-600">{formatPrice(total)}</span>
+                          <span className="font-bold text-gray-900">Total Amount</span>
+                          <span className="text-xl font-bold text-emerald-600">
+                            {formatPrice(total)}
+                          </span>
                         </div>
+                        <p className="text-xs text-gray-500 mt-1 text-center">
+                          {selectedPayment === "hotel" ? "Pay at hotel" : "To be charged now"}
+                        </p>
                       </div>
                     </div>
                   </div>
                   
-                  {/* Benefits */}
-                  <div>
-                    <p className="text-sm text-gray-500 mb-2">Benefits Included</p>
-                    <div className="space-y-2">
-                      {roomData.booking.benefits?.map((benefit, index) => (
-                        <div key={index} className="flex items-center gap-2 text-sm">
-                          <FontAwesomeIcon icon={faCheck} className="text-emerald-500" />
-                          <span>{benefit}</span>
-                        </div>
-                      ))}
-                    </div>
+                  {/* Booking Policies */}
+                  <div className="text-center">
+                    <p className="text-xs text-gray-500">
+                      <span className="font-medium">Free cancellation</span> up to 24 hours before check-in
+                    </p>
+                    <p className="text-xs text-gray-400 mt-2">
+                      You'll receive confirmation within minutes
+                    </p>
                   </div>
-                  
-                  <p className="text-xs text-gray-400 text-center">
-                    You won't be charged until your booking is confirmed
-                  </p>
                 </div>
               </div>
             </div>
@@ -545,4 +743,4 @@ const BookingPage = () => {
   );
 };
 
-export default BookingPage;
+export default HotelBooking;
