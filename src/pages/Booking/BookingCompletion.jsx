@@ -1,3 +1,4 @@
+// src/pages/Booking/BookingCompletion.jsx
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Stepper from "../../components/Stepper";
@@ -16,7 +17,7 @@ const BookingCompletion = () => {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
       let result = 'AJN-';
       for (let i = 0; i < 8; i++) {
-        result += chars.charAt(Math.floor(Math.floor(Math.random() * chars.length)));
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
       }
       return result;
     };
@@ -133,48 +134,6 @@ const BookingCompletion = () => {
               </div>
             </div>
 
-            {/* Room Summary */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
-              <h3 className="font-semibold text-gray-900 mb-4">Room Summary</h3>
-              
-              <div className="flex flex-col md:flex-row gap-6">
-                <div className="md:w-1/3">
-                  <div className="bg-gray-100 rounded-lg p-4">
-                    <h4 className="font-medium text-gray-900 mb-2">Superior Twin Room</h4>
-                    <ul className="text-sm text-gray-600 space-y-1">
-                      <li>• Bed: 1 double or 2 single beds</li>
-                      <li>• Room Size: 18-20 sqm</li>
-                      <li>• Private bathroom</li>
-                      <li>• City view</li>
-                    </ul>
-                  </div>
-                </div>
-                
-                <div className="md:w-2/3">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h5 className="text-sm font-medium text-gray-700 mb-2">Amenities Included</h5>
-                      <ul className="text-sm text-gray-600 space-y-1">
-                        <li>✓ Free Wi-Fi</li>
-                        <li>✓ Air Conditioning</li>
-                        <li>✓ TV</li>
-                        <li>✓ Washing Machine</li>
-                      </ul>
-                    </div>
-                    
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h5 className="text-sm font-medium text-gray-700 mb-2">Payment Details</h5>
-                      <ul className="text-sm text-gray-600 space-y-1">
-                        <li>Method: Pay at Hotel</li>
-                        <li>Amount: ₦52,500</li>
-                        <li>Status: Pending</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Action Buttons */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               <button
@@ -202,7 +161,7 @@ const BookingCompletion = () => {
               </Link>
               
               <Link
-                to="/hotels"
+                to="/category/hotels"
                 className="flex items-center justify-center gap-2 px-6 py-4 border border-emerald-500 text-emerald-500 rounded-lg hover:bg-emerald-50 transition-colors font-medium"
               >
                 Browse More Hotels

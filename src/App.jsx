@@ -40,7 +40,6 @@ const HelpCenterPage = lazy(() => import("./pages/HelpCenter"));
 const AddBusinessPage = lazy(() => import("./pages/AddBusinessPage"));
 const ChatPage = lazy(() => import("./pages/ChatPage"));
 
-
 /* =======================
    PROFILE PAGES
 ======================= */
@@ -48,10 +47,11 @@ const BuyerProfilePage = lazy(() => import("./pages/BuyerProfilePage"));
 const VendorProfilePage = lazy(() => import("./pages/VendorProfilePage"));
 
 /* =======================
-   BOOKING PAGES
+   BOOKING PAGES - UPDATED NAMES
 ======================= */
 const BookingPage = lazy(() => import("./pages/Booking/BookingPage"));
-const BookingConfirmation = lazy(() => import("./pages/Booking/BookingConfirmation"));
+const PaymentPage = lazy(() => import("./pages/Booking/PaymentPage"));
+const BookingCompletion = lazy(() => import("./pages/Booking/BookingCompletion"));
 const BookingFailed = lazy(() => import("./pages/Booking/BookingFailed"));
 
 /* =======================
@@ -81,7 +81,7 @@ const SavedListingsPage = lazy(() => import("./pages/SavedListingsPage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 
 /* =======================
-   ADMIN PAGES - ADDED
+   ADMIN PAGES
 ======================= */
 const Overview = lazy(() => import("./pages/admin/Overview"));
 
@@ -275,7 +275,6 @@ function App() {
           <BrowserRouter>
             <TrackingWrapper>
               <Suspense fallback={<LoadingDots />}>
-                
                 <Routes>
                   {/* PUBLIC ROUTES */}
                   <Route path="/" element={<MainLayout><HomePage /></MainLayout>} />
@@ -292,15 +291,7 @@ function App() {
                   <Route path="/category/:category" element={<MainLayout><CategoryResults /></MainLayout>} />
                   <Route path="/search-results" element={<MainLayout><SearchResults /></MainLayout>} />
 
-                  {/* BOOKING ROUTES - UPDATED */}
-                  <Route 
-                    path="/booking/:id?" 
-                    element={
-                      <ProtectedRoute>
-                        <MainLayout><BookingPage /></MainLayout>
-                      </ProtectedRoute>
-                    } 
-                  />
+                  {/* BOOKING ROUTES - UPDATED FOR 3-STEP FLOW */}
                   <Route 
                     path="/booking" 
                     element={
@@ -310,15 +301,23 @@ function App() {
                     } 
                   />
                   <Route 
-                    path="/booking-confirmation/:id" 
+                    path="/booking/payment" 
                     element={
                       <ProtectedRoute>
-                        <MainLayout><BookingConfirmation /></MainLayout>
+                        <MainLayout><PaymentPage /></MainLayout>
                       </ProtectedRoute>
                     } 
                   />
                   <Route 
-                    path="/booking-failed/:id" 
+                    path="/booking/confirmation" 
+                    element={
+                      <ProtectedRoute>
+                        <MainLayout><BookingCompletion /></MainLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/booking-failed" 
                     element={
                       <ProtectedRoute>
                         <MainLayout><BookingFailed /></MainLayout>
@@ -452,7 +451,7 @@ function App() {
                     }
                   />
 
-                  {/* ADMIN ROUTES - REMOVED AUTH CHECK */}
+                  {/* ADMIN ROUTES */}
                   <Route
                     path="/admincpanel"
                     element={
@@ -489,8 +488,6 @@ function App() {
           </BrowserRouter>
         </ChatProvider>
       </ModalProvider>
-      
-     
     </QueryClientProvider>
   );
 }
