@@ -143,12 +143,13 @@ const VendorDashboard = () => {
     promotionalWhatsapp: true
   });
 
-  // Tab configuration
+  // Tab configuration - ADDED NOTIFICATIONS TAB
   const tabs = [
     { id: "overview", label: "Overview", icon: Home },
     { id: "listings", label: "Listing", icon: List },
     { id: "customers", label: "Customer", icon: Users },
     { id: "bookings", label: "Booking", icon: CalendarCheck },
+    { id: "notifications", label: "Notifications", icon: Bell }, // Added notifications tab
     { id: "settings", label: "Settings", icon: Settings }
   ];
 
@@ -309,6 +310,38 @@ const VendorDashboard = () => {
     }
   ];
 
+  // Mock notifications data
+  const mockNotifications = [
+    {
+      id: 1,
+      title: "New Booking Received",
+      message: "Samuel Rotimi just booked your property for 3 nights",
+      time: "2 minutes ago",
+      read: false
+    },
+    {
+      id: 2,
+      title: "Payment Successful",
+      message: "Payment of ₦84,000 has been received for booking #290888880",
+      time: "1 hour ago",
+      read: false
+    },
+    {
+      id: 3,
+      title: "Review Added",
+      message: "Sandra Adeoye left a 5-star review for Jagz Hotel and Suite",
+      time: "3 hours ago",
+      read: true
+    },
+    {
+      id: 4,
+      title: "Profile Update Required",
+      message: "Please complete your business profile to increase visibility",
+      time: "1 day ago",
+      read: true
+    }
+  ];
+
   const getStatusBadge = (status) => {
     switch(status) {
       case "Completed":
@@ -319,6 +352,15 @@ const VendorDashboard = () => {
       default:
         return <span className="px-3 py-1 text-sm bg-gray-100 text-gray-800 rounded-full">{status}</span>;
     }
+  };
+
+  // Handle name/email click - show toast message
+  const handleNameClick = () => {
+    alert("Contact support to change your name or email");
+  };
+
+  const handleEmailClick = () => {
+    alert("Contact support to change your name or email");
   };
 
   // Handle Add Listing Modal
@@ -477,6 +519,18 @@ const VendorDashboard = () => {
     navigate("/");
   };
 
+  // Mark notification as read
+  const markNotificationAsRead = (id) => {
+    // In a real app, you would update this in your backend
+    console.log(`Marked notification ${id} as read`);
+  };
+
+  // Mark all notifications as read
+  const markAllNotificationsAsRead = () => {
+    // In a real app, you would update this in your backend
+    console.log("Marked all notifications as read");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex flex-col">
@@ -512,7 +566,12 @@ const VendorDashboard = () => {
             onClick={toggleSidebar}
             className="md:hidden p-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors"
           >
-            <Menu size={20} strokeWidth={2.5} className="text-blue-600" />
+            {/* CHANGED: Show X icon when sidebar is open, Menu icon when closed */}
+            {isSidebarOpen ? (
+              <X size={20} strokeWidth={2.5} className="text-blue-600" />
+            ) : (
+              <Menu size={20} strokeWidth={2.5} className="text-blue-600" />
+            )}
           </button>
           
           {/* Single Logo - Only on Top Nav Bar */}
@@ -522,11 +581,6 @@ const VendorDashboard = () => {
             className="h-8 w-auto cursor-pointer hover:scale-105 transition-transform"
             onClick={handleLogoClick}
           />
-          
-          {/* Page Title - Always shows "Overview" */}
-          <h1 className="text-xl font-bold text-gray-900 font-manrope">
-            Overview
-          </h1>
         </div>
 
         {/* Right side: Search, Settings, Notifications, Profile */}
@@ -555,8 +609,12 @@ const VendorDashboard = () => {
             <Settings size={20} strokeWidth={2.5} className="text-gray-600" />
           </button>
 
-          {/* Notifications Icon */}
+          {/* Notifications Icon - UPDATED: Routes to notifications tab */}
           <button 
+            onClick={() => {
+              setActiveTab("notifications");
+              if (window.innerWidth < 768) setIsSidebarOpen(false);
+            }}
             className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative"
             title="Notifications"
           >
@@ -588,37 +646,51 @@ const VendorDashboard = () => {
             className="fixed md:relative top-0 left-0 h-full z-50 md:translate-x-0 md:w-64 bg-white border-r border-gray-200 overflow-hidden"
           >
             {/* Sidebar Header - Menu Button only on mobile */}
-            <div className="p-4 flex items-center md:hidden justify-end border-b border-gray-200">
+            <div className="p-4 flex items-center md:hidden justify-between border-b border-gray-200">
+              {/* FIXED: Logo fixed to left edge for mobile */}
+              <div className="ml-0">
+                <img 
+                  src={Logo} 
+                  alt="Ajani" 
+                  className="h-8 w-auto cursor-pointer hover:scale-105 transition-transform"
+                  onClick={handleLogoClick}
+                />
+              </div>
+              
               {/* Menu Button only visible on mobile */}
               <button
                 onClick={toggleSidebar}
                 className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                <Menu size={16} strokeWidth={2.5} className="text-gray-600" />
+                {/* CHANGED: Show X icon when sidebar is open */}
+                <X size={16} strokeWidth={2.5} className="text-gray-600" />
               </button>
             </div>
             
-            <nav className="mt-4 md:mt-8 space-y-1 md:space-y-2 px-4">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setActiveTab(tab.id);
-                      if (window.innerWidth < 768) setIsSidebarOpen(false);
-                    }}
-                    className={`flex items-center w-full px-3 md:px-4 py-2 md:py-3 rounded-lg transition-all duration-200 ${
-                      activeTab === tab.id
-                        ? "bg-blue-50 text-blue-600 border-l-4 border-blue-500 shadow-sm"
-                        : "text-gray-700 hover:bg-gray-50 hover:border-l-4 hover:border-gray-200"
-                    }`}
-                  >
-                    <Icon size={16} strokeWidth={2.5} className="mr-3 flex-shrink-0" />
-                    <span className="text-sm md:text-base font-manrope">{tab.label}</span>
-                  </button>
-                );
-              })}
+            {/* Navigation Menu - ADDED: More space between items for mobile */}
+            <nav className="mt-4 md:mt-8 px-4">
+              <div className="space-y-3 md:space-y-2"> {/* Changed from space-y-1/space-y-2 to space-y-3 for mobile */}
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        if (window.innerWidth < 768) setIsSidebarOpen(false);
+                      }}
+                      className={`flex items-center w-full px-3 md:px-4 py-3 md:py-3 rounded-lg transition-all duration-200 ${
+                        activeTab === tab.id
+                          ? "bg-blue-50 text-blue-600 border-l-4 border-blue-500 shadow-sm"
+                          : "text-gray-700 hover:bg-gray-50 hover:border-l-4 hover:border-gray-200"
+                      }`}
+                    >
+                      <Icon size={16} strokeWidth={2.5} className="mr-3 flex-shrink-0" />
+                      <span className="text-sm md:text-base font-manrope">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </nav>
             
             {/* User Info at Bottom */}
@@ -633,8 +705,20 @@ const VendorDashboard = () => {
                     />
                   </div>
                   <div className="overflow-hidden">
-                    <p className="font-medium text-gray-900 text-sm truncate font-manrope">{userData?.firstName} {userData?.lastName}</p>
-                    <p className="text-xs text-gray-500 truncate font-manrope">{userData?.role}</p>
+                    {/* FIXED: Name is non-editable, shows toast on click */}
+                    <p 
+                      onClick={handleNameClick}
+                      className="font-medium text-gray-900 text-sm truncate font-manrope cursor-pointer hover:text-blue-600 transition-colors"
+                    >
+                      {userData?.firstName} {userData?.lastName}
+                    </p>
+                    {/* FIXED: Email is non-editable, shows toast on click */}
+                    <p 
+                      onClick={handleEmailClick}
+                      className="text-xs text-gray-500 truncate font-manrope cursor-pointer hover:text-blue-600 transition-colors"
+                    >
+                      {userData?.email}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1014,6 +1098,61 @@ const VendorDashboard = () => {
                     </div>
                   )}
 
+                  {/* NEW: Notifications Tab */}
+                  {activeTab === "notifications" && (
+                    <div className="space-y-6">
+                      {/* Header */}
+                      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div>
+                            <h2 className="text-lg md:text-xl font-bold text-gray-900 font-manrope">Notifications</h2>
+                            <p className="text-gray-600 text-sm font-manrope">Manage your notifications and alerts</p>
+                          </div>
+                          <motion.button 
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={markAllNotificationsAsRead}
+                            className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium font-manrope transition-colors"
+                          >
+                            Mark All as Read
+                          </motion.button>
+                        </div>
+                      </div>
+                      
+                      {/* Notifications List */}
+                      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                        <div className="divide-y divide-gray-200">
+                          {mockNotifications.map((notification, index) => (
+                            <motion.div 
+                              key={notification.id}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.1 * index }}
+                              className={`p-4 md:p-6 hover:bg-gray-50 transition-colors ${!notification.read ? 'bg-blue-50' : ''}`}
+                              onClick={() => markNotificationAsRead(notification.id)}
+                            >
+                              <div className="flex items-start gap-3 md:gap-4">
+                                <div className={`p-2 rounded-full ${!notification.read ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'}`}>
+                                  <Bell size={20} strokeWidth={2.5} />
+                                </div>
+                                <div className="flex-grow min-w-0">
+                                  <div className="flex justify-between items-start mb-1">
+                                    <h3 className="font-medium text-gray-900 text-sm md:text-base font-manrope">{notification.title}</h3>
+                                    <span className="text-xs text-gray-500 font-manrope whitespace-nowrap">{notification.time}</span>
+                                  </div>
+                                  <p className="text-gray-600 text-sm font-manrope mb-2">{notification.message}</p>
+                                  {!notification.read && (
+                                    <span className="inline-block w-2 h-2 bg-blue-600 rounded-full"></span>
+                                  )}
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Settings Tab */}
                   {activeTab === "settings" && (
                     <div className="space-y-6">
@@ -1054,11 +1193,13 @@ const VendorDashboard = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">Your Name</label>
+                                {/* FIXED: Name is non-editable, shows toast on click */}
                                 <input 
                                   type="text" 
                                   value={profileData.name}
-                                  onChange={(e) => handleProfileChange('name', e.target.value)}
-                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
+                                  readOnly
+                                  onClick={handleNameClick}
+                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
                                 />
                               </div>
                               <div>
@@ -1075,11 +1216,13 @@ const VendorDashboard = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">Email</label>
+                                {/* FIXED: Email is non-editable, shows toast on click */}
                                 <input 
                                   type="email" 
                                   value={profileData.email}
-                                  onChange={(e) => handleProfileChange('email', e.target.value)}
-                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
+                                  readOnly
+                                  onClick={handleEmailClick}
+                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
                                 />
                               </div>
                               <div>
@@ -1124,7 +1267,7 @@ const VendorDashboard = () => {
                         transition={{ delay: 0.1 }}
                         className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm"
                       >
-                        <h2 className="text-lg font-bold text-gray-900 font-manrope mb-4">Notifications</h2>
+                        <h2 className="text-lg font-bold text-gray-900 font-manrope mb-4">Notification Preferences</h2>
                         <p className="text-gray-600 mb-4 font-manrope">How do you want to receive messages from Clients?</p>
                         
                         <div className="space-y-4">

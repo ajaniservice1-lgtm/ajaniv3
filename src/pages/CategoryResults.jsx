@@ -2596,9 +2596,9 @@ const CategoryResults = () => {
         />
       )}
 
-      <div className="hidden md:block">
+      
         <Header />
-      </div>
+      
 
       <main className="pb-8 w-full mx-auto max-w-[100vw]" style={{
         paddingLeft: isMobile ? "0.75rem" : "1rem",

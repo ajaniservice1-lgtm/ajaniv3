@@ -1,4 +1,3 @@
-// src/components/Header.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "../assets/Logos/logo5.png";
@@ -11,8 +10,10 @@ const Header = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const navigate = useNavigate();
   const profileDropdownRef = useRef(null);
+  const categoriesDropdownRef = useRef(null);
 
   // Enhanced auth check function
   const checkLoginStatus = () => {
@@ -144,6 +145,14 @@ const Header = () => {
       ) {
         setIsProfileDropdownOpen(false);
       }
+      
+      // Handle click outside categories dropdown
+      if (
+        categoriesDropdownRef.current &&
+        !categoriesDropdownRef.current.contains(event.target)
+      ) {
+        setIsCategoriesOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -152,8 +161,8 @@ const Header = () => {
     };
   }, []);
 
-  // Base navigation items
-  const baseNavItems = [
+  // Categories dropdown items
+  const categoriesItems = [
     { 
       label: "Hotel", 
       id: "hotel", 
@@ -192,7 +201,7 @@ const Header = () => {
     setIsMenuOpen(false);
   };
 
-  // Get user initials for avatar
+  // Get user initials for avatar - STANDARD APPLE-STYLE AVATAR
   const getUserInitials = () => {
     if (userProfile?.firstName && userProfile?.lastName) {
       return `${userProfile.firstName.charAt(0)}${userProfile.lastName.charAt(
@@ -268,6 +277,11 @@ const Header = () => {
     }
   };
 
+  // Toggle categories dropdown - FIXED: Proper toggle functionality
+  const toggleCategoriesDropdown = () => {
+    setIsCategoriesOpen(!isCategoriesOpen);
+  };
+
   return (
     <>
       <header 
@@ -295,15 +309,46 @@ const Header = () => {
             {/* Center: Navigation Items - CENTERED with reduced gap */}
             <div className="hidden lg:flex items-center justify-center flex-1 text-sm h-full">
               <div className="flex items-center justify-center gap-3 h-full">
-                {baseNavItems.map((item) => (
+                {/* Categories dropdown for desktop */}
+                <div className="relative" ref={categoriesDropdownRef}>
                   <button
-                    key={item.id}
-                    onClick={item.action}
-                    className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-2.5 py-1 rounded-md hover:bg-white/30 backdrop-blur-sm"
+                    onClick={toggleCategoriesDropdown} // FIXED: Using proper toggle function
+                    className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-2.5 py-1 rounded-md hover:bg-white/30 backdrop-blur-sm flex items-center gap-1"
                   >
-                    {item.label}
+                    Categories
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      width="16" 
+                      height="16" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                      className={`transition-transform duration-200 ${isCategoriesOpen ? 'rotate-180' : ''}`}
+                    >
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
                   </button>
-                ))}
+                  
+                  {isCategoriesOpen && (
+                    <div className="absolute top-full left-0 mt-1 w-48 bg-white/95 backdrop-blur-xl rounded-lg shadow-xl py-2 z-[1002] border border-gray-200/30 cursor-default transition-all duration-300 animate-in fade-in-50 slide-in-from-top-1">
+                      {categoriesItems.map((item) => (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            item.action();
+                            setIsCategoriesOpen(false); // FIXED: Close dropdown when item is clicked
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50/80 hover:text-blue-700 transition-all duration-200 cursor-pointer group/item"
+                        >
+                          <span className="cursor-pointer">{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
                 {isLoggedIn &&
                   loggedInNavItems.map((item, index) => (
@@ -385,7 +430,7 @@ const Header = () => {
                     </svg>
                   </button>
 
-                  {/* Profile dropdown */}
+                  {/* Profile dropdown - UPDATED: Standard Apple-style avatar */}
                   <div
                     className="relative cursor-pointer"
                     ref={profileDropdownRef}
@@ -394,35 +439,36 @@ const Header = () => {
                       onClick={() =>
                         setIsProfileDropdownOpen(!isProfileDropdownOpen)
                       }
-                      className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-white/30 backdrop-blur-sm transition-all duration-300 cursor-pointer hover:scale-105 group"
+                      className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-gray-100 transition-all duration-300 cursor-pointer hover:scale-105 group"
                       title="Profile"
                     >
                       {userProfile?.profilePicture ? (
                         <img
                           src={userProfile.profilePicture}
                           alt="Profile"
-                          className="w-8 h-8 rounded-full object-cover border border-gray-200/50 backdrop-blur-sm group-hover:ring-2 group-hover:ring-[#00d1ff]/30 transition-all"
+                          className="w-8 h-8 rounded-full object-cover border border-gray-300 shadow-sm group-hover:ring-2 group-hover:ring-gray-300 transition-all"
                           onError={(e) => {
                             e.target.onerror = null;
                             e.target.style.display = "none";
                             e.target.parentElement.innerHTML = `
-                              <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm backdrop-blur-sm group-hover:ring-2 group-hover:ring-[#00d1ff]/30 transition-all">
+                              <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-sm group-hover:ring-2 group-hover:ring-gray-300 transition-all">
                                 ${getUserInitials()}
                               </div>
                             `;
                           }}
                         />
                       ) : (
-                        <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm backdrop-blur-sm group-hover:ring-2 group-hover:ring-[#00d1ff]/30 transition-all">
+                        // STANDARD APPLE-STYLE AVATAR
+                        <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-sm group-hover:ring-2 group-hover:ring-gray-300 transition-all">
                           {getUserInitials()}
                         </div>
                       )}
                     </button>
 
                     {isProfileDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white/95 backdrop-blur-xl rounded-lg shadow-xl py-2 z-[1002] border border-gray-200/30 cursor-default transition-all duration-300 animate-in fade-in-50 slide-in-from-top-1">
+                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-[1002] border border-gray-200 cursor-default transition-all duration-300 animate-in fade-in-50 slide-in-from-top-1">
                         {/* User info */}
-                        <div className="px-4 py-3 border-b border-gray-100/50 cursor-default">
+                        <div className="px-4 py-3 border-b border-gray-100 cursor-default">
                           <p className="text-sm font-medium text-gray-900 cursor-default">
                             {userProfile?.firstName
                               ? `${userProfile.firstName} ${userProfile.lastName}`
@@ -442,7 +488,7 @@ const Header = () => {
                         {/* Profile link */}
                         <button
                           onClick={handleProfileNavigation}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/80 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
                         >
                           <svg 
                             xmlns="http://www.w3.org/2000/svg" 
@@ -468,7 +514,7 @@ const Header = () => {
                               navigate("/vendor/dashboard");
                               setIsProfileDropdownOpen(false);
                             }}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/80 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
                           >
                             <svg 
                               xmlns="http://www.w3.org/2000/svg" 
@@ -497,7 +543,7 @@ const Header = () => {
                               navigate("/add-business");
                               setIsProfileDropdownOpen(false);
                             }}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/80 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
                           >
                             <svg 
                               xmlns="http://www.w3.org/2000/svg" 
@@ -523,7 +569,7 @@ const Header = () => {
                             navigate("/saved");
                             setIsProfileDropdownOpen(false);
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/80 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
                         >
                           <svg 
                             xmlns="http://www.w3.org/2000/svg" 
@@ -549,7 +595,7 @@ const Header = () => {
                             navigate("/chat");
                             setIsProfileDropdownOpen(false);
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/80 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
                         >
                           <LucideIcons.MessageSquareText size={16} strokeWidth={1.5} />
                           <span className="cursor-pointer">Chat Assistant</span>
@@ -561,7 +607,7 @@ const Header = () => {
                             navigate("/notifications");
                             setIsProfileDropdownOpen(false);
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/80 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
                         >
                           <svg 
                             xmlns="http://www.w3.org/2000/svg" 
@@ -580,12 +626,12 @@ const Header = () => {
                           <span className="cursor-pointer">Notifications</span>
                         </button>
 
-                        <div className="h-px bg-gray-100/50 my-1"></div>
+                        <div className="h-px bg-gray-200 my-1"></div>
 
                         {/* Sign out */}
                         <button
                           onClick={handleSignOut}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-red-50/80 hover:text-red-700 transition-all duration-200 cursor-pointer group/item"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all duration-200 cursor-pointer group/item"
                         >
                           <svg 
                             xmlns="http://www.w3.org/2000/svg" 
@@ -674,7 +720,7 @@ const Header = () => {
         </div>
       </header>
 
-      {/* MOBILE MENU */}
+      {/* MOBILE MENU - UPDATED with dashboard-like styling */}
       <div
         className={`fixed inset-0 z-[100000] md:hidden ${
           isMenuOpen ? "" : "pointer-events-none"
@@ -690,27 +736,25 @@ const Header = () => {
         />
 
         <div
-          className={`fixed left-0 top-0 w-full h-screen bg-[#e6f2ff]/95 backdrop-blur-lg flex flex-col z-[100001] transform transition-all duration-500 ease-out ${
+          className={`fixed left-0 top-0 w-full h-screen bg-white flex flex-col z-[100001] transform transition-all duration-500 ease-out ${
             isMenuOpen
               ? "translate-x-0 opacity-100"
               : "-translate-x-full opacity-0"
           }`}
         >
-          <div className="p-4 border-b border-gray-200/50 flex justify-between items-center bg-[#f2f9ff]/95 backdrop-blur-lg rounded-lg shadow-sm mt-1 mx-2 cursor-default transition-all duration-300 delay-100">
+          {/* Mobile Header - FIXED with proper background */}
+          <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm sticky top-0 z-10">
             <div className="flex items-center gap-2 cursor-pointer">
               <img
                 src={Logo}
                 alt="Ajani Logo"
                 className="h-7 w-20 object-contain cursor-pointer transition-transform duration-300 hover:scale-105"
+                onClick={() => navigate("/")}
               />
-              <div className="w-px h-4 bg-gray-300/50 mx-1 transition-all duration-300"></div>
-              <span className="text-xs text-slate-600 hover:text-gray-900 whitespace-nowrap cursor-pointer transition-colors duration-300">
-                The Ibadan Smart Guide
-              </span>
             </div>
             <button
               onClick={() => setIsMenuOpen(false)}
-              className="text-gray-900 hover:text-gray-600 cursor-pointer transition-colors duration-300 hover:bg-white/20 rounded-lg p-1 group"
+              className="text-gray-900 hover:text-gray-600 cursor-pointer transition-colors duration-300 hover:bg-gray-100 rounded-lg p-2 group"
             >
               <svg 
                 xmlns="http://www.w3.org/2000/svg" 
@@ -730,25 +774,71 @@ const Header = () => {
             </button>
           </div>
 
-          <nav className="flex-1 p-4 space-y-2 text-sm overflow-y-auto">
-            {/* Base navigation items */}
-            {baseNavItems.map((item, index) => (
+          {/* Mobile Navigation Content - UPDATED styling */}
+          <nav className="flex-1 p-4 space-y-1 overflow-y-auto bg-white">
+            {/* Categories with dropdown - FIXED: Proper toggle functionality */}
+            <div className="mb-4">
               <button
-                key={item.id}
-                className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
-                onClick={() => {
-                  item.action();
-                  setTimeout(() => setIsMenuOpen(false), 400);
-                }}
-                style={{
-                  transitionDelay: isMenuOpen ? `${index * 50}ms` : "0ms",
-                  opacity: isMenuOpen ? 1 : 0,
-                  transform: isMenuOpen ? "translateX(0)" : "translateX(-20px)",
-                }}
+                onClick={toggleCategoriesDropdown} // FIXED: Using proper toggle function
+                className="w-full text-left py-3 px-4 text-gray-900 bg-gray-50 hover:bg-blue-50 rounded-lg transition-all duration-300 font-medium text-sm cursor-pointer flex items-center justify-between group"
               >
-                <span className="group-hover/item:pl-1 transition-all">{item.label}</span>
+                <span className="flex items-center gap-2">
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <rect x="3" y="3" width="7" height="7"/>
+                    <rect x="14" y="3" width="7" height="7"/>
+                    <rect x="3" y="14" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/>
+                  </svg>
+                  Categories
+                </span>
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  width="16" 
+                  height="16" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                  className={`transition-transform duration-200 ${isCategoriesOpen ? 'rotate-180' : ''}`}
+                >
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
               </button>
-            ))}
+              
+              {/* Categories dropdown content */}
+              <div className={`mt-1 space-y-1 overflow-hidden transition-all duration-300 ${isCategoriesOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                {categoriesItems.map((item, index) => (
+                  <button
+                    key={item.id}
+                    className="w-full text-left py-2.5 px-8 text-gray-700 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-300 text-sm cursor-pointer flex items-center gap-2 group/item"
+                    onClick={() => {
+                      item.action();
+                      setIsMenuOpen(false);
+                    }}
+                    style={{
+                      transitionDelay: isCategoriesOpen ? `${index * 50}ms` : "0ms",
+                      opacity: isCategoriesOpen ? 1 : 0,
+                      transform: isCategoriesOpen ? "translateX(0)" : "translateX(-10px)",
+                    }}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 group-hover/item:bg-blue-600 transition-colors"></span>
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Additional items for logged-in users */}
             {isLoggedIn &&
@@ -759,89 +849,88 @@ const Header = () => {
                     item.onClick();
                     setIsMenuOpen(false);
                   }}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${(baseNavItems.length + index) * 50}ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal text-sm cursor-pointer flex items-center gap-2 group"
                 >
-                  <span className="group-hover/item:pl-1 transition-all">{item.label}</span>
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="1.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                    className="group-hover:scale-110 transition-transform"
+                  >
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  <span>{item.label}</span>
                 </button>
               ))}
 
             {/* Divider */}
             {isLoggedIn && (
-              <div
-                className="h-px bg-gray-200/50 my-2 transition-all duration-300"
-                style={{
-                  transitionDelay: isMenuOpen
-                    ? `${
-                        (baseNavItems.length + loggedInNavItems.length + 2) * 50
-                      }ms`
-                    : "0ms",
-                  opacity: isMenuOpen ? 1 : 0,
-                }}
-              ></div>
+              <div className="h-px bg-gray-200 my-3"></div>
             )}
 
             {/* Authentication buttons */}
             {isLoggedIn ? (
               <>
                 {/* Mobile user info */}
-                <div
-                  className="px-4 py-3 bg-white/80 backdrop-blur-sm rounded-lg mb-4 cursor-default transition-all duration-300"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 3) *
-                          50
-                        }ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
-                >
-                  <p className="text-sm font-medium text-gray-900 cursor-default">
-                    {userProfile?.firstName
-                      ? `${userProfile.firstName} ${userProfile.lastName}`
-                      : userEmail}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1 cursor-default">
-                    {userEmail}
-                  </p>
-                  <div className="flex items-center gap-1 mt-1">
-                    <div className={`w-2 h-2 rounded-full ${userProfile?.isVerified ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-                    <span className={`text-xs ${userProfile?.isVerified ? 'text-green-600' : 'text-yellow-600'}`}>
-                      {getVerificationStatusText()}
-                    </span>
+                <div className="px-4 py-3 bg-gray-50 rounded-lg mb-3">
+                  <div className="flex items-center gap-3">
+                    {/* STANDARD APPLE-STYLE AVATAR for mobile */}
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-sm">
+                      {getUserInitials()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {userProfile?.firstName
+                          ? `${userProfile.firstName} ${userProfile.lastName}`
+                          : userEmail}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {userEmail}
+                      </p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <div className={`w-2 h-2 rounded-full ${userProfile?.isVerified ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                        <span className={`text-xs ${userProfile?.isVerified ? 'text-green-600' : 'text-yellow-600'}`}>
+                          {getVerificationStatusText()}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 {/* Mobile navigation for logged-in users */}
                 <button
                   onClick={handleMobileProfileNavigation}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 4) *
-                          50
-                        }ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal text-sm cursor-pointer flex items-center gap-2 group"
                 >
-                  <div className="flex items-center gap-2">
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="1.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  <span>My Profile</span>
+                </button>
+
+                {/* Vendor Dashboard for vendors only in mobile */}
+                {userProfile?.role === "vendor" && (
+                  <button
+                    onClick={() => handleMobileNavigate("/vendor/dashboard")}
+                    className="block w-full text-left py-3 px-4 text-gray-900 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal text-sm cursor-pointer flex items-center gap-2 group"
+                  >
                     <svg 
                       xmlns="http://www.w3.org/2000/svg" 
                       width="16" 
@@ -853,50 +942,12 @@ const Header = () => {
                       strokeLinecap="round" 
                       strokeLinejoin="round"
                     >
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                      <circle cx="12" cy="7" r="4"/>
+                      <rect x="3" y="3" width="7" height="7"/>
+                      <rect x="14" y="3" width="7" height="7"/>
+                      <rect x="3" y="14" width="7" height="7"/>
+                      <rect x="14" y="14" width="7" height="7"/>
                     </svg>
-                    <span>My Profile</span>
-                  </div>
-                </button>
-
-                {/* Vendor Dashboard for vendors only in mobile */}
-                {userProfile?.role === "vendor" && (
-                  <button
-                    onClick={() => handleMobileNavigate("/vendor/dashboard")}
-                    className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
-                    style={{
-                      transitionDelay: isMenuOpen
-                        ? `${
-                            (baseNavItems.length + loggedInNavItems.length + 5) *
-                            50
-                          }ms`
-                        : "0ms",
-                      opacity: isMenuOpen ? 1 : 0,
-                      transform: isMenuOpen
-                        ? "translateX(0)"
-                        : "translateX(-20px)",
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        width="16" 
-                        height="16" 
-                        viewBox="0 0 24 24" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        strokeWidth="1.5" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round"
-                      >
-                        <rect x="3" y="3" width="7" height="7"/>
-                        <rect x="14" y="3" width="7" height="7"/>
-                        <rect x="3" y="14" width="7" height="7"/>
-                        <rect x="14" y="14" width="7" height="7"/>
-                      </svg>
-                      <span>Vendor Dashboard</span>
-                    </div>
+                    <span>Vendor Dashboard</span>
                   </button>
                 )}
 
@@ -904,57 +955,8 @@ const Header = () => {
                 {userProfile?.role === "vendor" && (
                   <button
                     onClick={() => handleMobileNavigate("/add-business")}
-                    className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
-                    style={{
-                      transitionDelay: isMenuOpen
-                        ? `${
-                            (baseNavItems.length + loggedInNavItems.length + 6) *
-                            50
-                          }ms`
-                        : "0ms",
-                      opacity: isMenuOpen ? 1 : 0,
-                      transform: isMenuOpen
-                        ? "translateX(0)"
-                        : "translateX(-20px)",
-                    }}
+                    className="block w-full text-left py-3 px-4 text-gray-900 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal text-sm cursor-pointer flex items-center gap-2 group"
                   >
-                    <div className="flex items-center gap-2">
-                      <svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        width="16" 
-                        height="16" 
-                        viewBox="0 0 24 24" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        strokeWidth="1.5" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round"
-                      >
-                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                      </svg>
-                      <span>List Your Business</span>
-                    </div>
-                  </button>
-                )}
-
-                <button
-                  onClick={() => handleMobileNavigate("/saved")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 7) *
-                          50
-                        }ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
-                >
-                  <div className="flex items-center gap-2">
                     <svg 
                       xmlns="http://www.w3.org/2000/svg" 
                       width="16" 
@@ -966,12 +968,33 @@ const Header = () => {
                       strokeLinecap="round" 
                       strokeLinejoin="round"
                     >
-                      <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
+                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
                     </svg>
-                    <span>
-                      Saved Listings {savedCount > 0 && `(${savedCount})`}
-                    </span>
-                  </div>
+                    <span>List Your Business</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => handleMobileNavigate("/saved")}
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal text-sm cursor-pointer flex items-center gap-2 group"
+                >
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="1.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
+                  </svg>
+                  <span>
+                    Saved Listings {savedCount > 0 && `(${savedCount})`}
+                  </span>
                 </button>
 
                 {/* Sign Out button */}
@@ -979,82 +1002,73 @@ const Header = () => {
                   onClick={() => {
                     handleSignOut();
                   }}
-                  className="block w-full text-left py-3 px-4 text-gray-700 hover:text-red-700 hover:bg-red-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 8) *
-                          50
-                        }ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
+                  className="block w-full text-left py-3 px-4 text-gray-700 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-300 font-normal text-sm cursor-pointer flex items-center gap-2 group mt-4"
                 >
-                  <div className="flex items-center gap-2">
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      width="16" 
-                      height="16" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="1.5" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                    >
-                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                      <polyline points="16 17 21 12 16 7"/>
-                      <line x1="21" y1="12" x2="9" y2="12"/>
-                    </svg>
-                    <span>Sign Out</span>
-                  </div>
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="1.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                  </svg>
+                  <span>Sign Out</span>
                 </button>
               </>
             ) : (
               <>
-                <div
-                  className="h-px bg-gray-200/50 my-2 transition-all duration-300"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${(baseNavItems.length + 1) * 50}ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                  }}
-                ></div>
+                <div className="h-px bg-gray-200 my-3"></div>
 
                 <button
                   onClick={() => handleMobileNavigate("/login")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50/50 backdrop-blur-sm rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1 group/item"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${(baseNavItems.length + 2) * 50}ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal text-sm cursor-pointer flex items-center gap-2 group"
                 >
-                  <span className="group-hover/item:pl-1 transition-all">Log In</span>
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="1.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                    <polyline points="10 17 15 12 10 7"/>
+                    <line x1="15" y1="12" x2="3" y2="12"/>
+                  </svg>
+                  <span>Log In</span>
                 </button>
 
                 <button
                   onClick={() => handleMobileNavigate("/register")}
-                  className="block w-full text-left py-3 px-4 hover:bg-blue-50/50 backdrop-blur-sm text-black rounded-lg font-normal whitespace-nowrap text-sm cursor-pointer transition-all duration-300 transform hover:translate-x-1 group/item"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${(baseNavItems.length + 3) * 50}ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
+                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal text-sm cursor-pointer flex items-center gap-2 group"
                 >
-                  <span className="group-hover/item:pl-1 transition-all">Register</span>
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="1.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M19 8v6"/>
+                    <path d="M22 11h-6"/>
+                  </svg>
+                  <span>Register</span>
                 </button>
               </>
             )}

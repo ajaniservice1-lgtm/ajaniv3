@@ -410,7 +410,7 @@ function App() {
                     path="/vendor/dashboard"
                     element={
                       <VendorRoute>
-                        <MainLayout><VendorDashboard /></MainLayout>
+                        <VendorDashboard />
                       </VendorRoute>
                     }
                   />
