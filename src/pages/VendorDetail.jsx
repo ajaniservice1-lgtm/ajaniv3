@@ -21,7 +21,8 @@ import {
   faCheck,
   faTimes,
   faChevronLeft,
-  faChevronRight
+  faChevronRight,
+  faHome
 } from "@fortawesome/free-solid-svg-icons";
 import { CiBookmark } from "react-icons/ci";
 import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
@@ -66,37 +67,56 @@ const safeToString = (value, defaultValue = '') => {
   return defaultValue;
 };
 
+// UPDATED: normalizeCategory function that separates shortlets from hotels
 const normalizeCategory = (category) => {
   if (!category) return 'restaurant';
   
   const cat = safeToString(category).toLowerCase().trim();
   
+  // Handle shortlets separately - CHECK THIS FIRST
+  if (cat.includes('shortlet') || 
+      cat.includes('vacation rental') || 
+      cat.includes('apartment') || 
+      cat.includes('airbnb') || 
+      cat.includes('vacation home') ||
+      cat.includes('holiday home') ||
+      cat.includes('self-catering') ||
+      cat.includes('serviced apartment')) {
+    return 'shortlet';
+  }
+  
+  // Handle composite categories (with slashes)
   if (cat.includes("/")) {
     const parts = cat.split("/").map(part => part.trim());
     for (const part of parts) {
       if (part.includes('restaurant') || part.includes('food') || part.includes('cafe') || part.includes('eatery')) {
         return 'restaurant';
       }
-      if (part.includes('hotel') || part.includes('shortlet') || part.includes('resort') || part.includes('inn')) {
+      if (part.includes('hotel') || part.includes('resort') || part.includes('inn')) {
         return 'hotel';
       }
       if (part.includes('event') || part.includes('venue') || part.includes('hall') || part.includes('center')) {
         return 'event';
       }
+      if (part.includes('shortlet')) {
+        return 'shortlet';
+      }
     }
     if (cat.includes('food')) return 'restaurant';
   }
   
-  if (cat.includes('restaurant') || cat.includes('food') || cat.includes('cafe') || cat.includes('eatery') || cat.includes('diner') || cat.includes('bistro')) {
+  // Individual category checks
+  if (cat.includes('restaurant') || cat.includes('food') || cat.includes('cafe') || cat.includes('eatery') || cat.includes('diner') || cat.includes('bistro') || cat.includes('bar')) {
     return 'restaurant';
   }
-  if (cat.includes('hotel') || cat.includes('shortlet') || cat.includes('resort') || cat.includes('inn') || cat.includes('motel') || cat.includes('lodging')) {
+  if (cat.includes('hotel') || cat.includes('resort') || cat.includes('inn') || cat.includes('motel') || cat.includes('lodging') || cat.includes('guest house')) {
     return 'hotel';
   }
-  if (cat.includes('event') || cat.includes('venue') || cat.includes('hall') || cat.includes('center') || cat.includes('conference') || cat.includes('meeting')) {
+  if (cat.includes('event') || cat.includes('venue') || cat.includes('hall') || cat.includes('center') || cat.includes('conference') || cat.includes('meeting') || cat.includes('banquet')) {
     return 'event';
   }
   
+  // Default fallback
   return 'restaurant';
 };
 
@@ -231,7 +251,7 @@ const VendorListingCard = ({ listing, onClick }) => {
       case 'hotel': return faBed;
       case 'restaurant': return faUtensils;
       case 'event': return faMusic;
-      case 'shortlet': return faBed;
+      case 'shortlet': return faHome; // Changed from faBed to faHome for shortlets
       default: return faUtensils;
     }
   };
@@ -445,6 +465,11 @@ const getCategoryDisplay = (vendor) => {
   
   cleanedCategory = cleanedCategory.replace(/['"]/g, "").trim();
   
+  // Additional check for shortlet
+  if (cleanedCategory.toLowerCase().includes('shortlet')) {
+    return "Shortlet";
+  }
+  
   if (!cleanedCategory) {
     return "Business";
   }
@@ -627,7 +652,7 @@ const VendorDetail = () => {
     } else if (category === 'event') {
       return ["Stage", "Sound System", "Lighting", "Parking", "Catering Service", "Decoration Service"];
     } else if (category === 'shortlet') {
-      return ["Full Kitchen", "WiFi", "Air Conditioning", "Parking", "Laundry", "24/7 Check-in"];
+      return ["Full Kitchen", "WiFi", "Air Conditioning", "Parking", "Laundry", "24/7 Check-in", "Smart TV", "Workspace"];
     }
     
     return ["Not specified"];
@@ -732,7 +757,7 @@ const VendorDetail = () => {
       });
       
     } else if (currentCategory === 'restaurant' || currentCategory === 'shortlet') {
-      // For restaurant and shortlet, go directly to booking page
+      // For restaurant and shortlet, go directly to booking page (no room selection needed)
       navigate('/booking', { 
         state: { 
           vendorData: vendorBookingData,
@@ -879,6 +904,7 @@ const VendorDetail = () => {
           price: formatPrice(vendor.price || vendor.price_from),
           perText: normalizeCategory(vendor.category) === 'hotel' ? 'per night' : 
                    normalizeCategory(vendor.category) === 'restaurant' ? 'per meal' : 
+                   normalizeCategory(vendor.category) === 'shortlet' ? 'per night' :
                    'per guest',
           rating: parseFloat(safeToString(vendor.rating, "4.5")),
           tag: "Guest Favorite",
@@ -913,6 +939,7 @@ const VendorDetail = () => {
           price: formatPrice(vendor.price || vendor.price_from),
           perText: category === 'hotel' ? 'per night' : 
                    category === 'restaurant' ? 'per meal' : 
+                   category === 'shortlet' ? 'per night' :
                    'per guest',
           rating: parseFloat(safeToString(vendor.rating, "4.5")),
           tag: "Guest Favorite",
@@ -939,7 +966,7 @@ const VendorDetail = () => {
       case 'hotel': return faBed;
       case 'restaurant': return faUtensils;
       case 'event': return faMusic;
-      case 'shortlet': return faHome;
+      case 'shortlet': return faHome; // Changed from faBed to faHome
       default: return faUtensils;
     }
   };
@@ -954,6 +981,7 @@ const VendorDetail = () => {
     if (lowerAmenity.includes('music')) return faMusic;
     if (lowerAmenity.includes('food') || lowerAmenity.includes('restaurant') || lowerAmenity.includes('meal')) return faUtensils;
     if (lowerAmenity.includes('bed') || lowerAmenity.includes('room') || lowerAmenity.includes('sleep')) return faBed;
+    if (lowerAmenity.includes('home') || lowerAmenity.includes('apartment') || lowerAmenity.includes('shortlet')) return faHome;
     return faCheckCircle;
   };
 
@@ -984,10 +1012,17 @@ const VendorDetail = () => {
       ];
     } else if (category === 'shortlet') {
       return [
-        { icon: faWifi, name: "WiFi" },
-        { icon: faUtensils, name: "Kitchen" },
-        { icon: faCar, name: "Parking" },
+        { icon: faWifi, name: "High-speed WiFi" },
+        { icon: faUtensils, name: "Full Kitchen" },
+        { icon: faCar, name: "Free Parking" },
         { icon: faHome, name: "Self Check-in" },
+      ];
+    } else if (category === 'event') {
+      return [
+        { icon: faMusic, name: "Sound System" },
+        { icon: faUsers, name: "Large Capacity" },
+        { icon: faCar, name: "Parking" },
+        { icon: faUtensils, name: "Catering" },
       ];
     }
     
@@ -1027,9 +1062,17 @@ const VendorDetail = () => {
       return [
         "Fully Furnished Apartments",
         "Monthly & Weekly Rates",
-        "24/7 Check-in",
+        "24/7 Self Check-in",
         "Cleaning Services",
-        "Utilities Included",
+        "All Utilities Included",
+      ];
+    } else if (category === 'event') {
+      return [
+        "Event Planning Assistance",
+        "Audio-Visual Equipment",
+        "Catering Coordination",
+        "Decoration Services",
+        "Parking Attendants",
       ];
     }
     
@@ -1639,87 +1682,6 @@ const VendorDetail = () => {
               </div>
             </section>
 
-            {/* ================= GALLERY MODAL ================= */}
-            {galleryOpen && (
-              <div className="fixed inset-0 z-[9999] bg-black">
-                {/* Main Close Button */}
-                <button
-                  onClick={handleCloseGallery}
-                  className="fixed top-6 right-6 z-[10000] bg-white/90 hover:bg-white rounded-full w-12 h-12 flex items-center justify-center text-gray-800 font-medium hover:scale-110 transition-all duration-300 shadow-lg cursor-pointer"
-                  aria-label="Close gallery"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-
-                {/* SINGLE IMAGE VIEW */}
-                {singleImageView ? (
-                  <div className="h-full w-full">
-                    {/* Back Button for Single Image View */}
-                    <button
-                      onClick={handleSingleImageBack}
-                      className="fixed top-6 left-6 z-[10001] bg-white/90 hover:bg-white rounded-full w-12 h-12 flex items-center justify-center text-gray-800 font-medium hover:scale-110 transition-all duration-300 shadow-lg cursor-pointer"
-                      aria-label="Back to gallery"
-                    >
-                      <FontAwesomeIcon icon={faChevronLeft} className="w-5 h-5" />
-                    </button>
-
-                    {/* Single Image Display */}
-                    <div className="flex items-center justify-center h-full w-full p-4">
-                      <img
-                        src={galleryImages[currentImageIndex]}
-                        className="max-w-full max-h-full object-contain rounded-lg"
-                        alt={`Gallery image ${currentImageIndex + 1}`}
-                      />
-                    </div>
-
-                    {/* Image Counter */}
-                    <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-[10000] bg-black/60 text-white px-3 py-1.5 rounded-full text-sm font-medium">
-                      {currentImageIndex + 1} / {galleryImages.length}
-                    </div>
-                  </div>
-                ) : (
-                  /* GALLERY GRID VIEW */
-                  <>
-                    {/* MOBILE SCROLL VIEW */}
-                    <div className="lg:hidden h-full overflow-y-auto pt-20 pb-10">
-                      {galleryImages.map((img, i) => (
-                        <div 
-                          key={i} 
-                          className="mb-[2px] cursor-pointer"
-                          onClick={() => handleImageClick(i)}
-                        >
-                          <img
-                            src={img}
-                            className="w-full h-auto object-cover"
-                            alt={`Gallery image ${i + 1}`}
-                          />
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* DESKTOP GRID VIEW */}
-                    <div className="hidden lg:grid grid-cols-3 gap-4 p-8 overflow-y-auto h-full">
-                      {galleryImages.map((img, i) => (
-                        <div 
-                          key={i} 
-                          className="overflow-hidden rounded-lg hover:scale-105 transition-transform duration-300 cursor-pointer"
-                          onClick={() => handleImageClick(i)}
-                        >
-                          <img
-                            src={img}
-                            className="w-full h-64 object-cover"
-                            alt={`Gallery image ${i + 1}`}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
             {/* Price Range */}
             <div className="px-2">
               <div className=" text-start bg-white py-3 mx-auto">
@@ -1894,7 +1856,8 @@ const VendorDetail = () => {
               </div>
             </section>
 
-            {/* Room Selection Section - Only for Hotels with smooth scroll target */}
+            {/* ================= ROOM SELECTION SECTION ================= */}
+            {/* Only for Hotels (not shortlets) */}
             {category === 'hotel' && (
               <div 
                 ref={roomSelectionRef}

@@ -18,7 +18,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const navigate = useNavigate();
   
-  // ✅ FIXED: Handle location object properly
+  // Handle location object properly
   const getLocationString = (locationData) => {
     if (!locationData) return 'Location not specified';
     
@@ -51,8 +51,8 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
     category: vendorData?.category || 'hotel'
   };
 
-  // Amenities filter options
-  const amenities = [
+  // Amenities filter options - renamed from 'amenities' to 'amenityOptions' to avoid conflict
+  const amenityOptions = [
     { name: 'Breakfast Included', value: false },
     { name: 'Free Cancellation', value: false },
     { name: 'Pay later option', value: false },
@@ -315,10 +315,10 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
       hotel: {
         id: hotelInfo.id,
         name: hotelInfo.name,
-        location: hotelInfo.location, // ✅ This is now a string, not an object
+        location: hotelInfo.location,
         rating: hotelInfo.rating,
         image: hotelInfo.image,
-        mainImage: hotelInfo.image, // Main hotel image
+        mainImage: hotelInfo.image,
         description: hotelInfo.description,
         category: hotelInfo.category
       },
@@ -338,7 +338,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
         rating: room.rating,
         reviewCount: room.reviewCount,
         specifications: room.specifications,
-        amenities: room.amenitiesList, // ✅ Changed to amenitiesList
+        amenities: room.amenitiesList,
         features: room.features
       },
       
@@ -356,11 +356,11 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
         checkOut: "Sun, Jan 25",
         checkInTime: "15:00",
         nights: 1,
-        totalPrice: occupancyOption.price, // For single room
+        totalPrice: occupancyOption.price,
         perNight: occupancyOption.price,
-        taxes: Math.round(occupancyOption.price * 0.1), // 10% tax estimate
-        serviceFee: Math.round(occupancyOption.price * 0.05), // 5% service fee
-        finalTotal: Math.round(occupancyOption.price * 1.15) // Price + 15% fees
+        taxes: Math.round(occupancyOption.price * 0.1),
+        serviceFee: Math.round(occupancyOption.price * 0.05),
+        finalTotal: Math.round(occupancyOption.price * 1.15)
       },
       
       // Timestamps
@@ -422,6 +422,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
     }
   };
 
+  // Don't render if category is not hotel
   if (category !== 'hotel') {
     return null;
   }
@@ -486,7 +487,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                     <span className="text-gray-500">({room.reviewCount})</span>
                   </div>
 
-                  {/* ✅ FIXED: Location display - now properly handles string */}
+                  {/* Location display */}
                   <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
                     <FontAwesomeIcon icon={faMapMarkerAlt} className="text-black" />
                     <span>{hotelInfo.location}</span>

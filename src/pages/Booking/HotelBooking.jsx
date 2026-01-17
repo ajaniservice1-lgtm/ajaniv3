@@ -10,7 +10,8 @@ import {
   faCheck, faStar, faPhone,
   faEnvelope, faMapMarkerAlt,
   faShieldAlt, faCreditCard,
-  faHotel, faKey, faConciergeBell
+  faHotel, faKey, faConciergeBell,
+  faChevronLeft
 } from "@fortawesome/free-solid-svg-icons";
 
 const HotelBooking = () => {
@@ -33,6 +34,11 @@ const HotelBooking = () => {
   const [hotelData, setHotelData] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [bookingId, setBookingId] = useState("");
+
+  // Fix 1: Scroll to top on route change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   // Generate unique booking ID
   useEffect(() => {
@@ -240,12 +246,14 @@ const HotelBooking = () => {
     }
   };
 
+  // ALL FEES SET TO ZERO
   const calculateTotal = () => {
     if (!roomData?.booking?.price) return 0;
     const roomPrice = roomData.booking.price;
-    const taxes = Math.round(roomPrice * 0.1);
-    const serviceFee = Math.round(roomPrice * 0.05);
-    return roomPrice + taxes + serviceFee;
+    // All fees set to 0
+    const taxes = 0;
+    const serviceFee = 0;
+    return roomPrice + taxes + serviceFee; // Just room price
   };
 
   const formatPrice = (price) => {
@@ -305,60 +313,63 @@ const HotelBooking = () => {
     );
   }
 
+  // ALL FEES SET TO ZERO
   const roomPrice = roomData?.booking?.price || 0;
-  const taxes = Math.round(roomPrice * 0.1);
-  const serviceFee = Math.round(roomPrice * 0.05);
+  const taxes = 0;
+  const serviceFee = 0;
   const total = calculateTotal();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <Header />
       
-      <div className="md:pt-24">
-        <div className="max-w-7xl mx-auto px-4 py-10">
-          {/* Stepper */}
-          <div className="mb-12">
+      <div className="md:pt-2 pt-2">
+        {/* Reduced padding on mobile */}
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-10">
+          {/* Stepper - Reduced spacing */}
+          <div className="mb-6 sm:mb-12">
             <Stepper currentStep={1} />
           </div>
           
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-            {/* Back Button with Style */}
-            <div className="px-8 pt-6">
+          {/* Main Card - Reduced padding on mobile */}
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl overflow-hidden border border-gray-100">
+            {/* Back Button - More compact on mobile */}
+            <div className="px-4 sm:px-8 pt-4 sm:pt-6">
               <button
                 onClick={() => navigate(-1)}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors group cursor-pointer"
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors group cursor-pointer text-sm sm:text-base"
               >
-                <span className="transform group-hover:-translate-x-1 transition-transform">←</span>
+                <FontAwesomeIcon icon={faChevronLeft} className="text-sm" />
                 <span className="font-medium">Back to room selection</span>
               </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-8">
+            {/* Grid - Single column on mobile */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 p-4 sm:p-8">
               {/* Left Column - Form */}
               <div className="lg:col-span-2">
-                {/* // In HotelBooking.jsx - Update the heading section */}
-<h1 className="text-3xl font-bold text-gray-900 mb-2">
-  {hotelData?.category === 'shortlet' ? 'Book Your Shortlet Stay' : 
-   hotelData?.category === 'restaurant' ? 'Book Your Restaurant Table' : 
-   'Complete Your Hotel Booking'}
-</h1>
-<p className="text-gray-600 mb-8">
-  {hotelData?.category === 'shortlet' ? 'Please fill in your details to book your stay' : 
-   hotelData?.category === 'restaurant' ? 'Please fill in your details to reserve your table' : 
-   'Please fill in your details to secure your stay'}
-</p>
-              
+                {/* Header - Smaller on mobile */}
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
+                  {hotelData?.category === 'shortlet' ? 'Book Your Shortlet Stay' : 
+                   hotelData?.category === 'restaurant' ? 'Book Your Restaurant Table' : 
+                   'Complete Your Hotel Booking'}
+                </h1>
+                <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8">
+                  {hotelData?.category === 'shortlet' ? 'Please fill in your details to book your stay' : 
+                   hotelData?.category === 'restaurant' ? 'Please fill in your details to reserve your table' : 
+                   'Please fill in your details to secure your stay'}
+                </p>
 
-                {/* Hotel & Room Preview Card */}
-                <div className="mb-8 bg-gradient-to-r from-blue-50 to-emerald-50 rounded-xl p-6 border border-blue-100">
-                  <div className="flex flex-col md:flex-row gap-6">
+                {/* Hotel & Room Preview Card - More compact */}
+                <div className="mb-6 sm:mb-8 bg-gradient-to-r from-blue-50 to-emerald-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-blue-100">
+                  <div className="flex flex-col md:flex-row gap-4 sm:gap-6">
                     <div className="md:w-1/3 relative">
                       <img 
                         src={roomData.hotel?.image || hotelData?.image} 
                         alt={roomData.hotel?.name}
-                        className="w-full h-48 object-cover rounded-xl shadow-md"
+                        className="w-full h-40 sm:h-48 object-cover rounded-lg sm:rounded-xl shadow-md"
                       />
-                      <div className="absolute top-3 left-3 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
+                      <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
                         <FontAwesomeIcon icon={faStar} className="text-yellow-400 mr-1" />
                         {roomData.hotel?.rating || 4.5}
                       </div>
@@ -367,46 +378,46 @@ const HotelBooking = () => {
                     <div className="md:w-2/3">
                       <div className="flex items-start justify-between">
                         <div>
-                          <h3 className="text-xl font-bold text-gray-900 mb-1">
+                          <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
                             {roomData.hotel?.name}
                           </h3>
-                          <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
                             <FontAwesomeIcon icon={faMapMarkerAlt} className="text-blue-500" />
-                            <span>{getLocationString(roomData.hotel?.location)}</span>
+                            <span className="truncate">{getLocationString(roomData.hotel?.location)}</span>
                           </div>
                         </div>
-                        <span className="bg-emerald-100 text-emerald-700 text-sm font-semibold px-3 py-1 rounded-full">
+                        <span className="bg-emerald-100 text-emerald-700 text-xs sm:text-sm font-semibold px-2 sm:px-3 py-1 rounded-full">
                           {roomData.room?.title}
                         </span>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <FontAwesomeIcon icon={faBed} className="text-blue-600" />
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <FontAwesomeIcon icon={faBed} className="text-blue-600 text-xs sm:text-sm" />
                           </div>
                           <div>
                             <p className="text-xs text-gray-500">Beds</p>
-                            <p className="font-medium">{roomData.room?.beds}</p>
+                            <p className="font-medium text-sm">{roomData.room?.beds}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
-                            <FontAwesomeIcon icon={faUsers} className="text-emerald-600" />
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                            <FontAwesomeIcon icon={faUsers} className="text-emerald-600 text-xs sm:text-sm" />
                           </div>
                           <div>
                             <p className="text-xs text-gray-500">Guests</p>
-                            <p className="font-medium">{roomData.booking?.adults} adults</p>
+                            <p className="font-medium text-sm">{roomData.booking?.adults} adults</p>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-4 text-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm">
                         <div className="flex items-center gap-2">
                           <FontAwesomeIcon icon={faCalendar} className="text-gray-400" />
                           <span>{roomData.booking?.checkIn} → {roomData.booking?.checkOut}</span>
                         </div>
-                        <div className="h-4 w-px bg-gray-300"></div>
+                        <div className="hidden sm:block h-4 w-px bg-gray-300"></div>
                         <div>
                           <span className="font-semibold">{roomData.booking?.nights} night</span>
                         </div>
@@ -415,23 +426,23 @@ const HotelBooking = () => {
                   </div>
                 </div>
 
-                {/* Payment Options */}
-                <div className="mb-8">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                {/* Payment Options - More compact */}
+                <div className="mb-6 sm:mb-8">
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
                     <FontAwesomeIcon icon={faCreditCard} className="text-blue-500" />
                     Payment Options
                   </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                     <button
                       onClick={() => handlePaymentChange("hotel")}
-                      className={`p-4 rounded-xl border-2 transition-all duration-300 ${
+                      className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 ${
                         selectedPayment === "hotel" 
-                          ? 'border-blue-500 bg-blue-50 shadow-md transform scale-[1.02]' 
+                          ? 'border-blue-500 bg-blue-50 shadow-md' 
                           : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
                       }`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                        <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center ${
                           selectedPayment === "hotel" 
                             ? 'border-blue-500 bg-blue-500' 
                             : 'border-gray-300'
@@ -442,28 +453,24 @@ const HotelBooking = () => {
                         </div>
                         <div className="text-left">
                           <div className="flex items-center gap-2 mb-1">
-                            <FontAwesomeIcon icon={faHotel} className="text-blue-600" />
-                            <span className="font-bold text-gray-900">Pay at Hotel</span>
+                            <FontAwesomeIcon icon={faHotel} className="text-blue-600 text-sm" />
+                            <span className="font-bold text-gray-900 text-sm sm:text-base">Pay at Hotel</span>
                           </div>
-                          <p className="text-sm text-gray-600">Pay when you arrive at the hotel</p>
-                          <div className="flex items-center gap-1 mt-2">
-                            <FontAwesomeIcon icon={faShieldAlt} className="text-green-500 text-xs" />
-                            <span className="text-xs text-green-600">No prepayment needed</span>
-                          </div>
+                          <p className="text-xs sm:text-sm text-gray-600">Pay when you arrive</p>
                         </div>
                       </div>
                     </button>
                     
                     <button
                       onClick={() => handlePaymentChange("card")}
-                      className={`p-4 rounded-xl border-2 transition-all duration-300 ${
+                      className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 ${
                         selectedPayment === "card" 
-                          ? 'border-emerald-500 bg-emerald-50 shadow-md transform scale-[1.02]' 
+                          ? 'border-emerald-500 bg-emerald-50 shadow-md' 
                           : 'border-gray-200 hover:border-emerald-300 hover:bg-emerald-50'
                       }`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                        <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center ${
                           selectedPayment === "card" 
                             ? 'border-emerald-500 bg-emerald-500' 
                             : 'border-gray-300'
@@ -474,14 +481,10 @@ const HotelBooking = () => {
                         </div>
                         <div className="text-left">
                           <div className="flex items-center gap-2 mb-1">
-                            <FontAwesomeIcon icon={faCreditCard} className="text-emerald-600" />
-                            <span className="font-bold text-gray-900">Credit/Debit Card</span>
+                            <FontAwesomeIcon icon={faCreditCard} className="text-emerald-600 text-sm" />
+                            <span className="font-bold text-gray-900 text-sm sm:text-base">Credit/Debit Card</span>
                           </div>
-                          <p className="text-sm text-gray-600">Secure online payment</p>
-                          <div className="flex items-center gap-1 mt-2">
-                            <FontAwesomeIcon icon={faShieldAlt} className="text-green-500 text-xs" />
-                            <span className="text-xs text-green-600">SSL encrypted</span>
-                          </div>
+                          <p className="text-xs sm:text-sm text-gray-600">Secure online payment</p>
                         </div>
                       </div>
                     </button>
@@ -489,17 +492,17 @@ const HotelBooking = () => {
                 </div>
 
                 {/* Contact Information */}
-                <div className="mb-8">
-                  <div className="mb-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <div className="mb-6 sm:mb-8">
+                  <div className="mb-4 sm:mb-6">
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
                       <FontAwesomeIcon icon={faUser} className="text-blue-500" />
                       Guest Information
                     </h2>
-                    <p className="text-gray-600">Who's checking in ff?</p>
+                    <p className="text-sm text-gray-600">Who's checking in?</p>
                   </div>
                   
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4 sm:space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                           First Name *
@@ -510,7 +513,7 @@ const HotelBooking = () => {
                           value={bookingData.firstName}
                           onChange={handleInputChange}
                           placeholder="John"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm sm:text-base"
                           required
                         />
                       </div>
@@ -525,7 +528,7 @@ const HotelBooking = () => {
                           value={bookingData.lastName}
                           onChange={handleInputChange}
                           placeholder="Doe"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm sm:text-base"
                           required
                         />
                       </div>
@@ -543,7 +546,7 @@ const HotelBooking = () => {
                           value={bookingData.email}
                           onChange={handleInputChange}
                           placeholder="john.doe@example.com"
-                          className="w-full px-12 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300"
+                          className="w-full px-12 py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm sm:text-base"
                           required
                         />
                       </div>
@@ -561,7 +564,7 @@ const HotelBooking = () => {
                           value={bookingData.phone}
                           onChange={handleInputChange}
                           placeholder="+234 800 000 0000"
-                          className="w-full px-12 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300"
+                          className="w-full px-12 py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm sm:text-base"
                           required
                         />
                       </div>
@@ -577,31 +580,31 @@ const HotelBooking = () => {
                         onChange={handleInputChange}
                         rows={3}
                         placeholder="Any special requirements or preferences..."
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm sm:text-base"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Terms and Submit */}
-                <div className="mt-10">
-                  <div className="flex items-start gap-3 mb-6 p-4 bg-blue-50 rounded-xl">
-                    <div className="w-6 h-6 flex-shrink-0">
+                <div className="mt-8 sm:mt-10">
+                  <div className="flex items-start gap-3 mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 rounded-lg sm:rounded-xl">
+                    <div className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 mt-0.5">
                       <input
                         type="checkbox"
                         id="terms"
                         required
-                        className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                        className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
                       />
                     </div>
-                    <label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer">
-                      By proceeding with this booking, I agree to Ajani's Terms of Use and Privacy Policy. I understand that my booking is subject to the hotel's cancellation policy and any applicable fees.
+                    <label htmlFor="terms" className="text-xs sm:text-sm text-gray-600 cursor-pointer">
+                      By proceeding with this booking,  I agree to Ajani's Terms of Use and Privacy Policy. I understand that my booking is subject to the hotel's cancellation policy and any applicable fees.
                     </label>
                   </div>
 
                   <button
                     onClick={handleSubmit}
-                    className="w-full bg-gradient-to-r from-blue-600 to-emerald-500 hover:from-blue-700 hover:to-emerald-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl cursor-pointer"
+                    className="w-full  bg-blue-600  text-white font-bold py-3 sm:py-4 px-6 rounded-lg sm:rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer text-sm sm:text-base"
                   >
                     {selectedPayment === "hotel" ? "Confirm Booking" : "Proceed to Payment"}
                     <span className="ml-2">→</span>
@@ -609,79 +612,74 @@ const HotelBooking = () => {
                 </div>
               </div>
 
-              {/* Right Column - Booking Summary */}
+              {/* Right Column - Booking Summary - Sticky on desktop only */}
               <div className="lg:col-span-1">
-                <div className="sticky top-28 space-y-6">
+                <div className="lg:sticky lg:top-24 space-y-4 sm:space-y-6">
                   {/* Summary Header */}
-                  <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-2xl p-6 text-white">
-                    <h3 className="text-xl font-bold mb-2">Booking Summary</h3>
-                    <p className="text-sm opacity-90">Booking ID: {bookingId}</p>
+                  <div className="bg-blue-500 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white">
+                    <h3 className="text-lg sm:text-xl font-bold mb-2">Booking Summary</h3>
+                    <p className="text-xs sm:text-sm opacity-90">Booking ID: {bookingId}</p>
                   </div>
                   
                   {/* Hotel Card */}
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div className="p-4">
+                  <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="p-3 sm:p-4">
                       <div className="flex items-start gap-3">
                         <img 
                           src={roomData.hotel?.image} 
                           alt={roomData.hotel?.name}
-                          className="w-16 h-16 object-cover rounded-lg"
+                          className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg"
                         />
                         <div className="flex-1">
-                          <h4 className="font-bold text-gray-900 text-sm">{roomData.hotel?.name}</h4>
+                          <h4 className="font-bold text-gray-900 text-sm sm:text-base">{roomData.hotel?.name}</h4>
                           <div className="flex items-center gap-1 mt-1">
                             <FontAwesomeIcon icon={faStar} className="text-yellow-400 text-xs" />
                             <span className="text-xs font-medium">{roomData.hotel?.rating}</span>
-                            <span className="text-xs text-gray-500">• {getLocationString(roomData.hotel?.location)}</span>
+                            <span className="text-xs text-gray-500 hidden sm:inline">• {getLocationString(roomData.hotel?.location)}</span>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="mt-4 pt-4 border-t border-gray-100">
-                        <div className="flex justify-between items-center mb-3">
-                          <span className="text-sm text-gray-600">Room Type</span>
-                          <span className="text-sm font-semibold text-gray-900">{roomData.room?.title}</span>
+                      <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100">
+                        <div className="flex justify-between items-center mb-2 sm:mb-3">
+                          <span className="text-xs sm:text-sm text-gray-600">Room Type</span>
+                          <span className="text-xs sm:text-sm font-semibold text-gray-900">{roomData.room?.title}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Stay Duration</span>
-                          <span className="text-sm font-medium">{roomData.booking?.nights} night</span>
+                          <span className="text-xs sm:text-sm text-gray-600">Stay Duration</span>
+                          <span className="text-xs sm:text-sm font-medium">{roomData.booking?.nights} night</span>
                         </div>
                       </div>
                     </div>
                   </div>
                   
-                  {/* Price Breakdown */}
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-                    <div className="p-6">
-                      <h5 className="font-bold text-gray-900 mb-4">Price Breakdown</h5>
+                  {/* Price Breakdown - ALL FEES SET TO 0 */}
+                  <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200 shadow-sm">
+                    <div className="p-4 sm:p-6">
+                      <h5 className="font-bold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">Price Breakdown</h5>
                       
-                      <div className="space-y-3">
-                        <div className="flex justify-between text-sm">
+                      <div className="space-y-2 sm:space-y-3">
+                        <div className="flex justify-between text-xs sm:text-sm">
                           <span className="text-gray-600">Room x {roomData.booking?.nights} night</span>
                           <span className="font-medium">{formatPrice(roomData.booking?.price)}</span>
                         </div>
                         
-                        {roomData.booking?.breakfastPrice && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Breakfast</span>
-                            <span className="font-medium">{roomData.booking.breakfastPrice}</span>
-                          </div>
-                        )}
-                        
-                        <div className="flex justify-between text-sm">
+                        {/* Taxes & Fees - Showing as ₦0 */}
+                        <div className="flex justify-between text-xs sm:text-sm">
                           <span className="text-gray-600">Taxes & fees</span>
                           <span className="font-medium">{formatPrice(taxes)}</span>
                         </div>
                         
-                        <div className="flex justify-between text-sm">
+                        {/* Service fee - Showing as ₦0 */}
+                        <div className="flex justify-between text-xs sm:text-sm">
                           <span className="text-gray-600">Service fee</span>
                           <span className="font-medium">{formatPrice(serviceFee)}</span>
                         </div>
                         
                         {/* Discount */}
                         {roomData.booking?.discount && (
-                          <div className="pt-3 border-t border-gray-200">
-                            <div className="flex justify-between text-sm">
+                          <div className="pt-2 sm:pt-3 border-t border-gray-200">
+                            <div className="flex justify-between text-xs sm:text-sm">
                               <span className="text-gray-600">Discount</span>
                               <span className="font-bold text-emerald-600">{roomData.booking.discount}</span>
                             </div>
@@ -690,10 +688,10 @@ const HotelBooking = () => {
                       </div>
                       
                       {/* Total */}
-                      <div className="mt-4 pt-4 border-t border-gray-300">
+                      <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-300">
                         <div className="flex justify-between items-center">
-                          <span className="font-bold text-gray-900">Total Amount</span>
-                          <span className="text-2xl font-bold text-emerald-600">
+                          <span className="font-bold text-gray-900 text-sm sm:text-base">Total Amount</span>
+                          <span className="text-lg sm:text-2xl font-bold text-emerald-600">
                             {formatPrice(total)}
                           </span>
                         </div>
@@ -705,14 +703,14 @@ const HotelBooking = () => {
                   </div>
                   
                   {/* Benefits Card */}
-                  <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-xl border border-emerald-100 p-5">
-                    <h6 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-lg sm:rounded-xl border border-emerald-100 p-3 sm:p-5">
+                    <h6 className="font-bold text-gray-900 mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
                       <FontAwesomeIcon icon={faConciergeBell} className="text-emerald-600" />
                       What's Included
                     </h6>
-                    <div className="space-y-2">
+                    <div className="space-y-1 sm:space-y-2">
                       {roomData.booking?.benefits?.map((benefit, index) => (
-                        <div key={index} className="flex items-center gap-2 text-sm">
+                        <div key={index} className="flex items-center gap-2 text-xs sm:text-sm">
                           <FontAwesomeIcon icon={faCheck} className="text-emerald-500 text-xs" />
                           <span className="text-gray-700">{benefit}</span>
                         </div>
@@ -722,7 +720,7 @@ const HotelBooking = () => {
                   
                   {/* Guarantee */}
                   <div className="text-center">
-                    <div className="inline-flex items-center gap-2 text-sm text-gray-600">
+                    <div className="inline-flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                       <FontAwesomeIcon icon={faShieldAlt} className="text-green-500" />
                       <span className="font-medium">Best Price Guarantee</span>
                     </div>

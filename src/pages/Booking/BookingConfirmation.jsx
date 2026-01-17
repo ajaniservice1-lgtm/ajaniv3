@@ -71,13 +71,13 @@ const BookingConfirmation = () => {
   const getTitle = () => {
     switch(type) {
       case 'restaurant':
-        return "Table Reservation Request Sent!";
+        return "Thank you for booking with Ajani 🎉 Table Reservation Request Sent!";
       case 'shortlet':
-        return "Shortlet Booking Request Sent!";
+        return "Thank you for booking with Ajani 🎉 Shortlet Booking Request Sent!";
       case 'hotel':
-        return "Hotel Booking Confirmed!";
+        return "Thank you for booking with Ajani 🎉 Hotel Booking Confirmed!";
       default:
-        return "Booking Request Received!";
+        return "Thank you for booking with Ajani 🎉 Booking Request Received!";
     }
   };
 
