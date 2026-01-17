@@ -14,6 +14,7 @@ const Header = () => {
   const navigate = useNavigate();
   const profileDropdownRef = useRef(null);
   const categoriesDropdownRef = useRef(null);
+  const mobileCategoriesRef = useRef(null);
 
   // Enhanced auth check function
   const checkLoginStatus = () => {
@@ -146,12 +147,21 @@ const Header = () => {
         setIsProfileDropdownOpen(false);
       }
       
-      // Handle click outside categories dropdown
+      // Handle click outside categories dropdown (desktop)
       if (
         categoriesDropdownRef.current &&
         !categoriesDropdownRef.current.contains(event.target)
       ) {
         setIsCategoriesOpen(false);
+      }
+      
+      // Handle click outside categories dropdown (mobile)
+      if (
+        mobileCategoriesRef.current &&
+        !mobileCategoriesRef.current.contains(event.target) &&
+        event.target.closest('button')?.textContent !== 'Categories'
+      ) {
+        // Only close if clicking outside AND not on the categories button
       }
     };
 
@@ -161,7 +171,7 @@ const Header = () => {
     };
   }, []);
 
-  // Categories dropdown items
+  // Categories items - UPDATED: All categories as separate items
   const categoriesItems = [
     { 
       label: "Hotel", 
@@ -277,9 +287,16 @@ const Header = () => {
     }
   };
 
-  // Toggle categories dropdown - FIXED: Proper toggle functionality
+  // Toggle categories dropdown for desktop
   const toggleCategoriesDropdown = () => {
     setIsCategoriesOpen(!isCategoriesOpen);
+  };
+
+  // Toggle categories dropdown for mobile
+  const [isMobileCategoriesOpen, setIsMobileCategoriesOpen] = useState(false);
+
+  const toggleMobileCategories = () => {
+    setIsMobileCategoriesOpen(!isMobileCategoriesOpen);
   };
 
   return (
@@ -306,50 +323,24 @@ const Header = () => {
               </button>
             </div>
 
-            {/* Center: Navigation Items - CENTERED with reduced gap */}
+            {/* Center: Navigation Items - UPDATED: All categories directly on navbar for LG */}
             <div className="hidden lg:flex items-center justify-center flex-1 text-sm h-full">
-              <div className="flex items-center justify-center gap-3 h-full">
-                {/* Categories dropdown for desktop */}
-                <div className="relative" ref={categoriesDropdownRef}>
+              <div className="flex items-center justify-center gap-6 h-full">
+                {/* Categories as individual items - FIXED: All categories shown directly */}
+                {categoriesItems.map((item) => (
                   <button
-                    onClick={toggleCategoriesDropdown} // FIXED: Using proper toggle function
-                    className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-2.5 py-1 rounded-md hover:bg-white/30 backdrop-blur-sm flex items-center gap-1"
+                    key={item.id}
+                    onClick={() => {
+                      item.action();
+                      setIsCategoriesOpen(false);
+                    }}
+                    className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-2.5 py-1 rounded-md hover:bg-white/30 backdrop-blur-sm"
                   >
-                    Categories
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      width="16" 
-                      height="16" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                      className={`transition-transform duration-200 ${isCategoriesOpen ? 'rotate-180' : ''}`}
-                    >
-                      <polyline points="6 9 12 15 18 9"/>
-                    </svg>
+                    {item.label}
                   </button>
-                  
-                  {isCategoriesOpen && (
-                    <div className="absolute top-full left-0 mt-1 w-48 bg-white/95 backdrop-blur-xl rounded-lg shadow-xl py-2 z-[1002] border border-gray-200/30 cursor-default transition-all duration-300 animate-in fade-in-50 slide-in-from-top-1">
-                      {categoriesItems.map((item) => (
-                        <button
-                          key={item.id}
-                          onClick={() => {
-                            item.action();
-                            setIsCategoriesOpen(false); // FIXED: Close dropdown when item is clicked
-                          }}
-                          className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50/80 hover:text-blue-700 transition-all duration-200 cursor-pointer group/item"
-                        >
-                          <span className="cursor-pointer">{item.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                ))}
 
+                {/* Additional items for logged in users */}
                 {isLoggedIn &&
                   loggedInNavItems.map((item, index) => (
                     <button
@@ -430,7 +421,7 @@ const Header = () => {
                     </svg>
                   </button>
 
-                  {/* Profile dropdown - UPDATED: Standard Apple-style avatar */}
+                  {/* Profile dropdown - UPDATED: With green dot for online status */}
                   <div
                     className="relative cursor-pointer"
                     ref={profileDropdownRef}
@@ -439,27 +430,32 @@ const Header = () => {
                       onClick={() =>
                         setIsProfileDropdownOpen(!isProfileDropdownOpen)
                       }
-                      className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-gray-100 transition-all duration-300 cursor-pointer hover:scale-105 group"
+                      className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-all duration-300 cursor-pointer hover:scale-105 group relative"
                       title="Profile"
                     >
+                      {/* Green dot for online status */}
+                      {isLoggedIn && (
+                        <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white z-10 animate-pulse"></div>
+                      )}
+                      
                       {userProfile?.profilePicture ? (
                         <img
                           src={userProfile.profilePicture}
                           alt="Profile"
-                          className="w-8 h-8 rounded-full object-cover border border-gray-300 shadow-sm group-hover:ring-2 group-hover:ring-gray-300 transition-all"
+                          className="w-9 h-9 rounded-full object-cover border-2 border-gray-300 shadow-sm group-hover:ring-2 group-hover:ring-gray-300 transition-all"
                           onError={(e) => {
                             e.target.onerror = null;
                             e.target.style.display = "none";
                             e.target.parentElement.innerHTML = `
-                              <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-sm group-hover:ring-2 group-hover:ring-gray-300 transition-all">
+                              <div class="w-9 h-9 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-sm group-hover:ring-2 group-hover:ring-gray-300 transition-all border-2 border-white">
                                 ${getUserInitials()}
                               </div>
                             `;
                           }}
                         />
                       ) : (
-                        // STANDARD APPLE-STYLE AVATAR
-                        <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-sm group-hover:ring-2 group-hover:ring-gray-300 transition-all">
+                        // STANDARD APPLE-STYLE AVATAR with green dot
+                        <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-sm group-hover:ring-2 group-hover:ring-gray-300 transition-all border-2 border-white">
                           {getUserInitials()}
                         </div>
                       )}
@@ -467,13 +463,16 @@ const Header = () => {
 
                     {isProfileDropdownOpen && (
                       <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-[1002] border border-gray-200 cursor-default transition-all duration-300 animate-in fade-in-50 slide-in-from-top-1">
-                        {/* User info */}
+                        {/* User info with online status */}
                         <div className="px-4 py-3 border-b border-gray-100 cursor-default">
-                          <p className="text-sm font-medium text-gray-900 cursor-default">
-                            {userProfile?.firstName
-                              ? `${userProfile.firstName} ${userProfile.lastName}`
-                              : userEmail}
-                          </p>
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-gray-900 cursor-default">
+                              {userProfile?.firstName
+                                ? `${userProfile.firstName} ${userProfile.lastName}`
+                                : userEmail}
+                            </p>
+                          
+                          </div>
                           <p className="text-xs text-gray-500 mt-1 cursor-default">
                             {userEmail}
                           </p>
@@ -485,7 +484,7 @@ const Header = () => {
                           </div>
                         </div>
 
-                        {/* Profile link */}
+                        {/* Rest of dropdown remains same... */}
                         <button
                           onClick={handleProfileNavigation}
                           className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
@@ -720,7 +719,7 @@ const Header = () => {
         </div>
       </header>
 
-      {/* MOBILE MENU - UPDATED with dashboard-like styling */}
+      {/* MOBILE MENU - UPDATED with proper categories dropdown */}
       <div
         className={`fixed inset-0 z-[100000] md:hidden ${
           isMenuOpen ? "" : "pointer-events-none"
@@ -742,7 +741,7 @@ const Header = () => {
               : "-translate-x-full opacity-0"
           }`}
         >
-          {/* Mobile Header - FIXED with proper background */}
+          {/* Mobile Header */}
           <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm sticky top-0 z-10">
             <div className="flex items-center gap-2 cursor-pointer">
               <img
@@ -774,12 +773,12 @@ const Header = () => {
             </button>
           </div>
 
-          {/* Mobile Navigation Content - UPDATED styling */}
-          <nav className="flex-1 p-4 space-y-1 overflow-y-auto bg-white">
-            {/* Categories with dropdown - FIXED: Proper toggle functionality */}
+          {/* Mobile Navigation Content */}
+          <nav className="flex-1 p-4 space-y-1 overflow-y-auto bg-white" ref={mobileCategoriesRef}>
+            {/* Categories dropdown for mobile - FIXED: Proper toggle */}
             <div className="mb-4">
               <button
-                onClick={toggleCategoriesDropdown} // FIXED: Using proper toggle function
+                onClick={toggleMobileCategories}
                 className="w-full text-left py-3 px-4 text-gray-900 bg-gray-50 hover:bg-blue-50 rounded-lg transition-all duration-300 font-medium text-sm cursor-pointer flex items-center justify-between group"
               >
                 <span className="flex items-center gap-2">
@@ -811,14 +810,14 @@ const Header = () => {
                   strokeWidth="2" 
                   strokeLinecap="round" 
                   strokeLinejoin="round"
-                  className={`transition-transform duration-200 ${isCategoriesOpen ? 'rotate-180' : ''}`}
+                  className={`transition-transform duration-200 ${isMobileCategoriesOpen ? 'rotate-180' : ''}`}
                 >
                   <polyline points="6 9 12 15 18 9"/>
                 </svg>
               </button>
               
-              {/* Categories dropdown content */}
-              <div className={`mt-1 space-y-1 overflow-hidden transition-all duration-300 ${isCategoriesOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+              {/* Categories dropdown content - FIXED: Proper toggle */}
+              <div className={`mt-1 space-y-1 overflow-hidden transition-all duration-300 ${isMobileCategoriesOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
                 {categoriesItems.map((item, index) => (
                   <button
                     key={item.id}
@@ -826,11 +825,7 @@ const Header = () => {
                     onClick={() => {
                       item.action();
                       setIsMenuOpen(false);
-                    }}
-                    style={{
-                      transitionDelay: isCategoriesOpen ? `${index * 50}ms` : "0ms",
-                      opacity: isCategoriesOpen ? 1 : 0,
-                      transform: isCategoriesOpen ? "translateX(0)" : "translateX(-10px)",
+                      setIsMobileCategoriesOpen(false);
                     }}
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-gray-400 group-hover/item:bg-blue-600 transition-colors"></span>
@@ -877,19 +872,26 @@ const Header = () => {
             {/* Authentication buttons */}
             {isLoggedIn ? (
               <>
-                {/* Mobile user info */}
+                {/* Mobile user info with green dot */}
                 <div className="px-4 py-3 bg-gray-50 rounded-lg mb-3">
                   <div className="flex items-center gap-3">
-                    {/* STANDARD APPLE-STYLE AVATAR for mobile */}
-                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-sm">
-                      {getUserInitials()}
+                    <div className="relative">
+                      {/* STANDARD APPLE-STYLE AVATAR for mobile with green dot */}
+                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-sm border-2 border-white">
+                        {getUserInitials()}
+                      </div>
+                      {/* Green dot for online status */}
+                      <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white z-10 animate-pulse"></div>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {userProfile?.firstName
-                          ? `${userProfile.firstName} ${userProfile.lastName}`
-                          : userEmail}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-gray-900">
+                          {userProfile?.firstName
+                            ? `${userProfile.firstName} ${userProfile.lastName}`
+                            : userEmail}
+                        </p>
+                       
+                      </div>
                       <p className="text-xs text-gray-500 mt-1">
                         {userEmail}
                       </p>

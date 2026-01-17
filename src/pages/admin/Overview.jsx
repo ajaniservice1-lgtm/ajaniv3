@@ -56,9 +56,9 @@ Response Format: Keep responses under 3 sentences when possible.`);
       { id: 3829, name: 'Emma Wilson', email: 'emma@example.com', type: 'Vendor', status: 'Pending', joined: '2024-03-12' }
     ],
     vendors: [
-      { id: 'V101', name: 'QuickFix Solutions', owner: 'Sarah Johnson', category: 'Home Services', listings: 12, status: 'Suspended', approved: '2024-01-20' },
-      { id: 'V102', name: 'Elite Cleaners', owner: 'Robert Chen', category: 'Cleaning', listings: 8, status: 'Active', approved: '2024-02-15' },
-      { id: 'V103', name: 'TechGuru IT', owner: 'Michael Brown', category: 'IT Services', listings: 15, status: 'Pending', approved: '-' }
+      { id: 'V101', name: 'QuickFix Solutions', owner: 'Sarah Johnson', category: 'Home Services', listings: 0, status: 'Suspended', approved: '2024-01-20' },
+      { id: 'V102', name: 'Elite Cleaners', owner: 'Robert Chen', category: 'Cleaning', listings: 0, status: 'Active', approved: '2024-02-15' },
+      { id: 'V103', name: 'TechGuru IT', owner: 'Michael Brown', category: 'IT Services', listings: 0, status: 'Pending', approved: '-' }
     ],
     listings: [
       { id: 'L4501', title: 'Emergency Plumbing Service', vendor: 'QuickFix Solutions', category: 'Home Services', price: '$120', status: 'Active', featured: true }
@@ -207,14 +207,14 @@ Response Format: Keep responses under 3 sentences when possible.`);
     { id: 'data-control', icon: faDatabase, label: 'Data Control' }
   ];
 
-  // Stats cards
+  // Stats cards - ALL RESET TO ZERO
   const statsCards = [
-    { title: 'Total Users', value: '1,847', change: '+12 this week', positive: true, icon: faUsers, page: 'users' },
-    { title: 'Total Vendors', value: '324', change: '+8 this week', positive: true, icon: faStore, page: 'vendors' },
-    { title: 'Active Listings', value: '1,209', change: '-3 today', positive: false, icon: faListAlt, page: 'listings' },
-    { title: 'Pending Bookings', value: '47', change: '+12 today', positive: true, icon: faCalendarCheck, page: 'bookings' },
-    { title: 'Open Conversations', value: '89', change: '+5 today', positive: true, icon: faComments, page: 'messages' },
-    { title: 'System Health', value: '100%', change: 'All systems operational', positive: true, icon: faHeartbeat, page: 'system-control' }
+    { title: 'Total Users', value: '0', change: '+0 this week', positive: false, icon: faUsers, page: 'users' },
+    { title: 'Total Vendors', value: '0', change: '+0 this week', positive: false, icon: faStore, page: 'vendors' },
+    { title: 'Active Listings', value: '0', change: '+0 today', positive: false, icon: faListAlt, page: 'listings' },
+    { title: 'Pending Bookings', value: '0', change: '+0 today', positive: false, icon: faCalendarCheck, page: 'bookings' },
+    { title: 'Open Conversations', value: '0', change: '+0 today', positive: false, icon: faComments, page: 'messages' },
+    { title: 'System Health', value: '0%', change: 'All systems operational', positive: false, icon: faHeartbeat, page: 'system-control' }
   ];
 
   // Recent activities
@@ -260,11 +260,11 @@ Response Format: Keep responses under 3 sentences when possible.`);
     { id: 'anthropic', icon: faRobot, label: 'Anthropic' }
   ];
 
-  // AI usage stats
+  // AI usage stats - ALL RESET TO ZERO
   const aiUsageStats = [
-    { value: '1,248', label: "Today's Queries" },
-    { value: '98.2%', label: 'Success Rate' },
-    { value: '2.1s', label: 'Avg Response Time' },
+    { value: '0', label: "Today's Queries" },
+    { value: '0%', label: 'Success Rate' },
+    { value: '0s', label: 'Avg Response Time' },
     { value: '0', label: 'Blocked Queries' }
   ];
 
@@ -280,15 +280,15 @@ Response Format: Keep responses under 3 sentences when possible.`);
   const securityStatus = [
     { indicator: 'online', label: 'SSL/TLS', value: 'Valid' },
     { indicator: 'online', label: 'Firewall', value: 'Active' },
-    { indicator: 'warning', label: 'Failed Logins', value: '24 attempts' },
+    { indicator: 'warning', label: 'Failed Logins', value: '0 attempts', positive: true },
     { indicator: 'online', label: 'Last Security Scan', value: '6h ago' }
   ];
 
-  // Audit summary
+  // Audit summary - ALL RESET TO ZERO
   const auditSummary = [
-    { value: '847', label: "Today's Actions" },
-    { value: '12', label: 'Security Alerts' },
-    { value: '5', label: 'Admin Logins' },
+    { value: '0', label: "Today's Actions" },
+    { value: '0', label: 'Security Alerts' },
+    { value: '0', label: 'Admin Logins' },
     { value: '0', label: 'Unauthorized' }
   ];
 
@@ -307,12 +307,12 @@ Response Format: Keep responses under 3 sentences when possible.`);
     { icon: faDatabase, label: 'Full Database', action: fullDatabaseExport }
   ];
 
-  // Database info
+  // Database info - RESET TO ZERO
   const databaseInfo = [
-    { icon: faHdd, label: 'Database Size', value: '2.4 GB' },
-    { icon: faTable, label: 'Tables', value: '42 tables' },
-    { icon: faHistory, label: 'Last Backup', value: '2 hours ago' },
-    { icon: faSyncAlt, label: 'Auto-backup', value: 'Every 6 hours' }
+    { icon: faHdd, label: 'Database Size', value: '0 GB' },
+    { icon: faTable, label: 'Tables', value: '0 tables' },
+    { icon: faHistory, label: 'Last Backup', value: 'Never' },
+    { icon: faSyncAlt, label: 'Auto-backup', value: 'Disabled' }
   ];
 
   return (
@@ -401,7 +401,7 @@ Response Format: Keep responses under 3 sentences when possible.`);
                     <div>
                       <div className="text-sm text-gray-500 uppercase font-semibold tracking-wide">{stat.title}</div>
                       <div className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</div>
-                      <div className={`text-sm font-medium ${stat.positive ? 'text-green-600' : 'text-red-600'}`}>
+                      <div className={`text-sm font-medium ${stat.positive ? 'text-green-600' : 'text-gray-600'}`}>
                         {stat.change}
                       </div>
                     </div>
@@ -584,7 +584,7 @@ Response Format: Keep responses under 3 sentences when possible.`);
 
             <div className="bg-white rounded-xl shadow-md overflow-hidden mb-8">
               <div className="bg-blue-600 text-white p-5 flex flex-col md:flex-row justify-between items-start md:items-center">
-                <h3 className="text-lg font-semibold mb-4 md:mb-0">All Users (1,847)</h3>
+                <h3 className="text-lg font-semibold mb-4 md:mb-0">All Users (0)</h3>
                 <input
                   type="text"
                   placeholder="Search users..."
@@ -699,7 +699,7 @@ Response Format: Keep responses under 3 sentences when possible.`);
 
             <div className="bg-white rounded-xl shadow-md overflow-hidden">
               <div className="bg-blue-600 text-white p-5 flex flex-col md:flex-row justify-between items-start md:items-center">
-                <h3 className="text-lg font-semibold mb-4 md:mb-0">All Vendors (324)</h3>
+                <h3 className="text-lg font-semibold mb-4 md:mb-0">All Vendors (0)</h3>
                 <input
                   type="text"
                   placeholder="Search vendors..."
@@ -788,7 +788,7 @@ Response Format: Keep responses under 3 sentences when possible.`);
 
             <div className="bg-white rounded-xl shadow-md overflow-hidden">
               <div className="bg-blue-600 text-white p-5 flex flex-col md:flex-row justify-between items-start md:items-center">
-                <h3 className="text-lg font-semibold mb-4 md:mb-0">All Listings (1,209)</h3>
+                <h3 className="text-lg font-semibold mb-4 md:mb-0">All Listings (0)</h3>
                 <input
                   type="text"
                   placeholder="Search listings..."
@@ -873,21 +873,22 @@ Response Format: Keep responses under 3 sentences when possible.`);
               </div>
             </div>
 
+            {/* Booking Stats - ALL RESET TO ZERO */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center justify-center">
-                <div className="text-3xl font-bold text-gray-900">47</div>
+                <div className="text-3xl font-bold text-gray-900">0</div>
                 <span className="font-semibold text-gray-600">Pending</span>
               </div>
               <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center justify-center">
-                <div className="text-3xl font-bold text-gray-900">128</div>
+                <div className="text-3xl font-bold text-gray-900">0</div>
                 <span className="font-semibold text-gray-600">Confirmed</span>
               </div>
               <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center justify-center">
-                <div className="text-3xl font-bold text-gray-900">24</div>
+                <div className="text-3xl font-bold text-gray-900">0</div>
                 <span className="font-semibold text-gray-600">Cancelled</span>
               </div>
               <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center justify-center">
-                <div className="text-3xl font-bold text-gray-900">892</div>
+                <div className="text-3xl font-bold text-gray-900">0</div>
                 <span className="font-semibold text-gray-600">Total This Month</span>
               </div>
             </div>
@@ -1150,28 +1151,28 @@ Response Format: Keep responses under 3 sentences when possible.`);
                     <div className="w-3 h-3 rounded-full bg-green-500 mr-3"></div>
                     <span>Error Logs</span>
                   </div>
-                  <div className="font-semibold text-sm">12 errors</div>
+                  <div className="font-semibold text-sm">0 errors</div>
                 </div>
                 <div className="flex justify-between items-center py-2">
                   <div className="flex items-center">
                     <div className="w-3 h-3 rounded-full bg-green-500 mr-3"></div>
                     <span>Warning Logs</span>
                   </div>
-                  <div className="font-semibold text-sm">45 warnings</div>
+                  <div className="font-semibold text-sm">0 warnings</div>
                 </div>
                 <div className="flex justify-between items-center py-2">
                   <div className="flex items-center">
                     <div className="w-3 h-3 rounded-full bg-green-500 mr-3"></div>
                     <span>API Logs</span>
                   </div>
-                  <div className="font-semibold text-sm">8,942 requests</div>
+                  <div className="font-semibold text-sm">0 requests</div>
                 </div>
                 <div className="flex justify-between items-center py-2">
                   <div className="flex items-center">
                     <div className="w-3 h-3 rounded-full bg-green-500 mr-3"></div>
                     <span>Backup Logs</span>
                   </div>
-                  <div className="font-semibold text-sm">Last: 2h ago</div>
+                  <div className="font-semibold text-sm">Last: Never</div>
                 </div>
               </div>
             </div>
@@ -1502,7 +1503,7 @@ Response Format: Keep responses under 3 sentences when possible.`);
             <div className="p-6">
               <p className="mb-4">Select what data you want to export:</p>
               <div className="space-y-3 mb-6">
-                {['Users Data (1,847 records)', 'Vendors Data (324 records)', 'Listings Data (1,209 records)', 'Booking History (12,847 records)', 'Messages (45,291 records)', 'Audit Logs (89,472 records)'].map((item, index) => (
+                {['Users Data (0 records)', 'Vendors Data (0 records)', 'Listings Data (0 records)', 'Booking History (0 records)', 'Messages (0 records)', 'Audit Logs (0 records)'].map((item, index) => (
                   <label key={index} className="flex items-center">
                     <input type="checkbox" defaultChecked={index < 3} className="mr-3" />
                     {item}
