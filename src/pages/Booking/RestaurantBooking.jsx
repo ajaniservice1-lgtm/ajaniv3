@@ -317,7 +317,7 @@ const RestaurantBooking = ({ vendorData }) => {
                         value={bookingData.contactInfo.email}
                         onChange={handleInputChange}
                         className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent transition"
-                        placeholder="john.doe@example.com"
+                        placeholder="john@gmail.com"
                         required
                       />
                     </div>

@@ -1,4 +1,3 @@
-// src/pages/Booking/HotelBooking.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Stepper from "../../components/Stepper";
@@ -6,10 +5,12 @@ import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
-  faCalendar, faUsers, faBed, 
+  faUser, faCalendar, faUsers, faBed, 
   faWifi, faCar, faUtensils,
   faCheck, faStar, faPhone,
-  faEnvelope, faMapMarkerAlt
+  faEnvelope, faMapMarkerAlt,
+  faShieldAlt, faCreditCard,
+  faHotel, faKey, faConciergeBell
 } from "@fortawesome/free-solid-svg-icons";
 
 const HotelBooking = () => {
@@ -21,8 +22,9 @@ const HotelBooking = () => {
     lastName: "",
     email: "",
     country: "Nigeria",
-    phone: "+234 (0) ",
-    specialRequests: ""
+    phone: "+234 ",
+    specialRequests: "",
+    paymentMethod: "hotel"
   });
 
   const [selectedPayment, setSelectedPayment] = useState("hotel");
@@ -30,18 +32,39 @@ const HotelBooking = () => {
   const [loading, setLoading] = useState(true);
   const [hotelData, setHotelData] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
+  const [bookingId, setBookingId] = useState("");
+
+  // Generate unique booking ID
+  useEffect(() => {
+    const generateBookingId = () => {
+      const prefix = "AJN-";
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let result = prefix;
+      for (let i = 0; i < 8; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    };
+    setBookingId(generateBookingId());
+  }, []);
 
   useEffect(() => {
     const loadBookingData = () => {
       setLoading(true);
       
-      // Load vendor data
-      const vendorDataFromState = location.state?.vendorData;
+      console.log("🔄 Loading hotel booking data...");
+      
+      // Load vendor data from multiple sources
+      const vendorDataFromState = location.state?.vendorData || location.state?.bookingData?.hotel;
       const fromLocalStorage = localStorage.getItem('currentVendorBooking');
       const fromSession = sessionStorage.getItem('currentVendorBooking');
+      const roomBookingData = localStorage.getItem('roomBookingData');
       
       let vendorData = null;
+      
+      // Priority: location state > localStorage > sessionStorage
       if (vendorDataFromState) {
+        console.log("📦 Vendor data from location state:", vendorDataFromState);
         vendorData = vendorDataFromState;
       } else if (fromLocalStorage) {
         vendorData = JSON.parse(fromLocalStorage);
@@ -50,57 +73,78 @@ const HotelBooking = () => {
       }
       
       if (vendorData) {
+        console.log("🏨 Hotel data set:", vendorData);
         setHotelData(vendorData);
       }
       
-      // Load room data
-      const savedRoomData = localStorage.getItem('roomBookingData');
-      if (savedRoomData) {
-        const parsedData = JSON.parse(savedRoomData);
-        setRoomData(parsedData);
+      // Load room data with priority
+      if (roomBookingData) {
+        try {
+          const parsedData = JSON.parse(roomBookingData);
+          console.log("🛏️ Room data loaded from localStorage:", parsedData);
+          setRoomData(parsedData);
+          
+          // If we have room data but no hotel data, extract from room data
+          if (!vendorData && parsedData.hotel) {
+            setHotelData(parsedData.hotel);
+          }
+        } catch (error) {
+          console.error("❌ Failed to parse room data:", error);
+        }
+      } else if (location.state?.bookingData) {
+        console.log("📦 Room data from location state:", location.state.bookingData);
+        setRoomData(location.state.bookingData);
+        if (location.state.bookingData.hotel) {
+          setHotelData(location.state.bookingData.hotel);
+        }
       } else if (vendorData?.selectedRoom) {
         // Create room data from selected room
         const roomInfo = vendorData.selectedRoom;
-        setRoomData({
+        const newRoomData = {
           hotel: {
-            id: vendorData.id,
-            name: vendorData.name,
-            location: vendorData.area,
+            id: vendorData.id || vendorData._id,
+            name: vendorData.name || vendorData.title,
+            location: vendorData.area || vendorData.location || "Location not specified",
             rating: vendorData.rating || 4.5,
-            image: vendorData.image,
-            category: vendorData.category
+            image: vendorData.image || vendorData.images?.[0],
+            category: vendorData.category || "hotel"
           },
           room: {
+            id: roomInfo.id || `room-${Date.now()}`,
             title: roomInfo.title || "Standard Room",
             name: roomInfo.name || "Standard Room",
+            description: roomInfo.description || "Comfortable room with all amenities",
             image: roomInfo.image || vendorData.image,
+            images: roomInfo.images || [roomInfo.image || vendorData.image],
             size: roomInfo.size || "Not specified",
             beds: roomInfo.beds || "1 Double Bed",
             maxOccupancy: roomInfo.maxOccupancy || 2,
             features: roomInfo.features || [],
-            amenities: roomInfo.amenities || [],
+            amenities: roomInfo.amenitiesList || [],
             rating: roomInfo.rating || 4.5,
             reviewCount: roomInfo.reviewCount || 0
           },
           booking: {
-            checkIn: "Sat, Jan 24",
-            checkOut: "Sun, Jan 25",
-            adults: roomInfo.occupancy?.[0]?.adults || 2,
-            nights: 1,
-            price: roomInfo.occupancy?.[0]?.price || vendorData.priceFrom || 0,
-            originalPrice: roomInfo.occupancy?.[0]?.originalPrice || vendorData.priceTo || 0,
-            discount: roomInfo.occupancy?.[0]?.discount || "",
-            breakfast: roomInfo.occupancy?.[0]?.breakfast || "",
-            breakfastPrice: roomInfo.occupancy?.[0]?.breakfastPrice || "",
-            benefits: roomInfo.occupancy?.[0]?.benefits || ["Pay at hotel", "Free WiFi"],
-            checkInTime: "15:00",
-            totalPrice: roomInfo.occupancy?.[0]?.price || vendorData.priceFrom || 0,
-            perNight: roomInfo.occupancy?.[0]?.price || vendorData.priceFrom || 0
+            checkIn: roomInfo.checkIn || "Today",
+            checkOut: roomInfo.checkOut || "Tomorrow",
+            adults: roomInfo.adults || roomInfo.occupancy?.[0]?.adults || 2,
+            nights: roomInfo.nights || 1,
+            price: roomInfo.price || roomInfo.occupancy?.[0]?.price || vendorData.priceFrom || 0,
+            originalPrice: roomInfo.originalPrice || roomInfo.occupancy?.[0]?.originalPrice || vendorData.priceTo || 0,
+            discount: roomInfo.discount || roomInfo.occupancy?.[0]?.discount || "",
+            breakfast: roomInfo.breakfast || roomInfo.occupancy?.[0]?.breakfast || "",
+            breakfastPrice: roomInfo.breakfastPrice || roomInfo.occupancy?.[0]?.breakfastPrice || "",
+            benefits: roomInfo.benefits || roomInfo.occupancy?.[0]?.benefits || ["Pay at hotel", "Free WiFi"],
+            checkInTime: roomInfo.checkInTime || "15:00",
+            totalPrice: roomInfo.totalPrice || roomInfo.price || vendorData.priceFrom || 0,
+            perNight: roomInfo.perNight || roomInfo.price || vendorData.priceFrom || 0
           }
-        });
+        };
+        console.log("🛠️ Created room data:", newRoomData);
+        setRoomData(newRoomData);
       }
       
-      // Check for any guest info saved
+      // Load saved guest info
       const savedGuestInfo = localStorage.getItem('bookingData');
       if (savedGuestInfo) {
         try {
@@ -110,11 +154,12 @@ const HotelBooking = () => {
             ...guestData
           }));
         } catch (error) {
-          console.error("Failed to parse guest info:", error);
+          console.error("❌ Failed to parse guest info:", error);
         }
       }
       
       setLoading(false);
+      console.log("✅ Booking data loading complete");
     };
 
     loadBookingData();
@@ -125,7 +170,12 @@ const HotelBooking = () => {
     setBookingData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handlePaymentChange = (method) => {
+    setSelectedPayment(method);
+    setBookingData(prev => ({ ...prev, paymentMethod: method }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!roomData) {
@@ -134,10 +184,18 @@ const HotelBooking = () => {
       return;
     }
 
+    // Validate required fields
+    if (!bookingData.firstName || !bookingData.lastName || !bookingData.email || !bookingData.phone) {
+      alert("Please fill in all required contact information");
+      return;
+    }
+
+    console.log("🚀 Submitting hotel booking...");
+
     // Save guest information
     localStorage.setItem('bookingData', JSON.stringify(bookingData));
     
-    // Combine booking data
+    // Combine booking data with enhanced structure
     const completeBooking = {
       ...bookingData,
       paymentMethod: selectedPayment,
@@ -145,34 +203,78 @@ const HotelBooking = () => {
       hotelData: hotelData,
       bookingType: 'hotel',
       bookingDate: new Date().toISOString(),
-      bookingId: 'HOTEL-' + Date.now().toString().slice(-8)
+      bookingId: bookingId,
+      status: selectedPayment === "card" ? "pending_payment" : "confirmed",
+      totalAmount: calculateTotal(),
+      timestamp: Date.now()
     };
+
+    console.log("💾 Complete booking data:", completeBooking);
 
     // Save complete booking data
     localStorage.setItem('completeBooking', JSON.stringify(completeBooking));
     localStorage.setItem('hotelBooking', JSON.stringify(completeBooking));
     
-    // Navigate to payment page for hotels
-    navigate('/booking/payment', { 
-      state: { 
-        bookingData: completeBooking 
-      } 
-    });
+    // Clear temporary data
+    localStorage.removeItem('roomBookingData');
+    localStorage.removeItem('currentVendorBooking');
+    
+    // If paying at hotel, go directly to confirmation
+    if (selectedPayment === "hotel") {
+      console.log("🏨 Pay at hotel selected - redirecting to confirmation");
+      navigate('/booking-confirmation/hotel', { 
+        state: { 
+          bookingData: completeBooking,
+          bookingType: 'hotel'
+        } 
+      });
+    } else {
+      // For card payment, go to payment page
+      console.log("💳 Card payment selected - redirecting to payment");
+      navigate('/booking/payment', { 
+        state: { 
+          bookingData: completeBooking,
+          bookingType: 'hotel'
+        } 
+      });
+    }
+  };
+
+  const calculateTotal = () => {
+    if (!roomData?.booking?.price) return 0;
+    const roomPrice = roomData.booking.price;
+    const taxes = Math.round(roomPrice * 0.1);
+    const serviceFee = Math.round(roomPrice * 0.05);
+    return roomPrice + taxes + serviceFee;
   };
 
   const formatPrice = (price) => {
     if (!price && price !== 0) return "₦ --";
-    const num = parseInt(price.toString().replace(/[^\d]/g, ""));
+    const num = typeof price === 'number' ? price : parseInt(price.toString().replace(/[^\d]/g, ""));
     if (isNaN(num)) return "₦ --";
     return `₦${num.toLocaleString()}`;
   };
 
+  const getLocationString = (locationData) => {
+    if (!locationData) return 'Location not specified';
+    if (typeof locationData === 'string') return locationData;
+    if (typeof locationData === 'object') {
+      if (locationData.area) return locationData.area;
+      if (locationData.address) return locationData.address;
+      if (locationData.location) return getLocationString(locationData.location);
+    }
+    return 'Location not specified';
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
         <Header />
         <div className="flex justify-center items-center min-h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading your booking details...</p>
+          </div>
         </div>
         <Footer />
       </div>
@@ -181,17 +283,20 @@ const HotelBooking = () => {
 
   if (!roomData) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
         <Header />
         <div className="max-w-4xl mx-auto px-4 py-20">
-          <div className="bg-white rounded-xl p-8 text-center">
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+            <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <FontAwesomeIcon icon={faBed} className="text-yellow-600 text-3xl" />
+            </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-4">No Room Selected</h2>
             <p className="text-gray-600 mb-6">Please select a room before proceeding to booking.</p>
             <button
               onClick={() => navigate(-1)}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition cursor-pointer"
+              className="bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-blue-600 hover:to-emerald-600 text-white font-semibold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg cursor-pointer"
             >
-              Go Back & Select Room
+              ← Go Back & Select Room
             </button>
           </div>
         </div>
@@ -200,198 +305,204 @@ const HotelBooking = () => {
     );
   }
 
-  // Calculate totals
   const roomPrice = roomData?.booking?.price || 0;
-  const taxes = roomData?.booking?.taxes || Math.round(roomPrice * 0.1);
-  const serviceFee = roomData?.booking?.serviceFee || Math.round(roomPrice * 0.05);
-  const total = roomPrice + taxes + serviceFee;
+  const taxes = Math.round(roomPrice * 0.1);
+  const serviceFee = Math.round(roomPrice * 0.05);
+  const total = calculateTotal();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <Header />
       
-      <div className="pt-8">
-        <div className="max-w-6xl mx-auto px-4 py-10">
-          <Stepper currentStep={currentStep} type="hotel" />
+      <div className="md:pt-24">
+        <div className="max-w-7xl mx-auto px-4 py-10">
+          {/* Stepper */}
+          <div className="mb-12">
+            <Stepper currentStep={1} />
+          </div>
           
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            {/* Back Button */}
-            <button
-              onClick={() => navigate(-1)}
-              className="text-sm text-gray-600 hover:text-gray-900 mb-6 flex items-center gap-2 cursor-pointer"
-            >
-              ← Back
-            </button>
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+            {/* Back Button with Style */}
+            <div className="px-8 pt-6">
+              <button
+                onClick={() => navigate(-1)}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors group cursor-pointer"
+              >
+                <span className="transform group-hover:-translate-x-1 transition-transform">←</span>
+                <span className="font-medium">Back to room selection</span>
+              </button>
+            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-8">
               {/* Left Column - Form */}
               <div className="lg:col-span-2">
-                <h1 className="text-2xl font-bold text-gray-900 mb-8">
-                  Complete Your Booking
-                </h1>
+                {/* // In HotelBooking.jsx - Update the heading section */}
+<h1 className="text-3xl font-bold text-gray-900 mb-2">
+  {hotelData?.category === 'shortlet' ? 'Book Your Shortlet Stay' : 
+   hotelData?.category === 'restaurant' ? 'Book Your Restaurant Table' : 
+   'Complete Your Hotel Booking'}
+</h1>
+<p className="text-gray-600 mb-8">
+  {hotelData?.category === 'shortlet' ? 'Please fill in your details to book your stay' : 
+   hotelData?.category === 'restaurant' ? 'Please fill in your details to reserve your table' : 
+   'Please fill in your details to secure your stay'}
+</p>
+              
 
-                {/* Hotel & Room Summary at Top */}
-                <div className="mb-8 bg-gray-50 rounded-xl p-6">
+                {/* Hotel & Room Preview Card */}
+                <div className="mb-8 bg-gradient-to-r from-blue-50 to-emerald-50 rounded-xl p-6 border border-blue-100">
                   <div className="flex flex-col md:flex-row gap-6">
-                    {/* Hotel Main Image */}
-                    <div className="md:w-1/3">
+                    <div className="md:w-1/3 relative">
                       <img 
-                        src={roomData.hotel.image || hotelData?.image} 
-                        alt={roomData.hotel.name}
-                        className="w-full h-48 object-cover rounded-lg"
+                        src={roomData.hotel?.image || hotelData?.image} 
+                        alt={roomData.hotel?.name}
+                        className="w-full h-48 object-cover rounded-xl shadow-md"
                       />
-                      <div className="flex items-center gap-1 mt-2">
-                        <FontAwesomeIcon icon={faStar} className="text-yellow-400" />
-                        <span className="font-medium">{roomData.hotel.rating}</span>
-                        <span className="text-gray-500 text-sm">({roomData.hotel.location})</span>
+                      <div className="absolute top-3 left-3 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
+                        <FontAwesomeIcon icon={faStar} className="text-yellow-400 mr-1" />
+                        {roomData.hotel?.rating || 4.5}
                       </div>
                     </div>
                     
-                    {/* Room Info */}
                     <div className="md:w-2/3">
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">
-                        {roomData.hotel.name}
-                      </h3>
-                      <h4 className="text-md font-semibold text-emerald-600 mb-3">
-                        {roomData.room.title}
-                      </h4>
-                      
-                      {/* Room Image Gallery */}
-                      {roomData.room.images && roomData.room.images.length > 0 ? (
-                        <div className="mb-4">
-                          <div className="flex space-x-2 overflow-x-auto pb-2">
-                            {roomData.room.images.slice(0, 4).map((img, index) => (
-                              <div key={index} className="flex-shrink-0">
-                                <img 
-                                  src={img} 
-                                  alt={`Room view ${index + 1}`}
-                                  className="w-20 h-20 object-cover rounded-md"
-                                />
-                              </div>
-                            ))}
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-900 mb-1">
+                            {roomData.hotel?.name}
+                          </h3>
+                          <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                            <FontAwesomeIcon icon={faMapMarkerAlt} className="text-blue-500" />
+                            <span>{getLocationString(roomData.hotel?.location)}</span>
                           </div>
                         </div>
-                      ) : (
-                        <div className="mb-4">
-                          <img 
-                            src={roomData.room.image} 
-                            alt={roomData.room.title}
-                            className="w-40 h-32 object-cover rounded-md"
-                          />
-                        </div>
-                      )}
+                        <span className="bg-emerald-100 text-emerald-700 text-sm font-semibold px-3 py-1 rounded-full">
+                          {roomData.room?.title}
+                        </span>
+                      </div>
                       
-                      {/* Room Features */}
-                      <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="grid grid-cols-2 gap-3 mb-4">
                         <div className="flex items-center gap-2">
-                          <FontAwesomeIcon icon={faBed} className="text-gray-500" />
-                          <span>{roomData.room.beds}</span>
+                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <FontAwesomeIcon icon={faBed} className="text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Beds</p>
+                            <p className="font-medium">{roomData.room?.beds}</p>
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <FontAwesomeIcon icon={faUsers} className="text-gray-500" />
-                          <span>{roomData.room.maxOccupancy} Guests</span>
+                          <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                            <FontAwesomeIcon icon={faUsers} className="text-emerald-600" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Guests</p>
+                            <p className="font-medium">{roomData.booking?.adults} adults</p>
+                          </div>
                         </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-4 text-sm">
                         <div className="flex items-center gap-2">
-                          <span className="w-4 text-center">📏</span>
-                          <span>{roomData.room.size}</span>
+                          <FontAwesomeIcon icon={faCalendar} className="text-gray-400" />
+                          <span>{roomData.booking?.checkIn} → {roomData.booking?.checkOut}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <FontAwesomeIcon icon={faWifi} className="text-gray-500" />
-                          <span>Free WiFi</span>
+                        <div className="h-4 w-px bg-gray-300"></div>
+                        <div>
+                          <span className="font-semibold">{roomData.booking?.nights} night</span>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Dates & Guests Info */}
-                  <div className="mt-6 pt-6 border-t border-gray-200">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500 mb-1">Check-in</p>
-                        <p className="font-medium">
-                          <FontAwesomeIcon icon={faCalendar} className="mr-2 text-emerald-500" />
-                          {roomData.booking.checkIn}
-                        </p>
-                        <p className="text-sm text-gray-600">{roomData.booking.checkInTime}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500 mb-1">Check-out</p>
-                        <p className="font-medium">
-                          <FontAwesomeIcon icon={faCalendar} className="mr-2 text-emerald-500" />
-                          {roomData.booking.checkOut}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500 mb-1">Nights</p>
-                        <p className="font-medium text-lg">{roomData.booking.nights} night</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500 mb-1">Guests</p>
-                        <p className="font-medium">
-                          <FontAwesomeIcon icon={faUsers} className="mr-2 text-emerald-500" />
-                          {roomData.booking.adults} adults
-                        </p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Payment Option Section */}
+                {/* Payment Options */}
                 <div className="mb-8">
-                  <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                    Choose your payment option
+                  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <FontAwesomeIcon icon={faCreditCard} className="text-blue-500" />
+                    Payment Options
                   </h2>
-                  <div className="space-y-3">
-                    <label className="flex items-start gap-3 p-4 border-2 border-emerald-500 rounded-lg bg-emerald-50 cursor-pointer">
-                      <input 
-                        type="radio" 
-                        name="payment" 
-                        value="hotel"
-                        checked={selectedPayment === "hotel"}
-                        onChange={(e) => setSelectedPayment(e.target.value)}
-                        className="w-5 h-5 text-emerald-600 mt-1 cursor-pointer"
-                      />
-                      <div>
-                        <span className="font-medium text-gray-900">Pay in the hotel</span>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Pay when you arrive at the hotel
-                        </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button
+                      onClick={() => handlePaymentChange("hotel")}
+                      className={`p-4 rounded-xl border-2 transition-all duration-300 ${
+                        selectedPayment === "hotel" 
+                          ? 'border-blue-500 bg-blue-50 shadow-md transform scale-[1.02]' 
+                          : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                          selectedPayment === "hotel" 
+                            ? 'border-blue-500 bg-blue-500' 
+                            : 'border-gray-300'
+                        }`}>
+                          {selectedPayment === "hotel" && (
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          )}
+                        </div>
+                        <div className="text-left">
+                          <div className="flex items-center gap-2 mb-1">
+                            <FontAwesomeIcon icon={faHotel} className="text-blue-600" />
+                            <span className="font-bold text-gray-900">Pay at Hotel</span>
+                          </div>
+                          <p className="text-sm text-gray-600">Pay when you arrive at the hotel</p>
+                          <div className="flex items-center gap-1 mt-2">
+                            <FontAwesomeIcon icon={faShieldAlt} className="text-green-500 text-xs" />
+                            <span className="text-xs text-green-600">No prepayment needed</span>
+                          </div>
+                        </div>
                       </div>
-                    </label>
+                    </button>
                     
-                    <label className="flex items-start gap-3 p-4 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
-                      <input 
-                        type="radio" 
-                        name="payment" 
-                        value="card"
-                        checked={selectedPayment === "card"}
-                        onChange={(e) => setSelectedPayment(e.target.value)}
-                        className="w-5 h-5 text-emerald-600 mt-1 cursor-pointer"
-                      />
-                      <div>
-                        <span className="font-medium text-gray-900">Credit/debit card</span>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Secure online payment
-                        </p>
+                    <button
+                      onClick={() => handlePaymentChange("card")}
+                      className={`p-4 rounded-xl border-2 transition-all duration-300 ${
+                        selectedPayment === "card" 
+                          ? 'border-emerald-500 bg-emerald-50 shadow-md transform scale-[1.02]' 
+                          : 'border-gray-200 hover:border-emerald-300 hover:bg-emerald-50'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                          selectedPayment === "card" 
+                            ? 'border-emerald-500 bg-emerald-500' 
+                            : 'border-gray-300'
+                        }`}>
+                          {selectedPayment === "card" && (
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          )}
+                        </div>
+                        <div className="text-left">
+                          <div className="flex items-center gap-2 mb-1">
+                            <FontAwesomeIcon icon={faCreditCard} className="text-emerald-600" />
+                            <span className="font-bold text-gray-900">Credit/Debit Card</span>
+                          </div>
+                          <p className="text-sm text-gray-600">Secure online payment</p>
+                          <div className="flex items-center gap-1 mt-2">
+                            <FontAwesomeIcon icon={faShieldAlt} className="text-green-500 text-xs" />
+                            <span className="text-xs text-green-600">SSL encrypted</span>
+                          </div>
+                        </div>
                       </div>
-                    </label>
+                    </button>
                   </div>
                 </div>
 
-                {/* Contact Information Section */}
+                {/* Contact Information */}
                 <div className="mb-8">
                   <div className="mb-6">
-                    <h2 className="text-lg font-semibold text-gray-800">
-                      Who's the lead guest?
+                    <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                      <FontAwesomeIcon icon={faUser} className="text-blue-500" />
+                      Guest Information
                     </h2>
-                    <h2 className="text-gray-600 text-[14px]">contact information</h2>
+                    <p className="text-gray-600">Who's checking in ff?</p>
                   </div>
                   
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          First name *
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          First Name *
                         </label>
                         <input 
                           type="text" 
@@ -399,279 +510,158 @@ const HotelBooking = () => {
                           value={bookingData.firstName}
                           onChange={handleInputChange}
                           placeholder="John"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent cursor-pointer"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300"
                           required
                         />
                       </div>
                       
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Last name *
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Last Name *
                         </label>
                         <input 
                           type="text" 
                           name="lastName"
                           value={bookingData.lastName}
                           onChange={handleInputChange}
-                          placeholder="Adesoye"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent cursor-pointer"
+                          placeholder="Doe"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300"
                           required
                         />
                       </div>
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Email *
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Email Address *
                       </label>
-                      <input 
-                        type="email" 
-                        name="email"
-                        value={bookingData.email}
-                        onChange={handleInputChange}
-                        placeholder="john@example.com"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent cursor-pointer"
-                        required
-                      />
+                      <div className="relative">
+                        <FontAwesomeIcon icon={faEnvelope} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <input 
+                          type="email" 
+                          name="email"
+                          value={bookingData.email}
+                          onChange={handleInputChange}
+                          placeholder="john.doe@example.com"
+                          className="w-full px-12 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300"
+                          required
+                        />
+                      </div>
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Country/region of residence *
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Phone Number *
                       </label>
-                      <input 
-                        type="text" 
-                        name="country"
-                        value={bookingData.country}
-                        onChange={handleInputChange}
-                        placeholder="Nigeria"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent cursor-pointer"
-                        required
-                      />
+                      <div className="relative">
+                        <FontAwesomeIcon icon={faPhone} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <input 
+                          type="tel" 
+                          name="phone"
+                          value={bookingData.phone}
+                          onChange={handleInputChange}
+                          placeholder="+234 800 000 0000"
+                          className="w-full px-12 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300"
+                          required
+                        />
+                      </div>
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Mobile number *
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Special Requests
                       </label>
-                      <input 
-                        type="tel" 
-                        name="phone"
-                        value={bookingData.phone}
+                      <textarea
+                        name="specialRequests"
+                        value={bookingData.specialRequests}
                         onChange={handleInputChange}
-                        placeholder="+234 (0) 800 000 0000"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent cursor-pointer"
-                        required
+                        rows={3}
+                        placeholder="Any special requirements or preferences..."
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300"
                       />
                     </div>
                   </div>
-                  
-                  <p className="text-sm text-gray-500 mt-4">
-                    Please make sure your contact information is correct. We'll use it to send your booking confirmation and any reminders to assist you with booking completion.
-                  </p>
-                </div>
-
-                {/* Special Requests */}
-                <div className="mb-8">
-                  <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                    Special requests
-                  </h2>
-                  <textarea
-                    name="specialRequests"
-                    value={bookingData.specialRequests}
-                    onChange={handleInputChange}
-                    rows={4}
-                    placeholder="Describe what you need..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent cursor-pointer"
-                  />
                 </div>
 
                 {/* Terms and Submit */}
-                <div>
-                  <div className="flex items-start gap-2 mb-6">
-                    <input
-                      type="checkbox"
-                      id="terms"
-                      required
-                      className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 mt-1 cursor-pointer"
-                    />
+                <div className="mt-10">
+                  <div className="flex items-start gap-3 mb-6 p-4 bg-blue-50 rounded-xl">
+                    <div className="w-6 h-6 flex-shrink-0">
+                      <input
+                        type="checkbox"
+                        id="terms"
+                        required
+                        className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                      />
+                    </div>
                     <label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer">
-                      By proceeding with this booking, I agree to Ajani Terms of Use and Privacy Policy.
+                      By proceeding with this booking, I agree to Ajani's Terms of Use and Privacy Policy. I understand that my booking is subject to the hotel's cancellation policy and any applicable fees.
                     </label>
                   </div>
 
                   <button
                     onClick={handleSubmit}
-                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-4 rounded-lg transition cursor-pointer"
+                    className="w-full bg-gradient-to-r from-blue-600 to-emerald-500 hover:from-blue-700 hover:to-emerald-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl cursor-pointer"
                   >
-                    Next: Payment
+                    {selectedPayment === "hotel" ? "Confirm Booking" : "Proceed to Payment"}
+                    <span className="ml-2">→</span>
                   </button>
                 </div>
               </div>
 
-              {/* Right Column - Summary */}
+              {/* Right Column - Booking Summary */}
               <div className="lg:col-span-1">
-                <div className="bg-gray-50 rounded-xl p-6 space-y-6 sticky top-24">
-                  <h3 className="font-semibold text-gray-800">Booking Summary</h3>
-                  
-                  {/* Hotel Information */}
-                  <div className="bg-white rounded-lg p-4 border">
-                    <div className="flex items-start gap-3 mb-3">
-                      <img 
-                        src={roomData.hotel.image} 
-                        alt={roomData.hotel.name}
-                        className="w-16 h-16 object-cover rounded-md"
-                      />
-                      <div>
-                        <h4 className="font-bold text-gray-900 text-sm">{roomData.hotel.name}</h4>
-                        <div className="flex items-center gap-1 mt-1">
-                          <FontAwesomeIcon icon={faMapMarkerAlt} className="w-3 h-3 text-gray-500" />
-                          <p className="text-xs text-gray-500">{roomData.hotel.location}</p>
-                        </div>
-                        <div className="flex items-center gap-1 mt-1">
-                          <FontAwesomeIcon icon={faStar} className="w-3 h-3 text-yellow-500" />
-                          <span className="text-xs font-medium">{roomData.hotel.rating}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Stay Details */}
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-2">
-                            <FontAwesomeIcon icon={faCalendar} className="w-4 h-4 text-gray-500" />
-                            <span className="text-sm text-gray-700">Dates</span>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium">{roomData.booking.checkIn}</p>
-                            <p className="text-xs text-gray-500">to {roomData.booking.checkOut}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-2">
-                            <FontAwesomeIcon icon={faUsers} className="w-4 h-4 text-gray-500" />
-                            <span className="text-sm text-gray-700">Guests</span>
-                          </div>
-                          <span className="text-sm font-medium">{roomData.booking.adults} adults</span>
-                        </div>
-                        
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-700">Nights</span>
-                          <span className="text-sm font-medium">{roomData.booking.nights} night</span>
-                        </div>
-                      </div>
-                    </div>
+                <div className="sticky top-28 space-y-6">
+                  {/* Summary Header */}
+                  <div className="bg-gradient-to-r from-blue-500 to-emerald-500 rounded-2xl p-6 text-white">
+                    <h3 className="text-xl font-bold mb-2">Booking Summary</h3>
+                    <p className="text-sm opacity-90">Booking ID: {bookingId}</p>
                   </div>
                   
-                  {/* Room Selected */}
-                  <div className="bg-white rounded-lg p-4 border">
-                    <div className="flex items-center justify-between mb-3">
-                      <h5 className="font-medium text-gray-800">Room Selected</h5>
-                      <span className="text-sm font-semibold text-emerald-600">
-                        {formatPrice(roomData.booking.price)}
-                      </span>
-                    </div>
-                    
-                    <div className="mb-3">
-                      <h6 className="font-semibold text-gray-900 text-sm mb-1">{roomData.room.title}</h6>
-                      <img 
-                        src={roomData.room.image} 
-                        alt={roomData.room.title}
-                        className="w-full h-32 object-cover rounded-md"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Size</span>
-                        <span className="font-medium">{roomData.room.size}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Beds</span>
-                        <span className="font-medium">{roomData.room.beds}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Max Guests</span>
-                        <span className="font-medium">{roomData.room.maxOccupancy}</span>
-                      </div>
-                      {roomData.room.rating && (
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">Room Rating</span>
-                          <div className="flex items-center gap-1">
-                            <FontAwesomeIcon icon={faStar} className="text-yellow-500 text-xs" />
-                            <span className="font-medium">{roomData.room.rating}</span>
-                            <span className="text-gray-500 text-xs">({roomData.room.reviewCount})</span>
+                  {/* Hotel Card */}
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="p-4">
+                      <div className="flex items-start gap-3">
+                        <img 
+                          src={roomData.hotel?.image} 
+                          alt={roomData.hotel?.name}
+                          className="w-16 h-16 object-cover rounded-lg"
+                        />
+                        <div className="flex-1">
+                          <h4 className="font-bold text-gray-900 text-sm">{roomData.hotel?.name}</h4>
+                          <div className="flex items-center gap-1 mt-1">
+                            <FontAwesomeIcon icon={faStar} className="text-yellow-400 text-xs" />
+                            <span className="text-xs font-medium">{roomData.hotel?.rating}</span>
+                            <span className="text-xs text-gray-500">• {getLocationString(roomData.hotel?.location)}</span>
                           </div>
                         </div>
-                      )}
-                    </div>
-                    
-                    {/* Room Features */}
-                    {roomData.room.features && roomData.room.features.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-gray-200">
-                        <p className="text-sm font-medium text-gray-700 mb-2">Room Features</p>
-                        <div className="flex flex-wrap gap-2">
-                          {roomData.room.features.slice(0, 4).map((feature, index) => (
-                            feature?.included && (
-                              <div key={index} className="flex items-center gap-1">
-                                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
-                                <span className="text-xs text-gray-600">{feature.name}</span>
-                              </div>
-                            )
-                          ))}
-                        </div>
                       </div>
-                    )}
-                  </div>
-                  
-                  {/* Breakfast & Benefits */}
-                  {(roomData.booking.breakfast || roomData.booking.benefits.length > 0) && (
-                    <div className="bg-white rounded-lg p-4 border">
-                      {roomData.booking.breakfast && (
-                        <div className="mb-3">
-                          <div className="flex items-center gap-2 mb-2">
-                            <FontAwesomeIcon icon={faUtensils} className="w-4 h-4 text-gray-500" />
-                            <span className="text-sm font-medium text-gray-700">Breakfast</span>
-                          </div>
-                          <p className="text-sm text-gray-600">{roomData.booking.breakfast}</p>
-                          {roomData.booking.breakfastPrice && (
-                            <p className="text-sm font-medium text-emerald-600 mt-1">
-                              {roomData.booking.breakfastPrice}
-                            </p>
-                          )}
-                        </div>
-                      )}
                       
-                      {roomData.booking.benefits.length > 0 && (
-                        <div className="pt-3 border-t border-gray-200">
-                          <p className="text-sm font-medium text-gray-700 mb-2">Benefits Included</p>
-                          <div className="space-y-2">
-                            {roomData.booking.benefits.map((benefit, index) => (
-                              <div key={index} className="flex items-center gap-2 text-sm">
-                                <FontAwesomeIcon icon={faCheck} className="text-emerald-500 text-xs" />
-                                <span className="text-gray-600">{benefit}</span>
-                              </div>
-                            ))}
-                          </div>
+                      <div className="mt-4 pt-4 border-t border-gray-100">
+                        <div className="flex justify-between items-center mb-3">
+                          <span className="text-sm text-gray-600">Room Type</span>
+                          <span className="text-sm font-semibold text-gray-900">{roomData.room?.title}</span>
                         </div>
-                      )}
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">Stay Duration</span>
+                          <span className="text-sm font-medium">{roomData.booking?.nights} night</span>
+                        </div>
+                      </div>
                     </div>
-                  )}
+                  </div>
                   
                   {/* Price Breakdown */}
-                  <div className="bg-white rounded-lg p-4 border">
-                    <h5 className="font-medium text-gray-800 mb-3">Price Breakdown</h5>
-                    
-                    <div className="space-y-3">
-                      <div className="space-y-2">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                    <div className="p-6">
+                      <h5 className="font-bold text-gray-900 mb-4">Price Breakdown</h5>
+                      
+                      <div className="space-y-3">
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Room x {roomData.booking.nights} night</span>
-                          <span className="font-medium">{formatPrice(roomData.booking.price)}</span>
+                          <span className="text-gray-600">Room x {roomData.booking?.nights} night</span>
+                          <span className="font-medium">{formatPrice(roomData.booking?.price)}</span>
                         </div>
                         
-                        {roomData.booking.breakfastPrice && (
+                        {roomData.booking?.breakfastPrice && (
                           <div className="flex justify-between text-sm">
                             <span className="text-gray-600">Breakfast</span>
                             <span className="font-medium">{roomData.booking.breakfastPrice}</span>
@@ -687,48 +677,57 @@ const HotelBooking = () => {
                           <span className="text-gray-600">Service fee</span>
                           <span className="font-medium">{formatPrice(serviceFee)}</span>
                         </div>
+                        
+                        {/* Discount */}
+                        {roomData.booking?.discount && (
+                          <div className="pt-3 border-t border-gray-200">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Discount</span>
+                              <span className="font-bold text-emerald-600">{roomData.booking.discount}</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       
-                      {/* Discount Section */}
-                      {roomData.booking.discount && (
-                        <div className="pt-2 border-t border-gray-200">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-400 line-through">
-                              Original price
-                            </span>
-                            <span className="text-gray-400 line-through">
-                              {formatPrice(roomData.booking.originalPrice)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm text-red-500 mt-1">
-                            <span>Discount</span>
-                            <span>{roomData.booking.discount}</span>
-                          </div>
-                        </div>
-                      )}
-                      
                       {/* Total */}
-                      <div className="pt-3 border-t border-gray-300">
+                      <div className="mt-4 pt-4 border-t border-gray-300">
                         <div className="flex justify-between items-center">
                           <span className="font-bold text-gray-900">Total Amount</span>
-                          <span className="text-xl font-bold text-emerald-600">
+                          <span className="text-2xl font-bold text-emerald-600">
                             {formatPrice(total)}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1 text-center">
-                          {selectedPayment === "hotel" ? "Pay at hotel" : "To be charged now"}
+                        <p className="text-xs text-gray-500 text-center mt-2">
+                          {selectedPayment === "hotel" ? "Pay at hotel upon arrival" : "Payment required now"}
                         </p>
                       </div>
                     </div>
                   </div>
                   
-                  {/* Booking Policies */}
+                  {/* Benefits Card */}
+                  <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-xl border border-emerald-100 p-5">
+                    <h6 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                      <FontAwesomeIcon icon={faConciergeBell} className="text-emerald-600" />
+                      What's Included
+                    </h6>
+                    <div className="space-y-2">
+                      {roomData.booking?.benefits?.map((benefit, index) => (
+                        <div key={index} className="flex items-center gap-2 text-sm">
+                          <FontAwesomeIcon icon={faCheck} className="text-emerald-500 text-xs" />
+                          <span className="text-gray-700">{benefit}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Guarantee */}
                   <div className="text-center">
-                    <p className="text-xs text-gray-500">
-                      <span className="font-medium">Free cancellation</span> up to 24 hours before check-in
-                    </p>
-                    <p className="text-xs text-gray-400 mt-2">
-                      You'll receive confirmation within minutes
+                    <div className="inline-flex items-center gap-2 text-sm text-gray-600">
+                      <FontAwesomeIcon icon={faShieldAlt} className="text-green-500" />
+                      <span className="font-medium">Best Price Guarantee</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Free cancellation up to 24 hours before check-in
                     </p>
                   </div>
                 </div>

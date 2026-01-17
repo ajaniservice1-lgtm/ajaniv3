@@ -11,9 +11,8 @@ import {
   MapPin, 
   Star,
   Bed,
-  Wifi,
-  Car,
-  Coffee
+  Coffee,
+  Shield
 } from "lucide-react";
 
 const PaymentPage = () => {
@@ -28,48 +27,23 @@ const PaymentPage = () => {
     cvv: ""
   });
   
-  const [bookingData, setBookingData] = useState({
-    hotel: {
-      name: "",
-      location: "",
-      rating: 4.5,
-      image: "",
-      category: ""
-    },
-    room: {
-      title: "",
-      image: "",
-      size: "",
-      beds: "",
-      maxOccupancy: 2,
-      features: [],
-      amenities: []
-    },
-    booking: {
-      checkIn: "",
-      checkOut: "",
-      adults: 2,
-      nights: 1,
-      price: 0,
-      originalPrice: 0,
-      discount: "",
-      breakfast: "",
-      breakfastPrice: "",
-      benefits: [],
-      totalPrice: 0
-    },
-    guestInfo: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      country: ""
-    }
-  });
-  
+  const [bookingData, setBookingData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [bookingId, setBookingId] = useState("");
 
   useEffect(() => {
+    // Generate booking ID
+    const generateBookingId = () => {
+      const prefix = "PAY-";
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let result = prefix;
+      for (let i = 0; i < 8; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    };
+    setBookingId(generateBookingId());
+
     const loadBookingData = () => {
       setLoading(true);
       
@@ -78,8 +52,7 @@ const PaymentPage = () => {
       // 1. First try to get from location state
       if (location.state?.bookingData) {
         console.log("📦 Got booking data from location state");
-        const data = location.state.bookingData;
-        processBookingData(data);
+        setBookingData(location.state.bookingData);
       } 
       // 2. Try from localStorage
       else {
@@ -89,21 +62,21 @@ const PaymentPage = () => {
           try {
             const parsedData = JSON.parse(savedData);
             console.log("📦 Got booking data from localStorage:", parsedData);
-            processBookingData(parsedData);
+            setBookingData(parsedData);
           } catch (error) {
             console.error("Failed to parse booking data:", error);
           }
         }
         
-        // Also try roomBookingData as fallback
-        const roomData = localStorage.getItem('roomBookingData');
-        if (roomData && !savedData) {
+        // Also try hotelBooking as fallback
+        const hotelData = localStorage.getItem('hotelBooking');
+        if (hotelData && !savedData) {
           try {
-            const parsedData = JSON.parse(roomData);
-            console.log("📦 Got booking data from roomBookingData:", parsedData);
-            processBookingData(parsedData);
+            const parsedData = JSON.parse(hotelData);
+            console.log("📦 Got booking data from hotelBooking:", parsedData);
+            setBookingData(parsedData);
           } catch (error) {
-            console.error("Failed to parse room booking data:", error);
+            console.error("Failed to parse hotel booking data:", error);
           }
         }
       }
@@ -117,53 +90,6 @@ const PaymentPage = () => {
       setLoading(false);
     };
 
-    const processBookingData = (data) => {
-      // Extract guest info from localStorage if available
-      const guestInfo = JSON.parse(localStorage.getItem('bookingData') || '{}');
-      
-      const processedData = {
-        hotel: {
-          name: data?.hotel?.name || data?.vendorData?.name || "Hotel",
-          location: data?.hotel?.location || data?.vendorData?.area || data?.vendorData?.location?.area || "Location",
-          rating: data?.hotel?.rating || data?.vendorData?.rating || 4.5,
-          image: data?.hotel?.image || data?.vendorData?.image || "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80",
-          category: data?.hotel?.category || data?.vendorData?.category || "Hotel"
-        },
-        room: {
-          title: data?.room?.title || data?.selectedRoom?.title || "Room",
-          image: data?.room?.image || data?.room?.mainImage || data?.selectedRoom?.image || "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80",
-          size: data?.room?.size || data?.selectedRoom?.size || "Not specified",
-          beds: data?.room?.beds || data?.selectedRoom?.beds || "Not specified",
-          maxOccupancy: data?.room?.maxOccupancy || data?.selectedRoom?.maxOccupancy || 2,
-          features: data?.room?.features || data?.selectedRoom?.features || [],
-          amenities: data?.room?.amenities || data?.selectedRoom?.amenities || []
-        },
-        booking: {
-          checkIn: data?.booking?.checkIn || "Sat, Jan 24",
-          checkOut: data?.booking?.checkOut || "Sun, Jan 25",
-          adults: data?.booking?.adults || data?.selectedOccupancy?.adults || 2,
-          nights: data?.booking?.nights || 1,
-          price: data?.booking?.price || data?.selectedOccupancy?.price || 0,
-          originalPrice: data?.booking?.originalPrice || data?.selectedOccupancy?.originalPrice || 0,
-          discount: data?.booking?.discount || data?.selectedOccupancy?.discount || "",
-          breakfast: data?.booking?.breakfast || data?.selectedOccupancy?.breakfast || "",
-          breakfastPrice: data?.booking?.breakfastPrice || data?.selectedOccupancy?.breakfastPrice || "",
-          benefits: data?.booking?.benefits || data?.selectedOccupancy?.benefits || [],
-          totalPrice: data?.booking?.totalPrice || data?.booking?.price || 0
-        },
-        guestInfo: {
-          firstName: guestInfo.firstName || "",
-          lastName: guestInfo.lastName || "",
-          email: guestInfo.email || "",
-          phone: guestInfo.phone || "",
-          country: guestInfo.country || ""
-        }
-      };
-      
-      console.log("✅ Processed booking data for payment page:", processedData);
-      setBookingData(processedData);
-    };
-
     loadBookingData();
   }, [location.state]);
 
@@ -175,6 +101,20 @@ const PaymentPage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
+    if (!bookingData) {
+      alert("No booking data found. Please start over.");
+      navigate('/');
+      return;
+    }
+
+    // Validate card details if card payment selected
+    if (paymentMethod === "card") {
+      if (!cardDetails.number || !cardDetails.name || !cardDetails.expiry || !cardDetails.cvv) {
+        alert("Please fill in all card details");
+        return;
+      }
+    }
+
     // Save payment details
     localStorage.setItem('paymentMethod', paymentMethod);
     
@@ -189,7 +129,7 @@ const PaymentPage = () => {
       cardDetails: paymentMethod === "card" ? cardDetails : null,
       paymentStatus: paymentMethod === "hotel" ? "pending" : "paid",
       paymentDate: new Date().toISOString(),
-      bookingId: 'AJ' + Date.now().toString().slice(-8),
+      bookingId: bookingId,
       status: "confirmed",
       timestamp: new Date().toISOString()
     };
@@ -197,8 +137,11 @@ const PaymentPage = () => {
     // Save complete booking
     localStorage.setItem('confirmedBooking', JSON.stringify(completeBooking));
     
+    // Determine booking type for confirmation page
+    const bookingType = bookingData.bookingType || 'hotel';
+    
     // Navigate to confirmation page
-    navigate('/booking/confirmation', { 
+    navigate(`/booking-confirmation/${bookingType}`, { 
       state: { 
         bookingData: completeBooking 
       } 
@@ -212,10 +155,16 @@ const PaymentPage = () => {
     return `₦${num.toLocaleString()}`;
   };
 
+  // Extract data from bookingData
+  const hotelData = bookingData?.hotelData || bookingData?.roomData?.hotel;
+  const roomData = bookingData?.roomData?.room;
+  const bookingDetails = bookingData?.roomData?.booking;
+  const guestInfo = bookingData || {};
+
   // Calculate totals
-  const roomPrice = bookingData.booking.price || 0;
-  const taxes = Math.round(roomPrice * 0.1); // 10% tax
-  const serviceFee = Math.round(roomPrice * 0.05); // 5% service fee
+  const roomPrice = bookingDetails?.price || 0;
+  const taxes = Math.round(roomPrice * 0.1);
+  const serviceFee = Math.round(roomPrice * 0.05);
   const total = roomPrice + taxes + serviceFee;
 
   if (loading) {
@@ -224,6 +173,27 @@ const PaymentPage = () => {
         <Header />
         <div className="flex justify-center items-center min-h-screen">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!bookingData) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-4xl mx-auto px-4 py-20">
+          <div className="bg-white rounded-xl p-8 text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">No Booking Data Found</h2>
+            <p className="text-gray-600 mb-6">Please start your booking again.</p>
+            <button
+              onClick={() => navigate('/')}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition"
+            >
+              Return Home
+            </button>
+          </div>
         </div>
         <Footer />
       </div>
@@ -255,7 +225,7 @@ const PaymentPage = () => {
                     Complete Payment
                   </h1>
                   <p className="text-gray-600 mt-2">
-                    Final step to confirm your booking at {bookingData.hotel.name}
+                    Final step to confirm your booking at {hotelData?.name || "the property"}
                   </p>
                 </div>
 
@@ -268,20 +238,20 @@ const PaymentPage = () => {
                     <div>
                       <p className="text-sm text-gray-500 mb-1">Lead Guest</p>
                       <p className="font-medium">
-                        {bookingData.guestInfo.firstName} {bookingData.guestInfo.lastName}
+                        {guestInfo.firstName} {guestInfo.lastName}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500 mb-1">Email</p>
-                      <p className="font-medium">{bookingData.guestInfo.email}</p>
+                      <p className="font-medium">{guestInfo.email}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500 mb-1">Phone</p>
-                      <p className="font-medium">{bookingData.guestInfo.phone}</p>
+                      <p className="font-medium">{guestInfo.phone}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500 mb-1">Country</p>
-                      <p className="font-medium">{bookingData.guestInfo.country}</p>
+                      <p className="font-medium">{guestInfo.country || "Nigeria"}</p>
                     </div>
                   </div>
                 </div>
@@ -308,7 +278,7 @@ const PaymentPage = () => {
                       <div className="flex items-center gap-3">
                         <Building className="w-6 h-6 text-gray-700" />
                         <div>
-                          <span className="font-medium text-gray-900">Pay at the hotel</span>
+                          <span className="font-medium text-gray-900">Pay at the property</span>
                           <p className="text-sm text-gray-500 mt-1">
                             No upfront payment required. Pay when you check-in.
                           </p>
@@ -346,7 +316,7 @@ const PaymentPage = () => {
                 {paymentMethod === "card" && (
                   <div className="mb-8">
                     <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                      Card DetailsDVSD
+                      Card Details
                     </h2>
                     <div className="bg-gray-50 rounded-xl p-6">
                       <div className="space-y-4">
@@ -361,7 +331,7 @@ const PaymentPage = () => {
                             onChange={handleCardInputChange}
                             placeholder="1234 5678 9012 3456"
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent cursor-pointer"
-                            required={paymentMethod === "card"}
+                            required
                           />
                         </div>
                         
@@ -376,7 +346,7 @@ const PaymentPage = () => {
                             onChange={handleCardInputChange}
                             placeholder="John Doe"
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent cursor-pointer"
-                            required={paymentMethod === "card"}
+                            required
                           />
                         </div>
                         
@@ -392,7 +362,7 @@ const PaymentPage = () => {
                               onChange={handleCardInputChange}
                               placeholder="MM/YY"
                               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent cursor-pointer"
-                              required={paymentMethod === "card"}
+                              required
                             />
                           </div>
                           
@@ -407,7 +377,7 @@ const PaymentPage = () => {
                               onChange={handleCardInputChange}
                               placeholder="123"
                               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent cursor-pointer"
-                              required={paymentMethod === "card"}
+                              required
                             />
                           </div>
                         </div>
@@ -415,6 +385,15 @@ const PaymentPage = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Security Badge */}
+                <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex items-center gap-3">
+                  <Shield className="w-6 h-6 text-emerald-600" />
+                  <div>
+                    <p className="font-medium text-emerald-800">Secure Payment</p>
+                    <p className="text-sm text-emerald-700">Your payment information is encrypted and secure</p>
+                  </div>
+                </div>
 
                 {/* Terms and Submit */}
                 <div>
@@ -452,7 +431,7 @@ const PaymentPage = () => {
                   </button>
                   
                   <p className="text-center text-gray-500 text-sm mt-3">
-                    Confirmation will be sent to {bookingData.guestInfo.email || "your email"}
+                    Confirmation will be sent to {guestInfo.email || "your email"}
                   </p>
                 </div>
               </div>
@@ -462,24 +441,23 @@ const PaymentPage = () => {
                 <div className="bg-gray-50 rounded-xl p-6 space-y-6 sticky top-24">
                   <h3 className="font-semibold text-gray-800">Booking Summary</h3>
                   
-                  {/* Hotel Summary */}
+                  {/* Property Summary */}
                   <div className="bg-white rounded-lg p-4 border">
                     <div className="flex items-start gap-3 mb-3">
                       <img 
-                        src={bookingData.hotel.image} 
-                        alt={bookingData.hotel.name}
+                        src={hotelData?.image} 
+                        alt={hotelData?.name}
                         className="w-16 h-16 object-cover rounded-md"
                       />
                       <div className="flex-1">
-                        <h4 className="font-bold text-gray-900 text-sm">{bookingData.hotel.name}</h4>
+                        <h4 className="font-bold text-gray-900 text-sm">{hotelData?.name}</h4>
                         <div className="flex items-center gap-1 mt-1">
                           <MapPin className="w-3 h-3 text-gray-500" />
-                          <p className="text-xs text-gray-500">{bookingData.hotel.location}</p>
+                          <p className="text-xs text-gray-500">{hotelData?.location || "Location"}</p>
                         </div>
                         <div className="flex items-center gap-1 mt-1">
                           <Star className="w-3 h-3 text-yellow-500 fill-current" />
-                          <span className="text-xs font-medium">{bookingData.hotel.rating}</span>
-                          <span className="text-xs text-gray-500 ml-1">• {bookingData.hotel.category}</span>
+                          <span className="text-xs font-medium">{hotelData?.rating || 4.5}</span>
                         </div>
                       </div>
                     </div>
@@ -493,8 +471,8 @@ const PaymentPage = () => {
                             <span className="text-sm text-gray-700">Dates</span>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm font-medium">{bookingData.booking.checkIn}</p>
-                            <p className="text-xs text-gray-500">to {bookingData.booking.checkOut}</p>
+                            <p className="text-sm font-medium">{bookingDetails?.checkIn || "Today"}</p>
+                            <p className="text-xs text-gray-500">to {bookingDetails?.checkOut || "Tomorrow"}</p>
                           </div>
                         </div>
                         
@@ -503,99 +481,50 @@ const PaymentPage = () => {
                             <Users className="w-4 h-4 text-gray-500" />
                             <span className="text-sm text-gray-700">Guests</span>
                           </div>
-                          <span className="text-sm font-medium">{bookingData.booking.adults} adults</span>
+                          <span className="text-sm font-medium">{bookingDetails?.adults || 2} adults</span>
                         </div>
                         
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-700">Nights</span>
-                          <span className="text-sm font-medium">{bookingData.booking.nights} night</span>
+                          <span className="text-sm font-medium">{bookingDetails?.nights || 1} night</span>
                         </div>
                       </div>
                     </div>
                   </div>
                   
                   {/* Room Details */}
-                  <div className="bg-white rounded-lg p-4 border">
-                    <div className="flex items-center justify-between mb-3">
-                      <h5 className="font-medium text-gray-800">Room</h5>
-                      <span className="text-sm font-semibold text-emerald-600">
-                        {formatPrice(bookingData.booking.price)}
-                      </span>
-                    </div>
-                    
-                    <div className="mb-3">
-                      <h6 className="font-semibold text-gray-900 text-sm mb-1">{bookingData.room.title}</h6>
-                      <img 
-                        src={bookingData.room.image} 
-                        alt={bookingData.room.title}
-                        className="w-full h-32 object-cover rounded-md"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Size</span>
-                        <span className="font-medium">{bookingData.room.size}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Beds</span>
-                        <span className="font-medium">{bookingData.room.beds}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Max Guests</span>
-                        <span className="font-medium">{bookingData.room.maxOccupancy}</span>
-                      </div>
-                    </div>
-                    
-                    {/* Room Features */}
-                    {bookingData.room.features.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-gray-200">
-                        <p className="text-sm font-medium text-gray-700 mb-2">Room Features</p>
-                        <div className="flex flex-wrap gap-2">
-                          {bookingData.room.features.slice(0, 4).map((feature, index) => (
-                            feature?.included && (
-                              <div key={index} className="flex items-center gap-1">
-                                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
-                                <span className="text-xs text-gray-600">{feature.name}</span>
-                              </div>
-                            )
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Breakfast & Benefits */}
-                  {(bookingData.booking.breakfast || bookingData.booking.benefits.length > 0) && (
+                  {roomData && (
                     <div className="bg-white rounded-lg p-4 border">
-                      {bookingData.booking.breakfast && (
-                        <div className="mb-3">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Coffee className="w-4 h-4 text-gray-500" />
-                            <span className="text-sm font-medium text-gray-700">Breakfast</span>
-                          </div>
-                          <p className="text-sm text-gray-600">{bookingData.booking.breakfast}</p>
-                          {bookingData.booking.breakfastPrice && (
-                            <p className="text-sm font-medium text-emerald-600 mt-1">
-                              {bookingData.booking.breakfastPrice}
-                            </p>
-                          )}
-                        </div>
-                      )}
+                      <div className="flex items-center justify-between mb-3">
+                        <h5 className="font-medium text-gray-800">Room</h5>
+                        <span className="text-sm font-semibold text-emerald-600">
+                          {formatPrice(bookingDetails?.price)}
+                        </span>
+                      </div>
                       
-                      {bookingData.booking.benefits.length > 0 && (
-                        <div className="pt-3 border-t border-gray-200">
-                          <p className="text-sm font-medium text-gray-700 mb-2">Benefits Included</p>
-                          <div className="space-y-2">
-                            {bookingData.booking.benefits.map((benefit, index) => (
-                              <div key={index} className="flex items-center gap-2 text-sm">
-                                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
-                                <span className="text-gray-600">{benefit}</span>
-                              </div>
-                            ))}
-                          </div>
+                      <div className="mb-3">
+                        <h6 className="font-semibold text-gray-900 text-sm mb-1">{roomData.title}</h6>
+                        <img 
+                          src={roomData.image} 
+                          alt={roomData.title}
+                          className="w-full h-32 object-cover rounded-md"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Size</span>
+                          <span className="font-medium">{roomData.size}</span>
                         </div>
-                      )}
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Beds</span>
+                          <span className="font-medium">{roomData.beds}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Max Guests</span>
+                          <span className="font-medium">{roomData.maxOccupancy}</span>
+                        </div>
+                      </div>
                     </div>
                   )}
                   
@@ -604,44 +533,42 @@ const PaymentPage = () => {
                     <h5 className="font-medium text-gray-800 mb-3">Price Breakdown</h5>
                     
                     <div className="space-y-3">
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Room x {bookingData.booking.nights} night</span>
-                          <span className="font-medium">{formatPrice(bookingData.booking.price)}</span>
-                        </div>
-                        
-                        {bookingData.booking.breakfastPrice && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Breakfast</span>
-                            <span className="font-medium">{bookingData.booking.breakfastPrice}</span>
-                          </div>
-                        )}
-                        
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Taxes & fees</span>
-                          <span className="font-medium">{formatPrice(taxes)}</span>
-                        </div>
-                        
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Service fee</span>
-                          <span className="font-medium">{formatPrice(serviceFee)}</span>
-                        </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Room x {bookingDetails?.nights || 1} night</span>
+                        <span className="font-medium">{formatPrice(bookingDetails?.price)}</span>
                       </div>
                       
-                      {/* Discount Section */}
-                      {bookingData.booking.discount && (
+                      {bookingDetails?.breakfastPrice && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Breakfast</span>
+                          <span className="font-medium">{bookingDetails.breakfastPrice}</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Taxes & fees</span>
+                        <span className="font-medium">{formatPrice(taxes)}</span>
+                      </div>
+                      
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Service fee</span>
+                        <span className="font-medium">{formatPrice(serviceFee)}</span>
+                      </div>
+                      
+                      {/* Discount */}
+                      {bookingDetails?.discount && (
                         <div className="pt-2 border-t border-gray-200">
                           <div className="flex justify-between text-sm">
                             <span className="text-gray-400 line-through">
                               Original price
                             </span>
                             <span className="text-gray-400 line-through">
-                              {formatPrice(bookingData.booking.originalPrice)}
+                              {formatPrice(bookingDetails.originalPrice)}
                             </span>
                           </div>
                           <div className="flex justify-between text-sm text-red-500 mt-1">
                             <span>Discount</span>
-                            <span>{bookingData.booking.discount}</span>
+                            <span>{bookingDetails.discount}</span>
                           </div>
                         </div>
                       )}
@@ -655,7 +582,7 @@ const PaymentPage = () => {
                           </span>
                         </div>
                         <p className="text-xs text-gray-500 mt-1 text-center">
-                          {paymentMethod === "hotel" ? "Pay at hotel" : "To be charged now"}
+                          {paymentMethod === "hotel" ? "Pay at property" : "To be charged now"}
                         </p>
                       </div>
                     </div>

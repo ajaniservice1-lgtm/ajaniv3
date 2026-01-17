@@ -1,3 +1,4 @@
+// src/pages/Booking/HotelBookingPage.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Stepper from "../../components/Stepper";
@@ -10,7 +11,7 @@ import {
   faCheck, faStar
 } from "@fortawesome/free-solid-svg-icons";
 
-const BookingPage = () => {
+const HotelBookingPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -73,7 +74,8 @@ const BookingPage = () => {
       paymentMethod: selectedPayment,
       roomData: roomData,
       bookingDate: new Date().toISOString(),
-      bookingId: 'AJ' + Date.now().toString().slice(-8)
+      bookingId: 'AJ' + Date.now().toString().slice(-8),
+      bookingType: 'hotel'
     };
 
     // Save complete booking data
@@ -137,7 +139,7 @@ const BookingPage = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <div className="pt-8">
+      <div className="md:pt-8 ">
         <div className="max-w-6xl mx-auto px-4 py-10">
           <Stepper currentStep={1} />
           
@@ -154,7 +156,7 @@ const BookingPage = () => {
               {/* Left Column - Form */}
               <div className="lg:col-span-2">
                 <h1 className="text-2xl font-bold text-gray-900 mb-8">
-                  Complete Your Bookingkkk
+                  Complete Your Hotel Booking
                 </h1>
 
                 {/* Hotel & Room Summary at Top */}
@@ -545,4 +547,4 @@ const BookingPage = () => {
   );
 };
 
-export default BookingPage;
+export default HotelBookingPage;

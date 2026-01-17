@@ -47,7 +47,7 @@ const BuyerProfilePage = lazy(() => import("./pages/BuyerProfilePage"));
 const VendorProfilePage = lazy(() => import("./pages/VendorProfilePage"));
 
 /* =======================
-   BOOKING PAGES - UPDATED FOR CATEGORY-BASED FLOW
+   BOOKING PAGES
 ======================= */
 const BookingRouter = lazy(() => import("./pages/Booking/BookingRouter"));
 const HotelBooking = lazy(() => import("./pages/Booking/HotelBooking"));
@@ -294,8 +294,7 @@ function App() {
                   <Route path="/category/:category" element={<MainLayout><CategoryResults /></MainLayout>} />
                   <Route path="/search-results" element={<MainLayout><SearchResults /></MainLayout>} />
 
-                  {/* BOOKING ROUTES - CATEGORY-BASED FLOW */}
-                  {/* Main booking router - handles all categories */}
+                  {/* BOOKING ROUTES */}
                   <Route 
                     path="/booking" 
                     element={
@@ -305,33 +304,6 @@ function App() {
                     } 
                   />
                   
-                  {/* Direct booking routes for specific categories (optional) */}
-                  <Route 
-                    path="/booking/hotel" 
-                    element={
-                      <ProtectedRoute>
-                        <MainLayout><HotelBooking /></MainLayout>
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/booking/restaurant" 
-                    element={
-                      <ProtectedRoute>
-                        <MainLayout><RestaurantBooking /></MainLayout>
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/booking/shortlet" 
-                    element={
-                      <ProtectedRoute>
-                        <MainLayout><ShortletBooking /></MainLayout>
-                      </ProtectedRoute>
-                    } 
-                  />
-                  
-                  {/* Hotel payment page (only for hotels) */}
                   <Route 
                     path="/booking/payment" 
                     element={
@@ -341,7 +313,6 @@ function App() {
                     } 
                   />
                   
-                  {/* Unified confirmation page for all booking types */}
                   <Route 
                     path="/booking-confirmation/:type?" 
                     element={
@@ -490,12 +461,9 @@ function App() {
                   <Route
                     path="/admincpanel"
                     element={
-                      // Removed AdminRoute wrapper - now public
                       <Overview />
                     }
-                  >
-                    {/* <Route index element={<Overview />} /> */}
-                  </Route>
+                  />
 
                   {/* 404 ROUTE */}
                   <Route
