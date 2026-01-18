@@ -318,7 +318,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
     const toast = document.createElement("div");
     toast.id = "toast-notification";
     toast.className = `fixed z-[9999] px-4 py-3 rounded-lg shadow-sm border ${
-      type === "success" ? "bg-green-50 border-green-200 text-green-800" : "bg-blue-50 border-blue-200 text-blue-800"
+      type === "success" ? "bg-gray-100 border-gray-100 text-gray-900" : "bg-gray-100 border-gray-100 text-gray-900"
     }`;
 
     toast.style.top = "15px";
