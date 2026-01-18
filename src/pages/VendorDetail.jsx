@@ -301,22 +301,6 @@ const VendorListingCard = ({ listing, onClick }) => {
   );
 };
 
-// SmallImage Component for Gallery
-const SmallImage = ({ src, onClick }) => {
-  return (
-    <div 
-      onClick={onClick}
-      className="overflow-hidden cursor-pointer rounded-lg"
-    >
-      <img
-        src={src}
-        className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-        alt="Gallery thumbnail"
-      />
-    </div>
-  );
-};
-
 // StarRating Component
 const StarRating = ({ rating, onRatingChange = null, interactive = false, size = "sm" }) => {
   const [hoverRating, setHoverRating] = useState(0);
@@ -626,6 +610,16 @@ const VendorDetail = () => {
       fetchVendorListings();
     }
   }, [vendor, id]);
+
+  // Handle body scroll lock for gallery
+  useEffect(() => {
+    if (galleryOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => (document.body.style.overflow = "");
+  }, [galleryOpen]);
 
   const formatPrice = (price) => {
     if (!price) return "₦ --";
@@ -1182,6 +1176,16 @@ const VendorDetail = () => {
     return filledImages.slice(0, 5);
   };
 
+  // Gallery Functions
+  const handleOpenGallery = () => {
+    setGalleryOpen(true);
+  };
+
+  const handleCloseGallery = () => {
+    setGalleryOpen(false);
+    setSingleImageView(false);
+  };
+
   // Gallery navigation functions
   const nextImage = () => {
     const galleryImages = getGalleryImages();
@@ -1214,23 +1218,6 @@ const VendorDetail = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [galleryOpen, singleImageView]);
-
-  // Handle image click in gallery
-  const handleImageClick = (index) => {
-    setCurrentImageIndex(index);
-    setSingleImageView(true);
-  };
-
-  // Handle back from single image view
-  const handleSingleImageBack = () => {
-    setSingleImageView(false);
-  };
-
-  // Handle close gallery
-  const handleCloseGallery = () => {
-    setGalleryOpen(false);
-    setSingleImageView(false);
-  };
 
   if (loading) {
     return (
@@ -1319,6 +1306,26 @@ const VendorDetail = () => {
           }
         }
         
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        
+        @keyframes zoomIn {
+          from {
+            opacity: 0;
+            transform: scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        
         .highlight-section {
           animation: highlightPulse 1.5s ease-in-out;
           border-radius: 1rem;
@@ -1367,6 +1374,18 @@ const VendorDetail = () => {
           .highlight-section {
             animation: highlightPulse 1s ease-in-out;
           }
+        }
+        
+        .gallery-modal {
+          animation: fadeIn 0.3s ease-out;
+        }
+        
+        .single-image-view {
+          animation: zoomIn 0.3s ease-out;
+        }
+        
+        .gallery-image-transition {
+          transition: transform 0.3s ease-out;
         }
       `}</style>
       
@@ -1550,7 +1569,7 @@ const VendorDetail = () => {
             </div>
 
             {/* ================= IMAGE GALLERY SECTION ================= */}
-            {/* Desktop Gallery Layout */}
+            {/* Desktop Gallery Layout - Keep your existing grid layout */}
             <section className="hidden lg:block px-4">
               <div className="relative grid grid-cols-4 grid-rows-2 gap-3 h-[340px] overflow-hidden rounded-xl">
                 {/* LEFT TOP */}
@@ -1630,7 +1649,7 @@ const VendorDetail = () => {
 
                 {/* View all photos button */}
                 <button
-                  onClick={() => setGalleryOpen(true)}
+                  onClick={handleOpenGallery}
                   className="absolute bottom-4 right-4 bg-white text-sm font-medium px-4 py-2 rounded-lg shadow hover:bg-gray-100 transition-colors cursor-pointer"
                 >
                   View all photos
@@ -1638,49 +1657,73 @@ const VendorDetail = () => {
               </div>
             </section>
 
-            {/* Mobile Gallery Layout */}
-            <section className="lg:hidden px-4">
-              <div className="space-y-3">
-                {/* Main image */}
-                <div 
-                  onClick={() => {
-                    setCurrentImageIndex(2);
-                    setGalleryOpen(true);
-                  }} 
-                  className="cursor-pointer relative"
-                >
-                  <img
-                    src={galleryImages[2]}
-                    className="w-full h-56 object-cover rounded-lg"
-                    alt="Main image"
-                  />
-                  {/* View all overlay */}
-                  <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm">
-                    View all photos
-                  </div>
-                </div>
+           {/* Mobile Gallery Layout */}
+<section className="lg:hidden px-4">
+  <div className="relative w-full">
+    {/* Main Image - Reduced height from 280px to 220px */}
+    <div className="relative rounded-xl overflow-hidden mb-3">
+      <img
+        src={galleryImages[currentImageIndex]}
+        alt="Main gallery"
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        className="w-full h-[220px] object-cover rounded-xl"  // Changed from h-[280px]
+        onClick={handleOpenGallery}
+      />
+      
+      {/* Overlay button showing total photos */}
+      <button
+        onClick={handleOpenGallery}
+        className="absolute bottom-3 right-3 bg-black/70 text-white text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm flex items-center gap-1"
+      >
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+        </svg>
+        {galleryImages.length} Photos
+      </button>
+    </div>
 
-                {/* Thumbnails */}
-                <div className="flex gap-2 px-1 overflow-x-auto pb-2">
-                  {galleryImages.map((img, i) => (
-                    <div
-                      key={i}
-                      onClick={() => {
-                        setCurrentImageIndex(i);
-                        setGalleryOpen(true);
-                      }}
-                      className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                    >
-                      <img
-                        src={img}
-                        className="w-full h-full object-cover"
-                        alt={`Thumbnail ${i + 1}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
+    {/* Thumbnails Grid - Reduced height from h-20 (5rem/80px) to h-16 (4rem/64px) */}
+    <div className="grid grid-cols-4 gap-2 px-1">
+      {galleryImages.slice(0, 4).map((img, index) => (
+        <button
+          key={index}
+          onClick={() => setCurrentImageIndex(index)}
+          className={`relative rounded-lg overflow-hidden border-2 transition-all duration-200 cursor-pointer ${
+            currentImageIndex === index
+              ? "border-[#06EAFC] shadow-md"
+              : "border-gray-200 hover:border-gray-300"
+          }`}
+        >
+          <img
+            src={img}
+            alt={`Thumbnail ${index + 1}`}
+            className="w-full h-16 object-cover hover:scale-105 transition-transform duration-200"  // Changed from h-20
+          />
+          {/* Active indicator */}
+          {currentImageIndex === index && (
+            <div className="absolute inset-0 bg-[#06EAFC]/10 border-2 border-[#06EAFC] rounded-lg"></div>
+          )}
+        </button>
+      ))}
+    </div>
+
+    {/* Show all photos link if there are more than 4 */}
+    {galleryImages.length > 4 && (
+      <div className="mt-2 text-center">  {/* Reduced margin from mt-3 to mt-2 */}
+        <button
+          onClick={handleOpenGallery}
+          className="text-[#06EAFC] text-sm font-medium flex items-center justify-center gap-1 mx-auto hover:text-[#05d9eb] transition-colors cursor-pointer"
+        >
+          <span>View all {galleryImages.length} photos</span>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+    )}
+  </div>
+</section>
 
             {/* Price Range */}
             <div className="px-2">
@@ -2182,6 +2225,88 @@ const VendorDetail = () => {
           </div>
         </div>
       </main>
+      
+      {/* FULL SCREEN GALLERY MODAL */}
+      {galleryOpen && (
+        <div className="fixed inset-0 z-[9999] bg-black text-white gallery-modal">
+          {/* MODAL HEADER */}
+          <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-black border-b border-white/20">
+            <span className="text-sm font-medium">
+              {galleryImages.length} Photos
+            </span>
+            <button
+              onClick={handleCloseGallery}
+              className="text-2xl leading-none p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* SCROLLABLE CONTENT */}
+          <div className="h-[calc(100vh-56px)] overflow-y-auto">
+            {galleryImages.map((img, index) => (
+              <div key={index} className="mb-2">
+                <img
+                  src={img}
+                  alt={`gallery-${index}`}
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  className="w-full object-cover"
+                  onClick={() => {
+                    setCurrentImageIndex(index);
+                    setSingleImageView(true);
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* SINGLE IMAGE VIEW MODAL */}
+      {singleImageView && (
+        <div className="fixed inset-0 z-[99999] bg-black single-image-view">
+          <div className="relative w-full h-full flex items-center justify-center">
+            {/* Close Button */}
+            <button
+              onClick={() => setSingleImageView(false)}
+              className="absolute top-4 right-4 z-20 text-white text-3xl p-2 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
+            >
+              ✕
+            </button>
+            
+            {/* Previous Button */}
+            <button
+              onClick={prevImage}
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 z-20 text-white text-2xl p-3 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
+            >
+              <FontAwesomeIcon icon={faChevronLeft} />
+            </button>
+            
+            {/* Next Button */}
+            <button
+              onClick={nextImage}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 z-20 text-white text-2xl p-3 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
+            >
+              <FontAwesomeIcon icon={faChevronRight} />
+            </button>
+            
+            {/* Image Counter */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 text-white bg-black/50 px-4 py-2 rounded-full text-sm">
+              {currentImageIndex + 1} / {galleryImages.length}
+            </div>
+            
+            {/* Current Image */}
+            <div className="w-full h-full flex items-center justify-center p-4">
+              <img
+                src={galleryImages[currentImageIndex]}
+                alt={`gallery-${currentImageIndex}`}
+                className="max-w-full max-h-full object-contain gallery-image-transition"
+              />
+            </div>
+          </div>
+        </div>
+      )}
       
       <Footer />
     </div>
