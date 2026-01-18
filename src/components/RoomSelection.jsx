@@ -1,58 +1,87 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faCheck, faTimes, faWifi, faTv, faCoffee, 
-  faSnowflake, faBath, faCar, faUtensils, faBed,
-  faUser, faCalendar, faDoorClosed, faExpand,
-  faRuler, faUsers, faClock, faStar,
-  faShower, faWind, faConciergeBell, faParking,
-  faMapMarkerAlt, faChevronLeft, faChevronRight,
-  faXmark
-} from '@fortawesome/free-solid-svg-icons';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faCheck,
+  faChevronLeft,
+  faChevronRight,
+  faStar,
+  faMapMarkerAlt,
+  faXmark,
+  faWifi,
+  faTv,
+  faCoffee,
+  faSnowflake,
+  faBath,
+  faCar,
+  faUtensils,
+  faBed,
+  faDoorClosed,
+  faExpand,
+  faRuler,
+  faUsers,
+  faClock,
+  faShower,
+  faConciergeBell,
+  faParking,
+} from "@fortawesome/free-solid-svg-icons";
 
-const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBookNow }) => {
-  const [selectedRoom, setSelectedRoom] = useState(null);
-  const [selectedOccupancy, setSelectedOccupancy] = useState(null);
+/* ---------------- HELPERS ---------------- */
+
+const formatPrice = (price) => {
+  if (!price) return "₦ --";
+  const num = parseInt(price.toString().replace(/[^\d]/g, ""));
+  return `₦${num.toLocaleString()}`;
+};
+
+const getBestOccupancy = (room) => {
+  if (!room?.occupancy?.length) return null;
+  return [...room.occupancy]
+    .filter((o) => o.isAvailable)
+    .sort((a, b) => a.price - b.price)[0];
+};
+
+// Helper to format location
+const formatLocation = (locationData) => {
+  if (!locationData) return "Location not specified";
+  
+  // If it's a string, return it
+  if (typeof locationData === 'string') return locationData;
+  
+  // If it's an object
+  if (typeof locationData === 'object') {
+    if (locationData.area) return locationData.area;
+    if (locationData.address) return locationData.address;
+    if (locationData.name) return locationData.name;
+    
+    // Handle geolocation object
+    if (locationData.geolocation) {
+      if (typeof locationData.geolocation === 'object') {
+        return `${locationData.geolocation.lat}, ${locationData.geolocation.lng}`;
+      }
+      return locationData.geolocation;
+    }
+  }
+  
+  return "Location not specified";
+};
+
+/* ---------------- COMPONENT ---------------- */
+
+const RoomSelection = ({ vendorData, category = "hotel" }) => {
+  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [modalRoom, setModalRoom] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showFullscreenGallery, setShowFullscreenGallery] = useState(false);
   const [fullscreenGalleryIndex, setFullscreenGalleryIndex] = useState(0);
-  const navigate = useNavigate();
-  
-  // Handle location object properly
-  const getLocationString = (locationData) => {
-    if (!locationData) return 'Location not specified';
-    
-    if (typeof locationData === 'string') return locationData;
-    
-    if (typeof locationData === 'object') {
-      if (locationData.area) return locationData.area;
-      if (locationData.address) return locationData.address;
-      if (locationData.geolocation) {
-        if (typeof locationData.geolocation === 'object') {
-          return `${locationData.geolocation.lat}, ${locationData.geolocation.lng}`;
-        }
-        return locationData.geolocation;
-      }
-    }
-    
-    return 'Location not specified';
-  };
 
-  // Vendor/Hotel Information
-  const hotelInfo = {
-    name: vendorData?.name || vendorData?.title || 'Hotel',
-    location: getLocationString(vendorData?.location || vendorData?.area),
-    rating: vendorData?.rating || 4.78,
-    description: vendorData?.description || 'Premium hotel with excellent amenities and services',
-    image: vendorData?.image || vendorData?.images?.[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80',
-    id: vendorData?.id || vendorData?._id || 'vendor-' + Date.now(),
-    category: vendorData?.category || 'hotel'
-  };
+  if (category !== "hotel") return null;
 
-  // All room types with complete details
+  // Get formatted location
+  const vendorLocation = formatLocation(vendorData?.location);
+
+  /* ---------------- ROOM DATA ---------------- */
   const roomTypes = [
     {
       id: 'room-1',
@@ -169,7 +198,6 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
       ],
       features: [
         { name: 'Free WiFi', included: true, icon: faWifi },
-        { name: 'Non first floor', included: false, icon: faTimes },
         { name: 'Cable channel', included: true, icon: faTv },
         { name: 'Free Breakfast', included: true, icon: faCoffee },
         { name: 'Air Conditioning', included: true, icon: faSnowflake },
@@ -246,7 +274,6 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
       ],
       features: [
         { name: 'WiFi', included: true, icon: faWifi },
-        { name: 'Non first floor', included: true, icon: faCheck },
         { name: 'Cable channel', included: true, icon: faTv },
         { name: 'Room Service', included: true, icon: faUtensils },
         { name: 'Parking', included: true, icon: faCar },
@@ -282,82 +309,19 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
     }
   ];
 
-  const formatPrice = (price) => {
-    if (!price) return "₦ --";
-    const num = parseInt(price.toString().replace(/[^\d]/g, ""));
-    if (isNaN(num)) return "₦ --";
-    return `₦${num.toLocaleString()}`;
+  /* ---------------- ACTIONS ---------------- */
+
+  const openModal = (room) => {
+    setModalRoom(room);
+    setCurrentImageIndex(0);
+    setShowModal(true);
+    document.body.style.overflow = "hidden";
   };
 
-  // Handle Book Now
-  const handleBookNow = (room, occupancyOption) => {
-    const bookingData = {
-      hotel: {
-        id: hotelInfo.id,
-        name: hotelInfo.name,
-        location: hotelInfo.location,
-        rating: hotelInfo.rating,
-        image: hotelInfo.image,
-        mainImage: hotelInfo.image,
-        description: hotelInfo.description,
-        category: hotelInfo.category
-      },
-      
-      room: {
-        id: room.id,
-        title: room.title,
-        name: room.name,
-        description: room.description,
-        mainImage: room.mainImage || room.image,
-        image: room.image,
-        images: room.images || [],
-        size: room.size,
-        beds: room.beds,
-        maxOccupancy: room.maxOccupancy,
-        rating: room.rating,
-        reviewCount: room.reviewCount,
-        specifications: room.specifications,
-        amenities: room.amenitiesList,
-        features: room.features
-      },
-      
-      booking: {
-        occupancy: occupancyOption.adults,
-        adults: parseInt(occupancyOption.adults) || 2,
-        price: occupancyOption.price,
-        originalPrice: occupancyOption.originalPrice,
-        discount: occupancyOption.discount,
-        breakfast: occupancyOption.breakfast,
-        breakfastPrice: occupancyOption.breakfastPrice,
-        benefits: occupancyOption.benefits,
-        checkIn: "Sat, Jan 24",
-        checkOut: "Sun, Jan 25",
-        checkInTime: "15:00",
-        nights: 1,
-        totalPrice: occupancyOption.price,
-        perNight: occupancyOption.price,
-        taxes: Math.round(occupancyOption.price * 0.1),
-        serviceFee: Math.round(occupancyOption.price * 0.05),
-        finalTotal: Math.round(occupancyOption.price * 1.15)
-      },
-      
-      timestamp: new Date().toISOString(),
-      bookingId: 'AJ' + Date.now().toString().slice(-8)
-    };
-
-    localStorage.setItem('roomBookingData', JSON.stringify(bookingData));
-    sessionStorage.setItem('roomBookingData', JSON.stringify(bookingData));
-    localStorage.setItem('currentBooking', JSON.stringify(bookingData));
-    
-    if (onRoomBookNow) {
-      onRoomBookNow(bookingData);
-    }
-    
-    navigate('/booking', { 
-      state: { 
-        bookingData: bookingData 
-      }
-    });
+  const closeModal = () => {
+    setShowModal(false);
+    setModalRoom(null);
+    document.body.style.overflow = "auto";
   };
 
   // Open fullscreen gallery
@@ -365,58 +329,7 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
     setModalRoom(room);
     setFullscreenGalleryIndex(index);
     setShowFullscreenGallery(true);
-    document.body.style.overflow = 'hidden';
-  };
-
-  // Open details modal (your original modal)
-  const handleViewDetails = (room) => {
-    setModalRoom(room);
-    setCurrentImageIndex(0);
-    setShowModal(true);
-    document.body.style.overflow = 'hidden';
-  };
-
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setModalRoom(null);
-    setCurrentImageIndex(0);
-    document.body.style.overflow = 'auto';
-  };
-
-  const handlePrevImage = (modalType = 'fullscreen') => {
-    if (modalRoom && modalRoom.images) {
-      if (modalType === 'fullscreen') {
-        setFullscreenGalleryIndex((prev) => 
-          (prev - 1 + modalRoom.images.length) % modalRoom.images.length
-        );
-      } else {
-        setCurrentImageIndex((prev) => 
-          (prev - 1 + modalRoom.images.length) % modalRoom.images.length
-        );
-      }
-    }
-  };
-
-  const handleNextImage = (modalType = 'fullscreen') => {
-    if (modalRoom && modalRoom.images) {
-      if (modalType === 'fullscreen') {
-        setFullscreenGalleryIndex((prev) => 
-          (prev + 1) % modalRoom.images.length
-        );
-      } else {
-        setCurrentImageIndex((prev) => 
-          (prev + 1) % modalRoom.images.length
-        );
-      }
-    }
-  };
-
-  const handleSelectRoom = (room, occupancy) => {
-    setSelectedRoom(room);
-    setSelectedOccupancy(occupancy);
-    if (onRoomSelect) {
-      onRoomSelect({ room, occupancy });
-    }
+    document.body.style.overflow = "hidden";
   };
 
   // Close fullscreen gallery
@@ -424,118 +337,129 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
     setShowFullscreenGallery(false);
     setModalRoom(null);
     setFullscreenGalleryIndex(0);
-    document.body.style.overflow = 'auto';
+    document.body.style.overflow = "auto";
+  };
+
+  // Navigate gallery
+  const handlePrevImage = (modalType = "fullscreen") => {
+    if (modalRoom && modalRoom.images) {
+      if (modalType === "fullscreen") {
+        setFullscreenGalleryIndex((prev) => 
+          (prev - 1 + modalRoom.images.length) % modalRoom.images.length
+        );
+      } else {
+        setCurrentImageIndex((prev) => 
+          (prev - 1 + modalRoom.images.length) % modalRoom.images.length
+        );
+      }
+    }
+  };
+
+  const handleNextImage = (modalType = "fullscreen") => {
+    if (modalRoom && modalRoom.images) {
+      if (modalType === "fullscreen") {
+        setFullscreenGalleryIndex((prev) => 
+          (prev + 1) % modalRoom.images.length
+        );
+      } else {
+        setCurrentImageIndex((prev) => 
+          (prev + 1) % modalRoom.images.length
+        );
+      }
+    }
+  };
+
+  const handleBookNow = (room, option) => {
+    const bookingData = {
+      room,
+      booking: option,
+      vendor: vendorData,
+    };
+
+    localStorage.setItem("roomBookingData", JSON.stringify(bookingData));
+    navigate("/booking", { state: bookingData });
   };
 
   // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (showFullscreenGallery) {
-        if (e.key === 'Escape') {
+        if (e.key === "Escape") {
           closeFullscreenGallery();
-        } else if (e.key === 'ArrowLeft') {
-          handlePrevImage('fullscreen');
-        } else if (e.key === 'ArrowRight') {
-          handleNextImage('fullscreen');
+        } else if (e.key === "ArrowLeft") {
+          handlePrevImage("fullscreen");
+        } else if (e.key === "ArrowRight") {
+          handleNextImage("fullscreen");
         }
       } else if (showModal) {
-        if (e.key === 'Escape') {
-          handleCloseModal();
-        } else if (e.key === 'ArrowLeft') {
-          handlePrevImage('details');
-        } else if (e.key === 'ArrowRight') {
-          handleNextImage('details');
+        if (e.key === "Escape") {
+          closeModal();
+        } else if (e.key === "ArrowLeft") {
+          handlePrevImage("details");
+        } else if (e.key === "ArrowRight") {
+          handleNextImage("details");
         }
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [showFullscreenGallery, showModal]);
 
-  // Don't render if category is not hotel
-  if (category !== 'hotel') {
-    return null;
-  }
+  /* ---------------- RENDER ---------------- */
 
   return (
-    <div className="w-full bg-white md:max-w-[1250px] md:mx-auto">
-      <div className="sm:px-6 lg:px-4 py-6">
-        <h2 className="text-lg md:text-xl font-bold text-[#00065A] mb-6">
-          Select Your Room
-        </h2>
-        
-        {/* Room List */}
-        <div className="space-y-6">
-          {roomTypes.map((room) => (
-            <div 
+    <div className="max-w-[1250px] mx-auto px-2 py-6">
+      <h2 className="text-xl font-bold text-[#00065A] mb-6">
+        Select Your Room
+      </h2>
+
+      {/* ROOM LIST */}
+      <div className="space-y-6">
+        {roomTypes.map((room) => {
+          const bestOption = getBestOccupancy(room);
+
+          return (
+            <div
               key={room.id}
-              className={`border rounded-xl p-4 sm:p-6 transition-all duration-300 ${
-                selectedRoom?.id === room.id 
-                  ? 'border-[#06EAFC] bg-blue-50' 
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
+              className="border border-gray-200 rounded-xl p-2.5 lg:p-6  transition"
             >
-              {/* Main layout - Left card + Right options */}
-              <div className="flex flex-col lg:flex-row lg:items-stretch gap-6">
-                
-                {/* LEFT ROOM CARD */}
-                <div className="lg:w-[270px] bg-[#f5f5f5] rounded-lg p-3 flex-shrink-0">
-                  {/* Main Big Image - Click to open fullscreen */}
+              <div className="flex flex-col lg:flex-row gap-6">
+                {/* LEFT CARD */}
+                <div className="lg:w-[280px] flex-shrink-0">
                   <div className="relative">
                     <img
                       src={room.image}
                       alt={room.title}
-                      className="w-full h-48 object-cover rounded-md cursor-pointer mb-3 hover:opacity-90 transition-opacity"
                       onClick={() => openFullscreenGallery(room, 0)}
+                      className="w-full h-48 rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
                     />
                     {/* Image count badge */}
                     <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
-                      {room.images?.length || 1} photos
+                      {room.images?.length || 1} photos available, click to view
                     </div>
                   </div>
 
-                  {/* Small Images Row */}
-                  <div className="grid grid-cols-3 gap-2 mb-4">
-                    {room.subImages?.map((img, index) => (
-                      <div 
-                        key={index} 
-                        className="h-16 rounded overflow-hidden cursor-pointer hover:opacity-80 transition-opacity relative group"
-                        onClick={() => openFullscreenGallery(room, index + 1)}
-                      >
-                        <img 
-                          src={img} 
-                          alt={`${room.title} view ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                        {/* Hover overlay */}
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200"></div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Room Title */}
-                  <h3 className="font-semibold text-lg text-gray-900">
+                  <h3 className="font-semibold text-lg mt-3">
                     {room.title}
                   </h3>
 
-                  {/* Rating */}
                   <div className="flex items-center gap-1 text-sm mt-1">
-                    <FontAwesomeIcon icon={faStar} className="text-[#ffc802]" />
-                    <span className="font-medium">{room.rating}</span>
-                    <span className="text-gray-500">({room.reviewCount})</span>
+                    <FontAwesomeIcon icon={faStar} className="text-yellow-400" />
+                    <span>{room.rating}</span>
+                    <span className="text-gray-500">
+                      ({room.reviewCount})
+                    </span>
                   </div>
 
-                  {/* Location display */}
                   <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
-                    <FontAwesomeIcon icon={faMapMarkerAlt} className="text-black" />
-                    <span>{hotelInfo.location}</span>
+                    <FontAwesomeIcon icon={faMapMarkerAlt} />
+                    <span>{vendorLocation}</span>
                   </div>
 
-                  {/* Preview Room Button */}
                   <button
-                    onClick={() => handleViewDetails(room)}
-                    className="mt-3 bg-[#06f49f] text-sm px-3 py-1.5 rounded-md w-full transition-colors cursor-pointer hover:bg-[#06e495]"
+                    onClick={() => openModal(room)}
+                    className="mt-3 w-full bg-[#06f49f] py-2 rounded-md text-sm font-medium hover:bg-[#06e495] transition-colors"
                   >
                     Preview Room
                   </button>
@@ -543,344 +467,221 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
 
                 {/* RIGHT OPTIONS */}
                 <div className="flex-1 space-y-4">
-                  {room.occupancy.map((option, index) => (
+                  {room.occupancy.map((option) => (
                     <div
                       key={option.id}
-                      className={`bg-[#f5f5f5] rounded-lg p-4 ${
-                        index < room.occupancy.length - 1 ? 'mb-4' : ''
-                      }`}
+                      className="bg-gray-50 rounded-lg p-4 flex flex-col lg:flex-row justify-between gap-4"
                     >
-                      {/* Mobile Layout */}
-                      <div className="lg:hidden">
-                        {/* Header with adults and breakfast */}
-                        <div className="mb-4">
-                          <p className="font-semibold text-gray-900 text-base mb-1">{option.adults}</p>
-                          <p className="text-sm text-gray-600">
-                            {option.breakfast} ({option.breakfastPrice})
-                          </p>
-                        </div>
+                      <div className="flex-1">
+                        <p className="font-semibold">{option.adults}</p>
+                        <p className="text-sm text-gray-600">
+                          {option.breakfast} ({option.breakfastPrice})
+                        </p>
 
-                        {/* Benefits with checkmarks */}
-                        <div className="space-y-2 mb-4">
-                          {option.benefits.map((benefit, idx) => (
-                            <div key={idx} className="flex items-center gap-3">
-                              <FontAwesomeIcon 
-                                icon={faCheck} 
-                                className={`text-xs ${benefit.includes('Pay at hotel') ? 'text-green-500' : 'text-gray-400'}`} 
+                        <div className="mt-2 space-y-1">
+                          {option.benefits.map((b, i) => (
+                            <div
+                              key={i}
+                              className="flex items-center gap-2 text-sm"
+                            >
+                              <FontAwesomeIcon
+                                icon={faCheck}
+                                className="text-green-500 text-xs"
                               />
-                              <span className="text-sm text-gray-700">{benefit}</span>
+                              {b}
                             </div>
                           ))}
                         </div>
-
-                        {/* Price and Availability Section */}
-                        <div className="border-t pt-4">
-                          <div className="flex items-start justify-between mb-3">
-                            {/* Left side: Price info */}
-                            <div>
-                              <div className="text-sm text-gray-400 line-through mb-1">
-                                {formatPrice(option.originalPrice)}
-                              </div>
-                              <div className="text-xs font-medium text-red-500 mb-2">
-                                {option.discount}
-                              </div>
-                              <div className="text-xl font-bold text-gray-900 mb-1">
-                                {formatPrice(option.price)}
-                              </div>
-                              <p className="text-xs text-gray-500">
-                                Per night before taxes
-                              </p>
-                            </div>
-                            
-                            {/* Right side: Availability */}
-                            <div className="text-right">
-                              {option.isAvailable ? (
-                                <span className="inline-block text-sm text-green-700 font-medium">
-                                  Available
-                                </span>
-                              ) : (
-                                <span className="inline-block text-sm text-gray-500">
-                                  Not Available
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Book Button */}
-                          <div className="text-center">
-                            {option.isAvailable ? (
-                              <>
-                                <button
-                                  onClick={() => handleBookNow(room, option)}
-                                  className="w-full bg-gradient-to-r from-[#2C83F9] to-[#06E] text-white py-3 rounded-full font-semibold text-base hover:opacity-90 transition-opacity cursor-pointer mb-2"
-                                >
-                                  BOOK
-                                </button>
-                                <p className="text-xs text-gray-500">
-                                  It only takes 2 minutes
-                                </p>
-                                <p className="text-xs text-[#FF5C39] mt-1">
-                                  Limited availability...
-                                </p>
-                              </>
-                            ) : (
-                              <button
-                                disabled
-                                className="w-full bg-gray-300 text-gray-500 py-3 rounded-full font-semibold text-base cursor-not-allowed"
-                              >
-                                Not Available
-                              </button>
-                            )}
-                          </div>
-                        </div>
                       </div>
 
-                      {/* Desktop Layout */}
-                      <div className="hidden lg:flex items-stretch h-full">
-                        {/* COLUMN 1: Info */}
-                        <div className="flex-1 flex flex-col justify-between pr-8">
-                          <div>
-                            <p className="font-semibold text-gray-900 text-sm mb-2">{option.adults}</p>
-                            <p className="text-xs text-gray-600 mb-3">
-                              {option.breakfast} ({option.breakfastPrice})
-                            </p>
-                            <div className="space-y-1">
-                              {option.benefits.map((benefit, idx) => (
-                                <div key={idx} className="flex items-center gap-2">
-                                  <FontAwesomeIcon icon={faCheck} className="text-green-500 text-xs" />
-                                  <span className="text-xs text-gray-700">{benefit}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
+                      <div className="text-right flex-shrink-0 lg:w-48">
+                        <p className="line-through text-sm text-gray-400">
+                          {formatPrice(option.originalPrice)}
+                        </p>
+                        <p className="text-xs text-red-500">
+                          {option.discount}
+                        </p>
+                        <p className="text-xl font-bold">
+                          {formatPrice(option.price)}
+                        </p>
+                        <p className="text-xs text-gray-500 mb-2">
+                          Per night before taxes
+                        </p>
 
-                        {/* VERTICAL SEPARATOR 1 */}
-                        <div className="flex items-center">
-                          <div className="w-px bg-gray-300 h-full"></div>
-                        </div>
-
-                        {/* COLUMN 2: Price */}
-                        <div className="flex-1 px-8 flex flex-col justify-center">
-                          <div className="text-sm text-gray-400 line-through text-center">
-                            {formatPrice(option.originalPrice)}
-                          </div>
-                          <div className="text-xs font-medium text-red-500 text-center mb-1">
-                            {option.discount}
-                          </div>
-                          <div className="text-xl font-bold text-gray-900 text-center mb-1">
-                            {formatPrice(option.price)}
-                          </div>
-                          <p className="text-xs text-gray-500 text-center mb-2">
-                            Per night before taxes
-                          </p>
-                          <div className="text-center">
-                            {option.isAvailable ? (
-                              <span className="inline-block text-xs text-[#FF5C39] font-medium">
-                                Available
-                              </span>
-                            ) : (
-                              <span className="inline-block text-xs text-gray-500">
-                                Not Available
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* VERTICAL SEPARATOR 2 */}
-                        <div className="flex items-center">
-                          <div className="w-px bg-gray-300 h-full"></div>
-                        </div>
-
-                        {/* COLUMN 3: Action */}
-                        <div className="flex-1 pl-8 flex flex-col justify-center items-center">
-                          {option.isAvailable ? (
-                            <>
-                              <button
-                                onClick={() => handleBookNow(room, option)}
-                                className="w-full max-w-[120px] bg-gradient-to-r from-[#2C83F9] to-[#06E] text-white py-2.5 rounded-full font-semibold text-sm hover:opacity-90 transition-opacity cursor-pointer"
-                              >
-                                BOOK
-                              </button>
-                              <p className="text-xs text-gray-500 mt-2 text-center">
-                                It only takes 2 minutes
-                              </p>
-                              <p className="text-xs text-[#FF5C39] mt-1 text-center">
-                                Limited availability...
-                              </p>
-                            </>
-                          ) : (
-                            <button
-                              disabled
-                              className="w-full max-w-[120px] bg-gray-300 text-gray-500 py-2.5 rounded-full font-semibold text-sm cursor-not-allowed"
-                            >
-                              Not Available
-                            </button>
-                          )}
-                        </div>
+                        <button
+                          onClick={() => handleBookNow(room, option)}
+                          className="w-full bg-gradient-to-r from-blue-500 to-blue-700 text-white px-6 py-2 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
+                        >
+                          BOOK
+                        </button>
                       </div>
-
-                      {/* Horizontal line between options on mobile */}
-                      {index < room.occupancy.length - 1 && (
-                        <div className="lg:hidden w-full h-px bg-gray-300 mt-4"></div>
-                      )}
                     </div>
                   ))}
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
+      </div>
 
-        {/* Fullscreen Image Gallery Modal */}
-        {showFullscreenGallery && modalRoom && (
-          <div className="fixed inset-0 z-[9999] bg-black">
-            {/* Header */}
-            <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
-              <div className="text-white">
-                <h2 className="text-lg font-semibold">{modalRoom.title}</h2>
-                <p className="text-sm text-white/80">
-                  {fullscreenGalleryIndex + 1} / {modalRoom.images?.length}
-                </p>
-              </div>
-              
-              <button
-                onClick={closeFullscreenGallery}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
-              >
-                <FontAwesomeIcon icon={faXmark} className="text-white text-2xl" />
-              </button>
+      {/* ---------------- FULLSCREEN IMAGE GALLERY MODAL ---------------- */}
+      {showFullscreenGallery && modalRoom && (
+        <div className="fixed inset-0 z-[9999] bg-black">
+          {/* Header */}
+          <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
+            <div className="text-white">
+              <h2 className="text-lg font-semibold">{modalRoom.title}</h2>
+              <p className="text-sm text-white/80">
+                {fullscreenGalleryIndex + 1} / {modalRoom.images?.length}
+              </p>
             </div>
+            
+            <button
+              onClick={closeFullscreenGallery}
+              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+            >
+              <FontAwesomeIcon icon={faXmark} className="text-white text-2xl" />
+            </button>
+          </div>
 
-            {/* Main Image */}
-            <div className="relative w-full h-full flex items-center justify-center">
-              <img
-                src={modalRoom.images[fullscreenGalleryIndex]}
-                alt={`${modalRoom.title} - View ${fullscreenGalleryIndex + 1}`}
-                className="max-w-full max-h-full object-contain"
-              />
-              
-              {/* Navigation Buttons */}
-              {modalRoom.images.length > 1 && (
-                <>
-                  <button
-                    onClick={() => handlePrevImage('fullscreen')}
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/70 text-white cursor-pointer transition-all md:left-8"
-                  >
-                    <FontAwesomeIcon icon={faChevronLeft} className="text-xl" />
-                  </button>
-                  
-                  <button
-                    onClick={() => handleNextImage('fullscreen')}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/70 text-white cursor-pointer transition-all md:right-8"
-                  >
-                    <FontAwesomeIcon icon={faChevronRight} className="text-xl" />
-                  </button>
-                </>
-              )}
-            </div>
+          {/* Main Image */}
+          <div className="relative w-full h-full flex items-center justify-center">
+            <img
+              src={modalRoom.images[fullscreenGalleryIndex]}
+              alt={`${modalRoom.title} - View ${fullscreenGalleryIndex + 1}`}
+              className="max-w-full max-h-full object-contain"
+            />
+            
+            {/* Navigation Buttons */}
+            {modalRoom.images.length > 1 && (
+              <>
+                <button
+                  onClick={() => handlePrevImage("fullscreen")}
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/70 text-white transition-all md:left-8"
+                >
+                  <FontAwesomeIcon icon={faChevronLeft} className="text-xl" />
+                </button>
+                
+                <button
+                  onClick={() => handleNextImage("fullscreen")}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/70 text-white transition-all md:right-8"
+                >
+                  <FontAwesomeIcon icon={faChevronRight} className="text-xl" />
+                </button>
+              </>
+            )}
+          </div>
 
-            {/* Thumbnail Strip */}
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {modalRoom.images?.map((img, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setFullscreenGalleryIndex(index)}
-                    className={`flex-shrink-0 w-16 h-16 rounded overflow-hidden border-2 transition-all ${
-                      fullscreenGalleryIndex === index 
-                        ? 'border-white scale-105' 
-                        : 'border-transparent opacity-70 hover:opacity-100'
-                    }`}
-                  >
-                    <img
-                      src={img}
-                      alt={`Thumbnail ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Mobile Swipe Instructions */}
-            <div className="md:hidden absolute bottom-20 left-0 right-0 text-center text-white/60 text-sm">
-              <p>Swipe or use arrows to navigate</p>
+          {/* Thumbnail Strip */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {modalRoom.images?.map((img, index) => (
+                <button
+                  key={index}
+                  onClick={() => setFullscreenGalleryIndex(index)}
+                  className={`flex-shrink-0 w-16 h-16 rounded overflow-hidden border-2 transition-all ${
+                    fullscreenGalleryIndex === index 
+                      ? "border-white scale-105" 
+                      : "border-transparent opacity-70 hover:opacity-100"
+                  }`}
+                >
+                  <img
+                    src={img}
+                    alt={`Thumbnail ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
             </div>
           </div>
-        )}
 
-        {/* Room Details Modal (Your original modal with all details) */}
-        {showModal && modalRoom && (
-          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[1000] p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-              {/* Header */}
-              <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center z-10">
-                <h2 className="text-xl font-bold text-gray-900">{modalRoom.title}</h2>
+          {/* Mobile Swipe Instructions */}
+          <div className="md:hidden absolute bottom-20 left-0 right-0 text-center text-white/60 text-sm">
+            <p>Swipe or use arrows to navigate</p>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- DETAILS MODAL ---------------- */}
+      {showModal && modalRoom && (() => {
+        const bestOption = getBestOccupancy(modalRoom);
+
+        return (
+          <div className="fixed inset-0 bg-black/70 z-[1000] flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-6xl rounded-xl overflow-y-auto max-h-[90vh]">
+              {/* HEADER */}
+              <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
+                <h3 className="font-bold text-lg">{modalRoom.title}</h3>
                 <button 
-                  onClick={handleCloseModal}
-                  className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 cursor-pointer"
+                  onClick={closeModal}
+                  className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  ✕
                 </button>
               </div>
 
-              {/* Content */}
-              <div className="p-6">
-                <div className="flex flex-col lg:flex-row gap-6">
-                  {/* Image Gallery */}
-                  <div className="lg:w-1/2">
-                    <div className="relative mb-4">
-                      <img 
-                        src={modalRoom.images[currentImageIndex]} 
-                        alt={modalRoom.title}
-                        className="w-full h-96 object-cover rounded-lg"
-                      />
-                      <button 
-                        onClick={() => handlePrevImage('details')}
-                        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 cursor-pointer"
-                      >
-                        <FontAwesomeIcon icon={faChevronLeft} />
-                      </button>
-                      <button 
-                        onClick={() => handleNextImage('details')}
-                        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 cursor-pointer"
-                      >
-                        <FontAwesomeIcon icon={faChevronRight} />
-                      </button>
-                    </div>
-                    
-                    <div className="flex space-x-2 overflow-x-auto">
-                      {modalRoom.images?.map((img, index) => (
+              {/* CONTENT */}
+              <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* LEFT COLUMN - IMAGES & DETAILS */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Main Image */}
+                  <div className="relative">
+                    <img
+                      src={modalRoom.images[currentImageIndex]}
+                      className="w-full md:h-[420px] object-cover rounded-xl"
+                      alt={modalRoom.title}
+                    />
+
+                    {/* Navigation Buttons */}
+                    {modalRoom.images.length > 1 && (
+                      <>
                         <button
-                          key={index}
-                          onClick={() => setCurrentImageIndex(index)}
-                          className={`flex-shrink-0 w-20 h-20 rounded overflow-hidden border-2 ${
-                            currentImageIndex === index ? 'border-blue-500' : 'border-transparent'
-                          }`}
+                          onClick={() => handlePrevImage("details")}
+                          className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-3"
                         >
-                          <img 
-                            src={img} 
-                            alt={`View ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
+                          <FontAwesomeIcon icon={faChevronLeft} />
                         </button>
-                      ))}
-                    </div>
+                        <button
+                          onClick={() => handleNextImage("details")}
+                          className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-3"
+                        >
+                          <FontAwesomeIcon icon={faChevronRight} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Thumbnails */}
+                  <div className="flex gap-2 overflow-x-auto">
+                    {modalRoom.images.map((img, i) => (
+                      <img
+                        key={i}
+                        src={img}
+                        onClick={() => setCurrentImageIndex(i)}
+                        className={`w-20 h-20 rounded-lg cursor-pointer object-cover border-2 ${
+                          currentImageIndex === i
+                            ? "border-blue-500"
+                            : "border-transparent"
+                        }`}
+                        alt={`View ${i + 1}`}
+                      />
+                    ))}
                   </div>
 
                   {/* Room Details */}
-                  <div className="lg:w-1/2">
-                    <div className="mb-6">
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">{modalRoom.name}</h3>
-                      <p className="text-gray-600 mb-4">{modalRoom.description}</p>
-                      
-                      <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-lg mb-2">About this room</h4>
+                      <p className="text-gray-600">{modalRoom.description}</p>
+                    </div>
+
+                    {/* Specifications */}
+                    <div>
+                      <h4 className="font-semibold mb-3">Specifications</h4>
+                      <div className="grid grid-cols-2 gap-4">
                         {modalRoom.specifications?.map((spec, index) => (
-                          <div key={index} className="flex items-center gap-2">
-                            <FontAwesomeIcon icon={spec.icon} className="text-gray-500" />
+                          <div key={index} className="flex items-center gap-3">
+                            <FontAwesomeIcon icon={spec.icon} className="text-gray-500 w-5" />
                             <div>
                               <div className="text-sm text-gray-500">{spec.label}</div>
                               <div className="font-medium">{spec.value}</div>
@@ -891,8 +692,8 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                     </div>
 
                     {/* Features */}
-                    <div className="mb-6">
-                      <h4 className="font-bold text-gray-900 mb-3">Features</h4>
+                    <div>
+                      <h4 className="font-semibold mb-3">Features</h4>
                       <div className="grid grid-cols-2 gap-3">
                         {modalRoom.features?.map((feature, index) => (
                           <div key={index} className="flex items-center gap-2">
@@ -907,8 +708,8 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                     </div>
 
                     {/* Amenities */}
-                    <div className="mb-6">
-                      <h4 className="font-bold text-gray-900 mb-3">Amenities</h4>
+                    <div>
+                      <h4 className="font-semibold mb-3">Amenities</h4>
                       <div className="flex flex-wrap gap-2">
                         {modalRoom.amenitiesList?.map((amenity, index) => (
                           <span key={index} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">
@@ -917,115 +718,91 @@ const RoomSelection = ({ category = 'hotel', onRoomSelect, vendorData, onRoomBoo
                         ))}
                       </div>
                     </div>
+                  </div>
+                </div>
 
-                    {/* Booking Options in Modal */}
+                {/* RIGHT COLUMN - PRICE CARD */}
+                {bestOption && (
+                  <div className="lg:sticky lg:top-6 border rounded-xl p-5 h-fit shadow-sm">
                     <div className="space-y-4">
-                      <h4 className="font-bold text-gray-900">Select Occupancy</h4>
-                      {modalRoom.occupancy?.map((option) => (
-                        <div 
-                          key={option.id}
-                          className={`border rounded-lg p-4 ${
-                            selectedOccupancy?.id === option.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                          }`}
-                        >
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <p className="font-medium">{option.adults}</p>
-                              <p className="text-sm text-gray-600">{option.breakfast} ({option.breakfastPrice})</p>
-                              <div className="flex flex-wrap gap-2 mt-2">
-                                {option.benefits.map((benefit, idx) => (
-                                  <span key={idx} className="text-xs bg-gray-100 px-2 py-1 rounded">
-                                    {benefit}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                            
-                            <div className="text-right">
-                              <div className="text-sm text-gray-400 line-through">
-                                {formatPrice(option.originalPrice)}
-                              </div>
-                              <div className="text-xs text-red-500">{option.discount}</div>
-                              <div className="text-xl font-bold text-gray-900">
-                                {formatPrice(option.price)}
-                              </div>
-                              <div className="text-xs text-gray-500">Per night before taxes</div>
-                              
-                              <button
-                                onClick={() => {
-                                  handleSelectRoom(modalRoom, option);
-                                  handleBookNow(modalRoom, option);
-                                }}
-                                className="mt-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm cursor-pointer"
-                              >
-                                Select & Book
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+                      <div>
+                        <p className="font-semibold">{bestOption.adults}</p>
+                        <p className="text-sm text-gray-600">
+                          {bestOption.breakfast} ({bestOption.breakfastPrice})
+                        </p>
+                      </div>
 
-        {/* Selected Room Summary */}
-        {selectedRoom && selectedOccupancy && (
-          <div className="mt-8 p-6 bg-gradient-to-r from-[#06EAFC] to-[#06F49F] rounded-xl">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div 
-                  className="w-16 h-16 rounded-lg overflow-hidden cursor-pointer"
-                  onClick={() => openFullscreenGallery(selectedRoom, 0)}
-                >
-                  <img 
-                    src={selectedRoom.image} 
-                    alt={selectedRoom.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white mb-1">
-                    Selected: {selectedRoom.title}
-                  </h3>
-                  <p className="text-white/90 text-sm">
-                    {selectedOccupancy.adults} • 1 room
-                  </p>
-                  <p className="text-white/90 text-sm">
-                    {selectedOccupancy.breakfast} ({selectedOccupancy.breakfastPrice})
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  {selectedOccupancy.originalPrice && (
-                    <div className="text-sm text-white/80 line-through">
-                      {formatPrice(selectedOccupancy.originalPrice)}
+                      <div className="space-y-2">
+                        {bestOption.benefits.map((b, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center gap-2 text-sm"
+                          >
+                            <FontAwesomeIcon
+                              icon={faCheck}
+                              className="text-green-500 text-xs"
+                            />
+                            {b}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="pt-4 border-t">
+                        <p className="line-through text-sm text-gray-400">
+                          {formatPrice(bestOption.originalPrice)}
+                        </p>
+                        <p className="text-red-500 text-xs">
+                          {bestOption.discount}
+                        </p>
+                        <p className="text-3xl font-bold mt-1">
+                          {formatPrice(bestOption.price)}
+                        </p>
+                        <p className="text-xs text-gray-500 mb-4">
+                          Per night before taxes
+                        </p>
+
+                        <button
+                          onClick={() => handleBookNow(modalRoom, bestOption)}
+                          className="w-full bg-gradient-to-r from-blue-500 to-blue-700 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                        >
+                          Book Now
+                        </button>
+                      </div>
+
+                      {/* All Occupancy Options */}
+                      <div className="pt-4 border-t">
+                        <h5 className="font-medium mb-3">Other Options</h5>
+                        <div className="space-y-3">
+                          {modalRoom.occupancy
+                            .filter(opt => opt.id !== bestOption.id)
+                            .map((option) => (
+                              <div key={option.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                                <div>
+                                  <p className="text-sm font-medium">{option.adults}</p>
+                                  <p className="text-xs text-gray-600">{option.breakfast}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-bold">{formatPrice(option.price)}</p>
+                                  <button
+                                    onClick={() => handleBookNow(modalRoom, option)}
+                                    className="text-blue-600 text-sm font-medium hover:text-blue-800"
+                                  >
+                                    Select
+                                  </button>
+                                </div>
+                              </div>
+                            ))
+                          }
+                        </div>
+                      </div>
                     </div>
-                  )}
-                  <div className="text-2xl font-bold text-white">
-                    {formatPrice(selectedOccupancy.price)}
                   </div>
-                  <div className="text-white/90 text-sm">
-                    Total for 1 room
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => handleBookNow(selectedRoom, selectedOccupancy)}
-                  className="px-8 py-3 bg-white text-[#06EAFC] rounded-lg font-bold hover:bg-gray-100 hover:scale-105 transition-all duration-300 cursor-pointer"
-                >
-                  Book Now
-                </button>
+                )}
               </div>
             </div>
           </div>
-        )}
-      </div>
+        );
+      })()}
     </div>
   );
 };
