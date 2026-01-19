@@ -283,8 +283,8 @@ function App() {
                   <Route path="/" element={<MainLayout><HomePage /></MainLayout>} />
                   <Route path="/about" element={<MainLayout><AboutAjani /></MainLayout>} />
                   <Route path="/help-center" element={<MainLayout><HelpCenterPage /></MainLayout>} />
-                  <Route path="/privacypage" element={<MainLayout><PrivacyPage /></MainLayout>} />
-                  <Route path="/termspage" element={<MainLayout><TermsPage /></MainLayout>} />
+                  <Route path="/privacy" element={<MainLayout><PrivacyPage /></MainLayout>} />
+                  <Route path="/terms-service" element={<MainLayout><TermsPage /></MainLayout>} />
                   <Route path="/contact" element={<MainLayout><ContactPage /></MainLayout>} />
                   <Route path="/contact-us" element={<MainLayout><ContactPage /></MainLayout>} />
                   <Route path="/vendors" element={<MainLayout><VendorsPage /></MainLayout>} />

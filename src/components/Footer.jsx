@@ -73,7 +73,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  to="/privacypage"
+                  to="/privacy"
                   className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
                 >
                   Privacy Policy
@@ -81,7 +81,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  to="/termspage"
+                  to="/terms-service"
                   className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
                 >
                   Terms of Service
