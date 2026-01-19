@@ -287,7 +287,7 @@ function App() {
                   <Route path="/terms-service" element={<MainLayout><TermsPage /></MainLayout>} />
                   <Route path="/contact" element={<MainLayout><ContactPage /></MainLayout>} />
                   <Route path="/contact-us" element={<MainLayout><ContactPage /></MainLayout>} />
-                  <Route path="/vendors" element={<MainLayout><VendorsPage /></MainLayout>} />
+                  <Route path="/vendor" element={<MainLayout><VendorsPage /></MainLayout>} />
 
                   {/* DYNAMIC ROUTES */}
                   <Route path="/vendor-detail/:id" element={<MainLayout><VendorDetail /></MainLayout>} />

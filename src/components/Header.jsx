@@ -669,7 +669,7 @@ const Header = () => {
                     onClick={() => navigate("/register")}
                     className="py-2 px-4 text-sm font-normal border-2 border-[#06EAFC] rounded-full transition-all shadow-sm cursor-pointer hover:scale-105 hover:bg-white/30 backdrop-blur-sm group"
                   >
-                    <span className="group-hover:tracking-wide transition-all">Register</span>
+                    <span className="group-hover:tracking-wide transition-all">Get Started</span>
                   </button>
                 </div>
               )}
@@ -1070,7 +1070,7 @@ const Header = () => {
                     <path d="M19 8v6"/>
                     <path d="M22 11h-6"/>
                   </svg>
-                  <span>Register</span>
+                  <span>Get Started</span>
                 </button>
               </>
             )}
