@@ -131,6 +131,52 @@ const CategorySwitchLoader = ({ isMobile = false, previousCategory = '', newCate
   );
 };
 
+// ================== UNIFIED LOADING COMPONENT ==================
+
+const UnifiedLoadingScreen = ({ isMobile = false }) => {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex flex-col items-center max-w-sm mx-auto px-4">
+        {/* Animated spinner - larger for desktop */}
+        <div className="relative mb-6">
+          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-[#06EAFC]/10 rounded-full`}></div>
+          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-transparent border-t-[#06EAFC] rounded-full absolute top-0 left-0 animate-spin`}></div>
+        </div>
+        
+        {/* Loading text with dynamic sizing */}
+        <div className="text-center">
+          <h3 className={`font-bold text-gray-900 ${isMobile ? 'text-lg' : 'text-xl'} mb-2`}>
+            Loading Results
+          </h3>
+          <p className={`text-gray-600 ${isMobile ? 'text-sm' : 'text-base'} mb-4`}>
+            {isMobile 
+              ? "Loading results please wait..." 
+              : "Please wait while we fetch the best listings for you"
+            }
+          </p>
+        </div>
+        
+        {/* Progress indicator */}
+        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-4">
+          <div className="bg-gradient-to-r from-[#06EAFC] to-[#00E38C] h-1.5 rounded-full animate-pulse" style={{ width: '70%' }}></div>
+        </div>
+        
+        {/* Loading tips for desktop */}
+        {!isMobile && (
+          <div className="mt-6 text-center">
+            <p className="text-xs text-gray-500 mb-2">Tip: You can use filters to narrow down results</p>
+            <div className="flex items-center justify-center space-x-2">
+              <div className="w-1.5 h-1.5 bg-[#06EAFC] rounded-full animate-pulse"></div>
+              <div className="w-1.5 h-1.5 bg-[#06EAFC] rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-1.5 h-1.5 bg-[#06EAFC] rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ================== UPDATED CUSTOM BACKEND HOOK ==================
 
 const useBackendListings = (category = null, searchQuery = '', filters = {}) => {
@@ -2543,19 +2589,10 @@ const CategoryResults = () => {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const currentListings = listings.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  if (loading && isMobile && !isSwitchingCategory) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex flex-col items-center">
-          <div className="flex space-x-1 mb-4">
-            <div className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce"></div>
-            <div className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
-            <div className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
-          </div>
-          <p className="text-sm text-gray-600">Loading results from backend...</p>
-        </div>
-      </div>
-    );
+  // ================== UPDATED LOADING CONDITION ==================
+  // Loading state for all screen sizes (both mobile and desktop)
+  if (loading && !isSwitchingCategory) {
+    return <UnifiedLoadingScreen isMobile={isMobile} />;
   }
 
   if (error) {
@@ -3135,6 +3172,17 @@ const CategoryResults = () => {
         
         .animate-bounce {
           animation: bounce 0.6s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+          0%, 100% { 
+            opacity: 1; 
+            transform: scale(1); 
+          }
+          50% { 
+            opacity: 0.7; 
+            transform: scale(1.05); 
+          }
         }
         
         .animate-pulse {

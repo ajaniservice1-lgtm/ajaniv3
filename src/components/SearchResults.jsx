@@ -3675,7 +3675,7 @@ const SearchResults = () => {
         let parts = [];
         if (categoryParams.length > 0) parts.push(categoryParams.join(", "));
         if (locationParams.length > 0) parts.push(locationParams.join(", "));
-        return `Search Results for "${searchQuery}" in ${parts.join(" • ")}`;
+        return `Search Results  for "${searchQuery}" in ${parts.join(" • ")}`;
       }
       return `Search Results for "${searchQuery}"`;
     } else if (categoryParams.length > 0) {
@@ -3815,7 +3815,7 @@ const SearchResults = () => {
               style={{ animationDelay: "0.2s" }}
             ></div>
           </div>
-          <p className="text-sm text-gray-600">Loading results...</p>
+          <p className="text-sm text-gray-600">Loading results please wait...</p>
         </div>
       </div>
     );
