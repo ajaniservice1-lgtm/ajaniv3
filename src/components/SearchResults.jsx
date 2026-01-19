@@ -43,13 +43,140 @@ import Meta from "./Meta";
 import { createPortal } from "react-dom";
 import axiosInstance from "../lib/axios";
 
+// ================== UNIFIED LOADING COMPONENT ==================
+
+const UnifiedLoadingScreen = ({ isMobile = false, category = null }) => {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex flex-col items-center max-w-sm mx-auto px-4">
+        {/* Animated spinner - larger for desktop */}
+        <div className="relative mb-6">
+          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-[#06EAFC]/10 rounded-full`}></div>
+          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-transparent border-t-[#06EAFC] rounded-full absolute top-0 left-0 animate-spin`}></div>
+        </div>
+        
+        {/* Loading text with dynamic sizing */}
+        <div className="text-center">
+          <h3 className={`font-bold text-gray-900 ${isMobile ? 'text-lg' : 'text-xl'} mb-2`}>
+            {category ? `Loading ${category}...` : "Loading Results"}
+          </h3>
+          <p className={`text-gray-600 ${isMobile ? 'text-sm' : 'text-base'} mb-4`}>
+            {isMobile 
+              ? "Loading results please wait..." 
+              : "Please wait while we fetch the best listings for you"
+            }
+          </p>
+        </div>
+        
+        {/* Progress indicator */}
+        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-4">
+          <div className="bg-gradient-to-r from-[#06EAFC] to-[#00E38C] h-1.5 rounded-full animate-pulse" style={{ width: '70%' }}></div>
+        </div>
+        
+        {/* Loading tips for desktop */}
+        {!isMobile && (
+          <div className="mt-6 text-center">
+            <p className="text-xs text-gray-500 mb-2">Tip: You can use filters to narrow down results</p>
+            <div className="flex items-center justify-center space-x-2">
+              <div className="w-1.5 h-1.5 bg-[#06EAFC] rounded-full animate-pulse"></div>
+              <div className="w-1.5 h-1.5 bg-[#06EAFC] rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-1.5 h-1.5 bg-[#06EAFC] rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ================== CATEGORY SWITCH LOADER COMPONENT ==================
+
+const CategorySwitchLoader = ({ isMobile = false, previousCategory = '', newCategory = '' }) => {
+  return (
+    <div 
+      className={`fixed inset-0 z-[99999] flex items-center justify-center transition-all duration-300 ${
+        isMobile ? 'bg-white/95' : 'bg-white/90 backdrop-blur-sm'
+      }`}
+      style={{
+        pointerEvents: 'all',
+        animation: 'fadeIn 0.3s ease-out'
+      }}
+    >
+      <div className={`flex flex-col items-center justify-center ${isMobile ? 'p-4' : 'p-6'}`}>
+        {/* Animated spinner */}
+        <div className="relative mb-6">
+          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-[#06EAFC]/10 rounded-full`}></div>
+          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-transparent border-t-[#06EAFC] rounded-full absolute top-0 left-0 animate-spin`}></div>
+          <div className={`${isMobile ? 'w-8 h-8' : 'w-12 h-12'} border-4 border-transparent border-b-[#00E38C] rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-spin`} style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+        </div>
+        
+        {/* Loading text with category transition */}
+        <div className="text-center max-w-sm">
+          <p className={`font-bold text-gray-900 ${isMobile ? 'text-base' : 'text-xl'} mb-2`}>
+            Switching Categories
+          </p>
+          <div className={`flex items-center justify-center gap-2 ${isMobile ? 'text-sm' : 'text-base'} text-gray-600 mb-4`}>
+            {previousCategory && (
+              <>
+                <span className="px-3 py-1 bg-gray-100 rounded-lg">{previousCategory}</span>
+                <FontAwesomeIcon icon={faChevronRight} className="text-[#06EAFC]" />
+              </>
+            )}
+            {newCategory && (
+              <span className="px-3 py-1 bg-[#06EAFC]/10 text-[#06EAFC] font-medium rounded-lg">{newCategory}</span>
+            )}
+          </div>
+          <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+            Loading new listings...
+          </p>
+        </div>
+        
+        {/* Animated dots */}
+        <div className="flex space-x-1 mt-6">
+          <div className="w-2 h-2 bg-[#06EAFC] rounded-full animate-pulse"></div>
+          <div className="w-2 h-2 bg-[#06EAFC] rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+          <div className="w-2 h-2 bg-[#06EAFC] rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+        </div>
+      </div>
+      
+      {/* Embedded CSS styles */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.9); }
+        }
+        
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+        
+        .animate-pulse {
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        .category-switch-loader {
+          animation: fadeIn 0.3s ease-out;
+        }
+      `}</style>
+    </div>
+  );
+};
+
 // ================== HELPER FUNCTIONS ==================
 
 // Helper to normalize location for backend (convert to proper case)
 const normalizeLocationForBackend = (location) => {
   if (!location) return '';
-  
-  // Convert to proper case
   return location
     .toLowerCase()
     .split(' ')
@@ -143,7 +270,6 @@ const looksLikeLocation = (query) => {
 // Helper to normalize location text for matching
 const normalizeLocation = (location) => {
   if (!location) return '';
-  
   return location
     .toLowerCase()
     .trim()
@@ -206,6 +332,38 @@ const formatShortDate = (date) => {
   } catch (error) {
     return '';
   }
+};
+
+// Helper to get category display name
+const getCategoryDisplayName = (category) => {
+  if (!category || category === "All Categories" || category === "All")
+    return "All Categories";
+
+  const parts = category.split(".");
+  if (parts.length > 1) {
+    const afterDot = parts.slice(1).join(".").trim();
+    return afterDot
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  }
+
+  return category
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
+// Helper to get category icon
+const getCategoryIcon = (category) => {
+  const cat = category.toLowerCase();
+  if (cat.includes("hotel") || cat.includes("accommodation")) return faBuilding;
+  if (cat.includes("shortlet") || cat.includes("apartment")) return faHome;
+  if (cat.includes("weekend") || cat.includes("event")) return faCalendarWeek;
+  if (cat.includes("restaurant") || cat.includes("food")) return faUtensils;
+  if (cat.includes("tourist") || cat.includes("attraction")) return faLandmark;
+  if (cat.includes("services") || cat.includes("vendor")) return faUser;
+  return faFilter;
 };
 
 // ================== SIMPLE CALENDAR FOR EDITING DATES ==================
@@ -318,7 +476,7 @@ const SimpleCalendar = ({ onSelect, onClose, selectedDate: propSelectedDate, isC
   );
 };
 
-// ================== GUEST SELECTOR FOR EDITING (UPDATED FOR DIFFERENT CATEGORIES) ==================
+// ================== GUEST SELECTOR FOR EDITING ==================
 const GuestSelector = ({ guests, onChange, onClose, category = 'hotel' }) => {
   const modalRef = useRef(null);
 
@@ -439,7 +597,521 @@ const GuestSelector = ({ guests, onChange, onClose, category = 'hotel' }) => {
   );
 };
 
-// ================== MOBILE SEARCH MODAL - With Apply & Search Button ==================
+// ================== BACKEND HOOK ==================
+
+const useBackendListings = (searchQuery = '', filters = {}) => {
+  const [listings, setListings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [apiResponse, setApiResponse] = useState(null);
+  const [filteredCounts, setFilteredCounts] = useState({});
+
+  useEffect(() => {
+    const fetchListings = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        let url = '/listings';
+        const params = new URLSearchParams();
+        
+        // Handle category filter
+        const hasCategoryFilter = filters.categories && filters.categories.length > 0;
+        const isLocationSearch = searchQuery && looksLikeLocation(searchQuery);
+        
+        if (hasCategoryFilter) {
+          const backendCategories = filters.categories.map(cat => {
+            const categoryMap = {
+              'hotel': 'hotel',
+              'restaurant': 'restaurant', 
+              'shortlet': 'shortlet',
+              'vendor': 'services',
+              'services': 'services'
+            };
+            const catLower = cat.toLowerCase();
+            return categoryMap[catLower] || catLower;
+          });
+          params.append('category', backendCategories[0]);
+        } 
+        
+        // Handle location filter
+        if (filters.locations && filters.locations.length > 0) {
+          const properCaseLocation = normalizeLocationForBackend(filters.locations[0]);
+          params.append('location.area', properCaseLocation);
+        } else if (isLocationSearch && !filters.locations) {
+          const properCaseLocation = normalizeLocationForBackend(searchQuery);
+          params.append('location.area', properCaseLocation);
+        }
+        
+        // Regular search query
+        if (searchQuery && !looksLikeLocation(searchQuery) && !filters.locations) {
+          params.append('q', searchQuery);
+        }
+        
+        // Add other filters
+        if (filters.priceRange?.min) {
+          params.append('minPrice', filters.priceRange.min);
+        }
+        
+        if (filters.priceRange?.max) {
+          params.append('maxPrice', filters.priceRange.max);
+        }
+        
+        if (filters.ratings && filters.ratings.length > 0) {
+          params.append('minRating', Math.min(...filters.ratings));
+        }
+        
+        if (filters.sortBy && filters.sortBy !== 'relevance') {
+          params.append('sort', filters.sortBy);
+        }
+        
+        const queryString = params.toString();
+        if (queryString) {
+          url += `?${queryString}`;
+        }
+        
+        console.log('📡 Backend API Request:', url);
+        
+        const response = await axiosInstance.get(url);
+        setApiResponse(response.data);
+        
+        if (response.data && response.data.status === 'success' && response.data.data?.listings) {
+          let allListings = response.data.data.listings;
+          
+          console.log(`📦 Received ${allListings.length} listings from backend`);
+          
+          let finalListings = allListings;
+          
+          // Get URL params for filtering
+          const urlParams = new URLSearchParams(window.location.search);
+          const urlCategory = urlParams.get('category');
+          const urlLocation = urlParams.get('location.area');
+          const urlSearchQuery = urlParams.get('q');
+          
+          // Filter by URL category
+          if (urlCategory) {
+            const activeCategory = urlCategory.toLowerCase();
+            finalListings = finalListings.filter(item => {
+              const itemCategory = (item.category || '').toLowerCase();
+              const matchesCategory = itemCategory.includes(activeCategory) || 
+                     activeCategory.includes(itemCategory) ||
+                     (activeCategory === 'services' && itemCategory === 'vendor') ||
+                     (activeCategory === 'vendor' && itemCategory === 'services');
+              
+              return matchesCategory;
+            });
+          }
+          
+          // Filter by URL location
+          if (urlLocation) {
+            const searchLocation = urlLocation.toLowerCase();
+            finalListings = finalListings.filter(item => {
+              const itemLocation = (item.location?.area || '').toLowerCase();
+              const matchesLocation = itemLocation.includes(searchLocation) || 
+                                      searchLocation.includes(itemLocation) ||
+                                      normalizeLocation(itemLocation) === normalizeLocation(searchLocation);
+              
+              return matchesLocation;
+            });
+          }
+          
+          // Filter by search query
+          if (urlSearchQuery && !looksLikeLocation(urlSearchQuery)) {
+            finalListings = finalListings.filter(item => {
+              const title = (item.title || '').toLowerCase();
+              const description = (item.description || '').toLowerCase();
+              const category = (item.category || '').toLowerCase();
+              
+              return title.includes(urlSearchQuery.toLowerCase()) ||
+                     description.includes(urlSearchQuery.toLowerCase()) ||
+                     category.includes(urlSearchQuery.toLowerCase());
+            });
+          }
+          
+          // Calculate filtered counts
+          const counts = {};
+          finalListings.forEach(item => {
+            const category = item.category || 'Other';
+            const pluralCategory = getPluralCategoryName(category);
+            counts[pluralCategory] = (counts[pluralCategory] || 0) + 1;
+          });
+          setFilteredCounts(counts);
+          
+          setListings(finalListings);
+        } else {
+          setListings([]);
+          setFilteredCounts({});
+          setError(response.data?.message || 'No data received');
+        }
+      } catch (err) {
+        console.error('❌ Backend API Error:', err.message);
+        setError(err.message);
+        setListings([]);
+        setFilteredCounts({});
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchListings();
+  }, [searchQuery, JSON.stringify(filters), window.location.search]);
+
+  return { 
+    listings, 
+    loading, 
+    error, 
+    apiResponse,
+    filteredCounts,
+    looksLikeLocation: () => looksLikeLocation(searchQuery)
+  };
+};
+
+// ================== BACK BUTTON ==================
+
+const BackButton = ({ className = "", onClick }) => {
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    if (onClick) {
+      onClick();
+    } else {
+      if (window.history.length > 1) {
+        navigate(-1);
+      } else {
+        navigate("/");
+      }
+    }
+  };
+
+  return (
+    <button
+      onClick={handleBack}
+      className={`flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors active:scale-95 cursor-pointer ${className}`}
+      aria-label="Go back"
+    >
+      <FontAwesomeIcon icon={faArrowLeft} className="text-gray-700 text-lg" />
+    </button>
+  );
+};
+
+// ================== FALLBACK IMAGES ==================
+
+const FALLBACK_IMAGES = {
+  hotel: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
+  restaurant: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80",
+  shortlet: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80",
+  tourist: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=80",
+  cafe: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&q=80",
+  bar: "https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=600&q=80",
+  services: "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=600&q=80",
+  event: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
+  hall: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
+  weekend: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
+  default: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
+};
+
+const getCardImages = (item) => {
+  if (item.images && item.images.length > 0 && item.images[0].url) {
+    return [item.images[0].url];
+  }
+  
+  const cat = (item.category || "").toLowerCase();
+  if (cat.includes("hotel")) return [FALLBACK_IMAGES.hotel];
+  if (cat.includes("restaurant")) return [FALLBACK_IMAGES.restaurant];
+  if (cat.includes("shortlet")) return [FALLBACK_IMAGES.shortlet];
+  if (cat.includes("tourist")) return [FALLBACK_IMAGES.tourist];
+  if (cat.includes("cafe")) return [FALLBACK_IMAGES.cafe];
+  if (cat.includes("bar") || cat.includes("lounge")) return [FALLBACK_IMAGES.bar];
+  if (cat.includes("services") || cat.includes("vendor")) return [FALLBACK_IMAGES.services];
+  if (cat.includes("event")) return [FALLBACK_IMAGES.event];
+  if (cat.includes("hall") || cat.includes("weekend")) return [FALLBACK_IMAGES.hall];
+  return [FALLBACK_IMAGES.default];
+};
+
+// Helper function to get subcategory
+const getSubcategory = (category) => {
+  if (!category) return "";
+  const parts = category.split(".");
+  if (parts.length > 1) {
+    return parts.slice(1).join(".").trim();
+  }
+  return category.trim();
+};
+
+const capitalizeFirst = (str) => {
+  if (!str) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+
+// ================== SEARCH SUGGESTIONS HELPER ==================
+
+const getLocationBreakdown = (listings) => {
+  const locationCounts = {};
+  listings.forEach((item) => {
+    const location = getLocationDisplayName(item.location?.area || "Unknown");
+    locationCounts[location] = (locationCounts[location] || 0) + 1;
+  });
+
+  return Object.entries(locationCounts)
+    .map(([location, count]) => ({ location, count }))
+    .sort((a, b) => b.count - a.count);
+};
+
+const generateSearchSuggestions = (query, listings, activeCategory) => {
+  if (!query.trim() || !listings.length) return [];
+
+  const queryLower = query.toLowerCase().trim();
+  const suggestions = [];
+
+  // Filter listings by active category
+  const categoryFilteredListings = activeCategory === "All Categories" 
+    ? listings 
+    : listings.filter(item => {
+        const itemCategory = getCategoryDisplayName(item.category || "").toLowerCase();
+        const activeCategoryLower = activeCategory.toLowerCase();
+        return itemCategory.includes(activeCategoryLower) || 
+               activeCategoryLower.includes(itemCategory);
+      });
+
+  // Get unique locations from category-filtered listings
+  const uniqueLocations = [
+    ...new Set(
+      categoryFilteredListings
+        .map((item) => item.location?.area)
+        .filter((loc) => loc && loc.trim() !== "")
+        .map((loc) => loc.trim())
+    ),
+  ];
+
+  // For exact location matches
+  const exactLocationMatches = uniqueLocations
+    .filter((location) => {
+      const displayName = getLocationDisplayName(location).toLowerCase();
+      return displayName === queryLower;
+    })
+    .map((location) => {
+      const locationListings = categoryFilteredListings.filter((item) => {
+        const itemLocation = item.location?.area;
+        return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
+      });
+
+      const totalPlaces = locationListings.length;
+      const categoryPlural = getPluralCategoryName(activeCategory);
+
+      return {
+        type: "location",
+        title: getLocationDisplayName(location),
+        count: totalPlaces,
+        description: `${categoryPlural} in ${getLocationDisplayName(location)}`,
+        action: () => {
+          const params = new URLSearchParams();
+          params.append("location.area", normalizeLocationForBackend(location));
+          if (activeCategory !== "All Categories") {
+            params.append("category", activeCategory.toLowerCase());
+          }
+          return `/search-results?${params.toString()}`;
+        },
+      };
+    });
+
+  if (exactLocationMatches.length > 0) {
+    return exactLocationMatches.slice(0, 4);
+  }
+
+  // For location matches
+  const locationMatches = uniqueLocations
+    .filter((location) => {
+      const displayName = getLocationDisplayName(location).toLowerCase();
+      return displayName.includes(queryLower);
+    })
+    .map((location) => {
+      const locationListings = categoryFilteredListings.filter((item) => {
+        const itemLocation = item.location?.area;
+        return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
+      });
+
+      const totalPlaces = locationListings.length;
+      const categoryPlural = getPluralCategoryName(activeCategory);
+
+      return {
+        type: "location",
+        title: getLocationDisplayName(location),
+        count: totalPlaces,
+        description: `${categoryPlural} in ${getLocationDisplayName(location)}`,
+        action: () => {
+          const params = new URLSearchParams();
+          params.append("location.area", normalizeLocationForBackend(location));
+          if (activeCategory !== "All Categories") {
+            params.append("category", activeCategory.toLowerCase());
+          }
+          return `/search-results?${params.toString()}`;
+        },
+      };
+    });
+
+  // Category matches
+  if (activeCategory !== "All Categories") {
+    const categoryLower = activeCategory.toLowerCase();
+    if (categoryLower.includes(queryLower) || queryLower.includes(categoryLower)) {
+      const categoryListings = categoryFilteredListings;
+      const locationBreakdown = getLocationBreakdown(categoryListings);
+      const totalPlaces = categoryListings.length;
+      const categoryPlural = getPluralCategoryName(activeCategory);
+
+      suggestions.push({
+        type: "category",
+        title: categoryPlural,
+        count: totalPlaces,
+        description: `Browse ${categoryPlural} options`,
+        breakdown: locationBreakdown.slice(0, 3),
+        action: () => {
+          const categorySlug = activeCategory.toLowerCase().replace(/\s+/g, '-');
+          return `/category/${categorySlug}`;
+        },
+      });
+    }
+  }
+
+  return [...suggestions, ...locationMatches]
+    .sort((a, b) => {
+      const aExact = a.title.toLowerCase() === queryLower;
+      const bExact = b.title.toLowerCase() === queryLower;
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+      return b.count - a.count;
+    })
+    .slice(0, 8);
+};
+
+// ================== DESKTOP SEARCH SUGGESTIONS ==================
+
+const DesktopSearchSuggestions = ({
+  searchQuery,
+  listings,
+  onSuggestionClick,
+  onClose,
+  isVisible,
+  searchBarPosition,
+  activeCategory,
+}) => {
+  const suggestionsRef = useRef(null);
+  const suggestions = useMemo(() => {
+    return generateSearchSuggestions(searchQuery, listings, activeCategory);
+  }, [searchQuery, listings, activeCategory]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+    if (isVisible) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isVisible, onClose]);
+
+  if (!isVisible || !searchQuery.trim() || suggestions.length === 0) return null;
+
+  return createPortal(
+    <>
+      <div className="fixed inset-0 bg-transparent z-[9980]" onClick={onClose} />
+      <div
+        ref={suggestionsRef}
+        className="absolute bg-white rounded-xl shadow-2xl border border-gray-200 z-[9981] animate-fadeIn overflow-hidden"
+        style={{
+          left: `${searchBarPosition?.left || 0}px`,
+          top: `${(searchBarPosition?.bottom || 0) + 8}px`,
+          width: `${searchBarPosition?.width || 0}px`,
+          maxHeight: "70vh",
+          boxShadow: "0 10px 40px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)",
+        }}
+      >
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <FontAwesomeIcon icon={faSearch} className="w-4 h-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">
+                {getPluralCategoryName(activeCategory)} results for "{searchQuery}"
+              </span>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded transition-colors cursor-pointer"
+              aria-label="Close suggestions"
+            >
+              <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+        <div className="overflow-y-auto" style={{ maxHeight: "calc(70vh - 56px)" }}>
+          <div className="p-2">
+            {suggestions.map((suggestion, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  onSuggestionClick(suggestion.action());
+                  onClose();
+                }}
+                className="w-full text-left p-3 bg-white hover:bg-gray-50 rounded-lg transition-colors duration-150 mb-1 last:mb-0 group cursor-pointer"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100 flex-shrink-0">
+                    <FontAwesomeIcon
+                      icon={suggestion.type === "category" ? faBuilding : faMapMarkerAlt}
+                      className="w-4 h-4 text-gray-700"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between mb-1">
+                      <h4 className="font-medium text-gray-900 text-sm truncate">
+                        {suggestion.title}
+                      </h4>
+                    </div>
+                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                      {suggestion.description}
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <FontAwesomeIcon icon={faChevronRight} className="w-3 h-3 text-gray-400" />
+                  </div>
+                </div>
+              </button>
+            ))}
+            <button
+              onClick={() => {
+                const params = new URLSearchParams();
+                if (looksLikeLocation(searchQuery.trim())) {
+                  params.append("location.area", normalizeLocationForBackend(searchQuery.trim()));
+                } else {
+                  params.append("q", searchQuery.trim());
+                }
+                if (activeCategory !== "All Categories") {
+                  params.append("category", activeCategory.toLowerCase());
+                }
+                onSuggestionClick(`/search-results?${params.toString()}`);
+                onClose();
+              }}
+              className="w-full mt-3 p-3 bg-gray-900 hover:bg-black text-white font-medium rounded-lg transition-colors duration-150 cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <p className="text-sm font-medium">Show all {getPluralCategoryName(activeCategory)} results</p>
+                  <p className="text-xs text-gray-300 mt-1">
+                    View all matches for "{searchQuery}"
+                  </p>
+                </div>
+                <FontAwesomeIcon icon={faChevronRight} className="w-3 h-3" />
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </>,
+    document.body
+  );
+};
+
+// ================== MOBILE SEARCH MODAL ==================
+
 const MobileSearchModal = ({
   searchQuery,
   listings,
@@ -472,7 +1144,7 @@ const MobileSearchModal = ({
     const value = e.target.value;
     setInputValue(value);
     onTyping(value);
-    setSelectedSuggestion(null); // Clear selection when typing
+    setSelectedSuggestion(null);
   };
 
   const handleClearInput = () => {
@@ -484,16 +1156,14 @@ const MobileSearchModal = ({
 
   const handleSuggestionClick = (suggestion) => {
     setSelectedSuggestion(suggestion);
-    setInputValue(suggestion.title); // Fill input with selected suggestion
+    setInputValue(suggestion.title);
   };
 
   const handleApplyAndSearch = () => {
     if (selectedSuggestion) {
-      // Use the selected suggestion's action
       onSuggestionClick(selectedSuggestion.action());
       onClose();
     } else if (inputValue.trim()) {
-      // If no suggestion selected but there's input, create params from input
       const params = new URLSearchParams();
       if (looksLikeLocation(inputValue.trim())) {
         params.append("location.area", normalizeLocationForBackend(inputValue.trim()));
@@ -504,7 +1174,6 @@ const MobileSearchModal = ({
         params.append("category", activeCategory.toLowerCase());
       }
       
-      // Add dates and guests if they exist
       if (tempCheckInDate) {
         params.append("checkInDate", tempCheckInDate.toISOString());
       }
@@ -574,23 +1243,6 @@ const MobileSearchModal = ({
                 className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-gray-900 text-base placeholder:text-gray-500 cursor-text"
                 value={inputValue}
                 onChange={handleInputChange}
-                onFocus={() => {
-                  // ✅ LOCATION CLEARING FIX: Clear current location when focused
-                  const urlParams = new URLSearchParams(window.location.search);
-                  const urlLocation = urlParams.get("location.area") || urlParams.get("location");
-                  if (urlLocation && looksLikeLocation(urlLocation)) {
-                    // Clear location from URL
-                    urlParams.delete("location.area");
-                    urlParams.delete("location");
-                    window.history.replaceState({}, '', `${window.location.pathname}?${urlParams.toString()}`);
-                    
-                    // Clear the input if it contains a location
-                    if (looksLikeLocation(inputValue)) {
-                      setInputValue("");
-                      onTyping("");
-                    }
-                  }
-                }}
                 placeholder={`Search ${activeCategory.toLowerCase()}...`}
                 autoFocus
               />
@@ -609,7 +1261,6 @@ const MobileSearchModal = ({
         {/* Search Details Section */}
         <div className="px-4 py-3 border-b border-gray-200">
           <div className="space-y-3">
-            {/* Dates */}
             <div className="grid grid-cols-2 gap-2">
               <div 
                 className="bg-gray-100 rounded-lg p-3 hover:bg-gray-200 cursor-pointer"
@@ -631,7 +1282,6 @@ const MobileSearchModal = ({
               </div>
             </div>
             
-            {/* Guests */}
             <div 
               className="bg-gray-100 rounded-lg p-3 hover:bg-gray-200 cursor-pointer"
               onClick={() => setShowGuestSelector(true)}
@@ -798,717 +1448,17 @@ const MobileSearchModal = ({
   );
 };
 
-// ================== FIXED BACKEND HOOK ==================
-
-const useBackendListings = (searchQuery = '', filters = {}) => {
-  const [listings, setListings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [apiResponse, setApiResponse] = useState(null);
-  const [filteredCounts, setFilteredCounts] = useState({});
-
-  useEffect(() => {
-    const fetchListings = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        let url = '/listings';
-        const params = new URLSearchParams();
-        
-        // ✅ CRITICAL FIX 1: Always send category when we have location
-        const hasLocationFilter = filters.locations && filters.locations.length > 0;
-        const hasCategoryFilter = filters.categories && filters.categories.length > 0;
-        const isLocationSearch = searchQuery && looksLikeLocation(searchQuery);
-        
-        // ✅ FIX: Send category to backend ONLY when we have it
-        if (hasCategoryFilter) {
-          const backendCategories = filters.categories.map(cat => {
-            const categoryMap = {
-              'hotel': 'hotel',
-              'restaurant': 'restaurant', 
-              'shortlet': 'shortlet',
-              'vendor': 'services',
-              'services': 'services'
-            };
-            const catLower = cat.toLowerCase();
-            return categoryMap[catLower] || catLower;
-          });
-          params.append('category', backendCategories[0]);
-        } 
-        // ✅ FIX 2: If searching by location (hero search), we need to handle it differently
-        else if (isLocationSearch && !hasCategoryFilter) {
-          // When user searches "Bodija" from hero, fetch all listings
-          // We'll filter client-side based on URL params
-          console.log('📍 Hero location search detected, fetching all listings for client-side filtering');
-        }
-        // ✅ FIX 3: If we have URL category but no filters.categories yet (initial load)
-        else if (!hasCategoryFilter && !isLocationSearch) {
-          // Don't send category param, let backend return all
-        }
-        
-        // ✅ FIX 4: Send location filter to backend (proper case)
-        if (hasLocationFilter) {
-          const properCaseLocation = normalizeLocationForBackend(filters.locations[0]);
-          params.append('location.area', properCaseLocation);
-          console.log(`📍 Sending location to backend: "${properCaseLocation}"`);
-        } else if (isLocationSearch && !hasLocationFilter) {
-          // If search query is a location but no location filter in URL
-          const properCaseLocation = normalizeLocationForBackend(searchQuery);
-          params.append('location.area', properCaseLocation);
-          console.log(`📍 Sending search query as location to backend: "${properCaseLocation}"`);
-        }
-        
-        // ✅ FIX 5: Regular search query (non-location)
-        if (searchQuery && !looksLikeLocation(searchQuery) && !hasLocationFilter) {
-          params.append('q', searchQuery);
-        }
-        
-        // Add other filters
-        if (filters.priceRange?.min) {
-          params.append('minPrice', filters.priceRange.min);
-        }
-        
-        if (filters.priceRange?.max) {
-          params.append('maxPrice', filters.priceRange.max);
-        }
-        
-        if (filters.ratings && filters.ratings.length > 0) {
-          params.append('minRating', Math.min(...filters.ratings));
-        }
-        
-        if (filters.sortBy && filters.sortBy !== 'relevance') {
-          params.append('sort', filters.sortBy);
-        }
-        
-        const queryString = params.toString();
-        if (queryString) {
-          url += `?${queryString}`;
-        }
-        
-        console.log('📡 Backend API Request:', url);
-        console.log('🔍 Search Query:', searchQuery);
-        console.log('🎯 Filters:', filters);
-        console.log('📊 Parameters:', queryString);
-        
-        const response = await axiosInstance.get(url);
-        setApiResponse(response.data);
-        
-        if (response.data && response.data.status === 'success' && response.data.data?.listings) {
-          let allListings = response.data.data.listings;
-          
-          console.log(`📦 Received ${allListings.length} listings from backend`);
-          
-          // ✅ FIX 4: Apply proper client-side filtering for editable data
-          let finalListings = allListings;
-          
-          // Get URL params directly for accurate filtering
-          const urlParams = new URLSearchParams(window.location.search);
-          const urlCategory = urlParams.get('category');
-          const urlLocation = urlParams.get('location.area');
-          const urlSearchQuery = urlParams.get('q');
-          
-          console.log('🔗 URL Params for filtering:', { urlCategory, urlLocation, urlSearchQuery });
-          
-          // Filter by URL category (if exists)
-          if (urlCategory) {
-            const activeCategory = urlCategory.toLowerCase();
-            console.log(`🔧 Filtering by URL category: ${activeCategory}`);
-            
-            finalListings = finalListings.filter(item => {
-              const itemCategory = (item.category || '').toLowerCase();
-              const matchesCategory = itemCategory.includes(activeCategory) || 
-                     activeCategory.includes(itemCategory) ||
-                     (activeCategory === 'services' && itemCategory === 'vendor') ||
-                     (activeCategory === 'vendor' && itemCategory === 'services');
-              
-              return matchesCategory;
-            });
-            
-            console.log(`✅ After category filtering: ${finalListings.length} listings`);
-          }
-          
-          // Filter by URL location (if exists) - EXACT MATCH
-          if (urlLocation) {
-            const searchLocation = urlLocation.toLowerCase();
-            console.log(`📍 Filtering by URL location: ${searchLocation}`);
-            
-            finalListings = finalListings.filter(item => {
-              const itemLocation = (item.location?.area || '').toLowerCase();
-              
-              // Check for exact or partial match
-              const matchesLocation = itemLocation.includes(searchLocation) || 
-                                      searchLocation.includes(itemLocation) ||
-                                      normalizeLocation(itemLocation) === normalizeLocation(searchLocation);
-              
-              return matchesLocation;
-            });
-            
-            console.log(`✅ After location filtering: ${finalListings.length} listings`);
-          }
-          
-          // Filter by search query if not a location
-          if (urlSearchQuery && !looksLikeLocation(urlSearchQuery)) {
-            console.log(`🔍 Filtering by search query: ${urlSearchQuery}`);
-            
-            finalListings = finalListings.filter(item => {
-              const title = (item.title || '').toLowerCase();
-              const description = (item.description || '').toLowerCase();
-              const category = (item.category || '').toLowerCase();
-              
-              return title.includes(urlSearchQuery.toLowerCase()) ||
-                     description.includes(urlSearchQuery.toLowerCase()) ||
-                     category.includes(urlSearchQuery.toLowerCase());
-            });
-            
-            console.log(`✅ After search query filtering: ${finalListings.length} listings`);
-          }
-          
-          // Calculate filtered counts by category
-          const counts = {};
-          finalListings.forEach(item => {
-            const category = item.category || 'Other';
-            const pluralCategory = getPluralCategoryName(category);
-            counts[pluralCategory] = (counts[pluralCategory] || 0) + 1;
-          });
-          setFilteredCounts(counts);
-          
-          setListings(finalListings);
-        } else {
-          console.log('⚠️ No listings data received');
-          setListings([]);
-          setFilteredCounts({});
-          setError(response.data?.message || 'No data received');
-        }
-      } catch (err) {
-        console.error('❌ Backend API Error:', err.message);
-        setError(err.message);
-        setListings([]);
-        setFilteredCounts({});
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchListings();
-  }, [searchQuery, JSON.stringify(filters), window.location.search]);
-
-  return { 
-    listings, 
-    loading, 
-    error, 
-    apiResponse,
-    filteredCounts,
-    looksLikeLocation: () => looksLikeLocation(searchQuery)
-  };
-};
-
-// ================== ADDITIONAL HELPER FUNCTIONS ==================
-
-// BackButton Component
-const BackButton = ({ className = "", onClick }) => {
-  const navigate = useNavigate();
-
-  const handleBack = () => {
-    if (onClick) {
-      onClick();
-    } else {
-      if (window.history.length > 1) {
-        navigate(-1);
-      } else {
-        navigate("/");
-      }
-    }
-  };
-
-  return (
-    <button
-      onClick={handleBack}
-      className={`flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors active:scale-95 cursor-pointer ${className}`}
-      aria-label="Go back"
-    >
-      <FontAwesomeIcon icon={faArrowLeft} className="text-gray-700 text-lg" />
-    </button>
-  );
-};
-
-// Add capitalizeFirst function
-const capitalizeFirst = (str) => {
-  if (!str) return "";
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-};
-
-// Helper function to get subcategory (word after the dot)
-const getSubcategory = (category) => {
-  if (!category) return "";
-
-  const parts = category.split(".");
-  if (parts.length > 1) {
-    return parts.slice(1).join(".").trim();
-  }
-
-  return category.trim();
-};
-
-// FALLBACK IMAGES
-const FALLBACK_IMAGES = {
-  hotel:
-    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
-  restaurant:
-    "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80",
-  shortlet:
-    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80",
-  tourist:
-    "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=80",
-  cafe: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&q=80",
-  bar: "https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=600&q=80",
-  services:
-    "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=600&q=80",
-  event:
-    "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
-  hall: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
-  weekend:
-    "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
-  default:
-    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
-};
-
-// Helper function to get category display name
-const getCategoryDisplayName = (category) => {
-  if (!category || category === "All Categories" || category === "All")
-    return "All Categories";
-
-  const parts = category.split(".");
-  if (parts.length > 1) {
-    const afterDot = parts.slice(1).join(".").trim();
-    return afterDot
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  }
-
-  return category
-    .split(" ")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
-
-// Helper function to get category icon
-const getCategoryIcon = (category) => {
-  const cat = category.toLowerCase();
-  if (cat.includes("hotel") || cat.includes("accommodation")) return faBuilding;
-  if (cat.includes("shortlet") || cat.includes("apartment")) return faHome;
-  if (cat.includes("weekend") || cat.includes("event")) return faCalendarWeek;
-  if (cat.includes("restaurant") || cat.includes("food")) return faUtensils;
-  if (cat.includes("tourist") || cat.includes("attraction")) return faLandmark;
-  if (cat.includes("services") || cat.includes("vendor")) return faUser;
-  return faFilter;
-};
-
-const getCardImages = (item) => {
-  if (item.images && item.images.length > 0 && item.images[0].url) {
-    return [item.images[0].url];
-  }
-  
-  const cat = (item.category || "").toLowerCase();
-  if (cat.includes("hotel")) return [FALLBACK_IMAGES.hotel];
-  if (cat.includes("restaurant")) return [FALLBACK_IMAGES.restaurant];
-  if (cat.includes("shortlet")) return [FALLBACK_IMAGES.shortlet];
-  if (cat.includes("tourist")) return [FALLBACK_IMAGES.tourist];
-  if (cat.includes("cafe")) return [FALLBACK_IMAGES.cafe];
-  if (cat.includes("bar") || cat.includes("lounge"))
-    return [FALLBACK_IMAGES.bar];
-  if (cat.includes("services") || cat.includes("vendor")) return [FALLBACK_IMAGES.services];
-  if (cat.includes("event")) return [FALLBACK_IMAGES.event];
-  if (cat.includes("hall") || cat.includes("weekend"))
-    return [FALLBACK_IMAGES.hall];
-  return [FALLBACK_IMAGES.default];
-};
-
-// ================== SEARCH SUGGESTIONS HELPER FUNCTIONS ==================
-
-const getLocationBreakdown = (listings) => {
-  const locationCounts = {};
-  listings.forEach((item) => {
-    const location = getLocationDisplayName(item.location?.area || "Unknown");
-    locationCounts[location] = (locationCounts[location] || 0) + 1;
-  });
-
-  return Object.entries(locationCounts)
-    .map(([location, count]) => ({ location, count }))
-    .sort((a, b) => b.count - a.count);
-};
-
-const generateSearchSuggestions = (query, listings, activeCategory) => {
-  if (!query.trim() || !listings.length) return [];
-
-  const queryLower = query.toLowerCase().trim();
-  const suggestions = [];
-
-  // Filter listings by active category
-  const categoryFilteredListings = activeCategory === "All Categories" 
-    ? listings 
-    : listings.filter(item => {
-        const itemCategory = getCategoryDisplayName(item.category || "").toLowerCase();
-        const activeCategoryLower = activeCategory.toLowerCase();
-        return itemCategory.includes(activeCategoryLower) || 
-               activeCategoryLower.includes(itemCategory);
-      });
-
-  // Get unique locations from category-filtered listings
-  const uniqueLocations = [
-    ...new Set(
-      categoryFilteredListings
-        .map((item) => item.location?.area)
-        .filter((loc) => loc && loc.trim() !== "")
-        .map((loc) => loc.trim())
-    ),
-  ];
-
-  // For exact location matches within the active category
-  const exactLocationMatches = uniqueLocations
-    .filter((location) => {
-      const displayName = getLocationDisplayName(location).toLowerCase();
-      return displayName === queryLower;
-    })
-    .map((location) => {
-      const locationListings = categoryFilteredListings.filter((item) => {
-        const itemLocation = item.location?.area;
-        return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
-      });
-
-      const totalPlaces = locationListings.length;
-      
-      // Get plural category name
-      const categoryPlural = getPluralCategoryName(activeCategory);
-
-      return {
-        type: "location",
-        title: getLocationDisplayName(location),
-        count: totalPlaces,
-        description: `${categoryPlural} in ${getLocationDisplayName(location)}`,
-        breakdownText: "",
-        breakdown: [],
-        action: () => {
-          const params = new URLSearchParams();
-          // Use proper case for location
-          params.append("location.area", normalizeLocationForBackend(location));
-          if (activeCategory !== "All Categories") {
-            params.append("category", activeCategory.toLowerCase());
-          }
-          return `/search-results?${params.toString()}`;
-        },
-      };
-    });
-
-  if (exactLocationMatches.length > 0) {
-    return exactLocationMatches.slice(0, 4);
-  }
-
-  // For location matches within the active category
-  const locationMatches = uniqueLocations
-    .filter((location) => {
-      const displayName = getLocationDisplayName(location).toLowerCase();
-      return displayName.includes(queryLower);
-    })
-    .map((location) => {
-      const locationListings = categoryFilteredListings.filter((item) => {
-        const itemLocation = item.location?.area;
-        return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
-      });
-
-      const totalPlaces = locationListings.length;
-      
-      // Get plural category name
-      const categoryPlural = getPluralCategoryName(activeCategory);
-
-      return {
-        type: "location",
-        title: getLocationDisplayName(location),
-        count: totalPlaces,
-        description: `${categoryPlural} in ${getLocationDisplayName(location)}`,
-        breakdownText: "",
-        breakdown: [],
-        action: () => {
-          const params = new URLSearchParams();
-          // Use proper case for location
-          params.append("location.area", normalizeLocationForBackend(location));
-          if (activeCategory !== "All Categories") {
-            params.append("category", activeCategory.toLowerCase());
-          }
-          return `/search-results?${params.toString()}`;
-        },
-      };
-    });
-
-  // Also check for exact category matches
-  if (activeCategory !== "All Categories") {
-    const categoryLower = activeCategory.toLowerCase();
-    if (categoryLower.includes(queryLower) || queryLower.includes(categoryLower)) {
-      const categoryListings = categoryFilteredListings;
-      const locationBreakdown = getLocationBreakdown(categoryListings);
-      const totalPlaces = categoryListings.length;
-      
-      // Get plural category name
-      const categoryPlural = getPluralCategoryName(activeCategory);
-
-      suggestions.push({
-        type: "category",
-        title: categoryPlural,
-        count: totalPlaces,
-        description: `Browse ${categoryPlural} options`,
-        breakdownText: "",
-        breakdown: locationBreakdown.slice(0, 3),
-        action: () => {
-          const categorySlug = activeCategory.toLowerCase().replace(/\s+/g, '-');
-          return `/category/${categorySlug}`;
-        },
-      });
-    }
-  }
-
-  return [...suggestions, ...locationMatches]
-    .sort((a, b) => {
-      // Exact matches first
-      const aExact = a.title.toLowerCase() === queryLower;
-      const bExact = b.title.toLowerCase() === queryLower;
-      if (aExact && !bExact) return -1;
-      if (!aExact && bExact) return 1;
-      
-      // Then by count
-      return b.count - a.count;
-    })
-    .slice(0, 8);
-};
-
-// ================== DESKTOP SEARCH SUGGESTIONS COMPONENT ==================
-
-const DesktopSearchSuggestions = ({
-  searchQuery,
-  listings,
-  onSuggestionClick,
-  onClose,
-  isVisible,
-  searchBarPosition,
-  activeCategory,
-}) => {
-  const suggestionsRef = useRef(null);
-  const suggestions = useMemo(() => {
-    return generateSearchSuggestions(searchQuery, listings, activeCategory);
-  }, [searchQuery, listings, activeCategory]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target)) {
-        onClose();
-      }
-    };
-    if (isVisible) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isVisible, onClose]);
-
-  if (!isVisible || !searchQuery.trim() || suggestions.length === 0) return null;
-
-  return createPortal(
-    <>
-      <div className="fixed inset-0 bg-transparent z-[9980]" onClick={onClose} />
-      <div
-        ref={suggestionsRef}
-        className="absolute bg-white rounded-xl shadow-2xl border border-gray-200 z-[9981] animate-fadeIn overflow-hidden"
-        style={{
-          left: `${searchBarPosition?.left || 0}px`,
-          top: `${(searchBarPosition?.bottom || 0) + 8}px`,
-          width: `${searchBarPosition?.width || 0}px`,
-          maxHeight: "70vh",
-          boxShadow: "0 10px 40px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)",
-        }}
-      >
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <FontAwesomeIcon icon={faSearch} className="w-4 h-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">
-                {getPluralCategoryName(activeCategory)} results for "{searchQuery}"
-              </span>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded transition-colors cursor-pointer"
-              aria-label="Close suggestions"
-            >
-              <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-        <div className="overflow-y-auto" style={{ maxHeight: "calc(70vh - 56px)" }}>
-          <div className="p-2">
-            {suggestions.map((suggestion, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  onSuggestionClick(suggestion.action());
-                  onClose();
-                }}
-                className="w-full text-left p-3 bg-white hover:bg-gray-50 rounded-lg transition-colors duration-150 mb-1 last:mb-0 group cursor-pointer"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100 flex-shrink-0">
-                    <FontAwesomeIcon
-                      icon={suggestion.type === "category" ? faBuilding : faMapMarkerAlt}
-                      className="w-4 h-4 text-gray-700"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-1">
-                      <h4 className="font-medium text-gray-900 text-sm truncate">
-                        {suggestion.title}
-                      </h4>
-                    </div>
-                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                      {suggestion.description}
-                    </p>
-                  </div>
-                  <div className="flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <FontAwesomeIcon icon={faChevronRight} className="w-3 h-3 text-gray-400" />
-                  </div>
-                </div>
-              </button>
-            ))}
-            <button
-              onClick={() => {
-                const params = new URLSearchParams();
-                if (looksLikeLocation(searchQuery.trim())) {
-                  // Use proper case for location
-                  params.append("location.area", normalizeLocationForBackend(searchQuery.trim()));
-                } else {
-                  params.append("q", searchQuery.trim());
-                }
-                if (activeCategory !== "All Categories") {
-                  params.append("category", activeCategory.toLowerCase());
-                }
-                onSuggestionClick(`/search-results?${params.toString()}`);
-                onClose();
-              }}
-              className="w-full mt-3 p-3 bg-gray-900 hover:bg-black text-white font-medium rounded-lg transition-colors duration-150 cursor-pointer"
-            >
-              <div className="flex items-center justify-between">
-                <div className="text-left">
-                  <p className="text-sm font-medium">Show all {getPluralCategoryName(activeCategory)} results</p>
-                  <p className="text-xs text-gray-300 mt-1">
-                    View all matches for "{searchQuery}"
-                  </p>
-                </div>
-                <FontAwesomeIcon icon={faChevronRight} className="w-3 h-3" />
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
-    </>,
-    document.body
-  );
-};
-
-// ================== CATEGORY SWITCH LOADER COMPONENT ==================
-
-const CategorySwitchLoader = ({ isMobile = false, previousCategory = '', newCategory = '' }) => {
-  return (
-    <div 
-      className={`fixed inset-0 z-[99999] flex items-center justify-center transition-all duration-300 ${
-        isMobile ? 'bg-white/95' : 'bg-white/90 backdrop-blur-sm'
-      }`}
-      style={{
-        pointerEvents: 'all',
-        animation: 'fadeIn 0.3s ease-out'
-      }}
-    >
-      <div className={`flex flex-col items-center justify-center ${isMobile ? 'p-4' : 'p-6'}`}>
-        {/* Animated spinner */}
-        <div className="relative mb-6">
-          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-[#06EAFC]/10 rounded-full`}></div>
-          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-transparent border-t-[#06EAFC] rounded-full absolute top-0 left-0 animate-spin`}></div>
-          <div className={`${isMobile ? 'w-8 h-8' : 'w-12 h-12'} border-4 border-transparent border-b-[#00E38C] rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-spin`} style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
-        </div>
-        
-        {/* Loading text with category transition */}
-        <div className="text-center max-w-sm">
-          <p className={`font-bold text-gray-900 ${isMobile ? 'text-base' : 'text-xl'} mb-2`}>
-            Switching Categories
-          </p>
-          <div className={`flex items-center justify-center gap-2 ${isMobile ? 'text-sm' : 'text-base'} text-gray-600 mb-4`}>
-            {previousCategory && (
-              <>
-                <span className="px-3 py-1 bg-gray-100 rounded-lg">{previousCategory}</span>
-                <FontAwesomeIcon icon={faChevronRight} className="text-[#06EAFC]" />
-              </>
-            )}
-            {newCategory && (
-              <span className="px-3 py-1 bg-[#06EAFC]/10 text-[#06EAFC] font-medium rounded-lg">{newCategory}</span>
-            )}
-          </div>
-          <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-            Loading new listings...
-          </p>
-        </div>
-        
-        {/* Animated dots */}
-        <div className="flex space-x-1 mt-6">
-          <div className="w-2 h-2 bg-[#06EAFC] rounded-full animate-pulse"></div>
-          <div className="w-2 h-2 bg-[#06EAFC] rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-          <div className="w-2 h-2 bg-[#06EAFC] rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-        </div>
-      </div>
-      
-      {/* Embedded CSS styles */}
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(0.9); }
-        }
-        
-        .animate-spin {
-          animation: spin 1s linear infinite;
-        }
-        
-        .animate-pulse {
-          animation: pulse 1.5s ease-in-out infinite;
-        }
-        
-        .category-switch-loader {
-          animation: fadeIn 0.3s ease-out;
-        }
-      `}</style>
-    </div>
-  );
-};
-
-// ================== SEARCH RESULT BUSINESS CARD ==================
+// ================== BUSINESS CARD ==================
 
 const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   const images = getCardImages(item);
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [imageHeight] = useState(isMobile ? 150 : 170);
-  const isFavorite = useIsFavorite(item._id || item.id);
   const cardRef = useRef(null);
-  const isAuthenticated = useAuthStatus();
-
-  const cardDimensions = useMemo(() => ({
-    width: isMobile ? "165px" : "240px",
-    height: isMobile ? "280px" : "320px",
-    imageHeight: isMobile ? 150 : 170,
-    textPadding: isMobile ? "p-1.5" : "p-2.5"
-  }), [isMobile]);
+  
+  // Simple favorite state (you can integrate your useIsFavorite hook here)
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const formatPrice = (n) => {
     if (!n) return "–";
@@ -1527,15 +1477,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
 
   const getPerText = () => {
     const nightlyCategories = [
-      "hotel",
-      "hostel",
-      "shortlet",
-      "apartment",
-      "cabin",
-      "condo",
-      "resort",
-      "inn",
-      "motel",
+      "hotel", "hostel", "shortlet", "apartment", "cabin", "condo", "resort", "inn", "motel",
     ];
 
     if (nightlyCategories.some((cat) => category.toLowerCase().includes(cat))) {
@@ -1563,205 +1505,21 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   const handleCardClick = () => {
     if (item._id || item.id) {
       navigate(`/vendor-detail/${item._id || item.id}`);
-    } else {
-      navigate(`/category/${category}`);
     }
   };
 
-  const showToast = useCallback(
-    (message, type = "success") => {
-      const existingToast = document.getElementById("toast-notification");
-      if (existingToast) {
-        existingToast.remove();
-      }
+  const handleFavoriteClick = (e) => {
+    e.stopPropagation();
+    setIsFavorite(!isFavorite);
+    // Add your favorite logic here
+  };
 
-      const toast = document.createElement("div");
-      toast.id = "toast-notification";
-      toast.className = `fixed z-[9999] px-4 py-3 rounded-lg shadow-lg border ${
-        type === "success"
-          ? "bg-green-50 border-green-200 text-green-800"
-          : "bg-blue-50 border-blue-200 text-blue-800"
-      }`;
-
-      toast.style.top = isMobile ? "15px" : "15px";
-      toast.style.right = "15px";
-      toast.style.maxWidth = "320px";
-      toast.style.animation = "slideInRight 0.3s ease-out forwards";
-
-      toast.innerHTML = `
-      <div class="flex items-start gap-3">
-        <div class="${
-          type === "success"
-            ? "text-green-600"
-            : "text-blue-600"
-        } mt-0.5">
-          ${
-            type === "success"
-              ? '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>'
-              : '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>'
-          }
-        </div>
-        <div class="flex-1">
-          <p class="font-medium">${message}</p>
-          <p class="text-sm opacity-80 mt-1">${businessName}</p>
-        </div>
-        <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70 transition-opacity">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-          </svg>
-        </button>
-      </div>
-    `;
-
-      document.body.appendChild(toast);
-
-      setTimeout(() => {
-        if (toast.parentElement) {
-          toast.style.animation = "slideOutRight 0.3s ease-in forwards";
-          setTimeout(() => {
-            if (toast.parentElement) {
-              toast.remove();
-            }
-          }, 300);
-        }
-      }, 3000);
-    },
-    [isMobile, businessName]
-  );
-
-  const handleFavoriteClick = useCallback(
-    async (e) => {
-      e.stopPropagation();
-      if (isProcessing) return;
-      setIsProcessing(true);
-
-      try {
-        if (!isAuthenticated) {
-          showToast("Please login to save listings", "info");
-          localStorage.setItem(
-            "redirectAfterLogin",
-            window.location.pathname + window.location.search
-          );
-          const itemToSaveAfterLogin = {
-            id: item._id || item.id,
-            name: businessName,
-            price: priceText,
-            perText: perText,
-            rating: parseFloat(rating),
-            tag: "Guest Favorite",
-            image: images[0] || FALLBACK_IMAGES.default,
-            category: capitalizeFirst(category) || "Business",
-            location: locationText,
-            originalData: {
-              price: item.price,
-              location: item.location,
-              rating: item.rating,
-              description: item.description,
-            },
-          };
-          localStorage.setItem(
-            "pendingSaveItem",
-            JSON.stringify(itemToSaveAfterLogin)
-          );
-          setTimeout(() => {
-            navigate("/login");
-            setIsProcessing(false);
-          }, 800);
-          return;
-        }
-
-        const saved = JSON.parse(
-          localStorage.getItem("userSavedListings") || "[]"
-        );
-        const itemId = item._id || item.id;
-        const isAlreadySaved = saved.some(
-          (savedItem) => savedItem.id === itemId
-        );
-
-        if (isAlreadySaved) {
-          const updated = saved.filter((savedItem) => savedItem.id !== itemId);
-          localStorage.setItem("userSavedListings", JSON.stringify(updated));
-          showToast("Removed from saved listings", "info");
-          window.dispatchEvent(
-            new CustomEvent("savedListingsUpdated", {
-              detail: { action: "removed", itemId: itemId },
-            })
-          );
-        } else {
-          const listingToSave = {
-            id: itemId || `listing_${Date.now()}`,
-            name: businessName,
-            price: priceText,
-            perText: perText,
-            rating: parseFloat(rating),
-            tag: "Guest Favorite",
-            image: images[0] || FALLBACK_IMAGES.default,
-            category: capitalizeFirst(category) || "Business",
-            location: locationText,
-            savedDate: new Date().toISOString().split("T")[0],
-            originalData: {
-              price: item.price,
-              location: item.location,
-              rating: item.rating,
-              description: item.description,
-            },
-          };
-          const updated = [...saved, listingToSave];
-          localStorage.setItem("userSavedListings", JSON.stringify(updated));
-          showToast("Added to saved listings!", "success");
-          window.dispatchEvent(
-            new CustomEvent("savedListingsUpdated", {
-              detail: { action: "added", item: listingToSave },
-            })
-          );
-        }
-      } catch (error) {
-        console.error("Error saving/removing favorite:", error);
-        showToast("Something went wrong. Please try again.", "info");
-      } finally {
-        setIsProcessing(false);
-      }
-    },
-    [
-      isProcessing,
-      item,
-      businessName,
-      priceText,
-      perText,
-      rating,
-      images,
-      category,
-      locationText,
-      showToast,
-      navigate,
-      isAuthenticated,
-    ]
-  );
-
-  useEffect(() => {
-    const pendingSaveItem = JSON.parse(
-      localStorage.getItem("pendingSaveItem") || "null"
-    );
-    if (pendingSaveItem && pendingSaveItem.id === (item._id || item.id)) {
-      localStorage.removeItem("pendingSaveItem");
-      const saved = JSON.parse(
-        localStorage.getItem("userSavedListings") || "[]"
-      );
-      const isAlreadySaved = saved.some(
-        (savedItem) => savedItem.id === (item._id || item.id)
-      );
-      if (!isAlreadySaved) {
-        const updated = [...saved, pendingSaveItem];
-        localStorage.setItem("userSavedListings", JSON.stringify(updated));
-        showToast("Added to saved listings!", "success");
-        window.dispatchEvent(
-          new CustomEvent("savedListingsUpdated", {
-            detail: { action: "added", item: pendingSaveItem },
-          })
-        );
-      }
-    }
-  }, [item._id, item.id, showToast]);
+  const cardDimensions = useMemo(() => ({
+    width: isMobile ? "165px" : "240px",
+    height: isMobile ? "280px" : "320px",
+    imageHeight: isMobile ? 150 : 170,
+    textPadding: isMobile ? "p-1.5" : "p-2.5"
+  }), [isMobile]);
 
   return (
     <div
@@ -1814,15 +1572,12 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
         </div>
         <button
           onClick={handleFavoriteClick}
-          disabled={isProcessing}
           className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer ${
             isFavorite
               ? "bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
               : "bg-white/90 hover:bg-white backdrop-blur-sm"
-          } ${isProcessing ? "opacity-70 cursor-not-allowed" : ""}`}
+          }`}
           title={isFavorite ? "Remove from saved" : "Add to saved"}
-          aria-label={isFavorite ? "Remove from saved" : "Save this listing"}
-          aria-pressed={isFavorite}
         >
           {isProcessing ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -1904,79 +1659,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   );
 };
 
-// ================== CUSTOM HOOK FOR FAVORITES ==================
-
-const useIsFavorite = (itemId) => {
-  const [isFavorite, setIsFavorite] = useState(false);
-
-  const checkFavoriteStatus = useCallback(() => {
-    try {
-      const saved = JSON.parse(
-        localStorage.getItem("userSavedListings") || "[]"
-      );
-      const isAlreadySaved = saved.some((savedItem) => savedItem.id === itemId);
-      setIsFavorite(isAlreadySaved);
-    } catch (error) {
-      console.error("Error checking favorite status:", error);
-      setIsFavorite(false);
-    }
-  }, [itemId]);
-
-  useEffect(() => {
-    checkFavoriteStatus();
-    const handleSavedListingsChange = () => {
-      checkFavoriteStatus();
-    };
-    const handleStorageChange = (e) => {
-      if (e.key === "userSavedListings") {
-        checkFavoriteStatus();
-      }
-    };
-    window.addEventListener("savedListingsUpdated", handleSavedListingsChange);
-    window.addEventListener("storage", handleStorageChange);
-    const pollInterval = setInterval(checkFavoriteStatus, 1000);
-    return () => {
-      window.removeEventListener("savedListingsUpdated", handleSavedListingsChange);
-      window.removeEventListener("storage", handleStorageChange);
-      clearInterval(pollInterval);
-    };
-  }, [itemId, checkFavoriteStatus]);
-
-  return isFavorite;
-};
-
-const useAuthStatus = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  const checkAuth = useCallback(() => {
-    const token = localStorage.getItem("auth_token");
-    const userProfile = localStorage.getItem("userProfile");
-    const isLoggedIn = !!token && !!userProfile;
-    setIsAuthenticated(isLoggedIn);
-    return isLoggedIn;
-  }, []);
-
-  useEffect(() => {
-    checkAuth();
-    const handleAuthChange = () => {
-      checkAuth();
-    };
-    window.addEventListener("storage", handleAuthChange);
-    window.addEventListener("authChange", handleAuthChange);
-    window.addEventListener("loginSuccess", handleAuthChange);
-    window.addEventListener("logout", handleAuthChange);
-    return () => {
-      window.removeEventListener("storage", handleAuthChange);
-      window.removeEventListener("authChange", handleAuthChange);
-      window.removeEventListener("loginSuccess", handleAuthChange);
-      window.removeEventListener("logout", handleAuthChange);
-    };
-  }, [checkAuth]);
-
-  return isAuthenticated;
-};
-
-// ================== CATEGORY BUTTONS COMPONENT ==================
+// ================== CATEGORY BUTTONS ==================
 
 const CategoryButtons = ({ selectedCategories, onCategoryClick, isSwitchingCategory = false }) => {
   const buttonConfigs = [
@@ -2115,7 +1798,7 @@ const CategoryButtons = ({ selectedCategories, onCategoryClick, isSwitchingCateg
   );
 };
 
-// ================== FIXED FILTER SIDEBAR (WITH LOCATION CLEARING FIX) ==================
+// ================== FILTER SIDEBAR ==================
 
 const FilterSidebar = ({
   onFilterChange,
@@ -2222,24 +1905,6 @@ const FilterSidebar = ({
     onFilterChange(updatedFilters);
   };
 
-  // ✅ LOCATION CLEARING FIX: Clear location when user focuses on location search input
-  const handleLocationSearchFocus = () => {
-    if (localFilters.locations.length > 0) {
-      const updatedFilters = {
-        ...localFilters,
-        locations: []
-      };
-      setLocalFilters(updatedFilters);
-      onFilterChange(updatedFilters);
-      
-      // Also clear from URL
-      const params = new URLSearchParams(window.location.search);
-      params.delete("location.area");
-      params.delete("location");
-      window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
-    }
-  };
-
   const sidebarContent = (
     <div
       className={`space-y-6 ${isMobileModal ? "px-0" : ""}`}
@@ -2301,7 +1966,6 @@ const FilterSidebar = ({
                   placeholder="Search locations..."
                   value={locationSearch}
                   onChange={(e) => setLocationSearch(e.target.value)}
-                  onFocus={handleLocationSearchFocus} // ✅ LOCATION CLEARING FIX
                   className="w-full pl-10 pr-8 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-text"
                 />
                 {locationSearch && (
@@ -2655,7 +2319,7 @@ const FilterSidebar = ({
   );
 };
 
-// ================== CATEGORY SECTION COMPONENT ==================
+// ================== CATEGORY SECTION ==================
 
 const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
   const navigate = useNavigate();
@@ -2809,89 +2473,7 @@ const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
   );
 };
 
-// ================== CSS STYLES FOR LOADER ==================
-
-const loaderStyles = `
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-  
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.9); }
-  }
-  
-  @keyframes slideInUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-  
-  @keyframes slideInRight {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-  }
-  
-  @keyframes slideOutRight {
-    from { transform: translateX(0); opacity: 1; }
-    to { transform: translateX(100%); opacity: 0; }
-  }
-  
-  @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-  }
-  
-  @keyframes loadingProgress {
-    0% { width: 0%; transform: translateX(0); }
-    50% { width: 70%; transform: translateX(0); }
-    100% { width: 100%; transform: translateX(0); }
-  }
-  
-  .animate-spin {
-    animation: spin 1s linear infinite;
-  }
-  
-  .animate-pulse {
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-  
-  .animate-bounce {
-    animation: bounce 0.6s ease-in-out infinite;
-  }
-  
-  .animate-fadeIn {
-    animation: fadeIn 0.3s ease-out;
-  }
-  
-  .animate-slideInUp {
-    animation: slideInUp 0.3s ease-out;
-  }
-  
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-  
-  .backdrop-blur-xs {
-    backdrop-filter: blur(2px);
-  }
-  
-  .category-switch-loader {
-    animation: fadeIn 0.3s ease-out;
-  }
-`;
-
-// ================== FIXED MAIN SEARCHRESULTS COMPONENT ==================
+// ================== MAIN SEARCH RESULTS COMPONENT ==================
 
 const SearchResults = () => {
   useEffect(() => {
@@ -2958,9 +2540,8 @@ const SearchResults = () => {
 
   const { listings, loading, error, apiResponse, filteredCounts } = useBackendListings(searchQuery, activeFilters);
 
-  // ================== HELPER FUNCTIONS FOR DYNAMIC SEARCH FIELDS ==================
+  // ================== RENDER CATEGORY-SPECIFIC FIELDS ==================
   
-  // Helper to render category-specific search fields
   const renderCategorySpecificFields = () => {
     const activeCategory = activeFilters.categories[0]?.toLowerCase() || urlCategory?.toLowerCase() || 'hotel';
     
@@ -3205,7 +2786,7 @@ const SearchResults = () => {
     setLocalSearchQuery(searchQuery);
   }, [searchQuery]);
 
-  // ✅ CRITICAL FIX: Initialize filters from URL parameters
+  // Initialize filters from URL
   useEffect(() => {
     const initialFilters = {
       locations: [],
@@ -3228,7 +2809,7 @@ const SearchResults = () => {
       }
     }
 
-    // Set location from URL - use proper case
+    // Set location from URL
     if (urlLocation) {
       const displayName = getLocationDisplayName(urlLocation);
       if (displayName !== "All Locations" && displayName !== "All") {
@@ -3238,47 +2819,18 @@ const SearchResults = () => {
 
     setActiveFilters(initialFilters);
     setFiltersInitialized(true);
-    
-    console.log("🔧 Initialized filters from URL:", {
-      urlCategory,
-      urlLocation,
-      initialFilters,
-      selectedCategoryButtons
-    });
   }, [urlCategory, urlLocation]);
 
   const getCategoryButtonKey = (categoryName) => {
     const catLower = categoryName.toLowerCase();
     if (catLower.includes("services") || catLower.includes("vendor")) return "vendor";
     if (catLower.includes("shortlet")) return "shortlet";
-    if (catLower.includes("tourist")) return "tourist";
     if (catLower.includes("hotel")) return "hotel";
     if (catLower.includes("restaurant")) return "restaurant";
     return "hotel";
   };
 
-  // ✅ LOCATION CLEARING FIX: Handle search focus to clear location
   const handleSearchFocus = () => {
-    // Clear current location when focused
-    if (urlLocation && looksLikeLocation(urlLocation)) {
-      const params = new URLSearchParams(window.location.search);
-      params.delete("location.area");
-      params.delete("location");
-      setSearchParams(params);
-      
-      // Also clear from active filters
-      const updatedFilters = {
-        ...activeFilters,
-        locations: []
-      };
-      setActiveFilters(updatedFilters);
-      
-      // Clear the input if it contains a location
-      if (looksLikeLocation(localSearchQuery)) {
-        setLocalSearchQuery("");
-      }
-    }
-    
     if (isMobile) {
       setShowMobileSearchModal(true);
     } else if (localSearchQuery.trim().length > 0) {
@@ -3318,17 +2870,13 @@ const SearchResults = () => {
     if (localSearchQuery.trim()) {
       const params = new URLSearchParams();
       
-      // ✅ FIX: Handle location vs regular search
       if (looksLikeLocation(localSearchQuery.trim())) {
-        // Use proper case for location
         params.set("location.area", normalizeLocationForBackend(localSearchQuery.trim()));
         
-        // ✅ CRITICAL: When searching by location, ALWAYS include category if we have one
         if (activeFilters.categories.length > 0) {
           const categorySlug = activeFilters.categories[0].toLowerCase().replace(/\s+/g, '-');
           params.set("category", categorySlug);
         } else if (selectedCategoryButtons.length > 0) {
-          // If no category filter but we have selected category button
           const categoryMap = {
             'hotel': 'hotel',
             'restaurant': 'restaurant',
@@ -3338,33 +2886,27 @@ const SearchResults = () => {
           const actualCategory = categoryMap[selectedCategoryButtons[0]] || selectedCategoryButtons[0];
           params.set("category", actualCategory);
         } else {
-          // Default to hotel if no category selected
           params.set("category", "hotel");
         }
       } else {
-        // Regular search query
         params.set("q", localSearchQuery.trim());
         
-        // Keep existing category filter
         if (activeFilters.categories.length > 0) {
           const categorySlug = activeFilters.categories[0].toLowerCase().replace(/\s+/g, '-');
           params.set("category", categorySlug);
         }
       }
       
-      // Preserve existing location filter (if not overriding with new search)
       if (!looksLikeLocation(localSearchQuery.trim()) && activeFilters.locations.length > 0) {
         params.set("location.area", activeFilters.locations[0]);
       }
       
-      // ✅ FIX 2: Always pass dates (use defaults if none selected)
       const checkInToUse = checkInDate || new Date();
       const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
       
       params.set("checkInDate", checkInToUse.toISOString());
       params.set("checkOutDate", checkOutToUse.toISOString());
       
-      // Pass guests if available
       if (guests) {
         params.set("guests", JSON.stringify(guests));
       }
@@ -3383,14 +2925,11 @@ const SearchResults = () => {
     setShowDesktopFilters(!showDesktopFilters);
   };
 
-  // ✅ FIXED: Handle filter changes with proper URL updates
   const handleFilterChange = (newFilters) => {
     setActiveFilters(newFilters);
     
-    // Update URL with filters
     const params = new URLSearchParams();
     
-    // Keep search query
     if (searchQuery) {
       if (looksLikeLocation(searchQuery)) {
         params.set("location.area", searchQuery);
@@ -3399,12 +2938,10 @@ const SearchResults = () => {
       }
     }
     
-    // ✅ CRITICAL: Always include category when we have filters
     if (newFilters.categories.length > 0) {
       const categorySlug = newFilters.categories[0].toLowerCase().replace(/\s+/g, '-');
       params.set("category", categorySlug);
     } else if (newFilters.locations.length > 0) {
-      // If user selects location but no category, keep existing or default to hotel
       const existingCategory = searchParams.get("category");
       if (existingCategory) {
         params.set("category", existingCategory);
@@ -3412,7 +2949,6 @@ const SearchResults = () => {
         params.set("category", "hotel");
       }
     } else if (selectedCategoryButtons.length > 0) {
-      // Use selected category button
       const categoryMap = {
         'hotel': 'hotel',
         'restaurant': 'restaurant',
@@ -3423,28 +2959,22 @@ const SearchResults = () => {
       params.set("category", actualCategory);
     }
     
-    // ✅ FIX: Handle multiple locations - send only first to backend
     if (newFilters.locations.length > 0) {
-      // Use proper case for the location sent to backend
       params.set("location.area", normalizeLocationForBackend(newFilters.locations[0]));
     } else {
-      // Remove location filter if no locations selected
       params.delete("location.area");
     }
     
-    // ✅ FIX 2: Always pass dates (use defaults if none selected)
     const checkInToUse = checkInDate || new Date();
     const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
     
     params.set("checkInDate", checkInToUse.toISOString());
     params.set("checkOutDate", checkOutToUse.toISOString());
     
-    // Pass guests if available
     if (guests) {
       params.set("guests", JSON.stringify(guests));
     }
     
-    // Keep other parameters
     for (const [key, value] of searchParams.entries()) {
       if (!["category", "location", "location.area", "q"].includes(key)) {
         params.set(key, value);
@@ -3454,7 +2984,7 @@ const SearchResults = () => {
     setSearchParams(params);
   };
 
-  // ✅ CATEGORY SWITCHING: Updated handler with loader
+  // Category switching handler
   const handleCategoryButtonClick = (categoryKey) => {
     // Set loading state
     setIsSwitchingCategory(true);
@@ -3474,7 +3004,6 @@ const SearchResults = () => {
     
     const params = new URLSearchParams();
     
-    // Keep existing search query if any
     if (searchQuery) {
       if (looksLikeLocation(searchQuery)) {
         params.set("location.area", searchQuery);
@@ -3483,12 +3012,10 @@ const SearchResults = () => {
       }
     }
     
-    // Keep existing location filters (if any)
     if (activeFilters.locations.length > 0) {
       params.set("location.area", activeFilters.locations[0]);
     }
     
-    // Set category
     const categoryActualMap = {
       'hotel': 'hotel',
       'restaurant': 'restaurant',
@@ -3500,10 +3027,8 @@ const SearchResults = () => {
     const newSelectedCategories = [categoryKey];
     setSelectedCategoryButtons(newSelectedCategories);
     
-    // Always set category in URL
     params.set("category", actualCategory);
     
-    // ✅ FIX 2: Always pass dates
     const checkInToUse = checkInDate || new Date();
     const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
     
@@ -3523,14 +3048,6 @@ const SearchResults = () => {
     };
     setActiveFilters(updatedFilters);
     
-    console.log("🔧 Category button clicked:", {
-      categoryKey,
-      actualCategory,
-      displayName,
-      params: params.toString()
-    });
-    
-    // Auto-hide loader after data loads or timeout
     setTimeout(() => {
       setIsSwitchingCategory(false);
     }, 1500);
@@ -3557,7 +3074,6 @@ const SearchResults = () => {
     setActiveFilters(resetFilters);
     setSelectedCategoryButtons([]);
     
-    // Clear URL parameters but keep search query
     const params = new URLSearchParams();
     if (searchQuery) {
       if (looksLikeLocation(searchQuery)) {
@@ -3567,7 +3083,6 @@ const SearchResults = () => {
       }
     }
     
-    // ✅ FIX 2: Still pass dates even when clearing filters
     const checkInToUse = checkInDate || new Date();
     const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
     
@@ -3604,7 +3119,6 @@ const SearchResults = () => {
     
     if (editingCheckIn) {
       params.set("checkInDate", date.toISOString());
-      // Auto-set check-out to check-in + 1 day
       const nextDay = new Date(date);
       nextDay.setDate(nextDay.getDate() + 1);
       params.set("checkOutDate", nextDay.toISOString());
@@ -3675,7 +3189,7 @@ const SearchResults = () => {
         let parts = [];
         if (categoryParams.length > 0) parts.push(categoryParams.join(", "));
         if (locationParams.length > 0) parts.push(locationParams.join(", "));
-        return `Search Results  for "${searchQuery}" in ${parts.join(" • ")}`;
+        return `Search Results for "${searchQuery}" in ${parts.join(" • ")}`;
       }
       return `Search Results for "${searchQuery}"`;
     } else if (categoryParams.length > 0) {
@@ -3753,7 +3267,7 @@ const SearchResults = () => {
     if (isSwitchingCategory) {
       timeoutId = setTimeout(() => {
         setIsSwitchingCategory(false);
-      }, 5000); // Auto-hide after 5 seconds max
+      }, 5000);
     }
     
     return () => {
@@ -3800,25 +3314,9 @@ const SearchResults = () => {
     return `${total} ${total === 1 ? 'place' : 'places'} found`;
   };
 
-  if (loading && isMobile && !isSwitchingCategory) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex flex-col items-center">
-          <div className="flex space-x-1 mb-4">
-            <div className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce"></div>
-            <div
-              className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce"
-              style={{ animationDelay: "0.1s" }}
-            ></div>
-            <div
-              className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce"
-              style={{ animationDelay: "0.2s" }}
-            ></div>
-          </div>
-          <p className="text-sm text-gray-600">Loading results please wait...</p>
-        </div>
-      </div>
-    );
+  // ================== LOADING STATE ==================
+  if (loading && !isSwitchingCategory) {
+    return <UnifiedLoadingScreen isMobile={isMobile} category={activeCategory} />;
   }
 
   if (error) {
@@ -3847,9 +3345,6 @@ const SearchResults = () => {
         image="https://ajani.ai/images/search-og.jpg"
       />
 
-      {/* Add the CSS styles */}
-      <style>{loaderStyles}</style>
-      
       {/* Category Switch Loader */}
       {isSwitchingCategory && (
         <CategorySwitchLoader 
@@ -3898,7 +3393,7 @@ const SearchResults = () => {
                   >
                     <form onSubmit={handleSearchSubmit}>
                       <div className="flex items-center justify-center w-full">
-                        {/* DESKTOP SEARCH BAR - Dynamic based on category */}
+                        {/* DESKTOP SEARCH BAR */}
                         {!isMobile ? (
                           <div className="hidden lg:block w-full max-w-6xl mx-auto">
                             <div className="relative w-full">
@@ -4263,7 +3758,7 @@ const SearchResults = () => {
                         </div>
                       )}
 
-                      {/* ✅ FIXED: Only show pagination when needed */}
+                      {/* Pagination */}
                       {totalPages > 1 && listings.length > ITEMS_PER_PAGE && (
                         <div className="flex justify-center items-center space-x-2 mt-8 w-full">
                           <button
@@ -4334,6 +3829,90 @@ const SearchResults = () => {
         </div>
       </main>
       <Footer />
+
+      {/* CSS Styles */}
+      <style jsx global>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.9); }
+        }
+        
+        @keyframes slideInUp {
+          from { transform: translateY(20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOutRight {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(100%); opacity: 0; }
+        }
+        
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+        
+        .animate-pulse {
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        .animate-bounce {
+          animation: bounce 0.6s ease-in-out infinite;
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+        
+        .animate-slideInUp {
+          animation: slideInUp 0.3s ease-out;
+        }
+        
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        
+        .backdrop-blur-xs {
+          backdrop-filter: blur(2px);
+        }
+        
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        
+        .line-clamp-1 {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      `}</style>
     </div>
   );
 };
