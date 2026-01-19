@@ -176,27 +176,27 @@ const Header = () => {
     { 
       label: "Hotel", 
       id: "hotel", 
-      action: () => navigate("/category/hotel")
+      action: () => navigate("/hotel")
     },
     { 
       label: "Restaurant", 
       id: "restaurant", 
-      action: () => navigate("/category/restaurant")
+      action: () => navigate("/restaurant")
     },
     { 
       label: "Shortlet", 
       id: "shortlet", 
-      action: () => navigate("/category/shortlet")
+      action: () => navigate("/shortlet")
     },
     { 
       label: "Vendors", 
       id: "vendors", 
-      action: () => navigate("/vendors")
+      action: () => navigate("/vendor")
     },
     { 
       label: "Events", 
       id: "events", 
-      action: () => navigate("/category/events")
+      action: () => navigate("/event")
     },
   ];
 

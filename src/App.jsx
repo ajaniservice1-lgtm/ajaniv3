@@ -291,7 +291,7 @@ function App() {
 
                   {/* DYNAMIC ROUTES */}
                   <Route path="/vendor-detail/:id" element={<MainLayout><VendorDetail /></MainLayout>} />
-                  <Route path="/category/:category" element={<MainLayout><CategoryResults /></MainLayout>} />
+                  <Route path="/:category" element={<MainLayout><CategoryResults /></MainLayout>} />
                   <Route path="/search-results" element={<MainLayout><SearchResults /></MainLayout>} />
 
                   {/* BOOKING ROUTES */}

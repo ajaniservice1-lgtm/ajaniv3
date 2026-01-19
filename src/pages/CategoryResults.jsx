@@ -2380,7 +2380,7 @@ const CategoryResults = () => {
     setNewCategory(categoryMap[categoryKey] || categoryKey);
     
     const categorySlug = categoryKey.toLowerCase();
-    navigate(`/category/${categorySlug}`);
+    navigate(`/${categorySlug}`);
     
     // Auto-hide loader after 1.5 seconds
     setTimeout(() => {
@@ -2448,7 +2448,7 @@ const CategoryResults = () => {
     } else if (locationParams.length > 0) {
       return `${categoryTitle} in ${locationParams.join(", ")}`;
     } else {
-      return `${categoryTitle} in Ibadan`;
+      return `${categoryTitle}s in Ibadan`;
     }
   };
 

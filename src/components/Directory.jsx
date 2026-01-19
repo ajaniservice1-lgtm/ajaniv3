@@ -588,7 +588,11 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
               {isMobile ? <span className="text-[14px]">{title}</span> : <span className="text-xl">{title}</span>}
             </h2>
           </div>
-          <button className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" style={{ color: "#000651" }} onClick={() => navigate(`/category/${category}`)}>
+          <button 
+            className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" 
+            style={{ color: "#000651" }} 
+            onClick={() => navigate(`/${category}`)} // UPDATED: Navigate directly to /hotel, /restaurant, etc.
+          >
             {isMobile ? <span className="text-[12px]">View all</span> : <span className="text-[13.5px]">View all</span>}
             <svg className={`transition-transform group-hover:translate-x-1 ${isMobile ? "w-3 h-3" : "w-4 h-4"}`} fill="currentColor" viewBox="0 0 16 16">
               <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
@@ -611,7 +615,11 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
               {isMobile ? <span className="text-[14px]">{title}</span> : <span className="text-xl">{title}</span>}
             </h2>
           </div>
-          <button className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" style={{ color: "#000651" }} onClick={() => navigate(`/category/${category}`)}>
+          <button 
+            className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" 
+            style={{ color: "#000651" }} 
+            onClick={() => navigate(`/${category}`)} // UPDATED: Navigate directly to /hotel, /restaurant, etc.
+          >
             {isMobile ? <span className="text-[12px]">View all</span> : <span className="text-[13.5px]">View all</span>}
             <svg className={`transition-transform group-hover:translate-x-1 ${isMobile ? "w-3 h-3" : "w-4 h-4"}`} fill="currentColor" viewBox="0 0 16 16">
               <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
@@ -626,10 +634,6 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
     );
   }
 
-  const handleCategoryClick = () => {
-    navigate(`/category/${category}`);
-  };
-
   const displayItems = items.slice(0, 6);
 
   return (
@@ -640,7 +644,11 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
             {isMobile ? <span className="text-[14px]">{title}</span> : <span className="text-xl">{title}</span>}
           </h2>
         </div>
-        <button onClick={handleCategoryClick} className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" style={{ color: "#000651" }}>
+        <button 
+          onClick={() => navigate(`/${category}`)} // UPDATED: Navigate directly to /hotel, /restaurant, etc.
+          className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" 
+          style={{ color: "#000651" }}
+        >
           {isMobile ? <span className="text-[12px]">View all</span> : <span className="text-[13.5px]">View all</span>}
           <svg className={`transition-transform group-hover:translate-x-1 ${isMobile ? "w-3 h-3" : "w-4 h-4"}`} fill="currentColor" viewBox="0 0 16 16">
             <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>

@@ -2717,7 +2717,7 @@ const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
   };
 
   const handleCategoryClick = () => {
-    navigate(`/category/${categorySlug}`);
+    navigate(`/${categorySlug}`);
   };
 
   return (
@@ -3681,7 +3681,7 @@ const SearchResults = () => {
     } else if (categoryParams.length > 0) {
       const categoriesText = categoryParams.join(", ");
       if (locationParams.length > 0) {
-        return `${categoriesText} in ${locationParams.join(", ")}`;
+        return `${categoriesText}s in ${locationParams.join(", ")}`;
       }
       return `${categoriesText} in Ibadan`;
     } else if (locationParams.length > 0) {

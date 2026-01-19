@@ -19,10 +19,10 @@ const Footer = () => {
 
   // Categories that match your Directory component
   const directoryCategories = [
-    { name: "Hotels", path: "/category/hotel" },
-    { name: "Restaurants", path: "/category/restaurant" },
-    { name: "Shortlets", path: "/category/shortlet" },
-    { name: "Vendors", path: "/vendors" },
+    { name: "Hotels", path: "/hotel" },
+    { name: "Restaurants", path: "/restaurant" },
+    { name: "Shortlets", path: "/shortlet" },
+    { name: "Vendors", path: "/vendor" },
   ];
 
   return (
