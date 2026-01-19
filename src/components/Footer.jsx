@@ -22,7 +22,7 @@ const Footer = () => {
     { name: "Hotels", path: "/category/hotel" },
     { name: "Restaurants", path: "/category/restaurant" },
     { name: "Shortlets", path: "/category/shortlet" },
-    { name: "Tourist Centers", path: "/category/tourist-center" },
+    { name: "Vendors", path: "/vendors" },
   ];
 
   return (
@@ -68,7 +68,7 @@ const Footer = () => {
                   to="/how-it-works"
                   className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
                 >
-                  How It Works
+                  {/* How It Works */}
                 </Link>
               </li>
               <li>
