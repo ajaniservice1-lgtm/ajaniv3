@@ -4,8 +4,8 @@ import Header from './Header';
 
 const MainLayout = ({ children }) => {
   return (
-    <div className="min-h-screen bg-white">
-      <Header />
+    <div className="min-h-screen ">
+      {/* <Header /> */}
       {/* This empty div pushes content down below the fixed header */}
       <div className="h-16"></div>
       <main className="min-h-[calc(100vh-4rem)]">
