@@ -3354,12 +3354,12 @@ const SearchResults = () => {
         />
       )}
 
-      <div className="hidden md:block">
+      
         <Header />
-      </div>
+      
 
       <main
-        className="pb-8 w-full mx-auto max-w-[100vw]"
+        className="pb-8 w-full mx-auto max-w-[100vw] pt-15"
         style={{
           paddingLeft: isMobile ? "0.75rem" : "1rem",
           paddingRight: isMobile ? "0" : "1rem",

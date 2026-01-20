@@ -2616,7 +2616,7 @@ const CategoryResults = () => {
   const activeCategoryName = category ? getCategoryDisplayName(category) : '';
 
   return (
-    <div className="min-h-screen bg-gray-50 font-manrope">
+    <div className="min-h-screen bg-gray-50 font-manrope ">
       <Meta
         title={`${getPageTitle()} | Ajani Directory`}
         description={getPageDescription()}
@@ -2637,7 +2637,7 @@ const CategoryResults = () => {
         <Header />
       
 
-      <main className="pb-8 w-full mx-auto max-w-[100vw]" style={{
+      <main className="pb-8 w-full mx-auto max-w-[100vw] pt-15" style={{
         paddingLeft: isMobile ? "0.75rem" : "1rem",
         paddingRight: isMobile ? "0" : "1rem",
       }}>
