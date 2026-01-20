@@ -1487,7 +1487,7 @@ const DiscoverIbadan = () => {
   };
 
   return (
-    <div className="min-h-[50%] bg-[#F7F7FA] font-manrope">
+    <div className="min-h-[50%] bg-[#F7F7FA] font-manrope pt-15 md:pt-16">
       {/* Inject glassmorphism styles */}
       <style>{glassStyles}</style>
       
