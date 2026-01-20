@@ -3,7 +3,6 @@ import LocalBusinessSchema from "../components/LocalBusinessSchema";
 import Header from "../components/Header";
 import Hero from "../components/Hero";
 import AiTopPicks from "../components/AiTopPicks";
-// import FeaturedBanner from "../components/FeaturedBanner";
 import Directory from "../components/Directory";
 import Footer from "../components/Footer";
 import ChatWidget from "../components/ChatWidget";

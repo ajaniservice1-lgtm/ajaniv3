@@ -303,7 +303,6 @@ const VendorRegistration = () => {
     { value: "restaurant", label: "Restaurant" },
     { value: "shortlet", label: "Shortlet/Apartment" },
     { value: "Vendor", label: "Vendor" },
-    { value: "accommodation", label: "Accommodation" }
   ];
 
   return (
