@@ -5,10 +5,8 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-// import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../lib/axios";
-// FontAwesome Icons
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faSearch,
@@ -27,7 +25,6 @@ import { FaUserCircle } from "react-icons/fa";
 
 /* ---------------- GLASSMORPHISM CSS STYLES ---------------- */
 const glassStyles = `
-  /* Glass effect classes */
   .glass-effect {
     background: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(10px);
@@ -82,7 +79,6 @@ const glassStyles = `
     -webkit-backdrop-filter: blur(20px);
   }
 
-  /* Hover states for glass elements */
   .glass-dark:hover, .glass-light:hover, .glass-pronounced:hover {
     background: rgba(217, 217, 217, 0.3);
     border-color: rgba(255, 255, 255, 0.5);
@@ -90,7 +86,6 @@ const glassStyles = `
     transition: all 0.2s ease;
   }
 
-  /* Fallback for browsers that don't support backdrop-filter */
   @supports not (backdrop-filter: blur(10px)) {
     .glass-effect,
     .glass-dark,
@@ -104,7 +99,6 @@ const glassStyles = `
     }
   }
 
-  /* Custom animations */
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-5px); }
@@ -166,6 +160,11 @@ const formatDateLabel = (date) =>
     day: "numeric",
   });
 
+const formatDateForURL = (date) => {
+  if (!date) return "";
+  return date.toISOString();
+};
+
 const getCategoryDisplayName = (category) => {
   if (!category || category === "All Categories") return "All Categories";
   return category
@@ -177,7 +176,6 @@ const getCategoryDisplayName = (category) => {
 const getLocationDisplayName = (location) => {
   if (!location || location === "All Locations") return "All Locations";
   
-  // Handle common Ibadan locations
   const locationMap = {
     'akobo': 'Akobo',
     'ringroad': 'Ringroad',
@@ -206,18 +204,14 @@ const getLocationDisplayName = (location) => {
     return locationMap[locLower];
   }
   
-  // Fallback to proper case
   return location
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 };
 
-// Helper to normalize location for backend (convert to proper case)
 const normalizeLocationForBackend = (location) => {
   if (!location) return '';
-  
-  // Convert to proper case
   return location
     .toLowerCase()
     .split(' ')
@@ -225,196 +219,526 @@ const normalizeLocationForBackend = (location) => {
     .join(' ');
 };
 
-const getCategoryBreakdown = (listings) => {
-  const categoryCounts = {};
-  listings.forEach((item) => {
-    if (item.category) {
-      const category = getCategoryDisplayName(item.category);
-      categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-    }
-  });
-  return Object.entries(categoryCounts)
-    .map(([category, count]) => ({ category, count }))
-    .sort((a, b) => b.count - a.count);
+const createSlug = (text) => {
+  if (!text) return '';
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim();
 };
 
-const getLocationBreakdown = (listings) => {
-  const locationCounts = {};
-  listings.forEach((item) => {
-    if (item.location?.area) {
-      const location = getLocationDisplayName(item.location.area);
-      locationCounts[location] = (locationCounts[location] || 0) + 1;
-    }
-  });
-  return Object.entries(locationCounts)
-    .map(([location, count]) => ({ location, count }))
-    .sort((a, b) => b.count - a.count);
+const getCategorySlug = (category) => {
+  const categoryMap = {
+    'Hotel': 'hotel',
+    'Shortlet': 'shortlet', 
+    'Restaurant': 'restaurant',
+    'Vendor': 'services',
+    'All Categories': ''
+  };
+  
+  return categoryMap[category] || createSlug(category);
 };
 
-/* ---------------- UPDATED: CATEGORY-SPECIFIC SEARCH SUGGESTIONS WITH PLURAL FORMS ---------------- */
-const generateSearchSuggestions = (query, listings, activeCategory) => {
-  if (!query.trim() || !listings.length) return [];
+const normalizeLocation = (location) => {
+  if (!location) return '';
+  return location
+    .toLowerCase()
+    .trim()
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
+    .replace(/\s+/g, ' ');
+};
 
-  const queryLower = query.toLowerCase().trim();
-  const suggestions = [];
+/* ---------------- MOBILE SEARCH MODAL COMPONENT (FIXED FOR ALL LOCATIONS) ---------------- */
+const MobileSearchModal = ({
+  searchQuery,
+  listings,
+  onSuggestionClick,
+  onClose,
+  onTyping,
+  isVisible,
+  activeCategory,
+}) => {
+  const [inputValue, setInputValue] = useState(searchQuery);
+  const modalRef = useRef(null);
+  const inputRef = useRef(null);
+  
+  // Use ALL Ibadan locations, not just from current listings
+  const allIbadanLocations = useMemo(() => {
+    const locationsFromListings = listings.map(item => item.location?.area).filter(Boolean);
+    const allLocations = [
+      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly', 'Oke', 'Agodi',
+      'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
+      'Molete', 'Agbowo', 'Sabo', 'Bashorun', 'Ondo Road',  'Ife Road',
+      'Akinyele', 'Bodija Market', 'Dugbe Market', 'Mokola Hill', 'Sango Roundabout',
+      'Iwo Road', 'Gate', 'New Garage', 'Old Ife Road',
+      ...locationsFromListings.map(loc => getLocationDisplayName(loc))
+    ];
+    
+    // Remove duplicates and sort alphabetically
+    return [...new Set(allLocations)].sort();
+  }, [listings]);
 
-  // Filter listings by active category first
-  const categoryFilteredListings = activeCategory === "All Categories" 
-    ? listings 
-    : listings.filter(item => {
-        const itemCategory = getCategoryDisplayName(item.category || "").toLowerCase();
-        const activeCategoryLower = activeCategory.toLowerCase();
-        return itemCategory.includes(activeCategoryLower) || 
-               activeCategoryLower.includes(itemCategory);
-      });
-
-  // Get unique locations from category-filtered listings
-  const uniqueLocations = [
-    ...new Set(
-      categoryFilteredListings
-        .map((item) => item.location?.area)
-        .filter((loc) => loc && loc.trim() !== "")
-        .map((loc) => loc.trim())
-    ),
-  ];
-
-  // For exact location matches within the active category
-  const exactLocationMatches = uniqueLocations
-    .filter((location) => {
-      const displayName = getLocationDisplayName(location).toLowerCase();
-      return displayName === queryLower;
-    })
-    .map((location) => {
-      const locationListings = categoryFilteredListings.filter((item) => {
-        const itemLocation = item.location?.area;
-        return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
-      });
-
-      const totalPlaces = locationListings.length;
-      
-      // Get category display name in plural form
-      let categoryPlural = activeCategory;
-      if (activeCategory === "Hotel") categoryPlural = "Hotels";
-      else if (activeCategory === "Restaurant") categoryPlural = "Restaurants";
-      else if (activeCategory === "Shortlet") categoryPlural = "Shortlets";
-      else if (activeCategory === "Vendor") categoryPlural = "Vendors";
-      else categoryPlural = activeCategory + "s";
-
-      return {
+  const suggestions = useMemo(() => {
+    if (!inputValue.trim()) return [];
+    
+    const queryLower = inputValue.toLowerCase().trim();
+    
+    // Filter locations based on search
+    const locationMatches = allIbadanLocations
+      .filter((location) => {
+        const displayName = location.toLowerCase();
+        return displayName.includes(queryLower) || 
+               normalizeLocation(location).includes(normalizeLocation(queryLower));
+      })
+      .map((location) => ({
         type: "location",
         title: getLocationDisplayName(location),
-        count: totalPlaces,
-        description: `${categoryPlural} in ${getLocationDisplayName(location)}`,
-        breakdownText: "",
-        breakdown: [],
-        action: () => {
-          const params = new URLSearchParams();
-          params.append("location.area", normalizeLocationForBackend(location));
-          const categoryMap = {
-            'Hotel': 'hotel',
-            'Shortlet': 'shortlet',
-            'Restaurant': 'restaurant',
-            'Vendor': 'services'
-          };
-          const categorySlug = categoryMap[activeCategory] || activeCategory.toLowerCase();
-          params.append("category", categorySlug);
-          return `/search-results?${params.toString()}`;
-        },
-      };
-    });
+        location: location,
+        description: `${activeCategory}s in ${getLocationDisplayName(location)}, Ibadan`,
+      }));
 
-  if (exactLocationMatches.length > 0) {
-    return exactLocationMatches.slice(0, 4);
-  }
+    // Add a general search option if no exact location matches
+    if (locationMatches.length === 0 && inputValue.trim()) {
+      return [{
+        type: "search",
+        title: `Search for "${inputValue}"`,
+        description: `Find ${activeCategory.toLowerCase()}s matching "${inputValue}" in Ibadan`,
+      }];
+    }
 
-  // For location matches within the active category
-  const locationMatches = uniqueLocations
-    .filter((location) => {
-      const displayName = getLocationDisplayName(location).toLowerCase();
-      return displayName.includes(queryLower);
-    })
-    .map((location) => {
-      const locationListings = categoryFilteredListings.filter((item) => {
-        const itemLocation = item.location?.area;
-        return itemLocation && itemLocation.toLowerCase() === location.toLowerCase();
-      });
+    return locationMatches.slice(0, 8);
+  }, [inputValue, activeCategory, allIbadanLocations]);
 
-      const totalPlaces = locationListings.length;
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setInputValue(value);
+    onTyping(value);
+  };
+
+  const handleClearInput = () => {
+    setInputValue("");
+    onTyping("");
+    inputRef.current?.focus();
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    if (suggestion.type === "location") {
+      // Just set the search input value, don't navigate
+      const title = suggestion.title || suggestion;
+      setInputValue(title);
+      onTyping(title);
       
-      // Get category display name in plural form
-      let categoryPlural = activeCategory;
-      if (activeCategory === "Hotel") categoryPlural = "Hotels";
-      else if (activeCategory === "Restaurant") categoryPlural = "Restaurants";
-      else if (activeCategory === "Shortlet") categoryPlural = "Shortlets";
-      else if (activeCategory === "Vendor") categoryPlural = "Vendors";
-      else categoryPlural = activeCategory + "s";
+      // Keep modal open so user can adjust or click search
+      inputRef.current?.focus();
+    } else {
+      // General search - keep current input
+      const title = suggestion.title || suggestion;
+      setInputValue(inputValue); // Keep current value
+      onTyping(inputValue);
+      
+      // Keep modal open
+      inputRef.current?.focus();
+    }
+  };
 
-      return {
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && inputValue.trim()) {
+      onTyping(inputValue.trim());
+      // Don't close modal - let user click search button
+      // onClose();
+    }
+  };
+
+  const handleSearchAnyway = () => {
+    if (inputValue.trim()) {
+      onTyping(inputValue.trim());
+      onClose();
+    }
+  };
+
+  useEffect(() => {
+    if (isVisible && inputRef.current) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [isVisible]);
+
+  useEffect(() => {
+    if (isVisible) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
+    return () => (document.body.style.overflow = "");
+  }, [isVisible]);
+
+  useEffect(() => {
+    setInputValue(searchQuery);
+  }, [searchQuery]);
+
+  if (!isVisible) return null;
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9990]" onClick={onClose} />
+      <div
+        ref={modalRef}
+        className="fixed inset-0 bg-white z-[9991] flex flex-col"
+        style={{ boxShadow: "0 -25px 50px -12px rgba(0, 0, 0, 0.1)" }}
+      >
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClose}
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 cursor-pointer"
+            >
+              <FontAwesomeIcon icon={faChevronLeft} size="lg" />
+            </button>
+            <div className="flex-1 relative">
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                <FontAwesomeIcon icon={faSearch} size="sm" />
+              </div>
+              <input
+                ref={inputRef}
+                type="text"
+                className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none text-gray-900 placeholder:text-gray-500 cursor-text"
+                value={inputValue}
+                onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
+                placeholder={`Search ${activeCategory.toLowerCase()} locations in Ibadan...`}
+                autoFocus
+              />
+              {inputValue && (
+                <button
+                  onClick={handleClearInput}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  <FontAwesomeIcon icon={faTimes} size="sm" />
+                </button>
+              )}
+            </div>
+            {/* Search button in modal header */}
+            <button
+              onClick={() => {
+                if (inputValue.trim()) {
+                  onTyping(inputValue.trim());
+                  onClose();
+                }
+              }}
+              className="px-4 py-2 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold rounded-lg hover:from-[#00c97b] hover:to-teal-600 transition-all duration-300 cursor-pointer text-sm"
+            >
+              Search
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {inputValue.trim() ? (
+            suggestions.length > 0 ? (
+              <div className="p-5">
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+                    Locations in Ibadan ({suggestions.length})
+                  </h3>
+                </div>
+                <div className="space-y-3">
+                  {suggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className="w-full text-left p-4 bg-white rounded-xl border border-gray-200 hover:bg-gray-50 cursor-pointer transition-all duration-200"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-gray-100">
+                          {suggestion.type === "search" ? (
+                            <FontAwesomeIcon 
+                              icon={faSearch} 
+                              className="text-gray-700 text-lg"
+                            />
+                          ) : (
+                            <FontAwesomeIcon 
+                              icon={faMapMarkerAlt} 
+                              className="text-gray-700 text-lg"
+                            />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <h4 className="font-medium text-gray-900 text-base">{suggestion.title}</h4>
+                              <p className="text-sm text-gray-600 mt-1">{suggestion.description}</p>
+                            </div>
+                            <span className={`text-xs font-medium px-2 py-1 rounded ${
+                              suggestion.type === "search" 
+                                ? "text-purple-600 bg-purple-50" 
+                                : "text-blue-600 bg-blue-50"
+                            }`}>
+                              {suggestion.type === "search" ? "Search" : "Location"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end mt-4 pt-3 border-t border-gray-100">
+                        <span className="text-sm text-blue-600 font-medium">Tap to select</span>
+                        <FontAwesomeIcon icon={faChevronRight} className="ml-1 text-blue-600" size="sm" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => {
+                    if (inputValue.trim()) {
+                      onTyping(inputValue.trim());
+                      onClose();
+                    }
+                  }}
+                  className="w-full mt-6 p-4 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold rounded-xl cursor-pointer transition-all duration-300 hover:from-[#00c97b] hover:to-teal-600"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-left">
+                      <p className="text-base font-medium">Search for "{inputValue}"</p>
+                      <p className="text-sm text-gray-100 mt-1">Find {activeCategory}s in Ibadan</p>
+                    </div>
+                    <FontAwesomeIcon icon={faChevronRight} size="sm" />
+                  </div>
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full py-16 px-4">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                  <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-2xl" />
+                </div>
+                <h3 className="text-xl font-medium text-gray-900 mb-3">No matching locations</h3>
+                <p className="text-gray-600 text-center max-w-sm mb-8">
+                  Try a different location name or search term
+                </p>
+                <button
+                  onClick={() => {
+                    if (inputValue.trim()) {
+                      onTyping(inputValue.trim());
+                      onClose();
+                    }
+                  }}
+                  className="px-6 py-3 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold rounded-lg hover:from-[#00c97b] hover:to-teal-600 cursor-pointer transition-all duration-300"
+                >
+                  Search anyway for "{inputValue}"
+                </button>
+              </div>
+            )
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full py-16 px-4">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                <FontAwesomeIcon icon={faMapMarkerAlt} className="text-gray-400 text-2xl" />
+              </div>
+              <h3 className="text-xl font-medium text-gray-900 mb-3">Search Ibadan locations</h3>
+              <p className="text-gray-600 text-center max-w-sm mb-10">
+                Find {activeCategory.toLowerCase()}s in any area of Ibadan
+              </p>
+              <div className="w-full max-w-md px-4">
+                <p className="text-sm font-medium text-gray-500 mb-4 text-center">Popular locations in Ibadan</p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {["Akobo", "Bodija", "Sango", "UI", "Mokola", "Dugbe", "Ringroad", "Challenge", "Iwo Road", "Agodi"].map((term) => (
+                    <button
+                      key={term}
+                      onClick={() => {
+                        setInputValue(term);
+                        onTyping(term);
+                        inputRef.current?.focus();
+                      }}
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg cursor-pointer transition-all duration-200"
+                    >
+                      {term}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-6 text-center">
+                  <p className="text-xs text-gray-500">
+                    Select a location to search, then click Search button above
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+};
+
+/* ---------------- DESKTOP SEARCH SUGGESTIONS (SHOW ALL LOCATIONS) ---------------- */
+const DesktopSearchSuggestions = ({
+  searchQuery,
+  listings,
+  onSuggestionClick, // This now just sets the search query, doesn't navigate
+  onClose,
+  isVisible,
+  searchBarPosition,
+  activeCategory,
+}) => {
+  const suggestionsRef = useRef(null);
+  
+  const allIbadanLocations = useMemo(() => {
+    const locationsFromListings = listings.map(item => item.location?.area).filter(Boolean);
+    const allLocations = [
+      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly', 'Oke', 'Agodi',
+      'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
+      'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
+      'Akinyele', 'Bodija Market', 'Dugbe Market', 'Mokola Hill', 'Sango Roundabout',
+      'Iwo Road', 'Gate', 'New Garage', 'Old Ife Road',
+      ...locationsFromListings.map(loc => getLocationDisplayName(loc))
+    ];
+    
+    return [...new Set(allLocations)].sort();
+  }, [listings]);
+
+  const suggestions = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    
+    const queryLower = searchQuery.toLowerCase().trim();
+    const suggestions = [];
+    
+    const locationMatches = allIbadanLocations
+      .filter((location) => {
+        const displayName = location.toLowerCase();
+        return displayName.includes(queryLower) || 
+               normalizeLocation(location).includes(normalizeLocation(queryLower));
+      })
+      .map((location) => ({
         type: "location",
         title: getLocationDisplayName(location),
-        count: totalPlaces,
-        description: `${categoryPlural} in ${getLocationDisplayName(location)}`,
-        breakdownText: "",
-        breakdown: [],
-        action: () => {
-          const params = new URLSearchParams();
-          params.append("location.area", normalizeLocationForBackend(location));
-          const categoryMap = {
-            'Hotel': 'hotel',
-            'Shortlet': 'shortlet',
-            'Restaurant': 'restaurant',
-            'Vendor': 'services'
-          };
-          const categorySlug = categoryMap[activeCategory] || activeCategory.toLowerCase();
-          params.append("category", categorySlug);
-          return `/search-results?${params.toString()}`;
-        },
-      };
-    });
+        description: `${activeCategory}s in ${getLocationDisplayName(location)}, Ibadan`,
+      }));
 
-  // Also check for exact category matches (but only if it matches active category)
-  if (activeCategory !== "All Categories") {
-    const categoryLower = activeCategory.toLowerCase();
-    if (categoryLower.includes(queryLower) || queryLower.includes(categoryLower)) {
-      const categoryListings = categoryFilteredListings;
-      const locationBreakdown = getLocationBreakdown(categoryListings);
-      const totalPlaces = categoryListings.length;
-      
-      // Get category display name in plural form
-      let categoryPlural = activeCategory;
-      if (activeCategory === "Hotel") categoryPlural = "Hotels";
-      else if (activeCategory === "Restaurant") categoryPlural = "Restaurants";
-      else if (activeCategory === "Shortlet") categoryPlural = "Shortlets";
-      else if (activeCategory === "Vendor") categoryPlural = "Vendors";
-      else categoryPlural = activeCategory + "s";
-
+    // Also add a "Search for 'query'" option
+    if (locationMatches.length === 0 && searchQuery.trim()) {
       suggestions.push({
-        type: "category",
-        title: categoryPlural,
-        count: totalPlaces,
-        description: `Browse all ${categoryPlural} options`,
-        breakdownText: "",
-        breakdown: locationBreakdown.slice(0, 3),
-        action: () => {
-          const categorySlug = activeCategory.toLowerCase().replace(/\s+/g, '-');
-          return `/category/${categorySlug}`;
-        },
+        type: "search",
+        title: `Search for "${searchQuery}"`,
+        description: `Find ${activeCategory.toLowerCase()}s matching "${searchQuery}" in Ibadan`,
       });
     }
-  }
 
-  return [...suggestions, ...locationMatches]
-    .sort((a, b) => {
-      // Exact matches first
-      const aExact = a.title.toLowerCase() === queryLower;
-      const bExact = b.title.toLowerCase() === queryLower;
-      if (aExact && !bExact) return -1;
-      if (!aExact && bExact) return 1;
-      
-      // Then by count
-      return b.count - a.count;
-    })
-    .slice(0, 8);
+    return locationMatches
+      .sort((a, b) => {
+        const aExact = a.title.toLowerCase() === queryLower;
+        const bExact = b.title.toLowerCase() === queryLower;
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+        return 0;
+      })
+      .slice(0, 8);
+  }, [searchQuery, listings, activeCategory]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+    if (isVisible) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isVisible, onClose]);
+
+  if (!isVisible || !searchQuery.trim()) return null;
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-transparent z-[9980]" onClick={onClose} />
+      <div
+        ref={suggestionsRef}
+        className="absolute bg-white rounded-xl shadow-2xl border border-gray-200 z-[9981] overflow-hidden"
+        style={{
+          left: `${searchBarPosition?.left || 0}px`,
+          top: `${(searchBarPosition?.top || 0) + 50}px`,
+          width: `${searchBarPosition?.width || 0}px`,
+          maxHeight: "70vh",
+          boxShadow: "0 10px 40px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)",
+        }}
+      >
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <FontAwesomeIcon icon={faSearch} className="text-gray-500 text-sm" />
+              <span className="text-sm font-medium text-gray-700">Search locations in Ibadan</span>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded cursor-pointer"
+              aria-label="Close suggestions"
+            >
+              <FontAwesomeIcon icon={faTimes} className="text-sm" />
+            </button>
+          </div>
+        </div>
+        <div className="overflow-y-auto" style={{ maxHeight: "calc(70vh - 56px)" }}>
+          <div className="p-2">
+            {suggestions.length > 0 ? (
+              <>
+                <div className="px-3 py-2">
+                  <p className="text-xs text-gray-500 mb-2">
+                    Showing {suggestions.length} location{suggestions.length !== 1 ? 's' : ''} in Ibadan
+                  </p>
+                </div>
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      // Just set the search query, don't navigate
+                      onSuggestionClick(suggestion);
+                      onClose();
+                    }}
+                    className="w-full text-left p-3 bg-white hover:bg-gray-50 rounded-lg mb-1 last:mb-0 cursor-pointer group transition-all duration-200"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100 flex-shrink-0">
+                        {suggestion.type === "search" ? (
+                          <FontAwesomeIcon 
+                            icon={faSearch} 
+                            className="text-gray-700 text-sm"
+                          />
+                        ) : (
+                          <FontAwesomeIcon 
+                            icon={faMapMarkerAlt} 
+                            className="text-gray-700 text-sm"
+                          />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-1">
+                          <h4 className="font-medium text-gray-900 text-sm truncate">{suggestion.title}</h4>
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            suggestion.type === "search" 
+                              ? "text-purple-600 bg-purple-50" 
+                              : "text-blue-600 bg-blue-50"
+                          }`}>
+                            {suggestion.type === "search" ? "Search" : "Location"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-600 mb-2 line-clamp-2">{suggestion.description}</p>
+                      </div>
+                      <div className="flex-shrink-0 ml-2">
+                        <FontAwesomeIcon icon={faChevronRight} className="text-gray-400 text-sm group-hover:text-blue-600 transition-colors" />
+                      </div>
+                    </div>
+                  </button>
+                ))}
+                <div className="px-3 py-3 mt-2 border-t border-gray-200">
+                  <p className="text-xs text-gray-500 text-center">
+                    Select a location to add to search, then click "Find {activeCategory}" button
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="p-4 text-center">
+                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <FontAwesomeIcon icon={faSearch} className="text-gray-400" />
+                </div>
+                <p className="text-sm text-gray-600 mb-2">No matches found for "{searchQuery}"</p>
+                <p className="text-xs text-gray-500">Try a different search term</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
 };
 
 /* ---------------- CALENDAR COMPONENT ---------------- */
@@ -527,7 +851,7 @@ const SimpleCalendar = ({ onSelect, onClose, selectedDate: propSelectedDate, isC
   );
 };
 
-/* ---------------- GUEST SELECTOR COMPONENT (UPDATED FOR CATEGORIES) ---------------- */
+/* ---------------- GUEST SELECTOR COMPONENT ---------------- */
 const GuestSelector = ({ guests, onChange, onClose, category = 'hotel' }) => {
   const modalRef = useRef(null);
 
@@ -560,7 +884,6 @@ const GuestSelector = ({ guests, onChange, onClose, category = 'hotel' }) => {
           {category.includes('restaurant') ? 'Number of People' : 'Guests & Rooms'}
         </h3>
         
-        {/* ROOMS SECTION - NOT FOR RESTAURANTS */}
         {!category.includes('restaurant') && (
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -697,482 +1020,7 @@ const EmptySearchModal = ({ onClose, onConfirm }) => {
   );
 };
 
-/* ---------------- FIXED MOBILE SEARCH MODAL COMPONENT ---------------- */
-const MobileSearchModal = ({
-  searchQuery,
-  listings,
-  onSuggestionClick,
-  onClose,
-  onTyping,
-  isVisible,
-  activeCategory,
-}) => {
-  const [inputValue, setInputValue] = useState(searchQuery);
-  const modalRef = useRef(null);
-  const inputRef = useRef(null);
-  const suggestions = useMemo(() => {
-    return generateSearchSuggestions(inputValue, listings, activeCategory);
-  }, [inputValue, listings, activeCategory]);
-
-  const handleInputChange = (e) => {
-    const value = e.target.value;
-    setInputValue(value);
-    onTyping(value);
-  };
-
-  const handleClearInput = () => {
-    setInputValue("");
-    onTyping("");
-    inputRef.current?.focus();
-  };
-
-  // ✅ FIXED: Handle suggestion click - populate input and close modal
-  const handleSuggestionClick = (suggestion) => {
-    // Set the input value to the suggestion title
-    const title = suggestion.title || suggestion;
-    setInputValue(title);
-    // This will update the parent component's searchQuery
-    onTyping(title);
-    // Close the modal
-    onClose();
-    // IMPORTANT: Also trigger the onSuggestionClick callback
-    // This will store the suggestion in parent for when search button is clicked
-    if (typeof suggestion === 'object' && onSuggestionClick) {
-      onSuggestionClick(suggestion);
-    }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && inputValue.trim()) {
-      // When Enter is pressed, populate and close
-      onTyping(inputValue.trim());
-      onClose();
-    }
-  };
-
-  // ✅ Handle "Search anyway" button
-  const handleSearchAnyway = () => {
-    if (inputValue.trim()) {
-      // Create a suggestion object for the raw search term
-      const rawSuggestion = {
-        title: inputValue.trim(),
-        description: `Search for "${inputValue.trim()}"`,
-        type: "search",
-        action: () => {
-          const params = new URLSearchParams();
-          const categoryMap = {
-            'Hotel': 'hotel',
-            'Shortlet': 'shortlet',
-            'Restaurant': 'restaurant',
-            'Vendor': 'services',
-          };
-          const categorySlug = categoryMap[activeCategory];
-          
-          if (categorySlug) {
-            params.append("category", categorySlug);
-          }
-          
-          if (looksLikeLocation(inputValue.trim())) {
-            params.append("location.area", normalizeLocationForBackend(inputValue.trim()));
-          } else {
-            params.append("q", inputValue.trim());
-          }
-          
-          return `/search-results?${params.toString()}`;
-        }
-      };
-      onSuggestionClick(rawSuggestion);
-      onClose();
-    }
-  };
-
-  useEffect(() => {
-    if (isVisible && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
-  }, [isVisible]);
-
-  useEffect(() => {
-    if (isVisible) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
-    return () => (document.body.style.overflow = "");
-  }, [isVisible]);
-
-  useEffect(() => {
-    setInputValue(searchQuery);
-  }, [searchQuery]);
-
-  if (!isVisible) return null;
-
-  return (
-    <>
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9990]" onClick={onClose} />
-      <div
-        ref={modalRef}
-        className="fixed inset-0 bg-white z-[9991] flex flex-col"
-        style={{ boxShadow: "0 -25px 50px -12px rgba(0, 0, 0, 0.1)" }}
-      >
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onClose}
-              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 cursor-pointer"
-            >
-              <FontAwesomeIcon icon={faChevronLeft} size="lg" />
-            </button>
-            <div className="flex-1 relative">
-              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                <FontAwesomeIcon icon={faSearch} size="sm" />
-              </div>
-              <input
-                ref={inputRef}
-                type="text"
-                className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none text-gray-900 placeholder:text-gray-500 cursor-text"
-                value={inputValue}
-                onChange={handleInputChange}
-                onKeyPress={handleKeyPress}
-                placeholder={`Search ${activeCategory.toLowerCase()}...`}
-                autoFocus
-              />
-              {inputValue && (
-                <button
-                  onClick={handleClearInput}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                >
-                  <FontAwesomeIcon icon={faTimes} size="sm" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {inputValue.trim() ? (
-            suggestions.length > 0 ? (
-              <div className="p-5">
-                <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-                    Suggestions ({suggestions.length})
-                  </h3>
-                </div>
-                <div className="space-y-3">
-                  {suggestions.map((suggestion, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleSuggestionClick(suggestion)}
-                      className="w-full text-left p-4 bg-white rounded-xl border border-gray-200 hover:bg-gray-50 cursor-pointer"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-gray-100">
-                          {suggestion.type === "category" ? (
-                            <FontAwesomeIcon 
-                              icon={faBuilding} 
-                              className="text-gray-700 text-lg"
-                            />
-                          ) : (
-                            <FontAwesomeIcon 
-                              icon={faMapMarkerAlt} 
-                              className="text-gray-700 text-lg"
-                            />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <h4 className="font-medium text-gray-900 text-base">{suggestion.title}</h4>
-                              <p className="text-sm text-gray-600 mt-1">{suggestion.description}</p>
-                            </div>
-                          </div>
-                          {suggestion.breakdown && suggestion.breakdown.length > 0 && (
-                            <div className="mt-3 pt-3 border-t border-gray-100">
-                              <div className="flex flex-wrap gap-1.5">
-                                {suggestion.breakdown.map((item, idx) => (
-                                  <div key={idx} className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
-                                    {item.location} ({item.count})
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-end mt-4 pt-3 border-t border-gray-100">
-                        <span className="text-sm text-blue-600 font-medium">Tap to select</span>
-                        <FontAwesomeIcon icon={faChevronRight} className="ml-1 text-blue-600" size="sm" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={handleSearchAnyway}
-                  className="w-full mt-6 p-4 bg-gray-900 hover:bg-black text-white font-medium rounded-xl cursor-pointer"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="text-left">
-                      <p className="text-base font-medium">Show all results</p>
-                      <p className="text-sm text-gray-300 mt-1">View all {activeCategory} matches for "{inputValue}"</p>
-                    </div>
-                    <FontAwesomeIcon icon={faChevronRight} size="sm" />
-                  </div>
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full py-16 px-4">
-                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                  <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-2xl" />
-                </div>
-                <h3 className="text-xl font-medium text-gray-900 mb-3">No matches found</h3>
-                <p className="text-gray-600 text-center max-w-sm mb-8">
-                  Try different keywords or browse our categories
-                </p>
-                <button
-                  onClick={handleSearchAnyway}
-                  className="px-6 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-black cursor-pointer"
-                >
-                  Search anyway
-                </button>
-              </div>
-            )
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full py-16 px-4">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-2xl" />
-              </div>
-              <h3 className="text-xl font-medium text-gray-900 mb-3">Start searching</h3>
-              <p className="text-gray-600 text-center max-w-sm mb-10">
-                Search for {activeCategory.toLowerCase()} in Ibadan
-              </p>
-              <div className="w-full max-w-md px-4">
-                <p className="text-sm font-medium text-gray-500 mb-4 text-center">Popular locations</p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {["Akobo", "Bodija", "Sango", "UI", "Mokola", "Dugbe", "Ringroad"].map((term) => (
-                    <button
-                      key={term}
-                      onClick={() => {
-                        const suggestion = {
-                          title: term,
-                          description: `${activeCategory} in ${term}`,
-                          type: "location",
-                          action: () => {
-                            const params = new URLSearchParams();
-                            params.append("location.area", normalizeLocationForBackend(term));
-                            const categoryMap = {
-                              'Hotel': 'hotel',
-                              'Shortlet': 'shortlet',
-                              'Restaurant': 'restaurant',
-                              'Vendor': 'services'
-                            };
-                            const categorySlug = categoryMap[activeCategory];
-                            params.append("category", categorySlug);
-                            return `/search-results?${params.toString()}`;
-                          }
-                        };
-                        handleSuggestionClick(suggestion);
-                      }}
-                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg cursor-pointer"
-                    >
-                      {term}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </>
-  );
-};
-
-const DesktopSearchSuggestions = ({
-  searchQuery,
-  listings,
-  onSuggestionClick,
-  onClose,
-  isVisible,
-  searchBarPosition,
-  activeCategory,
-}) => {
-  const suggestionsRef = useRef(null);
-  const suggestions = useMemo(() => {
-    return generateSearchSuggestions(searchQuery, listings, activeCategory);
-  }, [searchQuery, listings, activeCategory]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target)) {
-        onClose();
-      }
-    };
-    if (isVisible) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isVisible, onClose]);
-
-  if (!isVisible || !searchQuery.trim() || suggestions.length === 0) return null;
-
-  return (
-    <>
-      <div className="fixed inset-0 bg-transparent z-[9980]" onClick={onClose} />
-      <div
-        ref={suggestionsRef}
-        className="absolute bg-white rounded-xl shadow-2xl border border-gray-200 z-[9981] overflow-hidden"
-        style={{
-          left: `${searchBarPosition?.left || 0}px`,
-          top: `${(searchBarPosition?.top || 0) - 10}px`,
-          width: `${searchBarPosition?.width || 0}px`,
-          maxHeight: "70vh",
-          boxShadow: "0 10px 40px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)",
-        }}
-      >
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <FontAwesomeIcon icon={faSearch} className="text-gray-500 text-sm" />
-              <span className="text-sm font-medium text-gray-700">{activeCategory} results for "{searchQuery}"</span>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded cursor-pointer"
-              aria-label="Close suggestions"
-            >
-              <FontAwesomeIcon icon={faTimes} className="text-sm" />
-            </button>
-          </div>
-        </div>
-        <div className="overflow-y-auto" style={{ maxHeight: "calc(70vh - 56px)" }}>
-          <div className="p-2">
-            {suggestions.map((suggestion, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  onSuggestionClick(suggestion);
-                  onClose();
-                }}
-                className="w-full text-left p-3 bg-white hover:bg-gray-50 rounded-lg mb-1 last:mb-0 cursor-pointer group"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100 flex-shrink-0">
-                    {suggestion.type === "category" ? (
-                      <FontAwesomeIcon 
-                        icon={faBuilding} 
-                        className="text-gray-700 text-sm"
-                      />
-                    ) : (
-                      <FontAwesomeIcon 
-                        icon={faMapMarkerAlt} 
-                        className="text-gray-700 text-sm"
-                      />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-1">
-                      <h4 className="font-medium text-gray-900 text-sm truncate">{suggestion.title}</h4>
-                    
-                    </div>
-                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">{suggestion.description}</p>
-                    {suggestion.breakdown && suggestion.breakdown.length > 0 && (
-                      <div className="mt-2">
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {suggestion.breakdown.slice(0, 3).map((item, idx) => (
-                            <div key={idx} className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded">
-                              {item.location} ({item.count})
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-shrink-0 ml-2">
-                    <FontAwesomeIcon icon={faChevronRight} className="text-gray-400 text-sm" />
-                  </div>
-                </div>
-                <div className="flex items-center justify-end mt-2 pt-2 border-t border-gray-100">
-                  <span className="text-xs text-blue-600 font-medium">Tap to select</span>
-                </div>
-              </button>
-            ))}
-            <button
-              onClick={() => {
-                const rawSuggestion = {
-                  title: searchQuery.trim(),
-                  description: `Search for "${searchQuery.trim()}"`,
-                  type: "search",
-                  action: () => {
-                    const params = new URLSearchParams();
-                    const categoryMap = {
-                      'Hotel': 'hotel',
-                      'Shortlet': 'shortlet',
-                      'Restaurant': 'restaurant',
-                      'Vendor': 'services',
-                    };
-                    const categorySlug = categoryMap[activeCategory];
-                    
-                    if (categorySlug) {
-                      params.append("category", categorySlug);
-                    }
-                    
-                    if (looksLikeLocation(searchQuery.trim())) {
-                      params.append("location.area", normalizeLocationForBackend(searchQuery.trim()));
-                    } else {
-                      params.append("q", searchQuery.trim());
-                    }
-                    
-                    return `/search-results?${params.toString()}`;
-                  }
-                };
-                onSuggestionClick(rawSuggestion);
-                onClose();
-              }}
-              className="w-full mt-3 p-3 bg-gray-900 hover:bg-black text-white font-medium rounded-lg cursor-pointer"
-            >
-              <div className="flex items-center justify-between">
-                <div className="text-left">
-                  <p className="text-sm font-medium">Show all results</p>
-                  <p className="text-xs text-gray-300 mt-1">View all {activeCategory} matches for "{searchQuery}"</p>
-                </div>
-                <FontAwesomeIcon icon={faChevronRight} className="text-sm" />
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-};
-
-/* ---------------- LOCATION DETECTION HELPER ---------------- */
-const looksLikeLocation = (query) => {
-  if (!query || query.trim() === '') return false;
-  
-  const queryLower = query.toLowerCase().trim();
-  
-  // Common Ibadan areas
-  const ibadanAreas = [
-    'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly', 'oke', 'agodi', 
-    'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
-    'molete', 'agbowo', 'sabo', 'bashorun', 'ondo road', 'ogbomoso', 'ife road',
-    'akinyele', 'bodija market', 'dugbe market', 'mokola hill', 'sango roundabout'
-  ];
-  
-  // Location suffixes
-  const locationSuffixes = [
-    'road', 'street', 'avenue', 'drive', 'lane', 'close', 'way', 'estate',
-    'area', 'zone', 'district', 'quarters', 'extension', 'phase', 'junction',
-    'bypass', 'expressway', 'highway', 'roundabout', 'market', 'station'
-  ];
-  
-  // Check if query contains any Ibadan area
-  const isIbadanArea = ibadanAreas.some(area => queryLower.includes(area));
-  
-  // Check if query contains location suffix
-  const hasLocationSuffix = locationSuffixes.some(suffix => queryLower.includes(suffix));
-  
-  // Check if query is short (likely a location name)
-  const isShortQuery = queryLower.split(/\s+/).length <= 3 && queryLower.length <= 15;
-  
-  return isIbadanArea || hasLocationSuffix || isShortQuery;
-};
-
-/* ---------------- FIXED MAIN COMPONENT WITH ALL REQUESTS ---------------- */
+/* ---------------- MAIN COMPONENT ---------------- */
 const DiscoverIbadan = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -1195,21 +1043,13 @@ const DiscoverIbadan = () => {
     return new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
   });
   const [guests, setGuests] = useState({ adults: 2, children: 0, rooms: 1 });
-  const [clickedSuggestion, setClickedSuggestion] = useState(null);
-  const [isSearchButtonAnimating, setIsSearchButtonAnimating] = useState(false);
   const [showEmptySearchModal, setShowEmptySearchModal] = useState(false);
-  const [searchParamsForResults, setSearchParamsForResults] = useState({
-    checkInDate: null,
-    checkOutDate: null,
-    guests: null,
-  });
 
   const searchInputRef = useRef(null);
   const searchContainerRef = useRef(null);
   const searchButtonRef = useRef(null);
   const { listings = [], loading } = useBackendListings();
 
-  // ✅ Default active tab is Hotel
   const [activeTab, setActiveTab] = useState("Hotel");
 
   useEffect(() => {
@@ -1238,109 +1078,68 @@ const DiscoverIbadan = () => {
     };
   }, [isMobile]);
 
-  // ✅ FIX 1: Handle suggestion click - populate input instead of navigate
   const handleSuggestionClick = useCallback((suggestion) => {
-    if (typeof suggestion === 'object' && suggestion.title) {
-      // Just populate the search query with the suggestion title
+    if (suggestion && suggestion.title) {
       setSearchQuery(suggestion.title);
-      // Store the suggestion action for later use when search button is clicked
-      setClickedSuggestion(suggestion);
-      // Close suggestions
       setShowSuggestions(false);
       setShowMobileModal(false);
-    } else if (typeof suggestion === 'string') {
-      // If it's a string (from desktop), just update the search query
-      setSearchQuery(suggestion);
-      setShowSuggestions(false);
-      // Create a basic suggestion object for the string
-      setClickedSuggestion({
-        title: suggestion,
-        description: `Search for "${suggestion}"`,
-        type: "search",
-        action: () => {
-          const params = new URLSearchParams();
-          const categoryMap = {
-            Hotel: "hotel",
-            Shortlet: "shortlet",
-            Restaurant: "restaurant",
-            Vendor: "services",
-          };
-          const categorySlug = categoryMap[activeTab];
-          
-          if (categorySlug) {
-            params.append("category", categorySlug);
-          }
-          
-          if (looksLikeLocation(suggestion)) {
-            params.append("location.area", normalizeLocationForBackend(suggestion));
-          } else {
-            params.append("q", suggestion);
-          }
-          
-          return `/search-results?${params.toString()}`;
-        }
-      });
+      
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
     }
-  }, [activeTab]);
+  }, []);
 
-  // ✅ FIXED: Handle search submit with all parameters
   const handleSearchSubmit = useCallback(() => {
-    // Check if search query is empty
     if (!searchQuery.trim()) {
       setShowEmptySearchModal(true);
       return;
     }
     
-    const params = new URLSearchParams();
+    const categorySlug = getCategorySlug(activeTab);
+    const locationSlug = createSlug(searchQuery.trim());
     
-    // Always add category (convert display name to backend category)
-    const categoryMap = {
-      Hotel: "hotel",
-      Shortlet: "shortlet",
-      Restaurant: "restaurant",
-      Vendor: "services", // Backend expects "services" for vendors
-    };
-    const categorySlug = categoryMap[activeTab];
+    let seoPath = '';
     
-    // ✅ CRITICAL FIX: ALWAYS include category when searching
-    if (categorySlug) {
-      params.append("category", categorySlug);
+    if (categorySlug && locationSlug) {
+      seoPath = `/${categorySlug}-in-${locationSlug}`;
+    } else if (categorySlug) {
+      seoPath = `/${categorySlug}`;
+    } else if (locationSlug) {
+      seoPath = `/places-in-${locationSlug}`;
     } else {
-      // Default to hotel if no category selected
-      params.append("category", "hotel");
+      seoPath = '/search';
     }
     
-    // Add location search if provided and looks like a location
-    if (searchQuery.trim() && looksLikeLocation(searchQuery.trim())) {
-      // Use proper case for location
-      params.append("location.area", normalizeLocationForBackend(searchQuery.trim()));
-    } else if (searchQuery.trim()) {
-      // Regular search query
-      params.append("q", searchQuery.trim());
-    }
+    const queryParams = new URLSearchParams();
     
-    // ✅ FIX 2: Always pass dates (use default if none selected)
     const checkInToUse = checkInDate || new Date();
     const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
     
-    params.append("checkInDate", checkInToUse.toISOString());
-    params.append("checkOutDate", checkOutToUse.toISOString());
+    queryParams.append("checkInDate", checkInToUse.toISOString());
+    queryParams.append("checkOutDate", checkOutToUse.toISOString());
     
-    // Add guests information if available
     if (guests) {
-      params.append("guests", JSON.stringify(guests));
+      queryParams.append("guests", JSON.stringify(guests));
     }
     
-    // Navigate to search results with proper parameters
-    const queryString = params.toString();
-    console.log("🔍 Search parameters from hero:", queryString);
-    navigate(`/search-results?${queryString}`);
+    queryParams.append("q", searchQuery.trim());
+    queryParams.append("cat", activeTab);
+    
+    // ADD THIS: Pass initial filter state
+    queryParams.append("initialSearch", "true");
+    
+    const finalUrl = queryParams.toString() 
+      ? `${seoPath}?${queryParams.toString()}`
+      : seoPath;
+    
+    console.log("🔍 Navigating to SEO-friendly URL:", finalUrl);
+    navigate(finalUrl);
+    
     setShowSuggestions(false);
     setShowMobileModal(false);
-    setClickedSuggestion(null); // Clear clicked suggestion after navigation
   }, [activeTab, searchQuery, navigate, checkInDate, checkOutDate, guests]);
 
-  // ✅ Enter key also triggers search
   const handleKeyPress = useCallback(
     (e) => {
       if (e.key === "Enter") {
@@ -1352,14 +1151,16 @@ const DiscoverIbadan = () => {
 
   const handleSearchChange = useCallback((value) => {
     setSearchQuery(value);
-    if (!isMobile && value.trim().length > 0) setShowSuggestions(true);
-    else setShowSuggestions(false);
+    if (!isMobile && value.trim().length > 0) {
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
   }, [isMobile]);
 
   const handleClearSearch = useCallback(() => {
     setSearchQuery("");
     setShowSuggestions(false);
-    setClickedSuggestion(null);
     searchInputRef.current?.focus();
   }, []);
 
@@ -1375,7 +1176,6 @@ const DiscoverIbadan = () => {
   const handleCheckInClick = () => setShowCheckInCalendar(true);
   
   const handleCheckOutClick = () => {
-    // For check-out, we want to set date to check-in + 1 day
     const nextDay = new Date(checkInDate);
     nextDay.setDate(nextDay.getDate() + 1);
     setCheckOutDate(nextDay);
@@ -1386,7 +1186,6 @@ const DiscoverIbadan = () => {
 
   const handleCheckInSelect = (date) => {
     setCheckInDate(date);
-    // Auto-set check-out to check-in + 1 day
     const nextDay = new Date(date);
     nextDay.setDate(nextDay.getDate() + 1);
     setCheckOutDate(nextDay);
@@ -1394,12 +1193,12 @@ const DiscoverIbadan = () => {
 
   const handleGuestsChange = (newGuests) => {
     setGuests(newGuests);
-    setSearchParamsForResults(prev => ({ ...prev, guests: newGuests }));
   };
 
-  // ✅ Tab click only changes UI, no navigation
   const handleTabClick = (category) => {
     setActiveTab(category);
+    setSearchQuery("");
+    setShowSuggestions(false);
   };
 
   const getSearchPlaceholder = () => {
@@ -1417,91 +1216,17 @@ const DiscoverIbadan = () => {
     return "Search";
   };
 
-  // Compute total people for restaurant
   const totalPeople = guests.adults + guests.children;
 
-  // Animation effect for search button - FIX 1: Reduced animation
-  useEffect(() => {
-    if (isSearchButtonAnimating && searchButtonRef.current) {
-      const button = searchButtonRef.current;
-      
-      // Create a subtle pulse animation
-      const keyframes = [
-        { transform: 'scale(1)', easing: 'ease-in-out' },
-        { transform: 'scale(1.05)', easing: 'ease-in-out' },
-        { transform: 'scale(1)', easing: 'ease-in-out' }
-      ];
-      
-      const options = {
-        duration: 400,
-        iterations: 2
-      };
-      
-      button.animate(keyframes, options);
-      
-      setTimeout(() => {
-        button.style.transform = 'scale(1)';
-      }, 800);
-    }
-  }, [isSearchButtonAnimating]);
-
-  // ✅ FIXED: Handle search button click for both mobile and desktop
   const handleSearchButtonClick = () => {
-    // Check if search query is empty
-    if (!searchQuery.trim()) {
-      setShowEmptySearchModal(true);
-      return;
-    }
-    
-    // If we have a clicked suggestion (from mobile or desktop), use its action
-    if (clickedSuggestion && clickedSuggestion.action) {
-      // Execute the stored action to get the URL
-      const url = clickedSuggestion.action();
-      
-      // Create URLSearchParams for dates and guests
-      const params = new URLSearchParams();
-      
-      // ✅ Always pass dates (use default if none selected)
-      const checkInToUse = checkInDate || new Date();
-      const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
-      
-      params.append("checkInDate", checkInToUse.toISOString());
-      params.append("checkOutDate", checkOutToUse.toISOString());
-      
-      // Add guests information if available
-      if (guests) {
-        params.append("guests", JSON.stringify(guests));
-      }
-      
-      const queryString = params.toString();
-      const finalUrl = queryString ? `${url}${url.includes('?') ? '&' : '?'}${queryString}` : url;
-      
-      navigate(finalUrl);
-      setClickedSuggestion(null);
-      setShowSuggestions(false);
-      setShowMobileModal(false);
-    } else {
-      // Regular search without suggestion
-      handleSearchSubmit();
-    }
+    handleSearchSubmit();
   };
 
   return (
     <div className="min-h-[50%] bg-[#F7F7FA] font-manrope pt-15 md:pt-16">
-      {/* Inject glassmorphism styles */}
       <style>{glassStyles}</style>
       
       <section className="pt-14 lg:pt-12 text-center glass-background overflow-hidden relative">
-        {/* Background Pattern with enhanced glass effect */}
-        <div className="absolute inset-0 bg-[url('image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-10"></div>
-        
-        {/* Gradient overlay for depth */}
-        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-white/5 pointer-events-none"></div>
-        
-        {/* Subtle floating elements for visual interest */}
-        <div className="absolute top-10 left-10 w-20 h-20 rounded-full bg-gradient-to-r from-blue-400/20 to-teal-400/20 filter blur-xl floating"></div>
-        <div className="absolute bottom-10 right-10 w-24 h-24 rounded-full bg-gradient-to-r from-green-400/20 to-blue-400/20 filter blur-xl floating" style={{animationDelay: '2s'}}></div>
-        
         <div className="relative max-w-7xl mx-auto w-full py-4 lg:py-4 lg:mt-[-70px] mt-[-60px]">
           <div className="flex flex-col items-center text-center space-y-4 md:space-y-5 lg:space-y-4">
             {/* Hero Title */}
@@ -1518,7 +1243,7 @@ const DiscoverIbadan = () => {
               </p>
             </div>
 
-            {/* TABS — UPDATED WITH BOLD SOLID ICONS */}
+            {/* TABS */}
             <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
               <div className="flex justify-between items-center gap-2 p-2.5 bg-white rounded-lg border border-[#f7f7fa] shadow-sm">
                 {["Hotel", "Shortlet", "Restaurant", "Vendor"].map((category) => (
@@ -1641,7 +1366,7 @@ const DiscoverIbadan = () => {
                     </div>
                   ) : null}
 
-                  {/* Guest Selector — Show for Hotel/Shortlet/Restaurant */}
+                  {/* Guest Selector */}
                   {(activeTab === "Hotel" || activeTab === "Shortlet" || activeTab === "Restaurant") && (
                     <div className="mb-2 w-full">
                       <div
@@ -1676,18 +1401,16 @@ const DiscoverIbadan = () => {
                     </div>
                   )}
 
-                  {/* Search Button with Animation */}
+                  {/* Search Button */}
                   <div className="w-full">
                     <button
                       ref={searchButtonRef}
                       onClick={handleSearchButtonClick}
-                      className={`w-full bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 glowing ${
-                        clickedSuggestion ? 'ring-2 ring-blue-400 ring-offset-2' : 'hover:from-[#00c97b] hover:to-teal-600'
-                      }`}
+                      className={`w-full bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 glowing hover:from-[#00c97b] hover:to-teal-600`}
                     >
                       <FontAwesomeIcon icon={faSearch} className="text-sm" />
                       <span className="text-xs">
-                        {clickedSuggestion ? `Search ${clickedSuggestion.title}` : getSearchButtonText()}
+                        {getSearchButtonText()}
                       </span>
                     </button>
                   </div>
@@ -1767,7 +1490,6 @@ const DiscoverIbadan = () => {
           overflow: hidden;
         }
         
-        /* Ensure backdrop-filter works properly */
         .glass-background::before {
           content: '';
           position: absolute;

@@ -610,7 +610,7 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
           <div className="fixed inset-0 bg-black/70 z-[1000] flex items-center justify-center p-4">
             <div className="bg-white w-full max-w-6xl rounded-xl overflow-y-auto max-h-[90vh]">
               {/* HEADER */}
-              <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
+              <div className="sticky top-0 bg-white border-b border-gray-300 p-4 flex justify-between items-center">
                 <h3 className="font-bold text-lg">{modalRoom.title}</h3>
                 <button 
                   onClick={closeModal}
@@ -723,7 +723,7 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
 
                 {/* RIGHT COLUMN - PRICE CARD */}
                 {bestOption && (
-                  <div className="lg:sticky lg:top-6 border rounded-xl p-5 h-fit shadow-sm">
+                  <div className="lg:sticky lg:top-6 border border-gray-300 rounded-xl p-5 h-fit shadow-sm">
                     <div className="space-y-4">
                       <div>
                         <p className="font-semibold">{bestOption.adults}</p>
@@ -747,7 +747,7 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
                         ))}
                       </div>
 
-                      <div className="pt-4 border-t">
+                      <div className="pt-4 border-t border-gray-300">
                         <p className="line-through text-sm text-gray-400">
                           {formatPrice(bestOption.originalPrice)}
                         </p>
@@ -770,7 +770,7 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
                       </div>
 
                       {/* All Occupancy Options */}
-                      <div className="pt-4 border-t">
+                      <div className="pt-4 border-t border-gray-300">
                         <h5 className="font-medium mb-3">Other Options</h5>
                         <div className="space-y-3">
                           {modalRoom.occupancy

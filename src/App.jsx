@@ -14,7 +14,7 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
       cacheTime: 10 * 60 * 1000, // 10 minutes
-      refetchOnWindowFocus: false, // Set to true if you want auto-refresh
+      refetchOnWindowFocus: false,
       retry: 1,
       refetchOnMount: true,
       refetchOnReconnect: true,
@@ -271,231 +271,242 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <LocalBusinessSchema />
-    
       
-          <BrowserRouter>
-            <TrackingWrapper>
-              <Suspense fallback={<LoadingDots />}>
-                <Routes>
-                  {/* PUBLIC ROUTES */}
-                  <Route path="/" element={<MainLayout><HomePage /></MainLayout>} />
-                  <Route path="/about" element={<MainLayout><AboutAjani /></MainLayout>} />
-                  <Route path="/help-center" element={<MainLayout><HelpCenterPage /></MainLayout>} />
-                  <Route path="/privacy" element={<MainLayout><PrivacyPage /></MainLayout>} />
-                  <Route path="/terms-service" element={<MainLayout><TermsPage /></MainLayout>} />
-                  <Route path="/contact" element={<MainLayout><ContactPage /></MainLayout>} />
-                  <Route path="/contact-us" element={<MainLayout><ContactPage /></MainLayout>} />
-                  <Route path="/vendor" element={<MainLayout><VendorsPage /></MainLayout>} />
+      <BrowserRouter>
+        <TrackingWrapper>
+          <Suspense fallback={<LoadingDots />}>
+            <Routes>
+              {/* PUBLIC ROUTES */}
+              <Route path="/" element={<MainLayout><HomePage /></MainLayout>} />
+              <Route path="/about" element={<MainLayout><AboutAjani /></MainLayout>} />
+              <Route path="/help-center" element={<MainLayout><HelpCenterPage /></MainLayout>} />
+              <Route path="/privacy" element={<MainLayout><PrivacyPage /></MainLayout>} />
+              <Route path="/terms-service" element={<MainLayout><TermsPage /></MainLayout>} />
+              <Route path="/contact" element={<MainLayout><ContactPage /></MainLayout>} />
+              <Route path="/contact-us" element={<MainLayout><ContactPage /></MainLayout>} />
+              
+              {/* DIRECT CATEGORY PAGES (Clean URLs) - ADD THESE */}
+              <Route path="/hotel" element={<MainLayout><CategoryResults /></MainLayout>} />
+              <Route path="/restaurant" element={<MainLayout><CategoryResults /></MainLayout>} />
+              <Route path="/shortlet" element={<MainLayout><CategoryResults /></MainLayout>} />
+              <Route path="/event" element={<MainLayout><CategoryResults /></MainLayout>} />
+              
+              {/* Vendor page already exists */}
+              <Route path="/vendor" element={<MainLayout><VendorsPage /></MainLayout>} />
 
-                  {/* DYNAMIC ROUTES */}
-                  <Route path="/vendor-detail/:id" element={<MainLayout><VendorDetail /></MainLayout>} />
-                 <Route 
-  path={`/:category`} 
-  element={
-    <MainLayout>
-      <CategoryResults />
-    </MainLayout>
-  } 
-/>
-                  <Route path="/search-results" element={<MainLayout><SearchResults /></MainLayout>} />
+              {/* DYNAMIC ROUTES - IMPORTANT: Keep existing routes for backward compatibility */}
+              
+              {/* 1. Category route for /category/:category URLs */}
+              <Route 
+                path="/category/:category" 
+                element={<MainLayout><CategoryResults /></MainLayout>} 
+              />
+              
+              {/* 2. VENDOR DETAIL */}
+              <Route path="/vendor-detail/:id" element={<MainLayout><VendorDetail /></MainLayout>} />
+              
+              {/* 3. TRADITIONAL SEARCH RESULTS */}
+              <Route path="/search-results" element={<MainLayout><SearchResults /></MainLayout>} />
 
-                  {/* BOOKING ROUTES */}
-                  <Route 
-                    path="/booking" 
-                    element={
-                      <ProtectedRoute>
-                        <MainLayout><BookingRouter /></MainLayout>
-                      </ProtectedRoute>
-                    } 
-                  />
-                  
-                  <Route 
-                    path="/booking/payment" 
-                    element={
-                      <ProtectedRoute>
-                        <MainLayout><PaymentPage /></MainLayout>
-                      </ProtectedRoute>
-                    } 
-                  />
-                  
-                  <Route 
-                    path="/booking-confirmation/:type?" 
-                    element={
-                      <ProtectedRoute>
-                        <MainLayout><BookingConfirmation /></MainLayout>
-                      </ProtectedRoute>
-                    } 
-                  />
-                  
-                  <Route 
-                    path="/booking-failed" 
-                    element={
-                      <ProtectedRoute>
-                        <MainLayout><BookingFailed /></MainLayout>
-                      </ProtectedRoute>
-                    } 
-                  />
+              {/* 4. SEO-FRIENDLY SEARCH URLS - Must come LAST */}
+              <Route 
+                path="/:seoSlug" 
+                element={<MainLayout><SearchResults /></MainLayout>} 
+              />
 
-                  {/* AUTH ROUTES */}
-                  <Route
-                    path="/login"
-                    element={
-                      <PublicRoute>
-                        <MainLayout><LoginPage /></MainLayout>
-                      </PublicRoute>
-                    }
-                  />
-                  <Route
-                    path="/reset-password"
-                    element={
-                      <PublicRoute>
-                        <MainLayout><ResetPasswordPage /></MainLayout>
-                      </PublicRoute>
-                    }
-                  />
-                  <Route
-                    path="/register"
-                    element={
-                      <PublicRoute>
-                        <MainLayout><RegisterChoicePage /></MainLayout>
-                      </PublicRoute>
-                    }
-                  />
+              {/* BOOKING ROUTES */}
+              <Route 
+                path="/booking" 
+                element={
+                  <ProtectedRoute>
+                    <MainLayout><BookingRouter /></MainLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/booking/payment" 
+                element={
+                  <ProtectedRoute>
+                    <MainLayout><PaymentPage /></MainLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/booking-confirmation/:type?" 
+                element={
+                  <ProtectedRoute>
+                    <MainLayout><BookingConfirmation /></MainLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/booking-failed" 
+                element={
+                  <ProtectedRoute>
+                    <MainLayout><BookingFailed /></MainLayout>
+                  </ProtectedRoute>
+                } 
+              />
 
-                  {/* OTP VERIFICATION */}
-                  <Route
-                    path="/verify-otp"
-                    element={
-                      <OTPRoute>
-                        <MainLayout><VerifyOTPPage /></MainLayout>
-                      </OTPRoute>
-                    }
-                  />
+              {/* AUTH ROUTES */}
+              <Route
+                path="/login"
+                element={
+                  <PublicRoute>
+                    <MainLayout><LoginPage /></MainLayout>
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/reset-password"
+                element={
+                  <PublicRoute>
+                    <MainLayout><ResetPasswordPage /></MainLayout>
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <PublicRoute>
+                    <MainLayout><RegisterChoicePage /></MainLayout>
+                  </PublicRoute>
+                }
+              />
 
-                  {/* USER REGISTRATION */}
-                  <Route
-                    path="/register/user"
-                    element={
-                      <PublicRoute>
-                        <MainLayout><UserRegistration /></MainLayout>
-                      </PublicRoute>
-                    }
-                  />
+              {/* OTP VERIFICATION */}
+              <Route
+                path="/verify-otp"
+                element={
+                  <OTPRoute>
+                    <MainLayout><VerifyOTPPage /></MainLayout>
+                  </OTPRoute>
+                }
+              />
 
-                  {/* VENDOR REGISTRATION */}
-                  <Route
-                    path="/register/vendor"
-                    element={
-                      <PublicRoute>
-                        <MainLayout><VendorRegistration /></MainLayout>
-                      </PublicRoute>
-                    }
-                  />
+              {/* USER REGISTRATION */}
+              <Route
+                path="/register/user"
+                element={
+                  <PublicRoute>
+                    <MainLayout><UserRegistration /></MainLayout>
+                  </PublicRoute>
+                }
+              />
 
-                  {/* PROFILE ROUTES */}
-                  <Route
-                    path="/buyer/profile"
-                    element={
-                      <BuyerRoute>
-                        <MainLayout><BuyerProfilePage /></MainLayout>
-                      </BuyerRoute>
-                    }
-                  />
-                  <Route
-                    path="/vendor/profile"
-                    element={
-                      <VendorRoute>
-                        <MainLayout><VendorProfilePage /></MainLayout>
-                      </VendorRoute>
-                    }
-                  />
+              {/* VENDOR REGISTRATION */}
+              <Route
+                path="/register/vendor"
+                element={
+                  <PublicRoute>
+                    <MainLayout><VendorRegistration /></MainLayout>
+                  </PublicRoute>
+                }
+              />
 
-                  {/* VENDOR ROUTES */}
-                  <Route
-                    path="/vendor/dashboard"
-                    element={
-                      <VendorRoute>
-                        <VendorDashboard />
-                      </VendorRoute>
-                    }
-                  />
-                  <Route
-                    path="/vendor/complete-profile"
-                    element={
-                      <VendorRoute>
-                        <MainLayout><VendorCompleteProfile /></MainLayout>
-                      </VendorRoute>
-                    }
-                  />
+              {/* PROFILE ROUTES */}
+              <Route
+                path="/buyer/profile"
+                element={
+                  <BuyerRoute>
+                    <MainLayout><BuyerProfilePage /></MainLayout>
+                  </BuyerRoute>
+                }
+              />
+              <Route
+                path="/vendor/profile"
+                element={
+                  <VendorRoute>
+                    <MainLayout><VendorProfilePage /></MainLayout>
+                  </VendorRoute>
+                }
+              />
 
-                  {/* PROTECTED ROUTES */}
-                  <Route
-                    path="/saved"
-                    element={
-                      <ProtectedRoute>
-                        <MainLayout><SavedListingsPage /></MainLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/notifications"
-                    element={
-                      <ProtectedRoute>
-                        <MainLayout><NotificationsPage /></MainLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/chat"
-                    element={
-                      <ProtectedRoute>
-                        <MainLayout><ChatPage /></MainLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/add-business"
-                    element={
-                      <ProtectedRoute>
-                        <MainLayout><AddBusinessPage /></MainLayout>
-                      </ProtectedRoute>
-                    }
-                  />
+              {/* VENDOR ROUTES */}
+              <Route
+                path="/vendor/dashboard"
+                element={
+                  <VendorRoute>
+                    <VendorDashboard />
+                  </VendorRoute>
+                }
+              />
+              <Route
+                path="/vendor/complete-profile"
+                element={
+                  <VendorRoute>
+                    <MainLayout><VendorCompleteProfile /></MainLayout>
+                  </VendorRoute>
+                }
+              />
 
-                  {/* ADMIN ROUTES */}
-                  <Route
-                    path="/admincpanel"
-                    element={
-                      <Overview />
-                    }
-                  />
+              {/* PROTECTED ROUTES */}
+              <Route
+                path="/saved"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout><SavedListingsPage /></MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/notifications"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout><NotificationsPage /></MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/chat"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout><ChatPage /></MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/add-business"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout><AddBusinessPage /></MainLayout>
+                  </ProtectedRoute>
+                }
+              />
 
-                  {/* 404 ROUTE */}
-                  <Route
-                    path="*"
-                    element={
-                      <MainLayout>
-                        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-gray-50">
-                          <div className="text-center">
-                            <h1 className="mb-4 text-4xl font-bold">404</h1>
-                            <p className="mb-6 text-gray-600">Page not found</p>
-                            <a
-                              href="/"
-                              className="font-medium text-cyan-500 hover:text-cyan-400"
-                            >
-                              Return Home
-                            </a>
-                          </div>
-                        </div>
-                      </MainLayout>
-                    }
-                  />
-                </Routes>
-              </Suspense>
-            </TrackingWrapper>
-          </BrowserRouter>
-        
-      
+              {/* ADMIN ROUTES */}
+              <Route
+                path="/admincpanel"
+                element={<Overview />}
+              />
+
+              {/* 404 ROUTE */}
+              <Route
+                path="*"
+                element={
+                  <MainLayout>
+                    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-gray-50">
+                      <div className="text-center">
+                        <h1 className="mb-4 text-4xl font-bold">404</h1>
+                        <p className="mb-6 text-gray-600">Page not found</p>
+                        <a
+                          href="/"
+                          className="font-medium text-cyan-500 hover:text-cyan-400"
+                        >
+                          Return Home
+                        </a>
+                      </div>
+                    </div>
+                  </MainLayout>
+                }
+              />
+            </Routes>
+          </Suspense>
+        </TrackingWrapper>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }

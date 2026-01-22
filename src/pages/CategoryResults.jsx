@@ -205,7 +205,7 @@ const useBackendListings = (category = null, searchQuery = '', filters = {}) => 
     const ibadanAreas = [
       'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly', 'oke', 'agodi', 
       'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
-      'molete', 'agbowo', 'sabo', 'bashorun', 'ondo road', 'ogbomoso', 'ife road',
+      'molete', 'agbowo', 'sabo', 'bashorun',  'ife road',
       'akinyele', 'bodija market', 'dugbe market', 'mokola hill', 'sango roundabout'
     ];
     
@@ -244,7 +244,8 @@ const useBackendListings = (category = null, searchQuery = '', filters = {}) => 
             'restaurant': 'restaurant',
             'shortlet': 'shortlet',
             'vendor': 'services',
-            'services': 'services'
+            'services': 'services',
+            'event': 'event'
           };
           const backendCategory = categoryMap[category] || category;
           params.append('category', backendCategory);
@@ -402,6 +403,19 @@ const getCategoryDisplayName = (category) => {
   if (!category || category === "All Categories" || category === "All")
     return "All Categories";
 
+  const categoryMap = {
+    'hotel': 'Hotels',
+    'restaurant': 'Restaurants',
+    'shortlet': 'Shortlets',
+    'vendor': 'Vendors',
+    'services': 'Vendors',
+    'event': 'Events'
+  };
+
+  if (categoryMap[category.toLowerCase()]) {
+    return categoryMap[category.toLowerCase()];
+  }
+
   const subcategory = getSubcategory(category);
   if (subcategory) {
     return subcategory
@@ -436,7 +450,7 @@ const looksLikeLocation = (query) => {
   const ibadanAreas = [
     'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly', 'oke', 'agodi', 
     'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
-    'molete', 'agbowo', 'sabo', 'bashorun', 'ondo road', 'ogbomoso', 'ife road',
+    'molete', 'agbowo', 'sabo', 'bashorun',  'ife road',
     'akinyele', 'bodija market', 'dugbe market', 'mokola hill', 'sango roundabout'
   ];
   
@@ -469,6 +483,7 @@ const getPluralCategoryName = (category) => {
   if (categoryLower.includes("restaurant")) return "Restaurants";
   if (categoryLower.includes("vendor") || categoryLower.includes("services")) return "Vendors";
   if (categoryLower.includes("tourist")) return "Tourist Centers";
+  if (categoryLower.includes("event")) return "Events";
   return category + "s";
 };
 
@@ -723,7 +738,9 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
       toast.innerHTML = `
       <div class="flex items-start gap-3">
         <div class="${
-          type === "success" ? "text-green-600" : "text-blue-600"
+          type === "success"
+            ? "text-green-600"
+            : "text-blue-600"
         } mt-0.5">
           ${
             type === "success"
@@ -737,7 +754,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
         </div>
         <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70 transition-opacity">
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
           </svg>
         </button>
       </div>
@@ -981,7 +998,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
             >
               <path
                 fillRule="evenodd"
-                d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                d="M3.172 5.172a4 4 0 0 1 5.656 0L10 6.343l1.172-1.171a4 4 0 1 1 5.656 5.656L10 17.657l-6.828-6.829a4 4 0 0 1 0-5.656z"
                 clipRule="evenodd"
               />
             </svg>
@@ -2136,7 +2153,22 @@ const CategoryResults = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
-
+  
+  // ✅ FIX: Determine category from URL path - HANDLE BOTH PATTERNS
+  const path = location.pathname;
+  let activeCategory = category || 'hotel'; // Default fallback
+  
+  // Check for direct routes
+  if (path === '/hotel') {
+    activeCategory = 'hotel';
+  } else if (path === '/restaurant') {
+    activeCategory = 'restaurant';
+  } else if (path === '/shortlet') {
+    activeCategory = 'shortlet';
+  } else if (path === '/event') {
+    activeCategory = 'event';
+  }
+  
   const searchQuery = searchParams.get("q") || "";
   const urlLocation = searchParams.get("location.area") || searchParams.get("location");
   
@@ -2165,22 +2197,22 @@ const CategoryResults = () => {
     bottom: 0,
     width: 0,
   });
-  const [selectedCategoryButton, setSelectedCategoryButton] = useState(category || "hotel");
+  const [selectedCategoryButton, setSelectedCategoryButton] = useState(activeCategory);
   const searchContainerRef = useRef(null);
   const filterButtonRef = useRef(null);
   const resultsRef = useRef(null);
   const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
 
-  // ✅ FIX 2: Use the updated backend hook
-  const { listings, loading, error, apiResponse } = useBackendListings(category, searchQuery, activeFilters);
+  // ✅ FIX 2: Use activeCategory in the hook instead of category
+  const { listings, loading, error, apiResponse } = useBackendListings(activeCategory, searchQuery, activeFilters);
 
   useEffect(() => {
-    if (category) {
-      setSelectedCategoryButton(category);
+    if (activeCategory) {
+      setSelectedCategoryButton(activeCategory);
     } else {
       setSelectedCategoryButton("hotel");
     }
-  }, [category]);
+  }, [activeCategory]);
 
   useEffect(() => {
     const scrollToTop = () => {
@@ -2345,9 +2377,9 @@ const CategoryResults = () => {
         params.set("q", localSearchQuery.trim());
       }
       
-      // Keep category in URL
-      if (category) {
-        params.set("category", category);
+      // Keep category in URL - use activeCategory
+      if (activeCategory) {
+        params.set("category", activeCategory);
       }
       
       // Preserve existing filters
@@ -2401,9 +2433,9 @@ const CategoryResults = () => {
         }
       });
 
-      // Keep category
-      if (category) {
-        params.set("category", category);
+      // Keep category - use activeCategory
+      if (activeCategory) {
+        params.set("category", activeCategory);
       }
 
       setSearchParams(params);
@@ -2414,7 +2446,7 @@ const CategoryResults = () => {
   const handleCategoryButtonClick = (categoryKey) => {
     // Set loading state
     setIsSwitchingCategory(true);
-    const currentCategory = category || "all";
+    const currentCategory = activeCategory || "all";
     setPreviousCategory(getCategoryDisplayName(currentCategory));
     
     const categoryMap = {
@@ -2425,8 +2457,8 @@ const CategoryResults = () => {
     };
     setNewCategory(categoryMap[categoryKey] || categoryKey);
     
-    const categorySlug = categoryKey.toLowerCase();
-    navigate(`/${categorySlug}`);
+    // Navigate to direct route
+    navigate(`/${categoryKey}`);
     
     // Auto-hide loader after 1.5 seconds
     setTimeout(() => {
@@ -2460,9 +2492,9 @@ const CategoryResults = () => {
         params.set("q", searchQuery);
       }
     }
-    // Keep category
-    if (category) {
-      params.set("category", category);
+    // Keep category - use activeCategory
+    if (activeCategory) {
+      params.set("category", activeCategory);
     }
     setSearchParams(params);
   };
@@ -2476,9 +2508,7 @@ const CategoryResults = () => {
       locationParams.push(getLocationDisplayName(urlLocation));
     }
 
-    const categoryTitle = category
-      ? category.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")
-      : "All Categories";
+    const categoryTitle = getCategoryDisplayName(activeCategory);
 
     if (searchQuery) {
       if (locationParams.length > 0) {
@@ -2494,7 +2524,7 @@ const CategoryResults = () => {
     } else if (locationParams.length > 0) {
       return `${categoryTitle} in ${locationParams.join(", ")}`;
     } else {
-      return `${categoryTitle}s in Ibadan`;
+      return `${categoryTitle} in Ibadan`;
     }
   };
 
@@ -2506,32 +2536,31 @@ const CategoryResults = () => {
       locationParams.push(getLocationDisplayName(urlLocation));
     }
 
-    const categoryTitle = category
-      ? category.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")
-      : "All Categories";
+    const categoryTitle = getCategoryDisplayName(activeCategory);
+    const categoryLower = categoryTitle.toLowerCase();
 
     if (searchQuery) {
       if (locationParams.length > 0) {
         if (looksLikeLocation(searchQuery)) {
-          return `Find the best ${categoryTitle.toLowerCase()} in ${getLocationDisplayName(searchQuery)}. Browse prices, reviews, and book directly.`;
+          return `Find the best ${categoryLower} in ${getLocationDisplayName(searchQuery)}. Browse prices, reviews, and book directly.`;
         }
-        return `Find the best ${categoryTitle.toLowerCase()} in ${locationParams.join(", ")} matching "${searchQuery}". Browse prices, reviews, and book directly.`;
+        return `Find the best ${categoryLower} in ${locationParams.join(", ")} matching "${searchQuery}". Browse prices, reviews, and book directly.`;
       }
       if (looksLikeLocation(searchQuery)) {
-        return `Discover amazing ${categoryTitle.toLowerCase()} in ${getLocationDisplayName(searchQuery)}. Find top-rated places, compare prices, and book directly.`;
+        return `Discover amazing ${categoryLower} in ${getLocationDisplayName(searchQuery)}. Find top-rated places, compare prices, and book directly.`;
       }
-      return `Find the best ${categoryTitle.toLowerCase()} in Ibadan matching "${searchQuery}". Browse prices, reviews, and book directly.`;
+      return `Find the best ${categoryLower} in Ibadan matching "${searchQuery}". Browse prices, reviews, and book directly.`;
     } else if (locationParams.length > 0) {
-      return `Discover amazing ${categoryTitle.toLowerCase()} in ${locationParams.join(", ")}, Ibadan. Find top-rated places, compare prices, and book directly.`;
+      return `Discover amazing ${categoryLower} in ${locationParams.join(", ")}, Ibadan. Find top-rated places, compare prices, and book directly.`;
     } else {
-      return `Find the best ${categoryTitle.toLowerCase()} in Ibadan. Browse prices, reviews, and book directly.`;
+      return `Find the best ${categoryLower} in Ibadan. Browse prices, reviews, and book directly.`;
     }
   };
 
   // ✅ UPDATED: Get accurate count text like search results page
   const getAccurateCountText = () => {
     const total = listings.length;
-    const categoryTitle = getCategoryDisplayName(category || "All Categories");
+    const categoryTitle = getCategoryDisplayName(activeCategory);
     
     if (searchQuery && looksLikeLocation(searchQuery)) {
       return `${categoryTitle} in ${getLocationDisplayName(searchQuery)} • ${total} ${total === 1 ? 'place' : 'places'} found`;
@@ -2613,14 +2642,14 @@ const CategoryResults = () => {
   }
 
   // Get active category name for search suggestions
-  const activeCategoryName = category ? getCategoryDisplayName(category) : '';
+  const activeCategoryName = getCategoryDisplayName(activeCategory);
 
   return (
     <div className="min-h-screen bg-gray-50 font-manrope ">
       <Meta
         title={`${getPageTitle()} | Ajani Directory`}
         description={getPageDescription()}
-        url={`https://ajani.ai/category/${category}?${searchParams.toString()}`}
+        url={`https://ajani.ai/${activeCategory}?${searchParams.toString()}`}
         image="https://ajani.ai/images/category-og.jpg"
       />
 
@@ -2757,7 +2786,7 @@ const CategoryResults = () => {
             onClose={() => setShowSuggestions(false)}
             isVisible={showSuggestions && !loading}
             searchBarPosition={searchBarPosition}
-            activeCategory={activeCategoryName}
+            activeCategory={activeCategory}
           />
         )}
 
@@ -2793,7 +2822,7 @@ const CategoryResults = () => {
             onClose={() => setShowMobileSearchModal(false)}
             onTyping={handleSearchChange}
             isVisible={showMobileSearchModal}
-            activeCategory={activeCategoryName}
+            activeCategory={activeCategory}
           />
         )}
 
@@ -2970,7 +2999,7 @@ const CategoryResults = () => {
                               <SearchResultBusinessCard
                                 key={listing._id || `${rowIndex}-${index}`}
                                 item={listing}
-                                category={category || "general"}
+                                category={activeCategory}
                                 isMobile={isMobile}
                               />
                             ))}
@@ -2983,7 +3012,7 @@ const CategoryResults = () => {
                         <SearchResultBusinessCard
                           key={listing._id || index}
                           item={listing}
-                          category={category || "general"}
+                          category={activeCategory}
                           isMobile={isMobile}
                         />
                       ))}
