@@ -102,7 +102,9 @@ import {
   UserX,
   HeartCrack,
   LockKeyhole,
-  LockKeyholeOpen
+  LockKeyholeOpen,
+  Utensils, // Added for restaurant icon
+  Bed // Added for hotel/shortlet icon
 } from "lucide-react";
 import Logo from "../assets/Logos/logo5.png";
 import { motion, AnimatePresence } from "framer-motion";
@@ -119,8 +121,9 @@ const VendorDashboard = () => {
   const [showAddListingModal, setShowAddListingModal] = useState(false);
   const [newListing, setNewListing] = useState({
     name: "",
-    category: "Property",
+    category: "Hotel",
     price: "",
+    priceType: "per night",
     description: "",
     location: "",
     amenities: [],
@@ -143,15 +146,84 @@ const VendorDashboard = () => {
     promotionalWhatsapp: true
   });
 
-  // Tab configuration - ADDED NOTIFICATIONS TAB
+  // Tab configuration
   const tabs = [
     { id: "overview", label: "Overview", icon: Home },
     { id: "listings", label: "Listing", icon: List },
     { id: "customers", label: "Customer", icon: Users },
     { id: "bookings", label: "Booking", icon: CalendarCheck },
-    { id: "notifications", label: "Notifications", icon: Bell }, // Added notifications tab
+    { id: "notifications", label: "Notifications", icon: Bell },
     { id: "settings", label: "Settings", icon: Settings }
   ];
+
+  // Helper function to get price label based on category
+  const getPriceLabel = (category) => {
+    const hotelCategories = ["Hotel", "Shortlet"];
+    const restaurantCategories = ["Restaurant"];
+    
+    if (hotelCategories.includes(category)) {
+      return "Price per Night";
+    } else if (restaurantCategories.includes(category)) {
+      return "Price";
+    } else {
+      return "Price";
+    }
+  };
+
+  // Helper function to get price type options based on category
+  const getPriceTypeOptions = (category) => {
+    if (category === "Restaurant") {
+      return ["per table", "per plate"];
+    } else if (category === "Hotel" || category === "Shortlet") {
+      return ["per night"];
+    } else {
+      return [""];
+    }
+  };
+
+  // Helper function to format price with appropriate suffix
+  const formatPrice = (price, category, priceType = "") => {
+    const numericPrice = parseFloat(price);
+    if (isNaN(numericPrice)) return price;
+    
+    const formatted = `₦${numericPrice.toLocaleString()}`;
+    
+    if (category === "Hotel" || category === "Shortlet") {
+      return `${formatted}/night`;
+    } else if (category === "Restaurant") {
+      if (priceType === "per table") {
+        return `${formatted}/table`;
+      } else if (priceType === "per plate") {
+        return `${formatted}/plate`;
+      } else {
+        return formatted;
+      }
+    } else {
+      return formatted;
+    }
+  };
+
+  // Parse existing price to display in edit modal
+  const parseExistingPrice = (priceString) => {
+    if (!priceString) return "";
+    // Remove ₦ and any suffix
+    return priceString.replace('₦', '').replace('/night', '').replace('/table', '').replace('/plate', '').replace(/,/g, '');
+  };
+
+  // Parse existing price type from price string
+  const parseExistingPriceType = (priceString, category) => {
+    if (!priceString) return category === "Hotel" || category === "Shortlet" ? "per night" : "";
+    
+    if (priceString.includes('/night')) {
+      return "per night";
+    } else if (priceString.includes('/table')) {
+      return "per table";
+    } else if (priceString.includes('/plate')) {
+      return "per plate";
+    } else {
+      return category === "Hotel" || category === "Shortlet" ? "per night" : "";
+    }
+  };
 
   useEffect(() => {
     fetchUserData();
@@ -210,6 +282,7 @@ const VendorDashboard = () => {
       // Set profile image from localStorage or default
       setProfileImage(parsedProfile.profileImage ||
         "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80");
+      
       // Initialize listings from localStorage or use default
       const savedListings = localStorage.getItem("vendorListings");
       if (savedListings) {
@@ -219,7 +292,7 @@ const VendorDashboard = () => {
           {
             id: 1,
             name: "Jagz Hotel and Suite",
-            category: "Property",
+            category: "Hotel",
             price: "₦28,000/night",
             rating: "4.8(10)",
             status: "Active",
@@ -229,19 +302,53 @@ const VendorDashboard = () => {
           },
           {
             id: 2,
-            name: "Jagz Hotel and Suite",
-            category: "Property",
-            price: "₦28,000/night",
-            rating: "4.8(10)",
+            name: "Luxury Shortlet Apartment",
+            category: "Shortlet",
+            price: "₦45,000/night",
+            rating: "4.9(15)",
             status: "Active",
             image: "https://images.unsplash.com/photo-1584132967336-9b942d726e7c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
-            location: "Mokola, RD 8 Ibadan",
-            amenities: ["WiFi", "Breakfast", "Gym", "Spa"]
+            location: "Lekki Phase 1, Lagos",
+            amenities: ["WiFi", "Breakfast", "Gym", "Spa", "Kitchen"]
+          },
+          {
+            id: 3,
+            name: "Delicious Bites Restaurant",
+            category: "Restaurant",
+            price: "₦25,000/table",
+            rating: "4.5(25)",
+            status: "Active",
+            image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+            location: "Ikeja, Lagos",
+            amenities: ["Parking", "WiFi", "Outdoor Seating", "Bar"]
+          },
+          {
+            id: 4,
+            name: "Grand Event Center",
+            category: "Event Center",
+            price: "₦500,000",
+            rating: "4.9(15)",
+            status: "Active",
+            image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+            location: "Victoria Island, Lagos",
+            amenities: ["Parking", "AC", "Stage", "Sound System", "Catering"]
+          },
+          {
+            id: 5,
+            name: "Professional Photography Service",
+            category: "Service",
+            price: "₦150,000",
+            rating: "4.7(8)",
+            status: "Active",
+            image: "https://images.unsplash.com/photo-1554048612-b6a482bc67e5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+            location: "Across Lagos",
+            amenities: ["Equipment", "Editing", "Delivery", "Multiple Photographers"]
           }
         ];
         setListings(defaultListings);
         localStorage.setItem("vendorListings", JSON.stringify(defaultListings));
       }
+      
       // Initialize customers with real images
       const defaultCustomers = [
         {
@@ -249,7 +356,7 @@ const VendorDashboard = () => {
           name: "Samuel Rotimi",
           email: "samuel@example.com",
           bookings: 1,
-          totalSpent: "#300k+",
+          totalSpent: "₦300k+",
           image: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
         },
         {
@@ -257,7 +364,7 @@ const VendorDashboard = () => {
           name: "Sandra Adeoye",
           email: "sandra@example.com",
           bookings: 1,
-          totalSpent: "#300k+",
+          totalSpent: "₦300k+",
           image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
         },
         {
@@ -265,7 +372,7 @@ const VendorDashboard = () => {
           name: "Bankole Cole",
           email: "bankole@example.com",
           bookings: 1,
-          totalSpent: "#300k+",
+          totalSpent: "₦300k+",
           image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
         }
       ];
@@ -367,8 +474,9 @@ const VendorDashboard = () => {
   const handleOpenAddListingModal = () => {
     setNewListing({
       name: "",
-      category: "Property",
+      category: "Hotel",
       price: "",
+      priceType: "per night",
       description: "",
       location: "",
       amenities: [],
@@ -403,18 +511,21 @@ const VendorDashboard = () => {
       alert("Please fill in all required fields");
       return;
     }
+    
     const listing = {
       id: Date.now(),
       name: newListing.name,
       category: newListing.category,
-      price: `₦${parseFloat(newListing.price).toLocaleString()}/night`,
+      price: formatPrice(newListing.price, newListing.category, newListing.priceType),
       rating: "0.0(0)",
       status: "Active",
       image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
       location: newListing.location,
       description: newListing.description,
-      amenities: newListing.amenities
+      amenities: newListing.amenities,
+      priceType: newListing.priceType // Store price type for editing
     };
+    
     const updatedListings = [...listings, listing];
     setListings(updatedListings);
     localStorage.setItem("vendorListings", JSON.stringify(updatedListings));
@@ -437,7 +548,8 @@ const VendorDashboard = () => {
       setNewListing({
         name: listing.name,
         category: listing.category,
-        price: listing.price.replace(/[^0-9.]/g, ''),
+        price: parseExistingPrice(listing.price),
+        priceType: parseExistingPriceType(listing.price, listing.category),
         description: listing.description || "",
         location: listing.location || "",
         amenities: listing.amenities || [],
@@ -531,6 +643,24 @@ const VendorDashboard = () => {
     console.log("Marked all notifications as read");
   };
 
+  // Handle category change
+  const handleCategoryChange = (category) => {
+    let priceType = "per night";
+    if (category === "Restaurant") {
+      priceType = "per table";
+    } else if (category === "Hotel" || category === "Shortlet") {
+      priceType = "per night";
+    } else {
+      priceType = "";
+    }
+    
+    setNewListing({
+      ...newListing,
+      category: category,
+      priceType: priceType
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex flex-col">
@@ -566,7 +696,6 @@ const VendorDashboard = () => {
             onClick={toggleSidebar}
             className="md:hidden p-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors"
           >
-            {/* CHANGED: Show X icon when sidebar is open, Menu icon when closed */}
             {isSidebarOpen ? (
               <X size={20} strokeWidth={2.5} className="text-blue-600" />
             ) : (
@@ -609,7 +738,7 @@ const VendorDashboard = () => {
             <Settings size={20} strokeWidth={2.5} className="text-gray-600" />
           </button>
 
-          {/* Notifications Icon - UPDATED: Routes to notifications tab */}
+          {/* Notifications Icon */}
           <button 
             onClick={() => {
               setActiveTab("notifications");
@@ -647,7 +776,7 @@ const VendorDashboard = () => {
           >
             {/* Sidebar Header - Menu Button only on mobile */}
             <div className="p-4 flex items-center md:hidden justify-between border-b border-gray-200">
-              {/* FIXED: Logo fixed to left edge for mobile */}
+              {/* Logo fixed to left edge for mobile */}
               <div className="ml-0">
                 <img 
                   src={Logo} 
@@ -662,14 +791,13 @@ const VendorDashboard = () => {
                 onClick={toggleSidebar}
                 className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                {/* CHANGED: Show X icon when sidebar is open */}
                 <X size={16} strokeWidth={2.5} className="text-gray-600" />
               </button>
             </div>
             
-            {/* Navigation Menu - ADDED: More space between items for mobile */}
+            {/* Navigation Menu */}
             <nav className="mt-4 md:mt-8 px-4">
-              <div className="space-y-3 md:space-y-2"> {/* Changed from space-y-1/space-y-2 to space-y-3 for mobile */}
+              <div className="space-y-3 md:space-y-2">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   return (
@@ -705,14 +833,12 @@ const VendorDashboard = () => {
                     />
                   </div>
                   <div className="overflow-hidden">
-                    {/* FIXED: Name is non-editable, shows toast on click */}
                     <p 
                       onClick={handleNameClick}
                       className="font-medium text-gray-900 text-sm truncate font-manrope cursor-pointer hover:text-blue-600 transition-colors"
                     >
                       {userData?.firstName} {userData?.lastName}
                     </p>
-                    {/* FIXED: Email is non-editable, shows toast on click */}
                     <p 
                       onClick={handleEmailClick}
                       className="text-xs text-gray-500 truncate font-manrope cursor-pointer hover:text-blue-600 transition-colors"
@@ -1074,7 +1200,7 @@ const VendorDashboard = () => {
                                 <div className="text-xs md:text-sm text-gray-600 font-manrope truncate">Mokola, RD 8 Ibadan</div>
                                 <div className="mt-2 flex items-center gap-2 md:gap-4">
                                   <span className="px-2 py-1 md:px-3 md:py-1 bg-gray-100 text-gray-800 rounded-full text-xs md:text-sm font-manrope">
-                                    Property
+                                    Hotel
                                   </span>
                                   <span className="px-2 py-1 md:px-3 md:py-1 bg-blue-100 text-blue-800 rounded-full text-xs md:text-sm font-manrope">
                                     Admin
@@ -1098,7 +1224,7 @@ const VendorDashboard = () => {
                     </div>
                   )}
 
-                  {/* NEW: Notifications Tab */}
+                  {/* Notifications Tab */}
                   {activeTab === "notifications" && (
                     <div className="space-y-6">
                       {/* Header */}
@@ -1193,7 +1319,6 @@ const VendorDashboard = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">Your Name</label>
-                                {/* FIXED: Name is non-editable, shows toast on click */}
                                 <input 
                                   type="text" 
                                   value={profileData.name}
@@ -1216,7 +1341,6 @@ const VendorDashboard = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">Email</label>
-                                {/* FIXED: Email is non-editable, shows toast on click */}
                                 <input 
                                   type="email" 
                                   value={profileData.email}
@@ -1450,27 +1574,68 @@ const VendorDashboard = () => {
                   </label>
                   <select
                     value={newListing.category}
-                    onChange={(e) => setNewListing({...newListing, category: e.target.value})}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
                   >
-                    <option value="Property">Property</option>
                     <option value="Hotel">Hotel</option>
-                    <option value="Event Center">Event Center</option>
+                    <option value="Shortlet">Shortlet</option>
                     <option value="Restaurant">Restaurant</option>
+                    <option value="Event Center">Event Center</option>
                     <option value="Service">Service</option>
                   </select>
                 </div>
                 <div>
+                  {/* Price Label with Naira Symbol */}
                   <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 font-manrope">
-                    <DollarSign size={16} strokeWidth={2.5} /> Price per Night *
+                    <span className="text-lg font-bold">₦</span> {getPriceLabel(newListing.category)} *
                   </label>
-                  <input
-                    type="number"
-                    value={newListing.price}
-                    onChange={(e) => setNewListing({...newListing, price: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                    placeholder="Enter price"
-                  />
+                  <div className="flex items-center">
+                    <span className="bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg px-3 py-2.5 text-gray-700 font-manrope font-bold">
+                      ₦
+                    </span>
+                    <input
+                      type="number"
+                      value={newListing.price}
+                      onChange={(e) => setNewListing({...newListing, price: e.target.value})}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
+                      placeholder="Enter price"
+                    />
+                  </div>
+                  
+                  {/* Price Type Selector for Restaurant */}
+                  {(newListing.category === "Restaurant" || newListing.category === "Hotel" || newListing.category === "Shortlet") && (
+                    <div className="mt-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">
+                        Pricing Type
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {getPriceTypeOptions(newListing.category).map((option) => (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => setNewListing({...newListing, priceType: option})}
+                            className={`px-4 py-2 rounded-lg text-sm font-manrope transition-colors ${
+                              newListing.priceType === option
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {option === "per night" && "Per Night"}
+                            {option === "per table" && "Per Table"}
+                            {option === "per plate" && "Per Plate"}
+                            {option === "" && "One-time"}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2 font-manrope">
+                        {newListing.category === "Restaurant" 
+                          ? "Select whether pricing is per table or per plate"
+                          : newListing.category === "Hotel" || newListing.category === "Shortlet"
+                          ? "Pricing is per night"
+                          : "One-time pricing for this service"}
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 font-manrope">
