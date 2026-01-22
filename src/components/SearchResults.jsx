@@ -319,7 +319,7 @@ const looksLikeLocation = (query) => {
   const queryLower = query.toLowerCase().trim();
   
   const ibadanAreas = [
-    'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly', 'oke', 'agodi', 
+    'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly',  'agodi', 
     'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
     'molete', 'agbowo', 'sabo', 'bashorun', 'ife road',
     'akinyele', 'mokola hill', 'sango roundabout'
@@ -371,7 +371,7 @@ const getLocationDisplayName = (location) => {
     'sango': 'Sango',
     'ui': 'UI',
     'poly': 'Poly',
-    'oke': 'Oke',
+
     'agodi': 'Agodi',
     'jericho': 'Jericho',
     'gbagi': 'Gbagi',
@@ -1083,7 +1083,7 @@ const FilterSidebar = ({
   // Use ALL Ibadan locations (not just from current filtered results)
   const allIbadanLocations = React.useMemo(() => {
     const locations = [
-      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly', 'Oke', 'Agodi',
+      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly',  'Agodi',
       'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
       'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
       'Akinyele',  'Mokola Hill', 'Sango Roundabout',
@@ -1945,7 +1945,7 @@ const DesktopSearchSuggestions = ({
     
     // GET ALL POSSIBLE IBADAN LOCATIONS (not just from current listings)
     const allIbadanLocations = [
-      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly', 'Oke', 'Agodi',
+      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly', 'Agodi',
       'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
       'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
       'Akinyele',  'Mokola Hill', 'Sango Roundabout',
@@ -2184,7 +2184,7 @@ const MobileSearchModalResults = ({
   // Use ALL Ibadan locations
   const allIbadanLocations = useMemo(() => {
     const allLocationsList = [
-      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly', 'Oke', 'Agodi',
+      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly',  'Agodi',
       'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
       'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
       'Akinyele', 'Mokola Hill', 'Sango Roundabout',

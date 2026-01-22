@@ -185,7 +185,7 @@ const getLocationDisplayName = (location) => {
     'sango': 'Sango',
     'ui': 'UI',
     'poly': 'Poly',
-    'oke': 'Oke',
+    
     'agodi': 'Agodi',
     'jericho': 'Jericho',
     'gbagi': 'Gbagi',
@@ -268,7 +268,7 @@ const MobileSearchModal = ({
   const allIbadanLocations = useMemo(() => {
     const locationsFromListings = listings.map(item => item.location?.area).filter(Boolean);
     const allLocations = [
-      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly', 'Oke', 'Agodi',
+      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly', 'Agodi',
       'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
       'Molete', 'Agbowo', 'Sabo', 'Bashorun', 'Ondo Road',  'Ife Road',
       'Akinyele', 'Mokola Hill', 'Sango Roundabout',
@@ -577,7 +577,7 @@ const DesktopSearchSuggestions = ({
   const allIbadanLocations = useMemo(() => {
     const locationsFromListings = listings.map(item => item.location?.area).filter(Boolean);
     const allLocations = [
-      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly', 'Oke', 'Agodi',
+      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly',  'Agodi',
       'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
       'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
       'Akinyele',  'Mokola Hill', 'Sango Roundabout',

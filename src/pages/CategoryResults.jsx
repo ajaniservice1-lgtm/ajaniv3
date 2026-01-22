@@ -203,7 +203,7 @@ const useBackendListings = (category = null, searchQuery = '', filters = {}) => 
     
     // Common Ibadan areas
     const ibadanAreas = [
-      'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly', 'oke', 'agodi', 
+      'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'agodi', 
       'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
       'molete', 'agbowo', 'sabo', 'bashorun',  'ife road',
       'akinyele', 'mokola hill', 'sango roundabout'
@@ -448,7 +448,7 @@ const looksLikeLocation = (query) => {
   
   // Common Ibadan areas
   const ibadanAreas = [
-    'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly', 'oke', 'agodi', 
+    'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui',  'agodi', 
     'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
     'molete', 'agbowo', 'sabo', 'bashorun',  'ife road',
     'akinyele',  'mokola hill', 'sango roundabout'

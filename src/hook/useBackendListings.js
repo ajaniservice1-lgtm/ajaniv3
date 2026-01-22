@@ -9,7 +9,7 @@ const looksLikeLocation = (query) => {
   // Common Ibadan/place indicators
   const locationIndicators = [
     // Ibadan areas
-    'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly', 'oke', 'agodi', 
+    'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly',  'agodi', 
     'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
     'molete', 'agbowo', 'sabo', 'bashorun', 'ondo road',  'ife road',
     'akinyele', 'mokola hill', 'sango roundabout',
@@ -71,7 +71,7 @@ const getLocationDisplayName = (location) => {
     'sango': 'Sango',
     'ui': 'UI',
     'poly': 'Poly',
-    'oke': 'Oke',
+   
     'agodi': 'Agodi',
     'jericho': 'Jericho',
     'gbagi': 'Gbagi',
