@@ -271,7 +271,7 @@ const MobileSearchModal = ({
       'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly', 'Oke', 'Agodi',
       'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
       'Molete', 'Agbowo', 'Sabo', 'Bashorun', 'Ondo Road',  'Ife Road',
-      'Akinyele', 'Bodija Market', 'Dugbe Market', 'Mokola Hill', 'Sango Roundabout',
+      'Akinyele', 'Mokola Hill', 'Sango Roundabout',
       'Iwo Road', 'Gate', 'New Garage', 'Old Ife Road',
       ...locationsFromListings.map(loc => getLocationDisplayName(loc))
     ];
@@ -580,7 +580,7 @@ const DesktopSearchSuggestions = ({
       'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly', 'Oke', 'Agodi',
       'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
       'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
-      'Akinyele', 'Bodija Market', 'Dugbe Market', 'Mokola Hill', 'Sango Roundabout',
+      'Akinyele',  'Mokola Hill', 'Sango Roundabout',
       'Iwo Road', 'Gate', 'New Garage', 'Old Ife Road',
       ...locationsFromListings.map(loc => getLocationDisplayName(loc))
     ];

@@ -206,7 +206,7 @@ const useBackendListings = (category = null, searchQuery = '', filters = {}) => 
       'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly', 'oke', 'agodi', 
       'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
       'molete', 'agbowo', 'sabo', 'bashorun',  'ife road',
-      'akinyele', 'bodija market', 'dugbe market', 'mokola hill', 'sango roundabout'
+      'akinyele', 'mokola hill', 'sango roundabout'
     ];
     
     // Location suffixes
@@ -451,7 +451,7 @@ const looksLikeLocation = (query) => {
     'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly', 'oke', 'agodi', 
     'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
     'molete', 'agbowo', 'sabo', 'bashorun',  'ife road',
-    'akinyele', 'bodija market', 'dugbe market', 'mokola hill', 'sango roundabout'
+    'akinyele',  'mokola hill', 'sango roundabout'
   ];
   
   // Location suffixes

@@ -12,7 +12,7 @@ const looksLikeLocation = (query) => {
     'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly', 'oke', 'agodi', 
     'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
     'molete', 'agbowo', 'sabo', 'bashorun', 'ondo road',  'ife road',
-    'akinyele', 'bodija market', 'dugbe market', 'mokola hill', 'sango roundabout',
+    'akinyele', 'mokola hill', 'sango roundabout',
     
     // Location suffixes
     'road', 'street', 'avenue', 'drive', 'lane', 'close', 'way', 'estate',

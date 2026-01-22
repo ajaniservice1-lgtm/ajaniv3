@@ -321,8 +321,8 @@ const looksLikeLocation = (query) => {
   const ibadanAreas = [
     'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly', 'oke', 'agodi', 
     'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
-    'molete', 'agbowo', 'sabo', 'bashorun', 'ondo road', 'ogbomoso', 'ife road',
-    'akinyele', 'bodija market', 'dugbe market', 'mokola hill', 'sango roundabout'
+    'molete', 'agbowo', 'sabo', 'bashorun', 'ife road',
+    'akinyele', 'mokola hill', 'sango roundabout'
   ];
   
   const locationSuffixes = [
@@ -1085,8 +1085,8 @@ const FilterSidebar = ({
     const locations = [
       'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly', 'Oke', 'Agodi',
       'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
-      'Molete', 'Agbowo', 'Sabo', 'Bashorun', 'Ondo Road', 'Ogbomoso', 'Ife Road',
-      'Akinyele', 'Bodija Market', 'Dugbe Market', 'Mokola Hill', 'Sango Roundabout',
+      'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
+      'Akinyele',  'Mokola Hill', 'Sango Roundabout',
       'Iwo Road', 'Gate', 'New Garage', 'Old Ife Road',
       ...(allLocations || []).map(loc => getLocationDisplayName(loc))
     ];
@@ -1947,8 +1947,8 @@ const DesktopSearchSuggestions = ({
     const allIbadanLocations = [
       'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly', 'Oke', 'Agodi',
       'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
-      'Molete', 'Agbowo', 'Sabo', 'Bashorun', 'Ondo Road', 'Ogbomoso', 'Ife Road',
-      'Akinyele', 'Bodija Market', 'Dugbe Market', 'Mokola Hill', 'Sango Roundabout',
+      'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
+      'Akinyele',  'Mokola Hill', 'Sango Roundabout',
       'Iwo Road', 'Gate', 'Molete', 'Challenge', 'New Garage', 'Old Ife Road',
       ...allLocations.map(loc => getLocationDisplayName(loc))
     ];
@@ -2186,8 +2186,8 @@ const MobileSearchModalResults = ({
     const allLocationsList = [
       'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly', 'Oke', 'Agodi',
       'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
-      'Molete', 'Agbowo', 'Sabo', 'Bashorun', 'Ondo Road', 'Ogbomoso', 'Ife Road',
-      'Akinyele', 'Bodija Market', 'Dugbe Market', 'Mokola Hill', 'Sango Roundabout',
+      'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
+      'Akinyele', 'Mokola Hill', 'Sango Roundabout',
       'Iwo Road', 'Gate', 'New Garage', 'Old Ife Road',
       ...allLocations.map(loc => getLocationDisplayName(loc))
     ];
