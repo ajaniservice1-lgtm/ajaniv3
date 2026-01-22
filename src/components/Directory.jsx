@@ -628,7 +628,7 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
         </div>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-700 font-medium text-sm">API Error: {error}</p>
-          <p className="text-red-600 text-xs mt-1">Could not fetch listings from backend</p>
+          <p className="text-red-600 text-xs mt-1">Could not fetch listings reload and try again</p>
         </div>
       </section>
     );

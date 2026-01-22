@@ -250,7 +250,7 @@ const normalizeLocation = (location) => {
     .replace(/\s+/g, ' ');
 };
 
-/* ---------------- MOBILE SEARCH MODAL COMPONENT (FIXED FOR ALL LOCATIONS) ---------------- */
+/* ---------------- MOBILE SEARCH MODAL COMPONENT ---------------- */
 const MobileSearchModal = ({
   searchQuery,
   listings,
@@ -325,36 +325,23 @@ const MobileSearchModal = ({
 
   const handleSuggestionClick = (suggestion) => {
     if (suggestion.type === "location") {
-      // Just set the search input value, don't navigate
+      // Set the search input value and close modal
       const title = suggestion.title || suggestion;
       setInputValue(title);
-      onTyping(title);
-      
-      // Keep modal open so user can adjust or click search
-      inputRef.current?.focus();
+      onTyping(title); // Update parent's search query
+      onClose(); // Close the modal
     } else {
-      // General search - keep current input
-      const title = suggestion.title || suggestion;
-      setInputValue(inputValue); // Keep current value
-      onTyping(inputValue);
-      
-      // Keep modal open
-      inputRef.current?.focus();
+      // General search
+      const searchValue = inputValue.trim();
+      setInputValue(searchValue);
+      onTyping(searchValue);
+      onClose();
     }
   };
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && inputValue.trim()) {
       onTyping(inputValue.trim());
-      // Don't close modal - let user click search button
-      // onClose();
-    }
-  };
-
-  const handleSearchAnyway = () => {
-    if (inputValue.trim()) {
-      onTyping(inputValue.trim());
-      onClose();
     }
   };
 
@@ -415,17 +402,14 @@ const MobileSearchModal = ({
                 </button>
               )}
             </div>
-            {/* Search button in modal header */}
+            {/* Search button in modal header - JUST CLOSES MODAL, DOESN'T SEARCH */}
             <button
               onClick={() => {
-                if (inputValue.trim()) {
-                  onTyping(inputValue.trim());
-                  onClose();
-                }
+                onClose(); // Just close the modal
               }}
               className="px-4 py-2 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold rounded-lg hover:from-[#00c97b] hover:to-teal-600 transition-all duration-300 cursor-pointer text-sm"
             >
-              Search
+              Done
             </button>
           </div>
         </div>
@@ -482,19 +466,17 @@ const MobileSearchModal = ({
                     </button>
                   ))}
                 </div>
+                {/* This button just closes the modal now */}
                 <button
                   onClick={() => {
-                    if (inputValue.trim()) {
-                      onTyping(inputValue.trim());
-                      onClose();
-                    }
+                    onClose();
                   }}
                   className="w-full mt-6 p-4 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold rounded-xl cursor-pointer transition-all duration-300 hover:from-[#00c97b] hover:to-teal-600"
                 >
                   <div className="flex items-center justify-between">
                     <div className="text-left">
-                      <p className="text-base font-medium">Search for "{inputValue}"</p>
-                      <p className="text-sm text-gray-100 mt-1">Find {activeCategory}s in Ibadan</p>
+                      <p className="text-base font-medium">Close and enter search manually</p>
+                      <p className="text-sm text-gray-100 mt-1">Click "Find {activeCategory}" button to search</p>
                     </div>
                     <FontAwesomeIcon icon={faChevronRight} size="sm" />
                   </div>
@@ -511,14 +493,11 @@ const MobileSearchModal = ({
                 </p>
                 <button
                   onClick={() => {
-                    if (inputValue.trim()) {
-                      onTyping(inputValue.trim());
-                      onClose();
-                    }
+                    onClose();
                   }}
                   className="px-6 py-3 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold rounded-lg hover:from-[#00c97b] hover:to-teal-600 cursor-pointer transition-all duration-300"
                 >
-                  Search anyway for "{inputValue}"
+                  Close and search manually
                 </button>
               </div>
             )
@@ -550,7 +529,7 @@ const MobileSearchModal = ({
                 </div>
                 <div className="mt-6 text-center">
                   <p className="text-xs text-gray-500">
-                    Select a location to search, then click Search button above
+                    Select a location, then click "Find {activeCategory}" button to search
                   </p>
                 </div>
               </div>
@@ -562,11 +541,11 @@ const MobileSearchModal = ({
   );
 };
 
-/* ---------------- DESKTOP SEARCH SUGGESTIONS (SHOW ALL LOCATIONS) ---------------- */
+/* ---------------- DESKTOP SEARCH SUGGESTIONS ---------------- */
 const DesktopSearchSuggestions = ({
   searchQuery,
   listings,
-  onSuggestionClick, // This now just sets the search query, doesn't navigate
+  onSuggestionClick, // This just sets the search query
   onClose,
   isVisible,
   searchBarPosition,
@@ -680,7 +659,7 @@ const DesktopSearchSuggestions = ({
                   <button
                     key={index}
                     onClick={() => {
-                      // Just set the search query, don't navigate
+                      // Just set the search query and close suggestions
                       onSuggestionClick(suggestion);
                       onClose();
                     }}
@@ -721,7 +700,7 @@ const DesktopSearchSuggestions = ({
                 ))}
                 <div className="px-3 py-3 mt-2 border-t border-gray-200">
                   <p className="text-xs text-gray-500 text-center">
-                    Select a location to add to search, then click "Find {activeCategory}" button
+                    Select a location to add to search, then click "Find {activeCategory}" button to search
                   </p>
                 </div>
               </>
@@ -1078,12 +1057,15 @@ const DiscoverIbadan = () => {
     };
   }, [isMobile]);
 
+  // Handle suggestion click: ONLY sets query and closes modal, NO navigation
   const handleSuggestionClick = useCallback((suggestion) => {
     if (suggestion && suggestion.title) {
-      setSearchQuery(suggestion.title);
+      const searchValue = suggestion.title;
+      setSearchQuery(searchValue);
       setShowSuggestions(false);
       setShowMobileModal(false);
       
+      // Focus on the search input after setting value
       setTimeout(() => {
         searchInputRef.current?.focus();
       }, 100);
@@ -1401,7 +1383,7 @@ const DiscoverIbadan = () => {
                     </div>
                   )}
 
-                  {/* Search Button */}
+                  {/* Search Button - THIS IS THE "FIND X" BUTTON THAT TRIGGERS NAVIGATION */}
                   <div className="w-full">
                     <button
                       ref={searchButtonRef}
