@@ -487,7 +487,39 @@ const getPluralCategoryName = (category) => {
   return category + "s";
 };
 
-// ✅ FIX 1: UPDATED SEARCH SUGGESTIONS FOR CATEGORY PAGES (NO COUNTS)
+// Helper functions for SEO-friendly URLs
+const getCategorySlug = (category) => {
+  const categoryMap = {
+    'Hotel': 'hotel',
+    'Shortlet': 'shortlet', 
+    'Restaurant': 'restaurant',
+    'Vendor': 'services',
+    'All Categories': ''
+  };
+  
+  return categoryMap[category] || createSlug(category);
+};
+
+const createSlug = (text) => {
+  if (!text) return '';
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim();
+};
+
+const normalizeLocation = (location) => {
+  if (!location) return '';
+  return location
+    .toLowerCase()
+    .trim()
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
+    .replace(/\s+/g, ' ');
+};
+
+// ✅ FIX 1: UPDATED SEARCH SUGGESTIONS FOR CATEGORY PAGES (SEO-FRIENDLY URLs)
 const generateSearchSuggestions = (query, listings, activeCategory = '') => {
   if (!query.trim() || !listings.length) return [];
 
@@ -523,18 +555,27 @@ const generateSearchSuggestions = (query, listings, activeCategory = '') => {
       return displayName.includes(queryLower);
     })
     .map((location) => {
-      // ✅ FIX 1: No count in description for category pages
+      // ✅ FIX 1: Create SEO-friendly URL for category pages
+      const categorySlug = getCategorySlug(activeCategory);
+      const locationSlug = createSlug(location);
+      let seoPath = '';
+      
+      if (categorySlug && locationSlug) {
+        seoPath = `/${categorySlug}-in-${locationSlug}`;
+      } else if (categorySlug) {
+        seoPath = `/${categorySlug}`;
+      } else if (locationSlug) {
+        seoPath = `/places-in-${locationSlug}`;
+      } else {
+        seoPath = '/search';
+      }
+      
       return {
         type: "location",
         title: getLocationDisplayName(location),
         description: `${getPluralCategoryName(activeCategory)} in ${getLocationDisplayName(location)}`,
         action: () => {
-          const params = new URLSearchParams();
-          params.append("location.area", location);
-          if (activeCategory) {
-            params.append("category", activeCategory.toLowerCase());
-          }
-          return `/search-results?${params.toString()}`;
+          return `${seoPath}?category=${activeCategory}&q=${encodeURIComponent(location)}`;
         },
       };
     });
@@ -544,14 +585,14 @@ const generateSearchSuggestions = (query, listings, activeCategory = '') => {
     const categoryLower = activeCategory.toLowerCase();
     if (categoryLower.includes(queryLower) || queryLower.includes(categoryLower)) {
       const categoryPlural = getPluralCategoryName(activeCategory);
+      const categorySlug = getCategorySlug(activeCategory);
       
       suggestions.push({
         type: "category",
         title: categoryPlural,
         description: `Browse ${categoryPlural} options`,
         action: () => {
-          const categorySlug = activeCategory.toLowerCase().replace(/\s+/g, '-');
-          return `/category/${categorySlug}`;
+          return `/${categorySlug}?category=${activeCategory}`;
         },
       });
     }
@@ -1733,7 +1774,7 @@ const FilterSidebar = ({
 
 // ================== UPDATED SEARCH MODALS ==================
 
-// ✅ FIX 1: Desktop Search Suggestions for Category Pages (No Counts)
+// ✅ Desktop Search Suggestions for Category Pages (SEO-friendly URLs)
 const DesktopSearchSuggestions = ({
   searchQuery,
   listings,
@@ -1849,12 +1890,23 @@ const DesktopSearchSuggestions = ({
 
             <button
               onClick={() => {
-                const params = new URLSearchParams();
-                params.append("q", searchQuery.trim());
-                if (activeCategory) {
-                  params.append("category", activeCategory.toLowerCase());
+                // Create SEO-friendly URL for general search
+                const categorySlug = getCategorySlug(activeCategory);
+                const locationSlug = createSlug(searchQuery.trim());
+                let seoPath = '';
+                
+                if (categorySlug && locationSlug) {
+                  seoPath = `/${categorySlug}-in-${locationSlug}`;
+                } else if (categorySlug) {
+                  seoPath = `/${categorySlug}`;
+                } else if (locationSlug) {
+                  seoPath = `/places-in-${locationSlug}`;
+                } else {
+                  seoPath = '/search';
                 }
-                onSuggestionClick(`/search-results?${params.toString()}`);
+                
+                const finalUrl = `${seoPath}?q=${encodeURIComponent(searchQuery.trim())}&cat=${activeCategory}`;
+                onSuggestionClick(finalUrl);
                 onClose();
               }}
               className="w-full mt-3 p-3 bg-gray-900 hover:bg-black text-white font-medium rounded-lg transition-colors duration-150 cursor-pointer"
@@ -1877,7 +1929,7 @@ const DesktopSearchSuggestions = ({
   );
 };
 
-// ✅ FIX 1: Mobile Search Modal for Category Pages (No Counts)
+// ✅ Mobile Search Modal for Category Pages (SEO-friendly URLs)
 const MobileSearchModal = ({
   searchQuery,
   listings,
@@ -1914,12 +1966,23 @@ const MobileSearchModal = ({
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && inputValue.trim()) {
-      const params = new URLSearchParams();
-      params.append("q", inputValue.trim());
-      if (activeCategory) {
-        params.append("category", activeCategory.toLowerCase());
+      // Create SEO-friendly URL for Enter key press
+      const categorySlug = getCategorySlug(activeCategory);
+      const locationSlug = createSlug(inputValue.trim());
+      let seoPath = '';
+      
+      if (categorySlug && locationSlug) {
+        seoPath = `/${categorySlug}-in-${locationSlug}`;
+      } else if (categorySlug) {
+        seoPath = `/${categorySlug}`;
+      } else if (locationSlug) {
+        seoPath = `/places-in-${locationSlug}`;
+      } else {
+        seoPath = '/search';
       }
-      onSuggestionClick(`/search-results?${params.toString()}`);
+      
+      const finalUrl = `${seoPath}?q=${encodeURIComponent(inputValue.trim())}&cat=${activeCategory}`;
+      onSuggestionClick(finalUrl);
       onClose();
     }
   };
@@ -2053,12 +2116,23 @@ const MobileSearchModal = ({
 
                   <button
                     onClick={() => {
-                      const params = new URLSearchParams();
-                      params.append("q", inputValue.trim());
-                      if (activeCategory) {
-                        params.append("category", activeCategory.toLowerCase());
+                      // Create SEO-friendly URL for general search
+                      const categorySlug = getCategorySlug(activeCategory);
+                      const locationSlug = createSlug(inputValue.trim());
+                      let seoPath = '';
+                      
+                      if (categorySlug && locationSlug) {
+                        seoPath = `/${categorySlug}-in-${locationSlug}`;
+                      } else if (categorySlug) {
+                        seoPath = `/${categorySlug}`;
+                      } else if (locationSlug) {
+                        seoPath = `/places-in-${locationSlug}`;
+                      } else {
+                        seoPath = '/search';
                       }
-                      onSuggestionClick(`/search-results?${params.toString()}`);
+                      
+                      const finalUrl = `${seoPath}?q=${encodeURIComponent(inputValue.trim())}&cat=${activeCategory}`;
+                      onSuggestionClick(finalUrl);
                       onClose();
                     }}
                     className="w-full mt-6 p-4 bg-gray-900 hover:bg-black text-white font-medium rounded-xl transition-colors duration-200 cursor-pointer"
@@ -2087,12 +2161,22 @@ const MobileSearchModal = ({
                   </p>
                   <button
                     onClick={() => {
-                      const params = new URLSearchParams();
-                      params.append("q", inputValue.trim());
-                      if (activeCategory) {
-                        params.append("category", activeCategory.toLowerCase());
+                      const categorySlug = getCategorySlug(activeCategory);
+                      const locationSlug = createSlug(inputValue.trim());
+                      let seoPath = '';
+                      
+                      if (categorySlug && locationSlug) {
+                        seoPath = `/${categorySlug}-in-${locationSlug}`;
+                      } else if (categorySlug) {
+                        seoPath = `/${categorySlug}`;
+                      } else if (locationSlug) {
+                        seoPath = `/places-in-${locationSlug}`;
+                      } else {
+                        seoPath = '/search';
                       }
-                      onSuggestionClick(`/search-results?${params.toString()}`);
+                      
+                      const finalUrl = `${seoPath}?q=${encodeURIComponent(inputValue.trim())}&cat=${activeCategory}`;
+                      onSuggestionClick(finalUrl);
                       onClose();
                     }}
                     className="px-6 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-black transition-colors cursor-pointer"
@@ -2154,12 +2238,26 @@ const CategoryResults = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // ✅ FIX: Determine category from URL path - HANDLE BOTH PATTERNS
+  // ✅ Determine category from URL path - HANDLE BOTH PATTERNS
   const path = location.pathname;
   let activeCategory = category || 'hotel'; // Default fallback
   
+  // Check for SEO-friendly routes like /hotel-in-agbowo
+  const seoRouteMatch = path.match(/\/([a-z]+)-in-([a-z-]+)/i);
+  if (seoRouteMatch) {
+    const [, categorySlug] = seoRouteMatch;
+    // Map URL slugs to actual category names
+    const slugToCategory = {
+      'hotel': 'hotel',
+      'restaurant': 'restaurant',
+      'shortlet': 'shortlet',
+      'services': 'vendor',
+      'vendor': 'vendor'
+    };
+    activeCategory = slugToCategory[categorySlug.toLowerCase()] || categorySlug;
+  }
   // Check for direct routes
-  if (path === '/hotel') {
+  else if (path === '/hotel') {
     activeCategory = 'hotel';
   } else if (path === '/restaurant') {
     activeCategory = 'restaurant';
@@ -2203,7 +2301,7 @@ const CategoryResults = () => {
   const resultsRef = useRef(null);
   const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
 
-  // ✅ FIX 2: Use activeCategory in the hook instead of category
+  // ✅ Use activeCategory in the hook instead of category
   const { listings, loading, error, apiResponse } = useBackendListings(activeCategory, searchQuery, activeFilters);
 
   useEffect(() => {
@@ -2364,30 +2462,65 @@ const CategoryResults = () => {
     }, 50);
   };
 
-  // ✅ FIX 2: Updated search submit to handle locations properly
+  // ✅ Updated search submit to handle SEO-friendly URLs
   const handleSearchSubmit = (e) => {
     e?.preventDefault();
     if (localSearchQuery.trim()) {
-      const params = new URLSearchParams();
+      // Create SEO-friendly slug
+      const categorySlug = getCategorySlug(activeCategory);
+      const locationSlug = createSlug(localSearchQuery.trim());
       
-      // ✅ FIX 2: Check if it's a location search
-      if (looksLikeLocation(localSearchQuery.trim())) {
-        params.set("location.area", localSearchQuery.trim());
+      let seoPath = '';
+      
+      if (categorySlug && locationSlug) {
+        seoPath = `/${categorySlug}-in-${locationSlug}`;
+      } else if (categorySlug) {
+        seoPath = `/${categorySlug}`;
+      } else if (locationSlug) {
+        seoPath = `/places-in-${locationSlug}`;
       } else {
-        params.set("q", localSearchQuery.trim());
+        seoPath = '/search';
       }
       
-      // Keep category in URL - use activeCategory
-      if (activeCategory) {
-        params.set("category", activeCategory);
+      // Add query parameters for filters, dates, etc.
+      const queryParams = new URLSearchParams();
+      
+      // Add any existing date parameters if available
+      const checkInDate = searchParams.get("checkInDate");
+      const checkOutDate = searchParams.get("checkOutDate");
+      const guests = searchParams.get("guests");
+      
+      if (checkInDate) queryParams.append("checkInDate", checkInDate);
+      if (checkOutDate) queryParams.append("checkOutDate", checkOutDate);
+      if (guests) queryParams.append("guests", guests);
+      
+      queryParams.append("q", localSearchQuery.trim());
+      queryParams.append("cat", activeCategory);
+      
+      // Add filter parameters
+      if (activeFilters.locations.length > 0) {
+        queryParams.append("location.area", activeFilters.locations[0]);
       }
       
-      // Preserve existing filters
-      if (urlLocation && !looksLikeLocation(localSearchQuery.trim())) {
-        params.set("location.area", urlLocation);
+      if (activeFilters.priceRange.min) {
+        queryParams.append("minPrice", activeFilters.priceRange.min);
       }
       
-      setSearchParams(params);
+      if (activeFilters.priceRange.max) {
+        queryParams.append("maxPrice", activeFilters.priceRange.max);
+      }
+      
+      if (activeFilters.sortBy && activeFilters.sortBy !== "relevance") {
+        queryParams.append("sort", activeFilters.sortBy);
+      }
+      
+      const finalUrl = queryParams.toString() 
+        ? `${seoPath}?${queryParams.toString()}`
+        : seoPath;
+      
+      console.log("🔍 Category page navigating to:", finalUrl);
+      navigate(finalUrl);
+      
       setShowSuggestions(false);
       setShowMobileSearchModal(false);
     }
@@ -2442,7 +2575,7 @@ const CategoryResults = () => {
     }
   };
 
-  // ✅ UPDATED: Category switching with loader
+  // ✅ Category switching with SEO-friendly URLs
   const handleCategoryButtonClick = (categoryKey) => {
     // Set loading state
     setIsSwitchingCategory(true);
@@ -2457,7 +2590,7 @@ const CategoryResults = () => {
     };
     setNewCategory(categoryMap[categoryKey] || categoryKey);
     
-    // Navigate to direct route
+    // Navigate to SEO-friendly direct route
     navigate(`/${categoryKey}`);
     
     // Auto-hide loader after 1.5 seconds
@@ -2499,7 +2632,7 @@ const CategoryResults = () => {
     setSearchParams(params);
   };
 
-  // ✅ UPDATED: Dynamic search header like search results page
+  // ✅ Dynamic search header like search results page
   const getPageTitle = () => {
     const locationParams = [];
     if (activeFilters.locations.length > 0) {
@@ -2557,7 +2690,7 @@ const CategoryResults = () => {
     }
   };
 
-  // ✅ UPDATED: Get accurate count text like search results page
+  // ✅ Get accurate count text like search results page
   const getAccurateCountText = () => {
     const total = listings.length;
     const categoryTitle = getCategoryDisplayName(activeCategory);
@@ -2777,7 +2910,7 @@ const CategoryResults = () => {
           </div>
         </div>
 
-        {/* ✅ FIX 1 & 2: Updated Search Modals for Category Pages */}
+        {/* ✅ Updated Search Modals for Category Pages with SEO-friendly URLs */}
         {!isMobile && (
           <DesktopSearchSuggestions
             searchQuery={localSearchQuery}
