@@ -45,7 +45,7 @@ export default function HomePage() {
       <ChatWidget />
       <Header  />
       <Hero />
-      <Directory />
+      {/* <Directory /> */}
       <AiTopPicks />
       <Footer />
     </section>
