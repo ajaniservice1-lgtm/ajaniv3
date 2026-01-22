@@ -2175,7 +2175,7 @@ const MobileSearchModalResults = ({
   // Use ALL Ibadan locations
   const allIbadanLocations = useMemo(() => {
     const allLocationsList = [
-      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly',  'Agodi',
+      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI',  'Agodi',
       'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
       'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
       'Akinyele', 'Mokola Hill', 'Sango Roundabout',
