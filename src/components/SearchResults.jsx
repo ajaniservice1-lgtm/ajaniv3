@@ -2134,16 +2134,7 @@ const DesktopSearchSuggestions = ({
                           >
                             Paste to Search
                           </button>
-                          <button
-                            onClick={() => {
-                              const url = suggestion.action(false);
-                              onSuggestionClick(url);
-                              onClose();
-                            }}
-                            className="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer"
-                          >
-                            Go to Location
-                          </button>
+                        
                         </div>
                       </div>
                     </div>
@@ -2421,12 +2412,7 @@ const MobileSearchModalResults = ({
                             >
                               Paste to Search
                             </button>
-                            <button
-                              onClick={() => handleSuggestionClick(suggestion, false)}
-                              className="px-3 py-2 text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer flex-1"
-                            >
-                              Go to Location
-                            </button>
+                          
                           </div>
                         </div>
                       </div>
@@ -3903,8 +3889,7 @@ const SearchResults = () => {
                   <div className="mt-4 text-sm text-gray-600">
                     <p>Searching for: {finalCategory !== "All Categories" ? finalCategory : "All categories"}</p>
                     <p>Location: {activeFilters.locations[0] || localSearchQuery || "All locations"}</p>
-                    <p>Filters: {activeFilters.priceRange.min || activeFilters.priceRange.max ? `Price: ${activeFilters.priceRange.min || 'any'} - ${activeFilters.priceRange.max || 'any'}` : ''}</p>
-                    <p>Rating: {activeFilters.ratings.length > 0 ? `${Math.min(...activeFilters.ratings)}+ stars` : 'Any rating'}</p>
+                   
                   </div>
                 </div>
               ) : (
