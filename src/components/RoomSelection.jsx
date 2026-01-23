@@ -409,84 +409,84 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
   /* ---------------- RENDER ---------------- */
 
   return (
-    <div className="max-w-[1250px] mx-auto px-2 py-6">
-      <h2 className="text-xl font-bold text-[#00065A] mb-6">
+    <div className="max-w-[1250px] mx-auto px-2.5 py-4">
+      <h2 className="text-lg font-bold text-[#00065A] mb-4">
         Select Your Room
       </h2>
 
       {/* ROOM LIST */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {roomTypes.map((room) => {
           const bestOption = getBestOccupancy(room);
 
           return (
             <div
               key={room.id}
-              className="border border-gray-200 rounded-xl p-2.5 lg:p-6  transition"
+              className="border border-gray-200 rounded-lg p-2.5 lg:p-6 transition"
             >
-              <div className="flex flex-col lg:flex-row gap-6">
-                {/* LEFT CARD */}
+              <div className="flex flex-col lg:flex-row gap-4">
+                {/* LEFT CARD - Compact mobile */}
                 <div className="lg:w-[280px] flex-shrink-0">
                   <div className="relative">
                     <img
                       src={room.image}
                       alt={room.title}
                       onClick={() => openFullscreenGallery(room, 0)}
-                      className="w-full h-48 rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                      className="w-full h-40 rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
                     />
-                    {/* Image count badge */}
-                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
-                      {room.images?.length || 1} photos available, click to view
+                    {/* Image count badge - smaller on mobile */}
+                    <div className="absolute bottom-1.5 right-1.5 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                      {room.images?.length || 1} photos
                     </div>
                   </div>
 
-                  <h3 className="font-semibold text-lg mt-3">
+                  <h3 className="font-semibold text-base mt-2">
                     {room.title}
                   </h3>
 
-                  <div className="flex items-center gap-1 text-sm mt-1">
-                    <FontAwesomeIcon icon={faStar} className="text-yellow-400" />
+                  <div className="flex items-center gap-1 text-xs mt-0.5">
+                    <FontAwesomeIcon icon={faStar} className="text-yellow-400 w-3" />
                     <span>{room.rating}</span>
                     <span className="text-gray-500">
                       ({room.reviewCount})
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
-                    <FontAwesomeIcon icon={faMapMarkerAlt} />
-                    <span>{vendorLocation}</span>
+                  <div className="flex items-center gap-1 text-xs text-gray-600 mt-0.5">
+                    <FontAwesomeIcon icon={faMapMarkerAlt} className="w-3" />
+                    <span className="truncate">{vendorLocation}</span>
                   </div>
 
                   <button
                     onClick={() => openModal(room)}
-                    className="mt-3 w-full bg-[#06f49f] py-2 rounded-md text-sm font-medium hover:bg-[#06e495] transition-colors"
+                    className="mt-2 w-full bg-[#06f49f] py-1.5 rounded text-xs font-medium hover:bg-[#06e495] transition-colors"
                   >
                     Preview Room
                   </button>
                 </div>
 
-                {/* RIGHT OPTIONS */}
-                <div className="flex-1 space-y-4">
+                {/* RIGHT OPTIONS - Compact mobile */}
+                <div className="flex-1 space-y-3">
                   {room.occupancy.map((option) => (
                     <div
                       key={option.id}
-                      className="bg-gray-50 rounded-lg p-4 flex flex-col lg:flex-row justify-between gap-4"
+                      className="bg-gray-50 rounded-lg p-3 flex flex-col lg:flex-row justify-between gap-3"
                     >
                       <div className="flex-1">
-                        <p className="font-semibold">{option.adults}</p>
-                        <p className="text-sm text-gray-600">
+                        <p className="font-semibold text-sm">{option.adults}</p>
+                        <p className="text-xs text-gray-600">
                           {option.breakfast} ({option.breakfastPrice})
                         </p>
 
-                        <div className="mt-2 space-y-1">
+                        <div className="mt-1.5 space-y-0.5">
                           {option.benefits.map((b, i) => (
                             <div
                               key={i}
-                              className="flex items-center gap-2 text-sm"
+                              className="flex items-center gap-1.5 text-xs"
                             >
                               <FontAwesomeIcon
                                 icon={faCheck}
-                                className="text-green-500 text-xs"
+                                className="text-green-500 text-[10px]"
                               />
                               {b}
                             </div>
@@ -495,22 +495,22 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
                       </div>
 
                       <div className="text-right flex-shrink-0 lg:w-48">
-                        <p className="line-through text-sm text-gray-400">
+                        <p className="line-through text-xs text-gray-400">
                           {formatPrice(option.originalPrice)}
                         </p>
                         <p className="text-xs text-red-500">
                           {option.discount}
                         </p>
-                        <p className="text-xl font-bold">
+                        <p className="text-lg font-bold">
                           {formatPrice(option.price)}
                         </p>
-                        <p className="text-xs text-gray-500 mb-2">
+                        <p className="text-xs text-gray-500 mb-1.5">
                           Per night before taxes
                         </p>
 
                         <button
                           onClick={() => handleBookNow(room, option)}
-                          className="w-full bg-gradient-to-r from-blue-500 to-blue-700 text-white px-6 py-2 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
+                          className="w-full bg-gradient-to-r from-blue-500 to-blue-700 text-white px-4 py-1.5 rounded-full text-xs font-semibold hover:opacity-90 transition-opacity"
                         >
                           BOOK
                         </button>
@@ -527,20 +527,20 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
       {/* ---------------- FULLSCREEN IMAGE GALLERY MODAL ---------------- */}
       {showFullscreenGallery && modalRoom && (
         <div className="fixed inset-0 z-[9999] bg-black">
-          {/* Header */}
-          <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
+          {/* Header - Compact mobile */}
+          <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent">
             <div className="text-white">
-              <h2 className="text-lg font-semibold">{modalRoom.title}</h2>
-              <p className="text-sm text-white/80">
+              <h2 className="text-base font-semibold">{modalRoom.title}</h2>
+              <p className="text-xs text-white/80">
                 {fullscreenGalleryIndex + 1} / {modalRoom.images?.length}
               </p>
             </div>
             
             <button
               onClick={closeFullscreenGallery}
-              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
             >
-              <FontAwesomeIcon icon={faXmark} className="text-white text-2xl" />
+              <FontAwesomeIcon icon={faXmark} className="text-white text-xl" />
             </button>
           </div>
 
@@ -552,34 +552,34 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
               className="max-w-full max-h-full object-contain"
             />
             
-            {/* Navigation Buttons */}
+            {/* Navigation Buttons - Smaller on mobile */}
             {modalRoom.images.length > 1 && (
               <>
                 <button
                   onClick={() => handlePrevImage("fullscreen")}
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/70 text-white transition-all md:left-8"
+                  className="absolute left-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-all md:left-8"
                 >
-                  <FontAwesomeIcon icon={faChevronLeft} className="text-xl" />
+                  <FontAwesomeIcon icon={faChevronLeft} className="text-lg" />
                 </button>
                 
                 <button
                   onClick={() => handleNextImage("fullscreen")}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/70 text-white transition-all md:right-8"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-all md:right-8"
                 >
-                  <FontAwesomeIcon icon={faChevronRight} className="text-xl" />
+                  <FontAwesomeIcon icon={faChevronRight} className="text-lg" />
                 </button>
               </>
             )}
           </div>
 
-          {/* Thumbnail Strip */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-            <div className="flex gap-2 overflow-x-auto pb-2">
+          {/* Thumbnail Strip - Compact mobile */}
+          <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+            <div className="flex gap-1.5 overflow-x-auto pb-1.5">
               {modalRoom.images?.map((img, index) => (
                 <button
                   key={index}
                   onClick={() => setFullscreenGalleryIndex(index)}
-                  className={`flex-shrink-0 w-16 h-16 rounded overflow-hidden border-2 transition-all ${
+                  className={`flex-shrink-0 w-12 h-12 rounded overflow-hidden border-2 transition-all ${
                     fullscreenGalleryIndex === index 
                       ? "border-white scale-105" 
                       : "border-transparent opacity-70 hover:opacity-100"
@@ -596,7 +596,7 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
           </div>
 
           {/* Mobile Swipe Instructions */}
-          <div className="md:hidden absolute bottom-20 left-0 right-0 text-center text-white/60 text-sm">
+          <div className="md:hidden absolute bottom-16 left-0 right-0 text-center text-white/60 text-xs">
             <p>Swipe or use arrows to navigate</p>
           </div>
         </div>
@@ -607,58 +607,58 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
         const bestOption = getBestOccupancy(modalRoom);
 
         return (
-          <div className="fixed inset-0 bg-black/70 z-[1000] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/70 z-[1000] flex items-center justify-center p-2.5">
             <div className="bg-white w-full max-w-6xl rounded-xl overflow-y-auto max-h-[90vh]">
-              {/* HEADER */}
-              <div className="sticky top-0 bg-white border-b border-gray-300 p-4 flex justify-between items-center">
-                <h3 className="font-bold text-lg">{modalRoom.title}</h3>
+              {/* HEADER - Compact mobile */}
+              <div className="sticky top-0 bg-white border-b border-gray-300 p-3 flex justify-between items-center">
+                <h3 className="font-bold text-base">{modalRoom.title}</h3>
                 <button 
                   onClick={closeModal}
-                  className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100"
+                  className="text-gray-500 hover:text-gray-700 p-1.5 rounded-full hover:bg-gray-100"
                 >
                   ✕
                 </button>
               </div>
 
               {/* CONTENT */}
-              <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="p-3 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
                 {/* LEFT COLUMN - IMAGES & DETAILS */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="lg:col-span-2 space-y-4 md:space-y-6">
                   {/* Main Image */}
                   <div className="relative">
                     <img
                       src={modalRoom.images[currentImageIndex]}
-                      className="w-full md:h-[420px] object-cover rounded-xl"
+                      className="w-full h-[200px] md:h-[420px] object-cover rounded-lg md:rounded-xl"
                       alt={modalRoom.title}
                     />
 
-                    {/* Navigation Buttons */}
+                    {/* Navigation Buttons - Smaller on mobile */}
                     {modalRoom.images.length > 1 && (
                       <>
                         <button
                           onClick={() => handlePrevImage("details")}
-                          className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-3"
+                          className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2"
                         >
-                          <FontAwesomeIcon icon={faChevronLeft} />
+                          <FontAwesomeIcon icon={faChevronLeft} className="w-3 h-3" />
                         </button>
                         <button
                           onClick={() => handleNextImage("details")}
-                          className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-3"
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2"
                         >
-                          <FontAwesomeIcon icon={faChevronRight} />
+                          <FontAwesomeIcon icon={faChevronRight} className="w-3 h-3" />
                         </button>
                       </>
                     )}
                   </div>
 
                   {/* Thumbnails */}
-                  <div className="flex gap-2 overflow-x-auto">
+                  <div className="flex gap-1.5 overflow-x-auto">
                     {modalRoom.images.map((img, i) => (
                       <img
                         key={i}
                         src={img}
                         onClick={() => setCurrentImageIndex(i)}
-                        className={`w-20 h-20 rounded-lg cursor-pointer object-cover border-2 ${
+                        className={`w-12 h-12 md:w-20 md:h-20 rounded md:rounded-lg cursor-pointer object-cover border-2 ${
                           currentImageIndex === i
                             ? "border-blue-500"
                             : "border-transparent"
@@ -669,22 +669,22 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
                   </div>
 
                   {/* Room Details */}
-                  <div className="space-y-4">
+                  <div className="space-y-3 md:space-y-4">
                     <div>
-                      <h4 className="font-semibold text-lg mb-2">About this room</h4>
-                      <p className="text-gray-600">{modalRoom.description}</p>
+                      <h4 className="font-semibold text-base md:text-lg mb-1.5">About this room</h4>
+                      <p className="text-gray-600 text-sm md:text-base">{modalRoom.description}</p>
                     </div>
 
                     {/* Specifications */}
                     <div>
-                      <h4 className="font-semibold mb-3">Specifications</h4>
-                      <div className="grid grid-cols-2 gap-4">
+                      <h4 className="font-semibold mb-2">Specifications</h4>
+                      <div className="grid grid-cols-2 gap-3">
                         {modalRoom.specifications?.map((spec, index) => (
-                          <div key={index} className="flex items-center gap-3">
-                            <FontAwesomeIcon icon={spec.icon} className="text-gray-500 w-5" />
-                            <div>
-                              <div className="text-sm text-gray-500">{spec.label}</div>
-                              <div className="font-medium">{spec.value}</div>
+                          <div key={index} className="flex items-center gap-2">
+                            <FontAwesomeIcon icon={spec.icon} className="text-gray-500 w-4 md:w-5" />
+                            <div className="min-w-0">
+                              <div className="text-xs md:text-sm text-gray-500 truncate">{spec.label}</div>
+                              <div className="font-medium text-xs md:text-sm truncate">{spec.value}</div>
                             </div>
                           </div>
                         ))}
@@ -693,15 +693,16 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
 
                     {/* Features */}
                     <div>
-                      <h4 className="font-semibold mb-3">Features</h4>
-                      <div className="grid grid-cols-2 gap-3">
+                      <h4 className="font-semibold mb-2">Features</h4>
+                      <div className="grid grid-cols-2 gap-2">
                         {modalRoom.features?.map((feature, index) => (
-                          <div key={index} className="flex items-center gap-2">
+                          <div key={index} className="flex items-center gap-1.5">
                             <FontAwesomeIcon 
                               icon={feature.included ? faCheck : faTimes} 
                               className={feature.included ? "text-green-500" : "text-red-500"} 
+                              size="xs"
                             />
-                            <span className="text-sm">{feature.name}</span>
+                            <span className="text-xs">{feature.name}</span>
                           </div>
                         ))}
                       </div>
@@ -709,10 +710,10 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
 
                     {/* Amenities */}
                     <div>
-                      <h4 className="font-semibold mb-3">Amenities</h4>
-                      <div className="flex flex-wrap gap-2">
+                      <h4 className="font-semibold mb-2">Amenities</h4>
+                      <div className="flex flex-wrap gap-1.5">
                         {modalRoom.amenitiesList?.map((amenity, index) => (
-                          <span key={index} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">
+                          <span key={index} className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-xs">
                             {amenity}
                           </span>
                         ))}
@@ -723,69 +724,69 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
 
                 {/* RIGHT COLUMN - PRICE CARD */}
                 {bestOption && (
-                  <div className="lg:sticky lg:top-6 border border-gray-300 rounded-xl p-5 h-fit shadow-sm">
-                    <div className="space-y-4">
+                  <div className="lg:sticky lg:top-6 border border-gray-300 rounded-lg md:rounded-xl p-3 md:p-5 h-fit shadow-sm">
+                    <div className="space-y-3 md:space-y-4">
                       <div>
-                        <p className="font-semibold">{bestOption.adults}</p>
-                        <p className="text-sm text-gray-600">
+                        <p className="font-semibold text-sm md:text-base">{bestOption.adults}</p>
+                        <p className="text-xs md:text-sm text-gray-600">
                           {bestOption.breakfast} ({bestOption.breakfastPrice})
                         </p>
                       </div>
 
-                      <div className="space-y-2">
+                      <div className="space-y-1.5 md:space-y-2">
                         {bestOption.benefits.map((b, i) => (
                           <div
                             key={i}
-                            className="flex items-center gap-2 text-sm"
+                            className="flex items-center gap-1.5 text-xs md:text-sm"
                           >
                             <FontAwesomeIcon
                               icon={faCheck}
-                              className="text-green-500 text-xs"
+                              className="text-green-500 text-[10px] md:text-xs"
                             />
                             {b}
                           </div>
                         ))}
                       </div>
 
-                      <div className="pt-4 border-t border-gray-300">
-                        <p className="line-through text-sm text-gray-400">
+                      <div className="pt-3 md:pt-4 border-t border-gray-300">
+                        <p className="line-through text-xs md:text-sm text-gray-400">
                           {formatPrice(bestOption.originalPrice)}
                         </p>
                         <p className="text-red-500 text-xs">
                           {bestOption.discount}
                         </p>
-                        <p className="text-3xl font-bold mt-1">
+                        <p className="text-xl md:text-3xl font-bold mt-0.5 md:mt-1">
                           {formatPrice(bestOption.price)}
                         </p>
-                        <p className="text-xs text-gray-500 mb-4">
+                        <p className="text-xs text-gray-500 mb-3 md:mb-4">
                           Per night before taxes
                         </p>
 
                         <button
                           onClick={() => handleBookNow(modalRoom, bestOption)}
-                          className="w-full bg-gradient-to-r from-blue-500 to-blue-700 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                          className="w-full bg-gradient-to-r from-blue-500 to-blue-700 text-white py-2 md:py-3 rounded md:rounded-lg font-semibold hover:opacity-90 transition-opacity text-sm md:text-base"
                         >
                           Book Now
                         </button>
                       </div>
 
                       {/* All Occupancy Options */}
-                      <div className="pt-4 border-t border-gray-300">
-                        <h5 className="font-medium mb-3">Other Options</h5>
-                        <div className="space-y-3">
+                      <div className="pt-3 md:pt-4 border-t border-gray-300">
+                        <h5 className="font-medium mb-2 text-sm md:text-base">Other Options</h5>
+                        <div className="space-y-2">
                           {modalRoom.occupancy
                             .filter(opt => opt.id !== bestOption.id)
                             .map((option) => (
-                              <div key={option.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                                <div>
-                                  <p className="text-sm font-medium">{option.adults}</p>
-                                  <p className="text-xs text-gray-600">{option.breakfast}</p>
+                              <div key={option.id} className="flex justify-between items-center p-1.5 md:p-2 bg-gray-50 rounded">
+                                <div className="min-w-0">
+                                  <p className="text-xs md:text-sm font-medium truncate">{option.adults}</p>
+                                  <p className="text-xs text-gray-600 truncate">{option.breakfast}</p>
                                 </div>
-                                <div className="text-right">
-                                  <p className="font-bold">{formatPrice(option.price)}</p>
+                                <div className="text-right flex-shrink-0 ml-2">
+                                  <p className="font-bold text-sm md:text-base">{formatPrice(option.price)}</p>
                                   <button
                                     onClick={() => handleBookNow(modalRoom, option)}
-                                    className="text-blue-600 text-sm font-medium hover:text-blue-800"
+                                    className="text-blue-600 text-xs md:text-sm font-medium hover:text-blue-800"
                                   >
                                     Select
                                   </button>

@@ -314,41 +314,25 @@ function App() {
                 element={<MainLayout><SearchResults /></MainLayout>} 
               />
 
-              {/* BOOKING ROUTES */}
+              {/* BOOKING ROUTES - AUTH REMOVED */}
               <Route 
                 path="/booking" 
-                element={
-                  <ProtectedRoute>
-                    <MainLayout><BookingRouter /></MainLayout>
-                  </ProtectedRoute>
-                } 
+                element={<MainLayout><BookingRouter /></MainLayout>}
               />
               
               <Route 
                 path="/booking/payment" 
-                element={
-                  <ProtectedRoute>
-                    <MainLayout><PaymentPage /></MainLayout>
-                  </ProtectedRoute>
-                } 
+                element={<MainLayout><PaymentPage /></MainLayout>}
               />
               
               <Route 
                 path="/booking-confirmation/:type?" 
-                element={
-                  <ProtectedRoute>
-                    <MainLayout><BookingConfirmation /></MainLayout>
-                  </ProtectedRoute>
-                } 
+                element={<MainLayout><BookingConfirmation /></MainLayout>}
               />
               
               <Route 
                 path="/booking-failed" 
-                element={
-                  <ProtectedRoute>
-                    <MainLayout><BookingFailed /></MainLayout>
-                  </ProtectedRoute>
-                } 
+                element={<MainLayout><BookingFailed /></MainLayout>}
               />
 
               {/* AUTH ROUTES */}

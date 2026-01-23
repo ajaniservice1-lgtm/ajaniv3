@@ -1353,10 +1353,10 @@ const VendorDetail = () => {
         }
       `}</style>
       
-      <main className="md:pt-5 pt-1">
+      <main className="md:pt-20 pt-16">
         <div className="md:max-w-[1245px] md:mx-auto">
-          {/* Breadcrumb with Back Button */}
-          <div className="px-4 md:px-4">
+          {/* Breadcrumb with Back Button - Compact mobile */}
+          <div className="px-2.5 md:px-4">
             <nav className="flex items-center justify-between text-xs text-gray-600 mb-2 md:mb-2 font-manrope">
               {/* Back Button */}
               <button
@@ -1394,58 +1394,58 @@ const VendorDetail = () => {
           </div>
 
           <div className="space-y-3 md:space-y-6">
-            {/* Vendor Header Section */}
-            <div className="px-4 md:px-4 py-3 md:py-3 bg-white">
-              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6">
+            {/* Vendor Header Section - Compact mobile */}
+            <div className="px-2.5 md:px-4 py-2 md:py-3 bg-white">
+              <div className="flex flex-col md:flex-row md:items-start justify-between gap-3 md:gap-6">
                 <div className="flex-1">
-                  <div className="flex items-center justify-between md:justify-start gap-3 md:gap-4 mb-2">
-                    <div className="flex items-center gap-2 md:gap-3">
+                  <div className="flex items-center justify-between md:justify-start gap-2 md:gap-4 mb-1.5">
+                    <div className="flex items-center gap-1.5 md:gap-3">
                       <h1 className="text-lg md:text-xl lg:text-3xl font-bold text-gray-900 font-manrope line-clamp-2 flex-1">
                         {safeTitle}
                       </h1>
-                      <VscVerifiedFilled className="text-green-500 text-base md:text-xl hover:scale-110 transition-transform duration-200 cursor-pointer" />
+                      <VscVerifiedFilled className="text-green-500 text-sm md:text-xl hover:scale-110 transition-transform duration-200 cursor-pointer" />
                     </div>
                     
                     {/* MOBILE: Share and Bookmark buttons */}
-                    <div className="flex md:hidden items-center gap-2">
+                    <div className="flex md:hidden items-center gap-1.5">
                       <button
                         onClick={handleShareClick}
-                        className="w-8 h-8 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 hover:scale-110 hover:shadow-md transition-all duration-300 cursor-pointer"
+                        className="w-7 h-7 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 hover:scale-110 hover:shadow-md transition-all duration-300 cursor-pointer"
                       >
-                        <RiShare2Line className="text-gray-600 text-base hover:text-[#06EAFC] transition-colors duration-300" />
+                        <RiShare2Line className="text-gray-600 text-sm hover:text-[#06EAFC] transition-colors duration-300" />
                       </button>
                       
                       <button
                         onClick={handleFavoriteToggle}
                         disabled={isProcessing}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 border cursor-pointer ${
+                        className={`w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 border cursor-pointer ${
                           isFavorite
                             ? "bg-gradient-to-br from-red-500 to-pink-500 border-red-200 hover:from-red-600 hover:to-pink-600 hover:scale-110 hover:shadow-lg"
                             : "bg-white border-gray-200 hover:bg-gray-50 hover:scale-110 hover:shadow-md"
                         } ${isProcessing ? "opacity-70 cursor-not-allowed" : "cursor-pointer"}`}
                       >
                         {isProcessing ? (
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                         ) : isFavorite ? (
-                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"/>
                           </svg>
                         ) : (
-                          <CiBookmark className="text-base text-gray-600 hover:text-[#06EAFC] transition-all duration-300" />
+                          <CiBookmark className="text-sm text-gray-600 hover:text-[#06EAFC] transition-all duration-300" />
                         )}
                       </button>
                     </div>
                   </div>
 
-                  <div className="flex flex-row md:flex-row md:items-center gap-2 md:gap-4 lg:gap-8">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-row md:flex-row md:items-center gap-1.5 md:gap-4 lg:gap-8">
+                    <div className="flex items-center gap-1.5">
                       <span className="text-gray-700 font-medium py-1 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200 cursor-pointer">
                         {categoryDisplay}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1 hover:scale-105 transition-transform duration-200 cursor-pointer">
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-0.5 hover:scale-105 transition-transform duration-200 cursor-pointer">
                         <FontAwesomeIcon
                           icon={faStar}
                           className="text-yellow-400 text-xs md:text-sm hover:text-yellow-500 transition-colors duration-200"
@@ -1459,12 +1459,12 @@ const VendorDetail = () => {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 text-gray-700 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200 cursor-pointer">
+                    <div className="flex items-center gap-1.5 text-gray-700 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200 cursor-pointer">
                       <FontAwesomeIcon
                         icon={faMapMarkerAlt}
                         className="text-gray-500 text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200"
                       />
-                      <span className="truncate max-w-[150px] md:max-w-none">
+                      <span className="truncate max-w-[120px] md:max-w-none">
                         {locationString}
                       </span>
                     </div>
@@ -1472,14 +1472,14 @@ const VendorDetail = () => {
                 </div>
 
                 {/* DESKTOP: Share and Bookmark buttons */}
-                <div className="hidden md:flex flex-col items-end gap-2 md:gap-4 mt-2 md:mt-0">
-                  <div className="flex gap-4 md:gap-6 items-center">
+                <div className="hidden md:flex flex-col items-end gap-2 md:gap-4 mt-1 md:mt-0">
+                  <div className="flex gap-3 md:gap-6 items-center">
                     <div className="flex items-center gap-1 md:gap-2 group relative">
                       <button
                         onClick={handleShareClick}
-                        className="w-8 h-8 md:w-10 md:h-10 bg-white border border-gray-200 md:border-2 rounded-full flex items-center justify-center hover:bg-gray-50 hover:scale-110 hover:shadow-md transition-all duration-300 cursor-pointer"
+                        className="w-7 h-7 md:w-10 md:h-10 bg-white border border-gray-200 md:border-2 rounded-full flex items-center justify-center hover:bg-gray-50 hover:scale-110 hover:shadow-md transition-all duration-300 cursor-pointer"
                       >
-                        <RiShare2Line className="text-gray-600 text-base md:text-xl group-hover:text-[#06EAFC] transition-colors duration-300" />
+                        <RiShare2Line className="text-gray-600 text-sm md:text-xl group-hover:text-[#06EAFC] transition-colors duration-300" />
                       </button>
                       <span className="text-gray-600 text-xs md:text-sm font-manrope hidden md:inline group-hover:text-[#06EAFC] transition-colors duration-300 cursor-pointer">
                         Share
@@ -1490,7 +1490,7 @@ const VendorDetail = () => {
                       <button
                         onClick={handleFavoriteToggle}
                         disabled={isProcessing}
-                        className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-300 border md:border-2 cursor-pointer group
+                        className={`w-7 h-7 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-300 border md:border-2 cursor-pointer group
                           ${
                             isFavorite
                               ? "bg-gradient-to-br from-red-500 to-pink-500 border-red-200 hover:from-red-600 hover:to-pink-600 hover:scale-110 hover:shadow-lg"
@@ -1502,10 +1502,10 @@ const VendorDetail = () => {
                         }`}
                       >
                         {isProcessing ? (
-                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <div className="w-3.5 h-3.5 md:w-5 md:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                         ) : isFavorite ? (
                           <svg
-                            className="w-5 h-5 text-white group-hover:scale-110 transition-transform duration-300"
+                            className="w-3.5 h-3.5 md:w-5 md:h-5 text-white group-hover:scale-110 transition-transform duration-300"
                             fill="currentColor"
                             viewBox="0 0 20 20"
                           >
@@ -1516,7 +1516,7 @@ const VendorDetail = () => {
                             />
                           </svg>
                         ) : (
-                          <CiBookmark className="text-base md:text-xl text-gray-600 group-hover:text-[#06EAFC] group-hover:scale-110 transition-all duration-300" />
+                          <CiBookmark className="text-sm md:text-xl text-gray-600 group-hover:text-[#06EAFC] group-hover:scale-110 transition-all duration-300" />
                         )}
                       </button>
                       <span className="text-gray-600 text-xs md:text-sm font-manrope hidden md:inline group-hover:text-[#06EAFC] transition-colors duration-300 cursor-pointer">
@@ -1533,13 +1533,13 @@ const VendorDetail = () => {
             </div>
 
             {/* ================= IMAGE GALLERY SECTION ================= */}
-            {/* Desktop Gallery Layout - Keep your existing grid layout */}
-            <section className="hidden lg:block px-4">
-              <div className="relative grid grid-cols-4 grid-rows-2 gap-3 h-[340px] overflow-hidden rounded-xl">
+            {/* Desktop Gallery Layout */}
+            <section className="hidden lg:block px-2.5 md:px-4">
+              <div className="relative grid grid-cols-4 grid-rows-2 gap-2.5 md:gap-3 h-[300px] md:h-[340px] overflow-hidden rounded-lg md:rounded-xl">
                 {/* LEFT TOP */}
                 <div 
                   onClick={() => handleOpenGallery(0)}
-                  className="overflow-hidden cursor-pointer rounded-lg"
+                  className="overflow-hidden cursor-pointer rounded md:rounded-lg"
                 >
                   <img
                     src={galleryImages[0]}
@@ -1551,7 +1551,7 @@ const VendorDetail = () => {
                 {/* LEFT BOTTOM */}
                 <div 
                   onClick={() => handleOpenGallery(1)}
-                  className="overflow-hidden cursor-pointer rounded-lg"
+                  className="overflow-hidden cursor-pointer rounded md:rounded-lg"
                 >
                   <img
                     src={galleryImages[1]}
@@ -1563,7 +1563,7 @@ const VendorDetail = () => {
                 {/* CENTER BIG */}
                 <div
                   onClick={() => handleOpenGallery(2)}
-                  className="col-span-2 row-span-2 overflow-hidden cursor-pointer rounded-lg"
+                  className="col-span-2 row-span-2 overflow-hidden cursor-pointer rounded md:rounded-lg"
                 >
                   <img
                     src={galleryImages[2]}
@@ -1575,7 +1575,7 @@ const VendorDetail = () => {
                 {/* RIGHT TOP */}
                 <div 
                   onClick={() => handleOpenGallery(3)}
-                  className="overflow-hidden cursor-pointer rounded-lg"
+                  className="overflow-hidden cursor-pointer rounded md:rounded-lg"
                 >
                   <img
                     src={galleryImages[3]}
@@ -1587,7 +1587,7 @@ const VendorDetail = () => {
                 {/* RIGHT BOTTOM */}
                 <div 
                   onClick={() => handleOpenGallery(4)}
-                  className="overflow-hidden cursor-pointer rounded-lg"
+                  className="overflow-hidden cursor-pointer rounded md:rounded-lg"
                 >
                   <img
                     src={galleryImages[4]}
@@ -1599,100 +1599,100 @@ const VendorDetail = () => {
                 {/* View all photos button */}
                 <button
                   onClick={() => handleOpenGallery(0)}
-                  className="absolute bottom-4 right-4 bg-white text-sm font-medium px-4 py-2 rounded-lg shadow hover:bg-gray-100 transition-colors cursor-pointer"
+                  className="absolute bottom-3 md:bottom-4 right-3 md:right-4 bg-white text-xs md:text-sm font-medium px-3 md:px-4 py-1.5 md:py-2 rounded md:rounded-lg shadow hover:bg-gray-100 transition-colors cursor-pointer"
                 >
                   View all photos
                 </button>
               </div>
             </section>
 
-           {/* Mobile Gallery Layout - KEEP EXACTLY AS IT WAS */}
-<section className="lg:hidden px-4">
-  <div className="relative w-full">
-    {/* Main Image - Reduced height from 280px to 220px */}
-    <div className="relative rounded-xl overflow-hidden mb-3">
-      <img
-        src={galleryImages[currentImageIndex]}
-        alt="Main gallery"
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        className="w-full h-[220px] object-cover rounded-xl"
-        onClick={() => handleOpenGallery(currentImageIndex)}
-      />
-      
-      {/* Overlay button showing total photos */}
-      <button
-        onClick={() => handleOpenGallery(currentImageIndex)}
-        className="absolute bottom-3 right-3 bg-black/70 text-white text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm flex items-center gap-1"
-      >
-        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-        </svg>
-        {galleryImages.length} Photos
-      </button>
-    </div>
+            {/* Mobile Gallery Layout */}
+            <section className="lg:hidden px-2.5">
+              <div className="relative w-full">
+                {/* Main Image - Reduced height */}
+                <div className="relative rounded-lg overflow-hidden mb-2.5">
+                  <img
+                    src={galleryImages[currentImageIndex]}
+                    alt="Main gallery"
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-[200px] object-cover rounded-lg"
+                    onClick={() => handleOpenGallery(currentImageIndex)}
+                  />
+                  
+                  {/* Overlay button showing total photos */}
+                  <button
+                    onClick={() => handleOpenGallery(currentImageIndex)}
+                    className="absolute bottom-2 right-2 bg-black/70 text-white text-xs font-medium px-2.5 py-1 rounded-full backdrop-blur-sm flex items-center gap-1"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                    </svg>
+                    {galleryImages.length} Photos
+                  </button>
+                </div>
 
-    {/* Thumbnails Grid - Reduced height from h-20 (5rem/80px) to h-16 (4rem/64px) */}
-    <div className="grid grid-cols-4 gap-2 px-1">
-      {galleryImages.slice(0, 4).map((img, index) => (
-        <button
-          key={index}
-          onClick={() => setCurrentImageIndex(index)}
-          className={`relative rounded-lg overflow-hidden border-2 transition-all duration-200 cursor-pointer ${
-            currentImageIndex === index
-              ? "border-[#06EAFC] shadow-md"
-              : "border-gray-200 hover:border-gray-300"
-          }`}
-        >
-          <img
-            src={img}
-            alt={`Thumbnail ${index + 1}`}
-            className="w-full h-16 object-cover hover:scale-105 transition-transform duration-200"
-          />
-          {/* Active indicator */}
-          {currentImageIndex === index && (
-            <div className="absolute inset-0 bg-[#06EAFC]/10 border-2 border-[#06EAFC] rounded-lg"></div>
-          )}
-        </button>
-      ))}
-    </div>
+                {/* Thumbnails Grid - Compact */}
+                <div className="grid grid-cols-4 gap-1.5 px-0.5">
+                  {galleryImages.slice(0, 4).map((img, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentImageIndex(index)}
+                      className={`relative rounded overflow-hidden border-2 transition-all duration-200 cursor-pointer ${
+                        currentImageIndex === index
+                          ? "border-[#06EAFC] shadow-sm"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <img
+                        src={img}
+                        alt={`Thumbnail ${index + 1}`}
+                        className="w-full h-14 object-cover hover:scale-105 transition-transform duration-200"
+                      />
+                      {/* Active indicator */}
+                      {currentImageIndex === index && (
+                        <div className="absolute inset-0 bg-[#06EAFC]/10 border-2 border-[#06EAFC] rounded"></div>
+                      )}
+                    </button>
+                  ))}
+                </div>
 
-    {/* Show all photos link if there are more than 4 */}
-    {galleryImages.length > 4 && (
-      <div className="mt-2 text-center">
-        <button
-          onClick={() => handleOpenGallery(0)}
-          className="text-[#06EAFC] text-sm font-medium flex items-center justify-center gap-1 mx-auto hover:text-[#05d9eb] transition-colors cursor-pointer"
-        >
-          <span>View all {galleryImages.length} photos</span>
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-    )}
-  </div>
-</section>
+                {/* Show all photos link if there are more than 4 */}
+                {galleryImages.length > 4 && (
+                  <div className="mt-1.5 text-center">
+                    <button
+                      onClick={() => handleOpenGallery(0)}
+                      className="text-[#06EAFC] text-xs font-medium flex items-center justify-center gap-1 mx-auto hover:text-[#05d9eb] transition-colors cursor-pointer"
+                    >
+                      <span>View all {galleryImages.length} photos</span>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </section>
 
-            {/* Price Range */}
+            {/* Price Range - Compact mobile */}
             <div className="px-2">
-              <div className=" text-start bg-white py-3 mx-auto">
-                <p className="text-[#00065A]  font-manrope text-base md:text-xl font-bold mb-1">
+              <div className="text-start bg-white py-2.5 mx-auto">
+                <p className="text-[#00065A] font-manrope text-base md:text-xl font-bold mb-0.5">
                   Price Range
                 </p>
-                <div className="flex flex-col justify-center gap-1 md:gap-3">
-                  <div className="flex items-center gap-1 md:gap-2 ">
-                    <span className="text-[15px] md:text-2xl text-gray-900 font-manrope font-bold">
+                <div className="flex flex-col justify-center gap-0.5 md:gap-3">
+                  <div className="flex items-center gap-0.5 md:gap-2">
+                    <span className="text-[14px] md:text-2xl text-gray-900 font-manrope font-bold">
                       {formatPrice(vendor.price || vendor.price_from)}
                     </span>
-                    <span className="text-gray-900 text-[12px]">
+                    <span className="text-gray-900 text-[11px]">
                       -
                     </span>
-                    <span className="text-[15px] md:text-2xl text-gray-900 font-manrope font-bold">
+                    <span className="text-[14px] md:text-2xl text-gray-900 font-manrope font-bold">
                       {formatPrice(vendor.price_to || vendor.price || vendor.price_from)}
                     </span>
                   </div>
-                  <span className="text-gray-900 text-sm md:text-base mt-1 cursor-pointer">
+                  <span className="text-gray-900 text-xs md:text-base mt-0.5 cursor-pointer">
                     {category === 'hotel' ? 'per night' : 
                      category === 'restaurant' ? 'per meal' : 
                      category === 'shortlet' ? 'per night' :
@@ -1702,63 +1702,60 @@ const VendorDetail = () => {
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* Action Buttons - Compact mobile */}
             <div className="px-2">
-              <div className="w-full h-14 md:h-16 bg-gray-200 rounded-[13px] md:rounded-3xl flex items-center justify-between px-4 md:px-12 mx-auto md:max-w-[600px] hover:shadow-lg transition-all duration-300 hover:bg-gray-300/50">
+              <div className="w-full h-12 md:h-16 bg-gray-200 rounded-lg md:rounded-3xl flex items-center justify-between px-3 md:px-12 mx-auto md:max-w-[600px] hover:shadow-lg transition-all duration-300 hover:bg-gray-300/50">
                 <button
                   onClick={() => (safeToString(vendor.contact || vendorInfo?.phone) && (window.location.href = `tel:${safeToString(vendor.contact || vendorInfo?.phone)}`))}
-                  className="flex flex-col items-center transition-all duration-300 px-2 group relative cursor-pointer"
+                  className="flex flex-col items-center transition-all duration-300 px-1.5 group relative cursor-pointer"
                 >
                   <div className="relative">
                     <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-blue-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
                     <FontAwesomeIcon
                       icon={faPhone}
-                      size={20}
+                      size={18}
                       className="text-gray-700 group-hover:text-blue-600 transition-all duration-300 transform group-hover:scale-110"
                     />
                   </div>
-                  <span className="text-xs mt-1 font-manrope text-gray-700 group-hover:text-blue-600 transition-colors duration-300 relative">
+                  <span className="text-xs mt-0.5 font-manrope text-gray-700 group-hover:text-blue-600 transition-colors duration-300 relative">
                     Call
-                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 group-hover:w-full transition-all duration-300"></span>
                   </span>
                 </button>
 
                 <button
                   onClick={() => showToast("Chat feature coming soon!", "info")}
-                  className="flex flex-col items-center transition-all duration-300 px-2 group relative cursor-pointer"
+                  className="flex flex-col items-center transition-all duration-300 px-1.5 group relative cursor-pointer"
                 >
                   <div className="relative">
                     <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-green-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
                     <IoChatbubbleEllipsesOutline
-                      size={22}
+                      size={20}
                       className="text-gray-700 group-hover:text-green-600 transition-all duration-300 transform group-hover:scale-110"
                     />
                   </div>
-                  <span className="text-xs mt-1 font-manrope text-gray-700 group-hover:text-green-600 transition-colors duration-300 relative">
+                  <span className="text-xs mt-0.5 font-manrope text-gray-700 group-hover:text-green-600 transition-colors duration-300 relative">
                     Chat
-                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 group-hover:w-full transition-all duration-300"></span>
                   </span>
                 </button>
 
-                {/* BOOKING BUTTON - Updated with category-based logic */}
+                {/* BOOKING BUTTON */}
                 <button
                   onClick={handleBookingClick}
-                  className="flex flex-col items-center transition-all duration-300 px-2 group relative cursor-pointer"
+                  className="flex flex-col items-center transition-all duration-300 px-1.5 group relative cursor-pointer"
                 >
                   <div className="relative">
                     <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-purple-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
                     <FaBookOpen
-                      size={20}
+                      size={18}
                       className="text-gray-700 group-hover:text-purple-600 transition-all duration-300 transform group-hover:scale-110"
                     />
                   </div>
-                  <span className="text-xs mt-1 font-manrope text-gray-700 group-hover:text-purple-600 transition-colors duration-300 relative">
+                  <span className="text-xs mt-0.5 font-manrope text-gray-700 group-hover:text-purple-600 transition-colors duration-300 relative">
                     Book
-                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-600 group-hover:w-full transition-all duration-300"></span>
                   </span>
                   {/* Tooltip for hotel category */}
                   {category === 'hotel' && (
-                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none">
+                    <div className="absolute -top-7 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none">
                       {selectedRoom ? "Ready to book" : "Select room first"}
                     </div>
                   )}
@@ -1766,28 +1763,27 @@ const VendorDetail = () => {
 
                 <button
                   onClick={() => showToast("Map feature coming soon!", "info")}
-                  className="flex flex-col items-center transition-all duration-300 px-2 group relative cursor-pointer"
+                  className="flex flex-col items-center transition-all duration-300 px-1.5 group relative cursor-pointer"
                 >
                   <div className="relative">
                     <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-red-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
                     <HiLocationMarker
-                      size={22}
+                      size={20}
                       className="text-gray-700 group-hover:text-red-600 transition-all duration-300 transform group-hover:scale-110"
                     />
                   </div>
-                  <span className="text-xs mt-1 font-manrope text-gray-700 group-hover:text-red-600 transition-colors duration-300 relative">
+                  <span className="text-xs mt-0.5 font-manrope text-gray-700 group-hover:text-red-600 transition-colors duration-300 relative">
                     Map
-                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-red-600 group-hover:w-full transition-all duration-300"></span>
                   </span>
                 </button>
               </div>
             </div>
 
-            {/* About Section */}
+            {/* About Section - Compact mobile */}
             <section className="w-full bg-[#F7F7FA] rounded-none md:rounded-3xl">
-              <div className="px-4 sm:px-4 md:px-6 lg:px-8 py-6 md:py-8">
-                <div className="mb-8 md:mb-12">
-                  <h2 className="text-lg md:text-xl font-bold text-[#06F49F] mb-3 md:mb-4 font-manrope">
+              <div className="px-2.5 sm:px-4 md:px-6 lg:px-8 py-4 md:py-8">
+                <div className="mb-4 md:mb-12">
+                  <h2 className="text-base md:text-xl font-bold text-[#06F49F] mb-2 md:mb-4 font-manrope">
                     About
                   </h2>
                   <p className="text-gray-900 text-sm md:[15px] font-manrope hover:text-gray-800 cursor-pointer">
@@ -1795,25 +1791,25 @@ const VendorDetail = () => {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-                  <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6">
-                    <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-4 md:mb-6 font-manrope">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
+                  <div className="bg-white rounded-lg md:rounded-2xl p-3 md:p-6">
+                    <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-3 md:mb-6 font-manrope">
                       What we Do
                     </h3>
-                    <div className="space-y-3 md:space-y-4">
+                    <div className="space-y-2.5 md:space-y-4">
                       {services.map((service, index) => (
                         <div
                           key={index}
-                          className="flex items-start gap-3 md:gap-4 hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
+                          className="flex items-start gap-2.5 md:gap-4 hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
                         >
                           <div className="flex-shrink-0 mt-0.5 md:mt-1 group-hover:scale-110 transition-transform duration-300">
                             <FontAwesomeIcon
                               icon={faCheckCircle}
-                              size={18}
+                              size={16}
                               className="text-[#06EAFC] group-hover:text-[#05d9eb] transition-colors duration-300"
                             />
                           </div>
-                          <span className="text-gray-700 font-manrope leading-relaxed text-sm md:text-sm group-hover:text-gray-900 transition-colors duration-300">
+                          <span className="text-gray-700 font-manrope leading-relaxed text-xs md:text-sm group-hover:text-gray-900 transition-colors duration-300">
                             {service}
                           </span>
                         </div>
@@ -1821,20 +1817,20 @@ const VendorDetail = () => {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6">
-                    <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-4 md:mb-6 font-manrope ">
+                  <div className="bg-white rounded-lg md:rounded-2xl p-3 md:p-6">
+                    <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-3 md:mb-6 font-manrope">
                       Key Features
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6">
                       {features.map((feature, index) => (
                         <div
                           key={index}
                           className="flex items-center gap-2 md:gap-3 hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
                         >
-                          <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                          <div className="w-7 h-7 md:w-10 md:h-10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                             <FontAwesomeIcon
                               icon={feature.icon}
-                              className="text-sm md:text-base text-gray-900 group-hover:text-[#06EAFC] transition-colors duration-300"
+                              className="text-xs md:text-base text-gray-900 group-hover:text-[#06EAFC] transition-colors duration-300"
                             />
                           </div>
                           <span className="font-medium text-gray-900 font-manrope text-xs md:text-sm group-hover:text-gray-700 transition-colors duration-300">
@@ -1854,7 +1850,7 @@ const VendorDetail = () => {
               <div 
                 ref={roomSelectionRef}
                 id="room-selection-section"
-                className="smooth-scroll-target px-4 md:px-4"
+                className="smooth-scroll-target px-2.5 md:px-4"
               >
                 <RoomSelection 
                   category={category}
@@ -1865,45 +1861,45 @@ const VendorDetail = () => {
               </div>
             )}
 
-            {/* Reviews Section */}
-            <section className="w-full bg-white px-4 sm:px-4 md:px-4 py-6 md:py-8">
-              <div className="mb-8">
-                <h2 className="text-xl md:text-2xl font-bold text-[#06F49F] mb-2 font-manrope">
+            {/* Reviews Section - Compact mobile */}
+            <section className="w-full bg-white px-2.5 sm:px-4 md:px-4 py-4 md:py-8">
+              <div className="mb-6">
+                <h2 className="text-lg md:text-2xl font-bold text-[#06F49F] mb-1.5 font-manrope">
                   Reviews
-                  <span className="text-sm md:text-base font-normal text-gray-500 ml-2">
+                  <span className="text-xs md:text-base font-normal text-gray-500 ml-1.5">
                     ({reviewCount} reviews)
                   </span>
                 </h2>
                 
                 {/* Rating Summary */}
-                <div className="flex flex-col items-center md:flex-row md:items-start gap-6 md:gap-8 mb-8 p-4 bg-gray-50 rounded-xl">
+                <div className="flex flex-col items-center md:flex-row md:items-start gap-4 md:gap-8 mb-6 p-3 bg-gray-50 rounded-lg">
                   {/* Average Rating */}
-                  <div className="flex flex-col items-center md:items-start gap-3">
-                    <div className="text-4xl md:text-5xl font-bold text-gray-900 text-center md:text-left">
+                  <div className="flex flex-col items-center md:items-start gap-2">
+                    <div className="text-3xl md:text-5xl font-bold text-gray-900 text-center md:text-left">
                       {averageRating.toFixed(1)}
                     </div>
                     <div className="flex flex-col items-center md:items-start">
-                      <div className="flex items-center gap-1 mb-1">
-                        <StarRating rating={Math.round(averageRating)} size="md" />
+                      <div className="flex items-center gap-0.5 mb-0.5">
+                        <StarRating rating={Math.round(averageRating)} size="sm" />
                       </div>
-                      <p className="text-gray-600 text-sm text-center md:text-left cursor-pointer">
+                      <p className="text-gray-600 text-xs text-center md:text-left cursor-pointer">
                         Based on {reviewCount} reviews
                       </p>
                     </div>
                   </div>
                   
                   {/* Rating Breakdown */}
-                  <div className="flex-1 w-full space-y-3">
+                  <div className="flex-1 w-full space-y-2">
                     {reviewStats.map((stat, index) => (
-                      <div key={index} className="flex items-center gap-3">
-                        <span className="text-sm text-gray-600 w-12 cursor-pointer">{stat.stars} star</span>
-                        <div className="flex-1 h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div key={index} className="flex items-center gap-2">
+                        <span className="text-xs text-gray-600 w-10 cursor-pointer">{stat.stars} star</span>
+                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-yellow-500 rounded-full transition-all duration-500"
                             style={{ width: `${stat.percentage}%` }}
                           ></div>
                         </div>
-                        <span className="text-sm text-gray-600 w-12 text-right cursor-pointer">{stat.percentage}%</span>
+                        <span className="text-xs text-gray-600 w-10 text-right cursor-pointer">{stat.percentage}%</span>
                       </div>
                     ))}
                   </div>
@@ -1911,68 +1907,68 @@ const VendorDetail = () => {
                 
                 {/* Review Form */}
                 {showReviewForm && (
-                  <div className="mb-8 p-4 md:p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-bold text-[#00065A] mb-4 font-manrope">
+                  <div className="mb-6 p-3 md:p-6 bg-white rounded-lg border border-gray-200 shadow-sm">
+                    <h3 className="text-base font-bold text-[#00065A] mb-3 font-manrope">
                       Write a Review
                     </h3>
                     <form onSubmit={handleReviewSubmit}>
-                      <div className="mb-4">
-                        <label className="block text-gray-700 text-sm font-medium mb-2 cursor-pointer">
+                      <div className="mb-3">
+                        <label className="block text-gray-700 text-xs font-medium mb-1.5 cursor-pointer">
                           Your Rating
                         </label>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           <StarRating 
                             rating={newReview.rating} 
                             onRatingChange={(rating) => setNewReview({...newReview, rating})}
                             interactive={true}
-                            size="lg"
+                            size="md"
                           />
-                          <span className="text-gray-600 ml-2 cursor-pointer">
+                          <span className="text-gray-600 text-xs ml-1.5 cursor-pointer">
                             {newReview.rating} out of 5
                           </span>
                         </div>
                       </div>
                       
-                      <div className="mb-4">
-                        <label className="block text-gray-700 text-sm font-medium mb-2 cursor-pointer">
+                      <div className="mb-3">
+                        <label className="block text-gray-700 text-xs font-medium mb-1.5 cursor-pointer">
                           Review Title (Optional)
                         </label>
                         <input
                           type="text"
                           value={newReview.title}
                           onChange={(e) => setNewReview({...newReview, title: e.target.value})}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent cursor-pointer"
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent cursor-pointer text-sm"
                           placeholder="Summarize your experience"
                           maxLength={100}
                         />
                       </div>
                       
-                      <div className="mb-6">
-                        <label className="block text-gray-700 text-sm font-medium mb-2 cursor-pointer">
+                      <div className="mb-4">
+                        <label className="block text-gray-700 text-xs font-medium mb-1.5 cursor-pointer">
                           Your Review *
                         </label>
                         <textarea
                           value={newReview.comment}
                           onChange={(e) => setNewReview({...newReview, comment: e.target.value})}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent min-h-[120px] cursor-pointer"
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent min-h-[100px] cursor-pointer text-sm"
                           placeholder="Share details of your experience..."
                           required
                           maxLength={1000}
                         />
-                        <p className="text-xs text-gray-500 mt-1 cursor-pointer">
+                        <p className="text-xs text-gray-500 mt-0.5 cursor-pointer">
                           Minimum 10 characters, maximum 1000 characters
                         </p>
                       </div>
                       
-                      <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="flex flex-col sm:flex-row gap-2.5">
                         <button
                           type="submit"
                           disabled={isSubmittingReview}
-                          className="px-6 py-3 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors font-manrope font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                          className="px-4 py-2 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors font-manrope font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-sm"
                         >
                           {isSubmittingReview ? (
-                            <span className="flex items-center gap-2">
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            <span className="flex items-center gap-1.5">
+                              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                               Submitting...
                             </span>
                           ) : (
@@ -1982,7 +1978,7 @@ const VendorDetail = () => {
                         <button
                           type="button"
                           onClick={() => setShowReviewForm(false)}
-                          className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-manrope font-medium cursor-pointer"
+                          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-manrope font-medium cursor-pointer text-sm"
                         >
                           Cancel
                         </button>
@@ -1992,17 +1988,17 @@ const VendorDetail = () => {
                 )}
                 
                 {/* Reviews Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {reviews.map((review) => (
                     <div
                       key={review.id}
-                      className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 cursor-pointer"
+                      className="bg-white rounded-lg p-3 md:p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 cursor-pointer"
                     >
-                      <div className="flex items-center gap-4 mb-4">
+                      <div className="flex items-center gap-3 mb-3">
                         <img
                           src={review.image}
                           alt={review.name}
-                          className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-2 border-gray-100"
+                          className="w-8 h-8 md:w-12 md:h-12 rounded-full object-cover border-2 border-gray-100"
                         />
                         <div className="flex-1">
                           <div className="flex flex-col md:flex-row md:justify-between md:items-start">
@@ -2010,7 +2006,7 @@ const VendorDetail = () => {
                               <p className="font-medium text-gray-900 font-manrope text-sm md:text-base cursor-pointer">
                                 {review.name}
                               </p>
-                              <div className="flex items-center gap-2 mt-1">
+                              <div className="flex items-center gap-1.5 mt-0.5">
                                 <StarRating rating={review.rating} size="sm" />
                                 <span className="text-xs text-gray-500 cursor-pointer">{review.date}</span>
                               </div>
@@ -2019,14 +2015,14 @@ const VendorDetail = () => {
                         </div>
                       </div>
 
-                      <p className="text-gray-600 text-sm leading-relaxed font-manrope cursor-pointer">
+                      <p className="text-gray-600 text-xs md:text-sm leading-relaxed font-manrope cursor-pointer">
                         {review.text}
                       </p>
                       
                       {/* Review Helpful Button */}
-                      <div className="mt-4 flex items-center gap-4">
-                        <button className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 cursor-pointer">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="mt-3 flex items-center gap-3">
+                        <button className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-0.5 cursor-pointer">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905a3.61 3.61 0 01-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
                           </svg>
                           Helpful
@@ -2041,20 +2037,20 @@ const VendorDetail = () => {
                 
                 {/* Load More Reviews Button */}
                 {reviewCount > 4 && (
-                  <div className="text-center mt-8">
-                    <button className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-manrope font-medium cursor-pointer">
+                  <div className="text-center mt-6">
+                    <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-manrope font-medium cursor-pointer text-sm">
                       Load More Reviews
                     </button>
                   </div>
                 )}
                 
                 {/* Write Review Button */}
-                <div className="mt-8 pt-6 border-t border-gray-200">
+                <div className="mt-6 pt-4 border-t border-gray-200">
                   <button 
                     onClick={handleWriteReviewClick}
-                    className="w-full md:w-auto px-6 py-3 border-2 border-[#06EAFC] text-[#06EAFC] rounded-lg hover:bg-[#06EAFC] hover:text-white transition-colors font-manrope font-medium flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full md:w-auto px-4 py-2.5 border-2 border-[#06EAFC] text-[#06EAFC] rounded-lg hover:bg-[#06EAFC] hover:text-white transition-colors font-manrope font-medium flex items-center justify-center gap-1.5 cursor-pointer text-sm"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                     {isAuthenticated ? "Write a Review" : "Login to Write a Review"}
@@ -2063,16 +2059,16 @@ const VendorDetail = () => {
               </div>
             </section>
 
-            {/* Location Section with Google Maps */}
-            <div className="px-4 md:px-4">
-              <div className="bg-white rounded-xl p-4 md:p-6">
-                <h2 className="text-xl font-bold text-[#00065A] mb-6 font-manrope">
+            {/* Location Section with Google Maps - Compact mobile */}
+            <div className="px-2.5 md:px-4">
+              <div className="bg-white rounded-lg p-3 md:p-6">
+                <h2 className="text-lg font-bold text-[#00065A] mb-4 font-manrope">
                   Location
                 </h2>
                 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {/* Google Maps Embed */}
-                  <div className="bg-gray-100 rounded-xl overflow-hidden h-64 md:h-96">
+                  <div className="bg-gray-100 rounded-lg overflow-hidden h-48 md:h-96">
                     <iframe
                       src={getGoogleMapsUrl()}
                       width="100%"
@@ -2082,42 +2078,42 @@ const VendorDetail = () => {
                       loading="lazy"
                       referrerPolicy="no-referrer-when-downgrade"
                       title="Location Map - Ibadan, Nigeria"
-                      className="rounded-xl"
+                      className="rounded-lg"
                     ></iframe>
                   </div>
                   
                   <div>
-                    <h4 className="font-bold text-gray-900 mb-4 font-manrope cursor-pointer">Location Details</h4>
-                    <div className="space-y-4">
+                    <h4 className="font-bold text-gray-900 mb-3 font-manrope cursor-pointer">Location Details</h4>
+                    <div className="space-y-3">
                       <div>
-                        <p className="text-sm text-gray-600 mb-1 cursor-pointer">Address</p>
-                        <p className="font-medium text-gray-900 cursor-pointer">
+                        <p className="text-xs text-gray-600 mb-0.5 cursor-pointer">Address</p>
+                        <p className="font-medium text-gray-900 text-sm cursor-pointer">
                           {safeToString(vendor.address, `${safeToString(vendor.title || vendor.name, "Vendor")}, ${locationString}`)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 mb-1 cursor-pointer">Area</p>
-                        <div className="flex items-center gap-2">
-                          <FontAwesomeIcon icon={faMapMarkerAlt} className="text-gray-400" />
-                          <p className="font-medium text-gray-900 cursor-pointer">
+                        <p className="text-xs text-gray-600 mb-0.5 cursor-pointer">Area</p>
+                        <div className="flex items-center gap-1.5">
+                          <FontAwesomeIcon icon={faMapMarkerAlt} className="text-gray-400 text-xs" />
+                          <p className="font-medium text-gray-900 text-sm cursor-pointer">
                             {locationString}
                           </p>
                         </div>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 mb-1 cursor-pointer">Contact</p>
-                        <p className="font-medium text-gray-900 cursor-pointer">
+                        <p className="text-xs text-gray-600 mb-0.5 cursor-pointer">Contact</p>
+                        <p className="font-medium text-gray-900 text-sm cursor-pointer">
                           {safeToString(vendor.contact || vendorInfo?.phone, "Not provided")}
                         </p>
                       </div>
-                      <div className="pt-4">
+                      <div className="pt-3">
                         <a
                           href={`https://www.google.com/maps/dir//${encodeURIComponent(safeToString(vendor.address || vendor.title || vendor.name, "") + " Ibadan Nigeria")}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors font-manrope font-medium cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors font-manrope font-medium cursor-pointer text-sm"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 13V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                           </svg>
                           Get Directions
@@ -2131,20 +2127,20 @@ const VendorDetail = () => {
 
             {/* Other Listings from This Vendor */}
             {vendorListings.length > 0 && (
-              <div className="px-4 sm:px-4 md:px-4 lg:px-4 py-6 bg-white">
-                <h2 className="text-xl font-bold text-[#00065A] mb-6">
+              <div className="px-2.5 sm:px-4 md:px-4 lg:px-4 py-4 bg-white">
+                <h2 className="text-lg font-bold text-[#00065A] mb-4">
                   Other Listings from This Vendor
-                  <span className="text-sm font-normal text-gray-500 ml-2">
+                  <span className="text-xs font-normal text-gray-500 ml-1.5">
                     ({vendorListings.length} {vendorListings.length === 1 ? 'listing' : 'listings'})
                   </span>
                 </h2>
                 
                 {loadingVendorListings ? (
-                  <div className="flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#06EAFC]"></div>
+                  <div className="flex justify-center py-6">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#06EAFC]"></div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                     {vendorListings.slice(0, 4).map((listing, index) => (
                       <VendorListingCard
                         key={listing._id || index}
@@ -2156,17 +2152,17 @@ const VendorDetail = () => {
                 )}
                 
                 {vendorListings.length > 4 && (
-                  <div className="text-center mt-6">
+                  <div className="text-center mt-4">
                     <button
-                      onClick={() => {
-                        if (vendorId) {
-                          navigate(`/vendor-listings/${vendorId}`);
-                        }
-                      }}
-                      className="px-4 py-2 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors cursor-pointer"
-                    >
-                      View All {vendorListings.length} Listings
-                    </button>
+  onClick={() => {
+    if (vendorId) {
+      navigate("/listing");
+    }
+  }}
+  className="px-3 py-1.5 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors cursor-pointer text-sm"
+>
+  View All {vendorListings.length} Listings
+</button>
                   </div>
                 )}
               </div>
@@ -2175,28 +2171,28 @@ const VendorDetail = () => {
         </div>
       </main>
       
-      {/* FULL SCREEN GALLERY MODAL - UPDATED TO MATCH ROOMSELECTION STYLE */}
+      {/* FULL SCREEN GALLERY MODAL */}
       {galleryOpen && (
         <div className="fixed inset-0 z-[9999] bg-black">
           {/* Header */}
-          <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
+          <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent">
             <div className="text-white">
-              <h2 className="text-lg font-semibold">{safeToString(vendor?.title || vendor?.name, "Gallery")}</h2>
-              <p className="text-sm text-white/80">
+              <h2 className="text-base font-semibold">{safeToString(vendor?.title || vendor?.name, "Gallery")}</h2>
+              <p className="text-xs text-white/80">
                 {currentImageIndex + 1} / {galleryImages.length}
               </p>
             </div>
             
             <button
               onClick={handleCloseGallery}
-              className="p-2 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-1.5 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
             >
-              <FontAwesomeIcon icon={faTimes} className="text-white text-2xl" />
+              <FontAwesomeIcon icon={faTimes} className="text-white text-xl" />
             </button>
           </div>
 
           {/* Main Image */}
-          <div className="relative w-full h-full flex items-center justify-center p-4">
+          <div className="relative w-full h-full flex items-center justify-center p-3">
             <img
               src={galleryImages[currentImageIndex]}
               alt={`Gallery image ${currentImageIndex + 1}`}
@@ -2209,29 +2205,29 @@ const VendorDetail = () => {
               <>
                 <button
                   onClick={prevImage}
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/70 text-white cursor-pointer transition-all md:left-8"
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white cursor-pointer transition-all md:left-8"
                 >
-                  <FontAwesomeIcon icon={faChevronLeft} className="text-xl" />
+                  <FontAwesomeIcon icon={faChevronLeft} className="text-lg" />
                 </button>
                 
                 <button
                   onClick={nextImage}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/70 text-white cursor-pointer transition-all md:right-8"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white cursor-pointer transition-all md:right-8"
                 >
-                  <FontAwesomeIcon icon={faChevronRight} className="text-xl" />
+                  <FontAwesomeIcon icon={faChevronRight} className="text-lg" />
                 </button>
               </>
             )}
           </div>
 
           {/* Thumbnail Strip - Bottom */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-            <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+            <div className="flex gap-1.5 overflow-x-auto pb-1.5">
               {galleryImages?.map((img, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentImageIndex(index)}
-                  className={`flex-shrink-0 w-16 h-16 rounded overflow-hidden border-2 transition-all ${
+                  className={`flex-shrink-0 w-12 h-12 rounded overflow-hidden border-2 transition-all ${
                     currentImageIndex === index 
                       ? 'border-white scale-105' 
                       : 'border-transparent opacity-70 hover:opacity-100'
@@ -2250,7 +2246,7 @@ const VendorDetail = () => {
           </div>
 
           {/* Mobile Swipe Instructions */}
-          <div className="md:hidden absolute bottom-20 left-0 right-0 text-center text-white/60 text-sm">
+          <div className="md:hidden absolute bottom-16 left-0 right-0 text-center text-white/60 text-xs">
             <p>Swipe or use arrows to navigate</p>
           </div>
         </div>

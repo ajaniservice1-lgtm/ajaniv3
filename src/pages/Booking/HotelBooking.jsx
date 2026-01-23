@@ -35,6 +35,52 @@ const HotelBooking = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [bookingId, setBookingId] = useState("");
 
+  // Auth check functions
+  const checkAuthStatus = () => {
+    const token = localStorage.getItem("auth_token");
+    const userProfile = localStorage.getItem("userProfile");
+    const userEmail = localStorage.getItem("user_email");
+    
+    if (token && userEmail) {
+      return true;
+    }
+    
+    if (userProfile) {
+      try {
+        const parsed = JSON.parse(userProfile);
+        return !!parsed.email;
+      } catch (error) {
+        return false;
+      }
+    }
+    
+    return false;
+  };
+
+  const isUserVerified = () => {
+    try {
+      const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      return profile?.isVerified || false;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const requireAuth = () => {
+    const isAuthenticated = checkAuthStatus();
+    const isVerified = isUserVerified();
+    
+    if (!isAuthenticated) {
+      return { authenticated: false, verified: false, message: "not_authenticated" };
+    }
+    
+    if (!isVerified) {
+      return { authenticated: true, verified: false, message: "not_verified" };
+    }
+    
+    return { authenticated: true, verified: true, message: "authenticated" };
+  };
+
   // Fix 1: Scroll to top on route change
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -164,6 +210,25 @@ const HotelBooking = () => {
         }
       }
       
+      // Pre-fill user data if logged in
+      const authStatus = requireAuth();
+      if (authStatus.authenticated) {
+        try {
+          const userProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+          if (userProfile.firstName || userProfile.lastName || userProfile.email) {
+            setBookingData(prev => ({
+              ...prev,
+              firstName: userProfile.firstName || prev.firstName,
+              lastName: userProfile.lastName || prev.lastName,
+              email: userProfile.email || prev.email,
+              phone: userProfile.phone || prev.phone
+            }));
+          }
+        } catch (error) {
+          console.error("Failed to load user profile:", error);
+        }
+      }
+      
       setLoading(false);
       console.log("✅ Booking data loading complete");
     };
@@ -196,6 +261,54 @@ const HotelBooking = () => {
       return;
     }
 
+    // Check authentication
+    const authStatus = requireAuth();
+    
+    if (!authStatus.authenticated) {
+      // Save current booking details to localStorage to restore after login
+      localStorage.setItem("pendingBooking", JSON.stringify({
+        type: "hotel",
+        hotelId: hotelData?.id || roomData.hotel?.id,
+        hotelName: hotelData?.name || roomData.hotel?.name,
+        hotelImage: hotelData?.image || roomData.hotel?.image,
+        roomData: roomData,
+        bookingData: bookingData,
+        selectedPayment: selectedPayment,
+        bookingId: bookingId,
+        totalAmount: calculateTotal(),
+        checkInDate: roomData.booking?.checkIn,
+        checkOutDate: roomData.booking?.checkOut,
+        guests: roomData.booking?.adults,
+        timestamp: Date.now()
+      }));
+      
+      // Save redirect URL for after login
+      localStorage.setItem("redirectAfterLogin", window.location.pathname);
+      
+      // Save form data temporarily
+      localStorage.setItem('bookingData', JSON.stringify(bookingData));
+      
+      // Redirect to login
+      navigate("/login", { 
+        state: { 
+          message: "Please login or create an account to complete your booking",
+          requiresVerification: true
+        } 
+      });
+      return;
+    }
+    
+    if (!authStatus.verified) {
+      // Redirect to OTP verification
+      navigate("/verify-otp", { 
+        state: { 
+          message: "Please verify your account to complete your booking",
+          returnPath: window.location.pathname
+        } 
+      });
+      return;
+    }
+
     console.log("🚀 Submitting hotel booking...");
 
     // Save guest information
@@ -212,7 +325,8 @@ const HotelBooking = () => {
       bookingId: bookingId,
       status: selectedPayment === "card" ? "pending_payment" : "confirmed",
       totalAmount: calculateTotal(),
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      userId: JSON.parse(localStorage.getItem("userProfile") || "{}")._id || null
     };
 
     console.log("💾 Complete booking data:", completeBooking);
@@ -293,16 +407,16 @@ const HotelBooking = () => {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
         <Header />
-        <div className="max-w-4xl mx-auto px-4 py-20">
-          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-            <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <FontAwesomeIcon icon={faBed} className="text-yellow-600 text-3xl" />
+        <div className="max-w-4xl mx-auto px-3 py-16">
+          <div className="bg-white rounded-xl shadow-lg p-6 text-center">
+            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FontAwesomeIcon icon={faBed} className="text-yellow-600 text-2xl" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">No Room Selected</h2>
-            <p className="text-gray-600 mb-6">Please select a room before proceeding to booking.</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-3">No Room Selected</h2>
+            <p className="text-gray-600 mb-5">Please select a room before proceeding to booking.</p>
             <button
               onClick={() => navigate(-1)}
-              className="bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-blue-600 hover:to-emerald-600 text-white font-semibold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg cursor-pointer"
+              className="bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-blue-600 hover:to-emerald-600 text-white font-semibold py-3 px-6 rounded-full transition-all duration-300 shadow-lg cursor-pointer text-sm"
             >
               ← Go Back & Select Room
             </button>
@@ -323,53 +437,56 @@ const HotelBooking = () => {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <Header />
       
-      <div className="md:pt-2 pt-2">
-        {/* Reduced padding on mobile */}
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-10">
+      {/* Reduced top spacing */}
+      <div className="pt-0">
+        {/* Main container with edge-to-edge padding on mobile */}
+        <div className="max-w-7xl mx-auto px-2.5 sm:px-4 py-20 sm:py-26">
           {/* Stepper - Reduced spacing */}
-          <div className="mb-6 sm:mb-12">
+          <div className="mb-4 sm:mb-8">
             <Stepper currentStep={1} />
           </div>
           
-          {/* Main Card - Reduced padding on mobile */}
-          <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl overflow-hidden border border-gray-100">
-            {/* Back Button - More compact on mobile */}
-            <div className="px-4 sm:px-8 pt-4 sm:pt-6">
+          {/* Main Card - Reduced padding and border radius on mobile */}
+          <div className="bg-white rounded-lg sm:rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+            {/* Back Button - Compact */}
+            <div className="px-3 sm:px-6 pt-3 sm:pt-6">
               <button
                 onClick={() => navigate(-1)}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors group cursor-pointer text-sm sm:text-base"
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors group cursor-pointer text-sm"
               >
-                <FontAwesomeIcon icon={faChevronLeft} className="text-sm" />
+                <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
                 <span className="font-medium">Back to room selection</span>
               </button>
             </div>
 
-            {/* Grid - Single column on mobile */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 p-4 sm:p-8">
+            {/* Grid - Tight spacing on mobile */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 p-3 sm:p-6">
               {/* Left Column - Form */}
               <div className="lg:col-span-2">
-                {/* Header - Smaller on mobile */}
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
-                  {hotelData?.category === 'shortlet' ? 'Book Your Shortlet Stay' : 
-                   hotelData?.category === 'restaurant' ? 'Book Your Restaurant Table' : 
-                   'Complete Your Hotel Booking'}
-                </h1>
-                <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8">
-                  {hotelData?.category === 'shortlet' ? 'Please fill in your details to book your stay' : 
-                   hotelData?.category === 'restaurant' ? 'Please fill in your details to reserve your table' : 
-                   'Please fill in your details to secure your stay'}
-                </p>
+                {/* Header - Compact */}
+                <div className="px-1 mb-4">
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-1">
+                    {hotelData?.category === 'shortlet' ? 'Book Your Shortlet Stay' : 
+                     hotelData?.category === 'restaurant' ? 'Book Your Restaurant Table' : 
+                     'Complete Your Hotel Booking'}
+                  </h1>
+                  <p className="text-sm text-gray-600">
+                    {hotelData?.category === 'shortlet' ? 'Please fill in your details to book your stay' : 
+                     hotelData?.category === 'restaurant' ? 'Please fill in your details to reserve your table' : 
+                     'Please fill in your details to secure your stay'}
+                  </p>
+                </div>
 
-                {/* Hotel & Room Preview Card - More compact */}
-                <div className="mb-6 sm:mb-8 bg-gradient-to-r from-blue-50 to-emerald-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-blue-100">
-                  <div className="flex flex-col md:flex-row gap-4 sm:gap-6">
+                {/* Hotel & Room Preview Card - Compact */}
+                <div className="mb-4 sm:mb-6 bg-gradient-to-r from-blue-50 to-emerald-50 rounded-lg p-3 sm:p-4 border border-blue-100">
+                  <div className="flex flex-col md:flex-row gap-3">
                     <div className="md:w-1/3 relative">
                       <img 
                         src={roomData.hotel?.image || hotelData?.image} 
                         alt={roomData.hotel?.name}
-                        className="w-full h-40 sm:h-48 object-cover rounded-lg sm:rounded-xl shadow-md"
+                        className="w-full h-32 sm:h-40 object-cover rounded-lg shadow-sm"
                       />
-                      <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
+                      <div className="absolute top-1.5 left-1.5 bg-black/70 text-white text-xs px-2 py-0.5 rounded-full">
                         <FontAwesomeIcon icon={faStar} className="text-yellow-400 mr-1" />
                         {roomData.hotel?.rating || 4.5}
                       </div>
@@ -378,46 +495,46 @@ const HotelBooking = () => {
                     <div className="md:w-2/3">
                       <div className="flex items-start justify-between">
                         <div>
-                          <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
+                          <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1">
                             {roomData.hotel?.name}
                           </h3>
-                          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
+                          <div className="flex items-center gap-1.5 text-xs text-gray-600 mb-2">
                             <FontAwesomeIcon icon={faMapMarkerAlt} className="text-blue-500" />
                             <span className="truncate">{getLocationString(roomData.hotel?.location)}</span>
                           </div>
                         </div>
-                        <span className="bg-emerald-100 text-emerald-700 text-xs sm:text-sm font-semibold px-2 sm:px-3 py-1 rounded-full">
+                        <span className="bg-emerald-100 text-emerald-700 text-xs font-semibold px-2 py-0.5 rounded-full">
                           {roomData.room?.title}
                         </span>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <FontAwesomeIcon icon={faBed} className="text-blue-600 text-xs sm:text-sm" />
+                      <div className="grid grid-cols-2 gap-1.5 mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center flex-shrink-0">
+                            <FontAwesomeIcon icon={faBed} className="text-blue-600 text-xs" />
                           </div>
                           <div>
                             <p className="text-xs text-gray-500">Beds</p>
-                            <p className="font-medium text-sm">{roomData.room?.beds}</p>
+                            <p className="font-medium text-xs">{roomData.room?.beds}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
-                            <FontAwesomeIcon icon={faUsers} className="text-emerald-600 text-xs sm:text-sm" />
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-6 h-6 bg-emerald-100 rounded flex items-center justify-center flex-shrink-0">
+                            <FontAwesomeIcon icon={faUsers} className="text-emerald-600 text-xs" />
                           </div>
                           <div>
                             <p className="text-xs text-gray-500">Guests</p>
-                            <p className="font-medium text-sm">{roomData.booking?.adults} adults</p>
+                            <p className="font-medium text-xs">{roomData.booking?.adults} adults</p>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm">
-                        <div className="flex items-center gap-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 text-xs">
+                        <div className="flex items-center gap-1.5">
                           <FontAwesomeIcon icon={faCalendar} className="text-gray-400" />
                           <span>{roomData.booking?.checkIn} → {roomData.booking?.checkOut}</span>
                         </div>
-                        <div className="hidden sm:block h-4 w-px bg-gray-300"></div>
+                        <div className="hidden sm:block h-3 w-px bg-gray-300"></div>
                         <div>
                           <span className="font-semibold">{roomData.booking?.nights} night</span>
                         </div>
@@ -426,65 +543,65 @@ const HotelBooking = () => {
                   </div>
                 </div>
 
-                {/* Payment Options - More compact */}
-                <div className="mb-6 sm:mb-8">
-                  <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faCreditCard} className="text-blue-500" />
+                {/* Payment Options - Compact */}
+                <div className="mb-4 sm:mb-6">
+                  <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-2.5 flex items-center gap-1.5">
+                    <FontAwesomeIcon icon={faCreditCard} className="text-blue-500 text-sm" />
                     Payment Options
                   </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                     <button
                       onClick={() => handlePaymentChange("hotel")}
-                      className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 ${
+                      className={`p-2.5 sm:p-3 rounded-lg border-2 transition-all duration-300 ${
                         selectedPayment === "hotel" 
-                          ? 'border-blue-500 bg-blue-50 shadow-md' 
+                          ? 'border-blue-500 bg-blue-50 shadow-sm' 
                           : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
                       }`}
                     >
-                      <div className="flex items-start gap-3">
-                        <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center ${
+                      <div className="flex items-start gap-2">
+                        <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                           selectedPayment === "hotel" 
                             ? 'border-blue-500 bg-blue-500' 
                             : 'border-gray-300'
                         }`}>
                           {selectedPayment === "hotel" && (
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                            <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                           )}
                         </div>
                         <div className="text-left">
-                          <div className="flex items-center gap-2 mb-1">
-                            <FontAwesomeIcon icon={faHotel} className="text-blue-600 text-sm" />
-                            <span className="font-bold text-gray-900 text-sm sm:text-base">Pay at Hotel</span>
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <FontAwesomeIcon icon={faHotel} className="text-blue-600 text-xs" />
+                            <span className="font-bold text-gray-900 text-xs sm:text-sm">Pay at Hotel</span>
                           </div>
-                          <p className="text-xs sm:text-sm text-gray-600">Pay when you arrive</p>
+                          <p className="text-xs text-gray-600 leading-tight">Pay when you arrive</p>
                         </div>
                       </div>
                     </button>
                     
                     <button
                       onClick={() => handlePaymentChange("card")}
-                      className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 ${
+                      className={`p-2.5 sm:p-3 rounded-lg border-2 transition-all duration-300 ${
                         selectedPayment === "card" 
-                          ? 'border-emerald-500 bg-emerald-50 shadow-md' 
+                          ? 'border-emerald-500 bg-emerald-50 shadow-sm' 
                           : 'border-gray-200 hover:border-emerald-300 hover:bg-emerald-50'
                       }`}
                     >
-                      <div className="flex items-start gap-3">
-                        <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center ${
+                      <div className="flex items-start gap-2">
+                        <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                           selectedPayment === "card" 
                             ? 'border-emerald-500 bg-emerald-500' 
                             : 'border-gray-300'
                         }`}>
                           {selectedPayment === "card" && (
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                            <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                           )}
                         </div>
                         <div className="text-left">
-                          <div className="flex items-center gap-2 mb-1">
-                            <FontAwesomeIcon icon={faCreditCard} className="text-emerald-600 text-sm" />
-                            <span className="font-bold text-gray-900 text-sm sm:text-base">Credit/Debit Card</span>
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <FontAwesomeIcon icon={faCreditCard} className="text-emerald-600 text-xs" />
+                            <span className="font-bold text-gray-900 text-xs sm:text-sm">Credit/Debit Card</span>
                           </div>
-                          <p className="text-xs sm:text-sm text-gray-600">Secure online payment</p>
+                          <p className="text-xs text-gray-600 leading-tight">Secure online payment</p>
                         </div>
                       </div>
                     </button>
@@ -492,19 +609,19 @@ const HotelBooking = () => {
                 </div>
 
                 {/* Contact Information */}
-                <div className="mb-6 sm:mb-8">
-                  <div className="mb-4 sm:mb-6">
-                    <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-                      <FontAwesomeIcon icon={faUser} className="text-blue-500" />
+                <div className="mb-4 sm:mb-6">
+                  <div className="mb-3">
+                    <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-1.5 flex items-center gap-1.5">
+                      <FontAwesomeIcon icon={faUser} className="text-blue-500 text-sm" />
                       Guest Information
                     </h2>
-                    <p className="text-sm text-gray-600">Who's checking in?</p>
+                    <p className="text-xs text-gray-600">Who's checking in?</p>
                   </div>
                   
-                  <div className="space-y-4 sm:space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                           First Name *
                         </label>
                         <input 
@@ -513,13 +630,13 @@ const HotelBooking = () => {
                           value={bookingData.firstName}
                           onChange={handleInputChange}
                           placeholder="John"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm sm:text-base"
+                          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
                           required
                         />
                       </div>
                       
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                           Last Name *
                         </label>
                         <input 
@@ -528,83 +645,83 @@ const HotelBooking = () => {
                           value={bookingData.lastName}
                           onChange={handleInputChange}
                           placeholder="Doe"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm sm:text-base"
+                          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
                           required
                         />
                       </div>
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                         Email Address *
                       </label>
                       <div className="relative">
-                        <FontAwesomeIcon icon={faEnvelope} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <FontAwesomeIcon icon={faEnvelope} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
                         <input 
                           type="email" 
                           name="email"
                           value={bookingData.email}
                           onChange={handleInputChange}
                           placeholder="john.doe@example.com"
-                          className="w-full px-12 py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm sm:text-base"
+                          className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
                           required
                         />
                       </div>
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                         Phone Number *
                       </label>
                       <div className="relative">
-                        <FontAwesomeIcon icon={faPhone} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <FontAwesomeIcon icon={faPhone} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
                         <input 
                           type="tel" 
                           name="phone"
                           value={bookingData.phone}
                           onChange={handleInputChange}
                           placeholder="+234 800 000 0000"
-                          className="w-full px-12 py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm sm:text-base"
+                          className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
                           required
                         />
                       </div>
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                         Special Requests
                       </label>
                       <textarea
                         name="specialRequests"
                         value={bookingData.specialRequests}
                         onChange={handleInputChange}
-                        rows={3}
+                        rows={2}
                         placeholder="Any special requirements or preferences..."
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm sm:text-base"
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Terms and Submit */}
-                <div className="mt-8 sm:mt-10">
-                  <div className="flex items-start gap-3 mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 rounded-lg sm:rounded-xl">
-                    <div className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 mt-0.5">
+                <div className="mt-6">
+                  <div className="flex items-start gap-2 mb-3 p-2.5 bg-blue-50 rounded-lg">
+                    <div className="w-4 h-4 flex-shrink-0 mt-0.5">
                       <input
                         type="checkbox"
                         id="terms"
                         required
-                        className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                        className="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
                       />
                     </div>
-                    <label htmlFor="terms" className="text-xs sm:text-sm text-gray-600 cursor-pointer">
-                      By proceeding with this booking,  I agree to Ajani's Terms of Use and Privacy Policy. I understand that my booking is subject to the hotel's cancellation policy and any applicable fees.
+                    <label htmlFor="terms" className="text-xs text-gray-600 leading-relaxed cursor-pointer">
+                      By proceeding with this booking, I agree to Ajani's Terms of Use and Privacy Policy. I understand that my booking is subject to the hotel's cancellation policy and any applicable fees.
                     </label>
                   </div>
 
                   <button
                     onClick={handleSubmit}
-                    className="w-full  bg-blue-600  text-white font-bold py-3 sm:py-4 px-6 rounded-lg sm:rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer text-sm sm:text-base"
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer text-sm"
                   >
                     {selectedPayment === "hotel" ? "Confirm Booking" : "Proceed to Payment"}
                     <span className="ml-2">→</span>
@@ -612,27 +729,27 @@ const HotelBooking = () => {
                 </div>
               </div>
 
-              {/* Right Column - Booking Summary - Sticky on desktop only */}
+              {/* Right Column - Booking Summary */}
               <div className="lg:col-span-1">
-                <div className="lg:sticky lg:top-24 space-y-4 sm:space-y-6">
+                <div className="lg:sticky lg:top-20 space-y-3">
                   {/* Summary Header */}
-                  <div className="bg-blue-500 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white">
-                    <h3 className="text-lg sm:text-xl font-bold mb-2">Booking Summary</h3>
-                    <p className="text-xs sm:text-sm opacity-90">Booking ID: {bookingId}</p>
+                  <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-3 text-white">
+                    <h3 className="text-base font-bold mb-1">Booking Summary</h3>
+                    <p className="text-xs opacity-90">Booking ID: {bookingId}</p>
                   </div>
                   
                   {/* Hotel Card */}
-                  <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div className="p-3 sm:p-4">
-                      <div className="flex items-start gap-3">
+                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="p-2.5">
+                      <div className="flex items-start gap-2.5">
                         <img 
                           src={roomData.hotel?.image} 
                           alt={roomData.hotel?.name}
-                          className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg"
+                          className="w-10 h-10 object-cover rounded"
                         />
-                        <div className="flex-1">
-                          <h4 className="font-bold text-gray-900 text-sm sm:text-base">{roomData.hotel?.name}</h4>
-                          <div className="flex items-center gap-1 mt-1">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-gray-900 text-sm truncate">{roomData.hotel?.name}</h4>
+                          <div className="flex items-center gap-1 mt-0.5">
                             <FontAwesomeIcon icon={faStar} className="text-yellow-400 text-xs" />
                             <span className="text-xs font-medium">{roomData.hotel?.rating}</span>
                             <span className="text-xs text-gray-500 hidden sm:inline">• {getLocationString(roomData.hotel?.location)}</span>
@@ -640,46 +757,46 @@ const HotelBooking = () => {
                         </div>
                       </div>
                       
-                      <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100">
-                        <div className="flex justify-between items-center mb-2 sm:mb-3">
-                          <span className="text-xs sm:text-sm text-gray-600">Room Type</span>
-                          <span className="text-xs sm:text-sm font-semibold text-gray-900">{roomData.room?.title}</span>
+                      <div className="mt-2.5 pt-2.5 border-t border-gray-100">
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className="text-xs text-gray-600">Room Type</span>
+                          <span className="text-xs font-semibold text-gray-900">{roomData.room?.title}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-xs sm:text-sm text-gray-600">Stay Duration</span>
-                          <span className="text-xs sm:text-sm font-medium">{roomData.booking?.nights} night</span>
+                          <span className="text-xs text-gray-600">Stay Duration</span>
+                          <span className="text-xs font-medium">{roomData.booking?.nights} night</span>
                         </div>
                       </div>
                     </div>
                   </div>
                   
-                  {/* Price Breakdown - ALL FEES SET TO 0 */}
-                  <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200 shadow-sm">
-                    <div className="p-4 sm:p-6">
-                      <h5 className="font-bold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">Price Breakdown</h5>
+                  {/* Price Breakdown */}
+                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                    <div className="p-3">
+                      <h5 className="font-bold text-gray-900 mb-2 text-sm">Price Breakdown</h5>
                       
-                      <div className="space-y-2 sm:space-y-3">
-                        <div className="flex justify-between text-xs sm:text-sm">
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs">
                           <span className="text-gray-600">Room x {roomData.booking?.nights} night</span>
                           <span className="font-medium">{formatPrice(roomData.booking?.price)}</span>
                         </div>
                         
                         {/* Taxes & Fees - Showing as ₦0 */}
-                        <div className="flex justify-between text-xs sm:text-sm">
+                        <div className="flex justify-between text-xs">
                           <span className="text-gray-600">Taxes & fees</span>
                           <span className="font-medium">{formatPrice(taxes)}</span>
                         </div>
                         
                         {/* Service fee - Showing as ₦0 */}
-                        <div className="flex justify-between text-xs sm:text-sm">
+                        <div className="flex justify-between text-xs">
                           <span className="text-gray-600">Service fee</span>
                           <span className="font-medium">{formatPrice(serviceFee)}</span>
                         </div>
                         
                         {/* Discount */}
                         {roomData.booking?.discount && (
-                          <div className="pt-2 sm:pt-3 border-t border-gray-200">
-                            <div className="flex justify-between text-xs sm:text-sm">
+                          <div className="pt-1.5 border-t border-gray-200">
+                            <div className="flex justify-between text-xs">
                               <span className="text-gray-600">Discount</span>
                               <span className="font-bold text-emerald-600">{roomData.booking.discount}</span>
                             </div>
@@ -688,14 +805,14 @@ const HotelBooking = () => {
                       </div>
                       
                       {/* Total */}
-                      <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-300">
+                      <div className="mt-2.5 pt-2.5 border-t border-gray-300">
                         <div className="flex justify-between items-center">
-                          <span className="font-bold text-gray-900 text-sm sm:text-base">Total Amount</span>
-                          <span className="text-lg sm:text-2xl font-bold text-emerald-600">
+                          <span className="font-bold text-gray-900 text-sm">Total Amount</span>
+                          <span className="text-lg font-bold text-emerald-600">
                             {formatPrice(total)}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500 text-center mt-2">
+                        <p className="text-xs text-gray-500 text-center mt-1">
                           {selectedPayment === "hotel" ? "Pay at hotel upon arrival" : "Payment required now"}
                         </p>
                       </div>
@@ -703,15 +820,15 @@ const HotelBooking = () => {
                   </div>
                   
                   {/* Benefits Card */}
-                  <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-lg sm:rounded-xl border border-emerald-100 p-3 sm:p-5">
-                    <h6 className="font-bold text-gray-900 mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
+                  <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-lg border border-emerald-100 p-2.5">
+                    <h6 className="font-bold text-gray-900 mb-1.5 flex items-center gap-1.5 text-sm">
                       <FontAwesomeIcon icon={faConciergeBell} className="text-emerald-600" />
                       What's Included
                     </h6>
-                    <div className="space-y-1 sm:space-y-2">
+                    <div className="space-y-1">
                       {roomData.booking?.benefits?.map((benefit, index) => (
-                        <div key={index} className="flex items-center gap-2 text-xs sm:text-sm">
-                          <FontAwesomeIcon icon={faCheck} className="text-emerald-500 text-xs" />
+                        <div key={index} className="flex items-center gap-1.5 text-xs">
+                          <FontAwesomeIcon icon={faCheck} className="text-emerald-500" />
                           <span className="text-gray-700">{benefit}</span>
                         </div>
                       ))}
@@ -720,11 +837,11 @@ const HotelBooking = () => {
                   
                   {/* Guarantee */}
                   <div className="text-center">
-                    <div className="inline-flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                    <div className="inline-flex items-center gap-1.5 text-xs text-gray-600">
                       <FontAwesomeIcon icon={faShieldAlt} className="text-green-500" />
                       <span className="font-medium">Best Price Guarantee</span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 mt-0.5">
                       Free cancellation up to 24 hours before check-in
                     </p>
                   </div>
