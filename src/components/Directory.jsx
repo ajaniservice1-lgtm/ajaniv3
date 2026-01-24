@@ -12,18 +12,28 @@ import axiosInstance from "../lib/axios";
 const buildQueryString = (filters = {}) => {
   const params = new URLSearchParams();
   if (filters.category) params.append('category', filters.category);
+  // REMOVED status filter to get all listings (both approved and pending)
   return params.toString();
 };
 
 const getListingsByCategory = async (category) => {
   try {
-    const filters = { category: category };
+    console.log(`Fetching ${category} listings...`);
+    const filters = { 
+      category: category,
+      // No status filter - get ALL listings
+    };
     const queryString = buildQueryString(filters);
     const url = `/listings${queryString ? `?${queryString}` : ''}`;
     
+    console.log(`API URL for ${category}:`, url);
     const response = await axiosInstance.get(url);
+    console.log(`${category} API Response status:`, response.data.status);
+    console.log(`${category} results count:`, response.data.results);
+    
     return response.data;
   } catch (error) {
+    console.error(`Error fetching ${category} listings:`, error);
     return {
       status: 'error',
       message: error.message,
@@ -118,32 +128,120 @@ const FALLBACK_IMAGES = {
   default: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop&q=80",
 };
 
-const getCardImages = (listing) => {
-  if (listing.images && listing.images.length > 0 && listing.images[0].url) {
-    return [listing.images[0].url];
+// Universal image getter - works for all structures
+const getCardImages = (item) => {
+  try {
+    // Check for images array first
+    if (item.images && item.images.length > 0) {
+      const images = item.images;
+      if (typeof images[0] === 'string') {
+        return [images[0]];
+      }
+      if (images[0]?.url) {
+        return [images[0].url];
+      }
+    }
+    
+    // Check for details.roomTypes structure (for hotels)
+    if (item.details?.roomTypes?.[0]?.images?.length > 0) {
+      const images = item.details.roomTypes[0].images;
+      if (images[0]?.url) {
+        return [images[0].url];
+      }
+    }
+    
+    // Use fallback based on category
+    const cat = (item.category || "").toLowerCase();
+    if (cat.includes("hotel")) return [FALLBACK_IMAGES.hotel];
+    if (cat.includes("restaurant")) return [FALLBACK_IMAGES.restaurant];
+    if (cat.includes("shortlet")) return [FALLBACK_IMAGES.shortlet];
+    if (cat.includes("services")) return [FALLBACK_IMAGES.services];
+    if (cat.includes("event")) return [FALLBACK_IMAGES.event];
+    return [FALLBACK_IMAGES.default];
+  } catch (error) {
+    console.error('Error getting card images:', error);
+    return [FALLBACK_IMAGES.default];
   }
-  
-  const cat = (listing.category || "").toLowerCase();
-  if (cat.includes("hotel")) return [FALLBACK_IMAGES.hotel];
-  if (cat.includes("restaurant")) return [FALLBACK_IMAGES.restaurant];
-  if (cat.includes("shortlet")) return [FALLBACK_IMAGES.shortlet];
-  if (cat.includes("services")) return [FALLBACK_IMAGES.services];
-  if (cat.includes("event")) return [FALLBACK_IMAGES.event];
-  return [FALLBACK_IMAGES.default];
 };
 
-const getVendorId = (listing) => {
-  if (!listing) return null;
-  
-  if (typeof listing.vendorId === 'string') {
-    return listing.vendorId;
+// Universal price getter
+const getPriceFromItem = (item) => {
+  try {
+    // Check for direct price field first
+    if (item.price !== undefined && item.price !== null) {
+      return item.price;
+    }
+    
+    // Check for details.roomTypes[0].pricePerNight (hotels)
+    if (item.details?.roomTypes?.[0]?.pricePerNight !== undefined) {
+      return item.details.roomTypes[0].pricePerNight;
+    }
+    
+    // Check for details.pricePerNight (shortlets)
+    if (item.details?.pricePerNight !== undefined) {
+      return item.details.pricePerNight;
+    }
+    
+    return 0;
+  } catch (error) {
+    console.error('Error getting price:', error);
+    return 0;
   }
-  
-  if (listing.vendorId && listing.vendorId._id) {
-    return listing.vendorId._id;
+};
+
+// Universal location getter
+const getLocationFromItem = (item) => {
+  try {
+    // Check for location.area
+    if (item.location?.area) {
+      return item.location.area;
+    }
+    
+    // Check for direct area field
+    if (item.area) {
+      return item.area;
+    }
+    
+    // Check for location.address
+    if (item.location?.address) {
+      return item.location.address;
+    }
+    
+    // Check for direct address field
+    if (item.address) {
+      return item.address;
+    }
+    
+    return "Ibadan";
+  } catch (error) {
+    console.error('Error getting location:', error);
+    return "Ibadan";
   }
-  
-  return listing._id || listing.id;
+};
+
+// Universal business name getter
+const getBusinessName = (item) => {
+  try {
+    // Try name field
+    if (item.name) {
+      return item.name;
+    }
+    
+    // Try title field
+    if (item.title) {
+      return item.title;
+    }
+    
+    // Try vendor business name
+    if (item.vendorId?.vendor?.businessName) {
+      return item.vendorId.vendor.businessName;
+    }
+    
+    return "Business";
+  } catch (error) {
+    console.error('Error getting business name:', error);
+    return "Business";
+  }
 };
 
 // ---------------- Custom Hooks ----------------
@@ -228,7 +326,6 @@ const useListings = (category) => {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [apiResponse, setApiResponse] = useState(null);
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -236,19 +333,28 @@ const useListings = (category) => {
         setLoading(true);
         setError(null);
         
+        console.log(`Fetching ${category} listings...`);
         const data = await getListingsByCategory(category);
-        setApiResponse(data);
+        
+        console.log(`${category} API response:`, data);
         
         if (data && data.status === 'success' && data.data && data.data.listings) {
           const fetchedListings = data.data.listings;
+          console.log(`${category} listings fetched:`, fetchedListings.length);
+          if (fetchedListings.length > 0) {
+            console.log(`${category} sample listing:`, fetchedListings[0]);
+          }
           setListings(fetchedListings);
         } else if (data && data.status === 'error') {
+          console.error(`${category} API error:`, data.message);
           setError(data.message || 'API Error');
           setListings([]);
         } else {
+          console.warn(`${category} No listings found or unexpected response structure`);
           setListings([]);
         }
       } catch (err) {
+        console.error(`${category} Fetch error:`, err);
         setError(err.message);
         setListings([]);
       } finally {
@@ -259,7 +365,7 @@ const useListings = (category) => {
     fetchListings();
   }, [category]);
 
-  return { listings, loading, error, apiResponse };
+  return { listings, loading, error };
 };
 
 // ---------------- BusinessCard Component ----------------
@@ -282,7 +388,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
   };
 
   const getPriceText = () => {
-    const price = item.price || "0";
+    const price = getPriceFromItem(item) || 0;
     const formattedPrice = formatPrice(price);
     return `₦${formattedPrice}`;
   };
@@ -299,9 +405,9 @@ const BusinessCard = ({ item, category, isMobile }) => {
 
   const tag = getTag();
   const priceText = getPriceText();
-  const locationText = item.location?.area || item.area || "Ibadan";
+  const locationText = getLocationFromItem(item) || "Ibadan";
   const rating = "4.9";
-  const businessName = item.title || item.name || "Business Name";
+  const businessName = getBusinessName(item) || "Business Name";
   const isPending = item.status === 'pending';
 
   const handleCardClick = () => {
@@ -342,7 +448,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
         </div>
         <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70 transition-opacity">
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
           </svg>
         </button>
       </div>
@@ -379,11 +485,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
           image: images[0] || FALLBACK_IMAGES.default,
           category: capitalizeFirst(category) || "Business",
           location: locationText,
-          originalData: {
-            price: item.price,
-            location: item.location,
-            description: item.description,
-          },
+          originalData: item,
         };
 
         localStorage.setItem("pendingSaveItem", JSON.stringify(itemToSaveAfterLogin));
@@ -418,13 +520,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
           category: capitalizeFirst(category) || "Business",
           location: locationText,
           savedDate: new Date().toISOString().split("T")[0],
-          originalData: {
-            price: item.price,
-            location: item.location,
-            description: item.description,
-            category: item.category,
-            status: item.status,
-          },
+          originalData: item,
         };
 
         const updated = [...saved, listingToSave];
@@ -531,15 +627,13 @@ const BusinessCard = ({ item, category, isMobile }) => {
             </p>
 
             <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-0.5 flex-wrap">
-                <div className="flex items-baseline gap-0.5">
-                  <span className="text-[12px] font-manrope text-gray-900">
-                    {priceText}
-                  </span>
-                  <span className="text-[12px] text-gray-600">
-                    {category === 'hotel' || category === 'shortlet' ? 'for 2 nights' : ''}
-                  </span>
-                </div>
+              <div className="flex items-baseline gap-0.5">
+                <span className="text-[12px] font-manrope text-gray-900">
+                  {priceText}
+                </span>
+                <span className="text-[12px] text-gray-600">
+                  {category === 'hotel' || category === 'shortlet' ? 'per night' : ''}
+                </span>
               </div>
 
               <div className="flex items-center gap-0.5">
@@ -591,7 +685,7 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
           <button 
             className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" 
             style={{ color: "#000651" }} 
-            onClick={() => navigate(`/${category}`)} // UPDATED: Navigate directly to /hotel, /restaurant, etc.
+            onClick={() => navigate(`/${category}`)}
           >
             {isMobile ? <span className="text-[12px]">View all</span> : <span className="text-[13.5px]">View all</span>}
             <svg className={`transition-transform group-hover:translate-x-1 ${isMobile ? "w-3 h-3" : "w-4 h-4"}`} fill="currentColor" viewBox="0 0 16 16">
@@ -618,7 +712,7 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
           <button 
             className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" 
             style={{ color: "#000651" }} 
-            onClick={() => navigate(`/${category}`)} // UPDATED: Navigate directly to /hotel, /restaurant, etc.
+            onClick={() => navigate(`/${category}`)}
           >
             {isMobile ? <span className="text-[12px]">View all</span> : <span className="text-[13.5px]">View all</span>}
             <svg className={`transition-transform group-hover:translate-x-1 ${isMobile ? "w-3 h-3" : "w-4 h-4"}`} fill="currentColor" viewBox="0 0 16 16">
@@ -645,7 +739,7 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
           </h2>
         </div>
         <button 
-          onClick={() => navigate(`/${category}`)} // UPDATED: Navigate directly to /hotel, /restaurant, etc.
+          onClick={() => navigate(`/${category}`)}
           className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" 
           style={{ color: "#000651" }}
         >
@@ -658,7 +752,7 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
 
       {items.length === 0 ? (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-blue-700 font-medium text-sm">No listings found</p>
+          <p className="text-blue-700 font-medium text-sm">No {category} listings found</p>
           <p className="text-blue-600 text-xs mt-1">Try checking other categories</p>
         </div>
       ) : (

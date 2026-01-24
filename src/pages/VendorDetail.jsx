@@ -1786,7 +1786,7 @@ const VendorDetail = () => {
                   <h2 className="text-base md:text-xl font-bold text-[#06F49F] mb-2 md:mb-4 font-manrope">
                     About
                   </h2>
-                  <p className="text-gray-900 text-sm md:[15px] font-manrope hover:text-gray-800 cursor-pointer">
+                  <p className="text-gray-900 text-[12.5px] md:text-sm font-manrope hover:text-gray-800 cursor-pointer">
                     {safeToString(vendor.description, "Welcome to our premium venue, offering exceptional service and unforgettable experiences. With modern amenities and professional staff, we ensure your stay is comfortable and memorable.")}
                   </p>
                 </div>
@@ -1846,7 +1846,7 @@ const VendorDetail = () => {
 
             {/* ================= ROOM SELECTION SECTION ================= */}
             {/* Only for Hotels (not shortlets) */}
-            {category === 'hotel' && (
+            {/* {category === 'hotel' && (
               <div 
                 ref={roomSelectionRef}
                 id="room-selection-section"
@@ -1859,7 +1859,7 @@ const VendorDetail = () => {
                   vendorData={vendor}
                 />
               </div>
-            )}
+            )} */}
 
             {/* Reviews Section - Compact mobile */}
             <section className="w-full bg-white px-2.5 sm:px-4 md:px-4 py-4 md:py-8">
