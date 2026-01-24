@@ -465,31 +465,7 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
           <div className="flex-shrink-0">
             <FontAwesomeIcon icon={faShieldAlt} className="text-yellow-500 text-lg" />
           </div>
-          <div className="ml-3 flex-1">
-            <h3 className="text-sm font-medium text-yellow-800">
-              ⚠️ You're browsing as a guest
-            </h3>
-            <div className="mt-2 text-sm text-yellow-700">
-              <p>
-                To complete your restaurant reservation, you need to create an account.
-                This will also allow you to:
-              </p>
-              <ul className="list-disc pl-5 mt-1 space-y-1">
-                <li>Save your reservation history</li>
-                <li>Manage future reservations</li>
-                <li>Receive exclusive offers</li>
-                <li>Save payment methods securely</li>
-              </ul>
-            </div>
-            <div className="mt-3">
-              <button
-                onClick={handleRegister}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
-              >
-                Create Account to Reserve
-              </button>
-            </div>
-          </div>
+       
         </div>
       </div>
     );
@@ -940,12 +916,7 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                   <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-3 text-white">
                     <h3 className="text-base font-bold mb-1">Booking Summary</h3>
                     <p className="text-xs opacity-90">Booking ID: {bookingId}</p>
-                    {isGuestUser && (
-                      <div className="mt-2 flex items-center gap-1 text-xs bg-yellow-500/20 p-1 rounded">
-                        <FontAwesomeIcon icon={faShieldAlt} />
-                        <span>Guest Mode - Limited Access</span>
-                      </div>
-                    )}
+          
                   </div>
                   
                   {/* Restaurant Card */}
