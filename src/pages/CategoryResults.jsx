@@ -45,8 +45,10 @@ import { PiSliders } from "react-icons/pi";
 import { motion } from "framer-motion";
 import { createPortal } from "react-dom";
 import BackButton from "../components/BackButton";
-import axiosInstance from "../lib/axios";
 import { FaUserCircle } from "react-icons/fa";
+
+// ================== IMPORT THE LISTING SERVICE ==================
+import listingService from "../lib/listingService";
 
 // ================== CATEGORY SWITCH LOADER COMPONENT ==================
 
@@ -177,23 +179,14 @@ const UnifiedLoadingScreen = ({ isMobile = false }) => {
   );
 };
 
-// ================== UPDATED CUSTOM BACKEND HOOK ==================
+// ================== UPDATED USE LISTINGS HOOK ==================
+// Simplified - Now using the listingService
 
-const useBackendListings = (category = null, searchQuery = '', filters = {}) => {
+const useListings = (category = null, searchQuery = '', filters = {}) => {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [apiResponse, setApiResponse] = useState(null);
-
-  // Helper to normalize location for backend (convert to proper case)
-  const normalizeLocationForBackend = (location) => {
-    if (!location) return '';
-    return location
-      .toLowerCase()
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
 
   // Helper to check if search query looks like a location
   const looksLikeLocation = (query) => {
@@ -205,7 +198,7 @@ const useBackendListings = (category = null, searchQuery = '', filters = {}) => 
     const ibadanAreas = [
       'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'agodi', 
       'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
-      'molete', 'agbowo', 'sabo', 'bashorun',  'ife road',
+      'molete', 'agbowo', 'sabo', 'bashorun', 'ife road',
       'akinyele', 'mokola hill', 'sango roundabout'
     ];
     
@@ -234,10 +227,10 @@ const useBackendListings = (category = null, searchQuery = '', filters = {}) => 
         setLoading(true);
         setError(null);
         
-        let url = '/listings';
-        const params = new URLSearchParams();
+        // Build search params for listingService
+        const searchParams = {};
         
-        // Add category filter - IMPORTANT: Always send category
+        // Add category filter
         if (category) {
           const categoryMap = {
             'hotel': 'hotel',
@@ -247,65 +240,66 @@ const useBackendListings = (category = null, searchQuery = '', filters = {}) => 
             'services': 'services',
             'event': 'event'
           };
-          const backendCategory = categoryMap[category] || category;
-          params.append('category', backendCategory);
+          searchParams.category = categoryMap[category] || category;
         }
         
-        // ✅ FIX 2: When searching for hotel or any location, handle like search results
-        // If search query looks like a location, send it as location.area to backend
-        if (searchQuery && looksLikeLocation(searchQuery)) {
-          // Use proper case for location
-          params.append('location.area', normalizeLocationForBackend(searchQuery));
-          console.log(`📍 Category page: Sending location to backend: "${searchQuery}" as "${normalizeLocationForBackend(searchQuery)}"`);
-        } 
-        // If it's a regular search query (not location)
-        else if (searchQuery && !looksLikeLocation(searchQuery)) {
-          params.append('q', searchQuery);
+        // Add search query - check if it looks like a location
+        if (searchQuery) {
+          if (looksLikeLocation(searchQuery)) {
+            searchParams.location = searchQuery;
+          } else {
+            searchParams.query = searchQuery;
+          }
         }
         
         // Add location filters from active filters
         if (filters.locations && filters.locations.length > 0) {
-          // Use proper case for location filter
-          const properCaseLocation = normalizeLocationForBackend(filters.locations[0]);
-          params.append('location.area', properCaseLocation);
-          console.log(`📍 Category page: Sending filter location to backend: "${properCaseLocation}"`);
+          searchParams.location = filters.locations[0];
         }
         
         // Add price filters
         if (filters.priceRange?.min) {
-          params.append('minPrice', filters.priceRange.min);
+          searchParams.minPrice = filters.priceRange.min;
         }
         
         if (filters.priceRange?.max) {
-          params.append('maxPrice', filters.priceRange.max);
+          searchParams.maxPrice = filters.priceRange.max;
         }
         
         // Add rating filters
         if (filters.ratings && filters.ratings.length > 0) {
-          params.append('minRating', Math.min(...filters.ratings));
+          searchParams.minRating = Math.min(...filters.ratings);
         }
         
         // Add sorting
         if (filters.sortBy && filters.sortBy !== 'relevance') {
-          params.append('sort', filters.sortBy);
+          searchParams.sort = filters.sortBy;
         }
         
-        const queryString = params.toString();
-        if (queryString) {
-          url += `?${queryString}`;
+        console.log('📡 Fetching listings with params:', searchParams);
+        
+        // ✅ USE THE LISTING SERVICE!
+        // Method 1: Use searchListings for complex queries
+        // Method 2: Use getAllListings with filters
+        // Method 3: Use getListingsByCategory for category-specific
+        
+        let result;
+        if (category && !searchQuery && Object.keys(searchParams).length <= 1) {
+          // Simple category fetch
+          result = await listingService.getListingsByCategory(category, searchParams);
+        } else {
+          // Complex search with filters
+          result = await listingService.searchListings(searchParams);
         }
         
-        console.log('📡 Category Backend API Request:', url);
+        setApiResponse(result);
         
-        const response = await axiosInstance.get(url);
-        setApiResponse(response.data);
-        
-        if (response.data && response.data.status === 'success' && response.data.data?.listings) {
-          let allListings = response.data.data.listings;
+        if (result.status === 'success' && result.data?.listings) {
+          let allListings = result.data.listings;
           
-          console.log(`📦 Received ${allListings.length} listings for category page`);
+          console.log(`📦 Received ${allListings.length} listings from listingService`);
           
-          // ✅ FIX 2: Additional filtering for location searches
+          // Apply additional filtering for location searches if needed
           let finalListings = allListings;
           
           // If search query is a location, do additional filtering for accuracy
@@ -333,10 +327,10 @@ const useBackendListings = (category = null, searchQuery = '', filters = {}) => 
           setListings(finalListings);
         } else {
           setListings([]);
-          setError(response.data?.message || 'No data received');
+          setError(result.message || 'No data received');
         }
       } catch (err) {
-        console.error('❌ Category Backend API Error:', err.message);
+        console.error('❌ Error fetching listings:', err.message);
         setError(err.message);
         setListings([]);
       } finally {
@@ -448,10 +442,10 @@ const looksLikeLocation = (query) => {
   
   // Common Ibadan areas
   const ibadanAreas = [
-    'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui',  'agodi', 
+    'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'agodi', 
     'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
-    'molete', 'agbowo', 'sabo', 'bashorun',  'ife road',
-    'akinyele',  'mokola hill', 'sango roundabout'
+    'molete', 'agbowo', 'sabo', 'bashorun', 'ife road',
+    'akinyele', 'mokola hill', 'sango roundabout'
   ];
   
   // Location suffixes
@@ -2301,8 +2295,8 @@ const CategoryResults = () => {
   const resultsRef = useRef(null);
   const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
 
-  // ✅ Use activeCategory in the hook instead of category
-  const { listings, loading, error, apiResponse } = useBackendListings(activeCategory, searchQuery, activeFilters);
+  // ✅ UPDATED: Use the new useListings hook with listingService
+  const { listings, loading, error, apiResponse } = useListings(activeCategory, searchQuery, activeFilters);
 
   useEffect(() => {
     if (activeCategory) {
@@ -2766,7 +2760,7 @@ const CategoryResults = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 pt-32">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
             <p className="text-red-700 font-medium text-sm">{error}</p>
-            <p className="text-red-600 text-xs mt-1">Backend API Error</p>
+            <p className="text-red-600 text-xs mt-1">Error fetching listings</p>
           </div>
         </div>
         <Footer />

@@ -1,14 +1,12 @@
-// src/lib/listingService.js
+// src/lib/listingService.js - FIXED & OPTIMIZED VERSION
 import axiosInstance from './axios';
 
-// Cache configuration
 const CACHE_CONFIG = {
-  TTL: 30 * 1000, // 30 seconds cache
+  TTL: 60 * 1000, // 1 minute cache (increased from 30 seconds)
   PREFIX: 'listing_cache_',
-  MAX_SIZE: 50
+  MAX_SIZE: 100 // Increased for 100+ listings
 };
 
-// Cache storage
 const cacheStore = {
   get: (key) => {
     try {
@@ -16,6 +14,7 @@ const cacheStore = {
       if (!item) return null;
       
       const cached = JSON.parse(item);
+      // Check if cache is expired
       if (Date.now() - cached.timestamp > CACHE_CONFIG.TTL) {
         localStorage.removeItem(key);
         return null;
@@ -34,8 +33,9 @@ const cacheStore = {
         .filter(k => k.startsWith(CACHE_CONFIG.PREFIX));
       
       if (keys.length >= CACHE_CONFIG.MAX_SIZE) {
-        // Remove oldest caches
-        keys.slice(0, 5).forEach(k => localStorage.removeItem(k));
+        // Remove oldest caches (keep 50% of max size)
+        const keysToRemove = keys.slice(0, Math.floor(CACHE_CONFIG.MAX_SIZE * 0.5));
+        keysToRemove.forEach(k => localStorage.removeItem(k));
       }
       
       const cacheItem = {
@@ -61,6 +61,148 @@ const cacheStore = {
   }
 };
 
+// MAIN FUNCTION: Get ALL listings with optional filters
+export const getAllListings = async (filters = {}) => {
+  try {
+    const cacheKey = `${CACHE_CONFIG.PREFIX}all_${JSON.stringify(filters)}`;
+    const cached = cacheStore.get(cacheKey);
+    
+    if (cached) {
+      console.log('Cache hit for all listings');
+      return cached;
+    }
+    
+    // Build query params
+    const params = new URLSearchParams();
+    
+    // Add all filter parameters
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') {
+        params.append(key, filters[key]);
+      }
+    });
+    
+    const queryString = params.toString();
+    const url = `/listings${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await axiosInstance.get(url, {
+      timeout: 10000, // 10 second timeout for large responses
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (response.data) {
+      const apiData = response.data;
+      let result;
+      
+      // Handle different API response formats
+      if (apiData.status === 'success') {
+        result = apiData;
+      } else if (apiData.message && apiData.data) {
+        result = {
+          status: 'success',
+          message: apiData.message,
+          data: apiData.data,
+          results: apiData.results || apiData.data.listings?.length || 0
+        };
+      } else {
+        result = {
+          status: 'error',
+          message: 'Invalid API response structure',
+          results: 0,
+          data: { listings: [] }
+        };
+      }
+      
+      // Cache successful responses
+      if (result.status === 'success') {
+        cacheStore.set(cacheKey, result);
+      }
+      
+      return result;
+    }
+    
+    return {
+      status: 'error',
+      message: 'No data received from server',
+      results: 0,
+      data: { listings: [] }
+    };
+    
+  } catch (error) {
+    console.error('Error fetching all listings:', error);
+    return {
+      status: 'error',
+      message: error.response?.data?.message || error.message,
+      results: 0,
+      data: { listings: [] }
+    };
+  }
+};
+
+// Get listings by category (your existing function - KEEP THIS)
+export const getListingsByCategory = async (category, filters = {}) => {
+  return getAllListings({ ...filters, category });
+};
+
+// Get listing by ID (your existing function - KEEP THIS)
+export const getListingById = async (listingId) => {
+  try {
+    const cacheKey = `${CACHE_CONFIG.PREFIX}item_${listingId}`;
+    const cached = cacheStore.get(cacheKey);
+    
+    if (cached) {
+      return cached;
+    }
+    
+    const response = await axiosInstance.get(`/listings/${listingId}`, {
+      timeout: 5000
+    });
+    
+    if (response.data) {
+      const apiData = response.data;
+      let result;
+      
+      if (apiData.status === 'success') {
+        result = apiData;
+      } else if (apiData.message && apiData.data) {
+        result = {
+          status: 'success',
+          message: apiData.message,
+          data: { listing: apiData.data },
+          results: 1
+        };
+      } else {
+        result = {
+          status: 'error',
+          message: 'Invalid response structure',
+          results: 0,
+          data: { listing: null }
+        };
+      }
+      
+      cacheStore.set(cacheKey, result);
+      return result;
+    }
+    
+    return {
+      status: 'error',
+      message: 'Invalid response structure',
+      results: 0,
+      data: { listing: null }
+    };
+  } catch (error) {
+    return {
+      status: 'error',
+      message: error.message,
+      results: 0,
+      data: { listing: null }
+    };
+  }
+};
+
+// Get listings by vendor (your existing function - KEEP THIS)
 export const getListingsByVendor = async (vendorId) => {
   try {
     const response = await axiosInstance.get(`/listings/vendor/${vendorId}`);
@@ -98,131 +240,114 @@ export const getListingsByVendor = async (vendorId) => {
   }
 };
 
-export const getListingById = async (listingId) => {
+// SEARCH Function: Search across ALL listings
+export const searchListings = async (searchParams = {}) => {
   try {
-    const cacheKey = `${CACHE_CONFIG.PREFIX}item_${listingId}`;
-    const cached = cacheStore.get(cacheKey);
+    const {
+      query = '',
+      category = '',
+      minPrice = 0,
+      maxPrice = 1000000,
+      location = '',
+      sort = 'createdAt',
+      limit = 20,
+      page = 1
+    } = searchParams;
     
-    if (cached) {
-      return cached;
-    }
+    // Build search filters
+    const filters = {};
+    if (query) filters.search = query;
+    if (category) filters.category = category;
+    if (minPrice > 0) filters.minPrice = minPrice;
+    if (maxPrice < 1000000) filters.maxPrice = maxPrice;
+    if (location) filters.location = location;
+    if (sort) filters.sort = sort;
+    if (limit) filters.limit = limit;
+    if (page > 1) filters.page = page;
     
-    const response = await axiosInstance.get(`/listings/${listingId}`, {
-      timeout: 5000
-    });
+    return await getAllListings(filters);
     
-    if (response.data) {
-      const data = response.data;
-      let result;
-      
-      if (data.message && data.data) {
-        result = {
-          status: 'success',
-          message: data.message,
-          data: { listing: data.data },
-          results: 1
-        };
-      } else if (data.status === 'success') {
-        result = data;
-      } else {
-        result = {
-          status: 'error',
-          message: 'Invalid response structure',
-          results: 0,
-          data: { listing: null }
-        };
-      }
-      
-      cacheStore.set(cacheKey, result);
-      return result;
-    }
-    
-    return {
-      status: 'error',
-      message: 'Invalid response structure',
-      results: 0,
-      data: { listing: null }
-    };
   } catch (error) {
+    console.error('Search error:', error);
     return {
       status: 'error',
       message: error.message,
       results: 0,
-      data: { listing: null }
+      data: { listings: [] }
     };
   }
 };
 
-export const getListingsByCategory = async (category, filters = {}) => {
+// BATCH Function: Get multiple listings by IDs
+export const getListingsByIds = async (listingIds = []) => {
   try {
-    // Create cache key from category and filters
-    const cacheKey = `${CACHE_CONFIG.PREFIX}category_${category}_${JSON.stringify(filters)}`;
+    if (!Array.isArray(listingIds) || listingIds.length === 0) {
+      return {
+        status: 'success',
+        data: { listings: [] },
+        results: 0
+      };
+    }
     
     // Try to get from cache first
-    const cached = cacheStore.get(cacheKey);
-    if (cached) {
-      // Return cached data immediately
-      console.log(`Cache hit for category: ${category}`);
-      return cached;
-    }
+    const cachedResults = [];
+    const uncachedIds = [];
     
-    // Prepare query params
-    const params = new URLSearchParams();
-    
-    if (category) params.append('category', category);
-    if (filters.sort) params.append('sort', filters.sort);
-    if (filters.limit) params.append('limit', filters.limit);
-    if (filters.page) params.append('page', filters.page);
-    if (filters.minPrice) params.append('minPrice', filters.minPrice);
-    if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
-    
-    const queryString = params.toString();
-    const url = `/listings${queryString ? `?${queryString}` : ''}`;
-    
-    // Make API request with timeout - REMOVED Cache-Control header
-    const response = await axiosInstance.get(url, {
-      timeout: 8000 // 8 second timeout
-      // REMOVED: headers: { 'Cache-Control': 'max-age=30' }
+    listingIds.forEach(id => {
+      const cacheKey = `${CACHE_CONFIG.PREFIX}item_${id}`;
+      const cached = cacheStore.get(cacheKey);
+      if (cached) {
+        cachedResults.push(cached.data?.listing || cached.data);
+      } else {
+        uncachedIds.push(id);
+      }
     });
     
-    if (response.data) {
-      const data = response.data;
-      let result;
-      
-      if (data.message && data.data) {
-        result = {
-          status: 'success',
-          message: data.message,
-          data: data.data,
-          results: data.data.listings?.length || 0
-        };
-      } else if (data.status === 'success') {
-        result = data;
-      } else {
-        result = {
-          status: 'error',
-          message: 'Invalid response structure',
-          results: 0,
-          data: { listings: [] }
-        };
-      }
-      
-      // Cache the successful response
-      if (result.status === 'success') {
-        cacheStore.set(cacheKey, result);
-      }
-      
-      return result;
+    // If all are cached, return immediately
+    if (uncachedIds.length === 0) {
+      return {
+        status: 'success',
+        data: { listings: cachedResults },
+        results: cachedResults.length
+      };
     }
     
+    // Fetch uncached listings in parallel
+    const fetchPromises = uncachedIds.map(id => 
+      axiosInstance.get(`/listings/${id}`, { timeout: 3000 }).catch(() => null)
+    );
+    
+    const responses = await Promise.allSettled(fetchPromises);
+    
+    const fetchedListings = [];
+    responses.forEach((result, index) => {
+      if (result.status === 'fulfilled' && result.value?.data) {
+        const apiData = result.value.data;
+        const listing = apiData.data || apiData;
+        
+        // Cache the fetched listing
+        const cacheKey = `${CACHE_CONFIG.PREFIX}item_${uncachedIds[index]}`;
+        cacheStore.set(cacheKey, {
+          status: 'success',
+          data: { listing },
+          results: 1
+        });
+        
+        fetchedListings.push(listing);
+      }
+    });
+    
+    // Combine cached and fetched listings
+    const allListings = [...cachedResults, ...fetchedListings];
+    
     return {
-      status: 'error',
-      message: 'Invalid response structure',
-      results: 0,
-      data: { listings: [] }
+      status: 'success',
+      data: { listings: allListings },
+      results: allListings.length
     };
+    
   } catch (error) {
-    console.error('Error fetching listings by category:', error);
+    console.error('Batch fetch error:', error);
     return {
       status: 'error',
       message: error.message,
@@ -232,11 +357,11 @@ export const getListingsByCategory = async (category, filters = {}) => {
   }
 };
 
-// New functions for performance optimization
+// Keep your existing utility functions
 export const preloadListings = async (categories = []) => {
   try {
     const promises = categories.map(category => 
-      getListingsByCategory(category, { limit: 6 }).catch(() => null)
+      getListingsByCategory(category, { limit: 8 }).catch(() => null)
     );
     
     await Promise.allSettled(promises);
@@ -249,22 +374,29 @@ export const preloadListings = async (categories = []) => {
 
 export const invalidateCategoryCache = (category) => {
   cacheStore.invalidate(`category_${category}`);
+  cacheStore.invalidate('all_'); // Also invalidate "all listings" cache
 };
 
 export const clearAllCache = () => {
   cacheStore.invalidate(CACHE_CONFIG.PREFIX);
 };
 
-// Helper to get cached data only (no API call)
 export const getCachedListingsByCategory = (category, filters = {}) => {
   const cacheKey = `${CACHE_CONFIG.PREFIX}category_${category}_${JSON.stringify(filters)}`;
   return cacheStore.get(cacheKey);
 };
 
+// Main export
 export default {
-  getListingsByVendor,
-  getListingById,
+  // Core functions for ALL listings
+  getAllListings,
   getListingsByCategory,
+  getListingById,
+  getListingsByVendor,
+  getListingsByIds,
+  searchListings,
+  
+  // Cache utilities
   preloadListings,
   invalidateCategoryCache,
   clearAllCache,

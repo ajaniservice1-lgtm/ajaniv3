@@ -24,13 +24,27 @@ import {
   faShower,
   faConciergeBell,
   faParking,
+  faPlug,
+  faSwimmingPool,
+  faDumbbell,
+  faFan,
+  faWineGlass,
+  faShieldAlt,
+  faKey,
+  faHome,
+  faChair,
+  faDesktop,
+  faCouch,
+  faSuitcase,
+  faWind,
+  faThermometerHalf,
 } from "@fortawesome/free-solid-svg-icons";
 
-/* ---------------- HELPERS ---------------- */
-
+// Helper functions
 const formatPrice = (price) => {
-  if (!price) return "₦ --";
+  if (!price && price !== 0) return "₦ --";
   const num = parseInt(price.toString().replace(/[^\d]/g, ""));
+  if (isNaN(num)) return "₦ --";
   return `₦${num.toLocaleString()}`;
 };
 
@@ -41,34 +55,36 @@ const getBestOccupancy = (room) => {
     .sort((a, b) => a.price - b.price)[0];
 };
 
-// Helper to format location
-const formatLocation = (locationData) => {
-  if (!locationData) return "Location not specified";
-  
-  // If it's a string, return it
-  if (typeof locationData === 'string') return locationData;
-  
-  // If it's an object
-  if (typeof locationData === 'object') {
-    if (locationData.area) return locationData.area;
-    if (locationData.address) return locationData.address;
-    if (locationData.name) return locationData.name;
-    
-    // Handle geolocation object
-    if (locationData.geolocation) {
-      if (typeof locationData.geolocation === 'object') {
-        return `${locationData.geolocation.lat}, ${locationData.geolocation.lng}`;
-      }
-      return locationData.geolocation;
-    }
-  }
-  
-  return "Location not specified";
+const getAmenityIcon = (amenityName) => {
+  const amenity = amenityName.toLowerCase();
+  if (amenity.includes('wifi') || amenity.includes('internet')) return faWifi;
+  if (amenity.includes('tv') || amenity.includes('television')) return faTv;
+  if (amenity.includes('coffee') || amenity.includes('tea')) return faCoffee;
+  if (amenity.includes('ac') || amenity.includes('air conditioning') || amenity.includes('cooling')) return faSnowflake;
+  if (amenity.includes('bath') || amenity.includes('shower')) return faBath;
+  if (amenity.includes('parking') || amenity.includes('car')) return faCar;
+  if (amenity.includes('food') || amenity.includes('restaurant') || amenity.includes('dining')) return faUtensils;
+  if (amenity.includes('bed')) return faBed;
+  if (amenity.includes('pool')) return faSwimmingPool;
+  if (amenity.includes('gym') || amenity.includes('fitness')) return faDumbbell;
+  if (amenity.includes('fan')) return faFan;
+  if (amenity.includes('wine') || amenity.includes('bar')) return faWineGlass;
+  if (amenity.includes('security') || amenity.includes('safe')) return faShieldAlt;
+  if (amenity.includes('key') || amenity.includes('access')) return faKey;
+  if (amenity.includes('home') || amenity.includes('house')) return faHome;
+  if (amenity.includes('chair') || amenity.includes('furniture')) return faChair;
+  if (amenity.includes('desk') || amenity.includes('workspace')) return faDesktop;
+  if (amenity.includes('sofa') || amenity.includes('couch')) return faCouch;
+  if (amenity.includes('suitcase') || amenity.includes('luggage')) return faSuitcase;
+  if (amenity.includes('wind') || amenity.includes('ventilation')) return faWind;
+  if (amenity.includes('thermometer') || amenity.includes('heating')) return faThermometerHalf;
+  if (amenity.includes('plug') || amenity.includes('socket') || amenity.includes('outlet')) return faPlug;
+  if (amenity.includes('clock') || amenity.includes('time')) return faClock;
+  if (amenity.includes('bell') || amenity.includes('service')) return faConciergeBell;
+  return faCheck;
 };
 
-/* ---------------- COMPONENT ---------------- */
-
-const RoomSelection = ({ vendorData, category = "hotel" }) => {
+const RoomSelection = ({ vendorData, category = "hotel", onRoomSelect, onRoomBookNow }) => {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [modalRoom, setModalRoom] = useState(null);
@@ -78,244 +94,200 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
 
   if (category !== "hotel") return null;
 
-  // Get formatted location
-  const vendorLocation = formatLocation(vendorData?.location);
-
-  /* ---------------- ROOM DATA ---------------- */
-  const roomTypes = [
-    {
-      id: 'room-1',
-      title: 'Superior Twin Room',
-      name: 'Superior Twin Room',
-      description: 'Comfortable room with twin beds and courtyard view',
-      size: '35 m²',
-      beds: '2 Single Beds',
-      maxOccupancy: 6,
-      mainImage: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
-      image: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
-      images: [
-        'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
-        'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80',
-        'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
-        'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=80'
-      ],
-      subImages: [
-        'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=400&q=80',
-        'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&q=80',
-        'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=400&q=80'
-      ],
-      specifications: [
-        { icon: faRuler, label: 'Room Size', value: '35 m²' },
-        { icon: faBed, label: 'Bed Type', value: 'Twin Beds' },
-        { icon: faUsers, label: 'Max Occupancy', value: '6 Guests' },
-        { icon: faExpand, label: 'View', value: 'Courtyard View' },
-        { icon: faDoorClosed, label: 'Room Type', value: 'Standard' },
-        { icon: faClock, label: 'Check-in', value: '3:00 PM' }
-      ],
-      features: [
-        { name: 'WiFi', included: true, icon: faWifi },
-        { name: 'Air conditioning', included: true, icon: faSnowflake },
-        { name: 'Iron facilities', included: true, icon: faConciergeBell },
-        { name: 'Cable channel', included: true, icon: faTv }
-      ],
-      amenitiesList: [
-        'Flat-screen TV',
-        'Minibar',
-        'Coffee/tea maker',
-        'Safe',
-        'Work desk',
-        'Iron/ironing board',
-        'Hairdryer',
-        'Toiletries'
-      ],
-      occupancy: [
-        { 
-          id: 'occ-1',
-          adults: "2 adults", 
-          price: 435865,
-          originalPrice: 534928,
-          discount: '-30%',
-          breakfast: 'Very good breakfast available',
-          breakfastPrice: '₦43,013',
-          benefits: ['Pay at hotel', 'Free WiFi', 'Parking'],
-          isAvailable: true
-        },
-        { 
-          id: 'occ-2',
-          adults: "4 adults", 
-          price: 375865,
-          originalPrice: 534928,
-          discount: '-30%',
-          breakfast: 'Very good breakfast available',
-          breakfastPrice: '₦43,013',
-          benefits: ['Pay at hotel', 'Free WiFi', 'Parking'],
-          isAvailable: true
-        },
-        { 
-          id: 'occ-3',
-          adults: "6 adults", 
-          price: 335865,
-          originalPrice: 534928,
-          discount: '-30%',
-          breakfast: 'Very good breakfast available',
-          breakfastPrice: '₦43,013',
-          benefits: ['Pay at hotel', 'Free WiFi', 'Parking'],
-          isAvailable: true
+  // Convert API room data to component format
+  const getRoomTypesFromVendor = () => {
+    if (!vendorData) return [];
+    
+    // If vendor has roomTypes in details
+    if (vendorData.details?.roomTypes && Array.isArray(vendorData.details.roomTypes)) {
+      return vendorData.details.roomTypes.map((room, index) => {
+        // Get images from room data
+        const roomImages = room.images?.map(img => img.url) || [];
+        const hasImages = roomImages.length > 0;
+        
+        // Get amenities from room or vendor
+        const roomAmenities = Array.isArray(room.amenities) ? room.amenities : [];
+        const vendorAmenities = Array.isArray(vendorData.amenities) ? vendorData.amenities : [];
+        const allAmenities = [...new Set([...roomAmenities, ...vendorAmenities])];
+        
+        // If no amenities, use default hotel amenities
+        const amenitiesList = allAmenities.length > 0 ? allAmenities : [
+          'Free WiFi',
+          'Air Conditioning',
+          'Flat-screen TV',
+          'Private Bathroom',
+          'Daily Housekeeping',
+          'Room Service',
+          'Minibar',
+          'Safe',
+          'Work Desk'
+        ];
+        
+        // Create occupancy options based on room capacity and price
+        const occupancyOptions = [];
+        const basePrice = room.pricePerNight || room.price || 0;
+        const maxCapacity = room.maxCapacity || 2;
+        
+        // Create multiple occupancy options
+        for (let i = 1; i <= Math.min(3, maxCapacity); i++) {
+          const priceMultiplier = i === 1 ? 1 : i === 2 ? 0.9 : 0.85;
+          const occupancyPrice = Math.round(basePrice * priceMultiplier);
+          const originalPrice = Math.round(occupancyPrice * 1.3); // 30% discount
+            
+          occupancyOptions.push({
+            id: `occ-${room._id || index}-${i}`,
+            adults: `${i} ${i === 1 ? 'adult' : 'adults'}`,
+            price: occupancyPrice,
+            originalPrice: originalPrice,
+            discount: '-30%',
+            breakfast: 'Breakfast included',
+            breakfastPrice: '₦5,000',
+            benefits: ['Free cancellation', 'Pay at hotel', 'Free WiFi'],
+            isAvailable: true
+          });
         }
-      ],
-      maxRooms: 8,
-      rating: 4.78,
-      reviewCount: 231
-    },
-    {
-      id: 'room-2',
-      title: '2 Bedroom pymont view suite',
-      name: '2 Bedroom Pymont View Suite',
-      description: 'Luxury suite with panoramic views of the city skyline',
-      size: '65 m²',
-      beds: '1 King Bed, 1 Queen Bed',
-      maxOccupancy: 4,
-      mainImage: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
-      image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
-      images: [
-        'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
-        'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&q=80',
-        'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
-        'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=800&q=80'
-      ],
-      subImages: [
-        'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&q=80',
-        'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=400&q=80',
-        'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=400&q=80'
-      ],
-      specifications: [
-        { icon: faRuler, label: 'Room Size', value: '65 m²' },
-        { icon: faBed, label: 'Bed Type', value: 'King & Queen' },
-        { icon: faUsers, label: 'Max Occupancy', value: '4 Guests' },
-        { icon: faExpand, label: 'View', value: 'City View' },
-        { icon: faDoorClosed, label: 'Room Type', value: 'Suite' },
-        { icon: faClock, label: 'Check-in', value: '2:00 PM' }
-      ],
-      features: [
-        { name: 'Free WiFi', included: true, icon: faWifi },
-        { name: 'Cable channel', included: true, icon: faTv },
-        { name: 'Free Breakfast', included: true, icon: faCoffee },
-        { name: 'Air Conditioning', included: true, icon: faSnowflake },
-        { name: 'Private Bathroom', included: true, icon: faBath },
-        { name: 'Room Service', included: true, icon: faConciergeBell },
-        { name: 'Parking', included: true, icon: faParking }
-      ],
-      amenitiesList: [
-        'Flat-screen TV',
-        'Minibar',
-        'Coffee/tea maker',
-        'Safe',
-        'Work desk',
-        'Iron/ironing board',
-        'Hairdryer',
-        'Daily housekeeping'
-      ],
-      occupancy: [
-        { 
-          id: 'occ-4',
-          adults: "2 adults", 
-          price: 445865,
-          originalPrice: 534928,
-          discount: '-30%',
-          breakfast: 'Very good breakfast available',
-          breakfastPrice: '₦43,013',
-          benefits: ['Pay at hotel', 'Free WiFi', 'Parking'],
-          isAvailable: true
-        },
-        { 
-          id: 'occ-5',
-          adults: "4 adults", 
-          price: 405865,
-          originalPrice: 534928,
-          discount: '-30%',
-          breakfast: 'Very good breakfast available',
-          breakfastPrice: '₦43,013',
-          benefits: ['Pay at hotel', 'Free WiFi', 'Parking'],
-          isAvailable: true
-        }
-      ],
-      maxRooms: 5,
-      rating: 4.8,
-      reviewCount: 124
-    },
-    {
-      id: 'room-3',
-      title: 'One bedroom suite',
-      name: 'One Bedroom Suite',
-      description: 'Elegant suite with modern amenities and garden view',
-      size: '45 m²',
-      beds: '1 King Bed',
-      maxOccupancy: 2,
-      mainImage: 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=80',
-      image: 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=80',
-      images: [
-        'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=80',
-        'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=800&q=80',
-        'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80',
-        'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80'
-      ],
-      subImages: [
-        'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=400&q=80',
-        'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=400&q=80',
-        'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=400&q=80'
-      ],
-      specifications: [
-        { icon: faRuler, label: 'Room Size', value: '45 m²' },
-        { icon: faBed, label: 'Bed Type', value: 'King Bed' },
-        { icon: faUsers, label: 'Max Occupancy', value: '2 Guests' },
-        { icon: faExpand, label: 'View', value: 'Garden View' },
-        { icon: faDoorClosed, label: 'Room Type', value: 'Suite' },
-        { icon: faClock, label: 'Check-in', value: '2:00 PM' }
-      ],
-      features: [
-        { name: 'WiFi', included: true, icon: faWifi },
-        { name: 'Cable channel', included: true, icon: faTv },
-        { name: 'Room Service', included: true, icon: faUtensils },
-        { name: 'Parking', included: true, icon: faCar },
-        { name: 'Air Conditioning', included: true, icon: faSnowflake },
-        { name: 'Private Bathroom', included: true, icon: faShower }
-      ],
-      amenitiesList: [
-        'Smart TV',
-        'Minibar',
-        'Nespresso machine',
-        'Safe',
-        'Writing desk',
-        'Ironing facilities',
-        'Bathrobes',
-        'Slippers'
-      ],
-      occupancy: [
-        { 
-          id: 'occ-6',
-          adults: "2 adults", 
-          price: 534865,
-          originalPrice: 534928,
-          discount: '-30%',
-          breakfast: 'Very good breakfast available',
-          breakfastPrice: '₦43,013',
-          benefits: ['Pay at hotel', 'Free WiFi', 'Parking'],
-          isAvailable: true
-        }
-      ],
-      maxRooms: 3,
-      rating: 4.6,
-      reviewCount: 89
+        
+        // Generate features from amenities
+        const features = amenitiesList.slice(0, 6).map(amenity => ({
+          name: amenity,
+          included: true,
+          icon: getAmenityIcon(amenity)
+        }));
+        
+        // Generate specifications
+        const specifications = [
+          { icon: faRuler, label: 'Room Size', value: room.size || '35 m²' },
+          { icon: faBed, label: 'Bed Type', value: room.bedType || 'King Bed' },
+          { icon: faUsers, label: 'Max Occupancy', value: `${maxCapacity} Guests` },
+          { icon: faExpand, label: 'View', value: room.view || 'City View' },
+          { icon: faDoorClosed, label: 'Room Type', value: room.name || 'Standard' },
+          { icon: faClock, label: 'Check-in', value: room.checkIn || '3:00 PM' }
+        ];
+        
+        return {
+          id: room._id || `room-${index + 1}`,
+          title: room.name || `Room Type ${index + 1}`,
+          name: room.name || `Room ${index + 1}`,
+          description: room.description || `${room.name || 'Room'} at ${vendorData.name || 'Hotel'}`,
+          size: room.size || '35 m²',
+          beds: room.bedType || `${maxCapacity === 1 ? 'Single Bed' : maxCapacity === 2 ? 'Double Bed' : 'Multiple Beds'}`,
+          maxOccupancy: maxCapacity,
+          mainImage: hasImages ? roomImages[0] : 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
+          image: hasImages ? roomImages[0] : 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
+          images: hasImages ? roomImages : [
+            'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
+            'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80',
+            'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
+            'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=80'
+          ],
+          subImages: hasImages && roomImages.length > 1 ? roomImages.slice(1, 4) : [
+            'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=400&q=80',
+            'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&q=80',
+            'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=400&q=80'
+          ],
+          specifications,
+          features,
+          amenitiesList: amenitiesList,
+          occupancy: occupancyOptions,
+          maxRooms: room.availableRooms || 8,
+          rating: vendorData.rating || 4.5,
+          reviewCount: vendorData.reviewCount || 120,
+          pricePerNight: room.pricePerNight || 0,
+          discountedRate: room.discountedRate || 0,
+          originalData: room
+        };
+      });
     }
-  ];
+    
+    // Fallback to default rooms if no roomTypes in API
+    return [
+      {
+        id: 'room-1',
+        title: 'Standard Room',
+        name: 'Standard Room',
+        description: 'Comfortable room with all basic amenities',
+        size: '35 m²',
+        beds: 'Double Bed',
+        maxOccupancy: 2,
+        mainImage: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
+        image: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
+        images: [
+          'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
+          'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80',
+          'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
+          'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=80'
+        ],
+        subImages: [
+          'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=400&q=80',
+          'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&q=80',
+          'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=400&q=80'
+        ],
+        specifications: [
+          { icon: faRuler, label: 'Room Size', value: '35 m²' },
+          { icon: faBed, label: 'Bed Type', value: 'Double Bed' },
+          { icon: faUsers, label: 'Max Occupancy', value: '2 Guests' },
+          { icon: faExpand, label: 'View', value: 'City View' },
+          { icon: faDoorClosed, label: 'Room Type', value: 'Standard' },
+          { icon: faClock, label: 'Check-in', value: '3:00 PM' }
+        ],
+        features: [
+          { name: 'Free WiFi', included: true, icon: faWifi },
+          { name: 'Air Conditioning', included: true, icon: faSnowflake },
+          { name: 'Flat-screen TV', included: true, icon: faTv },
+          { name: 'Private Bathroom', included: true, icon: faBath },
+          { name: 'Room Service', included: true, icon: faConciergeBell },
+          { name: 'Parking', included: true, icon: faCar }
+        ],
+        amenitiesList: [
+          'Free WiFi',
+          'Air Conditioning',
+          'Flat-screen TV',
+          'Private Bathroom',
+          'Daily Housekeeping',
+          'Room Service',
+          'Minibar',
+          'Safe',
+          'Work Desk'
+        ],
+        occupancy: [
+          { 
+            id: 'occ-1',
+            adults: "2 adults", 
+            price: 435865,
+            originalPrice: 534928,
+            discount: '-30%',
+            breakfast: 'Breakfast included',
+            breakfastPrice: '₦5,000',
+            benefits: ['Free cancellation', 'Pay at hotel', 'Free WiFi'],
+            isAvailable: true
+          }
+        ],
+        maxRooms: 8,
+        rating: 4.5,
+        reviewCount: 120
+      }
+    ];
+  };
 
-  /* ---------------- ACTIONS ---------------- */
+  const roomTypes = getRoomTypesFromVendor();
+  
+  // Format location from vendor data
+  const vendorLocation = vendorData?.location?.area || 
+                        vendorData?.location?.address || 
+                        vendorData?.area || 
+                        "Ibadan, Nigeria";
 
+  /* ---------------- MODAL FUNCTIONS ---------------- */
   const openModal = (room) => {
     setModalRoom(room);
     setCurrentImageIndex(0);
     setShowModal(true);
     document.body.style.overflow = "hidden";
+    
+    // Notify parent component about room selection
+    if (onRoomSelect) {
+      onRoomSelect(room);
+    }
   };
 
   const closeModal = () => {
@@ -324,7 +296,6 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
     document.body.style.overflow = "auto";
   };
 
-  // Open fullscreen gallery
   const openFullscreenGallery = (room, index = 0) => {
     setModalRoom(room);
     setFullscreenGalleryIndex(index);
@@ -332,7 +303,6 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
     document.body.style.overflow = "hidden";
   };
 
-  // Close fullscreen gallery
   const closeFullscreenGallery = () => {
     setShowFullscreenGallery(false);
     setModalRoom(null);
@@ -340,7 +310,6 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
     document.body.style.overflow = "auto";
   };
 
-  // Navigate gallery
   const handlePrevImage = (modalType = "fullscreen") => {
     if (modalRoom && modalRoom.images) {
       if (modalType === "fullscreen") {
@@ -371,13 +340,32 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
 
   const handleBookNow = (room, option) => {
     const bookingData = {
-      room,
-      booking: option,
+      room: {
+        ...room,
+        selectedOption: option
+      },
       vendor: vendorData,
+      bookingDetails: {
+        roomType: room.name,
+        guests: option.adults,
+        price: option.price,
+        totalPrice: option.price, // You can add calculation logic here
+        checkIn: "3:00 PM",
+        checkOut: "11:00 AM",
+        breakfastIncluded: option.breakfast
+      }
     };
 
+    // Store booking data
     localStorage.setItem("roomBookingData", JSON.stringify(bookingData));
-    navigate("/booking", { state: bookingData });
+    
+    // Notify parent component
+    if (onRoomBookNow) {
+      onRoomBookNow(room, option);
+    } else {
+      // Fallback navigation
+      navigate("/booking", { state: bookingData });
+    }
   };
 
   // Handle keyboard navigation
@@ -406,12 +394,28 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [showFullscreenGallery, showModal]);
 
-  /* ---------------- RENDER ---------------- */
+  // If no rooms available
+  if (roomTypes.length === 0) {
+    return (
+      <div className="max-w-[1250px] mx-auto px-2.5 py-4">
+        <h2 className="text-lg font-bold text-[#00065A] mb-4">
+          Room Selection
+        </h2>
+        <div className="text-center py-8 border border-gray-200 rounded-lg">
+          <p className="text-gray-600">No rooms available at the moment.</p>
+        </div>
+      </div>
+    );
+  }
 
+  /* ---------------- RENDER ---------------- */
   return (
     <div className="max-w-[1250px] mx-auto px-2.5 py-4">
       <h2 className="text-lg font-bold text-[#00065A] mb-4">
         Select Your Room
+        <span className="text-sm font-normal text-gray-500 ml-2">
+          ({roomTypes.length} room {roomTypes.length === 1 ? 'type' : 'types'} available)
+        </span>
       </h2>
 
       {/* ROOM LIST */}
@@ -422,10 +426,10 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
           return (
             <div
               key={room.id}
-              className="border border-gray-200 rounded-lg p-2.5 lg:p-6 transition"
+              className="border border-gray-200 rounded-lg p-2.5 lg:p-6 transition hover:shadow-md"
             >
               <div className="flex flex-col lg:flex-row gap-4">
-                {/* LEFT CARD - Compact mobile */}
+                {/* LEFT CARD - Room Image & Basic Info */}
                 <div className="lg:w-[280px] flex-shrink-0">
                   <div className="relative">
                     <img
@@ -434,10 +438,16 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
                       onClick={() => openFullscreenGallery(room, 0)}
                       className="w-full h-40 rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
                     />
-                    {/* Image count badge - smaller on mobile */}
+                    {/* Image count badge */}
                     <div className="absolute bottom-1.5 right-1.5 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded-full">
                       {room.images?.length || 1} photos
                     </div>
+                    {/* Price badge */}
+                    {room.pricePerNight && (
+                      <div className="absolute top-1.5 left-1.5 bg-[#06EAFC] text-white text-[10px] px-1.5 py-0.5 rounded-full font-semibold">
+                        {formatPrice(room.pricePerNight)}
+                      </div>
+                    )}
                   </div>
 
                   <h3 className="font-semibold text-base mt-2">
@@ -446,9 +456,9 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
 
                   <div className="flex items-center gap-1 text-xs mt-0.5">
                     <FontAwesomeIcon icon={faStar} className="text-yellow-400 w-3" />
-                    <span>{room.rating}</span>
+                    <span>{room.rating?.toFixed(1) || "4.5"}</span>
                     <span className="text-gray-500">
-                      ({room.reviewCount})
+                      ({room.reviewCount || 0} reviews)
                     </span>
                   </div>
 
@@ -465,7 +475,7 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
                   </button>
                 </div>
 
-                {/* RIGHT OPTIONS - Compact mobile */}
+                {/* RIGHT OPTIONS - Booking Options */}
                 <div className="flex-1 space-y-3">
                   {room.occupancy.map((option) => (
                     <div
@@ -495,12 +505,16 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
                       </div>
 
                       <div className="text-right flex-shrink-0 lg:w-48">
-                        <p className="line-through text-xs text-gray-400">
-                          {formatPrice(option.originalPrice)}
-                        </p>
-                        <p className="text-xs text-red-500">
-                          {option.discount}
-                        </p>
+                        {option.originalPrice && option.originalPrice > option.price && (
+                          <>
+                            <p className="line-through text-xs text-gray-400">
+                              {formatPrice(option.originalPrice)}
+                            </p>
+                            <p className="text-xs text-red-500">
+                              {option.discount}
+                            </p>
+                          </>
+                        )}
                         <p className="text-lg font-bold">
                           {formatPrice(option.price)}
                         </p>
@@ -512,7 +526,7 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
                           onClick={() => handleBookNow(room, option)}
                           className="w-full bg-gradient-to-r from-blue-500 to-blue-700 text-white px-4 py-1.5 rounded-full text-xs font-semibold hover:opacity-90 transition-opacity"
                         >
-                          BOOK
+                          BOOK NOW
                         </button>
                       </div>
                     </div>
@@ -527,7 +541,7 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
       {/* ---------------- FULLSCREEN IMAGE GALLERY MODAL ---------------- */}
       {showFullscreenGallery && modalRoom && (
         <div className="fixed inset-0 z-[9999] bg-black">
-          {/* Header - Compact mobile */}
+          {/* Header */}
           <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent">
             <div className="text-white">
               <h2 className="text-base font-semibold">{modalRoom.title}</h2>
@@ -552,7 +566,7 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
               className="max-w-full max-h-full object-contain"
             />
             
-            {/* Navigation Buttons - Smaller on mobile */}
+            {/* Navigation Buttons */}
             {modalRoom.images.length > 1 && (
               <>
                 <button
@@ -572,7 +586,7 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
             )}
           </div>
 
-          {/* Thumbnail Strip - Compact mobile */}
+          {/* Thumbnail Strip */}
           <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
             <div className="flex gap-1.5 overflow-x-auto pb-1.5">
               {modalRoom.images?.map((img, index) => (
@@ -609,7 +623,7 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
         return (
           <div className="fixed inset-0 bg-black/70 z-[1000] flex items-center justify-center p-2.5">
             <div className="bg-white w-full max-w-6xl rounded-xl overflow-y-auto max-h-[90vh]">
-              {/* HEADER - Compact mobile */}
+              {/* HEADER */}
               <div className="sticky top-0 bg-white border-b border-gray-300 p-3 flex justify-between items-center">
                 <h3 className="font-bold text-base">{modalRoom.title}</h3>
                 <button 
@@ -632,7 +646,7 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
                       alt={modalRoom.title}
                     />
 
-                    {/* Navigation Buttons - Smaller on mobile */}
+                    {/* Navigation Buttons */}
                     {modalRoom.images.length > 1 && (
                       <>
                         <button
@@ -698,9 +712,8 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
                         {modalRoom.features?.map((feature, index) => (
                           <div key={index} className="flex items-center gap-1.5">
                             <FontAwesomeIcon 
-                              icon={feature.included ? faCheck : faTimes} 
-                              className={feature.included ? "text-green-500" : "text-red-500"} 
-                              size="xs"
+                              icon={feature.icon}
+                              className="text-blue-500 text-sm"
                             />
                             <span className="text-xs">{feature.name}</span>
                           </div>
@@ -749,12 +762,16 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
                       </div>
 
                       <div className="pt-3 md:pt-4 border-t border-gray-300">
-                        <p className="line-through text-xs md:text-sm text-gray-400">
-                          {formatPrice(bestOption.originalPrice)}
-                        </p>
-                        <p className="text-red-500 text-xs">
-                          {bestOption.discount}
-                        </p>
+                        {bestOption.originalPrice && bestOption.originalPrice > bestOption.price && (
+                          <>
+                            <p className="line-through text-xs md:text-sm text-gray-400">
+                              {formatPrice(bestOption.originalPrice)}
+                            </p>
+                            <p className="text-red-500 text-xs">
+                              {bestOption.discount}
+                            </p>
+                          </>
+                        )}
                         <p className="text-xl md:text-3xl font-bold mt-0.5 md:mt-1">
                           {formatPrice(bestOption.price)}
                         </p>
@@ -771,31 +788,33 @@ const RoomSelection = ({ vendorData, category = "hotel" }) => {
                       </div>
 
                       {/* All Occupancy Options */}
-                      <div className="pt-3 md:pt-4 border-t border-gray-300">
-                        <h5 className="font-medium mb-2 text-sm md:text-base">Other Options</h5>
-                        <div className="space-y-2">
-                          {modalRoom.occupancy
-                            .filter(opt => opt.id !== bestOption.id)
-                            .map((option) => (
-                              <div key={option.id} className="flex justify-between items-center p-1.5 md:p-2 bg-gray-50 rounded">
-                                <div className="min-w-0">
-                                  <p className="text-xs md:text-sm font-medium truncate">{option.adults}</p>
-                                  <p className="text-xs text-gray-600 truncate">{option.breakfast}</p>
+                      {modalRoom.occupancy.length > 1 && (
+                        <div className="pt-3 md:pt-4 border-t border-gray-300">
+                          <h5 className="font-medium mb-2 text-sm md:text-base">Other Options</h5>
+                          <div className="space-y-2">
+                            {modalRoom.occupancy
+                              .filter(opt => opt.id !== bestOption.id)
+                              .map((option) => (
+                                <div key={option.id} className="flex justify-between items-center p-1.5 md:p-2 bg-gray-50 rounded">
+                                  <div className="min-w-0">
+                                    <p className="text-xs md:text-sm font-medium truncate">{option.adults}</p>
+                                    <p className="text-xs text-gray-600 truncate">{option.breakfast}</p>
+                                  </div>
+                                  <div className="text-right flex-shrink-0 ml-2">
+                                    <p className="font-bold text-sm md:text-base">{formatPrice(option.price)}</p>
+                                    <button
+                                      onClick={() => handleBookNow(modalRoom, option)}
+                                      className="text-blue-600 text-xs md:text-sm font-medium hover:text-blue-800"
+                                    >
+                                      Select
+                                    </button>
+                                  </div>
                                 </div>
-                                <div className="text-right flex-shrink-0 ml-2">
-                                  <p className="font-bold text-sm md:text-base">{formatPrice(option.price)}</p>
-                                  <button
-                                    onClick={() => handleBookNow(modalRoom, option)}
-                                    className="text-blue-600 text-xs md:text-sm font-medium hover:text-blue-800"
-                                  >
-                                    Select
-                                  </button>
-                                </div>
-                              </div>
-                            ))
-                          }
+                              ))
+                            }
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 )}

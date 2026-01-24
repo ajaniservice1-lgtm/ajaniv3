@@ -22,7 +22,27 @@ import {
   faTimes,
   faChevronLeft,
   faChevronRight,
-  faHome
+  faHome,
+  faCalendarAlt,
+  faClock,
+  faUserCheck,
+  faRulerCombined,
+  faSnowflake,
+  faTv,
+  faCoffee,
+  faBath,
+  faConciergeBell,
+  faPlug,
+  faWineGlass,
+  faShieldAlt,
+  faKey,
+  faChair,
+  faDesktop,
+  faCouch,
+  faSuitcase,
+  faWind,
+  faThermometerHalf,
+  faBookmark as faBookmarkSolid
 } from "@fortawesome/free-solid-svg-icons";
 import { CiBookmark } from "react-icons/ci";
 import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
@@ -30,6 +50,7 @@ import { FaBookOpen } from "react-icons/fa";
 import { HiLocationMarker } from "react-icons/hi";
 import { RiShare2Line } from "react-icons/ri";
 import { VscVerifiedFilled } from "react-icons/vsc";
+// import { faBookmark } from "@fortawesome/free-regular-svg-icons";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import RoomSelection from "../components/RoomSelection";
@@ -67,9 +88,9 @@ const safeToString = (value, defaultValue = '') => {
   return defaultValue;
 };
 
-// UPDATED: normalizeCategory function that separates shortlets from hotels
+// Normalize category function
 const normalizeCategory = (category) => {
-  if (!category) return 'restaurant';
+  if (!category) return 'hotel';
   
   const cat = safeToString(category).toLowerCase().trim();
   
@@ -117,16 +138,19 @@ const normalizeCategory = (category) => {
   }
   
   // Default fallback
-  return 'restaurant';
+  return 'hotel';
 };
 
 const getVendorImages = (vendor) => {
   if (!vendor) return Array(5).fill(FALLBACK_IMAGES.default);
   
+  // Check if vendor has images directly
   if (vendor.images && Array.isArray(vendor.images) && vendor.images.length > 0) {
-    const imageUrls = vendor.images
-      .map(img => img.url)
-      .filter(url => url && url.startsWith("http"));
+    const imageUrls = vendor.images.map(img => {
+      if (typeof img === 'string') return img;
+      if (img && img.url) return img.url;
+      return null;
+    }).filter(url => url && url.startsWith("http"));
     
     if (imageUrls.length >= 5) {
       return imageUrls.slice(0, 5);
@@ -142,7 +166,32 @@ const getVendorImages = (vendor) => {
     }
   }
   
+  // For hotels, check room images first
   const category = normalizeCategory(vendor.category);
+  if (category === 'hotel' && vendor.details?.roomTypes && Array.isArray(vendor.details.roomTypes)) {
+    // Collect all room images
+    const allRoomImages = vendor.details.roomTypes.flatMap(room => 
+      room.images ? room.images.map(img => img.url).filter(url => url) : []
+    );
+    
+    if (allRoomImages.length > 0) {
+      // Take up to 5 unique images
+      const uniqueImages = [...new Set(allRoomImages)].slice(0, 5);
+      if (uniqueImages.length >= 5) {
+        return uniqueImages;
+      }
+      
+      // Fill with fallback if needed
+      const filledImages = [...uniqueImages];
+      const fallbackImage = FALLBACK_IMAGES[category] || FALLBACK_IMAGES.default;
+      while (filledImages.length < 5) {
+        filledImages.push(fallbackImage);
+      }
+      return filledImages.slice(0, 5);
+    }
+  }
+  
+  // Fallback to category-specific image
   const fallbackImage = FALLBACK_IMAGES[category] || FALLBACK_IMAGES.default;
   return Array(5).fill(fallbackImage);
 };
@@ -171,20 +220,24 @@ const getVendorInfo = (listing) => {
   if (listing.vendorId && typeof listing.vendorId === 'object') {
     return {
       id: listing.vendorId._id || listing.vendorId.id,
-      name: safeToString(listing.vendorId.name || listing.vendorId.username || listing.vendorId.email, 'Vendor'),
+      name: safeToString(listing.vendorId.businessName || listing.vendorId.name || listing.vendorId.username || listing.vendorId.email, 'Vendor'),
       email: safeToString(listing.vendorId.email),
       phone: safeToString(listing.vendorId.phone),
-      verified: listing.vendorId.verified || false
+      verified: listing.vendorId.verified || false,
+      businessName: safeToString(listing.vendorId.businessName, ''),
+      businessAddress: safeToString(listing.vendorId.businessAddress, '')
     };
   }
   
   if (listing.vendor && typeof listing.vendor === 'object') {
     return {
       id: listing.vendor._id || listing.vendor.id,
-      name: safeToString(listing.vendor.name || listing.vendor.username || listing.vendor.email, 'Vendor'),
+      name: safeToString(listing.vendor.businessName || listing.vendor.name || listing.vendor.username || listing.vendor.email, 'Vendor'),
       email: safeToString(listing.vendor.email),
       phone: safeToString(listing.vendor.phone),
-      verified: listing.vendor.verified || false
+      verified: listing.vendor.verified || false,
+      businessName: safeToString(listing.vendor.businessName, ''),
+      businessAddress: safeToString(listing.vendor.businessAddress, '')
     };
   }
   
@@ -194,7 +247,9 @@ const getVendorInfo = (listing) => {
       name: "Vendor",
       email: null,
       phone: null,
-      verified: false
+      verified: false,
+      businessName: '',
+      businessAddress: ''
     };
   }
   
@@ -235,126 +290,77 @@ const useAuthStatus = () => {
   return isAuthenticated;
 };
 
-const VendorListingCard = ({ listing, onClick }) => {
-  const images = getVendorImages(listing);
-  const category = normalizeCategory(listing.category);
+const getAmenities = (vendor) => {
+  if (!vendor) return ["Not specified"];
   
-  const formatPrice = (price) => {
-    if (!price) return "₦ --";
-    const num = parseInt(safeToString(price).replace(/[^\d]/g, ""));
-    if (isNaN(num)) return "₦ --";
-    return `₦${num.toLocaleString()}`;
-  };
+  const category = normalizeCategory(vendor.category);
   
-  const getCategoryIcon = () => {
-    switch(category) {
-      case 'hotel': return faBed;
-      case 'restaurant': return faUtensils;
-      case 'event': return faMusic;
-      case 'shortlet': return faHome;
-      default: return faUtensils;
+  // Check direct amenities first
+  if (vendor.amenities) {
+    if (typeof vendor.amenities === 'string') {
+      return vendor.amenities.split(",").map(item => item.trim()).filter(item => item);
     }
-  };
+    if (Array.isArray(vendor.amenities) && vendor.amenities.length > 0) {
+      return vendor.amenities;
+    }
+  }
   
-  return (
-    <div 
-      onClick={onClick}
-      className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group"
-    >
-      <div className="relative h-48 overflow-hidden">
-        <img 
-          src={images[0]} 
-          alt={safeToString(listing.title || listing.name, "Listing")}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-        <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-full text-xs">
-          {formatPrice(listing.price || listing.price_from)}
-        </div>
-        <div className="absolute bottom-2 left-2 bg-[#06EAFC] text-white px-2 py-1 rounded-full text-xs">
-          {safeToString(listing.status) === 'active' ? 'Active' : safeToString(listing.status)}
-        </div>
-      </div>
-      <div className="p-4">
-        <div className="flex items-start justify-between mb-2">
-          <h3 className="font-bold text-gray-900 line-clamp-1 flex-1">
-            {safeToString(listing.title || listing.name, "Unnamed Listing")}
-          </h3>
-          <FontAwesomeIcon 
-            icon={getCategoryIcon()} 
-            className="text-[#06EAFC] ml-2"
-          />
-        </div>
-        <p className="text-gray-600 text-sm line-clamp-2 mb-3">
-          {safeToString(listing.description, "").substring(0, 100)}...
-        </p>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <FontAwesomeIcon icon={faStar} className="text-yellow-500 text-xs" />
-            <span className="text-xs font-semibold">{safeToString(listing.rating, "4.5")}</span>
-          </div>
-          <span className="text-xs text-gray-500">
-            {safeToString(listing.location?.area || listing.area, "Ibadan")}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
+  // Check for hotel amenities in details
+  if (category === 'hotel') {
+    // Try to get amenities from hotel details
+    if (vendor.details?.amenities && Array.isArray(vendor.details.amenities)) {
+      return vendor.details.amenities;
+    }
+    // Try room amenities
+    if (vendor.details?.roomTypes?.[0]?.amenities && Array.isArray(vendor.details.roomTypes[0].amenities)) {
+      return vendor.details.roomTypes[0].amenities;
+    }
+    // Default hotel amenities
+    return ["Free WiFi", "Swimming Pool", "Parking", "Air Conditioning", "Restaurant", "Spa", "Gym", "24/7 Reception"];
+  } else if (category === 'restaurant') {
+    return ["Outdoor Seating", "Live Music", "Parking", "Takeaway", "Vegetarian Options", "Alcohol Served", "Air Conditioning"];
+  } else if (category === 'event') {
+    return ["Stage", "Sound System", "Lighting", "Parking", "Catering Service", "Decoration Service", "Projector", "Microphones"];
+  } else if (category === 'shortlet') {
+    // Try to get amenities from shortlet details
+    if (vendor.details?.amenities && Array.isArray(vendor.details.amenities)) {
+      return vendor.details.amenities;
+    }
+    return ["Full Kitchen", "WiFi", "Air Conditioning", "Parking", "Laundry", "24/7 Check-in", "Smart TV", "Workspace", "Security"];
+  }
+  
+  return ["Not specified"];
 };
 
-// StarRating Component
-const StarRating = ({ rating, onRatingChange = null, interactive = false, size = "sm" }) => {
-  const [hoverRating, setHoverRating] = useState(0);
-  
-  const sizes = {
-    sm: "w-4 h-4",
-    md: "w-5 h-5",
-    lg: "w-6 h-6",
-    xl: "w-8 h-8"
-  };
-
-  const handleClick = (starIndex) => {
-    if (interactive && onRatingChange) {
-      onRatingChange(starIndex + 1);
-    }
-  };
-
-  const handleMouseEnter = (starIndex) => {
-    if (interactive) {
-      setHoverRating(starIndex + 1);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (interactive) {
-      setHoverRating(0);
-    }
-  };
-
-  return (
-    <div className="flex">
-      {[...Array(5)].map((_, i) => {
-        const isFilled = interactive 
-          ? (hoverRating ? i < hoverRating : i < rating)
-          : i < rating;
-        
-        return (
-          <svg
-            key={i}
-            className={`${sizes[size]} ${isFilled ? "text-yellow-400" : "text-gray-300"} ${
-              interactive ? "cursor-pointer hover:scale-110 transition-transform" : ""
-            }`}
-            fill="currentColor"
-            viewBox="0 0 20 20"
-            onClick={() => handleClick(i)}
-            onMouseEnter={() => handleMouseEnter(i)}
-            onMouseLeave={handleMouseLeave}
-          >
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.173c.969 0 1.371 1.24.588 1.81l-3.377 2.455a1 1 0 00-.364 1.118l1.286 3.966c.3.922-.755 1.688-1.54 1.118l-3.377-2.454a1 1 0 00-1.176 0l-3.377 2.454c-.784.57-1.838-.196-1.539-1.118l1.286-3.966a1 1 0 00-.364-1.118L2.02 9.394c-.783-.57-.38-1.81.588-1.81h4.173a1 1 0 00.95-.69l1.286-3.967z" />
-          </svg>
-        );
-      })}
-    </div>
-  );
+const getAmenityIcon = (amenity) => {
+  const lowerAmenity = amenity.toLowerCase();
+  if (lowerAmenity.includes('wifi') || lowerAmenity.includes('internet')) return faWifi;
+  if (lowerAmenity.includes('parking') || lowerAmenity.includes('car')) return faCar;
+  if (lowerAmenity.includes('pool')) return faSwimmingPool;
+  if (lowerAmenity.includes('spa')) return faSpa;
+  if (lowerAmenity.includes('gym') || lowerAmenity.includes('fitness')) return faDumbbell;
+  if (lowerAmenity.includes('music')) return faMusic;
+  if (lowerAmenity.includes('food') || lowerAmenity.includes('restaurant') || lowerAmenity.includes('meal')) return faUtensils;
+  if (lowerAmenity.includes('bed') || lowerAmenity.includes('room') || lowerAmenity.includes('sleep')) return faBed;
+  if (lowerAmenity.includes('home') || lowerAmenity.includes('apartment') || lowerAmenity.includes('shortlet')) return faHome;
+  if (lowerAmenity.includes('ac') || lowerAmenity.includes('air conditioning')) return faSnowflake;
+  if (lowerAmenity.includes('security') || lowerAmenity.includes('reception')) return faUserCheck;
+  if (lowerAmenity.includes('laundry')) return faClock;
+  if (lowerAmenity.includes('tv') || lowerAmenity.includes('television')) return faTv;
+  if (lowerAmenity.includes('coffee') || lowerAmenity.includes('tea')) return faCoffee;
+  if (lowerAmenity.includes('bath') || lowerAmenity.includes('shower')) return faBath;
+  if (lowerAmenity.includes('bell') || lowerAmenity.includes('service')) return faConciergeBell;
+  if (lowerAmenity.includes('plug') || lowerAmenity.includes('socket')) return faPlug;
+  if (lowerAmenity.includes('wine') || lowerAmenity.includes('bar')) return faWineGlass;
+  if (lowerAmenity.includes('shield') || lowerAmenity.includes('safe')) return faShieldAlt;
+  if (lowerAmenity.includes('key') || lowerAmenity.includes('access')) return faKey;
+  if (lowerAmenity.includes('chair') || lowerAmenity.includes('furniture')) return faChair;
+  if (lowerAmenity.includes('desk') || lowerAmenity.includes('workspace')) return faDesktop;
+  if (lowerAmenity.includes('sofa') || lowerAmenity.includes('couch')) return faCouch;
+  if (lowerAmenity.includes('suitcase') || lowerAmenity.includes('luggage')) return faSuitcase;
+  if (lowerAmenity.includes('wind') || lowerAmenity.includes('ventilation')) return faWind;
+  if (lowerAmenity.includes('thermometer') || lowerAmenity.includes('heating')) return faThermometerHalf;
+  return faCheckCircle;
 };
 
 // Helper function to get location string safely
@@ -400,65 +406,6 @@ const getLocationString = (location, fallback = "Ibadan, Nigeria") => {
   }
   
   return fallback;
-};
-
-// Helper function to get category display safely
-const getCategoryDisplay = (vendor) => {
-  if (!vendor) return "Business";
-  
-  const rawCategory = vendor?.category;
-  let categoryStr = "";
-  
-  if (rawCategory) {
-    if (typeof rawCategory === 'string') {
-      categoryStr = rawCategory;
-    } else if (typeof rawCategory === 'object') {
-      if (rawCategory.name) {
-        categoryStr = safeToString(rawCategory.name, "");
-      } else if (rawCategory.value) {
-        categoryStr = safeToString(rawCategory.value, "");
-      } else if (rawCategory.label) {
-        categoryStr = safeToString(rawCategory.label, "");
-      } else {
-        try {
-          categoryStr = JSON.stringify(rawCategory);
-        } catch {
-          categoryStr = "";
-        }
-      }
-    } else {
-      categoryStr = safeToString(rawCategory, "");
-    }
-  }
-  
-  if (!categoryStr.trim()) {
-    const name = safeToString(vendor?.title || vendor?.name || "", "").toLowerCase();
-    if (name.includes("hotel")) return "Hotel";
-    if (name.includes("restaurant")) return "Restaurant";
-    if (name.includes("shortlet")) return "Shortlet";
-    if (name.includes("event")) return "Event Center";
-    return "Business";
-  }
-  
-  let cleanedCategory = categoryStr.trim().replace(/^\d+\.\s*/, "");
-  
-  if (cleanedCategory.includes(".")) {
-    const parts = cleanedCategory.split(".");
-    cleanedCategory = parts[parts.length - 1].trim();
-  }
-  
-  cleanedCategory = cleanedCategory.replace(/['"]/g, "").trim();
-  
-  // Additional check for shortlet
-  if (cleanedCategory.toLowerCase().includes('shortlet')) {
-    return "Shortlet";
-  }
-  
-  if (!cleanedCategory) {
-    return "Business";
-  }
-  
-  return cleanedCategory.charAt(0).toUpperCase() + cleanedCategory.slice(1).toLowerCase();
 };
 
 const VendorDetail = () => {
@@ -543,27 +490,44 @@ const VendorDetail = () => {
     window.scrollTo(0, 0);
   }, [id]);
 
+  // Fetch vendor data
   useEffect(() => {
     const fetchVendorData = async () => {
       try {
+        console.log('Fetching vendor data for ID:', id);
+        setLoading(true);
+        setError(null);
+        
         const result = await listingService.getListingById(id);
+        console.log('Vendor fetch result:', result);
         
         if (result.status === 'success' && result.data?.listing) {
           const foundVendor = result.data.listing;
+          console.log('Found vendor:', foundVendor);
+          console.log('Vendor category:', foundVendor.category);
+          console.log('Vendor details:', foundVendor.details);
+          
           setVendor(foundVendor);
           
           const extractedVendorInfo = getVendorInfo(foundVendor);
+          console.log('Extracted vendor info:', extractedVendorInfo);
           setVendorInfo(extractedVendorInfo);
           
+          // Check if listing is saved
           const savedListings = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
           setIsFavorite(savedListings.some(item => item.id === id || item.id === foundVendor._id));
           
           // Initialize reviews
           setReviews(initialReviews);
+          
+          // Show success log
+          console.log(`Successfully loaded ${normalizeCategory(foundVendor.category)} listing:`, foundVendor.name || foundVendor.title);
         } else {
+          console.error('Vendor fetch error:', result.message);
           setError(result.message || "Vendor not found or invalid response");
         }
       } catch (err) {
+        console.error('Vendor fetch exception:', err);
         setError("Failed to load vendor details. Please try again later.");
       } finally {
         setLoading(false);
@@ -575,6 +539,7 @@ const VendorDetail = () => {
     }
   }, [id]);
 
+  // Fetch vendor listings
   useEffect(() => {
     const fetchVendorListings = async () => {
       if (!vendor) return;
@@ -582,24 +547,41 @@ const VendorDetail = () => {
       const vendorId = getVendorIdFromListing(vendor);
       
       if (!vendorId) {
+        console.log('No vendor ID found for fetching other listings');
         return;
       }
       
       try {
         setLoadingVendorListings(true);
+        console.log('Fetching other listings for vendor:', vendorId);
         
-        const result = await listingService.getListingsByVendor(vendorId);
+        // Get all listings by category first
+        const category = normalizeCategory(vendor.category);
+        console.log('Fetching all', category, 'listings');
         
-        if (result.status === 'success') {
-          const allListings = result.data.listings || result.data;
-          const otherListings = Array.isArray(allListings) 
-            ? allListings.filter(listing => (listing._id || listing.id) !== id)
-            : [];
+        const result = await listingService.getListingsByCategory(category);
+        
+        if (result.status === 'success' && result.data?.listings) {
+          const allListings = result.data.listings;
+          console.log(`Found ${allListings.length} ${category} listings`);
           
-          setVendorListings(otherListings);
+          // Filter to get only listings from this vendor (excluding current listing)
+          const vendorListings = allListings.filter(listing => {
+            const listingVendorId = getVendorIdFromListing(listing);
+            const isSameVendor = listingVendorId === vendorId;
+            const isNotCurrent = (listing._id || listing.id) !== id;
+            return isSameVendor && isNotCurrent;
+          });
+          
+          console.log(`Found ${vendorListings.length} other listings from this vendor`);
+          setVendorListings(vendorListings);
+        } else {
+          console.log('No listings found:', result.message);
+          setVendorListings([]);
         }
       } catch (error) {
-        // Silently handle error for vendor listings
+        console.error('Error fetching vendor listings:', error);
+        setVendorListings([]);
       } finally {
         setLoadingVendorListings(false);
       }
@@ -610,45 +592,11 @@ const VendorDetail = () => {
     }
   }, [vendor, id]);
 
-  // Handle body scroll lock for gallery
-  useEffect(() => {
-    if (galleryOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => (document.body.style.overflow = "");
-  }, [galleryOpen]);
-
   const formatPrice = (price) => {
-    if (!price) return "₦ --";
+    if (!price && price !== 0) return "₦ --";
     const num = parseInt(safeToString(price).replace(/[^\d]/g, ""));
     if (isNaN(num)) return "₦ --";
     return `₦${num.toLocaleString()}`;
-  };
-
-  const getAmenities = () => {
-    if (vendor?.amenities) {
-      if (typeof vendor.amenities === 'string') {
-        return vendor.amenities.split(",").map(item => item.trim()).filter(item => item);
-      }
-      if (Array.isArray(vendor.amenities)) {
-        return vendor.amenities;
-      }
-    }
-    
-    const category = normalizeCategory(vendor?.category);
-    if (category === 'hotel') {
-      return ["Free WiFi", "Swimming Pool", "Parking", "Air Conditioning", "Restaurant", "Spa", "Gym"];
-    } else if (category === 'restaurant') {
-      return ["Outdoor Seating", "Live Music", "Parking", "Takeaway", "Vegetarian Options", "Alcohol Served"];
-    } else if (category === 'event') {
-      return ["Stage", "Sound System", "Lighting", "Parking", "Catering Service", "Decoration Service"];
-    } else if (category === 'shortlet') {
-      return ["Full Kitchen", "WiFi", "Air Conditioning", "Parking", "Laundry", "24/7 Check-in", "Smart TV", "Workspace"];
-    }
-    
-    return ["Not specified"];
   };
 
   const handleRoomSelect = (room) => {
@@ -656,145 +604,39 @@ const VendorDetail = () => {
     setSelectedRoom(room);
   };
 
-  const handleShareClick = () => {
-    const currentUrl = window.location.href;
-    
-    if (navigator.share && window.innerWidth < 768) {
-      navigator.share({
-        title: safeToString(vendor?.title || vendor?.name, 'Check out this vendor'),
-        text: `Check out ${safeToString(vendor?.title || vendor?.name, 'this amazing vendor')} on Ajani!`,
-        url: currentUrl,
-      })
-      .then(() => showToast("Link shared successfully!", "success"))
-      .catch((error) => {
-        console.log("Sharing failed:", error);
-        copyToClipboard(currentUrl);
-      });
-    } else {
-      copyToClipboard(currentUrl);
-    }
-  };
-
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text)
-      .then(() => {
-        showToast("Link copied to clipboard!", "success");
-      })
-      .catch(err => {
-        console.error("Failed to copy:", err);
-        showToast("Failed to copy link", "info");
-      });
-  };
-
-  // UPDATED: Main booking click handler with category-based routing
-  const handleBookingClick = () => {
-    const currentCategory = normalizeCategory(vendor?.category);
+  const handleRoomBookNow = (room, option) => {
+    console.log("Room Book Now clicked:", room, option);
+    setSelectedRoom({...room, selectedOption: option});
     
     // Prepare vendor data for booking
     const vendorBookingData = {
       id: vendor._id || vendor.id,
       name: safeToString(vendor.title || vendor.name, "Vendor"),
-      category: currentCategory,
+      category: 'hotel',
       originalCategory: safeToString(vendor.category),
-      priceFrom: vendor.price || vendor.price_from,
-      priceTo: vendor.price_to || vendor.price,
+      priceFrom: option.price || room.pricePerNight || vendor.price || 0,
+      priceTo: option.price || room.pricePerNight || vendor.price || 0,
       area: getLocationString(vendor.location || vendor.area),
-      contact: safeToString(vendor.contact || vendorInfo?.phone),
+      contact: safeToString(vendor.contact || vendorInfo?.phone || vendor.contactInformation?.phone),
       email: safeToString(vendor.email || vendorInfo?.email),
-      description: safeToString(vendor.description),
+      description: safeToString(vendor.description || vendor.about),
       rating: parseFloat(safeToString(vendor.rating, "4.5")),
-      capacity: vendor.capacity,
-      amenities: vendor.amenities,
-      images: getVendorImages(vendor),
-      vendorId: getVendorIdFromListing(vendor),
-      vendorInfo: vendorInfo,
-      image: getVendorImages(vendor)[0],
-      bookingType: currentCategory,
-      selectedRoom: selectedRoom
-    };
-    
-    console.log("Booking vendor data:", vendorBookingData);
-    
-    // Store data in multiple locations for redundancy
-    localStorage.setItem('currentVendorBooking', JSON.stringify(vendorBookingData));
-    sessionStorage.setItem('currentVendorBooking', JSON.stringify(vendorBookingData));
-    
-    // Handle different booking flows based on category
-    if (currentCategory === 'hotel') {
-      // For hotels, check if room is selected
-      if (!selectedRoom && roomSelectionRef.current) {
-        // No room selected, scroll to room selection
-        roomSelectionRef.current.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start'
-        });
-        
-        // Add highlight effect
-        roomSelectionRef.current.classList.add('highlight-section');
-        setTimeout(() => {
-          if (roomSelectionRef.current) {
-            roomSelectionRef.current.classList.remove('highlight-section');
-          }
-        }, 1500);
-        
-        showToast("Please select a room first", "info");
-        return;
-      }
-      
-      // Room is selected, proceed to hotel booking
-      navigate('/booking', { 
-        state: { 
-          vendorData: vendorBookingData,
-          category: currentCategory
-        } 
-      });
-      
-    } else if (currentCategory === 'restaurant' || currentCategory === 'shortlet') {
-      // For restaurant and shortlet, go directly to booking page (no room selection needed)
-      navigate('/booking', { 
-        state: { 
-          vendorData: vendorBookingData,
-          category: currentCategory
-        } 
-      });
-      
-    } else {
-      // Default fallback
-      navigate('/booking', { 
-        state: { 
-          vendorData: vendorBookingData,
-          category: currentCategory
-        } 
-      });
-    }
-  };
-
-  // Handle "Book Now" from room selection
-  const handleRoomBookNow = (room) => {
-    console.log("Room Book Now clicked:", room);
-    setSelectedRoom(room);
-    
-    // Prepare vendor data
-    const vendorBookingData = {
-      id: vendor._id || vendor.id,
-      name: safeToString(vendor.title || vendor.name, "Vendor"),
-      category: 'hotel', // Force hotel category
-      originalCategory: safeToString(vendor.category),
-      priceFrom: vendor.price || vendor.price_from,
-      priceTo: vendor.price_to || vendor.price,
-      area: getLocationString(vendor.location || vendor.area),
-      contact: safeToString(vendor.contact || vendorInfo?.phone),
-      email: safeToString(vendor.email || vendorInfo?.email),
-      description: safeToString(vendor.description),
-      rating: parseFloat(safeToString(vendor.rating, "4.5")),
-      capacity: vendor.capacity,
-      amenities: vendor.amenities,
-      images: getVendorImages(vendor),
+      capacity: room.maxOccupancy || vendor.details?.maxGuests || 2,
+      amenities: room.amenitiesList || getAmenities(vendor),
+      images: room.images || getVendorImages(vendor),
       vendorId: getVendorIdFromListing(vendor),
       vendorInfo: vendorInfo,
       image: getVendorImages(vendor)[0],
       selectedRoom: room,
-      bookingType: 'hotel'
+      selectedBookingOption: option,
+      bookingType: 'hotel',
+      // Add room-specific data
+      roomName: room.name,
+      roomDescription: room.description,
+      roomSize: room.size,
+      roomBeds: room.beds,
+      details: vendor.details,
+      contactInformation: vendor.contactInformation
     };
     
     // Store data
@@ -808,10 +650,6 @@ const VendorDetail = () => {
         category: 'hotel'
       } 
     });
-  };
-
-  const handleOtherListingClick = (listingId) => {
-    navigate(`/vendor-detail/${listingId}`);
   };
 
   // Toast notification function
@@ -852,7 +690,7 @@ const VendorDetail = () => {
         </div>
         <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70 transition-opacity cursor-pointer">
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
           </svg>
         </button>
       </div>
@@ -894,7 +732,7 @@ const VendorDetail = () => {
         const itemToSaveAfterLogin = {
           id: vendorId,
           name: safeToString(vendor.title || vendor.name, "Vendor"),
-          price: formatPrice(vendor.price || vendor.price_from),
+          price: formatPrice(vendor.price || vendor.details?.pricePerNight || vendor.price_from),
           perText: normalizeCategory(vendor.category) === 'hotel' ? 'per night' : 
                    normalizeCategory(vendor.category) === 'restaurant' ? 'per meal' : 
                    normalizeCategory(vendor.category) === 'shortlet' ? 'per night' :
@@ -929,7 +767,7 @@ const VendorDetail = () => {
         const listingToSave = {
           id: vendorId,
           name: safeToString(vendor.title || vendor.name, "Vendor"),
-          price: formatPrice(vendor.price || vendor.price_from),
+          price: formatPrice(vendor.price || vendor.details?.pricePerNight || vendor.price_from),
           perText: category === 'hotel' ? 'per night' : 
                    category === 'restaurant' ? 'per meal' : 
                    category === 'shortlet' ? 'per night' :
@@ -954,82 +792,126 @@ const VendorDetail = () => {
     }, 300);
   };
 
-  const getCategoryIcon = (category) => {
-    switch(category) {
-      case 'hotel': return faBed;
-      case 'restaurant': return faUtensils;
-      case 'event': return faMusic;
-      case 'shortlet': return faHome;
-      default: return faUtensils;
+  const handleShareClick = () => {
+    const currentUrl = window.location.href;
+    
+    if (navigator.share && window.innerWidth < 768) {
+      navigator.share({
+        title: safeToString(vendor?.title || vendor?.name, 'Check out this vendor'),
+        text: `Check out ${safeToString(vendor?.title || vendor?.name, 'this amazing vendor')} on Ajani!`,
+        url: currentUrl,
+      })
+      .then(() => showToast("Link shared successfully!", "success"))
+      .catch((error) => {
+        console.log("Sharing failed:", error);
+        copyToClipboard(currentUrl);
+      });
+    } else {
+      copyToClipboard(currentUrl);
     }
   };
 
-  const getAmenityIcon = (amenity) => {
-    const lowerAmenity = amenity.toLowerCase();
-    if (lowerAmenity.includes('wifi')) return faWifi;
-    if (lowerAmenity.includes('parking') || lowerAmenity.includes('car')) return faCar;
-    if (lowerAmenity.includes('pool')) return faSwimmingPool;
-    if (lowerAmenity.includes('spa')) return faSpa;
-    if (lowerAmenity.includes('gym') || lowerAmenity.includes('fitness')) return faDumbbell;
-    if (lowerAmenity.includes('music')) return faMusic;
-    if (lowerAmenity.includes('food') || lowerAmenity.includes('restaurant') || lowerAmenity.includes('meal')) return faUtensils;
-    if (lowerAmenity.includes('bed') || lowerAmenity.includes('room') || lowerAmenity.includes('sleep')) return faBed;
-    if (lowerAmenity.includes('home') || lowerAmenity.includes('apartment') || lowerAmenity.includes('shortlet')) return faHome;
-    return faCheckCircle;
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        showToast("Link copied to clipboard!", "success");
+      })
+      .catch(err => {
+        console.error("Failed to copy:", err);
+        showToast("Failed to copy link", "info");
+      });
   };
 
-  const getReviewCount = () => {
-    if (vendor?.review_count) {
-      const count = parseInt(safeToString(vendor.review_count));
-      return isNaN(count) ? 9 : count;
+  // Main booking click handler
+  const handleBookingClick = () => {
+    const currentCategory = normalizeCategory(vendor?.category);
+    console.log('Booking clicked for category:', currentCategory);
+    
+    // For hotels, check if room is selected
+    if (currentCategory === 'hotel') {
+      if (!selectedRoom && vendor.details?.roomTypes?.length > 0) {
+        // No room selected but rooms available, scroll to room selection
+        if (roomSelectionRef.current) {
+          roomSelectionRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+          
+          // Add highlight effect
+          roomSelectionRef.current.classList.add('highlight-section');
+          setTimeout(() => {
+            if (roomSelectionRef.current) {
+              roomSelectionRef.current.classList.remove('highlight-section');
+            }
+          }, 1500);
+          
+          showToast("Please select a room first", "info");
+        }
+        return;
+      }
+      
+      // Room is selected, use the selected room for booking
+      if (selectedRoom && selectedRoom.selectedOption) {
+        handleRoomBookNow(selectedRoom, selectedRoom.selectedOption);
+        return;
+      }
     }
-    return 9;
+    
+    // Prepare vendor data for non-hotel categories or hotels without room selection
+    const vendorBookingData = {
+      id: vendor._id || vendor.id,
+      name: safeToString(vendor.title || vendor.name, "Vendor"),
+      category: currentCategory,
+      originalCategory: safeToString(vendor.category),
+      priceFrom: vendor.price || vendor.details?.pricePerNight || vendor.price_from || 0,
+      priceTo: vendor.price_to || vendor.price || vendor.details?.pricePerNight || 0,
+      area: getLocationString(vendor.location || vendor.area),
+      contact: safeToString(vendor.contact || vendorInfo?.phone || vendor.contactInformation?.phone),
+      email: safeToString(vendor.email || vendorInfo?.email),
+      description: safeToString(vendor.description || vendor.about),
+      rating: parseFloat(safeToString(vendor.rating, "4.5")),
+      capacity: vendor.capacity || vendor.details?.maxGuests || 2,
+      amenities: getAmenities(vendor),
+      images: getVendorImages(vendor),
+      vendorId: getVendorIdFromListing(vendor),
+      vendorInfo: vendorInfo,
+      image: getVendorImages(vendor)[0],
+      bookingType: currentCategory,
+      selectedRoom: selectedRoom,
+      details: vendor.details,
+      contactInformation: vendor.contactInformation
+    };
+    
+    console.log("Booking vendor data prepared:", vendorBookingData);
+    
+    // Store data
+    localStorage.setItem('currentVendorBooking', JSON.stringify(vendorBookingData));
+    sessionStorage.setItem('currentVendorBooking', JSON.stringify(vendorBookingData));
+    
+    // Navigate to booking page
+    navigate('/booking', { 
+      state: { 
+        vendorData: vendorBookingData,
+        category: currentCategory
+      } 
+    });
   };
 
   const getFeatures = () => {
-    const category = normalizeCategory(vendor?.category);
+    const amenities = getAmenities(vendor);
     
-    if (category === 'hotel') {
-      return [
-        { icon: faWifi, name: "WiFi" },
-        { icon: faSwimmingPool, name: "Swimming Pool" },
-        { icon: faCar, name: "Parking" },
-        { icon: faUtensils, name: "Restaurant" },
-      ];
-    } else if (category === 'restaurant') {
-      return [
-        { icon: faUtensils, name: "Fine Dining" },
-        { icon: faWifi, name: "Free WiFi" },
-        { icon: faCar, name: "Parking" },
-        { icon: faMusic, name: "Live Music" },
-      ];
-    } else if (category === 'shortlet') {
-      return [
-        { icon: faWifi, name: "High-speed WiFi" },
-        { icon: faUtensils, name: "Full Kitchen" },
-        { icon: faCar, name: "Free Parking" },
-        { icon: faHome, name: "Self Check-in" },
-      ];
-    } else if (category === 'event') {
-      return [
-        { icon: faMusic, name: "Sound System" },
-        { icon: faUsers, name: "Large Capacity" },
-        { icon: faCar, name: "Parking" },
-        { icon: faUtensils, name: "Catering" },
-      ];
-    }
+    // Get first 4 amenities as features
+    const firstFourAmenities = amenities.slice(0, 4);
     
-    return [
-      { icon: faWifi, name: "WiFi" },
-      { icon: faSwimmingPool, name: "Swimming Pool" },
-      { icon: faCar, name: "Parking" },
-      { icon: faUtensils, name: "Restaurant" },
-    ];
+    return firstFourAmenities.map(amenity => ({
+      icon: getAmenityIcon(amenity),
+      name: amenity
+    }));
   };
 
   const getServices = () => {
-    if (vendor?.description) {
-      const description = safeToString(vendor.description);
+    if (vendor?.description || vendor?.about) {
+      const description = safeToString(vendor.description || vendor.about);
       const sentences = description.split(/[.!?]+/).filter(s => s.trim().length > 10);
       return sentences.slice(0, 5).map(s => s.trim() + ".");
     }
@@ -1038,110 +920,44 @@ const VendorDetail = () => {
     if (category === 'hotel') {
       return [
         "Standard, Deluxe & Executive Rooms",
-        "Restaurant & Bar",
-        "Event & Meeting Spaces",
-        "Airport Pickup",
-        "Laundry & Concierge Services",
+        "Restaurant & Bar Service",
+        "Event & Meeting Spaces Available",
+        "24/7 Reception and Concierge",
+        "Laundry & Housekeeping Services",
       ];
     } else if (category === 'restaurant') {
       return [
-        "Indoor & Outdoor Seating",
-        "Private Dining Rooms",
-        "Catering Services",
-        "Event Hosting",
-        "Takeaway & Delivery",
+        "Indoor & Outdoor Seating Options",
+        "Private Dining Rooms Available",
+        "Catering Services for Events",
+        "Takeaway & Delivery Options",
+        "Special Dietary Requirements Catered For",
       ];
     } else if (category === 'shortlet') {
       return [
         "Fully Furnished Apartments",
-        "Monthly & Weekly Rates",
-        "24/7 Self Check-in",
-        "Cleaning Services",
-        "All Utilities Included",
+        "Monthly & Weekly Rates Available",
+        "24/7 Self Check-in System",
+        "Regular Cleaning Services",
+        "All Utilities Included in Price",
       ];
     } else if (category === 'event') {
       return [
-        "Event Planning Assistance",
-        "Audio-Visual Equipment",
-        "Catering Coordination",
-        "Decoration Services",
-        "Parking Attendants",
+        "Event Planning Assistance Provided",
+        "Audio-Visual Equipment Available",
+        "Catering Coordination Services",
+        "Decoration Services Available",
+        "Professional Staff Support",
       ];
     }
     
     return [
-      "Standard, Deluxe & Executive Rooms",
-      "Restaurant & Bar",
-      "Event & Meeting Spaces",
-      "Airport Pickup",
-      "Laundry & Concierge Services",
+      "Quality Service Guaranteed",
+      "Professional Staff",
+      "Modern Facilities",
+      "Customer Satisfaction Focus",
+      "Competitive Pricing",
     ];
-  };
-
-  // Review Functions
-  const handleReviewSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!isAuthenticated) {
-      showToast("Please login to submit a review", "info");
-      navigate("/login");
-      return;
-    }
-    
-    if (!newReview.comment.trim()) {
-      showToast("Please enter your review comment", "info");
-      return;
-    }
-    
-    setIsSubmittingReview(true);
-    
-    try {
-      // Get user info from localStorage
-      const userProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
-      
-      // Create new review object
-      const userReview = {
-        id: Date.now(),
-        name: safeToString(userProfile.name, "Anonymous User"),
-        image: safeToString(userProfile.avatar, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop"),
-        rating: newReview.rating,
-        text: newReview.comment,
-        title: newReview.title || "",
-        date: "Just now",
-        userId: userProfile._id || userProfile.id
-      };
-      
-      // Add to reviews
-      setReviews(prev => [userReview, ...prev]);
-      
-      // Reset form
-      setNewReview({
-        rating: 5,
-        comment: "",
-        title: ""
-      });
-      
-      // Hide form
-      setShowReviewForm(false);
-      
-      showToast("Review submitted successfully!", "success");
-      
-    } catch (error) {
-      showToast("Failed to submit review. Please try again.", "info");
-      console.error("Review submission error:", error);
-    } finally {
-      setIsSubmittingReview(false);
-    }
-  };
-
-  const handleWriteReviewClick = () => {
-    if (!isAuthenticated) {
-      showToast("Please login to write a review", "info");
-      navigate("/login");
-      return;
-    }
-    
-    setShowReviewForm(true);
   };
 
   // Get Ibadan location coordinates
@@ -1175,7 +991,7 @@ const VendorDetail = () => {
     return filledImages.slice(0, 5);
   };
 
-  // Gallery Functions - UPDATED
+  // Gallery Functions
   const handleOpenGallery = (index = 0) => {
     setCurrentImageIndex(index);
     setGalleryOpen(true);
@@ -1249,15 +1065,42 @@ const VendorDetail = () => {
   const images = getVendorImages(vendor);
   const galleryImages = getGalleryImages();
   const category = normalizeCategory(vendor.category);
-  const amenities = getAmenities();
+  const amenities = getAmenities(vendor);
   const features = getFeatures();
   const services = getServices();
-  const reviewCount = getReviewCount();
-  const categoryDisplay = getCategoryDisplay(vendor);
   const vendorId = getVendorIdFromListing(vendor);
   const averageRating = vendor?.rating ? parseFloat(safeToString(vendor.rating)) : 4.5;
   const locationString = getLocationString(vendor.location || vendor.area, "Ibadan, Nigeria");
   const safeTitle = safeToString(vendor.title || vendor.name, "Vendor Details");
+
+  // Get hotel room count for display
+  const hotelRoomCount = category === 'hotel' 
+    ? (vendor.details?.roomTypes?.length || 0)
+    : 0;
+
+  // Calculate price range for hotels
+  const getPriceRange = () => {
+    if (category === 'hotel' && vendor.details?.roomTypes) {
+      const prices = vendor.details.roomTypes
+        .map(room => room.pricePerNight || 0)
+        .filter(price => price > 0);
+      
+      if (prices.length === 0) {
+        return formatPrice(vendor.price || 0);
+      }
+      
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+      
+      if (minPrice === maxPrice) {
+        return formatPrice(minPrice);
+      }
+      
+      return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`;
+    }
+    
+    return formatPrice(vendor.price || vendor.details?.pricePerNight || 0);
+  };
 
   return (
     <div className="min-h-screen font-manrope">
@@ -1377,10 +1220,10 @@ const VendorDetail = () => {
                 </Link>
                 <span>/</span>
                 <Link
-                  to={`/category/${typeof category === 'string' ? category.toLowerCase().replace(/\s+/g, "-") : 'other'}`}
+                  to={`/category/${category}`}
                   className="hover:text-[#06EAFC] transition-colors hover:underline cursor-pointer"
                 >
-                  {categoryDisplay}
+                  {category.charAt(0).toUpperCase() + category.slice(1)}s
                 </Link>
                 <span>/</span>
                 <span className="text-gray-900 truncate max-w-[100px] md:max-w-xs">
@@ -1403,7 +1246,9 @@ const VendorDetail = () => {
                       <h1 className="text-lg md:text-xl lg:text-3xl font-bold text-gray-900 font-manrope line-clamp-2 flex-1">
                         {safeTitle}
                       </h1>
-                      <VscVerifiedFilled className="text-green-500 text-sm md:text-xl hover:scale-110 transition-transform duration-200 cursor-pointer" />
+                      {vendorInfo?.verified && (
+                        <VscVerifiedFilled className="text-green-500 text-sm md:text-xl hover:scale-110 transition-transform duration-200 cursor-pointer" />
+                      )}
                     </div>
                     
                     {/* MOBILE: Share and Bookmark buttons */}
@@ -1427,9 +1272,10 @@ const VendorDetail = () => {
                         {isProcessing ? (
                           <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                         ) : isFavorite ? (
-                          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"/>
-                          </svg>
+                          <FontAwesomeIcon 
+                            icon={faBookmarkSolid} 
+                            className="text-sm text-white" 
+                          />
                         ) : (
                           <CiBookmark className="text-sm text-gray-600 hover:text-[#06EAFC] transition-all duration-300" />
                         )}
@@ -1440,7 +1286,10 @@ const VendorDetail = () => {
                   <div className="flex flex-row md:flex-row md:items-center gap-1.5 md:gap-4 lg:gap-8">
                     <div className="flex items-center gap-1.5">
                       <span className="text-gray-700 font-medium py-1 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200 cursor-pointer">
-                        {categoryDisplay}
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                        {category === 'hotel' && hotelRoomCount > 0 && (
+                          <span className="text-gray-500 ml-1">({hotelRoomCount} room types)</span>
+                        )}
                       </span>
                     </div>
 
@@ -1452,10 +1301,10 @@ const VendorDetail = () => {
                         />
                       </div>
                       <span className="font-bold text-gray-900 font-manrope text-xs md:text-sm hover:text-[#06EAFC] transition-colors duration-200 cursor-pointer">
-                        {safeToString(vendor.rating, "4.5")}
+                        {averageRating.toFixed(1)}
                       </span>
                       <span className="text-gray-600 font-manrope text-xs md:text-sm hover:text-gray-800 transition-colors duration-200 cursor-pointer">
-                        ({reviewCount} Reviews)
+                        ({(vendor.reviewCount || 9)} Reviews)
                       </span>
                     </div>
 
@@ -1504,17 +1353,10 @@ const VendorDetail = () => {
                         {isProcessing ? (
                           <div className="w-3.5 h-3.5 md:w-5 md:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                         ) : isFavorite ? (
-                          <svg
-                            className="w-3.5 h-3.5 md:w-5 md:h-5 text-white group-hover:scale-110 transition-transform duration-300"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
+                          <FontAwesomeIcon 
+                            icon={faBookmarkSolid} 
+                            className="text-sm md:text-xl text-white group-hover:scale-110 transition-transform duration-300" 
+                          />
                         ) : (
                           <CiBookmark className="text-sm md:text-xl text-gray-600 group-hover:text-[#06EAFC] group-hover:scale-110 transition-all duration-300" />
                         )}
@@ -1683,13 +1525,7 @@ const VendorDetail = () => {
                 <div className="flex flex-col justify-center gap-0.5 md:gap-3">
                   <div className="flex items-center gap-0.5 md:gap-2">
                     <span className="text-[14px] md:text-2xl text-gray-900 font-manrope font-bold">
-                      {formatPrice(vendor.price || vendor.price_from)}
-                    </span>
-                    <span className="text-gray-900 text-[11px]">
-                      -
-                    </span>
-                    <span className="text-[14px] md:text-2xl text-gray-900 font-manrope font-bold">
-                      {formatPrice(vendor.price_to || vendor.price || vendor.price_from)}
+                      {getPriceRange()}
                     </span>
                   </div>
                   <span className="text-gray-900 text-xs md:text-base mt-0.5 cursor-pointer">
@@ -1706,7 +1542,14 @@ const VendorDetail = () => {
             <div className="px-2">
               <div className="w-full h-12 md:h-16 bg-gray-200 rounded-lg md:rounded-3xl flex items-center justify-between px-3 md:px-12 mx-auto md:max-w-[600px] hover:shadow-lg transition-all duration-300 hover:bg-gray-300/50">
                 <button
-                  onClick={() => (safeToString(vendor.contact || vendorInfo?.phone) && (window.location.href = `tel:${safeToString(vendor.contact || vendorInfo?.phone)}`))}
+                  onClick={() => {
+                    const phone = safeToString(vendor.contact || vendorInfo?.phone || vendor.contactInformation?.phone);
+                    if (phone) {
+                      window.location.href = `tel:${phone}`;
+                    } else {
+                      showToast("Phone number not available", "info");
+                    }
+                  }}
                   className="flex flex-col items-center transition-all duration-300 px-1.5 group relative cursor-pointer"
                 >
                   <div className="relative">
@@ -1787,7 +1630,7 @@ const VendorDetail = () => {
                     About
                   </h2>
                   <p className="text-gray-900 text-[12.5px] md:text-sm font-manrope hover:text-gray-800 cursor-pointer">
-                    {safeToString(vendor.description, "Welcome to our premium venue, offering exceptional service and unforgettable experiences. With modern amenities and professional staff, we ensure your stay is comfortable and memorable.")}
+                    {safeToString(vendor.description || vendor.about || "Welcome to our premium venue, offering exceptional service and unforgettable experiences. With modern amenities and professional staff, we ensure your stay is comfortable and memorable.")}
                   </p>
                 </div>
 
@@ -1853,211 +1696,13 @@ const VendorDetail = () => {
                 className="smooth-scroll-target px-2.5 md:px-4"
               >
                 <RoomSelection 
+                  vendorData={vendor}
                   category={category}
                   onRoomSelect={handleRoomSelect}
                   onRoomBookNow={handleRoomBookNow}
-                  vendorData={vendor}
                 />
               </div>
             )}
-
-            {/* Reviews Section - Compact mobile */}
-            <section className="w-full bg-white px-2.5 sm:px-4 md:px-4 py-4 md:py-8">
-              <div className="mb-6">
-                <h2 className="text-lg md:text-2xl font-bold text-[#06F49F] mb-1.5 font-manrope">
-                  Reviews
-                  <span className="text-xs md:text-base font-normal text-gray-500 ml-1.5">
-                    ({reviewCount} reviews)
-                  </span>
-                </h2>
-                
-                {/* Rating Summary */}
-                <div className="flex flex-col items-center md:flex-row md:items-start gap-4 md:gap-8 mb-6 p-3 bg-gray-50 rounded-lg">
-                  {/* Average Rating */}
-                  <div className="flex flex-col items-center md:items-start gap-2">
-                    <div className="text-3xl md:text-5xl font-bold text-gray-900 text-center md:text-left">
-                      {averageRating.toFixed(1)}
-                    </div>
-                    <div className="flex flex-col items-center md:items-start">
-                      <div className="flex items-center gap-0.5 mb-0.5">
-                        <StarRating rating={Math.round(averageRating)} size="sm" />
-                      </div>
-                      <p className="text-gray-600 text-xs text-center md:text-left cursor-pointer">
-                        Based on {reviewCount} reviews
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Rating Breakdown */}
-                  <div className="flex-1 w-full space-y-2">
-                    {reviewStats.map((stat, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <span className="text-xs text-gray-600 w-10 cursor-pointer">{stat.stars} star</span>
-                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-yellow-500 rounded-full transition-all duration-500"
-                            style={{ width: `${stat.percentage}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-xs text-gray-600 w-10 text-right cursor-pointer">{stat.percentage}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Review Form */}
-                {showReviewForm && (
-                  <div className="mb-6 p-3 md:p-6 bg-white rounded-lg border border-gray-200 shadow-sm">
-                    <h3 className="text-base font-bold text-[#00065A] mb-3 font-manrope">
-                      Write a Review
-                    </h3>
-                    <form onSubmit={handleReviewSubmit}>
-                      <div className="mb-3">
-                        <label className="block text-gray-700 text-xs font-medium mb-1.5 cursor-pointer">
-                          Your Rating
-                        </label>
-                        <div className="flex items-center gap-1.5">
-                          <StarRating 
-                            rating={newReview.rating} 
-                            onRatingChange={(rating) => setNewReview({...newReview, rating})}
-                            interactive={true}
-                            size="md"
-                          />
-                          <span className="text-gray-600 text-xs ml-1.5 cursor-pointer">
-                            {newReview.rating} out of 5
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="mb-3">
-                        <label className="block text-gray-700 text-xs font-medium mb-1.5 cursor-pointer">
-                          Review Title (Optional)
-                        </label>
-                        <input
-                          type="text"
-                          value={newReview.title}
-                          onChange={(e) => setNewReview({...newReview, title: e.target.value})}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent cursor-pointer text-sm"
-                          placeholder="Summarize your experience"
-                          maxLength={100}
-                        />
-                      </div>
-                      
-                      <div className="mb-4">
-                        <label className="block text-gray-700 text-xs font-medium mb-1.5 cursor-pointer">
-                          Your Review *
-                        </label>
-                        <textarea
-                          value={newReview.comment}
-                          onChange={(e) => setNewReview({...newReview, comment: e.target.value})}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-transparent min-h-[100px] cursor-pointer text-sm"
-                          placeholder="Share details of your experience..."
-                          required
-                          maxLength={1000}
-                        />
-                        <p className="text-xs text-gray-500 mt-0.5 cursor-pointer">
-                          Minimum 10 characters, maximum 1000 characters
-                        </p>
-                      </div>
-                      
-                      <div className="flex flex-col sm:flex-row gap-2.5">
-                        <button
-                          type="submit"
-                          disabled={isSubmittingReview}
-                          className="px-4 py-2 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors font-manrope font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-sm"
-                        >
-                          {isSubmittingReview ? (
-                            <span className="flex items-center gap-1.5">
-                              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                              Submitting...
-                            </span>
-                          ) : (
-                            "Submit Review"
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowReviewForm(false)}
-                          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-manrope font-medium cursor-pointer text-sm"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                )}
-                
-                {/* Reviews Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {reviews.map((review) => (
-                    <div
-                      key={review.id}
-                      className="bg-white rounded-lg p-3 md:p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3 mb-3">
-                        <img
-                          src={review.image}
-                          alt={review.name}
-                          className="w-8 h-8 md:w-12 md:h-12 rounded-full object-cover border-2 border-gray-100"
-                        />
-                        <div className="flex-1">
-                          <div className="flex flex-col md:flex-row md:justify-between md:items-start">
-                            <div>
-                              <p className="font-medium text-gray-900 font-manrope text-sm md:text-base cursor-pointer">
-                                {review.name}
-                              </p>
-                              <div className="flex items-center gap-1.5 mt-0.5">
-                                <StarRating rating={review.rating} size="sm" />
-                                <span className="text-xs text-gray-500 cursor-pointer">{review.date}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <p className="text-gray-600 text-xs md:text-sm leading-relaxed font-manrope cursor-pointer">
-                        {review.text}
-                      </p>
-                      
-                      {/* Review Helpful Button */}
-                      <div className="mt-3 flex items-center gap-3">
-                        <button className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-0.5 cursor-pointer">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905a3.61 3.61 0 01-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                          </svg>
-                          Helpful
-                        </button>
-                        <button className="text-xs text-gray-500 hover:text-gray-700 cursor-pointer">
-                          Reply
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Load More Reviews Button */}
-                {reviewCount > 4 && (
-                  <div className="text-center mt-6">
-                    <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-manrope font-medium cursor-pointer text-sm">
-                      Load More Reviews
-                    </button>
-                  </div>
-                )}
-                
-                {/* Write Review Button */}
-                <div className="mt-6 pt-4 border-t border-gray-200">
-                  <button 
-                    onClick={handleWriteReviewClick}
-                    className="w-full md:w-auto px-4 py-2.5 border-2 border-[#06EAFC] text-[#06EAFC] rounded-lg hover:bg-[#06EAFC] hover:text-white transition-colors font-manrope font-medium flex items-center justify-center gap-1.5 cursor-pointer text-sm"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    {isAuthenticated ? "Write a Review" : "Login to Write a Review"}
-                  </button>
-                </div>
-              </div>
-            </section>
 
             {/* Location Section with Google Maps - Compact mobile */}
             <div className="px-2.5 md:px-4">
@@ -2088,7 +1733,7 @@ const VendorDetail = () => {
                       <div>
                         <p className="text-xs text-gray-600 mb-0.5 cursor-pointer">Address</p>
                         <p className="font-medium text-gray-900 text-sm cursor-pointer">
-                          {safeToString(vendor.address, `${safeToString(vendor.title || vendor.name, "Vendor")}, ${locationString}`)}
+                          {safeToString(vendor.address || vendor.location?.address, `${safeToString(vendor.title || vendor.name, "Vendor")}, ${locationString}`)}
                         </p>
                       </div>
                       <div>
@@ -2103,12 +1748,12 @@ const VendorDetail = () => {
                       <div>
                         <p className="text-xs text-gray-600 mb-0.5 cursor-pointer">Contact</p>
                         <p className="font-medium text-gray-900 text-sm cursor-pointer">
-                          {safeToString(vendor.contact || vendorInfo?.phone, "Not provided")}
+                          {safeToString(vendor.contact || vendorInfo?.phone || vendor.contactInformation?.phone, "Not provided")}
                         </p>
                       </div>
                       <div className="pt-3">
                         <a
-                          href={`https://www.google.com/maps/dir//${encodeURIComponent(safeToString(vendor.address || vendor.title || vendor.name, "") + " Ibadan Nigeria")}`}
+                          href={`https://www.google.com/maps/dir//${encodeURIComponent(safeToString(vendor.address || vendor.location?.address || vendor.title || vendor.name, "") + " Ibadan Nigeria")}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors font-manrope font-medium cursor-pointer text-sm"
@@ -2124,49 +1769,6 @@ const VendorDetail = () => {
                 </div>
               </div>
             </div>
-
-            {/* Other Listings from This Vendor */}
-            {vendorListings.length > 0 && (
-              <div className="px-2.5 sm:px-4 md:px-4 lg:px-4 py-4 bg-white">
-                <h2 className="text-lg font-bold text-[#00065A] mb-4">
-                  Other Listings from This Vendor
-                  <span className="text-xs font-normal text-gray-500 ml-1.5">
-                    ({vendorListings.length} {vendorListings.length === 1 ? 'listing' : 'listings'})
-                  </span>
-                </h2>
-                
-                {loadingVendorListings ? (
-                  <div className="flex justify-center py-6">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#06EAFC]"></div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {vendorListings.slice(0, 4).map((listing, index) => (
-                      <VendorListingCard
-                        key={listing._id || index}
-                        listing={listing}
-                        onClick={() => handleOtherListingClick(listing._id || listing.id)}
-                      />
-                    ))}
-                  </div>
-                )}
-                
-                {vendorListings.length > 4 && (
-                  <div className="text-center mt-4">
-                    <button
-  onClick={() => {
-    if (vendorId) {
-      navigate("/listing");
-    }
-  }}
-  className="px-3 py-1.5 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors cursor-pointer text-sm"
->
-  View All {vendorListings.length} Listings
-</button>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </main>
