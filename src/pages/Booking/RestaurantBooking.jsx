@@ -721,7 +721,7 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                             name="contactInfo.lastName"
                             value={bookingData.contactInfo.lastName}
                             onChange={handleInputChange}
-                            placeholder="Doe"
+                            placeholder="LastName"
                             className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
                             required
                           />
@@ -740,7 +740,7 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                           name="contactInfo.email"
                           value={bookingData.contactInfo.email}
                           onChange={handleInputChange}
-                          placeholder="john.doe@example.com"
+                          placeholder="your email address or gmail address"
                           className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
                           required
                         />
