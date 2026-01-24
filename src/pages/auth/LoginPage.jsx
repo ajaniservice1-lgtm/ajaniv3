@@ -5,6 +5,8 @@ import {
   FaEyeSlash,
   FaTimes,
   FaCheck,
+  FaUserAlt,  // Add this import
+  FaExclamationTriangle  // Add this import
 } from "react-icons/fa";
 import Logo from "../../assets/Logos/logo5.png";
 import * as yup from "yup";
@@ -100,6 +102,8 @@ const LoginPage = () => {
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("success");
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [showGuestOption, setShowGuestOption] = useState(true); // Enable guest option by default
+  const [isGuestMode, setIsGuestMode] = useState(false);
 
   const {
     register,
@@ -178,7 +182,92 @@ const LoginPage = () => {
         setShowToast(false);
       }, 4000);
     }
+
+    // Check if there's a specific booking intent
+    const bookingIntent = location.state?.intent;
+    if (bookingIntent) {
+      console.log("Login required for:", bookingIntent);
+      
+      // Show guest option for all except hotel bookings
+      if (bookingIntent === 'hotel_booking') {
+        // Hotel bookings require registration
+        setShowGuestOption(true); // Still show but with warning
+      } else {
+        setShowGuestOption(true);
+      }
+    }
   }, [location, navigate, setValue]);
+
+  // Function to handle guest continuation
+  const handleContinueAsGuest = () => {
+    setIsGuestMode(true);
+    setIsLoading(true);
+    
+    console.log("Continuing as guest...");
+    
+    // Get the redirect path from localStorage or use the from state
+    const redirectPath = localStorage.getItem("redirectAfterAuth") || 
+                        location.state?.from || 
+                        "/";
+    
+    // Get the intent from location state
+    const intent = location.state?.intent || "general";
+    
+    // Check if this is a booking intent that requires registration
+    if (intent.includes('_booking')) {
+      // Show alert for bookings that require registration
+      alert("⚠️ Bookings require account registration. Please create an account to proceed.");
+      
+      // Redirect to register page instead
+      navigate("/register", {
+        state: {
+          from: redirectPath,
+          intent: intent,
+          requiresBooking: true,
+          message: "Create an account to complete your booking"
+        }
+      });
+      setIsLoading(false);
+      setIsGuestMode(false);
+      return;
+    }
+    
+    // Create guest session
+    const guestSession = {
+      isGuest: true,
+      sessionId: `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+      email: email || `guest_${Date.now()}@temp.com`,
+      intent: intent
+    };
+    
+    // Save guest session
+    localStorage.setItem("guestSession", JSON.stringify(guestSession));
+    
+    // Clear any pending redirects
+    localStorage.removeItem("redirectAfterAuth");
+    
+    // Show success message
+    setToastMessage("👤 Continuing as guest - Limited features available");
+    setToastType("success");
+    setShowToast(true);
+    
+    // Navigate back to original page
+    setTimeout(() => {
+      navigate(redirectPath, {
+        replace: true,
+        state: { 
+          isGuest: true,
+          fromLogin: true,
+          guestAccessGranted: true,
+          intent: intent
+        }
+      });
+      setIsLoading(false);
+      setIsGuestMode(false);
+    }, 1000);
+  };
 
   const onSubmit = async (data) => {
     try {
@@ -186,11 +275,13 @@ const LoginPage = () => {
       setSuccessMessage("");
       setIsLoading(true);
       setIsRedirecting(false);
+      setIsGuestMode(false);
 
       localStorage.removeItem("auth_token");
       localStorage.removeItem("user_email");
       localStorage.removeItem("userProfile");
       localStorage.removeItem("auth-storage");
+      localStorage.removeItem("guestSession"); // Clear any guest session
 
       const response = await axiosInstance.post("/auth/login", {
         email: data.email,
@@ -285,18 +376,18 @@ const LoginPage = () => {
       );
 
       // Determine redirect URL based on user role
-      let redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
+      let redirectUrl = localStorage.getItem("redirectAfterAuth") || "/";
       
       // If no specific redirect, use role-based redirect
-      if (!localStorage.getItem("redirectAfterLogin")) {
+      if (!localStorage.getItem("redirectAfterAuth")) {
         if (userData.role === "vendor") {
           redirectUrl = "/vendor/dashboard";
         } else {
-          redirectUrl = "/";
+          redirectUrl = location.state?.from || "/";
         }
       }
       
-      localStorage.removeItem("redirectAfterLogin");
+      localStorage.removeItem("redirectAfterAuth");
 
       setIsLoading(false);
       setIsRedirecting(true);
@@ -329,6 +420,7 @@ const LoginPage = () => {
     } catch (error) {
       setIsLoading(false);
       setIsRedirecting(false);
+      setIsGuestMode(false);
 
       let errorMessage = "";
       let showErrorToast = false;
@@ -385,7 +477,7 @@ const LoginPage = () => {
   };
 
   const handleManualRedirect = () => {
-    const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
+    const redirectUrl = localStorage.getItem("redirectAfterAuth") || "/";
 
     localStorage.removeItem("pendingSaveItem");
 
@@ -453,8 +545,8 @@ const LoginPage = () => {
     localStorage.removeItem("pendingSaveItem");
     setPendingSaveConfirm(null);
 
-    const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
-    localStorage.removeItem("redirectAfterLogin");
+    const redirectUrl = localStorage.getItem("redirectAfterAuth") || "/";
+    localStorage.removeItem("redirectAfterAuth");
     navigate(redirectUrl, { replace: true });
   };
 
@@ -488,8 +580,8 @@ const LoginPage = () => {
     localStorage.removeItem("pendingSaveItem");
     setPendingSaveConfirm(null);
 
-    const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
-    localStorage.removeItem("redirectAfterLogin");
+    const redirectUrl = localStorage.getItem("redirectAfterAuth") || "/";
+    localStorage.removeItem("redirectAfterAuth");
     navigate(redirectUrl, { replace: true });
   };
 
@@ -521,6 +613,12 @@ const LoginPage = () => {
           <p className="text-gray-600 mt-2 text-sm">
             Enter your credentials to access your account
           </p>
+          
+          {location.state?.message && (
+            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-700">{location.state.message}</p>
+            </div>
+          )}
         </div>
 
         {successMessage && (
@@ -611,21 +709,50 @@ const LoginPage = () => {
 
           <button
             type="submit"
-            disabled={isLoading || isRedirecting}
+            disabled={isLoading || isRedirecting || isGuestMode}
             className="w-full hover:bg-[#06EAFC] bg-[#6cff] text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {isLoading ? (
+            {isLoading && !isGuestMode ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 Logging in...
               </>
             ) : isRedirecting ? (
               "Redirecting..."
+            ) : isGuestMode ? (
+              "Processing Guest Access..."
             ) : (
               "Log In"
             )}
           </button>
         </form>
+
+        {/* ========== CONTINUE AS GUEST SECTION ========== */}
+        {showGuestOption && (
+          <div className="space-y-4 pt-4 border-t border-gray-200">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or continue as</span>
+              </div>
+            </div>
+            
+            <button
+              type="button"
+              onClick={handleContinueAsGuest}
+              disabled={isLoading || isRedirecting || isGuestMode}
+              className="w-full bg-gradient-to-r from-gray-50 to-gray-100 border-2 border-gray-300 text-gray-700 font-medium py-3 px-4 rounded-lg transition-all hover:from-gray-100 hover:to-gray-200 hover:border-gray-400 hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <FaUserAlt className="text-gray-500" />
+              <span>Continue as Guest</span>
+            </button>
+            
+          
+          </div>
+        )}
+        {/* ================================================ */}
 
         <div className="text-center text-sm text-gray-600 pt-4">
           <div className="mb-3">
@@ -644,7 +771,9 @@ const LoginPage = () => {
             <p>
               Don't have an account?{" "}
               <button
-                onClick={() => navigate("/register")}
+                onClick={() => navigate("/register", {
+                  state: location.state || {}
+                })}
                 className="text-[#6cff] hover:text-[#06EAFC] font-medium"
               >
                 Register here

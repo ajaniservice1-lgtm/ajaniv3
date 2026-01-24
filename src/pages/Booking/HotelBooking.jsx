@@ -34,9 +34,11 @@ const HotelBooking = () => {
   const [hotelData, setHotelData] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [bookingId, setBookingId] = useState("");
+  const [isGuestUser, setIsGuestUser] = useState(false);
 
-  // Auth check functions
+  // Auth Utility Functions
   const checkAuthStatus = () => {
+    // Check if user has a valid auth token
     const token = localStorage.getItem("auth_token");
     const userProfile = localStorage.getItem("userProfile");
     const userEmail = localStorage.getItem("user_email");
@@ -66,25 +68,62 @@ const HotelBooking = () => {
     }
   };
 
+  const checkGuestSession = () => {
+    try {
+      const guestSession = localStorage.getItem("guestSession");
+      if (!guestSession) return null;
+      
+      const session = JSON.parse(guestSession);
+      const now = Date.now();
+      const expiresAt = new Date(session.expiresAt).getTime();
+      
+      if (now > expiresAt) {
+        localStorage.removeItem("guestSession");
+        return null;
+      }
+      
+      return session;
+    } catch (error) {
+      localStorage.removeItem("guestSession");
+      return null;
+    }
+  };
+
   const requireAuth = () => {
+    // Check guest session first
+    const guestSession = checkGuestSession();
+    if (guestSession) {
+      return { authenticated: false, verified: false, message: "guest_user", guest: true };
+    }
+    
     const isAuthenticated = checkAuthStatus();
     const isVerified = isUserVerified();
     
     if (!isAuthenticated) {
-      return { authenticated: false, verified: false, message: "not_authenticated" };
+      return { authenticated: false, verified: false, message: "not_authenticated", guest: false };
     }
     
     if (!isVerified) {
-      return { authenticated: true, verified: false, message: "not_verified" };
+      return { authenticated: true, verified: false, message: "not_verified", guest: false };
     }
     
-    return { authenticated: true, verified: true, message: "authenticated" };
+    return { authenticated: true, verified: true, message: "authenticated", guest: false };
   };
 
-  // Fix 1: Scroll to top on route change
+  // Scroll to top on route change
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
+
+  // Check if user is guest on component mount
+  useEffect(() => {
+    const guestSession = checkGuestSession();
+    setIsGuestUser(!!guestSession);
+    
+    if (guestSession) {
+      console.log("👤 User is in guest mode:", guestSession);
+    }
+  }, []);
 
   // Generate unique booking ID
   useEffect(() => {
@@ -100,6 +139,7 @@ const HotelBooking = () => {
     setBookingId(generateBookingId());
   }, []);
 
+  // Load booking data
   useEffect(() => {
     const loadBookingData = () => {
       setLoading(true);
@@ -210,22 +250,36 @@ const HotelBooking = () => {
         }
       }
       
-      // Pre-fill user data if logged in
+      // Pre-fill user data if logged in or guest
       const authStatus = requireAuth();
-      if (authStatus.authenticated) {
-        try {
-          const userProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
-          if (userProfile.firstName || userProfile.lastName || userProfile.email) {
+      if (authStatus.authenticated || authStatus.guest) {
+        if (authStatus.guest) {
+          // For guest users, get guest session data
+          const guestSession = checkGuestSession();
+          if (guestSession && guestSession.email) {
             setBookingData(prev => ({
               ...prev,
-              firstName: userProfile.firstName || prev.firstName,
-              lastName: userProfile.lastName || prev.lastName,
-              email: userProfile.email || prev.email,
-              phone: userProfile.phone || prev.phone
+              email: guestSession.email || prev.email,
+              firstName: guestSession.firstName || prev.firstName,
+              lastName: guestSession.lastName || prev.lastName
             }));
           }
-        } catch (error) {
-          console.error("Failed to load user profile:", error);
+        } else {
+          // For authenticated users
+          try {
+            const userProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+            if (userProfile.firstName || userProfile.lastName || userProfile.email) {
+              setBookingData(prev => ({
+                ...prev,
+                firstName: userProfile.firstName || prev.firstName,
+                lastName: userProfile.lastName || prev.lastName,
+                email: userProfile.email || prev.email,
+                phone: userProfile.phone || prev.phone
+              }));
+            }
+          } catch (error) {
+            console.error("Failed to load user profile:", error);
+          }
         }
       }
       
@@ -264,9 +318,9 @@ const HotelBooking = () => {
     // Check authentication
     const authStatus = requireAuth();
     
-    if (!authStatus.authenticated) {
+    if (!authStatus.authenticated && !authStatus.guest) {
       // Save current booking details to localStorage to restore after login
-      localStorage.setItem("pendingBooking", JSON.stringify({
+      const pendingBooking = {
         type: "hotel",
         hotelId: hotelData?.id || roomData.hotel?.id,
         hotelName: hotelData?.name || roomData.hotel?.name,
@@ -280,20 +334,57 @@ const HotelBooking = () => {
         checkOutDate: roomData.booking?.checkOut,
         guests: roomData.booking?.adults,
         timestamp: Date.now()
-      }));
+      };
+      
+      // Save pending booking data
+      localStorage.setItem("pendingBookingData", JSON.stringify(pendingBooking));
       
       // Save redirect URL for after login
-      localStorage.setItem("redirectAfterLogin", window.location.pathname);
+      localStorage.setItem("redirectAfterAuth", window.location.pathname);
       
       // Save form data temporarily
       localStorage.setItem('bookingData', JSON.stringify(bookingData));
       
-      // Redirect to login
+      // Redirect to login with comprehensive state
       navigate("/login", { 
         state: { 
-          message: "Please login or create an account to complete your booking",
-          requiresVerification: true
+          from: window.location.pathname,
+          intent: "hotel_booking",
+          guestAccess: false, // No guest access for hotel bookings
+          timestamp: Date.now(),
+          requiresVerification: true,
+          message: "Please login or create an account to complete your hotel booking"
         } 
+      });
+      return;
+    }
+    
+    if (authStatus.guest) {
+      // Guest users cannot complete hotel bookings - require registration
+      alert("⚠️ Hotel bookings require account registration. Please create an account to proceed.");
+      
+      // Redirect to register with current booking data
+      const currentPath = window.location.pathname + window.location.search;
+      localStorage.setItem("redirectAfterRegister", currentPath);
+      
+      // Save current booking data for restoration after registration
+      localStorage.setItem("pendingBookingData", JSON.stringify({
+        type: "hotel",
+        hotelId: hotelData?.id || roomData.hotel?.id,
+        hotelName: hotelData?.name || roomData.hotel?.name,
+        roomData: roomData,
+        bookingData: bookingData,
+        selectedPayment: selectedPayment,
+        bookingId: bookingId
+      }));
+      
+      navigate("/register", {
+        state: {
+          from: currentPath,
+          upgradeFromGuest: true,
+          requiresBooking: true,
+          message: "Create an account to complete your hotel booking"
+        }
       });
       return;
     }
@@ -309,7 +400,7 @@ const HotelBooking = () => {
       return;
     }
 
-    console.log("🚀 Submitting hotel booking...");
+    console.log("🚀 Proceeding with authenticated booking...");
 
     // Save guest information
     localStorage.setItem('bookingData', JSON.stringify(bookingData));
@@ -326,7 +417,8 @@ const HotelBooking = () => {
       status: selectedPayment === "card" ? "pending_payment" : "confirmed",
       totalAmount: calculateTotal(),
       timestamp: Date.now(),
-      userId: JSON.parse(localStorage.getItem("userProfile") || "{}")._id || null
+      userId: JSON.parse(localStorage.getItem("userProfile") || "{}")._id || null,
+      isGuest: false
     };
 
     console.log("💾 Complete booking data:", completeBooking);
@@ -338,6 +430,7 @@ const HotelBooking = () => {
     // Clear temporary data
     localStorage.removeItem('roomBookingData');
     localStorage.removeItem('currentVendorBooking');
+    localStorage.removeItem('pendingBookingData');
     
     // If paying at hotel, go directly to confirmation
     if (selectedPayment === "hotel") {
@@ -360,14 +453,10 @@ const HotelBooking = () => {
     }
   };
 
-  // ALL FEES SET TO ZERO
+  // Calculate total (all fees set to 0)
   const calculateTotal = () => {
     if (!roomData?.booking?.price) return 0;
-    const roomPrice = roomData.booking.price;
-    // All fees set to 0
-    const taxes = 0;
-    const serviceFee = 0;
-    return roomPrice + taxes + serviceFee; // Just room price
+    return roomData.booking.price;
   };
 
   const formatPrice = (price) => {
@@ -386,6 +475,65 @@ const HotelBooking = () => {
       if (locationData.location) return getLocationString(locationData.location);
     }
     return 'Location not specified';
+  };
+
+  // Show Guest Warning Banner
+  const GuestWarningBanner = () => {
+    if (!isGuestUser) return null;
+    
+    const handleRegister = () => {
+      const currentPath = window.location.pathname + window.location.search;
+      localStorage.setItem("redirectAfterRegister", currentPath);
+      
+      // Save current form data
+      localStorage.setItem('bookingData', JSON.stringify(bookingData));
+      
+      navigate("/register", {
+        state: {
+          from: currentPath,
+          upgradeFromGuest: true,
+          requiresBooking: true,
+          email: bookingData.email,
+          firstName: bookingData.firstName,
+          lastName: bookingData.lastName
+        }
+      });
+    };
+
+    return (
+      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r-lg">
+        <div className="flex items-start">
+          <div className="flex-shrink-0">
+            <FontAwesomeIcon icon={faShieldAlt} className="text-yellow-500 text-lg" />
+          </div>
+          <div className="ml-3 flex-1">
+            <h3 className="text-sm font-medium text-yellow-800">
+              ⚠️ You're browsing as a guest
+            </h3>
+            <div className="mt-2 text-sm text-yellow-700">
+              <p>
+                To complete your hotel booking, you need to create an account.
+                This will also allow you to:
+              </p>
+              <ul className="list-disc pl-5 mt-1 space-y-1">
+                <li>Save your booking history</li>
+                <li>Manage future reservations</li>
+                <li>Receive exclusive offers</li>
+                <li>Save payment methods securely</li>
+              </ul>
+            </div>
+            <div className="mt-3">
+              <button
+                onClick={handleRegister}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+              >
+                Create Account to Book
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -427,28 +575,22 @@ const HotelBooking = () => {
     );
   }
 
-  // ALL FEES SET TO ZERO
-  const roomPrice = roomData?.booking?.price || 0;
-  const taxes = 0;
-  const serviceFee = 0;
   const total = calculateTotal();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <Header />
       
-      {/* Reduced top spacing */}
       <div className="pt-0">
-        {/* Main container with edge-to-edge padding on mobile */}
         <div className="max-w-7xl mx-auto px-2.5 sm:px-4 py-20 sm:py-26">
-          {/* Stepper - Reduced spacing */}
           <div className="mb-4 sm:mb-8">
             <Stepper currentStep={1} />
           </div>
           
-          {/* Main Card - Reduced padding and border radius on mobile */}
+          {/* Guest Warning Banner */}
+          <GuestWarningBanner />
+          
           <div className="bg-white rounded-lg sm:rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-            {/* Back Button - Compact */}
             <div className="px-3 sm:px-6 pt-3 sm:pt-6">
               <button
                 onClick={() => navigate(-1)}
@@ -459,11 +601,8 @@ const HotelBooking = () => {
               </button>
             </div>
 
-            {/* Grid - Tight spacing on mobile */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 p-3 sm:p-6">
-              {/* Left Column - Form */}
               <div className="lg:col-span-2">
-                {/* Header - Compact */}
                 <div className="px-1 mb-4">
                   <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-1">
                     {hotelData?.category === 'shortlet' ? 'Book Your Shortlet Stay' : 
@@ -477,7 +616,7 @@ const HotelBooking = () => {
                   </p>
                 </div>
 
-                {/* Hotel & Room Preview Card - Compact */}
+                {/* Hotel & Room Preview Card */}
                 <div className="mb-4 sm:mb-6 bg-gradient-to-r from-blue-50 to-emerald-50 rounded-lg p-3 sm:p-4 border border-blue-100">
                   <div className="flex flex-col md:flex-row gap-3">
                     <div className="md:w-1/3 relative">
@@ -543,7 +682,7 @@ const HotelBooking = () => {
                   </div>
                 </div>
 
-                {/* Payment Options - Compact */}
+                {/* Payment Options */}
                 <div className="mb-4 sm:mb-6">
                   <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-2.5 flex items-center gap-1.5">
                     <FontAwesomeIcon icon={faCreditCard} className="text-blue-500 text-sm" />
@@ -721,11 +860,20 @@ const HotelBooking = () => {
 
                   <button
                     onClick={handleSubmit}
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer text-sm"
+                    disabled={isGuestUser}
+                    className={`w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer text-sm ${
+                      isGuestUser ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   >
-                    {selectedPayment === "hotel" ? "Confirm Booking" : "Proceed to Payment"}
+                    {isGuestUser ? "Create Account to Book" : selectedPayment === "hotel" ? "Confirm Booking" : "Proceed to Payment"}
                     <span className="ml-2">→</span>
                   </button>
+                  
+                  {isGuestUser && (
+                    <p className="text-xs text-red-600 text-center mt-2">
+                      ⚠️ Hotel bookings require account registration
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -736,6 +884,12 @@ const HotelBooking = () => {
                   <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-3 text-white">
                     <h3 className="text-base font-bold mb-1">Booking Summary</h3>
                     <p className="text-xs opacity-90">Booking ID: {bookingId}</p>
+                    {isGuestUser && (
+                      <div className="mt-2 flex items-center gap-1 text-xs bg-yellow-500/20 p-1 rounded">
+                        <FontAwesomeIcon icon={faShieldAlt} />
+                        <span>Guest Mode - Limited Access</span>
+                      </div>
+                    )}
                   </div>
                   
                   {/* Hotel Card */}
@@ -781,19 +935,16 @@ const HotelBooking = () => {
                           <span className="font-medium">{formatPrice(roomData.booking?.price)}</span>
                         </div>
                         
-                        {/* Taxes & Fees - Showing as ₦0 */}
                         <div className="flex justify-between text-xs">
                           <span className="text-gray-600">Taxes & fees</span>
-                          <span className="font-medium">{formatPrice(taxes)}</span>
+                          <span className="font-medium">{formatPrice(0)}</span>
                         </div>
                         
-                        {/* Service fee - Showing as ₦0 */}
                         <div className="flex justify-between text-xs">
                           <span className="text-gray-600">Service fee</span>
-                          <span className="font-medium">{formatPrice(serviceFee)}</span>
+                          <span className="font-medium">{formatPrice(0)}</span>
                         </div>
                         
-                        {/* Discount */}
                         {roomData.booking?.discount && (
                           <div className="pt-1.5 border-t border-gray-200">
                             <div className="flex justify-between text-xs">
