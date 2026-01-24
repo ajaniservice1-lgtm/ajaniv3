@@ -1846,7 +1846,7 @@ const VendorDetail = () => {
 
             {/* ================= ROOM SELECTION SECTION ================= */}
             {/* Only for Hotels (not shortlets) */}
-            {/* {category === 'hotel' && (
+            {category === 'hotel' && (
               <div 
                 ref={roomSelectionRef}
                 id="room-selection-section"
@@ -1859,7 +1859,7 @@ const VendorDetail = () => {
                   vendorData={vendor}
                 />
               </div>
-            )} */}
+            )}
 
             {/* Reviews Section - Compact mobile */}
             <section className="w-full bg-white px-2.5 sm:px-4 md:px-4 py-4 md:py-8">
