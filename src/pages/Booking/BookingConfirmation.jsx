@@ -84,11 +84,11 @@ const BookingConfirmation = () => {
   const getMessage = () => {
     switch(type) {
       case 'restaurant':
-        return "Your table reservation request has been sent to the restaurant. You'll receive confirmation within 24 hours.";
+        return "Your table reservation request has been sent to the restaurant. Your booking request has been successfully received. Ajani is now checking availability with JAGZ Resturant  for your selected date and details. Once availability is confirmed, we’ll notify you via phone call, SMS, or WhatsApp with the next steps";
       case 'shortlet':
         return "Your shortlet booking request has been sent to the property owner. They'll contact you shortly to confirm availability.";
       case 'hotel':
-        return "Your hotel booking has been confirmed! Check your email for the booking confirmation.";
+        return "Your hotel booking has been confirmed! Check your email for the booking confirmation.Ajani is now checking availability with JAGZ Resturant  for your selected date and details.Once availability is confirmed, we’ll notify you via phone call, SMS, or WhatsApp with the next steps.";
       default:
         return "Your booking request has been successfully received.";
     }

@@ -317,7 +317,7 @@ const HotelBookingPage = () => {
                           name="firstName"
                           value={bookingData.firstName}
                           onChange={handleInputChange}
-                          placeholder="John"
+                          placeholder="FirstName"
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent cursor-pointer"
                           required
                         />
@@ -332,7 +332,7 @@ const HotelBookingPage = () => {
                           name="lastName"
                           value={bookingData.lastName}
                           onChange={handleInputChange}
-                          placeholder="Adesoye"
+                          placeholder="LastName"
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent cursor-pointer"
                           required
                         />
@@ -348,7 +348,7 @@ const HotelBookingPage = () => {
                         name="email"
                         value={bookingData.email}
                         onChange={handleInputChange}
-                        placeholder="john@example.com"
+                        placeholder="Your email address or gmail address"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent cursor-pointer"
                         required
                       />

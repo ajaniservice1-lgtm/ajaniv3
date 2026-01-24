@@ -34,86 +34,78 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
   const [bookingId, setBookingId] = useState("");
   const [selectedPayment, setSelectedPayment] = useState("restaurant");
   const [isTermsAccepted, setIsTermsAccepted] = useState(false);
-  const [isGuestUser, setIsGuestUser] = useState(false);
 
-  // Auth Utility Functions
+  // ENHANCED auth check that properly handles both regular users and guests
   const checkAuthStatus = () => {
+    // Check for regular auth token
     const token = localStorage.getItem("auth_token");
-    const userProfile = localStorage.getItem("userProfile");
     const userEmail = localStorage.getItem("user_email");
     
     if (token && userEmail) {
-      return true;
+      return { 
+        authenticated: true, 
+        isGuest: false,
+        type: "authenticated_user" 
+      };
     }
     
-    if (userProfile) {
-      try {
-        const parsed = JSON.parse(userProfile);
-        return !!parsed.email;
-      } catch (error) {
-        return false;
-      }
-    }
-    
-    return false;
-  };
-
-  const isUserVerified = () => {
-    try {
-      const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
-      return profile?.isVerified || false;
-    } catch (error) {
-      return false;
-    }
-  };
-
-  const checkGuestSession = () => {
-    try {
-      const guestSession = localStorage.getItem("guestSession");
-      if (!guestSession) return null;
-      
-      const session = JSON.parse(guestSession);
-      const now = Date.now();
-      const expiresAt = new Date(session.expiresAt).getTime();
-      
-      if (now > expiresAt) {
-        localStorage.removeItem("guestSession");
-        return null;
-      }
-      
-      return session;
-    } catch (error) {
-      localStorage.removeItem("guestSession");
-      return null;
-    }
-  };
-
-  const requireAuth = () => {
-    // Check guest session first
-    const guestSession = checkGuestSession();
+    // Check for guest session
+    const guestSession = localStorage.getItem("guestSession");
     if (guestSession) {
-      return { authenticated: false, verified: false, message: "guest_user", guest: true };
+      try {
+        const session = JSON.parse(guestSession);
+        
+        // Check if session is expired
+        if (session.expiresAt) {
+          const expiresAt = new Date(session.expiresAt);
+          const now = new Date();
+          
+          if (expiresAt > now) {
+            // Guest session is still valid
+            return { 
+              authenticated: true, 
+              isGuest: true,
+              type: "guest_user",
+              sessionId: session.sessionId,
+              email: session.email
+            };
+          } else {
+            // Guest session expired, clear it
+            localStorage.removeItem("guestSession");
+            return { 
+              authenticated: false, 
+              isGuest: false,
+              type: "expired_guest" 
+            };
+          }
+        } else {
+          // No expiration date, assume valid
+          return { 
+            authenticated: true, 
+            isGuest: true,
+            type: "guest_user",
+            sessionId: session.sessionId,
+            email: session.email
+          };
+        }
+      } catch (error) {
+        console.error("Failed to parse guest session:", error);
+        localStorage.removeItem("guestSession");
+        return { 
+          authenticated: false, 
+          isGuest: false,
+          type: "error" 
+        };
+      }
     }
     
-    const isAuthenticated = checkAuthStatus();
-    const isVerified = isUserVerified();
-    
-    if (!isAuthenticated) {
-      return { authenticated: false, verified: false, message: "not_authenticated", guest: false };
-    }
-    
-    if (!isVerified) {
-      return { authenticated: true, verified: false, message: "not_verified", guest: false };
-    }
-    
-    return { authenticated: true, verified: true, message: "authenticated", guest: false };
+    // No authentication found
+    return { 
+      authenticated: false, 
+      isGuest: false,
+      type: "not_authenticated" 
+    };
   };
-
-  // Check guest status on mount
-  useEffect(() => {
-    const guestSession = checkGuestSession();
-    setIsGuestUser(!!guestSession);
-  }, []);
 
   // Fix 1: Scroll to top on route change
   useEffect(() => {
@@ -159,25 +151,22 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
       setVendorData(data);
       
       // Pre-fill user data if logged in or guest
-      const authStatus = requireAuth();
-      if (authStatus.authenticated || authStatus.guest) {
-        if (authStatus.guest) {
-          // For guest users, get guest session data
-          const guestSession = checkGuestSession();
-          if (guestSession) {
+      const authStatus = checkAuthStatus();
+      if (authStatus.authenticated) {
+        try {
+          if (authStatus.isGuest) {
+            // Guest user - pre-fill with guest email if available
             setBookingData(prev => ({
               ...prev,
               contactInfo: {
-                firstName: guestSession.firstName || prev.contactInfo.firstName,
-                lastName: guestSession.lastName || prev.contactInfo.lastName,
-                email: guestSession.email || prev.contactInfo.email,
-                phone: guestSession.phone || prev.contactInfo.phone
+                ...prev.contactInfo,
+                email: authStatus.email || prev.contactInfo.email,
+                firstName: prev.contactInfo.firstName || "Guest",
+                lastName: prev.contactInfo.lastName || "User"
               }
             }));
-          }
-        } else {
-          // For authenticated users
-          try {
+          } else {
+            // Regular user
             const userProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
             if (userProfile.firstName || userProfile.lastName || userProfile.email) {
               setBookingData(prev => ({
@@ -190,9 +179,9 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                 }
               }));
             }
-          } catch (error) {
-            console.error("Failed to load user profile:", error);
           }
+        } catch (error) {
+          console.error("Failed to load user profile:", error);
         }
       }
       
@@ -255,11 +244,11 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
       return;
     }
 
-    // Check authentication
-    const authStatus = requireAuth();
+    // Check authentication - FIXED: Use enhanced auth check
+    const authStatus = checkAuthStatus();
     console.log("Auth status:", authStatus);
     
-    if (!authStatus.authenticated && !authStatus.guest) {
+    if (!authStatus.authenticated) {
       console.log("User not authenticated, saving pending booking");
       
       // Convert 24-hour time to 12-hour format for display
@@ -268,8 +257,8 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
       // Calculate total
       const total = calculateTotal();
       
-      // Save current booking details to localStorage to restore after login
-      const pendingBooking = {
+      // Save ALL booking data to localStorage
+      const completeBooking = {
         type: "restaurant",
         vendorData: vendorData,
         bookingData: {
@@ -282,71 +271,23 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
         timestamp: Date.now()
       };
       
-      console.log("Saving pending booking:", pendingBooking);
-      localStorage.setItem("pendingBookingData", JSON.stringify(pendingBooking));
+      // Save complete booking for later restoration
+      localStorage.setItem("pendingRestaurantBooking", JSON.stringify(completeBooking));
+      localStorage.setItem("restaurantFormData", JSON.stringify(bookingData));
       
-      // Save redirect URL for after login
-      localStorage.setItem("redirectAfterAuth", window.location.pathname);
-      
-      // Save form data temporarily
-      localStorage.setItem('restaurantFormData', JSON.stringify(bookingData));
-      
-      // Redirect to login with comprehensive state
+      // Redirect to login WITH booking intent
       navigate("/login", { 
         state: { 
-          from: window.location.pathname,
+          message: "Please login or continue as guest to complete your reservation",
+          fromBooking: true,
           intent: "restaurant_booking",
-          guestAccess: false, // Restaurant bookings also require registration
-          timestamp: Date.now(),
-          requiresVerification: true,
-          message: "Please login or create an account to complete your restaurant reservation"
-        } 
-      });
-      return;
-    }
-    
-    if (authStatus.guest) {
-      // Guest users cannot complete restaurant bookings - require registration
-      alert("⚠️ Restaurant reservations require account registration. Please create an account to proceed.");
-      
-      // Redirect to register with current booking data
-      const currentPath = window.location.pathname + window.location.search;
-      localStorage.setItem("redirectAfterRegister", currentPath);
-      
-      // Save current booking data for restoration after registration
-      localStorage.setItem("pendingBookingData", JSON.stringify({
-        type: "restaurant",
-        vendorData: vendorData,
-        bookingData: bookingData,
-        bookingId: bookingId,
-        time: formatTimeForDisplay(bookingData.time),
-        guests: bookingData.numberOfGuests
-      }));
-      
-      navigate("/register", {
-        state: {
-          from: currentPath,
-          upgradeFromGuest: true,
-          requiresBooking: true,
-          message: "Create an account to complete your restaurant reservation"
-        }
-      });
-      return;
-    }
-    
-    if (!authStatus.verified) {
-      console.log("User not verified, redirecting to OTP verification");
-      // Redirect to OTP verification
-      navigate("/verify-otp", { 
-        state: { 
-          message: "Please verify your account to complete your reservation",
-          returnPath: window.location.pathname
+          returnTo: "/booking-confirmation/restaurant"
         } 
       });
       return;
     }
 
-    console.log("User authenticated and verified, proceeding with booking");
+    console.log("User authenticated, proceeding with booking");
 
     // Convert 24-hour time to 12-hour format for display
     const timeString = formatTimeForDisplay(bookingData.time);
@@ -363,9 +304,10 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
       bookingDate: new Date().toISOString(),
       bookingId: bookingId,
       status: selectedPayment === "card" ? "pending_payment" : "confirmed",
-      userId: JSON.parse(localStorage.getItem("userProfile") || "{}")._id || null,
-      termsAccepted: isTermsAccepted,
-      isGuest: false
+      userId: authStatus.isGuest ? authStatus.sessionId : JSON.parse(localStorage.getItem("userProfile") || "{}")._id || null,
+      isGuestBooking: authStatus.isGuest || false,
+      guestSessionId: authStatus.isGuest ? authStatus.sessionId : null,
+      termsAccepted: isTermsAccepted
     };
 
     console.log("Complete booking data:", completeBooking);
@@ -375,21 +317,24 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
     localStorage.setItem('completeBooking', JSON.stringify(completeBooking));
     
     // Clear any pending booking data
-    localStorage.removeItem('pendingBookingData');
+    localStorage.removeItem('pendingRestaurantBooking');
     localStorage.removeItem('restaurantFormData');
+    localStorage.removeItem('pendingBooking');
     
     // Navigate based on payment method
     if (selectedPayment === "restaurant") {
       navigate('/booking-confirmation/restaurant', { 
         state: { 
-          bookingData: completeBooking 
+          bookingData: completeBooking,
+          isGuestBooking: authStatus.isGuest || false
         } 
       });
     } else {
       navigate('/booking/payment', { 
         state: { 
           bookingData: completeBooking,
-          bookingType: 'restaurant'
+          bookingType: 'restaurant',
+          isGuestBooking: authStatus.isGuest || false
         } 
       });
     }
@@ -433,42 +378,6 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
 
   const calculateTotal = () => {
     return vendorData?.priceFrom || 5000;
-  };
-
-  // Guest Warning Banner Component
-  const GuestWarningBanner = () => {
-    if (!isGuestUser) return null;
-    
-    const handleRegister = () => {
-      const currentPath = window.location.pathname + window.location.search;
-      localStorage.setItem("redirectAfterRegister", currentPath);
-      
-      // Save current form data
-      localStorage.setItem('restaurantFormData', JSON.stringify(bookingData));
-      
-      navigate("/register", {
-        state: {
-          from: currentPath,
-          upgradeFromGuest: true,
-          requiresBooking: true,
-          firstName: bookingData.contactInfo.firstName,
-          lastName: bookingData.contactInfo.lastName,
-          email: bookingData.contactInfo.email,
-          phone: bookingData.contactInfo.phone
-        }
-      });
-    };
-
-    return (
-      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r-lg">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <FontAwesomeIcon icon={faShieldAlt} className="text-yellow-500 text-lg" />
-          </div>
-       
-        </div>
-      </div>
-    );
   };
 
   if (loading) {
@@ -520,14 +429,14 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
       
       <div className="pt-0">
         <div className="max-w-7xl mx-auto px-2.5 sm:px-4 py-20 sm:py-26">
+          {/* Stepper - Reduced spacing */}
           <div className="mb-4 sm:mb-8">
             <Stepper currentStep={1} />
           </div>
           
-          {/* Guest Warning Banner */}
-          <GuestWarningBanner />
-          
+          {/* Main Card - Reduced padding on mobile */}
           <div className="bg-white rounded-lg sm:rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+            {/* Back Button - More compact on mobile */}
             <div className="px-3 sm:px-6 pt-3 sm:pt-6">
               <button
                 onClick={() => navigate(-1)}
@@ -538,8 +447,11 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
               </button>
             </div>
 
+            {/* Grid - Single column on mobile */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 p-3 sm:p-6">
+              {/* Left Column - Form */}
               <div className="lg:col-span-2">
+                {/* Header - Smaller on mobile */}
                 <div className="px-1 mb-4">
                   <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-1">
                     Reserve Your Table
@@ -549,7 +461,7 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                   </p>
                 </div>
 
-                {/* Restaurant Preview Card */}
+                {/* Restaurant Preview Card - More compact */}
                 <div className="mb-4 sm:mb-6 bg-gradient-to-r from-blue-50 to-emerald-50 rounded-lg p-3 sm:p-4 border border-blue-100">
                   <div className="flex flex-col md:flex-row gap-3">
                     <div className="md:w-1/3 relative">
@@ -892,31 +804,21 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
 
                   <button
                     onClick={handleSubmit}
-                    disabled={isGuestUser}
-                    className={`w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer text-sm ${
-                      isGuestUser ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer text-sm"
                   >
-                    {isGuestUser ? "Create Account to Reserve" : selectedPayment === "restaurant" ? "Reserve Table" : "Proceed to Payment"}
+                    {selectedPayment === "restaurant" ? "Reserve Table" : "Proceed to Payment"}
                     <span className="ml-2">→</span>
                   </button>
-                  
-                  {isGuestUser && (
-                    <p className="text-xs text-red-600 text-center mt-2">
-                      ⚠️ Restaurant reservations require account registration
-                    </p>
-                  )}
                 </div>
               </div>
 
-              {/* Right Column - Booking Summary */}
+              {/* Right Column - Booking Summary - Sticky on desktop only */}
               <div className="lg:col-span-1">
                 <div className="lg:sticky lg:top-20 space-y-3">
                   {/* Summary Header */}
                   <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-3 text-white">
                     <h3 className="text-base font-bold mb-1">Booking Summary</h3>
                     <p className="text-xs opacity-90">Booking ID: {bookingId}</p>
-          
                   </div>
                   
                   {/* Restaurant Card */}
@@ -955,7 +857,7 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                     </div>
                   </div>
                   
-                  {/* Price Breakdown */}
+                  {/* Price Breakdown - ALL FEES SET TO 0 */}
                   <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
                     <div className="p-3">
                       <h5 className="font-bold text-gray-900 mb-2 text-sm">Price Breakdown</h5>
@@ -966,11 +868,13 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                           <span className="font-medium">{formatPrice(total)}</span>
                         </div>
                         
+                        {/* Taxes & Fees - Showing as ₦0 */}
                         <div className="flex justify-between text-xs">
                           <span className="text-gray-600">Taxes & fees</span>
                           <span className="font-medium">{formatPrice(taxes)}</span>
                         </div>
                         
+                        {/* Service fee - Showing as ₦0 */}
                         <div className="flex justify-between text-xs">
                           <span className="text-gray-600">Service fee</span>
                           <span className="font-medium">{formatPrice(serviceFee)}</span>

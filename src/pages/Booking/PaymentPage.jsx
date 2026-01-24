@@ -344,7 +344,7 @@ const PaymentPage = () => {
                             name="name"
                             value={cardDetails.name}
                             onChange={handleCardInputChange}
-                            placeholder="John Doe"
+                            placeholder="FirstName"
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent cursor-pointer"
                             required
                           />
