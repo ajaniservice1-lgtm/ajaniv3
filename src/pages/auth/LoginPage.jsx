@@ -724,19 +724,7 @@ const LoginPage = () => {
               <span>Continue as Guest</span>
             </button>
             
-            {isFromBooking && (
-              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <FaExclamationTriangle className="text-yellow-500 mt-0.5 flex-shrink-0" />
-                  <div className="text-left">
-                    <p className="text-xs font-medium text-yellow-700">Guest Booking</p>
-                    <p className="text-xs text-yellow-600 mt-0.5">
-                      As a guest, your booking will be completed immediately. You can create an account later to track your bookings.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
+           
           </div>
         )}
 
