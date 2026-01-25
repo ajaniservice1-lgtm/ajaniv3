@@ -440,7 +440,7 @@ const RoomSelection = ({ vendorData, category = "hotel", onRoomSelect, onRoomBoo
                     />
                     {/* Image count badge */}
                     <div className="absolute bottom-1.5 right-1.5 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                      {room.images?.length || 1} photos
+                      {room.images?.length || 1} photos, click on the image to view
                     </div>
                     {/* Price badge */}
                     {room.pricePerNight && (

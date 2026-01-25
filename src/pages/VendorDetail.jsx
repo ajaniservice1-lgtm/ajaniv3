@@ -1652,7 +1652,7 @@ const VendorDetail = () => {
                               className="text-[#06EAFC] group-hover:text-[#05d9eb] transition-colors duration-300"
                             />
                           </div>
-                          <span className="text-gray-700 font-manrope leading-relaxed text-xs md:text-sm group-hover:text-gray-900 transition-colors duration-300">
+                          <span className="text-gray-700 font-manrope leading-relaxed text-[13px] md:text-sm group-hover:text-gray-900 transition-colors duration-300">
                             {service}
                           </span>
                         </div>
