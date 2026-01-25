@@ -1470,7 +1470,7 @@ const VendorDetail = () => {
                     <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
                     </svg>
-                    {galleryImages.length} Photos
+                    {galleryImages.length} Photos, click on the image to view
                   </button>
                 </div>
 
@@ -1629,7 +1629,7 @@ const VendorDetail = () => {
                   <h2 className="text-base md:text-xl font-bold text-[#06F49F] mb-2 md:mb-4 font-manrope">
                     About
                   </h2>
-                  <p className="text-gray-900 text-[12.5px] md:text-sm font-manrope hover:text-gray-800 cursor-pointer">
+                  <p className="text-gray-900 text-[13px] md:text-sm font-manrope hover:text-gray-800 cursor-pointer">
                     {safeToString(vendor.description || vendor.about || "Welcome to our premium venue, offering exceptional service and unforgettable experiences. With modern amenities and professional staff, we ensure your stay is comfortable and memorable.")}
                   </p>
                 </div>
