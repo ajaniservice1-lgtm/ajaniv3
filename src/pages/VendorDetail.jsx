@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faHome } from "@fortawesome/free-solid-svg-icons";
 import { 
   faStar, 
   faPhone, 
@@ -22,7 +23,6 @@ import {
   faTimes,
   faChevronLeft,
   faChevronRight,
-  faHome,
   faCalendarAlt,
   faClock,
   faUserCheck,
@@ -42,7 +42,8 @@ import {
   faSuitcase,
   faWind,
   faThermometerHalf,
-  faBookmark as faBookmarkSolid
+  faBookmark as faBookmarkSolid,
+  faUser,
 } from "@fortawesome/free-solid-svg-icons";
 import { CiBookmark } from "react-icons/ci";
 import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
@@ -50,7 +51,6 @@ import { FaBookOpen } from "react-icons/fa";
 import { HiLocationMarker } from "react-icons/hi";
 import { RiShare2Line } from "react-icons/ri";
 import { VscVerifiedFilled } from "react-icons/vsc";
-// import { faBookmark } from "@fortawesome/free-regular-svg-icons";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import RoomSelection from "../components/RoomSelection";
@@ -290,33 +290,62 @@ const useAuthStatus = () => {
   return isAuthenticated;
 };
 
+// Get amenities from vendor data
 const getAmenities = (vendor) => {
   if (!vendor) return ["Not specified"];
   
   const category = normalizeCategory(vendor.category);
   
-  // Check direct amenities first
-  if (vendor.amenities) {
-    if (typeof vendor.amenities === 'string') {
-      return vendor.amenities.split(",").map(item => item.trim()).filter(item => item);
-    }
-    if (Array.isArray(vendor.amenities) && vendor.amenities.length > 0) {
-      return vendor.amenities;
-    }
-  }
-  
-  // Check for hotel amenities in details
+  // For hotels, prioritize room amenities
   if (category === 'hotel') {
-    // Try to get amenities from hotel details
+    // Check room types for amenities
+    if (vendor.details?.roomTypes && Array.isArray(vendor.details.roomTypes)) {
+      // Collect all unique amenities from all rooms
+      const allRoomAmenities = [];
+      vendor.details.roomTypes.forEach(room => {
+        if (room.amenities) {
+          if (Array.isArray(room.amenities)) {
+            allRoomAmenities.push(...room.amenities);
+          } else if (typeof room.amenities === 'string') {
+            allRoomAmenities.push(room.amenities);
+          }
+        }
+      });
+      
+      if (allRoomAmenities.length > 0) {
+        const uniqueAmenities = [...new Set(allRoomAmenities.map(a => safeToString(a)).filter(a => a))];
+        if (uniqueAmenities.length > 0) {
+          return uniqueAmenities.slice(0, 8);
+        }
+      }
+    }
+    
+    // Fallback to vendor amenities
+    if (vendor.amenities) {
+      if (typeof vendor.amenities === 'string') {
+        return vendor.amenities.split(",").map(item => item.trim()).filter(item => item);
+      }
+      if (Array.isArray(vendor.amenities) && vendor.amenities.length > 0) {
+        return vendor.amenities;
+      }
+    }
+    
+    // Fallback to hotel details amenities
     if (vendor.details?.amenities && Array.isArray(vendor.details.amenities)) {
       return vendor.details.amenities;
     }
-    // Try room amenities
-    if (vendor.details?.roomTypes?.[0]?.amenities && Array.isArray(vendor.details.roomTypes[0].amenities)) {
-      return vendor.details.roomTypes[0].amenities;
-    }
-    // Default hotel amenities
-    return ["Free WiFi", "Swimming Pool", "Parking", "Air Conditioning", "Restaurant", "Spa", "Gym", "24/7 Reception"];
+    
+    // Default hotel amenities (from room selection modal)
+    return [
+      "Free WiFi",
+      "Air Conditioning", 
+      "Flat-screen TV",
+      "Private Bathroom",
+      "Daily Housekeeping",
+      "Room Service",
+      "Parking",
+      "Swimming Pool"
+    ];
   } else if (category === 'restaurant') {
     return ["Outdoor Seating", "Live Music", "Parking", "Takeaway", "Vegetarian Options", "Alcohol Served", "Air Conditioning"];
   } else if (category === 'event') {
@@ -332,24 +361,28 @@ const getAmenities = (vendor) => {
   return ["Not specified"];
 };
 
+// Get amenity icon based on feature name
 const getAmenityIcon = (amenity) => {
   const lowerAmenity = amenity.toLowerCase();
+  
+  // Match with room selection modal features
   if (lowerAmenity.includes('wifi') || lowerAmenity.includes('internet')) return faWifi;
+  if (lowerAmenity.includes('air conditioning') || lowerAmenity.includes('ac') || lowerAmenity.includes('cooling')) return faSnowflake;
+  if (lowerAmenity.includes('tv') || lowerAmenity.includes('television') || lowerAmenity.includes('flat-screen')) return faTv;
+  if (lowerAmenity.includes('bathroom') || lowerAmenity.includes('bath') || lowerAmenity.includes('shower')) return faBath;
+  if (lowerAmenity.includes('housekeeping') || lowerAmenity.includes('cleaning')) return faConciergeBell;
+  if (lowerAmenity.includes('room service') || lowerAmenity.includes('service')) return faCheckCircle;
   if (lowerAmenity.includes('parking') || lowerAmenity.includes('car')) return faCar;
-  if (lowerAmenity.includes('pool')) return faSwimmingPool;
-  if (lowerAmenity.includes('spa')) return faSpa;
+  if (lowerAmenity.includes('pool') || lowerAmenity.includes('swimming')) return faSwimmingPool;
   if (lowerAmenity.includes('gym') || lowerAmenity.includes('fitness')) return faDumbbell;
-  if (lowerAmenity.includes('music')) return faMusic;
+  if (lowerAmenity.includes('spa') || lowerAmenity.includes('massage')) return faSpa;
+  if (lowerAmenity.includes('music') || lowerAmenity.includes('entertainment')) return faMusic;
   if (lowerAmenity.includes('food') || lowerAmenity.includes('restaurant') || lowerAmenity.includes('meal')) return faUtensils;
   if (lowerAmenity.includes('bed') || lowerAmenity.includes('room') || lowerAmenity.includes('sleep')) return faBed;
-  if (lowerAmenity.includes('home') || lowerAmenity.includes('apartment') || lowerAmenity.includes('shortlet')) return faHome;
-  if (lowerAmenity.includes('ac') || lowerAmenity.includes('air conditioning')) return faSnowflake;
+  if (lowerAmenity.includes('home') || lowerAmenity.includes('apartment')) return faHome;
   if (lowerAmenity.includes('security') || lowerAmenity.includes('reception')) return faUserCheck;
   if (lowerAmenity.includes('laundry')) return faClock;
-  if (lowerAmenity.includes('tv') || lowerAmenity.includes('television')) return faTv;
   if (lowerAmenity.includes('coffee') || lowerAmenity.includes('tea')) return faCoffee;
-  if (lowerAmenity.includes('bath') || lowerAmenity.includes('shower')) return faBath;
-  if (lowerAmenity.includes('bell') || lowerAmenity.includes('service')) return faConciergeBell;
   if (lowerAmenity.includes('plug') || lowerAmenity.includes('socket')) return faPlug;
   if (lowerAmenity.includes('wine') || lowerAmenity.includes('bar')) return faWineGlass;
   if (lowerAmenity.includes('shield') || lowerAmenity.includes('safe')) return faShieldAlt;
@@ -360,7 +393,79 @@ const getAmenityIcon = (amenity) => {
   if (lowerAmenity.includes('suitcase') || lowerAmenity.includes('luggage')) return faSuitcase;
   if (lowerAmenity.includes('wind') || lowerAmenity.includes('ventilation')) return faWind;
   if (lowerAmenity.includes('thermometer') || lowerAmenity.includes('heating')) return faThermometerHalf;
-  return faCheckCircle;
+  
+  return faCheckCircle; // Default icon
+};
+
+// Get features for the "Key Features" section - showing AMENITIES not specifications
+const getFeaturesFromRoomModal = (vendor) => {
+  const category = normalizeCategory(vendor.category);
+  
+  if (category === 'hotel') {
+    // First, try to get amenities from room data
+    if (vendor.details?.roomTypes && Array.isArray(vendor.details.roomTypes)) {
+      // Collect all amenities from all room types
+      const allRoomAmenities = [];
+      vendor.details.roomTypes.forEach(room => {
+        if (room.amenities && Array.isArray(room.amenities)) {
+          allRoomAmenities.push(...room.amenities);
+        }
+      });
+      
+      // If we found room amenities, use them
+      if (allRoomAmenities.length > 0) {
+        const uniqueAmenities = [...new Set(allRoomAmenities.map(a => safeToString(a)).filter(a => a))];
+        if (uniqueAmenities.length > 0) {
+          return uniqueAmenities.slice(0, 6).map(amenity => ({
+            icon: getAmenityIcon(amenity),
+            name: amenity
+          }));
+        }
+      }
+    }
+    
+    // Try vendor amenities
+    if (vendor.amenities) {
+      let vendorAmenities = [];
+      if (typeof vendor.amenities === 'string') {
+        vendorAmenities = vendor.amenities.split(",").map(item => item.trim());
+      } else if (Array.isArray(vendor.amenities)) {
+        vendorAmenities = vendor.amenities;
+      }
+      
+      if (vendorAmenities.length > 0) {
+        return vendorAmenities.slice(0, 6).map(amenity => ({
+          icon: getAmenityIcon(amenity),
+          name: amenity
+        }));
+      }
+    }
+    
+    // Try hotel details amenities
+    if (vendor.details?.amenities && Array.isArray(vendor.details.amenities)) {
+      return vendor.details.amenities.slice(0, 6).map(amenity => ({
+        icon: getAmenityIcon(amenity),
+        name: amenity
+      }));
+    }
+    
+    // Default hotel features - THESE ARE THE AMENITIES FROM ROOM SELECTION MODAL
+    return [
+      { icon: faWifi, name: "Free WiFi" },
+      { icon: faSnowflake, name: "Air Conditioning" },
+      { icon: faTv, name: "Flat-screen TV" },
+      { icon: faBath, name: "Private Bathroom" },
+      { icon: faConciergeBell, name: "Daily Housekeeping" },
+      { icon: faCheckCircle, name: "Room Service" }
+    ];
+  }
+  
+  // For non-hotels, use general amenities
+  const amenities = getAmenities(vendor);
+  return amenities.slice(0, 6).map(amenity => ({
+    icon: getAmenityIcon(amenity),
+    name: amenity
+  }));
 };
 
 // Helper function to get location string safely
@@ -897,16 +1002,9 @@ const VendorDetail = () => {
     });
   };
 
+  // Get features for Key Features section (from room selection modal - AMENITIES)
   const getFeatures = () => {
-    const amenities = getAmenities(vendor);
-    
-    // Get first 4 amenities as features
-    const firstFourAmenities = amenities.slice(0, 4);
-    
-    return firstFourAmenities.map(amenity => ({
-      icon: getAmenityIcon(amenity),
-      name: amenity
-    }));
+    return getFeaturesFromRoomModal(vendor);
   };
 
   const getServices = () => {
@@ -1043,19 +1141,76 @@ const VendorDetail = () => {
     );
   }
 
-  if (error || !vendor) {
+   if (error || !vendor) {
+    const errorMessage = error?.includes?.('timeout') 
+      ? "Unable to load vendor details. The request took too long to complete."
+      : error?.includes?.('not found')
+      ? "The vendor you're looking for doesn't exist or has been removed."
+      : "Unable to load vendor resources. Please refresh and try again.";
+
+    const isNetworkError = error?.includes?.('timeout') || error?.includes?.('Failed to load');
+    
     return (
       <div className="min-h-screen">
         <Header />
-        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Vendor Not Found</h1>
-          <p className="text-gray-600 mb-6">{error || "The vendor you're looking for doesn't exist or has been removed."}</p>
-          <button 
-            onClick={() => navigate("/")}
-            className="px-6 py-3 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors cursor-pointer"
-          >
-            Return Home
-          </button>
+        <div className="flex flex-col mt- items-center justify-center min-h-[60vh] px-4">
+          {/* Error Icon/Graphic */}
+          <div className="mb-6 p-4 rounded-full bg-red-50 border border-red-100">
+            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+              <svg 
+                className="w-8 h-8 text-red-500" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z" 
+                />
+              </svg>
+            </div>
+          </div>
+          
+          {/* Error Title */}
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 font-manrope">
+            {isNetworkError ? "Resource Loading Error" : "Vendor Not Found"}
+          </h1>
+          
+          {/* Error Description */}
+          <p className="text-gray-600 text-center mb-6 max-w-md font-manrope">
+            {errorMessage}
+            {isNetworkError && (
+              <span className="block text-xs text-gray-500 mt-2">
+                timeout of 5000ms exceeded
+              </span>
+            )}
+          </p>
+          
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Refresh Button */}
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors cursor-pointer font-medium flex items-center gap-2"
+            >
+              <svg 
+                className="w-4 h-4" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
+                />
+              </svg>
+              Refresh Page
+            </button>
+          </div>
         </div>
         <Footer />
       </div>

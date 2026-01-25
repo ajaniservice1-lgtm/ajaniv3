@@ -38,6 +38,7 @@ import {
   faSuitcase,
   faWind,
   faThermometerHalf,
+  faUser, // Added for profile icon
 } from "@fortawesome/free-solid-svg-icons";
 
 // Helper functions
@@ -136,7 +137,8 @@ const RoomSelection = ({ vendorData, category = "hotel", onRoomSelect, onRoomBoo
             
           occupancyOptions.push({
             id: `occ-${room._id || index}-${i}`,
-            adults: `${i} ${i === 1 ? 'adult' : 'adults'}`,
+            adults: i,
+            adultsText: `${i} ${i === 1 ? 'adult' : 'adults'}`,
             price: occupancyPrice,
             originalPrice: originalPrice,
             discount: '-30%',
@@ -252,7 +254,8 @@ const RoomSelection = ({ vendorData, category = "hotel", onRoomSelect, onRoomBoo
         occupancy: [
           { 
             id: 'occ-1',
-            adults: "2 adults", 
+            adults: 2,
+            adultsText: "2 adults", 
             price: 435865,
             originalPrice: 534928,
             discount: '-30%',
@@ -483,8 +486,21 @@ const RoomSelection = ({ vendorData, category = "hotel", onRoomSelect, onRoomBoo
                       className="bg-gray-50 rounded-lg p-3 flex flex-col lg:flex-row justify-between gap-3"
                     >
                       <div className="flex-1">
-                        <p className="font-semibold text-sm">{option.adults}</p>
-                        <p className="text-xs text-gray-600">
+                        <div className="flex items-center gap-2">
+                          {/* Profile icon - ALWAYS SHOW ONLY ONE */}
+                          <div className="flex items-center gap-1">
+                            <div
+                              className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center border border-blue-200"
+                            >
+                              <FontAwesomeIcon
+                                icon={faUser}
+                                className="text-blue-600 text-xs"
+                              />
+                            </div>
+                          </div>
+                          <p className="font-semibold text-sm">{option.adultsText}</p>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1">
                           {option.breakfast} ({option.breakfastPrice})
                         </p>
 
@@ -739,12 +755,24 @@ const RoomSelection = ({ vendorData, category = "hotel", onRoomSelect, onRoomBoo
                 {bestOption && (
                   <div className="lg:sticky lg:top-6 border border-gray-300 rounded-lg md:rounded-xl p-3 md:p-5 h-fit shadow-sm">
                     <div className="space-y-3 md:space-y-4">
-                      <div>
-                        <p className="font-semibold text-sm md:text-base">{bestOption.adults}</p>
-                        <p className="text-xs md:text-sm text-gray-600">
-                          {bestOption.breakfast} ({bestOption.breakfastPrice})
-                        </p>
+                      <div className="flex items-center gap-2">
+                        {/* Profile icon - ALWAYS SHOW ONLY ONE */}
+                        <div className="flex items-center gap-1">
+                          <div
+                            className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center border border-blue-200"
+                          >
+                            <FontAwesomeIcon
+                              icon={faUser}
+                              className="text-blue-600 text-sm"
+                            />
+                          </div>
+                        </div>
+                        <p className="font-semibold text-sm md:text-base">{bestOption.adultsText}</p>
                       </div>
+                      
+                      <p className="text-xs md:text-sm text-gray-600">
+                        {bestOption.breakfast} ({bestOption.breakfastPrice})
+                      </p>
 
                       <div className="space-y-1.5 md:space-y-2">
                         {bestOption.benefits.map((b, i) => (
@@ -797,7 +825,19 @@ const RoomSelection = ({ vendorData, category = "hotel", onRoomSelect, onRoomBoo
                               .map((option) => (
                                 <div key={option.id} className="flex justify-between items-center p-1.5 md:p-2 bg-gray-50 rounded">
                                   <div className="min-w-0">
-                                    <p className="text-xs md:text-sm font-medium truncate">{option.adults}</p>
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-1">
+                                        <div
+                                          className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center border border-blue-200"
+                                        >
+                                          <FontAwesomeIcon
+                                            icon={faUser}
+                                            className="text-blue-600 text-xs"
+                                          />
+                                        </div>
+                                      </div>
+                                      <p className="text-xs md:text-sm font-medium truncate">{option.adultsText}</p>
+                                    </div>
                                     <p className="text-xs text-gray-600 truncate">{option.breakfast}</p>
                                   </div>
                                   <div className="text-right flex-shrink-0 ml-2">
