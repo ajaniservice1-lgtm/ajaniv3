@@ -804,7 +804,7 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
 
                   <button
                     onClick={handleSubmit}
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer text-sm"
+                    className="w-full bg-[#6cff] text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer text-sm"
                   >
                     {selectedPayment === "restaurant" ? "Reserve Table" : "Proceed to Payment"}
                     <span className="ml-2">→</span>
@@ -816,7 +816,7 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
               <div className="lg:col-span-1">
                 <div className="lg:sticky lg:top-20 space-y-3">
                   {/* Summary Header */}
-                  <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-3 text-white">
+                  <div className="bg-[#6cff]rounded-lg p-3 text-white">
                     <h3 className="text-base font-bold mb-1">Booking Summary</h3>
                     <p className="text-xs opacity-90">Booking ID: {bookingId}</p>
                   </div>

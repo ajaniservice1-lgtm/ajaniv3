@@ -55,6 +55,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import RoomSelection from "../components/RoomSelection";
 import listingService from "../lib/listingService";
+import clsx from "clsx";
 
 // Fallback images for different categories
 const FALLBACK_IMAGES = {
@@ -513,6 +514,112 @@ const getLocationString = (location, fallback = "Ibadan, Nigeria") => {
   return fallback;
 };
 
+/* ================= DATE HELPERS ================= */
+const today = new Date();
+
+const startOfMonth = (date) =>
+  new Date(date.getFullYear(), date.getMonth(), 1);
+
+const daysInMonth = (date) =>
+  new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+
+const isSameDay = (a, b) =>
+  a &&
+  b &&
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
+
+const isBetween = (d, start, end) =>
+  start && end && d > start && d < end;
+
+/* ================= CALENDAR MONTH COMPONENT ================= */
+function CalendarMonth({ month, checkIn, checkOut, setCheckIn, setCheckOut }) {
+  const days = daysInMonth(month);
+  const startDay = startOfMonth(month).getDay();
+
+  return (
+    <div>
+      <p className="font-medium mb-2">
+        {month.toLocaleString("default", { month: "long" })}{" "}
+        {month.getFullYear()}
+      </p>
+
+      <div className="grid grid-cols-7 text-xs text-gray-400 mb-1">
+        {["S", "M", "T", "W", "T", "F", "S"].map((d) => (
+          <div key={d} className="text-center">{d}</div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-2">
+        {[...Array(startDay)].map((_, i) => <div key={i} />)}
+
+        {[...Array(days)].map((_, i) => {
+          const date = new Date(month.getFullYear(), month.getMonth(), i + 1);
+          const isStart = isSameDay(date, checkIn);
+          const isEnd = isSameDay(date, checkOut);
+          const inRange = isBetween(date, checkIn, checkOut);
+          const isPast = date < today;
+
+          return (
+            <button
+              key={i}
+              disabled={isPast}
+              onClick={() => {
+                if (!checkIn || (checkIn && checkOut)) {
+                  setCheckIn(date);
+                  setCheckOut(null);
+                } else if (date > checkIn) {
+                  setCheckOut(date);
+                }
+              }}
+              className={clsx(
+                "h-10 w-10 text-sm flex items-center justify-center",
+                isStart || isEnd
+                  ? "bg-black text-white rounded-full"
+                  : inRange
+                  ? "bg-gray-200"
+                  : "hover:bg-gray-100 rounded-full",
+                isPast && "text-gray-300 cursor-not-allowed"
+              )}
+            >
+              {i + 1}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ================= COUNTER COMPONENT ================= */
+function Counter({ label, sub, value, setValue, min = 0 }) {
+  return (
+    <div className="flex justify-between items-center border-b pb-3">
+      <div>
+        <p className="font-medium">{label}</p>
+        <p className="text-xs text-gray-500">{sub}</p>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => setValue(Math.max(min, value - 1))}
+          className="w-8 h-8 rounded-full border"
+        >
+          −
+        </button>
+        <span className="w-5 text-center">{value}</span>
+        <button
+          onClick={() => setValue(value + 1)}
+          className="w-8 h-8 rounded-full border"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const VendorDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -539,6 +646,17 @@ const VendorDetail = () => {
     title: ""
   });
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  
+  // Booking Calendar States
+  const [openCalendar, setOpenCalendar] = useState(false);
+  const [openGuests, setOpenGuests] = useState(false);
+  const [checkIn, setCheckIn] = useState(null);
+  const [checkOut, setCheckOut] = useState(null);
+  const [adults, setAdults] = useState(1);
+  const [children, setChildren] = useState(0);
+  const [rooms, setRooms] = useState(1);
+  
+  const totalGuests = adults + children;
   
   const isAuthenticated = useAuthStatus();
 
@@ -589,6 +707,12 @@ const VendorDetail = () => {
     { stars: 2, percentage: 91 },
     { stars: 1, percentage: 94 }
   ];
+
+  // Calendar month helpers
+  const currentMonth = startOfMonth(today);
+  const nextMonth = startOfMonth(
+    new Date(today.getFullYear(), today.getMonth() + 1, 1)
+  );
 
   // Scroll to top on component mount
   useEffect(() => {
@@ -741,7 +865,14 @@ const VendorDetail = () => {
       roomSize: room.size,
       roomBeds: room.beds,
       details: vendor.details,
-      contactInformation: vendor.contactInformation
+      contactInformation: vendor.contactInformation,
+      // Add booking dates and guests
+      checkIn: checkIn,
+      checkOut: checkOut,
+      adults: adults,
+      children: children,
+      rooms: rooms,
+      totalGuests: totalGuests
     };
     
     // Store data
@@ -984,7 +1115,14 @@ const VendorDetail = () => {
       bookingType: currentCategory,
       selectedRoom: selectedRoom,
       details: vendor.details,
-      contactInformation: vendor.contactInformation
+      contactInformation: vendor.contactInformation,
+      // Add booking dates and guests
+      checkIn: checkIn,
+      checkOut: checkOut,
+      adults: adults,
+      children: children,
+      rooms: rooms,
+      totalGuests: totalGuests
     };
     
     console.log("Booking vendor data prepared:", vendorBookingData);
@@ -1153,7 +1291,7 @@ const VendorDetail = () => {
     return (
       <div className="min-h-screen">
         <Header />
-        <div className="flex flex-col mt- items-center justify-center min-h-[60vh] px-4">
+        <div className="flex flex-col mt-10 items-center justify-center min-h-[60vh] px-4">
           {/* Error Icon/Graphic */}
           <div className="mb-6 p-4 rounded-full bg-red-50 border border-red-100">
             <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
@@ -1255,6 +1393,16 @@ const VendorDetail = () => {
     }
     
     return formatPrice(vendor.price || vendor.details?.pricePerNight || 0);
+  };
+
+  // Format date for display
+  const formatDateForDisplay = (date) => {
+    if (!date) return "Select date";
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric"
+    });
   };
 
   return (
@@ -1693,9 +1841,10 @@ const VendorDetail = () => {
               </div>
             </div>
 
-            {/* Action Buttons - Compact mobile */}
-            <div className="px-2">
-              <div className="w-full h-12 md:h-16 bg-gray-200 rounded-lg md:rounded-3xl flex items-center justify-between px-3 md:px-12 mx-auto md:max-w-[600px] hover:shadow-lg transition-all duration-300 hover:bg-gray-300/50">
+            {/* Action Buttons - New Style */}
+            <div className="px-2 md:px-60">
+              <div className="w-full bg-gray-100 rounded-2xl p-3 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow duration-300">
+                {/* Call Button */}
                 <button
                   onClick={() => {
                     const phone = safeToString(vendor.contact || vendorInfo?.phone || vendor.contactInformation?.phone);
@@ -1705,78 +1854,154 @@ const VendorDetail = () => {
                       showToast("Phone number not available", "info");
                     }
                   }}
-                  className="flex flex-col items-center transition-all duration-300 px-1.5 group relative cursor-pointer"
+                  className="flex flex-col items-center gap-1.5 group cursor-pointer"
                 >
-                  <div className="relative">
-                    <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-blue-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
+                  <div className="w-12 h-12 rounded-full bg-white border border-gray-300 flex items-center justify-center group-hover:border-blue-500 group-hover:bg-blue-50 group-hover:scale-110 transition-all duration-300 shadow-sm">
                     <FontAwesomeIcon
                       icon={faPhone}
-                      size={18}
-                      className="text-gray-700 group-hover:text-blue-600 transition-all duration-300 transform group-hover:scale-110"
+                      className="text-gray-600 group-hover:text-blue-600 text-lg"
                     />
                   </div>
-                  <span className="text-xs mt-0.5 font-manrope text-gray-700 group-hover:text-blue-600 transition-colors duration-300 relative">
+                  <span className="text-xs font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
                     Call
                   </span>
                 </button>
 
+                {/* Chat Button */}
                 <button
                   onClick={() => showToast("Chat feature coming soon!", "info")}
-                  className="flex flex-col items-center transition-all duration-300 px-1.5 group relative cursor-pointer"
+                  className="flex flex-col items-center gap-1.5 group cursor-pointer"
                 >
-                  <div className="relative">
-                    <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-green-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
-                    <IoChatbubbleEllipsesOutline
-                      size={20}
-                      className="text-gray-700 group-hover:text-green-600 transition-all duration-300 transform group-hover:scale-110"
-                    />
+                  <div className="w-12 h-12 rounded-full bg-white border border-gray-300 flex items-center justify-center group-hover:border-green-500 group-hover:bg-green-50 group-hover:scale-110 transition-all duration-300 shadow-sm">
+                    <IoChatbubbleEllipsesOutline className="text-gray-600 group-hover:text-green-600 text-xl" />
                   </div>
-                  <span className="text-xs mt-0.5 font-manrope text-gray-700 group-hover:text-green-600 transition-colors duration-300 relative">
+                  <span className="text-xs font-medium text-gray-700 group-hover:text-green-600 transition-colors">
                     Chat
                   </span>
                 </button>
 
-                {/* BOOKING BUTTON */}
+                {/* BOOK Button - Primary CTA */}
                 <button
                   onClick={handleBookingClick}
-                  className="flex flex-col items-center transition-all duration-300 px-1.5 group relative cursor-pointer"
+                  className="flex flex-col items-center gap-1.5 group relative cursor-pointer"
                 >
-                  <div className="relative">
-                    <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-purple-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
-                    <FaBookOpen
-                      size={18}
-                      className="text-gray-700 group-hover:text-purple-600 transition-all duration-300 transform group-hover:scale-110"
-                    />
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-110 ${
+                    category === 'hotel' && !selectedRoom 
+                      ? 'bg-gradient-to-br from-gray-400 to-gray-500 cursor-not-allowed' 
+                      : 'bg-[#6cff]'
+                  }`}>
+                    <FaBookOpen className="text-white text-lg" />
                   </div>
-                  <span className="text-xs mt-0.5 font-manrope text-gray-700 group-hover:text-purple-600 transition-colors duration-300 relative">
+                  <span className={`text-xs font-medium ${
+                    category === 'hotel' && !selectedRoom 
+                      ? 'text-gray-500' 
+                      : 'text-gray-700 group-hover:text-[#06EAFC]'
+                  } transition-colors`}>
                     Book
                   </span>
+                  
                   {/* Tooltip for hotel category */}
-                  {category === 'hotel' && (
-                    <div className="absolute -top-7 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none">
-                      {selectedRoom ? "Ready to book" : "Select room first"}
+                  {category === 'hotel' && !selectedRoom && (
+                    <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none shadow-lg">
+                      <div className="relative">
+                        Select a room first
+                        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+                      </div>
                     </div>
                   )}
                 </button>
 
+                {/* Map Button */}
                 <button
                   onClick={() => showToast("Map feature coming soon!", "info")}
-                  className="flex flex-col items-center transition-all duration-300 px-1.5 group relative cursor-pointer"
+                  className="flex flex-col items-center gap-1.5 group cursor-pointer"
                 >
-                  <div className="relative">
-                    <div className="absolute inset-0 rounded-full bg-transparent group-hover:bg-red-100 group-hover:scale-125 transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
-                    <HiLocationMarker
-                      size={20}
-                      className="text-gray-700 group-hover:text-red-600 transition-all duration-300 transform group-hover:scale-110"
-                    />
+                  <div className="w-12 h-12 rounded-full bg-white border border-gray-300 flex items-center justify-center group-hover:border-red-500 group-hover:bg-red-50 group-hover:scale-110 transition-all duration-300 shadow-sm">
+                    <HiLocationMarker className="text-gray-600 group-hover:text-red-600 text-xl" />
                   </div>
-                  <span className="text-xs mt-0.5 font-manrope text-gray-700 group-hover:text-red-600 transition-colors duration-300 relative">
+                  <span className="text-xs font-medium text-gray-700 group-hover:text-red-600 transition-colors">
                     Map
+                  </span>
+                </button>
+
+                {/* Share Button */}
+                <button
+                  onClick={handleShareClick}
+                  className="flex flex-col items-center gap-1.5 group cursor-pointer"
+                >
+                  <div className="w-12 h-12 rounded-full bg-white border border-gray-300 flex items-center justify-center group-hover:border-purple-500 group-hover:bg-purple-50 group-hover:scale-110 transition-all duration-300 shadow-sm">
+                    <RiShare2Line className="text-gray-600 group-hover:text-purple-600 text-lg" />
+                  </div>
+                  <span className="text-xs font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
+                    Share
                   </span>
                 </button>
               </div>
             </div>
 
+          {/* ================= BOOKING CARD ================= */}
+{/* Only show for Hotels (not shortlets or other categories) */}
+{category === 'hotel' && (
+  <div className="px-2 md:px-100">
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-4 space-y-4">
+      
+
+      {/* DATE PICKER - Clickable like guests section */}
+      <button
+        onClick={() => setOpenCalendar(true)}
+        className="grid grid-cols-2 border rounded-xl overflow-hidden text-left w-full hover:bg-gray-50 transition cursor-pointer"
+      >
+        <div className="p-3 hover:bg-gray-50 transition">
+          <p className="text-[10px] uppercase text-gray-500 font-semibold">
+            Check-in
+          </p>
+          <p className="text-sm font-medium">{formatDateForDisplay(checkIn)}</p>
+        </div>
+
+        <div className="p-3 border-l hover:bg-gray-50 transition">
+          <p className="text-[10px] uppercase text-gray-500 font-semibold">
+            Checkout
+          </p>
+          <p className="text-sm font-medium">{formatDateForDisplay(checkOut)}</p>
+        </div>
+      </button>
+
+      {/* GUESTS - Clickable */}
+      <button
+        onClick={() => setOpenGuests(true)}
+        className="border rounded-xl p-3 flex justify-between items-center w-full text-left hover:bg-gray-50 transition cursor-pointer"
+      >
+        <div>
+          <p className="text-[10px] uppercase text-gray-500 font-semibold">
+            Guests
+          </p>
+          <p className="text-sm font-medium">{totalGuests} guest{totalGuests !== 1 ? 's' : ''}</p>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-gray-500">Edit</span>
+          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </button>
+
+     
+
+      {/* CTA */}
+      <button 
+        className="w-full py-4 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition shadow-md cursor-pointer"
+        onClick={handleBookingClick}
+      >
+        Reserve
+      </button>
+
+      <p className="text-center text-xs text-gray-500">
+        You won't be charged yet
+      </p>
+    </div>
+  </div>
+)}
             {/* About Section - Compact mobile */}
             <section className="w-full bg-[#F7F7FA] rounded-none md:rounded-3xl">
               <div className="px-2.5 sm:px-4 md:px-6 lg:px-8 py-4 md:py-8">
@@ -1923,6 +2148,176 @@ const VendorDetail = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ================= CALENDAR MODAL ================= */}
+        {openCalendar && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/40 z-40"
+              onClick={() => setOpenCalendar(false)}
+            />
+
+            <div
+              className="
+                fixed z-50 bg-white
+                bottom-0 left-0 right-0
+                rounded-t-2xl p-4 md:p-6
+                lg:bottom-auto lg:top-1/2 lg:left-1/2
+                lg:-translate-x-1/2 lg:-translate-y-1/2
+                lg:rounded-2xl lg:max-w-4xl lg:w-full
+                max-h-[90vh] overflow-y-auto
+              "
+            >
+              {/* HEADER */}
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold">Select Dates</h3>
+                  <p className="text-sm text-gray-500">
+                    {checkIn && checkOut
+                      ? `${checkIn.toLocaleDateString()} – ${checkOut.toLocaleDateString()}`
+                      : "Select your check-in and check-out dates"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setOpenCalendar(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <FontAwesomeIcon icon={faTimes} className="text-gray-500" />
+                </button>
+              </div>
+
+              {/* MONTHS */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <CalendarMonth
+                  month={currentMonth}
+                  checkIn={checkIn}
+                  checkOut={checkOut}
+                  setCheckIn={setCheckIn}
+                  setCheckOut={setCheckOut}
+                />
+
+                <CalendarMonth
+                  month={nextMonth}
+                  checkIn={checkIn}
+                  checkOut={checkOut}
+                  setCheckIn={setCheckIn}
+                  setCheckOut={setCheckOut}
+                />
+              </div>
+
+              <button
+                onClick={() => setOpenCalendar(false)}
+                className="mt-6 w-full py-3 md:py-4 rounded-full bg-[#6cff] text-white font-semibold hover:from-[#05d9eb] 
+                hover:to-[#6cff]transition-all"
+              >
+                Apply Dates
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ================= GUESTS MODAL ================= */}
+        {openGuests && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/40 z-40"
+              onClick={() => setOpenGuests(false)}
+            />
+
+            <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-50 p-4 md:p-6 space-y-4 md:space-y-6 max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-center">
+                <p className="text-lg md:text-xl font-semibold">Guests & Rooms</p>
+                <button
+                  onClick={() => setOpenGuests(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <FontAwesomeIcon icon={faTimes} className="text-gray-500" />
+                </button>
+              </div>
+
+              <Counter label="Adults" sub="Age 13+" value={adults} setValue={setAdults} min={1} />
+              <Counter label="Children" sub="Ages 2–12" value={children} setValue={setChildren} />
+              <Counter label="Rooms" sub="How many rooms" value={rooms} setValue={setRooms} min={1} />
+
+              <button
+                onClick={() => setOpenGuests(false)}
+                className="w-full py-3 md:py-4 rounded-full bg-[#6cff] text-white font-semibold hover:from-[#05d9eb] hover:to-[#000548] transition-all"
+              >
+                Apply ({totalGuests} guest{totalGuests !== 1 ? 's' : ''}, {rooms} room{rooms !== 1 ? 's' : ''})
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Floating Action Bar - New Style */}
+        <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
+          <div className="px-3 pb-3">
+            <div className="backdrop-blur-xl bg-white/95 border border-gray-300 shadow-2xl rounded-2xl px-4 py-3 flex items-center justify-between">
+              
+              {/* Call */}
+              <button
+                onClick={() => {
+                  const phone = safeToString(
+                    vendor.contact || vendorInfo?.phone || vendor.contactInformation?.phone
+                  );
+                  phone ? (window.location.href = `tel:${phone}`) : showToast("Phone number not available", "info");
+                }}
+                className="flex flex-col items-center gap-1 text-gray-700 hover:text-blue-600 transition-all group cursor-pointer"
+              >
+                <div className="p-2 rounded-full bg-blue-50 group-hover:bg-blue-100 transition-all">
+                  <FontAwesomeIcon icon={faPhone} size={16} />
+                </div>
+                <span className="text-[11px] font-medium">Call</span>
+              </button>
+
+              {/* Chat */}
+              <button
+                onClick={() => showToast("Chat feature coming soon!", "info")}
+                className="flex flex-col items-center gap-1 text-gray-700 hover:text-green-600 transition-all group cursor-pointer"
+              >
+                <div className="p-2 rounded-full bg-green-50 group-hover:bg-green-100 transition-all">
+                  <IoChatbubbleEllipsesOutline size={18} />
+                </div>
+                <span className="text-[11px] font-medium">Chat</span>
+              </button>
+
+              {/* BOOK — PRIMARY CTA */}
+              <button
+                onClick={handleBookingClick}
+                disabled={category === "hotel" && !selectedRoom}
+                className={`relative px-6 py-3 rounded-xl font-semibold text-white shadow-lg transition-all
+                  ${
+                    category === "hotel" && !selectedRoom
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-gradient-to-r from-[#06EAFC] to-[#00065A] hover:scale-105 hover:shadow-[#06EAFC]/50"
+                  }`}
+              >
+                <div className="flex items-center gap-2">
+                  <FaBookOpen size={16} />
+                  <span className="text-sm">Book Now</span>
+                </div>
+
+                {/* Tooltip */}
+                {category === "hotel" && !selectedRoom && (
+                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-gray-900 text-white px-2 py-1 rounded-md whitespace-nowrap">
+                    Select a room first
+                  </div>
+                )}
+              </button>
+
+              {/* Map */}
+              <button
+                onClick={() => showToast("Map feature coming soon!", "info")}
+                className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-600 transition-all group cursor-pointer"
+              >
+                <div className="p-2 rounded-full bg-red-50 group-hover:bg-red-100 transition-all">
+                  <HiLocationMarker size={18} />
+                </div>
+                <span className="text-[11px] font-medium">Map</span>
+              </button>
             </div>
           </div>
         </div>
