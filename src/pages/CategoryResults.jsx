@@ -46,9 +46,7 @@ import { motion } from "framer-motion";
 import { createPortal } from "react-dom";
 import BackButton from "../components/BackButton";
 import { FaUserCircle } from "react-icons/fa";
-
-// ================== IMPORT THE LISTING SERVICE ==================
-import listingService from "../lib/listingService";
+import axiosInstance from "../lib/axios";
 
 // ================== CATEGORY SWITCH LOADER COMPONENT ==================
 
@@ -180,13 +178,49 @@ const UnifiedLoadingScreen = ({ isMobile = false }) => {
 };
 
 // ================== UPDATED USE LISTINGS HOOK ==================
-// Simplified - Now using the listingService
+// Matches the Directory's API call exactly
 
 const useListings = (category = null, searchQuery = '', filters = {}) => {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [apiResponse, setApiResponse] = useState(null);
+
+  // Helper function to build query string (matches Directory)
+  const buildQueryString = (filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.category) params.append('category', filters.category);
+    // REMOVED status filter to get all listings (both approved and pending)
+    return params.toString();
+  };
+
+  // Helper function to fetch listings (matches Directory)
+  const getListingsByCategory = async (category, filters = {}) => {
+    try {
+      console.log(`Fetching ${category} listings...`);
+      const queryFilters = { 
+        category: category,
+        // No status filter - get ALL listings
+      };
+      const queryString = buildQueryString(queryFilters);
+      const url = `/listings${queryString ? `?${queryString}` : ''}`;
+      
+      console.log(`API URL for ${category}:`, url);
+      const response = await axiosInstance.get(url);
+      console.log(`${category} API Response status:`, response.data.status);
+      console.log(`${category} results count:`, response.data.results);
+      
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching ${category} listings:`, error);
+      return {
+        status: 'error',
+        message: error.message,
+        results: 0,
+        data: { listings: [] }
+      };
+    }
+  };
 
   // Helper to check if search query looks like a location
   const looksLikeLocation = (query) => {
@@ -227,110 +261,30 @@ const useListings = (category = null, searchQuery = '', filters = {}) => {
         setLoading(true);
         setError(null);
         
-        // Build search params for listingService
-        const searchParams = {};
+        console.log(`📡 CategoryResults: Fetching ${category} listings...`);
         
-        // Add category filter
-        if (category) {
-          const categoryMap = {
-            'hotel': 'hotel',
-            'restaurant': 'restaurant',
-            'shortlet': 'shortlet',
-            'vendor': 'services',
-            'services': 'services',
-            'event': 'event'
-          };
-          searchParams.category = categoryMap[category] || category;
-        }
+        // ✅ USE THE SAME METHOD AS DIRECTORY
+        const data = await getListingsByCategory(category);
         
-        // Add search query - check if it looks like a location
-        if (searchQuery) {
-          if (looksLikeLocation(searchQuery)) {
-            searchParams.location = searchQuery;
-          } else {
-            searchParams.query = searchQuery;
+        console.log(`${category} API response:`, data);
+        
+        if (data && data.status === 'success' && data.data && data.data.listings) {
+          const fetchedListings = data.data.listings;
+          console.log(`${category} listings fetched:`, fetchedListings.length);
+          if (fetchedListings.length > 0) {
+            console.log(`${category} sample listing:`, fetchedListings[0]);
           }
-        }
-        
-        // Add location filters from active filters
-        if (filters.locations && filters.locations.length > 0) {
-          searchParams.location = filters.locations[0];
-        }
-        
-        // Add price filters
-        if (filters.priceRange?.min) {
-          searchParams.minPrice = filters.priceRange.min;
-        }
-        
-        if (filters.priceRange?.max) {
-          searchParams.maxPrice = filters.priceRange.max;
-        }
-        
-        // Add rating filters
-        if (filters.ratings && filters.ratings.length > 0) {
-          searchParams.minRating = Math.min(...filters.ratings);
-        }
-        
-        // Add sorting
-        if (filters.sortBy && filters.sortBy !== 'relevance') {
-          searchParams.sort = filters.sortBy;
-        }
-        
-        console.log('📡 Fetching listings with params:', searchParams);
-        
-        // ✅ USE THE LISTING SERVICE!
-        // Method 1: Use searchListings for complex queries
-        // Method 2: Use getAllListings with filters
-        // Method 3: Use getListingsByCategory for category-specific
-        
-        let result;
-        if (category && !searchQuery && Object.keys(searchParams).length <= 1) {
-          // Simple category fetch
-          result = await listingService.getListingsByCategory(category, searchParams);
-        } else {
-          // Complex search with filters
-          result = await listingService.searchListings(searchParams);
-        }
-        
-        setApiResponse(result);
-        
-        if (result.status === 'success' && result.data?.listings) {
-          let allListings = result.data.listings;
-          
-          console.log(`📦 Received ${allListings.length} listings from listingService`);
-          
-          // Apply additional filtering for location searches if needed
-          let finalListings = allListings;
-          
-          // If search query is a location, do additional filtering for accuracy
-          if (searchQuery && looksLikeLocation(searchQuery)) {
-            const searchLocation = searchQuery.toLowerCase();
-            console.log(`📍 Applying strict location filtering for: ${searchLocation}`);
-            
-            finalListings = allListings.filter(item => {
-              const itemLocation = (item.location?.area || '').toLowerCase();
-              
-              // Check for partial matches
-              const matchesLocation = itemLocation.includes(searchLocation) || 
-                                      searchLocation.includes(itemLocation) ||
-                                      (itemLocation && searchLocation && 
-                                       itemLocation.split(' ').some(word => 
-                                         word.length > 2 && searchLocation.includes(word)
-                                       ));
-              
-              return matchesLocation;
-            });
-            
-            console.log(`✅ After strict location filtering: ${finalListings.length} listings`);
-          }
-          
-          setListings(finalListings);
-        } else {
+          setListings(fetchedListings);
+        } else if (data && data.status === 'error') {
+          console.error(`${category} API error:`, data.message);
+          setError(data.message || 'API Error');
           setListings([]);
-          setError(result.message || 'No data received');
+        } else {
+          console.warn(`${category} No listings found or unexpected response structure`);
+          setListings([]);
         }
       } catch (err) {
-        console.error('❌ Error fetching listings:', err.message);
+        console.error(`${category} Fetch error:`, err);
         setError(err.message);
         setListings([]);
       } finally {
@@ -338,7 +292,9 @@ const useListings = (category = null, searchQuery = '', filters = {}) => {
       }
     };
 
-    fetchListings();
+    if (category) {
+      fetchListings();
+    }
   }, [category, searchQuery, JSON.stringify(filters)]);
 
   return { listings, loading, error, apiResponse };
@@ -375,22 +331,120 @@ const FALLBACK_IMAGES = {
   default: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
 };
 
+// Universal image getter - works for all structures (matches Directory)
 const getCardImages = (item) => {
-  if (item.images && item.images.length > 0 && item.images[0].url) {
-    return [item.images[0].url];
+  try {
+    // Check for images array first
+    if (item.images && item.images.length > 0) {
+      const images = item.images;
+      if (typeof images[0] === 'string') {
+        return [images[0]];
+      }
+      if (images[0]?.url) {
+        return [images[0].url];
+      }
+    }
+    
+    // Check for details.roomTypes structure (for hotels)
+    if (item.details?.roomTypes?.[0]?.images?.length > 0) {
+      const images = item.details.roomTypes[0].images;
+      if (images[0]?.url) {
+        return [images[0].url];
+      }
+    }
+    
+    // Use fallback based on category
+    const cat = (item.category || "").toLowerCase();
+    if (cat.includes("hotel")) return [FALLBACK_IMAGES.hotel];
+    if (cat.includes("restaurant")) return [FALLBACK_IMAGES.restaurant];
+    if (cat.includes("shortlet")) return [FALLBACK_IMAGES.shortlet];
+    if (cat.includes("services")) return [FALLBACK_IMAGES.services];
+    if (cat.includes("event")) return [FALLBACK_IMAGES.event];
+    return [FALLBACK_IMAGES.default];
+  } catch (error) {
+    console.error('Error getting card images:', error);
+    return [FALLBACK_IMAGES.default];
   }
-  
-  const cat = (item.category || "").toLowerCase();
-  if (cat.includes("hotel")) return [FALLBACK_IMAGES.hotel];
-  if (cat.includes("restaurant")) return [FALLBACK_IMAGES.restaurant];
-  if (cat.includes("shortlet")) return [FALLBACK_IMAGES.shortlet];
-  if (cat.includes("tourist")) return [FALLBACK_IMAGES.tourist];
-  if (cat.includes("cafe")) return [FALLBACK_IMAGES.cafe];
-  if (cat.includes("bar") || cat.includes("lounge")) return [FALLBACK_IMAGES.bar];
-  if (cat.includes("services")) return [FALLBACK_IMAGES.services];
-  if (cat.includes("event")) return [FALLBACK_IMAGES.event];
-  if (cat.includes("hall") || cat.includes("weekend")) return [FALLBACK_IMAGES.hall];
-  return [FALLBACK_IMAGES.default];
+};
+
+// Universal price getter (matches Directory)
+const getPriceFromItem = (item) => {
+  try {
+    // Check for direct price field first
+    if (item.price !== undefined && item.price !== null) {
+      return item.price;
+    }
+    
+    // Check for details.roomTypes[0].pricePerNight (hotels)
+    if (item.details?.roomTypes?.[0]?.pricePerNight !== undefined) {
+      return item.details.roomTypes[0].pricePerNight;
+    }
+    
+    // Check for details.pricePerNight (shortlets)
+    if (item.details?.pricePerNight !== undefined) {
+      return item.details.pricePerNight;
+    }
+    
+    return 0;
+  } catch (error) {
+    console.error('Error getting price:', error);
+    return 0;
+  }
+};
+
+// Universal location getter (matches Directory)
+const getLocationFromItem = (item) => {
+  try {
+    // Check for location.area
+    if (item.location?.area) {
+      return item.location.area;
+    }
+    
+    // Check for direct area field
+    if (item.area) {
+      return item.area;
+    }
+    
+    // Check for location.address
+    if (item.location?.address) {
+      return item.location.address;
+    }
+    
+    // Check for direct address field
+    if (item.address) {
+      return item.address;
+    }
+    
+    return "Ibadan";
+  } catch (error) {
+    console.error('Error getting location:', error);
+    return "Ibadan";
+  }
+};
+
+// Universal business name getter (matches Directory)
+const getBusinessName = (item) => {
+  try {
+    // Try name field
+    if (item.name) {
+      return item.name;
+    }
+    
+    // Try title field
+    if (item.title) {
+      return item.title;
+    }
+    
+    // Try vendor business name
+    if (item.vendorId?.vendor?.businessName) {
+      return item.vendorId.vendor.businessName;
+    }
+    
+    return "Business";
+  } catch (error) {
+    console.error('Error getting business name:', error);
+    return "Business";
+  }
 };
 
 const getCategoryDisplayName = (category) => {
@@ -699,6 +753,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   const cardRef = useRef(null);
   
   const isAuthenticated = useAuthStatus();
+  const isPending = item.status === 'pending';
 
   const formatPrice = (n) => {
     if (!n) return "–";
@@ -710,7 +765,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   };
 
   const getPriceText = () => {
-    const price = item.price || item.price_from || "0";
+    const price = getPriceFromItem(item) || 0;
     const formattedPrice = formatPrice(price);
     return `₦${formattedPrice}`;
   };
@@ -721,7 +776,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
     ];
 
     if (nightlyCategories.some((cat) => category.toLowerCase().includes(cat))) {
-      return "for 2 nights";
+      return "per night";
     }
 
     if (
@@ -737,9 +792,9 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
 
   const priceText = getPriceText();
   const perText = getPerText();
-  const locationText = item.location?.area || item.area || "Ibadan";
+  const locationText = getLocationFromItem(item) || "Ibadan";
   const rating = item.rating || "4.9";
-  const businessName = item.title || item.name || "Business Name";
+  const businessName = getBusinessName(item) || "Business Name";
   const subcategory = getSubcategory(category);
 
   const handleCardClick = () => {
@@ -976,6 +1031,12 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
       }}
       onClick={handleCardClick}
     >
+      {isPending && (
+        <div className="absolute top-1.5 left-1.5 bg-yellow-500 text-white px-2 py-0.5 rounded-md shadow-sm z-10">
+          <span className="text-[8px] font-semibold">PENDING</span>
+        </div>
+      )}
+
       {/* Image with FIXED dimensions */}
       <div
         className="relative overflow-hidden rounded-xl"
@@ -1004,11 +1065,13 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
         />
 
         {/* Guest favorite badge */}
-        <div className="absolute top-2 left-2 bg-white px-1.5 py-1 rounded-md shadow-sm flex items-center gap-1">
-          <span className="text-[9px] font-semibold text-gray-900">
-            Guest favorite
-          </span>
-        </div>
+        {!isPending && (
+          <div className="absolute top-2 left-2 bg-white px-1.5 py-1 rounded-md shadow-sm flex items-center gap-1">
+            <span className="text-[9px] font-semibold text-gray-900">
+              Guest favorite
+            </span>
+          </div>
+        )}
 
         {/* Heart icon */}
         <button
@@ -2295,7 +2358,7 @@ const CategoryResults = () => {
   const resultsRef = useRef(null);
   const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
 
-  // ✅ UPDATED: Use the new useListings hook with listingService
+  // ✅ UPDATED: Use the new useListings hook that matches Directory
   const { listings, loading, error, apiResponse } = useListings(activeCategory, searchQuery, activeFilters);
 
   useEffect(() => {
@@ -2377,7 +2440,7 @@ const CategoryResults = () => {
 
   useEffect(() => {
     if (!loading && !error && listings.length > 0) {
-      const uniqueLocations = [...new Set(listings.map(item => item.location?.area || item.area).filter(Boolean))];
+      const uniqueLocations = [...new Set(listings.map(item => getLocationFromItem(item)).filter(Boolean))];
       setAllLocations(uniqueLocations);
     }
   }, [listings, loading, error]);
@@ -2741,7 +2804,7 @@ const CategoryResults = () => {
   }, [isSwitchingCategory]);
 
   const ITEMS_PER_PAGE = 20;
-  const totalPages = Math.ceil((apiResponse?.results || 0) / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil((apiResponse?.results || listings.length || 0) / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const currentListings = listings.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
