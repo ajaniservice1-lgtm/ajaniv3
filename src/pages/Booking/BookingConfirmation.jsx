@@ -155,25 +155,81 @@ const BookingConfirmation = () => {
     }
   };
 
+  // Get category-specific messages
+  const getCategoryMessages = () => {
+    const paymentMethod = bookingData?.paymentMethod || "hotel";
+    const isPayAtProperty = paymentMethod === "hotel" || paymentMethod === "restaurant";
+    
+    switch(type) {
+      case 'hotel':
+        return {
+          title: isPayAtProperty 
+            ? "Thank you for booking on Ajani.ai 🎉 Hotel Reservation Request Received!" 
+            : "Thank you for booking on Ajani.ai 🎉 Hotel Payment Successful!",
+          message: isPayAtProperty
+            ? "Your hotel reservation request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed. You'll pay when you arrive at the hotel."
+            : "Your hotel payment has been processed successfully! Your reservation is now confirmed. You'll receive a confirmation email with all the details shortly.",
+          requestMessage: " Your hotel reservation request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed.",
+          paidMessage: "Your hotel payment has been processed successfully! Your reservation is now confirmed. You'll receive a confirmation email with all the details shortly."
+        };
+      
+      case 'restaurant':
+        return {
+          title: isPayAtProperty 
+            ? "Thank you for booking on Ajani.ai 🎉 Restaurant Reservation Request Received!" 
+            : "Thank you for booking on Ajani.ai 🎉 Restaurant Payment Successful!",
+          message: isPayAtProperty
+            ? "Your restaurant reservation request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed. You'll pay at the restaurant."
+            : "Your restaurant payment has been processed successfully! Your table reservation is now confirmed. You'll receive a confirmation email with all the details shortly.",
+          requestMessage: " Your restaurant reservation request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed.",
+          paidMessage: "Your restaurant payment has been processed successfully! Your table reservation is now confirmed. You'll receive a confirmation email with all the details shortly."
+        };
+      
+      case 'shortlet':
+        return {
+          title: isPayAtProperty 
+            ? "Thank you for booking on Ajani.ai 🎉 Shortlet Reservation Request Received!" 
+            : "Thank you for booking on Ajani.ai 🎉 Shortlet Payment Successful!",
+          message: isPayAtProperty
+            ? "Your shortlet reservation request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed. You'll pay when you arrive at the property."
+            : "Your shortlet payment has been processed successfully! Your accommodation is now confirmed. You'll receive a confirmation email with all the details shortly.",
+          requestMessage: "Your shortlet reservation request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed.",
+          paidMessage: "Your shortlet payment has been processed successfully! Your accommodation is now confirmed. You'll receive a confirmation email with all the details shortly."
+        };
+      
+      default:
+        return {
+          title: isPayAtProperty 
+            ? "Thank you for booking on Ajani.ai 🎉 Booking Request Received!" 
+            : "Thank you for booking on Ajani.ai 🎉 Payment Successful!",
+          message: isPayAtProperty
+            ? "Thank you for booking on Ajani.ai. Your booking request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed."
+            : "Your payment has been processed successfully! Your booking is now confirmed. You'll receive a confirmation email with all the details shortly.",
+          requestMessage: "Thank you for booking on Ajani.ai. Your booking request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed.",
+          paidMessage: "Your payment has been processed successfully! Your booking is now confirmed. You'll receive a confirmation email with all the details shortly."
+        };
+    }
+  };
+
   const getTitle = () => {
-    const status = getBookingStatus();
+    const messages = getCategoryMessages();
     const paymentMethod = bookingData?.paymentMethod || "hotel";
     
     if (paymentMethod === "hotel" || paymentMethod === "restaurant") {
-      return "Thank you for booking with Ajani 🎉 Booking Request Received!";
+      return messages.title;
     } else {
-      return "Thank you for booking with Ajani 🎉 Payment Successful!";
+      return messages.title;
     }
   };
 
   const getMessage = () => {
-    const status = getBookingStatus();
+    const messages = getCategoryMessages();
     const paymentMethod = bookingData?.paymentMethod || "hotel";
     
     if (paymentMethod === "hotel" || paymentMethod === "restaurant") {
-      return "Your booking request has been successfully received. You will pay when you arrive at the property. You'll receive a confirmation email shortly and the property will contact you to confirm your booking.";
+      return messages.message;
     } else {
-      return "Your payment has been processed successfully! Your booking is now confirmed. You'll receive a confirmation email with all the details shortly.";
+      return messages.message;
     }
   };
 
@@ -237,6 +293,7 @@ const BookingConfirmation = () => {
   const StatusIcon = bookingStatus.icon;
   const paymentMethod = bookingData?.paymentMethod || "hotel";
   const isPayAtProperty = paymentMethod === "hotel" || paymentMethod === "restaurant";
+  const messages = getCategoryMessages();
 
   return (
     <div className="min-h-screen bg-blue-50">
@@ -296,7 +353,7 @@ const BookingConfirmation = () => {
                   </p>
                   <p className="text-xs opacity-80 mt-0.5">
                     {isPayAtProperty 
-                      ? "You'll pay when you arrive. Amount: " + formatPrice(getTotalAmount())
+                      ? `You'll pay when you arrive. Amount: ${formatPrice(getTotalAmount())}`
                       : "Payment processed successfully"}
                   </p>
                 </div>
@@ -539,16 +596,16 @@ const BookingConfirmation = () => {
                           <CheckCircle className="w-3 h-3 text-emerald-500 mt-0.5 flex-shrink-0" />
                           <span className="text-gray-700">
                             {isPayAtProperty 
-                              ? "You'll receive a confirmation email with booking details"
-                              : "Confirmation email sent to your inbox"}
+                              ? `You'll receive a confirmation email with ${type} details`
+                              : `Confirmation email sent to your inbox`}
                           </span>
                         </li>
                         <li className="flex items-start gap-1.5">
                           <CheckCircle className="w-3 h-3 text-emerald-500 mt-0.5 flex-shrink-0" />
                           <span className="text-gray-700">
                             {isPayAtProperty
-                              ? "The property will contact you to confirm your booking"
-                              : "You'll receive arrival instructions via email/SMS"}
+                              ? messages.requestMessage
+                              : messages.paidMessage}
                           </span>
                         </li>
                         <li className="flex items-start gap-1.5">
