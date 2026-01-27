@@ -916,7 +916,7 @@ const HotelBooking = () => {
                   </div>
 
                   {/* Hotel & Room Preview Card - Compact */}
-                  <div className="mb-4 sm:mb-6 bg-gradient-to-r from-blue-50 to-emerald-50 rounded-lg p-3 sm:p-4 border border-blue-100">
+                  <div className="mb-4 sm:mb-6  rounded-lg p-3 sm:p-4 border border-blue-100">
                     <div className="flex flex-col md:flex-row gap-3">
                       <div className="md:w-1/3 relative">
                         <img 
@@ -1080,7 +1080,7 @@ const HotelBooking = () => {
 
                   {/* Terms and Submit */}
                   <div className="mt-6">
-                    <div className="flex items-start gap-2 mb-3 p-2.5 bg-blue-50 rounded-lg">
+                    <div className="flex items-start gap-2 mb-3 p-2.5 rounded-lg">
                       <div className="w-4 h-4 flex-shrink-0 mt-0.5">
                         <input
                           type="checkbox"
@@ -1089,7 +1089,7 @@ const HotelBooking = () => {
                           className="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
                         />
                       </div>
-                      <label htmlFor="terms" className="text-xs text-gray-600 leading-relaxed cursor-pointer">
+                      <label htmlFor="terms" className="text-xs text-gray-900 leading-relaxed cursor-pointer">
                         By proceeding with this booking, I agree to Ajani's Terms of Use and Privacy Policy. I understand that my booking is subject to the hotel's cancellation policy and any applicable fees.
                       </label>
                     </div>

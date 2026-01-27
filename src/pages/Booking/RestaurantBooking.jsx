@@ -415,7 +415,7 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                 </div>
 
                 {/* Restaurant Preview Card - More compact */}
-                <div className="mb-4 sm:mb-6 bg-gradient-to-r from-blue-50 to-emerald-50 rounded-lg p-3 sm:p-4 border border-blue-100">
+                <div className="mb-4 sm:mb-6  rounded-lg p-3 sm:p-4 border border-blue-100">
                   <div className="flex flex-col md:flex-row gap-3">
                     <div className="md:w-1/3 relative">
                       <img 
@@ -529,7 +529,7 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                     Number of Guests
                   </h2>
                   
-                  <div className="bg-gradient-to-r from-blue-50 to-emerald-50 rounded-lg p-3 sm:p-4">
+                  <div className="border border-gray-300 rounded-lg p-3 sm:p-4">
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-3">
                         Select number of guests *
@@ -549,7 +549,7 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                         <button
                           type="button"
                           onClick={() => handleGuestChange('increase')}
-                          className="w-10 h-10 rounded-full border-2 border-emerald-300 bg-white flex items-center justify-center hover:bg-emerald-50 hover:border-emerald-500 transition-all cursor-pointer text-base font-bold text-emerald-600"
+                          className="w-10 h-10 rounded-full border-2 border-blue-300 bg-white flex items-center justify-center hover:bg-emerald-50 hover:border-emerald-500 transition-all cursor-pointer text-base font-bold text-emerald-600"
                         >
                           +
                         </button>
@@ -653,7 +653,7 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                     <FontAwesomeIcon icon={faNotesMedical} className="text-blue-500 text-sm" />
                     Special Requests (Optional)
                   </h2>
-                  <div className="bg-gradient-to-r from-blue-50 to-emerald-50 rounded-lg p-3">
+                  <div className=" rounded-lg p-3">
                     <textarea
                       name="specialRequests"
                       value={bookingData.specialRequests}
@@ -667,7 +667,7 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
 
                 {/* Terms and Submit */}
                 <div className="mt-6">
-                  <div className="flex items-start gap-2 mb-3 p-2.5 bg-blue-50 rounded-lg">
+                  <div className="flex items-start gap-2 mb-3 p-2.5  rounded-lg">
                     <div className="w-4 h-4 flex-shrink-0 mt-0.5">
                       <input
                         type="checkbox"
@@ -776,31 +776,7 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                     </div>
                   </div>
                   
-                  {/* Benefits Card */}
-                  <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-lg border border-emerald-100 p-2.5">
-                    <h6 className="font-bold text-gray-900 mb-1.5 flex items-center gap-1.5 text-sm">
-                      <FontAwesomeIcon icon={faConciergeBell} className="text-emerald-600" />
-                      What's Included
-                    </h6>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 text-xs">
-                        <FontAwesomeIcon icon={faCheck} className="text-emerald-500" />
-                        <span className="text-gray-700">Reserved table for {bookingData.numberOfGuests}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs">
-                        <FontAwesomeIcon icon={faCheck} className="text-emerald-500" />
-                        <span className="text-gray-700">Complimentary welcome drink</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs">
-                        <FontAwesomeIcon icon={faCheck} className="text-emerald-500" />
-                        <span className="text-gray-700">Priority seating</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs">
-                        <FontAwesomeIcon icon={faCheck} className="text-emerald-500" />
-                        <span className="text-gray-700">Special requests accommodation</span>
-                      </div>
-                    </div>
-                  </div>
+                  
                   
                   {/* Guarantee */}
                   <div className="text-center">

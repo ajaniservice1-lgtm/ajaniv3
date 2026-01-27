@@ -910,7 +910,7 @@ const ShortletBooking = () => {
                   </div>
 
                   {/* Property Preview Card - Compact */}
-                  <div className="mb-4 sm:mb-6 bg-gradient-to-r from-blue-50 to-emerald-50 rounded-lg p-3 sm:p-4 border border-blue-100">
+                  <div className="mb-4 sm:mb-6 rounded-lg p-3 sm:p-4 border border-blue-100">
                     <div className="flex flex-col md:flex-row gap-3">
                       <div className="md:w-1/3 relative">
                         <img 
@@ -1093,7 +1093,7 @@ const ShortletBooking = () => {
 
                   {/* Terms and Submit */}
                   <div className="mt-6">
-                    <div className="flex items-start gap-2 mb-3 p-2.5 bg-blue-50 rounded-lg">
+                    <div className="flex items-start gap-2 mb-3 p-2.5  rounded-lg">
                       <div className="w-4 h-4 flex-shrink-0 mt-0.5">
                         <input
                           type="checkbox"
@@ -1228,7 +1228,7 @@ const ShortletBooking = () => {
                 </div>
                 
                 {/* Benefits Card */}
-                <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-lg border border-emerald-100 p-2.5">
+                <div className="rounded-lg border bg-white border-gray-300 shadow-sm p-2.5">
                   <h6 className="font-bold text-gray-900 mb-1.5 flex items-center gap-1.5 text-sm">
                     <FontAwesomeIcon icon={faConciergeBell} className="text-emerald-600" />
                     What's Included
@@ -1243,23 +1243,7 @@ const ShortletBooking = () => {
                   </div>
                 </div>
 
-                {/* Amenities Card */}
-                {shortletData.property?.amenities && (
-                  <div className="bg-gradient-to-r from-blue-50 to-emerald-50 rounded-lg border border-blue-100 p-2.5">
-                    <h6 className="font-bold text-gray-900 mb-1.5 flex items-center gap-1.5 text-sm">
-                      <FontAwesomeIcon icon={faHome} className="text-blue-600" />
-                      Property Amenities
-                    </h6>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {shortletData.property.amenities.slice(0, 6).map((amenity, index) => (
-                        <div key={index} className="flex items-center gap-1.5 text-xs">
-                          <FontAwesomeIcon icon={getAmenityIcon(amenity)} className="text-blue-500" />
-                          <span className="text-gray-700 truncate">{amenity}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              
                 
                 {/* Guarantee */}
                 <div className="text-center">
