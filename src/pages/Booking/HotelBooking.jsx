@@ -349,7 +349,7 @@ const HotelBooking = () => {
   const [checkOutDate, setCheckOutDate] = useState(new Date(Date.now() + 24 * 60 * 60 * 1000));
   const [guests, setGuests] = useState({ adults: 2, children: 0 });
 
-  // Simple auth check - just check if user has auth token
+  // Simple auth check - just check if user has auth token or guest session
   const checkAuthStatus = () => {
     const token = localStorage.getItem("auth_token");
     const guestSession = localStorage.getItem("guestSession");
@@ -564,12 +564,13 @@ const HotelBooking = () => {
         }
       }
       
-      // Pre-fill user data if logged in
+      // Pre-fill user data if logged in or guest
       const isAuthenticated = checkAuthStatus();
       if (isAuthenticated) {
         try {
           const userProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
           const userEmail = localStorage.getItem("user_email");
+          const guestSession = localStorage.getItem("guestSession");
           
           if (userProfile.firstName || userProfile.lastName || userProfile.email || userEmail) {
             setBookingData(prev => ({
@@ -579,6 +580,15 @@ const HotelBooking = () => {
               email: userProfile.email || userEmail || prev.email,
               phone: userProfile.phone || prev.phone
             }));
+          } else if (guestSession) {
+            // Pre-fill with guest email if available
+            const session = JSON.parse(guestSession);
+            if (session.email) {
+              setBookingData(prev => ({
+                ...prev,
+                email: session.email
+              }));
+            }
           }
         } catch (error) {
           console.error("Failed to load user profile:", error);
@@ -653,6 +663,12 @@ const HotelBooking = () => {
       return;
     }
 
+    // Validate phone number format
+    if (!bookingData.phone.startsWith('+234') && !bookingData.phone.startsWith('234')) {
+      alert("Please enter a valid Nigerian phone number starting with +234");
+      return;
+    }
+
     // Check authentication - SIMPLE CHECK
     const isAuthenticated = checkAuthStatus();
     
@@ -660,7 +676,7 @@ const HotelBooking = () => {
       console.log("User not authenticated, saving booking and redirecting to login");
       
       // Save ALL booking data to localStorage
-      const completeBooking = {
+      const pendingBooking = {
         type: "hotel",
         hotelId: hotelData?.id || roomData.hotel?.id,
         hotelName: hotelData?.name || roomData.hotel?.name,
@@ -670,14 +686,14 @@ const HotelBooking = () => {
         selectedPayment: selectedPayment,
         bookingId: bookingId,
         totalAmount: calculateTotal(),
-        checkInDate: roomData.booking?.checkIn,
-        checkOutDate: roomData.booking?.checkOut,
+        checkInDate: formatDateForDisplay(checkInDate),
+        checkOutDate: formatDateForDisplay(checkOutDate),
         guests: guests,
         timestamp: Date.now()
       };
       
       // Save complete booking for later restoration
-      localStorage.setItem("pendingHotelBooking", JSON.stringify(completeBooking));
+      localStorage.setItem("pendingHotelBooking", JSON.stringify(pendingBooking));
       localStorage.setItem("bookingData", JSON.stringify(bookingData));
       localStorage.setItem("roomBookingData", JSON.stringify(roomData));
       
@@ -687,16 +703,20 @@ const HotelBooking = () => {
           message: "Please login or continue as guest to complete your booking",
           fromBooking: true,
           intent: "hotel_booking",
-          returnTo: "/booking-confirmation/hotel"
+          returnTo: "/booking/payment"
         } 
       });
       return;
     }
 
-    console.log("🚀 User authenticated, proceeding with booking...");
+    console.log("🚀 User authenticated, proceeding to payment...");
 
     // Save guest information
     localStorage.setItem('bookingData', JSON.stringify(bookingData));
+    
+    // Check if user is guest or logged in
+    const guestSession = localStorage.getItem("guestSession");
+    const isGuest = !!guestSession;
     
     // Combine booking data
     const completeBooking = {
@@ -707,29 +727,44 @@ const HotelBooking = () => {
       bookingType: 'hotel',
       bookingDate: new Date().toISOString(),
       bookingId: bookingId,
-      status: selectedPayment === "card" ? "pending_payment" : "confirmed",
+      status: "pending", // Set to pending initially
       totalAmount: calculateTotal(),
       timestamp: Date.now(),
-      userId: JSON.parse(localStorage.getItem("userProfile") || "{}")._id || null
+      guests: guests,
+      checkInDate: formatDateForDisplay(checkInDate),
+      checkOutDate: formatDateForDisplay(checkOutDate),
+      // Add user info based on authentication type
+      ...(isGuest ? {
+        isGuestBooking: true,
+        guestSessionId: JSON.parse(guestSession).sessionId,
+        guestEmail: JSON.parse(guestSession).email
+      } : {
+        userId: JSON.parse(localStorage.getItem("userProfile") || "{}")._id || null,
+        userEmail: localStorage.getItem("user_email")
+      })
     };
 
-    console.log("💾 Complete booking data:", completeBooking);
+    console.log("💾 Complete booking data for payment:", completeBooking);
 
-    // Save complete booking data
-    localStorage.setItem('completeBooking', JSON.stringify(completeBooking));
-    localStorage.setItem('hotelBooking', JSON.stringify(completeBooking));
+    // Save complete booking data TEMPORARILY
+    if (isGuest) {
+      localStorage.setItem('pendingGuestHotelBooking', JSON.stringify(completeBooking));
+    } else {
+      localStorage.setItem('pendingLoggedInHotelBooking', JSON.stringify(completeBooking));
+    }
     
     // Clear temporary data
     localStorage.removeItem('roomBookingData');
     localStorage.removeItem('currentVendorBooking');
     localStorage.removeItem('pendingHotelBooking');
     
-    // Navigate to confirmation
-    console.log("✅ Booking completed, redirecting to confirmation");
-    navigate('/booking-confirmation/hotel', { 
+    // Navigate to payment page
+    console.log("💳 Redirecting to payment page");
+    navigate('/booking/payment', { 
       state: { 
         bookingData: completeBooking,
-        bookingType: 'hotel'
+        bookingType: 'hotel',
+        isGuestBooking: isGuest
       } 
     });
   };
@@ -946,70 +981,7 @@ const HotelBooking = () => {
                     </div>
                   </div>
 
-                  {/* Payment Options - Compact */}
-                  <div className="mb-4 sm:mb-6">
-                    <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-2.5 flex items-center gap-1.5">
-                      <FontAwesomeIcon icon={faCreditCard} className="text-blue-500 text-sm" />
-                      Payment Options
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                      <button
-                        onClick={() => handlePaymentChange("hotel")}
-                        className={`p-2.5 sm:p-3 rounded-lg border-2 transition-all duration-300 ${
-                          selectedPayment === "hotel" 
-                            ? 'border-[#6cff] bg-blue-50 shadow-sm' 
-                            : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                        }`}
-                      >
-                        <div className="flex items-start gap-2">
-                          <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                            selectedPayment === "hotel" 
-                              ? 'border-[#6cff] bg-blue-500' 
-                              : 'border-gray-300'
-                          }`}>
-                            {selectedPayment === "hotel" && (
-                              <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                            )}
-                          </div>
-                          <div className="text-left">
-                            <div className="flex items-center gap-1.5 mb-0.5">
-                              <FontAwesomeIcon icon={faHotel} className="text-blue-600 text-xs" />
-                              <span className="font-bold text-gray-900 text-xs sm:text-sm">Pay at Hotel</span>
-                            </div>
-                            <p className="text-xs text-gray-600 leading-tight">Pay when you arrive</p>
-                          </div>
-                        </div>
-                      </button>
-                      
-                      <button
-                        onClick={() => handlePaymentChange("card")}
-                        className={`p-2.5 sm:p-3 rounded-lg border-2 transition-all duration-300 ${
-                          selectedPayment === "card" 
-                            ? 'border-emerald-500 bg-emerald-50 shadow-sm' 
-                            : 'border-gray-200 hover:border-emerald-300 hover:bg-emerald-50'
-                        }`}
-                      >
-                        <div className="flex items-start gap-2">
-                          <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                            selectedPayment === "card" 
-                              ? 'border-emerald-500 bg-emerald-500' 
-                              : 'border-gray-300'
-                          }`}>
-                            {selectedPayment === "card" && (
-                              <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                            )}
-                          </div>
-                          <div className="text-left">
-                            <div className="flex items-center gap-1.5 mb-0.5">
-                              <FontAwesomeIcon icon={faCreditCard} className="text-emerald-600 text-xs" />
-                              <span className="font-bold text-gray-900 text-xs sm:text-sm">Credit/Debit Card</span>
-                            </div>
-                            <p className="text-xs text-gray-600 leading-tight">Secure online payment</p>
-                          </div>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
+              
 
                   {/* Contact Information */}
                   <div className="mb-4 sm:mb-6">
@@ -1126,7 +1098,7 @@ const HotelBooking = () => {
                       onClick={handleSubmit}
                       className="w-full bg-[#6cff] text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer text-sm"
                     >
-                      {selectedPayment === "hotel" ? "Confirm Booking" : "Proceed to Payment"}
+                      Proceed to Payment
                       <span className="ml-2">→</span>
                     </button>
                   </div>
@@ -1231,7 +1203,7 @@ const HotelBooking = () => {
                         </span>
                       </div>
                       <p className="text-xs text-gray-500 text-center mt-1">
-                        {selectedPayment === "hotel" ? "Pay at hotel upon arrival" : "Payment required now"}
+                        Payment required on next page
                       </p>
                     </div>
                   </div>

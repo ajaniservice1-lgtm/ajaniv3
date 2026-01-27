@@ -285,7 +285,7 @@ function App() {
               <Route path="/contact" element={<MainLayout><ContactPage /></MainLayout>} />
               <Route path="/contact-us" element={<MainLayout><ContactPage /></MainLayout>} />
               
-              {/* DIRECT CATEGORY PAGES (Clean URLs) - ADD THESE */}
+              {/* DIRECT CATEGORY PAGES*/}
               <Route path="/hotel" element={<MainLayout><CategoryResults /></MainLayout>} />
               <Route path="/restaurant" element={<MainLayout><CategoryResults /></MainLayout>} />
               <Route path="/shortlet" element={<MainLayout><CategoryResults /></MainLayout>} />
