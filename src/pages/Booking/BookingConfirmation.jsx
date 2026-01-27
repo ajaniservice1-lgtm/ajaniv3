@@ -27,7 +27,6 @@ const BookingConfirmation = () => {
   const [bookingReference, setBookingReference] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Fix: Scroll to top on entry
   useEffect(() => {
     window.scrollTo(0, 0);
     
@@ -80,6 +79,22 @@ const BookingConfirmation = () => {
       
       if (data) {
         setBookingData(data);
+        
+        // CRITICAL: Always clear guest session on confirmation page
+        // Even if it wasn't cleared earlier, clear it now
+        if (data.isGuestBooking || localStorage.getItem("guestSession")) {
+          console.log("🚫 Clearing any remaining guest session on confirmation");
+          localStorage.removeItem("guestSession");
+          
+          // Also clear any pending guest bookings
+          const guestKeys = [
+            'pendingGuestHotelBooking',
+            'pendingGuestRestaurantBooking',
+            'pendingGuestShortletBooking'
+          ];
+          
+          guestKeys.forEach(key => localStorage.removeItem(key));
+        }
         
         // Clean up temporary data
         const tempKeys = [
@@ -241,10 +256,30 @@ const BookingConfirmation = () => {
   };
 
   const getVendorLocation = () => {
-    return bookingData?.hotelData?.location || 
-           bookingData?.vendorData?.area || 
-           bookingData?.roomData?.hotel?.location || 
-           "";
+    const hotelLocation = bookingData?.hotelData?.location;
+    if (hotelLocation && typeof hotelLocation === 'string') {
+      return hotelLocation;
+    }
+    
+    const vendorData = bookingData?.vendorData;
+    if (vendorData?.area) {
+      if (typeof vendorData.area === 'object' && vendorData.area.address) {
+        return vendorData.area.address;
+      }
+      if (typeof vendorData.area === 'object' && vendorData.area.area) {
+        return vendorData.area.area;
+      }
+      if (typeof vendorData.area === 'string') {
+        return vendorData.area;
+      }
+    }
+    
+    const roomHotelLocation = bookingData?.roomData?.hotel?.location;
+    if (roomHotelLocation && typeof roomHotelLocation === 'string') {
+      return roomHotelLocation;
+    }
+    
+    return "Location not specified";
   };
 
   const getVendorImage = () => {
@@ -299,14 +334,10 @@ const BookingConfirmation = () => {
     <div className="min-h-screen bg-white">
       <Header />
       
-      {/* Reduced top spacing */}
       <div className="pt-0">
-        {/* Main container with edge-to-edge padding on mobile */}
         <div className="max-w-7xl mx-auto px-2.5 sm:px-4 py-20 sm:py-26">
-          {/* Main Card */}
           <div className="bg-white rounded-lg sm:rounded-2xl shadow-lg overflow-hidden border border-gray-100">
             <div className="p-3 sm:p-6">
-              {/* Success Icon & Title */}
               <div className="text-center mb-4 sm:mb-8">
                 <div className={`w-16 h-16 sm:w-20 sm:h-20 ${bookingStatus.bgColor} rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4`}>
                   <StatusIcon className={`w-10 h-10 sm:w-12 sm:h-12 ${bookingStatus.color}`} />
@@ -320,7 +351,6 @@ const BookingConfirmation = () => {
                 </p>
               </div>
 
-              {/* Booking Reference Card */}
               <div className="bg-[#6cff] rounded-lg p-3 sm:p-4 text-white mb-4 sm:mb-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
@@ -340,7 +370,6 @@ const BookingConfirmation = () => {
                 </div>
               </div>
 
-              {/* Payment Method Banner */}
               <div className={`mb-4 sm:mb-6 ${bookingStatus.bgColor} border ${bookingStatus.borderColor} rounded-lg p-3 sm:p-4 flex items-center gap-3`}>
                 {isPayAtProperty ? (
                   <Building className={`w-5 h-5 ${bookingStatus.color}`} />
@@ -360,9 +389,7 @@ const BookingConfirmation = () => {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left column - Vendor Details */}
                 <div className="lg:col-span-2">
-                  {/* Vendor Card */}
                   <div className="mb-4 sm:mb-6 shadow-sm rounded-lg p-3 sm:p-4 border border-blue-100">
                     <div className="flex flex-col md:flex-row gap-3">
                       <div className="md:w-1/3 relative">
@@ -370,6 +397,9 @@ const BookingConfirmation = () => {
                           src={getVendorImage()} 
                           alt={getVendorName()}
                           className="w-full h-32 sm:h-40 object-cover rounded-lg shadow-sm"
+                          onError={(e) => {
+                            e.target.src = "https://images.unsplash.com/photo-1552566626-52f8b828add9";
+                          }}
                         />
                         <div className="absolute top-1.5 left-1.5 bg-black/70 text-white text-xs px-2 py-0.5 rounded-full">
                           <Star className="w-3 h-3 text-yellow-400 mr-1 inline" />
@@ -385,7 +415,7 @@ const BookingConfirmation = () => {
                             </h3>
                             <div className="flex items-center gap-1.5 text-xs text-gray-600 mb-2">
                               <MapPin className="w-3 h-3 text-blue-500" />
-                              <span className="truncate">{getVendorLocation() || "Location not specified"}</span>
+                              <span className="truncate">{getVendorLocation()}</span>
                             </div>
                           </div>
                           <span className="bg-emerald-100 text-emerald-700 text-xs font-semibold px-2 py-0.5 rounded-full">
@@ -393,7 +423,6 @@ const BookingConfirmation = () => {
                           </span>
                         </div>
                         
-                        {/* Booking Details */}
                         <div className="space-y-2">
                           {bookingData?.checkInDate && (
                             <div className="flex items-center justify-between text-sm">
@@ -442,7 +471,6 @@ const BookingConfirmation = () => {
                     </div>
                   </div>
 
-                  {/* Guest Information */}
                   <div className="mb-4 sm:mb-6 shadow-sm rounded-lg p-3 sm:p-4">
                     <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-2.5 flex items-center gap-1.5">
                       <Users className="w-4 h-4 text-blue-500" />
@@ -489,7 +517,6 @@ const BookingConfirmation = () => {
                     )}
                   </div>
 
-                  {/* CTA Buttons - Stack on mobile */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 sm:mb-6">
                     <button
                       onClick={() => {
@@ -512,10 +539,8 @@ const BookingConfirmation = () => {
                   </div>
                 </div>
 
-                {/* Right Column - Summary */}
                 <div className="lg:col-span-1">
                   <div className="lg:sticky lg:top-20 space-y-4">
-                    {/* Status Card */}
                     <div className={`${bookingStatus.bgColor} border ${bookingStatus.borderColor} rounded-lg p-3`}>
                       <h6 className="font-bold text-gray-900 mb-1.5 flex items-center gap-1.5 text-sm">
                         <StatusIcon className={`w-4 h-4 ${bookingStatus.color}`} />
@@ -547,7 +572,6 @@ const BookingConfirmation = () => {
                       </div>
                     </div>
 
-                    {/* Price Breakdown */}
                     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3">
                       <h5 className="font-medium text-gray-800 mb-2 text-sm">Price Breakdown</h5>
                       
@@ -559,20 +583,17 @@ const BookingConfirmation = () => {
                           <span className="font-medium">{formatPrice(getTotalAmount())}</span>
                         </div>
                         
-                        {/* Taxes & Fees - Showing as ₦0 */}
                         <div className="flex justify-between text-xs">
                           <span className="text-gray-600">Taxes & fees</span>
                           <span className="font-medium">{formatPrice(0)}</span>
                         </div>
                         
-                        {/* Service fee - Showing as ₦0 */}
                         <div className="flex justify-between text-xs">
                           <span className="text-gray-600">Service fee</span>
                           <span className="font-medium">{formatPrice(0)}</span>
                         </div>
                       </div>
                       
-                      {/* Total */}
                       <div className="pt-2 border-t border-gray-300">
                         <div className="flex justify-between items-center">
                           <span className="font-bold text-gray-900 text-sm">Total Amount</span>
@@ -586,7 +607,6 @@ const BookingConfirmation = () => {
                       </div>
                     </div>
 
-                    {/* Next Steps */}
                     <div className="bg-blue-50 rounded-lg border border-blue-100 p-3">
                       <h6 className="font-bold text-gray-900 mb-1.5 text-sm">
                         {isPayAtProperty ? "What Happens Next?" : "What's Next?"}
@@ -627,7 +647,6 @@ const BookingConfirmation = () => {
                       </ul>
                     </div>
 
-                    {/* Support */}
                     <div className="text-center">
                       <p className="text-xs text-gray-600 mb-2">Need assistance with your booking?</p>
                       <div className="flex flex-col gap-1.5">
@@ -651,7 +670,6 @@ const BookingConfirmation = () => {
                 </div>
               </div>
 
-              {/* Main Action Buttons */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
                 <button
                   onClick={() => navigate("/")}

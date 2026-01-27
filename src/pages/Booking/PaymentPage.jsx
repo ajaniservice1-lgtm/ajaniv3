@@ -95,6 +95,39 @@ const checkAuthStatus = () => {
   };
 };
 
+// Helper function to extract location string from location data
+const getLocationString = (locationData) => {
+  if (!locationData) return "Location";
+  
+  if (typeof locationData === 'string') {
+    return locationData;
+  }
+  
+  if (typeof locationData === 'object') {
+    // Check for address property
+    if (locationData.address && typeof locationData.address === 'string') {
+      return locationData.address;
+    }
+    
+    // Check for area property
+    if (locationData.area && typeof locationData.area === 'string') {
+      return locationData.area;
+    }
+    
+    // Check for location property (could be nested object)
+    if (locationData.location) {
+      return getLocationString(locationData.location);
+    }
+    
+    // If it's an object with geolocation property, return a default
+    if (locationData.geolocation) {
+      return "Area specified";
+    }
+  }
+  
+  return "Location";
+};
+
 // Toast Component
 const Toast = ({ message, onClose }) => {
   useEffect(() => {
@@ -365,6 +398,21 @@ const PaymentPage = () => {
     // Also save to type-specific storage
     const bookingType = bookingData.bookingType || bookingData.type || 'hotel';
     localStorage.setItem(`${bookingType}Booking`, JSON.stringify(completeBooking));
+    
+    // CRITICAL: If this was a guest booking, clear the guest session IMMEDIATELY
+    if (currentAuthStatus.isGuest) {
+      console.log("🚫 Clearing guest session after payment submission");
+      localStorage.removeItem("guestSession");
+      
+      // Also clear any pending guest bookings
+      const guestKeys = [
+        'pendingGuestHotelBooking',
+        'pendingGuestRestaurantBooking',
+        'pendingGuestShortletBooking'
+      ];
+      
+      guestKeys.forEach(key => localStorage.removeItem(key));
+    }
     
     // Clean up temporary booking data
     if (currentAuthStatus.isGuest) {
@@ -715,7 +763,7 @@ const PaymentPage = () => {
                           <Star className="w-3 h-3 text-yellow-500 fill-current" />
                           <span className="text-xs font-medium">{hotelData?.rating || vendorData?.rating || 4.5}</span>
                           <span className="text-xs text-gray-500 hidden sm:inline">
-                            • {hotelData?.location || vendorData?.area || "Location"}
+                            • {getLocationString(hotelData?.location || vendorData?.area)}
                           </span>
                         </div>
                       </div>

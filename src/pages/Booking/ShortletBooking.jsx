@@ -338,7 +338,7 @@ const ShortletBooking = () => {
     lastName: "",
     email: "",
     country: "Nigeria",
-    phone: "+234 ",
+    phone: "",
     specialRequests: "",
     paymentMethod: "property"
   });
@@ -349,11 +349,7 @@ const ShortletBooking = () => {
   const [vendorData, setVendorData] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [bookingId, setBookingId] = useState("");
-
-  // Date states for the DateGuestSelectorCard
-  const [checkInDate, setCheckInDate] = useState(new Date());
-  const [checkOutDate, setCheckOutDate] = useState(new Date(Date.now() + 24 * 60 * 60 * 1000));
-  const [guests, setGuests] = useState({ adults: 2, children: 0 });
+  const [phoneInput, setPhoneInput] = useState(""); // NEW: State for phone input display
 
   // Simple auth check - same as hotel booking
   const checkAuthStatus = () => {
@@ -546,6 +542,9 @@ const ShortletBooking = () => {
       if (savedGuestInfo) {
         try {
           const guestData = JSON.parse(savedGuestInfo);
+          // Set phoneInput from saved data (remove +234 prefix)
+          const savedPhone = guestData.phone || "";
+          setPhoneInput(savedPhone.replace(/^\+234/, "")); // NEW
           setBookingData(prev => ({
             ...prev,
             ...guestData
@@ -564,12 +563,14 @@ const ShortletBooking = () => {
           const guestSession = localStorage.getItem("guestSession");
           
           if (userProfile.firstName || userProfile.lastName || userProfile.email || userEmail) {
+            const userPhone = userProfile.phone || "";
+            setPhoneInput(userPhone.replace(/^\+234/, "")); // NEW: Remove +234 prefix for display
             setBookingData(prev => ({
               ...prev,
               firstName: userProfile.firstName || prev.firstName,
               lastName: userProfile.lastName || prev.lastName,
               email: userProfile.email || userEmail || prev.email,
-              phone: userProfile.phone || prev.phone
+              phone: userPhone || prev.phone
             }));
           } else if (guestSession) {
             // Pre-fill with guest email if available
@@ -598,10 +599,33 @@ const ShortletBooking = () => {
     setBookingData(prev => ({ ...prev, [name]: value }));
   };
 
+  // NEW: Handle phone input separately
+  const handlePhoneChange = (e) => {
+    const value = e.target.value;
+    // Remove any non-digit characters
+    const digits = value.replace(/\D/g, '');
+    
+    // Limit to 10 digits (remaining digits after +234)
+    const limitedDigits = digits.slice(0, 10);
+    setPhoneInput(limitedDigits);
+    
+    // Always prepend +234 to the stored value
+    const fullPhoneNumber = `+234${limitedDigits}`;
+    setBookingData(prev => ({
+      ...prev,
+      phone: fullPhoneNumber
+    }));
+  };
+
   const handlePaymentChange = (method) => {
     setSelectedPayment(method);
     setBookingData(prev => ({ ...prev, paymentMethod: method }));
   };
+
+  // Date states for the DateGuestSelectorCard
+  const [checkInDate, setCheckInDate] = useState(new Date());
+  const [checkOutDate, setCheckOutDate] = useState(new Date(Date.now() + 24 * 60 * 60 * 1000));
+  const [guests, setGuests] = useState({ adults: 2, children: 0 });
 
   const handleSaveDatesGuests = (updatedData) => {
     // Update local state
@@ -668,16 +692,10 @@ const ShortletBooking = () => {
       return;
     }
 
-    // Validate phone number format
-    if (!bookingData.phone.startsWith('+234') && !bookingData.phone.startsWith('234')) {
-      alert("Please enter a valid Nigerian phone number starting with +234");
-      return;
-    }
-
-    // Validate phone number length
+    // UPDATED: Validate phone number - check if user entered at least 10 digits
     const phoneDigits = bookingData.phone.replace(/\D/g, '');
-    if (phoneDigits.length < 11) {
-      alert("Please enter a valid 11-digit Nigerian phone number");
+    if (phoneDigits.length !== 13) { // +234 + 10 digits = 13 digits total
+      alert("Please enter a complete 10-digit Nigerian phone number (excluding +234)");
       return;
     }
 
@@ -1097,36 +1115,23 @@ const ShortletBooking = () => {
                           Phone Number *
                         </label>
                         <div className="relative">
-                          <FontAwesomeIcon icon={faPhone} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
+                          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center">
+                            <FontAwesomeIcon icon={faPhone} className="text-gray-400 text-sm mr-1" />
+                            <span className="text-xs text-gray-500">+234</span>
+                          </div>
                           <input 
                             type="tel" 
-                            name="phone"
-                            value={bookingData.phone}
-                            onChange={handleInputChange}
-                            placeholder="+234 800 000 0000"
-                            className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
+                            value={phoneInput}
+                            onChange={handlePhoneChange}
+                            placeholder="800 000 0000"
+                            className="w-full pl-20 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
                             required
+                            maxLength={10}
                           />
                         </div>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                          Country *
-                        </label>
-                        <select
-                          name="country"
-                          value={bookingData.country}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
-                          required
-                        >
-                          <option value="Nigeria">Nigeria</option>
-                          <option value="Ghana">Ghana</option>
-                          <option value="South Africa">South Africa</option>
-                          <option value="Kenya">Kenya</option>
-                          <option value="Other">Other</option>
-                        </select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Enter your 10-digit Nigerian phone number (without +234)
+                        </p>
                       </div>
                       
                       <div>
@@ -1157,12 +1162,12 @@ const ShortletBooking = () => {
                           className="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
                         />
                       </div>
-                   <label htmlFor="terms" className="text-xs text-gray-900 leading-relaxed cursor-pointer">
-  By proceeding with this booking, I agree to Ajani's{' '}
-  <a href="/terms-service" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">Terms of Use</a>{' '}
-  and{' '}
-  <a href="/privacy" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">Privacy Policy</a>.
-</label>
+                      <label htmlFor="terms" className="text-xs text-gray-900 leading-relaxed cursor-pointer">
+                        By proceeding with this booking, I agree to Ajani's{' '}
+                        <a href="/terms-service" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">Terms of Use</a>{' '}
+                        and{' '}
+                        <a href="/privacy" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">Privacy Policy</a>.
+                      </label>
                     </div>
 
                     <button

@@ -34,6 +34,7 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
   const [bookingId, setBookingId] = useState("");
   const [selectedPayment, setSelectedPayment] = useState("restaurant");
   const [isTermsAccepted, setIsTermsAccepted] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
 
   // Simple auth check - just check if user has auth token or guest session
   const checkAuthStatus = () => {
@@ -99,13 +100,15 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
           const guestSession = localStorage.getItem("guestSession");
           
           if (userProfile.firstName || userProfile.lastName || userProfile.email || userEmail) {
+            const userPhone = userProfile.phone || "";
+            setPhoneInput(userPhone.replace(/^\+234/, "")); // Remove +234 prefix for display
             setBookingData(prev => ({
               ...prev,
               contactInfo: {
                 firstName: userProfile.firstName || prev.contactInfo.firstName,
                 lastName: userProfile.lastName || prev.contactInfo.lastName,
                 email: userProfile.email || userEmail || prev.contactInfo.email,
-                phone: userProfile.phone || prev.contactInfo.phone
+                phone: userPhone || prev.contactInfo.phone
               }
             }));
           } else if (guestSession) {
@@ -147,6 +150,27 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
     } else {
       setBookingData(prev => ({ ...prev, [name]: value }));
     }
+  };
+
+  // Handle phone input separately
+  const handlePhoneChange = (e) => {
+    const value = e.target.value;
+    // Remove any non-digit characters
+    const digits = value.replace(/\D/g, '');
+    
+    // Limit to 10 digits (remaining digits after +234)
+    const limitedDigits = digits.slice(0, 10);
+    setPhoneInput(limitedDigits);
+    
+    // Always prepend +234 to the stored value
+    const fullPhoneNumber = `+234${limitedDigits}`;
+    setBookingData(prev => ({
+      ...prev,
+      contactInfo: {
+        ...prev.contactInfo,
+        phone: fullPhoneNumber
+      }
+    }));
   };
 
   const handleGuestChange = (operation) => {
@@ -192,16 +216,10 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
       return;
     }
 
-    // Validate phone number format
-    if (!bookingData.contactInfo.phone.startsWith('+234') && !bookingData.contactInfo.phone.startsWith('234')) {
-      alert("Please enter a valid Nigerian phone number starting with +234");
-      return;
-    }
-
-    // Validate phone number length
+    // Validate phone number - check if user entered at least 10 digits
     const phoneDigits = bookingData.contactInfo.phone.replace(/\D/g, '');
-    if (phoneDigits.length < 11) {
-      alert("Please enter a valid 11-digit Nigerian phone number");
+    if (phoneDigits.length !== 13) { // +234 + 10 digits = 13 digits total
+      alert("Please enter a complete 10-digit Nigerian phone number (excluding +234)");
       return;
     }
 
@@ -650,17 +668,23 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                         Phone Number *
                       </label>
                       <div className="relative">
-                        <FontAwesomeIcon icon={faPhone} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
+                        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center">
+                          <FontAwesomeIcon icon={faPhone} className="text-gray-400 text-sm mr-1" />
+                          <span className="text-xs text-gray-500">+234</span>
+                        </div>
                         <input
                           type="tel"
-                          name="contactInfo.phone"
-                          value={bookingData.contactInfo.phone}
-                          onChange={handleInputChange}
-                          placeholder="+234 800 000 0000"
-                          className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
+                          value={phoneInput}
+                          onChange={handlePhoneChange}
+                          placeholder="800 000 0000"
+                          className="w-full pl-20 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
                           required
+                          maxLength={10}
                         />
                       </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Enter your 10-digit Nigerian phone number (without +234)
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -697,12 +721,12 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                         required
                       />
                     </div>
-           <label htmlFor="terms" className="text-xs text-gray-900 leading-relaxed cursor-pointer">
-  By proceeding with this booking, I agree to Ajani's{' '}
-  <a href="/terms-service" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">Terms of Use</a>{' '}
-  and{' '}
-  <a href="/privacy" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">Privacy Policy</a>.
-</label>
+                    <label htmlFor="terms" className="text-xs text-gray-900 leading-relaxed cursor-pointer">
+                      By proceeding with this booking, I agree to Ajani's{' '}
+                      <a href="/terms-service" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">Terms of Use</a>{' '}
+                      and{' '}
+                      <a href="/privacy" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">Privacy Policy</a>.
+                    </label>
                   </div>
 
                   <button
