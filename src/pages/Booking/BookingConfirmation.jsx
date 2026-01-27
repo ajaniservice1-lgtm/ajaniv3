@@ -296,7 +296,7 @@ const BookingConfirmation = () => {
   const messages = getCategoryMessages();
 
   return (
-    <div className="min-h-screen bg-blue-50">
+    <div className="min-h-screen bg-white">
       <Header />
       
       {/* Reduced top spacing */}
@@ -363,7 +363,7 @@ const BookingConfirmation = () => {
                 {/* Left column - Vendor Details */}
                 <div className="lg:col-span-2">
                   {/* Vendor Card */}
-                  <div className="mb-4 sm:mb-6 bg-gradient-to-r from-blue-50 to-emerald-50 rounded-lg p-3 sm:p-4 border border-blue-100">
+                  <div className="mb-4 sm:mb-6 shadow-sm rounded-lg p-3 sm:p-4 border border-blue-100">
                     <div className="flex flex-col md:flex-row gap-3">
                       <div className="md:w-1/3 relative">
                         <img 
@@ -443,7 +443,7 @@ const BookingConfirmation = () => {
                   </div>
 
                   {/* Guest Information */}
-                  <div className="mb-4 sm:mb-6 bg-blue-50 rounded-lg p-3 sm:p-4">
+                  <div className="mb-4 sm:mb-6 shadow-sm rounded-lg p-3 sm:p-4">
                     <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-2.5 flex items-center gap-1.5">
                       <Users className="w-4 h-4 text-blue-500" />
                       Guest Information

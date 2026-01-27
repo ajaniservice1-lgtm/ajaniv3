@@ -377,7 +377,7 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
   const taxes = 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen bg-white">
       <Header />
       
       <div className="pt-0">

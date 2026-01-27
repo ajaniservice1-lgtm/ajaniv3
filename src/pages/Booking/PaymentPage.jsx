@@ -475,7 +475,7 @@ const PaymentPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-blue-50">
+    <div className="min-h-screen bg-white">
       <Header />
       
       {/* Toast Message */}
@@ -492,11 +492,11 @@ const PaymentPage = () => {
           
           {/* User Status Banner */}
           {authStatus?.isGuest && (
-            <div className="mb-4 sm:mb-6 bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-blue-600" />
+            <div className="mb-4 sm:mb-6  border border-gray-200 shadow-sm rounded-lg p-3 sm:p-4 flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-gray-600" />
               <div className="flex-1">
-                <p className="font-medium text-blue-800 text-sm">Continuing as Guest</p>
-                <p className="text-xs text-blue-700">
+                <p className="font-medium text-gray-800 text-sm">Continuing as Guest</p>
+                <p className="text-xs text-gray-700">
                   You're booking as a guest. Your booking confirmation will be sent to {authStatus.email}
                 </p>
               </div>
@@ -532,7 +532,7 @@ const PaymentPage = () => {
                   </div>
 
                   {/* Guest Information Summary */}
-                  <div className="mb-4 sm:mb-6 bg-blue-50 rounded-lg p-3 sm:p-4">
+                  <div className="mb-4 sm:mb-6  rounded-lg p-3 sm:p-4">
                     <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-2.5 flex items-center gap-1.5">
                       <Users className="w-4 h-4 text-blue-500" />
                       Guest Information
