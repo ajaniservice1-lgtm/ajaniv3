@@ -1,10 +1,5 @@
-// src/components/Stepper.jsx
 import React from "react";
-import {
-  Users,
-  CreditCard,
-  CheckCircle,
-} from "phosphor-react";
+import { Users, CreditCard, CheckCircle } from "phosphor-react";
 
 const PRIMARY = "#6cff";
 
@@ -17,7 +12,7 @@ const Stepper = ({ currentStep = 1 }) => {
 
   return (
     <div className="w-full flex justify-center">
-      <div className="flex items-center w-full max-w-3xl px-4 gap-4 lg:gap-3">
+      <div className="flex items-center max-w-3xl px-4 gap-3 sm:gap-4 lg:gap-3">
         {steps.map((step, index) => {
           const Icon = step.icon;
           const isActive = currentStep === step.id;
@@ -25,18 +20,17 @@ const Stepper = ({ currentStep = 1 }) => {
 
           return (
             <React.Fragment key={step.id}>
-              {/* Step */}
-              <div className="flex flex-col items-center text-center min-w-[90px]">
+              <div className="flex flex-col items-center text-center min-w-[88px]">
                 <div className="relative">
                   {isActive && (
                     <span
-                      className="absolute inset-0 rounded-full border-2"
+                      className="absolute inset-0 rounded-full border-2 opacity-60"
                       style={{ borderColor: PRIMARY }}
                     />
                   )}
 
                   <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center bg-gray-100"
+                    className="w-11 h-11 rounded-full flex items-center justify-center bg-gray-100"
                     style={{
                       backgroundColor: isCompleted ? PRIMARY : "#F3F4F6",
                       color: isCompleted
@@ -46,18 +40,15 @@ const Stepper = ({ currentStep = 1 }) => {
                         : "#9CA3AF",
                     }}
                   >
-                    <Icon
-                      size={22}
-                      weight={isCompleted ? "fill" : "regular"}
-                    />
+                    <Icon size={21} weight={isCompleted ? "fill" : "regular"} />
                   </div>
                 </div>
 
                 <p
-                  className={`mt-3 text-sm font-medium whitespace-pre-line
+                  className={`mt-2 text-xs font-medium whitespace-pre-line
                     ${
                       isActive || isCompleted
-                        ? "text-gray-900"
+                        ? "text-gray-700"
                         : "text-gray-400"
                     }`}
                 >
@@ -67,14 +58,19 @@ const Stepper = ({ currentStep = 1 }) => {
 
               {/* Connector */}
               {index !== steps.length - 1 && (
-                <div className="flex-1 flex items-center">
+                <div className="flex items-center">
                   <div
-                    className="w-full border-t-2 border-dashed"
+                    className="
+                      h-[2px]
+                      w-10 sm:w-14 md:w-20
+                      border-t
+                      border-solid md:border-dashed
+                    "
                     style={{
                       borderColor:
                         currentStep > step.id
-                          ? PRIMARY
-                          : "#D1D5DB",
+                          ? "rgba(108, 255, 0, 0.35)"
+                          : "rgba(209, 213, 219, 0.7)",
                     }}
                   />
                 </div>
