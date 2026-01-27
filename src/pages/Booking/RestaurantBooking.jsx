@@ -166,28 +166,48 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
     e.preventDefault();
     
     console.log("Submit button clicked - Restaurant Booking");
+
+    // Validate ALL required fields
+    const requiredFields = [
+      { field: bookingData.date, name: "Date" },
+      { field: bookingData.time, name: "Time" },
+      { field: bookingData.numberOfGuests, name: "Number of Guests" },
+      { field: bookingData.contactInfo.firstName, name: "First Name" },
+      { field: bookingData.contactInfo.lastName, name: "Last Name" },
+      { field: bookingData.contactInfo.email, name: "Email Address" },
+      { field: bookingData.contactInfo.phone, name: "Phone Number" }
+    ];
+
+    const missingFields = requiredFields.filter(f => !f.field || f.field.toString().trim() === "");
     
-    // Validate terms acceptance
-    if (!isTermsAccepted) {
-      alert("You must accept the terms and conditions to proceed");
+    if (missingFields.length > 0) {
+      alert(`Please fill in all required fields:\n${missingFields.map(f => `• ${f.name}`).join('\n')}`);
       return;
     }
 
-    // Validate data
-    if (!bookingData.date || !bookingData.time || !bookingData.numberOfGuests) {
-      alert("Please fill in all required fields");
-      return;
-    }
-
-    if (!bookingData.contactInfo.firstName || !bookingData.contactInfo.lastName || 
-        !bookingData.contactInfo.email || !bookingData.contactInfo.phone) {
-      alert("Please fill in all contact information");
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(bookingData.contactInfo.email)) {
+      alert("Please enter a valid email address");
       return;
     }
 
     // Validate phone number format
     if (!bookingData.contactInfo.phone.startsWith('+234') && !bookingData.contactInfo.phone.startsWith('234')) {
       alert("Please enter a valid Nigerian phone number starting with +234");
+      return;
+    }
+
+    // Validate phone number length
+    const phoneDigits = bookingData.contactInfo.phone.replace(/\D/g, '');
+    if (phoneDigits.length < 11) {
+      alert("Please enter a valid 11-digit Nigerian phone number");
+      return;
+    }
+
+    // Validate terms acceptance (using the state)
+    if (!isTermsAccepted) {
+      alert("You must accept the terms and conditions to proceed");
       return;
     }
 
@@ -558,8 +578,6 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                   </div>
                 </div>
 
-              
-
                 {/* Contact Information */}
                 <div className="mb-4 sm:mb-6">
                   <div className="mb-3">
@@ -662,6 +680,7 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                       placeholder="Any specific requests or requirements (dietary restrictions, seating preferences, special occasions, etc.)"
                       className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm bg-transparent"
                     />
+                    <p className="text-xs">Please make sure your contact information is correct. We'll use it to send your booking confirmation and any reminders to assist your booking completion.</p>
                   </div>
                 </div>
 
@@ -675,11 +694,15 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                         checked={isTermsAccepted}
                         onChange={(e) => setIsTermsAccepted(e.target.checked)}
                         className="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                        required
                       />
                     </div>
-                    <label htmlFor="terms" className="text-xs text-gray-600 leading-relaxed cursor-pointer">
-                      By proceeding with this booking, I agree to Ajani's Terms of Use and Privacy Policy. I understand that my reservation is subject to the restaurant's cancellation policy and any applicable fees.
-                    </label>
+           <label htmlFor="terms" className="text-xs text-gray-900 leading-relaxed cursor-pointer">
+  By proceeding with this booking, I agree to Ajani's{' '}
+  <a href="/terms-service" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">Terms of Use</a>{' '}
+  and{' '}
+  <a href="/privacy" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">Privacy Policy</a>.
+</label>
                   </div>
 
                   <button
@@ -775,8 +798,6 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                       </div>
                     </div>
                   </div>
-                  
-                  
                   
                   {/* Guarantee */}
                   <div className="text-center">

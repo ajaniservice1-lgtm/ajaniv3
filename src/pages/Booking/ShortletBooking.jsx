@@ -177,49 +177,53 @@ const DateGuestSelectorCard = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Check-in Date & Time */}
             <div className="space-y-2">
-              <label className="text-xs font-medium text-gray-700">Check-in Date</label>
+              <label className="text-xs font-medium text-gray-700">Check-in Date *</label>
               <input
                 type="date"
                 value={formatDateForInput(editCheckInDate)}
                 onChange={(e) => handleDateChange('checkIn', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 min={formatDateForInput(new Date())}
+                required
               />
-              <label className="text-xs font-medium text-gray-700 mt-2">Check-in Time</label>
+              <label className="text-xs font-medium text-gray-700 mt-2">Check-in Time *</label>
               <input
                 type="time"
                 value={formatTimeForInput(editCheckInDate)}
                 onChange={(e) => handleTimeChange('checkIn', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
               />
             </div>
             
             {/* Check-out Date & Time */}
             <div className="space-y-2">
-              <label className="text-xs font-medium text-gray-700">Check-out Date</label>
+              <label className="text-xs font-medium text-gray-700">Check-out Date *</label>
               <input
                 type="date"
                 value={formatDateForInput(editCheckOutDate)}
                 onChange={(e) => handleDateChange('checkOut', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 min={formatDateForInput(new Date(editCheckInDate.getTime() + 24 * 60 * 60 * 1000))}
+                required
               />
-              <label className="text-xs font-medium text-gray-700 mt-2">Check-out Time</label>
+              <label className="text-xs font-medium text-gray-700 mt-2">Check-out Time *</label>
               <input
                 type="time"
                 value={formatTimeForInput(editCheckOutDate)}
                 onChange={(e) => handleTimeChange('checkOut', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
               />
             </div>
           </div>
           
           {/* Guests */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-700">Guests</label>
+            <label className="text-xs font-medium text-gray-700">Guests *</label>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-600">Adults</label>
+                <label className="text-xs text-gray-600">Adults *</label>
                 <div className="flex items-center gap-2 mt-1">
                   <button
                     onClick={() => handleGuestChange('adults', Math.max(1, editGuests.adults - 1))}
@@ -233,6 +237,7 @@ const DateGuestSelectorCard = ({
                     value={editGuests.adults}
                     onChange={(e) => handleGuestChange('adults', e.target.value)}
                     className="w-16 text-center px-2 py-1 border border-gray-300 rounded"
+                    required
                   />
                   <button
                     onClick={() => handleGuestChange('adults', editGuests.adults + 1)}
@@ -258,6 +263,7 @@ const DateGuestSelectorCard = ({
                     value={editGuests.children}
                     onChange={(e) => handleGuestChange('children', e.target.value)}
                     className="w-16 text-center px-2 py-1 border border-gray-300 rounded"
+                    required
                   />
                   <button
                     onClick={() => handleGuestChange('children', editGuests.children + 1)}
@@ -639,15 +645,46 @@ const ShortletBooking = () => {
       return;
     }
 
-    // Validate required fields
-    if (!bookingData.firstName || !bookingData.lastName || !bookingData.email || !bookingData.phone) {
-      alert("Please fill in all required contact information");
+    // Validate ALL required fields
+    const requiredFields = [
+      { field: bookingData.firstName, name: "First Name" },
+      { field: bookingData.lastName, name: "Last Name" },
+      { field: bookingData.email, name: "Email Address" },
+      { field: bookingData.phone, name: "Phone Number" },
+      { field: bookingData.country, name: "Country" }
+    ];
+
+    const missingFields = requiredFields.filter(f => !f.field || f.field.trim() === "");
+    
+    if (missingFields.length > 0) {
+      alert(`Please fill in all required fields:\n${missingFields.map(f => `• ${f.name}`).join('\n')}`);
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(bookingData.email)) {
+      alert("Please enter a valid email address");
       return;
     }
 
     // Validate phone number format
     if (!bookingData.phone.startsWith('+234') && !bookingData.phone.startsWith('234')) {
       alert("Please enter a valid Nigerian phone number starting with +234");
+      return;
+    }
+
+    // Validate phone number length
+    const phoneDigits = bookingData.phone.replace(/\D/g, '');
+    if (phoneDigits.length < 11) {
+      alert("Please enter a valid 11-digit Nigerian phone number");
+      return;
+    }
+
+    // Check terms acceptance (checkbox)
+    const termsCheckbox = document.getElementById('terms');
+    if (termsCheckbox && !termsCheckbox.checked) {
+      alert("You must accept the terms and conditions to proceed");
       return;
     }
 
@@ -994,8 +1031,6 @@ const ShortletBooking = () => {
                     </div>
                   </div>
 
-               
-
                   {/* Contact Information */}
                   <div className="mb-4 sm:mb-6">
                     <div className="mb-3">
@@ -1077,6 +1112,25 @@ const ShortletBooking = () => {
                       
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                          Country *
+                        </label>
+                        <select
+                          name="country"
+                          value={bookingData.country}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
+                          required
+                        >
+                          <option value="Nigeria">Nigeria</option>
+                          <option value="Ghana">Ghana</option>
+                          <option value="South Africa">South Africa</option>
+                          <option value="Kenya">Kenya</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                           Special Requests
                         </label>
                         <textarea
@@ -1087,6 +1141,7 @@ const ShortletBooking = () => {
                           placeholder="Any special requirements or preferences..."
                           className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
                         />
+                        <p className="text-xs">Please make sure your contact information is correct. We'll use it to send your booking confirmation and any reminders to assist your booking completion.</p>
                       </div>
                     </div>
                   </div>
@@ -1102,9 +1157,12 @@ const ShortletBooking = () => {
                           className="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
                         />
                       </div>
-                      <label htmlFor="terms" className="text-xs text-gray-600 leading-relaxed cursor-pointer">
-                        By proceeding with this booking, I agree to Ajani's Terms of Use and Privacy Policy. I understand that my booking is subject to the property's cancellation policy and any applicable fees.
-                      </label>
+                   <label htmlFor="terms" className="text-xs text-gray-900 leading-relaxed cursor-pointer">
+  By proceeding with this booking, I agree to Ajani's{' '}
+  <a href="/terms-service" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">Terms of Use</a>{' '}
+  and{' '}
+  <a href="/privacy" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">Privacy Policy</a>.
+</label>
                     </div>
 
                     <button
@@ -1122,8 +1180,6 @@ const ShortletBooking = () => {
             {/* Right Column - Booking Summary & DateGuestSelectorCard */}
             <div className="lg:col-span-1">
               <div className="lg:sticky lg:top-20 space-y-4">
-               
-                
                 {/* Summary Header */}
                 <div className="bg-[#6cff] rounded-lg p-3 text-white">
                   <h3 className="text-base font-bold mb-1">Booking Summary</h3>
@@ -1242,8 +1298,6 @@ const ShortletBooking = () => {
                     ))}
                   </div>
                 </div>
-
-              
                 
                 {/* Guarantee */}
                 <div className="text-center">

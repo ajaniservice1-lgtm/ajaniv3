@@ -164,8 +164,8 @@ const BookingConfirmation = () => {
       case 'hotel':
         return {
           title: isPayAtProperty 
-            ? "Thank you for booking on Ajani.ai 🎉 Hotel Reservation Request Received!" 
-            : "Thank you for booking on Ajani.ai 🎉 Hotel Payment Successful!",
+            ? "Thank you for booking on Ajani.ai, Hotel Reservation Request Received!" 
+            : "Thank you for booking on Ajani.ai, Hotel Payment Successful!",
           message: isPayAtProperty
             ? "Your hotel reservation request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed. You'll pay when you arrive at the hotel."
             : "Your hotel payment has been processed successfully! Your reservation is now confirmed. You'll receive a confirmation email with all the details shortly.",
@@ -176,8 +176,8 @@ const BookingConfirmation = () => {
       case 'restaurant':
         return {
           title: isPayAtProperty 
-            ? "Thank you for booking on Ajani.ai 🎉 Restaurant Reservation Request Received!" 
-            : "Thank you for booking on Ajani.ai 🎉 Restaurant Payment Successful!",
+            ? "Thank you for booking on Ajani.ai, Restaurant Reservation Request Received!" 
+            : "Thank you for booking on Ajani.ai, Restaurant Payment Successful!",
           message: isPayAtProperty
             ? "Your restaurant reservation request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed. You'll pay at the restaurant."
             : "Your restaurant payment has been processed successfully! Your table reservation is now confirmed. You'll receive a confirmation email with all the details shortly.",
@@ -188,8 +188,8 @@ const BookingConfirmation = () => {
       case 'shortlet':
         return {
           title: isPayAtProperty 
-            ? "Thank you for booking on Ajani.ai 🎉 Shortlet Reservation Request Received!" 
-            : "Thank you for booking on Ajani.ai 🎉 Shortlet Payment Successful!",
+            ? "Thank you for booking on Ajani.ai, Shortlet Reservation Request Received!" 
+            : "Thank you for booking on Ajani.ai, Shortlet Payment Successful!",
           message: isPayAtProperty
             ? "Your shortlet reservation request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed. You'll pay when you arrive at the property."
             : "Your shortlet payment has been processed successfully! Your accommodation is now confirmed. You'll receive a confirmation email with all the details shortly.",
@@ -200,8 +200,8 @@ const BookingConfirmation = () => {
       default:
         return {
           title: isPayAtProperty 
-            ? "Thank you for booking on Ajani.ai 🎉 Booking Request Received!" 
-            : "Thank you for booking on Ajani.ai 🎉 Payment Successful!",
+            ? "Thank you for booking on Ajani.ai, Booking Request Received!" 
+            : "Thank you for booking on Ajani.ai, Payment Successful!",
           message: isPayAtProperty
             ? "Thank you for booking on Ajani.ai. Your booking request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed."
             : "Your payment has been processed successfully! Your booking is now confirmed. You'll receive a confirmation email with all the details shortly.",

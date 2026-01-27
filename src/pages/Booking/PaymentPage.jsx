@@ -486,7 +486,7 @@ const PaymentPage = () => {
         {/* Main container with edge-to-edge padding on mobile */}
         <div className="max-w-7xl mx-auto px-2.5 sm:px-4 py-20 sm:py-26">
           {/* Stepper - Reduced spacing */}
-          <div className="mb-4 sm:mb-8">
+          <div className="mb-8 sm:mb-8">
             <Stepper currentStep={2} />
           </div>
           
@@ -649,9 +649,17 @@ const PaymentPage = () => {
                           required
                           className="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500 mt-0.5 cursor-pointer"
                         />
-                        <label htmlFor="termsAgreement" className="text-xs text-gray-600 cursor-pointer">
-                          I agree to Ajani's Terms of Use and Privacy Policy. I understand that my booking is subject to the property's cancellation policy.
-                        </label>
+                <label htmlFor="terms" className="text-xs text-gray-900 leading-relaxed cursor-pointer">
+  By proceeding with this booking, I agree to Ajani's{' '}
+  <a href="/terms-service" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">
+    Terms of Use
+  </a>{' '}
+  and{' '}
+  <a href="/privacy" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">
+    Privacy Policy
+  </a>.{' '}
+  I understand that my booking is subject to the property's cancellation policy.
+</label>
                       </div>
                       
                       <div className="flex items-start gap-2">

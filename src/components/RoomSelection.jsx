@@ -342,20 +342,47 @@ const RoomSelection = ({ vendorData, category = "hotel", onRoomSelect, onRoomBoo
   };
 
   const handleBookNow = (room, option) => {
+    // Calculate number of nights
+    const checkInDate = new Date();
+    const checkOutDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+    
+    // Prepare booking data with ALL room details
     const bookingData = {
       room: {
         ...room,
-        selectedOption: option
+        selectedOption: option,
+        // Include all room details for the booking page
+        specifications: room.specifications,
+        features: room.features,
+        amenitiesList: room.amenitiesList,
+        size: room.size,
+        beds: room.beds,
+        maxOccupancy: room.maxOccupancy,
+        images: room.images
       },
-      vendor: vendorData,
-      bookingDetails: {
-        roomType: room.name,
-        guests: option.adults,
+      hotel: {
+        id: vendorData._id || vendorData.id,
+        name: vendorData.name || vendorData.title,
+        location: vendorData.location || vendorData.area,
+        rating: vendorData.rating || 4.5,
+        image: vendorData.image || vendorData.images?.[0],
+        category: category
+      },
+      booking: {
+        checkIn: "Today",
+        checkOut: "Tomorrow",
+        adults: option.adults,
+        children: 0,
+        nights: nights,
         price: option.price,
-        totalPrice: option.price, // You can add calculation logic here
-        checkIn: "3:00 PM",
-        checkOut: "11:00 AM",
-        breakfastIncluded: option.breakfast
+        originalPrice: option.originalPrice,
+        discount: option.discount,
+        breakfast: option.breakfast,
+        breakfastPrice: option.breakfastPrice,
+        benefits: option.benefits,
+        totalPrice: option.price * nights,
+        perNight: option.price
       }
     };
 

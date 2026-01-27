@@ -1267,6 +1267,16 @@ const VendorDetail = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [galleryOpen]);
 
+  // Format date for display
+  const formatDateForDisplay = (date) => {
+    if (!date) return "Select date";
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric"
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -1395,16 +1405,6 @@ const VendorDetail = () => {
     return formatPrice(vendor.price || vendor.details?.pricePerNight || 0);
   };
 
-  // Format date for display
-  const formatDateForDisplay = (date) => {
-    if (!date) return "Select date";
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric"
-    });
-  };
-
   return (
     <div className="min-h-screen font-manrope">
       <Header />
@@ -1495,6 +1495,17 @@ const VendorDetail = () => {
           
           .highlight-section {
             animation: highlightPulse 1s ease-in-out;
+          }
+        }
+        
+        /* Space for fixed bottom bar */
+        main {
+          padding-bottom: 80px;
+        }
+        
+        @media (min-width: 768px) {
+          main {
+            padding-bottom: 0;
           }
         }
       `}</style>
@@ -2251,77 +2262,64 @@ const VendorDetail = () => {
             </div>
           </>
         )}
-
-        {/* Floating Action Bar - New Style */}
-        <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-          <div className="px-3 pb-3">
-            <div className="backdrop-blur-xl bg-white/95 border border-gray-300 shadow-2xl rounded-2xl px-4 py-3 flex items-center justify-between">
-              
-              {/* Call */}
-              <button
-                onClick={() => {
-                  const phone = safeToString(
-                    vendor.contact || vendorInfo?.phone || vendor.contactInformation?.phone
-                  );
-                  phone ? (window.location.href = `tel:${phone}`) : showToast("Phone number not available", "info");
-                }}
-                className="flex flex-col items-center gap-1 text-gray-700 hover:text-blue-600 transition-all group cursor-pointer"
-              >
-                <div className="p-2 rounded-full bg-blue-50 group-hover:bg-blue-100 transition-all">
-                  <FontAwesomeIcon icon={faPhone} size={16} />
-                </div>
-                <span className="text-[11px] font-medium">Call</span>
-              </button>
-
-              {/* Chat */}
-              <button
-                onClick={() => showToast("Chat feature coming soon!", "info")}
-                className="flex flex-col items-center gap-1 text-gray-700 hover:text-green-600 transition-all group cursor-pointer"
-              >
-                <div className="p-2 rounded-full bg-green-50 group-hover:bg-green-100 transition-all">
-                  <IoChatbubbleEllipsesOutline size={18} />
-                </div>
-                <span className="text-[11px] font-medium">Chat</span>
-              </button>
-
-              {/* BOOK — PRIMARY CTA */}
-              <button
-                onClick={handleBookingClick}
-                disabled={category === "hotel" && !selectedRoom}
-                className={`relative px-6 py-3 rounded-xl font-semibold text-white shadow-lg transition-all
-                  ${
-                    category === "hotel" && !selectedRoom
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-gradient-to-r from-[#06EAFC] to-[#00065A] hover:scale-105 hover:shadow-[#06EAFC]/50"
-                  }`}
-              >
-                <div className="flex items-center gap-2">
-                  <FaBookOpen size={16} />
-                  <span className="text-sm">Book Now</span>
-                </div>
-
-                {/* Tooltip */}
-                {category === "hotel" && !selectedRoom && (
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-gray-900 text-white px-2 py-1 rounded-md whitespace-nowrap">
-                    Select a room first
-                  </div>
-                )}
-              </button>
-
-              {/* Map */}
-              <button
-                onClick={() => showToast("Map feature coming soon!", "info")}
-                className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-600 transition-all group cursor-pointer"
-              >
-                <div className="p-2 rounded-full bg-red-50 group-hover:bg-red-100 transition-all">
-                  <HiLocationMarker size={18} />
-                </div>
-                <span className="text-[11px] font-medium">Map</span>
-              </button>
+      </main>
+      
+      {/* ================= FIXED BOTTOM ACTION BAR ================= */}
+      {/* Floating Action Bar - Fixed at Bottom like Airbnb */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.1)] md:hidden">
+        <div className="px-3 py-3">
+          <div className="flex items-center justify-between">
+            
+            {/* Left side: Price */}
+            <div className="flex flex-col">
+              <div className="flex items-baseline gap-1">
+                <span className="text-lg font-bold text-gray-900">
+                  {getPriceRange()}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {category === 'hotel' ? 'per night' : 
+                   category === 'restaurant' ? 'per meal' : 
+                   category === 'shortlet' ? 'per night' :
+                   'per guest'}
+                </span>
+              </div>
+              <span className="text-xs text-gray-500">
+                {checkIn && checkOut ? 
+                  `${formatDateForDisplay(checkIn)} - ${formatDateForDisplay(checkOut)}` : 
+                  'Select dates'
+                }
+              </span>
             </div>
+
+            {/* Right side: Book Now Button */}
+            <button
+              onClick={handleBookingClick}
+              disabled={category === "hotel" && !selectedRoom}
+              className={`
+                relative px-5 py-3 rounded-xl font-semibold text-white shadow-lg transition-all
+                flex items-center gap-2 min-w-[120px] justify-center
+                ${category === "hotel" && !selectedRoom
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-gradient-to-r from-[#06EAFC] to-[#00065A] hover:shadow-xl hover:shadow-[#06EAFC]/30 active:scale-95"
+                }
+              `}
+            >
+              <FaBookOpen size={16} />
+              <span className="text-sm">Book Now</span>
+              
+              {/* Tooltip for hotel rooms */}
+              {category === "hotel" && !selectedRoom && (
+                <div className="absolute -top-12 left-1/2 -translate-x-1/2 text-xs bg-gray-900 text-white px-3 py-2 rounded-lg whitespace-nowrap">
+                  <div className="relative">
+                    Select a room first
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+                  </div>
+                </div>
+              )}
+            </button>
           </div>
         </div>
-      </main>
+      </div>
       
       {/* FULL SCREEN GALLERY MODAL */}
       {galleryOpen && (

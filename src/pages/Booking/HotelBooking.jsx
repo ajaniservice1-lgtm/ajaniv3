@@ -11,8 +11,45 @@ import {
   faEnvelope, faMapMarkerAlt,
   faShieldAlt, faCreditCard,
   faHotel, faKey, faConciergeBell,
-  faChevronLeft, faSave, faTimes
+  faChevronLeft, faSave, faTimes,
+  // New icons for amenities
+  faTv, faCoffee, faSnowflake, faBath,
+  faSwimmingPool, faDumbbell, faFan,
+  faWineGlass, faHome, faChair, faDesktop,
+  faCouch, faSuitcase, faWind, faThermometerHalf,
+  faPlug, faClock, faDoorClosed, faExpand,
+  faRuler, faShower, faParking
 } from "@fortawesome/free-solid-svg-icons";
+
+// Amenity icon helper function
+const getAmenityIcon = (amenityName) => {
+  const amenity = amenityName.toLowerCase();
+  if (amenity.includes('wifi') || amenity.includes('internet')) return faWifi;
+  if (amenity.includes('tv') || amenity.includes('television')) return faTv;
+  if (amenity.includes('coffee') || amenity.includes('tea')) return faCoffee;
+  if (amenity.includes('ac') || amenity.includes('air conditioning') || amenity.includes('cooling')) return faSnowflake;
+  if (amenity.includes('bath') || amenity.includes('shower')) return faBath;
+  if (amenity.includes('parking') || amenity.includes('car')) return faCar;
+  if (amenity.includes('food') || amenity.includes('restaurant') || amenity.includes('dining')) return faUtensils;
+  if (amenity.includes('bed')) return faBed;
+  if (amenity.includes('pool')) return faSwimmingPool;
+  if (amenity.includes('gym') || amenity.includes('fitness')) return faDumbbell;
+  if (amenity.includes('fan')) return faFan;
+  if (amenity.includes('wine') || amenity.includes('bar')) return faWineGlass;
+  if (amenity.includes('security') || amenity.includes('safe')) return faShieldAlt;
+  if (amenity.includes('key') || amenity.includes('access')) return faKey;
+  if (amenity.includes('home') || amenity.includes('house')) return faHome;
+  if (amenity.includes('chair') || amenity.includes('furniture')) return faChair;
+  if (amenity.includes('desk') || amenity.includes('workspace')) return faDesktop;
+  if (amenity.includes('sofa') || amenity.includes('couch')) return faCouch;
+  if (amenity.includes('suitcase') || amenity.includes('luggage')) return faSuitcase;
+  if (amenity.includes('wind') || amenity.includes('ventilation')) return faWind;
+  if (amenity.includes('thermometer') || amenity.includes('heating')) return faThermometerHalf;
+  if (amenity.includes('plug') || amenity.includes('socket') || amenity.includes('outlet')) return faPlug;
+  if (amenity.includes('clock') || amenity.includes('time')) return faClock;
+  if (amenity.includes('bell') || amenity.includes('service')) return faConciergeBell;
+  return faCheck;
+};
 
 // DateGuestSelectorCard Component with editable fields
 const DateGuestSelectorCard = ({ 
@@ -177,49 +214,53 @@ const DateGuestSelectorCard = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Check-in Date & Time */}
             <div className="space-y-2">
-              <label className="text-xs font-medium text-gray-700">Check-in Date</label>
+              <label className="text-xs font-medium text-gray-700">Check-in Date *</label>
               <input
                 type="date"
                 value={formatDateForInput(editCheckInDate)}
                 onChange={(e) => handleDateChange('checkIn', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 min={formatDateForInput(new Date())}
+                required
               />
-              <label className="text-xs font-medium text-gray-700 mt-2">Check-in Time</label>
+              <label className="text-xs font-medium text-gray-700 mt-2">Check-in Time *</label>
               <input
                 type="time"
                 value={formatTimeForInput(editCheckInDate)}
                 onChange={(e) => handleTimeChange('checkIn', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
               />
             </div>
             
             {/* Check-out Date & Time */}
             <div className="space-y-2">
-              <label className="text-xs font-medium text-gray-700">Check-out Date</label>
+              <label className="text-xs font-medium text-gray-700">Check-out Date *</label>
               <input
                 type="date"
                 value={formatDateForInput(editCheckOutDate)}
                 onChange={(e) => handleDateChange('checkOut', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 min={formatDateForInput(new Date(editCheckInDate.getTime() + 24 * 60 * 60 * 1000))}
+                required
               />
-              <label className="text-xs font-medium text-gray-700 mt-2">Check-out Time</label>
+              <label className="text-xs font-medium text-gray-700 mt-2">Check-out Time *</label>
               <input
                 type="time"
                 value={formatTimeForInput(editCheckOutDate)}
                 onChange={(e) => handleTimeChange('checkOut', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
               />
             </div>
           </div>
           
           {/* Guests */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-700">Guests</label>
+            <label className="text-xs font-medium text-gray-700">Guests *</label>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-600">Adults</label>
+                <label className="text-xs text-gray-600">Adults *</label>
                 <div className="flex items-center gap-2 mt-1">
                   <button
                     onClick={() => handleGuestChange('adults', Math.max(1, editGuests.adults - 1))}
@@ -233,6 +274,7 @@ const DateGuestSelectorCard = ({
                     value={editGuests.adults}
                     onChange={(e) => handleGuestChange('adults', e.target.value)}
                     className="w-16 text-center px-2 py-1 border border-gray-300 rounded"
+                    required
                   />
                   <button
                     onClick={() => handleGuestChange('adults', editGuests.adults + 1)}
@@ -258,6 +300,7 @@ const DateGuestSelectorCard = ({
                     value={editGuests.children}
                     onChange={(e) => handleGuestChange('children', e.target.value)}
                     className="w-16 text-center px-2 py-1 border border-gray-300 rounded"
+                    required
                   />
                   <button
                     onClick={() => handleGuestChange('children', editGuests.children + 1)}
@@ -516,6 +559,7 @@ const HotelBooking = () => {
             maxOccupancy: roomInfo.maxOccupancy || 2,
             features: roomInfo.features || [],
             amenities: roomInfo.amenitiesList || [],
+            specifications: roomInfo.specifications || [],
             rating: roomInfo.rating || 4.5,
             reviewCount: roomInfo.reviewCount || 0
           },
@@ -657,15 +701,46 @@ const HotelBooking = () => {
       return;
     }
 
-    // Validate required fields
-    if (!bookingData.firstName || !bookingData.lastName || !bookingData.email || !bookingData.phone) {
-      alert("Please fill in all required contact information");
+    // Validate ALL required fields
+    const requiredFields = [
+      { field: bookingData.firstName, name: "First Name" },
+      { field: bookingData.lastName, name: "Last Name" },
+      { field: bookingData.email, name: "Email Address" },
+      { field: bookingData.phone, name: "Phone Number" },
+      { field: bookingData.country, name: "Country" }
+    ];
+
+    const missingFields = requiredFields.filter(f => !f.field || f.field.trim() === "");
+    
+    if (missingFields.length > 0) {
+      alert(`Please fill in all required fields:\n${missingFields.map(f => `• ${f.name}`).join('\n')}`);
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(bookingData.email)) {
+      alert("Please enter a valid email address");
       return;
     }
 
     // Validate phone number format
     if (!bookingData.phone.startsWith('+234') && !bookingData.phone.startsWith('234')) {
       alert("Please enter a valid Nigerian phone number starting with +234");
+      return;
+    }
+
+    // Validate phone number length
+    const phoneDigits = bookingData.phone.replace(/\D/g, '');
+    if (phoneDigits.length < 11) {
+      alert("Please enter a valid 11-digit Nigerian phone number");
+      return;
+    }
+
+    // Check terms acceptance (checkbox)
+    const termsCheckbox = document.getElementById('terms');
+    if (termsCheckbox && !termsCheckbox.checked) {
+      alert("You must accept the terms and conditions to proceed");
       return;
     }
 
@@ -916,17 +991,17 @@ const HotelBooking = () => {
                   </div>
 
                   {/* Hotel & Room Preview Card - Compact */}
-                  <div className="mb-4 sm:mb-6  rounded-lg p-3 sm:p-4 border border-blue-100">
+                  <div className="mb-4 sm:mb-6 rounded-lg p-3 sm:p-4 border border-blue-100">
                     <div className="flex flex-col md:flex-row gap-3">
                       <div className="md:w-1/3 relative">
                         <img 
-                          src={roomData.hotel?.image || hotelData?.image} 
-                          alt={roomData.hotel?.name}
+                          src={roomData.room?.image || roomData.hotel?.image || hotelData?.image} 
+                          alt={roomData.room?.title}
                           className="w-full h-32 sm:h-40 object-cover rounded-lg shadow-sm"
                         />
                         <div className="absolute top-1.5 left-1.5 bg-black/70 text-white text-xs px-2 py-0.5 rounded-full">
                           <FontAwesomeIcon icon={faStar} className="text-yellow-400 mr-1" />
-                          {roomData.hotel?.rating || 4.5}
+                          {roomData.room?.rating || roomData.hotel?.rating || 4.5}
                         </div>
                       </div>
                       
@@ -934,7 +1009,7 @@ const HotelBooking = () => {
                         <div className="flex items-start justify-between">
                           <div>
                             <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1">
-                              {roomData.hotel?.name}
+                              {roomData.room?.title || roomData.room?.name}
                             </h3>
                             <div className="flex items-center gap-1.5 text-xs text-gray-600 mb-2">
                               <FontAwesomeIcon icon={faMapMarkerAlt} className="text-blue-500" />
@@ -942,30 +1017,38 @@ const HotelBooking = () => {
                             </div>
                           </div>
                           <span className="bg-blue-100 text-gray-500 text-xs font-semibold px-2 py-0.5 rounded-full">
-                            {roomData.room?.title}
+                            {roomData.room?.title || "Room"}
                           </span>
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-1.5 mb-2">
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center flex-shrink-0">
-                              <FontAwesomeIcon icon={faBed} className="text-blue-600 text-xs" />
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500">Beds</p>
-                              <p className="font-medium text-xs">{roomData.room?.beds}</p>
-                            </div>
+                        {/* Room Specifications */}
+                        {roomData.room?.specifications && roomData.room.specifications.length > 0 && (
+                          <div className="grid grid-cols-2 gap-1.5 mb-2">
+                            {roomData.room.specifications.slice(0, 2).map((spec, index) => (
+                              <div key={index} className="flex items-center gap-1.5">
+                                <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center flex-shrink-0">
+                                  <FontAwesomeIcon icon={spec.icon} className="text-blue-600 text-xs" />
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500">{spec.label}</p>
+                                  <p className="font-medium text-xs">{spec.value}</p>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center flex-shrink-0">
-                              <FontAwesomeIcon icon={faUsers} className="text-blue-600 text-xs" />
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500">Guests</p>
-                              <p className="font-medium text-xs">{guests.adults} adults</p>
-                            </div>
+                        )}
+                        
+                        {/* Key Features */}
+                        {roomData.room?.features && roomData.room.features.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {roomData.room.features.slice(0, 3).map((feature, index) => (
+                              <div key={index} className="flex items-center gap-1 bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded text-[10px]">
+                                <FontAwesomeIcon icon={feature.icon} className="text-emerald-500 text-[8px]" />
+                                <span className="truncate max-w-[60px]">{feature.name}</span>
+                              </div>
+                            ))}
                           </div>
-                        </div>
+                        )}
                         
                         <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 text-xs">
                           <div className="flex items-center gap-1.5">
@@ -974,14 +1057,12 @@ const HotelBooking = () => {
                           </div>
                           <div className="hidden sm:block h-3 w-px bg-gray-300"></div>
                           <div>
-                            <span className="font-semibold">{calculateNights(checkInDate, checkOutDate)} night</span>
+                            <span className="font-semibold">{calculateNights(checkInDate, checkOutDate)} night{calculateNights(checkInDate, checkOutDate) !== 1 ? 's' : ''}</span>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-
-              
 
                   {/* Contact Information */}
                   <div className="mb-4 sm:mb-6">
@@ -1062,6 +1143,8 @@ const HotelBooking = () => {
                         </div>
                       </div>
                       
+                    
+                      
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                           Special Requests
@@ -1074,13 +1157,17 @@ const HotelBooking = () => {
                           placeholder="Any special requirements or preferences..."
                           className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
                         />
+                         <p className="text-xs">Please make sure your contact information is correct. We'll use it to send your booking confirmation and any reminders to assist your booking completion.</p>
                       </div>
+                     
                     </div>
                   </div>
 
                   {/* Terms and Submit */}
                   <div className="mt-6">
+                      
                     <div className="flex items-start gap-2 mb-3 p-2.5 rounded-lg">
+                    
                       <div className="w-4 h-4 flex-shrink-0 mt-0.5">
                         <input
                           type="checkbox"
@@ -1089,9 +1176,12 @@ const HotelBooking = () => {
                           className="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
                         />
                       </div>
-                      <label htmlFor="terms" className="text-xs text-gray-900 leading-relaxed cursor-pointer">
-                        By proceeding with this booking, I agree to Ajani's Terms of Use and Privacy Policy. I understand that my booking is subject to the hotel's cancellation policy and any applicable fees.
-                      </label>
+           <label htmlFor="terms" className="text-xs text-gray-900 leading-relaxed cursor-pointer">
+  By proceeding with this booking, I agree to Ajani's{' '}
+  <a href="/terms-service" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">Terms of Use</a>{' '}
+  and{' '}
+  <a href="/privacy" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">Privacy Policy</a>.
+</label>
                     </div>
 
                     <button
@@ -1109,8 +1199,6 @@ const HotelBooking = () => {
             {/* Right Column - Booking Summary & DateGuestSelectorCard */}
             <div className="lg:col-span-1">
               <div className="lg:sticky lg:top-20 space-y-4">
-               
-                
                 {/* Summary Header */}
                 <div className="bg-[#6cff] rounded-lg p-3 text-white">
                   <h3 className="text-base font-bold mb-1">Booking Summary</h3>
@@ -1128,34 +1216,120 @@ const HotelBooking = () => {
                   />
                 </div>
 
-                {/* Hotel Card */}
+                {/* Room Details Card */}
                 <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
                   <div className="p-2.5">
                     <div className="flex items-start gap-2.5">
                       <img 
-                        src={roomData.hotel?.image} 
-                        alt={roomData.hotel?.name}
+                        src={roomData.room?.image || roomData.hotel?.image} 
+                        alt={roomData.room?.title}
                         className="w-10 h-10 object-cover rounded"
                       />
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-gray-900 text-sm truncate">{roomData.hotel?.name}</h4>
+                        <h4 className="font-bold text-gray-900 text-sm truncate">{roomData.room?.title || roomData.room?.name}</h4>
                         <div className="flex items-center gap-1 mt-0.5">
                           <FontAwesomeIcon icon={faStar} className="text-yellow-400 text-xs" />
-                          <span className="text-xs font-medium">{roomData.hotel?.rating}</span>
+                          <span className="text-xs font-medium">{roomData.room?.rating || roomData.hotel?.rating || 4.5}</span>
                           <span className="text-xs text-gray-500 hidden sm:inline">• {getLocationString(roomData.hotel?.location)}</span>
                         </div>
                       </div>
                     </div>
                     
-                    <div className="mt-2.5 pt-2.5 border-t border-gray-100">
-                      <div className="flex justify-between items-center mb-1.5">
+                    <div className="mt-2.5 pt-2.5 border-t border-gray-100 space-y-2">
+                      {/* Room Type */}
+                      <div className="flex justify-between items-center">
                         <span className="text-xs text-gray-600">Room Type</span>
-                        <span className="text-xs font-semibold text-gray-900">{roomData.room?.title}</span>
+                        <span className="text-xs font-semibold text-gray-900">{roomData.room?.title || roomData.room?.name || "Standard"}</span>
                       </div>
+                      
+                      {/* Stay Duration */}
                       <div className="flex justify-between items-center">
                         <span className="text-xs text-gray-600">Stay Duration</span>
-                        <span className="text-xs font-medium">{calculateNights(checkInDate, checkOutDate)} night</span>
+                        <span className="text-xs font-medium">{calculateNights(checkInDate, checkOutDate)} night{calculateNights(checkInDate, checkOutDate) !== 1 ? 's' : ''}</span>
                       </div>
+                      
+                      {/* Specifications Section */}
+                      {roomData.room?.specifications && roomData.room.specifications.length > 0 && (
+                        <div className="pt-1.5 border-t border-gray-100">
+                          <p className="text-xs font-medium text-gray-700 mb-1">Specifications:</p>
+                          <div className="space-y-1">
+                            {roomData.room.specifications.slice(0, 3).map((spec, index) => (
+                              <div key={index} className="flex items-center gap-1.5">
+                                <FontAwesomeIcon icon={spec.icon} className="text-gray-400 text-xs" />
+                                <span className="text-xs text-gray-600">{spec.label}:</span>
+                                <span className="text-xs font-medium">{spec.value}</span>
+                              </div>
+                            ))}
+                            {roomData.room.specifications.length > 3 && (
+                              <div className="text-xs text-blue-600 cursor-pointer hover:underline">
+                                +{roomData.room.specifications.length - 3} more
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Amenities Section */}
+                      {roomData.room?.amenitiesList && roomData.room.amenitiesList.length > 0 && (
+                        <div className="pt-1.5 border-t border-gray-100">
+                          <p className="text-xs font-medium text-gray-700 mb-1">Amenities:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {roomData.room.amenitiesList.slice(0, 5).map((amenity, index) => (
+                              <span key={index} className="inline-flex items-center gap-0.5 bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded-full text-[10px]">
+                                <FontAwesomeIcon 
+                                  icon={getAmenityIcon(amenity)} 
+                                  className="text-blue-500 text-[8px]" 
+                                />
+                                <span className="truncate max-w-[60px]">{amenity}</span>
+                              </span>
+                            ))}
+                            {roomData.room.amenitiesList.length > 5 && (
+                              <span className="text-[10px] text-blue-600 cursor-pointer hover:underline">
+                                +{roomData.room.amenitiesList.length - 5}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Features Section */}
+                      {roomData.room?.features && roomData.room.features.length > 0 && (
+                        <div className="pt-1.5 border-t border-gray-100">
+                          <p className="text-xs font-medium text-gray-700 mb-1">Key Features:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {roomData.room.features.slice(0, 3).map((feature, index) => (
+                              <div key={index} className="flex items-center gap-1 bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded text-[10px]">
+                                <FontAwesomeIcon icon={feature.icon} className="text-emerald-500 text-[8px]" />
+                                <span className="truncate max-w-[60px]">{feature.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Room Size if available */}
+                      {roomData.room?.size && (
+                        <div className="flex justify-between items-center pt-1.5 border-t border-gray-100">
+                          <span className="text-xs text-gray-600">Room Size</span>
+                          <span className="text-xs font-medium">{roomData.room.size}</span>
+                        </div>
+                      )}
+                      
+                      {/* Bed Type if available */}
+                      {roomData.room?.beds && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-gray-600">Bed Type</span>
+                          <span className="text-xs font-medium">{roomData.room.beds}</span>
+                        </div>
+                      )}
+                      
+                      {/* Max Occupancy if available */}
+                      {roomData.room?.maxOccupancy && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-gray-600">Max Guests</span>
+                          <span className="text-xs font-medium">{roomData.room.maxOccupancy}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1167,7 +1341,7 @@ const HotelBooking = () => {
                     
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs">
-                        <span className="text-gray-600">Room x {calculateNights(checkInDate, checkOutDate)} night</span>
+                        <span className="text-gray-600">Room x {calculateNights(checkInDate, checkOutDate)} night{calculateNights(checkInDate, checkOutDate) !== 1 ? 's' : ''}</span>
                         <span className="font-medium">{formatPrice(roomData.booking?.price)}</span>
                       </div>
                       
