@@ -941,7 +941,7 @@ const HotelBooking = () => {
                               <span className="truncate">{getLocationString(roomData.hotel?.location)}</span>
                             </div>
                           </div>
-                          <span className="bg-emerald-100 text-emerald-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                          <span className="bg-blue-100 text-gray-500 text-xs font-semibold px-2 py-0.5 rounded-full">
                             {roomData.room?.title}
                           </span>
                         </div>
@@ -957,8 +957,8 @@ const HotelBooking = () => {
                             </div>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <div className="w-6 h-6 bg-emerald-100 rounded flex items-center justify-center flex-shrink-0">
-                              <FontAwesomeIcon icon={faUsers} className="text-emerald-600 text-xs" />
+                            <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center flex-shrink-0">
+                              <FontAwesomeIcon icon={faUsers} className="text-blue-600 text-xs" />
                             </div>
                             <div>
                               <p className="text-xs text-gray-500">Guests</p>
