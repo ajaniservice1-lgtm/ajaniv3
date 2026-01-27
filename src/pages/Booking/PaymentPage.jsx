@@ -619,7 +619,7 @@ const PaymentPage = () => {
                         </div>
                         <div className="absolute top-2 right-2">
                           <div className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-0.5 rounded-full">
-                            Coming Soon
+                            unavailable
                           </div>
                         </div>
                       </div>

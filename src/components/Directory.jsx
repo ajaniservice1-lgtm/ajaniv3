@@ -6,8 +6,7 @@ import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import { useNavigate } from "react-router-dom";
 import { MdFavoriteBorder } from "react-icons/md";
-import axiosInstance from "../lib/axios";
-
+import listingService from "../lib/listingService";
 // ---------------- API Service Functions ----------------
 const buildQueryString = (filters = {}) => {
   const params = new URLSearchParams();
@@ -19,19 +18,10 @@ const buildQueryString = (filters = {}) => {
 const getListingsByCategory = async (category) => {
   try {
     console.log(`Fetching ${category} listings...`);
-    const filters = { 
-      category: category,
-      // No status filter - get ALL listings
-    };
-    const queryString = buildQueryString(filters);
-    const url = `/listings${queryString ? `?${queryString}` : ''}`;
-    
-    console.log(`API URL for ${category}:`, url);
-    const response = await axiosInstance.get(url);
-    console.log(`${category} API Response status:`, response.data.status);
-    console.log(`${category} results count:`, response.data.results);
-    
-    return response.data;
+    const result = await listingService.getByCategory(category);
+    console.log(`${category} API Response status:`, result.status);
+    console.log(`${category} results count:`, result.results);
+    return result;
   } catch (error) {
     console.error(`Error fetching ${category} listings:`, error);
     return {

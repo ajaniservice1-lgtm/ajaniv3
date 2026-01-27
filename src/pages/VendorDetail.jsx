@@ -727,7 +727,7 @@ const VendorDetail = () => {
         setLoading(true);
         setError(null);
         
-        const result = await listingService.getListingById(id);
+        const result = await listingService.getById(id);
         console.log('Vendor fetch result:', result);
         
         if (result.status === 'success' && result.data?.listing) {

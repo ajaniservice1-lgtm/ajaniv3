@@ -6,7 +6,7 @@ import React, {
   useMemo,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import axiosInstance from "../lib/axios";
+import listingService from "../lib/listingService";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faSearch,
@@ -128,24 +128,23 @@ const useBackendListings = () => {
     const fetchListings = async () => {
       try {
         setLoading(true);
-        const response = await axiosInstance.get("/listings");
-        if (
-          response.data?.status === "success" &&
-          response.data.data?.listings
-        ) {
-          setListings(response.data.data.listings);
+        const result = await listingService.getAll();
+        
+        if (result?.status === "success" && result.data?.listings) {
+          setListings(result.data.listings);
         } else {
           setListings([]);
-          setError("No data received from backend");
+          setError(result?.message || "No data received");
         }
       } catch (err) {
-        console.error("Backend API Error:", err.message);
+        console.error("Hero API Error:", err.message);
         setError(err.message);
         setListings([]);
       } finally {
         setLoading(false);
       }
     };
+    
     fetchListings();
   }, []);
 
@@ -185,7 +184,6 @@ const getLocationDisplayName = (location) => {
     'sango': 'Sango',
     'ui': 'UI',
     'poly': 'Poly',
-    
     'agodi': 'Agodi',
     'jericho': 'Jericho',
     'gbagi': 'Gbagi',
@@ -250,6 +248,31 @@ const normalizeLocation = (location) => {
     .replace(/\s+/g, ' ');
 };
 
+const looksLikeLocation = (query) => {
+  if (!query || query.trim() === '') return false;
+  
+  const queryLower = query.toLowerCase().trim();
+  
+  const ibadanAreas = [
+    'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly',  'agodi', 
+    'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
+    'molete', 'agbowo', 'sabo', 'bashorun', 'ife road',
+    'akinyele', 'mokola hill', 'sango roundabout'
+  ];
+  
+  const locationSuffixes = [
+    'road', 'street', 'avenue', 'drive', 'lane', 'close', 'way', 'estate',
+    'area', 'zone', 'district', 'quarters', 'extension', 'phase', 'junction',
+    'bypass', 'expressway', 'highway', 'roundabout', 'market', 'station'
+  ];
+  
+  const isIbadanArea = ibadanAreas.some(area => queryLower.includes(area));
+  const hasLocationSuffix = locationSuffixes.some(suffix => queryLower.includes(suffix));
+  const isShortQuery = queryLower.split(/\s+/).length <= 3 && queryLower.length <= 15;
+  
+  return isIbadanArea || hasLocationSuffix || isShortQuery;
+};
+
 /* ---------------- MOBILE SEARCH MODAL COMPONENT ---------------- */
 const MobileSearchModal = ({
   searchQuery,
@@ -266,14 +289,14 @@ const MobileSearchModal = ({
   
   // Use ALL Ibadan locations, not just from current listings
   const allIbadanLocations = useMemo(() => {
-    const locationsFromListings = listings.map(item => item.location?.area).filter(Boolean);
+    const locationsFromListings = listingService.getLocationsFromListings(listings);
     const allLocations = [
-      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly', 'Agodi',
+      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly',  'Agodi',
       'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
-      'Molete', 'Agbowo', 'Sabo', 'Bashorun', 'Ondo Road',  'Ife Road',
-      'Akinyele', 'Mokola Hill', 'Sango Roundabout',
+      'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
+      'Akinyele',  'Mokola Hill', 'Sango Roundabout',
       'Iwo Road', 'Gate', 'New Garage', 'Old Ife Road',
-      ...locationsFromListings.map(loc => getLocationDisplayName(loc))
+      ...locationsFromListings
     ];
     
     // Remove duplicates and sort alphabetically
@@ -554,14 +577,14 @@ const DesktopSearchSuggestions = ({
   const suggestionsRef = useRef(null);
   
   const allIbadanLocations = useMemo(() => {
-    const locationsFromListings = listings.map(item => item.location?.area).filter(Boolean);
+    const locationsFromListings = listingService.getLocationsFromListings(listings);
     const allLocations = [
       'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly',  'Agodi',
       'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
       'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
       'Akinyele',  'Mokola Hill', 'Sango Roundabout',
       'Iwo Road', 'Gate', 'New Garage', 'Old Ife Road',
-      ...locationsFromListings.map(loc => getLocationDisplayName(loc))
+      ...locationsFromListings
     ];
     
     return [...new Set(allLocations)].sort();
@@ -1078,12 +1101,19 @@ const DiscoverIbadan = () => {
       return;
     }
     
+    // Normalize the location for SEO-friendly URL
+    const locationToUse = searchQuery.trim();
+    const normalizedLocation = looksLikeLocation(locationToUse) 
+      ? normalizeLocationForBackend(locationToUse)
+      : null;
+    
     const categorySlug = getCategorySlug(activeTab);
-    const locationSlug = createSlug(searchQuery.trim());
+    const locationSlug = normalizedLocation ? createSlug(locationToUse) : null;
     
     let seoPath = '';
     
-    if (categorySlug && locationSlug) {
+    // Create SEO-friendly URL with location
+    if (categorySlug && locationSlug && looksLikeLocation(locationToUse)) {
       seoPath = `/${categorySlug}-in-${locationSlug}`;
     } else if (categorySlug) {
       seoPath = `/${categorySlug}`;
@@ -1096,7 +1126,7 @@ const DiscoverIbadan = () => {
     const queryParams = new URLSearchParams();
     
     const checkInToUse = checkInDate || new Date();
-    const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
+    const checkOutToUse = checkOutDate || new Date(new Date().setDate(newDate().getDate() + 1));
     
     queryParams.append("checkInDate", checkInToUse.toISOString());
     queryParams.append("checkOutDate", checkOutToUse.toISOString());
@@ -1105,17 +1135,22 @@ const DiscoverIbadan = () => {
       queryParams.append("guests", JSON.stringify(guests));
     }
     
+    // Add location as search query parameter
     queryParams.append("q", searchQuery.trim());
     queryParams.append("cat", activeTab);
     
-    // ADD THIS: Pass initial filter state
-    queryParams.append("initialSearch", "true");
+    // ADD THIS: If it looks like a location, also add it as location filter
+    if (looksLikeLocation(searchQuery.trim())) {
+      const properCaseLocation = normalizeLocationForBackend(searchQuery.trim());
+      queryParams.append("location", properCaseLocation);
+      console.log('📍 Hero: Adding location filter:', properCaseLocation);
+    }
     
     const finalUrl = queryParams.toString() 
       ? `${seoPath}?${queryParams.toString()}`
       : seoPath;
     
-    console.log("🔍 Navigating to SEO-friendly URL:", finalUrl);
+    console.log("🔍 Hero: Navigating to SEO-friendly URL:", finalUrl);
     navigate(finalUrl);
     
     setShowSuggestions(false);
