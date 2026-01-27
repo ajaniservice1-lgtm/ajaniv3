@@ -2023,13 +2023,13 @@ const VendorDetail = () => {
                       {services.map((service, index) => (
                         <div
                           key={index}
-                          className="flex items-start gap-2.5 md:gap-4 hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
+                          className="flex items-center gap-2 md:gap-3 md:hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
                         >
                           <div className="flex-shrink-0 mt-0.5 md:mt-1 group-hover:scale-110 transition-transform duration-300">
                             <FontAwesomeIcon
                               icon={faCheckCircle}
                               size={16}
-                              className="text-[#06EAFC] group-hover:text-[#05d9eb] transition-colors duration-300"
+                              className=" text-xs md:text-base text-gray-900 md:group-hover:text-[#06EAFC] transition-colors duration-300"
                             />
                           </div>
                           <span className="text-gray-700 font-manrope leading-relaxed text-[13px] md:text-sm group-hover:text-gray-900 transition-colors duration-300">
@@ -2048,12 +2048,12 @@ const VendorDetail = () => {
                       {features.map((feature, index) => (
                         <div
                           key={index}
-                          className="flex items-center gap-2 md:gap-3 hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
+                          className="flex items-center gap-2 md:gap-3 md:hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
                         >
                           <div className="w-7 h-7 md:w-10 md:h-10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                             <FontAwesomeIcon
                               icon={feature.icon}
-                              className="text-xs md:text-base text-gray-900 group-hover:text-[#06EAFC] transition-colors duration-300"
+                              className="text-xs md:text-base text-gray-900 md:group-hover:text-[#06EAFC] transition-colors duration-300"
                             />
                           </div>
                           <span className="font-medium text-gray-900 font-manrope text-xs md:text-sm group-hover:text-gray-700 transition-colors duration-300">
