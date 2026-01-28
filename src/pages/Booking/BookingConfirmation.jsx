@@ -14,10 +14,31 @@ import {
   Star,
   AlertCircle,
   CreditCard,
-  Building
+  Building,
+  Shield,
+  Download,
+  Printer
 } from "lucide-react";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
+
+// Helper function to update session activity (for guest sessions)
+const updateSessionActivity = () => {
+  const guestSession = localStorage.getItem("guestSession");
+  if (guestSession) {
+    try {
+      const sessionData = JSON.parse(guestSession);
+      const updatedSession = {
+        ...sessionData,
+        lastActive: new Date().toISOString()
+      };
+      localStorage.setItem("guestSession", JSON.stringify(updatedSession));
+      console.log("✅ Session activity updated");
+    } catch (error) {
+      console.error("Failed to update session activity:", error);
+    }
+  }
+};
 
 const BookingConfirmation = () => {
   const navigate = useNavigate();
@@ -26,9 +47,13 @@ const BookingConfirmation = () => {
   const [bookingData, setBookingData] = useState(null);
   const [bookingReference, setBookingReference] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isGuestBooking, setIsGuestBooking] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    
+    // Update session activity for guest sessions
+    updateSessionActivity();
     
     // Generate booking reference
     const generateReference = () => {
@@ -51,6 +76,7 @@ const BookingConfirmation = () => {
       console.log("📦 Loading booking data for type:", type);
       
       let data = null;
+      let guestBooking = false;
       
       // Try multiple storage locations
       const possibleKeys = [
@@ -61,7 +87,11 @@ const BookingConfirmation = () => {
         'restaurantBooking',
         'shortletBooking',
         'pendingGuestHotelBooking',
-        'pendingLoggedInHotelBooking'
+        'pendingLoggedInHotelBooking',
+        'pendingGuestRestaurantBooking',
+        'pendingLoggedInRestaurantBooking',
+        'pendingGuestShortletBooking',
+        'pendingLoggedInShortletBooking'
       ];
       
       for (const key of possibleKeys) {
@@ -70,6 +100,12 @@ const BookingConfirmation = () => {
           try {
             data = JSON.parse(storedData);
             console.log(`✅ Found booking data in ${key}:`, data);
+            
+            // Check if it's a guest booking
+            if (data.isGuestBooking || key.includes('Guest')) {
+              guestBooking = true;
+              setIsGuestBooking(true);
+            }
             break;
           } catch (error) {
             console.error(`Failed to parse data from ${key}:`, error);
@@ -106,10 +142,18 @@ const BookingConfirmation = () => {
           'pendingGuestRestaurantBooking',
           'pendingLoggedInRestaurantBooking',
           'pendingGuestShortletBooking',
-          'pendingLoggedInShortletBooking'
+          'pendingLoggedInShortletBooking',
+          'completeBooking',
+          'confirmedBooking'
         ];
         
-        tempKeys.forEach(key => localStorage.removeItem(key));
+        // Keep the main booking data but clean up pending ones
+        const mainBookingKey = `${type}Booking`;
+        tempKeys.forEach(key => {
+          if (key !== mainBookingKey) {
+            localStorage.removeItem(key);
+          }
+        });
       }
       
       setLoading(false);
@@ -117,6 +161,61 @@ const BookingConfirmation = () => {
     
     loadBookingData();
   }, [type]);
+
+  // Function to download confirmation as PDF/text
+  const downloadConfirmation = () => {
+    const confirmationText = `
+AJANI.AI BOOKING CONFIRMATION
+================================
+
+Booking Reference: ${bookingReference}
+Booking Type: ${type?.toUpperCase() || "BOOKING"}
+Status: Confirmed
+Date: ${new Date().toLocaleDateString()}
+
+PROPERTY DETAILS:
+-----------------
+Name: ${getVendorName()}
+Location: ${getVendorLocation()}
+Rating: ${getVendorRating()}/5
+
+GUEST INFORMATION:
+------------------
+Name: ${bookingData?.firstName || bookingData?.bookingData?.firstName || "Guest"} ${bookingData?.lastName || bookingData?.bookingData?.lastName || ""}
+Email: ${bookingData?.email || bookingData?.bookingData?.email || bookingData?.guestEmail || "Not provided"}
+Phone: ${bookingData?.phone || bookingData?.bookingData?.phone || "Not provided"}
+
+BOOKING DETAILS:
+----------------
+${getBookingDetailsText()}
+
+PAYMENT INFORMATION:
+--------------------
+Payment Method: ${getPaymentMethodText()}
+Total Amount: ${formatPrice(getTotalAmount())}
+Payment Status: ${bookingData?.paymentStatus || "Pending"}
+
+ADDITIONAL INFORMATION:
+-----------------------
+${bookingData?.specialRequests ? `Special Requests: ${bookingData.specialRequests}` : "No special requests"}
+
+Thank you for booking with Ajani.ai!
+For assistance, contact support@ajani.com or call +234 800 000 0000
+    `;
+    
+    const element = document.createElement("a");
+    const file = new Blob([confirmationText], { type: 'text/plain' });
+    element.href = URL.createObjectURL(file);
+    element.download = `ajani-booking-${bookingReference}.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+
+  // Function to print confirmation
+  const printConfirmation = () => {
+    window.print();
+  };
 
   // Determine booking status based on payment method
   const getBookingStatus = () => {
@@ -130,7 +229,8 @@ const BookingConfirmation = () => {
         bgColor: "bg-yellow-50",
         borderColor: "border-yellow-100",
         icon: AlertCircle,
-        message: "Awaiting payment at the property"
+        message: "Awaiting payment at the property",
+        note: "Please pay when you arrive"
       };
     } else if (paymentMethod === "card" && bookingData?.paymentStatus === "paid") {
       return {
@@ -140,7 +240,8 @@ const BookingConfirmation = () => {
         bgColor: "bg-emerald-50",
         borderColor: "border-emerald-100",
         icon: CheckCircle,
-        message: "Payment received & booking confirmed"
+        message: "Payment received & booking confirmed",
+        note: "Payment processed successfully"
       };
     } else {
       return {
@@ -150,7 +251,8 @@ const BookingConfirmation = () => {
         bgColor: "bg-yellow-50",
         borderColor: "border-yellow-100",
         icon: AlertCircle,
-        message: "Awaiting confirmation"
+        message: "Awaiting confirmation",
+        note: "Will be confirmed shortly"
       };
     }
   };
@@ -181,11 +283,24 @@ const BookingConfirmation = () => {
           title: isPayAtProperty 
             ? "Thank you for booking on Ajani.ai, Hotel Reservation Request Received!" 
             : "Thank you for booking on Ajani.ai, Hotel Payment Successful!",
+          subtitle: isPayAtProperty 
+            ? "Your hotel reservation request is being processed" 
+            : "Your hotel booking is confirmed!",
           message: isPayAtProperty
             ? "Your hotel reservation request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed. You'll pay when you arrive at the hotel."
             : "Your hotel payment has been processed successfully! Your reservation is now confirmed. You'll receive a confirmation email with all the details shortly.",
-          requestMessage: " Your hotel reservation request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed.",
-          paidMessage: "Your hotel payment has been processed successfully! Your reservation is now confirmed. You'll receive a confirmation email with all the details shortly."
+          nextSteps: isPayAtProperty ? [
+            "You'll receive a confirmation email with hotel details",
+            "Our team will review your request within 24 hours",
+            "Pay the amount when you arrive at the hotel",
+            "Keep your booking reference handy"
+          ] : [
+            "Confirmation email sent to your inbox",
+            "Check your email for booking details",
+            "Present your booking reference at check-in",
+            "Enjoy your stay!"
+          ],
+          contactMessage: "Need help with your hotel booking?"
         };
       
       case 'restaurant':
@@ -193,11 +308,24 @@ const BookingConfirmation = () => {
           title: isPayAtProperty 
             ? "Thank you for booking on Ajani.ai, Restaurant Reservation Request Received!" 
             : "Thank you for booking on Ajani.ai, Restaurant Payment Successful!",
+          subtitle: isPayAtProperty 
+            ? "Your restaurant reservation request is being processed" 
+            : "Your restaurant booking is confirmed!",
           message: isPayAtProperty
             ? "Your restaurant reservation request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed. You'll pay at the restaurant."
             : "Your restaurant payment has been processed successfully! Your table reservation is now confirmed. You'll receive a confirmation email with all the details shortly.",
-          requestMessage: " Your restaurant reservation request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed.",
-          paidMessage: "Your restaurant payment has been processed successfully! Your table reservation is now confirmed. You'll receive a confirmation email with all the details shortly."
+          nextSteps: isPayAtProperty ? [
+            "You'll receive a confirmation email with restaurant details",
+            "Our team will review your request within 12 hours",
+            "Pay when you arrive at the restaurant",
+            "Arrive 10 minutes before your reservation time"
+          ] : [
+            "Confirmation email sent to your inbox",
+            "Check your email for reservation details",
+            "Present your booking reference at the restaurant",
+            "Enjoy your dining experience!"
+          ],
+          contactMessage: "Need help with your restaurant reservation?"
         };
       
       case 'shortlet':
@@ -205,11 +333,24 @@ const BookingConfirmation = () => {
           title: isPayAtProperty 
             ? "Thank you for booking on Ajani.ai, Shortlet Reservation Request Received!" 
             : "Thank you for booking on Ajani.ai, Shortlet Payment Successful!",
+          subtitle: isPayAtProperty 
+            ? "Your shortlet reservation request is being processed" 
+            : "Your shortlet booking is confirmed!",
           message: isPayAtProperty
             ? "Your shortlet reservation request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed. You'll pay when you arrive at the property."
             : "Your shortlet payment has been processed successfully! Your accommodation is now confirmed. You'll receive a confirmation email with all the details shortly.",
-          requestMessage: "Your shortlet reservation request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed.",
-          paidMessage: "Your shortlet payment has been processed successfully! Your accommodation is now confirmed. You'll receive a confirmation email with all the details shortly."
+          nextSteps: isPayAtProperty ? [
+            "You'll receive a confirmation email with property details",
+            "Our team will review your request within 24 hours",
+            "Pay the amount when you arrive at the property",
+            "Check-in instructions will be provided"
+          ] : [
+            "Confirmation email sent to your inbox",
+            "Check your email for property details and access instructions",
+            "Present your booking reference at check-in",
+            "Enjoy your stay at the shortlet property!"
+          ],
+          contactMessage: "Need help with your shortlet booking?"
         };
       
       default:
@@ -217,34 +358,25 @@ const BookingConfirmation = () => {
           title: isPayAtProperty 
             ? "Thank you for booking on Ajani.ai, Booking Request Received!" 
             : "Thank you for booking on Ajani.ai, Payment Successful!",
+          subtitle: isPayAtProperty 
+            ? "Your booking request is being processed" 
+            : "Your booking is confirmed!",
           message: isPayAtProperty
             ? "Thank you for booking on Ajani.ai. Your booking request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed."
             : "Your payment has been processed successfully! Your booking is now confirmed. You'll receive a confirmation email with all the details shortly.",
-          requestMessage: "Thank you for booking on Ajani.ai. Your booking request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed.",
-          paidMessage: "Your payment has been processed successfully! Your booking is now confirmed. You'll receive a confirmation email with all the details shortly."
+          nextSteps: isPayAtProperty ? [
+            "You'll receive a confirmation email with booking details",
+            "Our team will review your request shortly",
+            "Pay when you arrive at the property",
+            "Keep your booking reference for your records"
+          ] : [
+            "Confirmation email sent to your inbox",
+            "Check your email for booking details",
+            "Present your booking reference when required",
+            "Enjoy your experience!"
+          ],
+          contactMessage: "Need help with your booking?"
         };
-    }
-  };
-
-  const getTitle = () => {
-    const messages = getCategoryMessages();
-    const paymentMethod = bookingData?.paymentMethod || "hotel";
-    
-    if (paymentMethod === "hotel" || paymentMethod === "restaurant") {
-      return messages.title;
-    } else {
-      return messages.title;
-    }
-  };
-
-  const getMessage = () => {
-    const messages = getCategoryMessages();
-    const paymentMethod = bookingData?.paymentMethod || "hotel";
-    
-    if (paymentMethod === "hotel" || paymentMethod === "restaurant") {
-      return messages.message;
-    } else {
-      return messages.message;
     }
   };
 
@@ -296,6 +428,26 @@ const BookingConfirmation = () => {
            4.5;
   };
 
+  const getBookingDetailsText = () => {
+    if (type === 'hotel') {
+      return `
+Check-in: ${bookingData?.checkInDate || bookingData?.bookingData?.checkIn || "Not specified"}
+Check-out: ${bookingData?.checkOutDate || bookingData?.bookingData?.checkOut || "Not specified"}
+Guests: ${bookingData?.guests?.adults || bookingData?.bookingData?.adults || 2} adults
+${bookingData?.guests?.children ? `Children: ${bookingData.guests.children}` : ''}
+Nights: ${bookingData?.bookingData?.nights || 1}
+Room: ${bookingData?.roomData?.room?.title || "Standard Room"}
+      `;
+    } else if (type === 'restaurant' || type === 'shortlet') {
+      return `
+Date: ${bookingData?.bookingData?.date || "Today"}
+Time: ${bookingData?.bookingData?.time || "Not specified"}
+Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adults || 2} people
+      `;
+    }
+    return "Booking details not specified";
+  };
+
   const formatPrice = (price) => {
     if (!price && price !== 0) return "₦ --";
     const num = typeof price === 'number' ? price : parseInt(price.toString().replace(/[^\d]/g, ""));
@@ -324,6 +476,42 @@ const BookingConfirmation = () => {
     );
   }
 
+  if (!bookingData) {
+    return (
+      <div className="min-h-screen bg-blue-50">
+        <Header />
+        <div className="max-w-4xl mx-auto px-2.5 sm:px-4 py-16">
+          <div className="bg-white rounded-lg sm:rounded-2xl shadow-lg p-6 text-center">
+            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-10 h-10 text-yellow-600" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-3">
+              No Booking Data Found
+            </h2>
+            <p className="text-gray-600 mb-5">
+              Please start your booking again or check your email for confirmation.
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => navigate('/')}
+                className="bg-[#6cff] text-white font-semibold py-3 px-6 rounded-lg transition cursor-pointer"
+              >
+                Return Home
+              </button>
+              <button
+                onClick={() => navigate(-1)}
+                className="ml-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition cursor-pointer"
+              >
+                Go Back
+              </button>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   const bookingStatus = getBookingStatus();
   const StatusIcon = bookingStatus.icon;
   const paymentMethod = bookingData?.paymentMethod || "hotel";
@@ -338,19 +526,36 @@ const BookingConfirmation = () => {
         <div className="max-w-7xl mx-auto px-2.5 sm:px-4 py-20 sm:py-26">
           <div className="bg-white rounded-lg sm:rounded-2xl shadow-lg overflow-hidden border border-gray-100">
             <div className="p-3 sm:p-6">
+              {/* Guest Session Notice */}
+              {isGuestBooking && (
+                <div className="mb-4 sm:mb-6 bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-blue-600" />
+                  <div className="flex-1">
+                    <p className="font-medium text-blue-800 text-sm">Guest Booking Complete</p>
+                    <p className="text-xs text-blue-700">
+                      Your booking as a guest has been successfully submitted. Please save your booking reference for future reference.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="text-center mb-4 sm:mb-8">
                 <div className={`w-16 h-16 sm:w-20 sm:h-20 ${bookingStatus.bgColor} rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4`}>
                   <StatusIcon className={`w-10 h-10 sm:w-12 sm:h-12 ${bookingStatus.color}`} />
                 </div>
                 
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
-                  {getTitle()}
+                  {messages.title}
                 </h1>
+                <p className="text-lg font-medium text-emerald-600 mb-3">
+                  {messages.subtitle}
+                </p>
                 <p className="text-sm text-gray-600 max-w-2xl mx-auto">
-                  {getMessage()}
+                  {messages.message}
                 </p>
               </div>
 
+              {/* Booking Reference Banner */}
               <div className="bg-[#6cff] rounded-lg p-3 sm:p-4 text-white mb-4 sm:mb-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
@@ -370,6 +575,7 @@ const BookingConfirmation = () => {
                 </div>
               </div>
 
+              {/* Status Banner */}
               <div className={`mb-4 sm:mb-6 ${bookingStatus.bgColor} border ${bookingStatus.borderColor} rounded-lg p-3 sm:p-4 flex items-center gap-3`}>
                 {isPayAtProperty ? (
                   <Building className={`w-5 h-5 ${bookingStatus.color}`} />
@@ -390,6 +596,7 @@ const BookingConfirmation = () => {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
+                  {/* Property/Vendor Summary */}
                   <div className="mb-4 sm:mb-6 shadow-sm rounded-lg p-3 sm:p-4 border border-blue-100">
                     <div className="flex flex-col md:flex-row gap-3">
                       <div className="md:w-1/3 relative">
@@ -471,6 +678,7 @@ const BookingConfirmation = () => {
                     </div>
                   </div>
 
+                  {/* Guest Information */}
                   <div className="mb-4 sm:mb-6 shadow-sm rounded-lg p-3 sm:p-4">
                     <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-2.5 flex items-center gap-1.5">
                       <Users className="w-4 h-4 text-blue-500" />
@@ -517,7 +725,8 @@ const BookingConfirmation = () => {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 sm:mb-6">
+                  {/* Action Buttons */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 sm:mb-6">
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(bookingReference);
@@ -530,17 +739,27 @@ const BookingConfirmation = () => {
                     </button>
                     
                     <button 
-                      onClick={() => window.print()}
+                      onClick={downloadConfirmation}
                       className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
                     >
-                      <FileText className="w-4 h-4" />
-                      Print Confirmation
+                      <Download className="w-4 h-4" />
+                      Download
+                    </button>
+                    
+                    <button 
+                      onClick={printConfirmation}
+                      className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                    >
+                      <Printer className="w-4 h-4" />
+                      Print
                     </button>
                   </div>
                 </div>
 
+                {/* Right Column - Summary & Actions */}
                 <div className="lg:col-span-1">
                   <div className="lg:sticky lg:top-20 space-y-4">
+                    {/* Status Card */}
                     <div className={`${bookingStatus.bgColor} border ${bookingStatus.borderColor} rounded-lg p-3`}>
                       <h6 className="font-bold text-gray-900 mb-1.5 flex items-center gap-1.5 text-sm">
                         <StatusIcon className={`w-4 h-4 ${bookingStatus.color}`} />
@@ -572,6 +791,7 @@ const BookingConfirmation = () => {
                       </div>
                     </div>
 
+                    {/* Price Breakdown */}
                     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3">
                       <h5 className="font-medium text-gray-800 mb-2 text-sm">Price Breakdown</h5>
                       
@@ -607,48 +827,46 @@ const BookingConfirmation = () => {
                       </div>
                     </div>
 
+                    {/* Next Steps */}
                     <div className="bg-blue-50 rounded-lg border border-blue-100 p-3">
                       <h6 className="font-bold text-gray-900 mb-1.5 text-sm">
                         {isPayAtProperty ? "What Happens Next?" : "What's Next?"}
                       </h6>
                       <ul className="space-y-1.5 text-xs">
-                        <li className="flex items-start gap-1.5">
-                          <CheckCircle className="w-3 h-3 text-emerald-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-gray-700">
-                            {isPayAtProperty 
-                              ? `You'll receive a confirmation email with ${type} details`
-                              : `Confirmation email sent to your inbox`}
-                          </span>
-                        </li>
-                        <li className="flex items-start gap-1.5">
-                          <CheckCircle className="w-3 h-3 text-emerald-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-gray-700">
-                            {isPayAtProperty
-                              ? messages.requestMessage
-                              : messages.paidMessage}
-                          </span>
-                        </li>
-                        <li className="flex items-start gap-1.5">
-                          <CheckCircle className="w-3 h-3 text-emerald-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-gray-700">
-                            {isPayAtProperty
-                              ? "Pay the amount when you arrive at the property"
-                              : "Keep your booking reference handy"}
-                          </span>
-                        </li>
-                        {isPayAtProperty && (
-                          <li className="flex items-start gap-1.5">
+                        {messages.nextSteps.map((step, index) => (
+                          <li key={index} className="flex items-start gap-1.5">
                             <CheckCircle className="w-3 h-3 text-emerald-500 mt-0.5 flex-shrink-0" />
-                            <span className="text-gray-700">
-                              Amount to pay: {formatPrice(getTotalAmount())}
-                            </span>
+                            <span className="text-gray-700">{step}</span>
                           </li>
-                        )}
+                        ))}
                       </ul>
                     </div>
 
-                    <div className="text-center">
-                      <p className="text-xs text-gray-600 mb-2">Need assistance with your booking?</p>
+                    {/* Guarantee */}
+                    <div className="bg-green-50 rounded-lg border border-green-100 p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Shield className="w-4 h-4 text-green-500" />
+                        <h6 className="font-bold text-gray-900 text-sm">Ajani Guarantee</h6>
+                      </div>
+                      <ul className="space-y-1 text-xs text-gray-700">
+                        <li className="flex items-start gap-1.5">
+                          <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
+                          <span>Free cancellation up to 24 hours before check-in</span>
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
+                          <span>Best price guarantee</span>
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
+                          <span>24/7 customer support</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Contact Information */}
+                    <div className="text-center border border-gray-200 rounded-lg p-3">
+                      <p className="text-xs text-gray-600 mb-2">{messages.contactMessage}</p>
                       <div className="flex flex-col gap-1.5">
                         <a
                           href="mailto:support@ajani.com"
@@ -670,6 +888,7 @@ const BookingConfirmation = () => {
                 </div>
               </div>
 
+              {/* Main Action Buttons */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
                 <button
                   onClick={() => navigate("/")}

@@ -23,6 +23,16 @@ import {
 const VendorModal = ({ vendor, isOpen, onClose }) => {
   const modalRef = useRef(null);
   const contentRef = useRef(null);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+  // Check if device is touch-enabled on mount
+  useEffect(() => {
+    const checkTouchDevice = () => {
+      const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      setIsTouchDevice(isTouch);
+    };
+    checkTouchDevice();
+  }, []);
 
   // Close modal on ESC key
   useEffect(() => {
@@ -109,9 +119,9 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
         onClick={handleBackdropClick}
       />
 
-      {/* Modal Container */}
+      {/* Modal Container - Increased size for both mobile and lg */}
       <div 
-        className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+        className="fixed inset-0 z-[10000] flex items-center justify-center p-2 sm:p-3 lg:p-4"
         onClick={handleBackdropClick}
       >
         <motion.div
@@ -121,24 +131,25 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
           className="
-            bg-white rounded-3xl shadow-2xl
-            w-full max-w-6xl max-h-[85vh]
+            bg-white rounded-xl sm:rounded-2xl lg:rounded-3xl shadow-2xl
+            w-full max-w-7xl h-[95vh] lg:h-[92vh]
             overflow-hidden
             relative
             border border-gray-200
+            mx-1 sm:mx-0
           "
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-title"
           onClick={handleModalClick}
         >
-          {/* Close Button - Only way to close via clicking */}
+          {/* Close Button - Positioned for larger modal */}
           <button
             onClick={onClose}
             className="
-              absolute top-6 right-6
+              absolute top-2 right-2 sm:top-3 sm:right-3 lg:top-4 lg:right-4
               bg-white/90 backdrop-blur-sm
-              rounded-full p-3
+              rounded-full p-2 sm:p-2.5 lg:p-3
               shadow-lg hover:shadow-xl
               hover:bg-white
               transition-all duration-200
@@ -151,234 +162,243 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
             "
             aria-label="Close modal"
           >
-            <IoClose className="text-2xl text-gray-700" />
+            <IoClose className="text-xl sm:text-2xl text-gray-700" />
           </button>
 
-          {/* Modal Content with proper scrolling */}
+          {/* Modal Content with increased height */}
           <div 
             ref={contentRef}
-            className="overflow-y-auto max-h-[85vh]"
-            onClick={handleModalClick}
+            className="overflow-y-auto h-full"
           >
-            <div className="relative" onClick={handleModalClick}>
-              <div className="h-56 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500" onClick={handleModalClick} />
-              <div className="absolute -bottom-16 left-8 lg:left-12" onClick={handleModalClick}>
-                <div className="relative" onClick={handleModalClick}>
+            <div className="relative">
+              <div className="h-40 sm:h-48 lg:h-56 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500" />
+              <div className="absolute -bottom-10 sm:-bottom-12 lg:-bottom-16 left-3 sm:left-4 lg:left-6">
+                <div className="relative">
                   <img
                     src={vendor.image_url}
                     alt={vendor.fullName}
                     className="
-                      w-32 h-32 lg:w-40 lg:h-40 rounded-full
+                      w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32
+                      rounded-full
                       border-4 border-white
                       shadow-2xl
                       object-cover
                       bg-white
                     "
-                    onClick={handleModalClick}
                     onError={(e) => {
                       e.target.src = "https://via.placeholder.com/160/DDDDDD/808080?text=No+Image";
                     }}
                   />
-                  <div className="absolute -top-2 -right-2 bg-white rounded-full p-1.5 shadow-lg border border-green-200" onClick={handleModalClick}>
-                    <VscVerifiedFilled className="text-2xl text-green-500" />
+                  <div className="absolute -top-1 -right-1 sm:-top-1.5 sm:-right-1.5 lg:-top-2 lg:-right-2 bg-white rounded-full p-1 sm:p-1 lg:p-1.5 shadow-lg border border-green-200">
+                    <VscVerifiedFilled className="text-base sm:text-lg lg:text-2xl text-green-500" />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="p-6 lg:p-10 pt-24 lg:pt-28" onClick={handleModalClick}>
-              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-10" onClick={handleModalClick}>
-                <div className="flex-1" onClick={handleModalClick}>
-                  <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-4" onClick={handleModalClick}>
-                    <h2 id="modal-title" className="text-3xl lg:text-4xl font-bold text-gray-900">
+            <div className="p-3 sm:p-4 lg:p-6 pt-16 sm:pt-20 lg:pt-24">
+              {/* Header Section - Reduced text sizes for lg */}
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 sm:gap-4 lg:gap-5 mb-4 sm:mb-6 lg:mb-8">
+                <div className="flex-1">
+                  <div className="flex flex-col lg:flex-row lg:items-center gap-2 sm:gap-3 lg:gap-4 mb-2 sm:mb-3 lg:mb-4">
+                    <h2 id="modal-title" className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
                       {vendor.fullName}
                     </h2>
-                    <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
+                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                      <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 lg:px-3 lg:py-1 bg-green-100 text-green-800 rounded-full text-xs sm:text-sm lg:text-sm font-semibold">
                         Verified Vendor
                       </span>
                       {vendor.years_experience && (
-                        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+                        <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 lg:px-3 lg:py-1 bg-blue-100 text-blue-800 rounded-full text-xs sm:text-sm lg:text-sm font-semibold">
                           {vendor.years_experience} years experience
                         </span>
                       )}
                     </div>
                   </div>
                   
-                  <p className="text-xl text-gray-600 mb-4">
+                  <p className="text-sm sm:text-base lg:text-lg text-gray-600 mb-2 sm:mb-3 lg:mb-4">
                     {vendor.category} • {vendor.service_type}
                   </p>
                   
-                  <div className="flex flex-wrap items-center gap-4 mt-4">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 lg:gap-4 mt-2 sm:mt-3 lg:mt-4">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
                       <FontAwesomeIcon
                         icon={faStar}
-                        className="text-black text-lg"
+                        className="text-black text-sm sm:text-base lg:text-lg"
                       />
-                      <span className="font-bold text-gray-900 text-xl">
+                      <span className="font-bold text-gray-900 text-sm sm:text-base lg:text-lg">
                         {vendor.rating}
                       </span>
-                      <span className="text-gray-500">
+                      <span className="text-gray-500 text-xs sm:text-sm lg:text-base">
                         ({vendor.review_count} reviews)
                       </span>
                     </div>
                     <span className="text-gray-300 hidden lg:inline">•</span>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <FaCheckCircle className="text-green-500" />
+                    <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-2 text-gray-600 text-xs sm:text-sm lg:text-base">
+                      <FaCheckCircle className="text-green-500 text-sm sm:text-base" />
                       <span>{vendor.completedProjects || 0} projects completed</span>
                     </div>
                   </div>
                 </div>
                 
-                <div className="flex flex-col sm:flex-row gap-4" onClick={handleModalClick}>
+                {/* Action Buttons - Reduced size for lg */}
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 lg:gap-4 mt-3 sm:mt-0">
                   <button 
                     className="
-                      px-8 py-3
+                      px-3 py-2 sm:px-4 sm:py-2.5 lg:px-5 lg:py-3
                       bg-[#06EAFC] hover:bg-[#6cf5ff]
                       text-black
-                      rounded-xl
+                      rounded-lg sm:rounded-lg lg:rounded-xl
                       transition-all duration-150
                       font-semibold
                       cursor-pointer
-                      flex items-center justify-center gap-3
+                      flex items-center justify-center gap-1.5 sm:gap-2 lg:gap-3
                       hover:shadow-lg
                       border border-[#06EAFC]
                       focus:outline-none
                       focus:ring-2 focus:ring-[#06EAFC] focus:ring-offset-2
+                      text-xs sm:text-sm lg:text-base
                     "
                     onClick={(e) => {
                       e.stopPropagation();
                       window.location.href = `mailto:${vendor.email}`;
                     }}
                   >
-                    <FaEnvelope />
-                    Contact Vendor
+                    <FaEnvelope className="text-xs sm:text-sm lg:text-base" />
+                    <span className="whitespace-nowrap">Contact Vendor</span>
                   </button>
                   <button 
                     className="
-                      px-8 py-3
+                      px-3 py-2 sm:px-4 sm:py-2.5 lg:px-5 lg:py-3
                       bg-white text-gray-800
-                      rounded-xl
+                      rounded-lg sm:rounded-lg lg:rounded-xl
                       hover:bg-gray-50
                       transition-all duration-150
                       font-semibold
                       cursor-pointer
-                      flex items-center justify-center gap-3
+                      flex items-center justify-center gap-1.5 sm:gap-2 lg:gap-3
                       hover:shadow-lg
                       border border-gray-300
                       focus:outline-none
                       focus:ring-2 focus:ring-gray-300 focus:ring-offset-2
+                      text-xs sm:text-sm lg:text-base
                     "
                     onClick={(e) => {
                       e.stopPropagation();
                       // Add booking logic here
                     }}
                   >
-                    <FaCalendarCheck />
-                    Book Now
+                    <FaCalendarCheck className="text-xs sm:text-sm lg:text-base" />
+                    <span className="whitespace-nowrap">Book Now</span>
                   </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10" onClick={handleModalClick}>
+              {/* Stats Grid - Compact for lg */}
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6 lg:mb-8">
                 <motion.div 
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={isTouchDevice ? {} : { scale: 1.02 }}
                   transition={{ duration: 0.1 }}
-                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
+                  className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
                 >
-                  <p className="text-sm text-gray-600 mb-2">Completed Projects</p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1 sm:mb-1.5 lg:mb-2">Completed Projects</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
                     {vendor.completedProjects || 0}
                   </p>
                 </motion.div>
                 <motion.div 
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={isTouchDevice ? {} : { scale: 1.02 }}
                   transition={{ duration: 0.1 }}
-                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
+                  className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
                 >
-                  <p className="text-sm text-gray-600 mb-2">Repeat Clients</p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1 sm:mb-1.5 lg:mb-2">Repeat Clients</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
                     {vendor.repeatClients || 85}%
                   </p>
-                  <p className="text-xs text-green-600 mt-1">High retention rate</p>
+                  <p className="text-xs text-green-600 mt-0.5 sm:mt-0.5 lg:mt-1">High retention rate</p>
                 </motion.div>
                 <motion.div 
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={isTouchDevice ? {} : { scale: 1.02 }}
                   transition={{ duration: 0.1 }}
-                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
+                  className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
                 >
-                  <p className="text-sm text-gray-600 mb-2">Satisfaction Rate</p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1 sm:mb-1.5 lg:mb-2">Satisfaction Rate</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
                     {vendor.satisfactionRate || 96}%
                   </p>
-                  <p className="text-xs text-green-600 mt-1">Excellent feedback</p>
+                  <p className="text-xs text-green-600 mt-0.5 sm:mt-0.5 lg:mt-1">Excellent feedback</p>
                 </motion.div>
                 <motion.div 
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={isTouchDevice ? {} : { scale: 1.02 }}
                   transition={{ duration: 0.1 }}
-                  className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
+                  className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
                 >
-                  <p className="text-sm text-gray-600 mb-2">Response Time</p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1 sm:mb-1.5 lg:mb-2">Response Time</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
                     {vendor.response_time || "1-4 hours"}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">Typically responds</p>
+                  <p className="text-xs text-gray-500 mt-0.5 sm:mt-0.5 lg:mt-1">Typically responds</p>
                 </motion.div>
               </div>
 
-              <div className="grid lg:grid-cols-3 gap-8" onClick={handleModalClick}>
-                <div className="lg:col-span-2 space-y-8" onClick={handleModalClick}>
-                  <div className="bg-white rounded-2xl p-6 border border-gray-200 cursor-default">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <span className="w-1 h-6 bg-[#06EAFC] rounded-full"></span>
+              {/* Main Content Grid */}
+              <div className="grid lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+                {/* Left Column - About & Services */}
+                <div className="lg:col-span-2 space-y-3 sm:space-y-4 lg:space-y-6">
+                  {/* About Section */}
+                  <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default">
+                    <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 mb-2 sm:mb-3 lg:mb-4 flex items-center gap-1.5 sm:gap-2">
+                      <span className="w-1 h-3 sm:h-4 lg:h-6 bg-[#06EAFC] rounded-full"></span>
                       About
                     </h3>
-                    <p className="text-gray-700 leading-relaxed text-lg">
+                    <p className="text-gray-700 leading-relaxed text-xs sm:text-sm lg:text-base">
                       {vendor.description || "No description available."}
                     </p>
                     
                     {vendor.description && (
-                      <div className="mt-6">
-                        <h4 className="font-semibold text-gray-900 mb-3">Why choose this vendor:</h4>
-                        <ul className="space-y-2">
-                          <li className="flex items-start gap-3">
-                            <FaCheckCircle className="text-green-500 mt-1" />
-                            <span>Professional and reliable service</span>
+                      <div className="mt-3 sm:mt-4 lg:mt-5">
+                        <h4 className="font-semibold text-gray-900 mb-1.5 sm:mb-2 lg:mb-3 text-sm sm:text-base lg:text-base">Why choose this vendor:</h4>
+                        <ul className="space-y-1 sm:space-y-1.5 lg:space-y-2">
+                          <li className="flex items-start gap-1.5 sm:gap-2 lg:gap-3">
+                            <FaCheckCircle className="text-green-500 mt-0.5 sm:mt-0.5 lg:mt-1 text-xs sm:text-sm lg:text-base" />
+                            <span className="text-xs sm:text-sm lg:text-base">Professional and reliable service</span>
                           </li>
-                          <li className="flex items-start gap-3">
-                            <FaCheckCircle className="text-green-500 mt-1" />
-                            <span>Competitive pricing with transparent quotes</span>
+                          <li className="flex items-start gap-1.5 sm:gap-2 lg:gap-3">
+                            <FaCheckCircle className="text-green-500 mt-0.5 sm:mt-0.5 lg:mt-1 text-xs sm:text-sm lg:text-base" />
+                            <span className="text-xs sm:text-sm lg:text-base">Competitive pricing with transparent quotes</span>
                           </li>
-                          <li className="flex items-start gap-3">
-                            <FaCheckCircle className="text-green-500 mt-1" />
-                            <span>High-quality workmanship and attention to detail</span>
+                          <li className="flex items-start gap-1.5 sm:gap-2 lg:gap-3">
+                            <FaCheckCircle className="text-green-500 mt-0.5 sm:mt-0.5 lg:mt-1 text-xs sm:text-sm lg:text-base" />
+                            <span className="text-xs sm:text-sm lg:text-base">High-quality workmanship and attention to detail</span>
                           </li>
                         </ul>
                       </div>
                     )}
                   </div>
 
-                  <div className="bg-white rounded-2xl p-6 border border-gray-200 cursor-default">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                      <span className="w-1 h-6 bg-[#06EAFC] rounded-full"></span>
+                  {/* Services Offered */}
+                  <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default">
+                    <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 mb-2 sm:mb-3 lg:mb-4 flex items-center gap-1.5 sm:gap-2">
+                      <span className="w-1 h-3 sm:h-4 lg:h-6 bg-[#06EAFC] rounded-full"></span>
                       Services Offered
                     </h3>
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2 lg:gap-3">
                       {(vendor.services || [vendor.service_type || "Service"]).map((service, index) => (
                         <motion.span
                           key={index}
-                          whileHover={{ scale: 1.05 }}
+                          whileHover={isTouchDevice ? {} : { scale: 1.05 }}
                           transition={{ duration: 0.1 }}
                           className="
-                            px-5 py-3
+                            px-2 py-1 sm:px-3 sm:py-1.5 lg:px-4 lg:py-2
                             bg-gradient-to-r from-[#06EAFC]/10 to-blue-50
                             text-gray-700
-                            rounded-xl
+                            rounded-md sm:rounded-lg lg:rounded-xl
                             font-semibold
                             border border-[#06EAFC]/30
                             hover:border-[#06EAFC]
                             transition-all duration-150
                             cursor-default
+                            text-xs sm:text-sm lg:text-sm
                           "
                         >
                           {service}
@@ -387,27 +407,29 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-2xl p-6 border border-gray-200 cursor-default">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                      <span className="w-1 h-6 bg-[#06EAFC] rounded-full"></span>
+                  {/* Specialties & Expertise */}
+                  <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default">
+                    <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 mb-2 sm:mb-3 lg:mb-4 flex items-center gap-1.5 sm:gap-2">
+                      <span className="w-1 h-3 sm:h-4 lg:h-6 bg-[#06EAFC] rounded-full"></span>
                       Specialties & Expertise
                     </h3>
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2 lg:gap-3">
                       {(vendor.specialties || ["General Services"]).map((specialty, index) => (
                         <motion.span
                           key={index}
-                          whileHover={{ scale: 1.05 }}
+                          whileHover={isTouchDevice ? {} : { scale: 1.05 }}
                           transition={{ duration: 0.1 }}
                           className="
-                            px-5 py-3
+                            px-2 py-1 sm:px-3 sm:py-1.5 lg:px-4 lg:py-2
                             bg-gradient-to-r from-green-50 to-teal-50
                             text-gray-700
-                            rounded-xl
+                            rounded-md sm:rounded-lg lg:rounded-xl
                             font-semibold
                             border border-green-200
                             hover:border-green-300
                             transition-all duration-150
                             cursor-default
+                            text-xs sm:text-sm lg:text-sm
                           "
                         >
                           {specialty}
@@ -416,19 +438,19 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                     </div>
                     
                     {(vendor.certifications && vendor.certifications.length > 0) && (
-                      <div className="mt-8">
-                        <h4 className="font-semibold text-gray-900 mb-4">Certifications:</h4>
-                        <div className="flex flex-wrap gap-3">
+                      <div className="mt-3 sm:mt-4 lg:mt-5">
+                        <h4 className="font-semibold text-gray-900 mb-1.5 sm:mb-2 lg:mb-3 text-sm sm:text-base lg:text-base">Certifications:</h4>
+                        <div className="flex flex-wrap gap-1.5 sm:gap-2 lg:gap-3">
                           {vendor.certifications.map((cert, index) => (
                             <span
                               key={index}
                               className="
-                                px-4 py-2
+                                px-2 py-0.5 sm:px-2.5 sm:py-1 lg:px-3 lg:py-1
                                 bg-yellow-50 text-yellow-800
-                                rounded-lg
+                                rounded sm:rounded-md lg:rounded-lg
                                 font-medium
                                 border border-yellow-200
-                                text-sm
+                                text-xs
                                 cursor-default
                               "
                             >
@@ -441,128 +463,131 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   </div>
                 </div>
 
-                <div className="space-y-8" onClick={handleModalClick}>
-                  <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 border border-gray-200 shadow-sm cursor-default">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-6">
+                {/* Right Column - Contact & Details */}
+                <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+                  <div className="bg-gradient-to-br from-gray-50 to-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 shadow-sm cursor-default">
+                    <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 mb-3 sm:mb-4 lg:mb-5">
                       Contact & Details
                     </h3>
 
-                    <div className="space-y-6">
-                      <div className="flex items-start gap-4">
-                        <div className="p-2 bg-[#06EAFC]/20 rounded-lg">
-                          <FaMapMarkerAlt className="text-[#06EAFC] text-xl" />
+                    <div className="space-y-3 sm:space-y-4 lg:space-y-5">
+                      <div className="flex items-start gap-2.5 sm:gap-3 lg:gap-4">
+                        <div className="p-1.5 sm:p-1.5 lg:p-2 bg-[#06EAFC]/20 rounded-lg flex-shrink-0">
+                          <FaMapMarkerAlt className="text-[#06EAFC] text-sm sm:text-base lg:text-xl" />
                         </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Location</p>
-                          <p className="font-semibold text-gray-900">
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm lg:text-sm text-gray-600">Location</p>
+                          <p className="font-semibold text-gray-900 text-xs sm:text-sm lg:text-base">
                             {vendor.location}
                           </p>
-                          <p className="text-sm text-gray-500 mt-1">
+                          <p className="text-xs text-gray-500 mt-0.5 sm:mt-0.5 lg:mt-1">
                             {vendor.activeWithin || `Within 15 km of ${vendor.location?.split(",")[0] || "your location"}`}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-4">
-                        <div className="p-2 bg-[#06EAFC]/20 rounded-lg">
-                          <span className="font-bold text-[#06EAFC]">BN</span>
+                      <div className="flex items-start gap-2.5 sm:gap-3 lg:gap-4">
+                        <div className="p-1.5 sm:p-1.5 lg:p-2 bg-[#06EAFC]/20 rounded-lg flex-shrink-0">
+                          <span className="font-bold text-[#06EAFC] text-xs sm:text-sm lg:text-base">BN</span>
                         </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Business Name</p>
-                          <p className="font-semibold text-gray-900">
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm lg:text-sm text-gray-600">Business Name</p>
+                          <p className="font-semibold text-gray-900 text-xs sm:text-sm lg:text-base">
                             {vendor.businessName || vendor.name}
                           </p>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:gap-4">
                         <div>
-                          <p className="text-sm text-gray-600">Hourly Rate</p>
-                          <p className="font-bold text-gray-900 text-lg">
+                          <p className="text-xs sm:text-sm lg:text-sm text-gray-600">Hourly Rate</p>
+                          <p className="font-bold text-gray-900 text-sm sm:text-base lg:text-lg">
                             {vendor.price_range || "₦5,000 - ₦10,000"}
                           </p>
                         </div>
                         <div>
-                          <p className="text-sm text-gray-600">Minimum Order</p>
-                          <p className="font-bold text-gray-900 text-lg">
+                          <p className="text-xs sm:text-sm lg:text-sm text-gray-600">Minimum Order</p>
+                          <p className="font-bold text-gray-900 text-sm sm:text-base lg:text-lg">
                             {vendor.minOrder || "₦15,000"}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-4">
-                        <div className="p-2 bg-[#06EAFC]/20 rounded-lg">
-                          <FaClock className="text-[#06EAFC] text-xl" />
+                      <div className="flex items-start gap-2.5 sm:gap-3 lg:gap-4">
+                        <div className="p-1.5 sm:p-1.5 lg:p-2 bg-[#06EAFC]/20 rounded-lg flex-shrink-0">
+                          <FaClock className="text-[#06EAFC] text-sm sm:text-base lg:text-xl" />
                         </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Business Hours</p>
-                          <p className="font-semibold text-gray-900">
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm lg:text-sm text-gray-600">Business Hours</p>
+                          <p className="font-semibold text-gray-900 text-xs sm:text-sm lg:text-base">
                             {vendor.businessHours || "8:00 AM - 10:00 PM"}
                           </p>
                         </div>
                       </div>
 
-                      <div className="space-y-3">
+                      <div className="space-y-1.5 sm:space-y-2 lg:space-y-3">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
                             <div className={`
-                              w-2 h-2 rounded-full
+                              w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full
                               ${vendor.deliveryAvailable ? 'bg-green-500' : 'bg-gray-300'}
                             `} />
-                            <span className="text-gray-700">Delivery Available</span>
+                            <span className="text-gray-700 text-xs sm:text-sm lg:text-base">Delivery Available</span>
                           </div>
                           {vendor.deliveryAvailable ? (
-                            <FaTruck className="text-green-500" />
+                            <FaTruck className="text-green-500 text-sm sm:text-base lg:text-lg" />
                           ) : (
-                            <span className="text-gray-400 text-sm">Not available</span>
+                            <span className="text-gray-400 text-xs sm:text-sm">Not available</span>
                           )}
                         </div>
                         
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
                             <div className={`
-                              w-2 h-2 rounded-full
+                              w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full
                               ${vendor.onlineBookings ? 'bg-green-500' : 'bg-gray-300'}
                             `} />
-                            <span className="text-gray-700">Online Bookings</span>
+                            <span className="text-gray-700 text-xs sm:text-sm lg:text-base">Online Bookings</span>
                           </div>
                           {vendor.onlineBookings ? (
-                            <FaCalendarCheck className="text-green-500" />
+                            <FaCalendarCheck className="text-green-500 text-sm sm:text-base lg:text-lg" />
                           ) : (
-                            <span className="text-gray-400 text-sm">Not available</span>
+                            <span className="text-gray-400 text-xs sm:text-sm">Not available</span>
                           )}
                         </div>
                       </div>
 
-                      <div className="pt-4 border-t border-gray-200">
-                        <h4 className="font-semibold text-gray-900 mb-3">Contact Information</h4>
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3">
-                            <FaEnvelope className="text-gray-400" />
-                            <span className="text-gray-700">{vendor.email}</span>
+                      <div className="pt-2.5 sm:pt-3 lg:pt-4 border-t border-gray-200">
+                        <h4 className="font-semibold text-gray-900 mb-1.5 sm:mb-2 lg:mb-3 text-sm sm:text-base lg:text-base">Contact Information</h4>
+                        <div className="space-y-1.5 sm:space-y-2 lg:space-y-3">
+                          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
+                            <FaEnvelope className="text-gray-400 text-xs sm:text-sm lg:text-base" />
+                            <span className="text-gray-700 text-xs sm:text-sm lg:text-base truncate">{vendor.email}</span>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <FaPhone className="text-gray-400" />
-                            <span className="text-gray-700">{vendor.phone}</span>
+                          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
+                            <FaPhone className="text-gray-400 text-xs sm:text-sm lg:text-base" />
+                            <span className="text-gray-700 text-xs sm:text-sm lg:text-base">{vendor.phone}</span>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-2xl p-6 border border-gray-200 cursor-default">
-                    <h4 className="font-semibold text-gray-900 mb-4">Languages</h4>
-                    <div className="space-y-2">
+                  <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default">
+                    <h4 className="font-semibold text-gray-900 mb-2 sm:mb-3 lg:mb-4 text-sm sm:text-base lg:text-base">Languages</h4>
+                    <div className="space-y-1 sm:space-y-1.5 lg:space-y-2">
                       {(vendor.languages || ["English (Native)", "Yoruba (Fluent)"]).map((language, index) => (
-                        <div key={index} className="flex items-center gap-3">
-                          <div className="w-2 h-2 bg-[#06EAFC] rounded-full"></div>
-                          <span className="text-gray-700">{language}</span>
+                        <div key={index} className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
+                          <div className="w-1.5 h-1.5 sm:w-1.5 sm:h-1.5 lg:w-2 lg:h-2 bg-[#06EAFC] rounded-full"></div>
+                          <span className="text-gray-700 text-xs sm:text-sm lg:text-base">{language}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* View All Vendors Section - Removed extra button, only modal close */}
             </div>
           </div>
         </motion.div>
@@ -650,6 +675,16 @@ const FilterBar = ({
 // ---------------- Vendor Card Component ----------------
 const VendorCard = ({ venue, index }) => {
   const [showModal, setShowModal] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+  // Check if device is touch-enabled on mount
+  useEffect(() => {
+    const checkTouchDevice = () => {
+      const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      setIsTouchDevice(isTouch);
+    };
+    checkTouchDevice();
+  }, []);
 
   // Use the exact same data structure as VendorsPage
   const vendorData = {
@@ -697,7 +732,7 @@ const VendorCard = ({ venue, index }) => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, delay: index * 0.05 }}
-        whileHover={{
+        whileHover={isTouchDevice ? {} : {
           y: -6,
           scale: 1.01,
           boxShadow: "0 10px 25px rgba(0, 0, 0, 0.12), 0 5px 10px rgba(0, 0, 0, 0.08)",
@@ -789,13 +824,12 @@ const VendorCard = ({ venue, index }) => {
           
           <div className="mt-auto pt-4">
             <motion.button
-              whileHover={{ scale: 1.03 }}
+              whileHover={isTouchDevice ? {} : { scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               transition={{ duration: 0.1 }}
               className="
                 w-full 
                 py-3
-                bg-white hover:bg-gray-50
                 text-black 
                 font-bold 
                 text-sm
@@ -805,7 +839,6 @@ const VendorCard = ({ venue, index }) => {
                 cursor-pointer
                 flex items-center justify-center gap-2
                 hover:shadow-md
-                hover:border-gray-400
               "
             >
               <FaUser className="text-black text-sm" />
@@ -880,6 +913,16 @@ const AiTopPicks = () => {
   const [headerRef, headerInView] = useInView({ threshold: 0.1 });
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+  // Check if device is touch-enabled on mount
+  useEffect(() => {
+    const checkTouchDevice = () => {
+      const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      setIsTouchDevice(isTouch);
+    };
+    checkTouchDevice();
+  }, []);
 
   const getInitialCounts = () => {
     if (typeof window === "undefined") {
@@ -1056,7 +1099,7 @@ const AiTopPicks = () => {
   const visibleVenues = filteredVenues.slice(0, visibleCount);
 
   const handleViewAll = () => {
-    navigate('/vendors');
+    navigate('/vendor');
   };
 
   if (loading) {
@@ -1140,10 +1183,9 @@ const AiTopPicks = () => {
                 rounded-xl 
                 cursor-pointer 
                 transition-all duration-150 
-                text-black
+                text-black font-semibold
                 w-full lg:w-auto
                 text-center
-                
               "
             >
               View All Vendors →

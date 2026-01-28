@@ -95,6 +95,24 @@ const checkAuthStatus = () => {
   };
 };
 
+// Helper function to update session activity
+const updateSessionActivity = () => {
+  const guestSession = localStorage.getItem("guestSession");
+  if (guestSession) {
+    try {
+      const sessionData = JSON.parse(guestSession);
+      const updatedSession = {
+        ...sessionData,
+        lastActive: new Date().toISOString()
+      };
+      localStorage.setItem("guestSession", JSON.stringify(updatedSession));
+      console.log("✅ Session activity updated");
+    } catch (error) {
+      console.error("Failed to update session activity:", error);
+    }
+  }
+};
+
 // Helper function to extract location string from location data
 const getLocationString = (locationData) => {
   if (!locationData) return "Location";
@@ -182,6 +200,38 @@ const PaymentPage = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
+
+  // Update session activity when component mounts and on interactions
+  useEffect(() => {
+    updateSessionActivity();
+    
+    // Update session activity on user interactions
+    const handleUserActivity = () => {
+      updateSessionActivity();
+    };
+    
+    // Add event listeners for user activity
+    window.addEventListener('mousemove', handleUserActivity);
+    window.addEventListener('keydown', handleUserActivity);
+    window.addEventListener('click', handleUserActivity);
+    window.addEventListener('scroll', handleUserActivity);
+    
+    return () => {
+      window.removeEventListener('mousemove', handleUserActivity);
+      window.removeEventListener('keydown', handleUserActivity);
+      window.removeEventListener('click', handleUserActivity);
+      window.removeEventListener('scroll', handleUserActivity);
+    };
+  }, []);
+
+  // Update session activity periodically (every 30 seconds)
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      updateSessionActivity();
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     // Check authentication first

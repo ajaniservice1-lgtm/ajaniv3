@@ -91,12 +91,69 @@ const LoginToastNotification = ({ message, onClose, type = "success" }) => {
   );
 };
 
+// Helper functions for session management
+const SESSION_KEYS = {
+  GUEST_SESSION: "guestSession",
+  BOOKING_SESSION: "bookingSession",
+  PENDING_BOOKING: (type) => `pending${type.charAt(0).toUpperCase() + type.slice(1)}Booking`,
+  ACTIVE_BOOKING: (type) => `active${type.charAt(0).toUpperCase() + type.slice(1)}Booking`
+};
+
+// Create a booking-specific guest session (LASTS UNTIL BOOKING IS COMPLETED)
+const createBookingGuestSession = (bookingType, email = null) => {
+  const sessionId = `booking_guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  return {
+    isGuest: true,
+    sessionId: sessionId,
+    createdAt: new Date().toISOString(),
+    // Extended expiry for booking sessions (24 hours or until booking completion)
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    email: email || `guest_${Date.now()}@temp.com`,
+    bookingType: bookingType,
+    isBookingSession: true,
+    lastActive: new Date().toISOString(),
+    // Store booking intent
+    bookingIntent: bookingType
+  };
+};
+
+// Check if session is still valid
+const isSessionValid = (session) => {
+  if (!session) return false;
+  
+  const now = new Date();
+  const expiresAt = new Date(session.expiresAt);
+  
+  // For booking sessions, also check if it's been inactive for too long (1 hour)
+  if (session.isBookingSession) {
+    const lastActive = new Date(session.lastActive);
+    const inactiveTime = now - lastActive;
+    
+    // Session expires if: 1) past expiry time OR 2) inactive for 1 hour
+    return expiresAt > now && inactiveTime < (60 * 60 * 1000);
+  }
+  
+  // Regular sessions only check expiry
+  return expiresAt > now;
+};
+
+// Update session activity
+const updateSessionActivity = (session) => {
+  if (!session) return session;
+  
+  return {
+    ...session,
+    lastActive: new Date().toISOString()
+  };
+};
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isCheckingSession, setIsCheckingSession] = useState(true); // NEW: For checking existing session
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
@@ -106,8 +163,9 @@ const LoginPage = () => {
   const [isFromBooking, setIsFromBooking] = useState(false);
   const [bookingType, setBookingType] = useState(null);
   const [showGuestOption, setShowGuestOption] = useState(true);
+  const [hasPendingBooking, setHasPendingBooking] = useState(false);
 
-  // FIX: Scroll to top when component mounts or location changes
+  // Scroll to top when component mounts or location changes
   useEffect(() => {
     window.scrollTo({
       top: 0,
@@ -142,41 +200,65 @@ const LoginPage = () => {
 
   const email = watch("email");
 
-  // NEW FUNCTION: Check for existing valid session
+  // Check for existing valid booking session
+  const checkExistingBookingSession = () => {
+    try {
+      const guestSession = localStorage.getItem(SESSION_KEYS.GUEST_SESSION);
+      
+      if (guestSession) {
+        const sessionData = JSON.parse(guestSession);
+        
+        // Check if it's a booking session and still valid
+        if (sessionData.isBookingSession && isSessionValid(sessionData)) {
+          console.log("✅ Valid booking guest session found");
+          
+          // Update last activity
+          const updatedSession = updateSessionActivity(sessionData);
+          localStorage.setItem(SESSION_KEYS.GUEST_SESSION, JSON.stringify(updatedSession));
+          
+          // Check for pending booking
+          const bookingType = sessionData.bookingType || "hotel";
+          const pendingBookingKey = SESSION_KEYS.PENDING_BOOKING(bookingType);
+          const pendingBooking = localStorage.getItem(pendingBookingKey);
+          
+          if (pendingBooking) {
+            console.log("✅ Pending booking found, redirecting to payment");
+            navigate(`/booking/payment`, {
+              state: {
+                bookingType: bookingType,
+                isGuestBooking: true,
+                sessionId: sessionData.sessionId
+              }
+            });
+            return true;
+          }
+        } else {
+          // Clear invalid or expired session
+          localStorage.removeItem(SESSION_KEYS.GUEST_SESSION);
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.error("Error checking booking session:", error);
+      localStorage.removeItem(SESSION_KEYS.GUEST_SESSION);
+      return false;
+    }
+  };
+
+  // Check for existing session
   const checkExistingSession = async () => {
     try {
       const token = localStorage.getItem("auth_token");
       
+      // First, check if there's a valid booking guest session
+      const hasValidBookingSession = checkExistingBookingSession();
+      if (hasValidBookingSession) {
+        setIsCheckingSession(false);
+        return;
+      }
+      
       if (!token) {
-        // Check if guest session exists
-        const guestSession = localStorage.getItem("guestSession");
-        if (guestSession) {
-          try {
-            const sessionData = JSON.parse(guestSession);
-            const expiresAt = new Date(sessionData.expiresAt);
-            const now = new Date();
-            
-            if (expiresAt > now) {
-              // Guest session is still valid
-              console.log("✅ Valid guest session found");
-              // If user came from booking, redirect to payment
-              if (location.state?.fromBooking) {
-                const bookingType = location.state?.intent?.replace('_booking', '') || "hotel";
-                navigate(`/booking/payment`);
-              } else {
-                navigate(-1); // Go back to previous page
-              }
-              return;
-            } else {
-              // Guest session expired
-              localStorage.removeItem("guestSession");
-            }
-          } catch (error) {
-            console.error("Invalid guest session:", error);
-            localStorage.removeItem("guestSession");
-          }
-        }
-        
         setIsCheckingSession(false);
         return;
       }
@@ -192,17 +274,17 @@ const LoginPage = () => {
       if (response.data && response.data.valid) {
         console.log("✅ Valid session found, redirecting...");
         
-        // Update user profile from response
+        // Update user profile
         if (response.data.user) {
           localStorage.setItem("userProfile", JSON.stringify(response.data.user));
           localStorage.setItem("user_email", response.data.user.email);
           
-          // Dispatch login event for header component
+          // Dispatch events
           window.dispatchEvent(new Event("storage"));
           window.dispatchEvent(new Event("authChange"));
         }
         
-        // Check if user came from booking
+        // Check for pending booking
         if (location.state?.fromBooking) {
           const bookingType = location.state?.intent?.replace('_booking', '') || "hotel";
           
@@ -299,13 +381,33 @@ const LoginPage = () => {
       const type = intent.replace('_booking', '');
       setBookingType(type);
       
-      console.log("User came from booking:", intent);
-      console.log("Return to:", returnTo);
+      // Check for pending booking
+      const pendingBookingKey = SESSION_KEYS.PENDING_BOOKING(type);
+      const pendingBooking = localStorage.getItem(pendingBookingKey);
       
-      // Show toast message instead of displaying in the UI
-      setToastMessage("Please login or continue as guest to complete your booking");
-      setToastType("info");
-      setShowToast(true);
+      if (pendingBooking) {
+        setHasPendingBooking(true);
+        console.log("Pending booking found:", type);
+        
+        // Show toast message
+        setToastMessage("Continue with your booking");
+        setToastType("info");
+        setShowToast(true);
+      }
+      
+      // Pre-fill email if available from pending booking
+      if (pendingBooking) {
+        try {
+          const bookingData = JSON.parse(pendingBooking);
+          if (bookingData.bookingData?.email) {
+            setValue("email", bookingData.bookingData.email);
+          } else if (bookingData.bookingData?.contactInfo?.email) {
+            setValue("email", bookingData.bookingData.contactInfo.email);
+          }
+        } catch (error) {
+          console.error("Error parsing pending booking:", error);
+        }
+      }
     } else {
       // User clicked login from header
       setIsFromBooking(false);
@@ -314,188 +416,93 @@ const LoginPage = () => {
 
     // Show guest option only if user came from booking or is on homepage
     setShowGuestOption(fromBooking || location.pathname === "/");
-
-    // Pre-fill email if available from pending booking
-    if (fromBooking) {
-      const bookingType = intent?.replace('_booking', '') || "hotel";
-      let pendingBooking = null;
-      
-      if (bookingType === "hotel") {
-        const pendingHotelBooking = localStorage.getItem("pendingHotelBooking");
-        if (pendingHotelBooking) pendingBooking = JSON.parse(pendingHotelBooking);
-      } else if (bookingType === "restaurant") {
-        const pendingRestaurantBooking = localStorage.getItem("pendingRestaurantBooking");
-        if (pendingRestaurantBooking) pendingBooking = JSON.parse(pendingRestaurantBooking);
-      } else if (bookingType === "shortlet") {
-        const pendingShortletBooking = localStorage.getItem("pendingShortletBooking");
-        if (pendingShortletBooking) pendingBooking = JSON.parse(pendingShortletBooking);
-      }
-      
-      if (pendingBooking?.bookingData?.email) {
-        setValue("email", pendingBooking.bookingData.email);
-      } else if (pendingBooking?.bookingData?.contactInfo?.email) {
-        setValue("email", pendingBooking.bookingData.contactInfo.email);
-      }
-    }
   }, [location.state, setValue, location.pathname]);
 
-  // Helper function to create new guest session (ONE-TIME USE ONLY)
-  const createNewGuestSession = () => {
-    return {
-      isGuest: true,
-      sessionId: `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // ONLY 5 MINUTES for one-time use
-      email: email || `guest_${Date.now()}@temp.com`,
-      bookings: [],
-      isOneTimeSession: true // Flag to identify one-time sessions
-    };
-  };
-
-  // Helper function to create complete booking
-  const createCompleteBooking = (pendingBooking, bookingType, sessionData) => {
-    // Base booking data
-    const baseBooking = {
-      type: bookingType,
-      bookingId: pendingBooking.bookingId || `GB-${Date.now()}`,
-      totalAmount: pendingBooking.totalAmount || 0,
-      timestamp: Date.now(),
-      isGuestBooking: true,
-      guestSessionId: sessionData.sessionId,
-      guestEmail: sessionData.email,
-      status: "pending" // Set to pending initially
-    };
-    
-    // Add booking-specific data
-    if (bookingType === "hotel") {
-      return {
-        ...baseBooking,
-        hotelData: pendingBooking.hotelData || { 
-          id: pendingBooking.hotelId, 
-          name: pendingBooking.hotelName,
-          image: pendingBooking.hotelImage
-        },
-        roomData: pendingBooking.roomData,
-        bookingData: pendingBooking.bookingData,
-        selectedPayment: pendingBooking.selectedPayment || "hotel",
-        guests: pendingBooking.guests,
-        checkInDate: pendingBooking.checkInDate,
-        checkOutDate: pendingBooking.checkOutDate
-      };
-    } else if (bookingType === "restaurant") {
-      return {
-        ...baseBooking,
-        vendorData: pendingBooking.vendorData,
-        bookingData: pendingBooking.bookingData,
-        selectedPayment: pendingBooking.selectedPayment || "restaurant"
-      };
-    } else if (bookingType === "shortlet") {
-      return {
-        ...baseBooking,
-        vendorData: pendingBooking.vendorData,
-        bookingData: pendingBooking.bookingData,
-        selectedPayment: pendingBooking.selectedPayment || "shortlet"
-      };
-    }
-    
-    return baseBooking;
-  };
-
-  // Function to handle "Continue as Guest" - ONE-TIME USE ONLY
+  // Function to handle "Continue as Guest" - BOOKING SPECIFIC
   const handleContinueAsGuest = () => {
-    console.log("Continuing as guest (ONE-TIME SESSION)...");
+    console.log("Continuing as guest for booking session...");
     
-    // Check what type of booking user came from
+    // Determine booking type
     const bookingType = location.state?.intent?.replace('_booking', '') || "hotel";
-    console.log("Booking type from intent:", bookingType);
+    console.log("Booking type:", bookingType);
     
-    // Check for pending booking for this specific type
-    let pendingBooking = null;
+    // Check for pending booking
+    const pendingBookingKey = SESSION_KEYS.PENDING_BOOKING(bookingType);
+    const pendingBooking = localStorage.getItem(pendingBookingKey);
     
-    if (bookingType === "hotel") {
-      const pendingHotelBooking = localStorage.getItem("pendingHotelBooking");
-      if (pendingHotelBooking) {
-        pendingBooking = JSON.parse(pendingHotelBooking);
+    if (pendingBooking && hasPendingBooking) {
+      console.log(`Found pending ${bookingType} booking, creating booking guest session...`);
+      
+      try {
+        const bookingData = JSON.parse(pendingBooking);
+        
+        // Create booking-specific guest session (LASTS UNTIL BOOKING COMPLETION)
+        const sessionData = createBookingGuestSession(bookingType, email || bookingData.bookingData?.email);
+        
+        // Save guest session
+        localStorage.setItem(SESSION_KEYS.GUEST_SESSION, JSON.stringify(sessionData));
+        
+        // Update the booking data with session info
+        const updatedBooking = {
+          ...bookingData,
+          isGuestBooking: true,
+          guestSessionId: sessionData.sessionId,
+          guestEmail: sessionData.email,
+          sessionCreatedAt: sessionData.createdAt
+        };
+        
+        localStorage.setItem(pendingBookingKey, JSON.stringify(updatedBooking));
+        
+        // Show success message
+        setToastMessage(`✅ Guest session created! You can close and return anytime.`);
+        setToastType("success");
+        setShowToast(true);
+        
+        // Navigate to PAYMENT PAGE
+        setTimeout(() => {
+          navigate(`/booking/payment`, {
+            state: {
+              bookingData: updatedBooking,
+              bookingType: bookingType,
+              isGuestBooking: true,
+              guestSessionId: sessionData.sessionId
+            }
+          });
+        }, 1000);
+        
+      } catch (error) {
+        console.error("Error processing guest booking:", error);
+        setToastMessage("❌ Error processing booking. Please try again.");
+        setToastType("error");
+        setShowToast(true);
       }
-    } else if (bookingType === "restaurant") {
-      const pendingRestaurantBooking = localStorage.getItem("pendingRestaurantBooking");
-      if (pendingRestaurantBooking) {
-        pendingBooking = JSON.parse(pendingRestaurantBooking);
-      }
-    } else if (bookingType === "shortlet") {
-      const pendingShortletBooking = localStorage.getItem("pendingShortletBooking");
-      if (pendingShortletBooking) {
-        pendingBooking = JSON.parse(pendingShortletBooking);
-      }
-    }
-    
-    if (pendingBooking) {
-      console.log(`Found pending ${bookingType} booking, creating ONE-TIME guest session...`);
-      
-      // ALWAYS create a NEW guest session for one-time use
-      // Don't check for existing sessions - always create fresh
-      const sessionData = createNewGuestSession();
-      
-      // Save guest session
-      localStorage.setItem("guestSession", JSON.stringify(sessionData));
-      
-      // Create the complete booking from pending data
-      const completeBooking = createCompleteBooking(pendingBooking, bookingType, sessionData);
-      
-      // Save the completed booking TEMPORARILY
-      localStorage.setItem(`pendingGuest${bookingType.charAt(0).toUpperCase() + bookingType.slice(1)}Booking`, JSON.stringify(completeBooking));
-      
-      // Clear the original pending booking
-      localStorage.removeItem(`pending${bookingType.charAt(0).toUpperCase() + bookingType.slice(1)}Booking`);
-      
-      // Also clear any old generic pendingBooking if exists
-      localStorage.removeItem("pendingBooking");
-      
-      // Show success message
-      setToastMessage(`✅ Guest session created! Redirecting to payment...`);
-      setToastType("success");
-      setShowToast(true);
-      
-      // Navigate to PAYMENT PAGE, not confirmation
-      setTimeout(() => {
-        navigate(`/booking/payment`, {
-          state: {
-            bookingData: completeBooking,
-            bookingType: bookingType,
-            isGuestBooking: true,
-            oneTimeGuestSession: true // Flag to indicate this is one-time
-          }
-        });
-      }, 1000);
       
     } else {
-      // No pending booking found (user clicked login from header, not from booking)
-      console.log("No pending booking found, creating basic ONE-TIME guest session");
+      // No pending booking found
+      console.log("No pending booking found");
       
-      // Create basic guest session for one-time use only
+      // Create basic guest session for browsing
       const sessionData = {
         isGuest: true,
         sessionId: `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // 5 minutes for browsing
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour for browsing
         email: email || `guest_${Date.now()}@temp.com`,
-        isOneTimeSession: true,
-        isBrowsingOnly: true
+        isBrowsingOnly: true,
+        lastActive: new Date().toISOString()
       };
       
-      localStorage.setItem("guestSession", JSON.stringify(sessionData));
+      localStorage.setItem(SESSION_KEYS.GUEST_SESSION, JSON.stringify(sessionData));
       
-      // Show success message
       setToastMessage("✅ Continuing as guest - Enjoy browsing!");
       setToastType("success");
       setShowToast(true);
       
-      // Simply close the login modal/page and go back
       setTimeout(() => {
         if (window.history.length > 1) {
-          navigate(-1); // Go back to previous page
+          navigate(-1);
         } else {
-          navigate("/"); // Go to homepage if no history
+          navigate("/");
         }
       }, 1000);
     }
@@ -738,6 +745,25 @@ const LoginPage = () => {
     }
   };
 
+  // Add cleanup for browsing-only sessions on unmount
+  useEffect(() => {
+    return () => {
+      // Only clear browsing sessions, not booking sessions
+      const guestSession = localStorage.getItem(SESSION_KEYS.GUEST_SESSION);
+      if (guestSession) {
+        try {
+          const sessionData = JSON.parse(guestSession);
+          if (sessionData.isBrowsingOnly && !sessionData.isBookingSession) {
+            // Optionally clear browsing sessions when login page unmounts
+            // Or keep them for 1 hour as set above
+          }
+        } catch (error) {
+          console.error("Error parsing session on unmount:", error);
+        }
+      }
+    };
+  }, []);
+
   // Show loading state while checking session
   if (isCheckingSession) {
     return (
@@ -749,7 +775,11 @@ const LoginPage = () => {
           <div className="flex flex-col items-center justify-center py-8">
             <FaSpinner className="animate-spin text-[#6cff] text-3xl mb-4" />
             <p className="text-gray-600">Checking your session...</p>
-            <p className="text-sm text-gray-500 mt-2">Redirecting you if already logged in</p>
+            {hasPendingBooking && (
+              <p className="text-sm text-green-600 mt-2">
+                We found your pending booking. Redirecting...
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -881,6 +911,15 @@ const LoginPage = () => {
               </div>
             </div>
             
+            {hasPendingBooking && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
+                <p className="text-sm text-blue-700 text-center">
+                  <FaExclamationTriangle className="inline mr-1" />
+                  Your booking will be saved. You can close this page and return anytime.
+                </p>
+              </div>
+            )}
+            
             <button
               type="button"
               onClick={handleContinueAsGuest}
@@ -888,10 +927,14 @@ const LoginPage = () => {
               className="w-full bg-gradient-to-r from-gray-50 to-gray-100 border-2 border-gray-300 text-gray-700 font-medium py-3 px-4 rounded-lg transition-all hover:from-gray-100 hover:to-gray-200 hover:border-gray-400 hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <FaUserAlt className="text-gray-500" />
-              <span>Continue as Guest (One-Time Session)</span>
+              <span>Continue as Guest {hasPendingBooking ? "(Booking Session)" : ""}</span>
             </button>
             
-           
+            {hasPendingBooking && (
+              <p className="text-xs text-gray-500 text-center">
+                Your session will be saved until booking completion
+              </p>
+            )}
           </div>
         )}
 
