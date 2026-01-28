@@ -9,6 +9,9 @@ import {
   FaExclamationTriangle,
   FaSpinner
 } from "react-icons/fa";
+import { MdCheckCircle } from "react-icons/md";
+import { ToastContainer, toast, Slide } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 import Logo from "../../assets/Logos/logo5.png";
 import * as yup from "yup";
 import { useForm } from "react-hook-form";
@@ -22,74 +25,6 @@ const loginSchema = yup.object().shape({
     .required("Email is required"),
   password: yup.string().required("Password is required"),
 });
-
-const LoginToastNotification = ({ message, onClose, type = "success" }) => {
-  const [isVisible, setIsVisible] = useState(true);
-
-  const handleClose = () => {
-    setIsVisible(false);
-    setTimeout(() => {
-      onClose();
-    }, 300);
-  };
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      handleClose();
-    }, 4000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  const bgColor = type === "success" ? "bg-green-50" : "bg-blue-50";
-  const borderColor =
-    type === "success" ? "border-green-200" : "border-blue-200";
-  const textColor = type === "success" ? "text-green-800" : "text-gray-500";
-  const progressColor = type === "success" ? "bg-green-500" : "bg-blue-100";
-  const iconColor = type === "success" ? "text-green-600" : "text-red-600";
-
-  return (
-    <div
-      className={`fixed top-4 right-4 z-50 transition-all duration-300 ${
-        isVisible ? "animate-slideInRight" : "animate-slideOutRight"
-      }`}
-    >
-      <div
-        className={`${bgColor} border ${borderColor} rounded-lg shadow-lg p-4 max-w-sm`}
-      >
-        <div className="flex items-start gap-3">
-          <div className={`${iconColor} mt-0.5`}>
-            {type === "success" ? (
-              <FaCheck size={16} />
-            ) : (
-              <FaTimes size={16} />
-            )}
-          </div>
-          <div className="flex-1">
-            <p className={`font-medium ${textColor}`}>{message}</p>
-          </div>
-          <button
-            onClick={handleClose}
-            className={`${iconColor} hover:${
-              type === "success" ? "text-green-600" : "text-red-600"
-            } transition-colors ml-2`}
-            aria-label="Close notification"
-          >
-            <FaTimes size={16} />
-          </button>
-        </div>
-        <div
-          className={`mt-2 w-full ${progressColor} bg-opacity-30 h-1 rounded-full overflow-hidden`}
-        >
-          <div
-            className={`h-full ${progressColor} animate-progressBar`}
-            style={{ animationDuration: "4s" }}
-          ></div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // Helper functions for session management
 const SESSION_KEYS = {
@@ -148,6 +83,45 @@ const updateSessionActivity = (session) => {
   };
 };
 
+// Notification function using react-toastify with Apple-style design
+const showNotification = (message, type = "success") => {
+  const backgroundColor = "#FFFFFF";
+  const textColor = "#1C1C1E";
+  const iconColor = type === "success" ? "#34C759" : "#FF3B30";
+  const Icon = type === "success" ? MdCheckCircle : FaTimes;
+  
+  return toast(
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <Icon size={28} color={iconColor} />
+      <span style={{
+        fontWeight: 500,
+        fontSize: '16px',
+        color: textColor,
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      }}>
+        {message}
+      </span>
+    </div>,
+    {
+      position: "top-right",
+      autoClose: 2500,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      transition: Slide,
+      style: {
+        background: backgroundColor,
+        color: textColor,
+        borderRadius: "12px",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+        padding: "12px 20px",
+        minWidth: "240px"
+      }
+    }
+  );
+};
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -155,11 +129,6 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastType, setToastType] = useState("success");
-  const [isRedirecting, setIsRedirecting] = useState(false);
   const [isFromBooking, setIsFromBooking] = useState(false);
   const [bookingType, setBookingType] = useState(null);
   const [showGuestOption, setShowGuestOption] = useState(true);
@@ -389,10 +358,8 @@ const LoginPage = () => {
         setHasPendingBooking(true);
         console.log("Pending booking found:", type);
         
-        // Show toast message
-        setToastMessage("Continue with your booking");
-        setToastType("info");
-        setShowToast(true);
+        // Show notification
+        showNotification("Continue with your booking", "info");
       }
       
       // Pre-fill email if available from pending booking
@@ -453,10 +420,8 @@ const LoginPage = () => {
         
         localStorage.setItem(pendingBookingKey, JSON.stringify(updatedBooking));
         
-        // Show success message
-        setToastMessage(`✅ Guest session created! You can close and return anytime.`);
-        setToastType("success");
-        setShowToast(true);
+        // Show success notification
+        showNotification("Guest session created! You can close and return anytime.", "success");
         
         // Navigate to PAYMENT PAGE
         setTimeout(() => {
@@ -472,9 +437,7 @@ const LoginPage = () => {
         
       } catch (error) {
         console.error("Error processing guest booking:", error);
-        setToastMessage("❌ Error processing booking. Please try again.");
-        setToastType("error");
-        setShowToast(true);
+        showNotification("Error processing booking. Please try again.", "error");
       }
       
     } else {
@@ -494,9 +457,7 @@ const LoginPage = () => {
       
       localStorage.setItem(SESSION_KEYS.GUEST_SESSION, JSON.stringify(sessionData));
       
-      setToastMessage("✅ Continuing as guest - Enjoy browsing!");
-      setToastType("success");
-      setShowToast(true);
+      showNotification("Continuing as guest - Enjoy browsing!", "success");
       
       setTimeout(() => {
         if (window.history.length > 1) {
@@ -511,7 +472,6 @@ const LoginPage = () => {
   const onSubmit = async (data) => {
     try {
       setError("");
-      setSuccessMessage("");
       setIsLoading(true);
 
       // Clear any guest session when logging in properly
@@ -539,9 +499,7 @@ const LoginPage = () => {
 
       // Check if user is verified
       if (!userData.isVerified) {
-        setToastMessage("⚠️ Please verify your email before logging in.");
-        setToastType("error");
-        setShowToast(true);
+        showNotification("Please verify your email before logging in.", "error");
         
         setError(
           `Please verify your email before logging in. Check your inbox (${userData.email}) for the verification link.`
@@ -647,9 +605,7 @@ const LoginPage = () => {
           localStorage.removeItem(`pending${bookingType.charAt(0).toUpperCase() + bookingType.slice(1)}Booking`);
           localStorage.removeItem("pendingBooking");
           
-          setToastMessage("✅ Login successful! Redirecting to payment...");
-          setToastType("success");
-          setShowToast(true);
+          showNotification("Login successful! Redirecting to payment...", "success");
           
           // Navigate to PAYMENT PAGE, not confirmation
           setTimeout(() => {
@@ -666,9 +622,7 @@ const LoginPage = () => {
 
       // Regular login (not from booking)
       setIsLoading(false);
-      setToastMessage("✅ Login successful! Redirecting...");
-      setToastType("success");
-      setShowToast(true);
+      showNotification("Login successful! Redirecting...", "success");
 
       setTimeout(() => {
         navigate(location.state?.from || "/");
@@ -678,37 +632,35 @@ const LoginPage = () => {
       setIsLoading(false);
 
       let errorMessage = "";
-      let showErrorToast = false;
+      let showErrorNotification = false;
 
       if (error.response) {
         if (error.response.status === 401 || error.response.status === 400) {
           errorMessage = "Incorrect email or password. Please check and try again.";
-          showErrorToast = true;
+          showErrorNotification = true;
         } else if (error.response.status === 403) {
           errorMessage = "Please verify your email before logging in.";
-          showErrorToast = true;
+          showErrorNotification = true;
         } else if (error.response.status === 500) {
           errorMessage = "Incorrect email or password. Please check and try again.";
-          showErrorToast = true;
+          showErrorNotification = true;
         } else if (error.response.data?.message) {
           errorMessage = "Incorrect email or password. Please check and try again.";
-          showErrorToast = true;
+          showErrorNotification = true;
         }
       } else if (error.request) {
         errorMessage = "Incorrect email or password. Please check and try again.";
-        showErrorToast = true;
+        showErrorNotification = true;
       } else if (error.message === "Invalid login response format") {
         errorMessage = "Incorrect email or password. Please check and try again.";
-        showErrorToast = true;
+        showErrorNotification = true;
       } else {
         errorMessage = "Incorrect email or password. Please check and try again.";
-        showErrorToast = true;
+        showErrorNotification = true;
       }
 
-      if (showErrorToast) {
-        setToastMessage(`❌ ${errorMessage}`);
-        setToastType("error");
-        setShowToast(true);
+      if (showErrorNotification) {
+        showNotification(errorMessage, "error");
       }
 
       if (errorMessage.includes("verify your email")) {
@@ -782,20 +734,13 @@ const LoginPage = () => {
             )}
           </div>
         </div>
+        <ToastContainer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      {showToast && (
-        <LoginToastNotification
-          message={toastMessage}
-          type={toastType}
-          onClose={() => setShowToast(false)}
-        />
-      )}
-
       <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-2xl shadow-lg relative">
         <button
           onClick={handleCancel}
@@ -969,79 +914,7 @@ const LoginPage = () => {
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        @keyframes slideInRight {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-
-        @keyframes slideOutRight {
-          from {
-            transform: translateX(0);
-            opacity: 1;
-          }
-          to {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-        }
-
-        @keyframes progressBar {
-          from {
-            width: 100%;
-          }
-          to {
-            width: 0%;
-          }
-        }
-
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-
-        .animate-spin {
-          animation: spin 1s linear infinite;
-        }
-
-        .animate-slideInRight {
-          animation: slideInRight 0.3s ease-out forwards;
-        }
-
-        .animate-slideOutRight {
-          animation: slideOutRight 0.3s ease-in forwards;
-        }
-
-        .animate-progressBar {
-          animation: progressBar linear forwards;
-        }
-      `}</style>
+      <ToastContainer />
     </div>
   );
 };

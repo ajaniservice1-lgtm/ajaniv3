@@ -5,8 +5,11 @@ import { faStar } from "@fortawesome/free-solid-svg-icons";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import { useNavigate } from "react-router-dom";
-import { MdFavoriteBorder } from "react-icons/md";
+import { MdFavoriteBorder, MdCheckCircle } from "react-icons/md";
+import { ToastContainer, toast, Slide } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 import listingService from "../lib/listingService";
+
 // ---------------- API Service Functions ----------------
 const buildQueryString = (filters = {}) => {
   const params = new URLSearchParams();
@@ -234,6 +237,58 @@ const getBusinessName = (item) => {
   }
 };
 
+// ---------------- Notification Function ----------------
+const showNotification = (message, businessName = "", type = "success") => {
+  const backgroundColor = "#FFFFFF";
+  const textColor = "#1C1C1E";
+  const iconColor = type === "success" ? "#34C759" : "#FF3B30";
+  const Icon = type === "success" ? MdCheckCircle : MdCheckCircle; // Use check icon for both for consistency
+  
+  return toast(
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <Icon size={28} color={iconColor} />
+      <div>
+        <span style={{
+          fontWeight: 500,
+          fontSize: '16px',
+          color: textColor,
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        }}>
+          {message}
+        </span>
+        {businessName && (
+          <div style={{
+            fontSize: '14px',
+            color: '#8E8E93',
+            marginTop: '4px',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+          }}>
+            {businessName}
+          </div>
+        )}
+      </div>
+    </div>,
+    {
+      position: "top-right",
+      autoClose: 2500,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      transition: Slide,
+      style: {
+        background: backgroundColor,
+        color: textColor,
+        borderRadius: "12px",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+        padding: "16px 20px",
+        minWidth: "280px",
+        maxWidth: "350px"
+      }
+    }
+  );
+};
+
 // ---------------- Custom Hooks ----------------
 const useIsFavorite = (itemId) => {
   const [isFavorite, setIsFavorite] = useState(false);
@@ -407,55 +462,6 @@ const BusinessCard = ({ item, category, isMobile }) => {
     }
   };
 
-  const showToast = useCallback((message, type = "success") => {
-    const existingToast = document.getElementById("toast-notification");
-    if (existingToast) existingToast.remove();
-
-    const toast = document.createElement("div");
-    toast.id = "toast-notification";
-    toast.className = `fixed z-[9999] px-4 py-3 rounded-lg shadow-sm border ${
-      type === "success" ? "bg-gray-100 border-gray-100 text-gray-900" : "bg-gray-100 border-gray-100 text-gray-900"
-    }`;
-
-    toast.style.top = "15px";
-    toast.style.right = "15px";
-    toast.style.left = "15px";
-    toast.style.maxWidth = "calc(100% - 30px)";
-    toast.style.animation = "slideInRight 0.3s ease-out forwards";
-
-    toast.innerHTML = `
-      <div class="flex items-start gap-3">
-        <div class="${type === "success" ? "text-green-600" : "text-blue-600"} mt-0.5">
-          ${
-            type === "success"
-              ? '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>'
-              : '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>'
-          }
-        </div>
-        <div class="flex-1">
-          <p class="font-medium">${message}</p>
-          <p class="text-sm opacity-80 mt-1">${businessName}</p>
-        </div>
-        <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70 transition-opacity">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-          </svg>
-        </button>
-      </div>
-    `;
-
-    document.body.appendChild(toast);
-
-    setTimeout(() => {
-      if (toast.parentElement) {
-        toast.style.animation = "slideOutRight 0.3s ease-in forwards";
-        setTimeout(() => {
-          if (toast.parentElement) toast.remove();
-        }, 300);
-      }
-    }, 3000);
-  }, [businessName]);
-
   const handleFavoriteClick = useCallback(async (e) => {
     e.stopPropagation();
     if (isProcessing) return;
@@ -463,7 +469,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
 
     try {
       if (!isAuthenticated) {
-        showToast("Please login to save listings", "info");
+        showNotification("Please login to save listings", businessName, "info");
         localStorage.setItem("redirectAfterLogin", window.location.pathname);
 
         const itemToSaveAfterLogin = {
@@ -494,7 +500,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
       if (isAlreadySaved) {
         const updated = saved.filter(savedItem => savedItem.id !== itemId);
         localStorage.setItem("userSavedListings", JSON.stringify(updated));
-        showToast("Removed from saved listings", "info");
+        showNotification("Removed from saved listings", businessName, "info");
 
         window.dispatchEvent(new CustomEvent("savedListingsUpdated", {
           detail: { action: "removed", itemId: itemId },
@@ -515,18 +521,18 @@ const BusinessCard = ({ item, category, isMobile }) => {
 
         const updated = [...saved, listingToSave];
         localStorage.setItem("userSavedListings", JSON.stringify(updated));
-        showToast("Added to saved listings!", "success");
+        showNotification("Added to saved listings!", businessName, "success");
 
         window.dispatchEvent(new CustomEvent("savedListingsUpdated", {
           detail: { action: "added", item: listingToSave },
         }));
       }
     } catch (error) {
-      showToast("Something went wrong. Please try again.", "info");
+      showNotification("Something went wrong. Please try again.", businessName, "info");
     } finally {
       setIsProcessing(false);
     }
-  }, [isProcessing, item, businessName, priceText, rating, images, category, locationText, showToast, navigate, isAuthenticated]);
+  }, [isProcessing, item, businessName, priceText, rating, images, category, locationText, navigate, isAuthenticated]);
 
   return (
     <div
@@ -802,73 +808,68 @@ const Directory = () => {
   if (initialLoading) return <SkeletonDirectory isMobile={isMobile} />;
 
   return (
-    <section id="directory" className="bg-white font-manrope lg:max-w-7xl lg:mx-auto ml-3">
-      <div className={`${isMobile ? "py-0" : "py-8"}`}>
-        {isMobile ? (
-          <div className="w-full" style={{ paddingLeft: "0", paddingRight: "0" }}>
-            <motion.div ref={headerRef} initial={{ opacity: 0, y: 20 }} animate={headerInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, ease: "easeOut" }} className="mb-4">
-              <h1 className="text-lg font-bold md:mb-2 text-[#00065A]">Explore Categories</h1>
-              <p className="text-xs text-gray-600 ">Find the best places and services in Ibadan</p>
-            </motion.div>
+    <>
+      <section id="directory" className="bg-white font-manrope lg:max-w-7xl lg:mx-auto ml-3">
+        <div className={`${isMobile ? "py-0" : "py-8"}`}>
+          {isMobile ? (
+            <div className="w-full" style={{ paddingLeft: "0", paddingRight: "0" }}>
+              <motion.div ref={headerRef} initial={{ opacity: 0, y: 20 }} animate={headerInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, ease: "easeOut" }} className="mb-4">
+                <h1 className="text-lg font-bold md:mb-2 text-[#00065A]">Explore Categories</h1>
+                <p className="text-xs text-gray-600 ">Find the best places and services in Ibadan</p>
+              </motion.div>
 
-            <div className="space-y-6">
-              {categories.map(({ key, name }) => {
-                const { listings, loading, error } = categoryData[key];
-                const title = `Popular ${name} in Ibadan`;
-                return (
-                  <CategorySection 
-                    key={key} 
-                    title={title} 
-                    items={listings} 
-                    category={key} 
-                    isMobile={isMobile} 
-                    loading={loading} 
-                    error={error} 
-                  />
-                );
-              })}
+              <div className="space-y-6">
+                {categories.map(({ key, name }) => {
+                  const { listings, loading, error } = categoryData[key];
+                  const title = `Popular ${name} in Ibadan`;
+                  return (
+                    <CategorySection 
+                      key={key} 
+                      title={title} 
+                      items={listings} 
+                      category={key} 
+                      isMobile={isMobile} 
+                      loading={loading} 
+                      error={error} 
+                    />
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="max-w-[1800px] mx-auto" style={{ paddingLeft: "0", paddingRight: "0" }}>
-            <motion.div ref={headerRef} initial={{ opacity: 0, y: 20 }} animate={headerInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, ease: "easeOut" }} className="mb-6">
-              <h1 className="text-xl font-semibold text-gray-900 md:text-start">Explore Categories</h1>
-              <p className="text-gray-600 md:text-[15px] md:text-start text-[13.5px]">Find the best places and services in Ibadan</p>
-            </motion.div>
+          ) : (
+            <div className="max-w-[1800px] mx-auto" style={{ paddingLeft: "0", paddingRight: "0" }}>
+              <motion.div ref={headerRef} initial={{ opacity: 0, y: 20 }} animate={headerInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, ease: "easeOut" }} className="mb-6">
+                <h1 className="text-xl font-semibold text-gray-900 md:text-start">Explore Categories</h1>
+                <p className="text-gray-600 md:text-[15px] md:text-start text-[13.5px]">Find the best places and services in Ibadan</p>
+              </motion.div>
 
-            <div className="space-y-6">
-              {categories.map(({ key, name }) => {
-                const { listings, loading, error } = categoryData[key];
-                const title = `Popular ${name} in Ibadan`;
-                return (
-                  <CategorySection 
-                    key={key} 
-                    title={title} 
-                    items={listings} 
-                    category={key} 
-                    isMobile={isMobile} 
-                    loading={loading} 
-                    error={error} 
-                  />
-                );
-              })}
+              <div className="space-y-6">
+                {categories.map(({ key, name }) => {
+                  const { listings, loading, error } = categoryData[key];
+                  const title = `Popular ${name} in Ibadan`;
+                  return (
+                    <CategorySection 
+                      key={key} 
+                      title={title} 
+                      items={listings} 
+                      category={key} 
+                      isMobile={isMobile} 
+                      loading={loading} 
+                      error={error} 
+                    />
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
-    </section>
+          )}
+        </div>
+      </section>
+      <ToastContainer />
+    </>
   );
 };
 
 const styles = `
-@keyframes slideInRight {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-@keyframes slideOutRight {
-  from { transform: translateX(0); opacity: 1; }
-  to { transform: translateX(100%); opacity: 0; }
-}
 .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
