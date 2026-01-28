@@ -35,7 +35,6 @@ import {
 import { motion } from "framer-motion";
 import { PiSliders } from "react-icons/pi";
 import { MdFavoriteBorder } from "react-icons/md";
-import { FaLessThan, FaGreaterThan } from "react-icons/fa";
 import { FaUserCircle } from "react-icons/fa";
 import Header from "./Header";
 import Footer from "./Footer";
@@ -122,6 +121,78 @@ const getCategorySlug = (category) => {
   };
   
   return categoryMap[category] || createSlug(category);
+};
+
+/* ---------------- UNIFIED LOADING COMPONENT ================== */
+const UnifiedLoadingScreen = ({ isMobile = false, category = null }) => {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex flex-col items-center max-w-sm mx-auto px-4">
+        <div className="relative mb-6">
+          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-[#06EAFC]/10 rounded-full`}></div>
+          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-transparent border-t-[#06EAFC] rounded-full absolute top-0 left-0 animate-spin`}></div>
+        </div>
+        
+        <div className="text-center">
+          <h3 className={`font-bold text-gray-900 ${isMobile ? 'text-lg' : 'text-xl'} mb-2`}>
+            {category ? `Loading ${category}...` : "Loading Results"}
+          </h3>
+          <p className={`text-gray-600 ${isMobile ? 'text-sm' : 'text-base'} mb-4`}>
+            {isMobile 
+              ? "Loading results please wait..." 
+              : "Please wait while we fetch the best listings for you"
+            }
+          </p>
+        </div>
+        
+        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-4">
+          <div className="bg-gradient-to-r from-[#06EAFC] to-[#00E38C] h-1.5 rounded-full animate-pulse" style={{ width: '70%' }}></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ---------------- CATEGORY SWITCH LOADER ================== */
+const CategorySwitchLoader = ({ isMobile = false, previousCategory = '', newCategory = '' }) => {
+  return (
+    <div 
+      className={`fixed inset-0 z-[99999] flex items-center justify-center transition-all duration-300 ${
+        isMobile ? 'bg-white/95' : 'bg-white/90 backdrop-blur-sm'
+      }`}
+      style={{
+        pointerEvents: 'all',
+        animation: 'fadeIn 0.3s ease-out'
+      }}
+    >
+      <div className={`flex flex-col items-center justify-center ${isMobile ? 'p-4' : 'p-6'}`}>
+        <div className="relative mb-6">
+          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-[#06EAFC]/10 rounded-full`}></div>
+          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-transparent border-t-[#06EAFC] rounded-full absolute top-0 left-0 animate-spin`}></div>
+        </div>
+        
+        <div className="text-center max-w-sm">
+          <p className={`font-bold text-gray-900 ${isMobile ? 'text-base' : 'text-xl'} mb-2`}>
+            Switching Categories
+          </p>
+          <div className={`flex items-center justify-center gap-2 ${isMobile ? 'text-sm' : 'text-base'} text-gray-600 mb-4`}>
+            {previousCategory && (
+              <>
+                <span className="px-3 py-1 bg-gray-100 rounded-lg">{previousCategory}</span>
+                <FontAwesomeIcon icon={faChevronRight} className="text-[#06EAFC]" />
+              </>
+            )}
+            {newCategory && (
+              <span className="px-3 py-1 bg-[#06EAFC]/10 text-[#06EAFC] font-medium rounded-lg">{newCategory}</span>
+            )}
+          </div>
+          <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+            Loading new listings...
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 /* ---------------- UPDATED BACKEND HOOK - NO AUTO-SEARCH ON TYPING ---------------- */
@@ -371,7 +442,6 @@ const getLocationDisplayName = (location) => {
     'sango': 'Sango',
     'ui': 'UI',
     'poly': 'Poly',
-
     'agodi': 'Agodi',
     'jericho': 'Jericho',
     'gbagi': 'Gbagi',
@@ -1054,12 +1124,12 @@ const FilterSidebar = ({
   isMobile,
   onClearSearchQuery,
   onClearLocationFilters,
-  category, // Added: current category for URL
-  searchQuery, // Added: current search query for URL
-  checkInDate, // Added: for URL
-  checkOutDate, // Added: for URL
-  guests, // Added: for URL
-  navigate, // Added: for URL navigation
+  category,
+  searchQuery,
+  checkInDate,
+  checkOutDate,
+  guests,
+  navigate,
 }) => {
   const [localFilters, setLocalFilters] = useState(
     currentFilters || {
@@ -1080,7 +1150,7 @@ const FilterSidebar = ({
   const [locationSearch, setLocationSearch] = useState("");
   const locationSearchRef = useRef(null);
 
-  // Use ALL Ibadan locations (not just from current filtered results)
+  // Use ALL Ibadan locations
   const allIbadanLocations = React.useMemo(() => {
     const locations = [
       'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly',  'Agodi',
@@ -1091,7 +1161,6 @@ const FilterSidebar = ({
       ...(allLocations || []).map(loc => getLocationDisplayName(loc))
     ];
     
-    // Remove duplicates and sort
     return [...new Set(locations)].sort();
   }, [allLocations]);
 
@@ -1116,35 +1185,27 @@ const FilterSidebar = ({
     }
   }, [currentFilters, isInitialized]);
 
-  // Function to update URL with filters
   const updateUrlWithFilters = (filters) => {
     if (!navigate || !category) return;
     
     const params = new URLSearchParams();
     
-    // Add category
     params.set("cat", category);
     
-    // Add dates
     if (checkInDate) params.set("checkInDate", checkInDate.toISOString());
     if (checkOutDate) params.set("checkOutDate", checkOutDate.toISOString());
     
-    // Add guests
     if (guests) params.set("guests", JSON.stringify(guests));
     
-    // Add search query if present
     if (searchQuery && searchQuery.trim()) {
       params.set("q", searchQuery.trim());
     }
     
-    // Add location filters
     if (filters.locations && filters.locations.length > 0) {
       params.set("location", filters.locations[0]);
-      // Remove search query when using location filter
       params.delete("q");
     }
     
-    // Add price filters
     if (filters.priceRange?.min) {
       params.set("minPrice", filters.priceRange.min);
     }
@@ -1152,25 +1213,20 @@ const FilterSidebar = ({
       params.set("maxPrice", filters.priceRange.max);
     }
     
-    // Add rating filters
     if (filters.ratings && filters.ratings.length > 0) {
       params.set("minRating", Math.min(...filters.ratings));
     }
     
-    // Add sort
     if (filters.sortBy && filters.sortBy !== 'relevance') {
       params.set("sort", filters.sortBy);
     }
     
-    // Determine the URL path
     const categorySlug = getCategorySlug(category);
     let locationSlug = null;
     
-    // If we have a location filter, use it for the slug
     if (filters.locations && filters.locations.length > 0) {
       locationSlug = createSlug(filters.locations[0]);
     }
-    // Otherwise, if we have a search query that looks like a location, use it
     else if (searchQuery && looksLikeLocation(searchQuery)) {
       locationSlug = createSlug(searchQuery);
     }
@@ -1196,48 +1252,42 @@ const FilterSidebar = ({
   const handleLocationSearch = (value) => {
     setLocationSearch(value);
     
-    // Clear any existing location filters when user starts typing
     if (value.trim() && localFilters.locations.length > 0) {
       const updatedFilters = {
         ...localFilters,
-        locations: [], // Clear location filters
+        locations: [],
       };
       setLocalFilters(updatedFilters);
       onFilterChange(updatedFilters);
       updateUrlWithFilters(updatedFilters);
     }
     
-    // Clear search query when user types in location filter
     if (onClearSearchQuery && value.trim()) {
       onClearSearchQuery();
     }
     
-    // Clear location filters from parent when typing in location filter
     if (onClearLocationFilters && value.trim()) {
       onClearLocationFilters();
     }
   };
 
   const handleLocationChange = (location) => {
-    // Clear search query when selecting location from filters
     if (onClearSearchQuery) {
       onClearSearchQuery();
     }
     
-    // Clear location filters from parent
     if (onClearLocationFilters) {
       onClearLocationFilters();
     }
     
     const updatedFilters = {
       ...localFilters,
-      locations: [location], // Only select one location at a time
+      locations: [location],
     };
     setLocalFilters(updatedFilters);
     onFilterChange(updatedFilters);
     updateUrlWithFilters(updatedFilters);
     
-    // If this is in a modal, close it
     if (isMobileModal || isDesktopModal) {
       onClose();
     }
@@ -1265,7 +1315,6 @@ const FilterSidebar = ({
     };
     setLocalFilters(updatedFilters);
     
-    // Debounce the URL update for price changes
     const timeoutId = setTimeout(() => {
       onFilterChange(updatedFilters);
       updateUrlWithFilters(updatedFilters);
@@ -1285,12 +1334,10 @@ const FilterSidebar = ({
   };
 
   const handleSelectAllLocations = () => {
-    // Clear search query when selecting all locations
     if (onClearSearchQuery) {
       onClearSearchQuery();
     }
     
-    // Clear location filters from parent
     if (onClearLocationFilters) {
       onClearLocationFilters();
     }
@@ -1308,7 +1355,6 @@ const FilterSidebar = ({
   };
 
   const handleApplyFilters = () => {
-    // Clear search query when applying filters
     if (onClearSearchQuery) {
       onClearSearchQuery();
     }
@@ -1333,17 +1379,14 @@ const FilterSidebar = ({
     setLocalFilters(resetFilters);
     onFilterChange(resetFilters);
     
-    // Clear search query
     if (onClearSearchQuery) {
       onClearSearchQuery();
     }
     
-    // Clear location filters
     if (onClearLocationFilters) {
       onClearLocationFilters();
     }
     
-    // Update URL with cleared filters
     updateUrlWithFilters(resetFilters);
   };
 
@@ -1849,79 +1892,7 @@ const FilterSidebar = ({
   );
 };
 
-/* ================== UNIFIED LOADING COMPONENT ================== */
-const UnifiedLoadingScreen = ({ isMobile = false, category = null }) => {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="flex flex-col items-center max-w-sm mx-auto px-4">
-        <div className="relative mb-6">
-          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-[#06EAFC]/10 rounded-full`}></div>
-          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-transparent border-t-[#06EAFC] rounded-full absolute top-0 left-0 animate-spin`}></div>
-        </div>
-        
-        <div className="text-center">
-          <h3 className={`font-bold text-gray-900 ${isMobile ? 'text-lg' : 'text-xl'} mb-2`}>
-            {category ? `Loading ${category}...` : "Loading Results"}
-          </h3>
-          <p className={`text-gray-600 ${isMobile ? 'text-sm' : 'text-base'} mb-4`}>
-            {isMobile 
-              ? "Loading results please wait..." 
-              : "Please wait while we fetch the best listings for you"
-            }
-          </p>
-        </div>
-        
-        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-4">
-          <div className="bg-gradient-to-r from-[#06EAFC] to-[#00E38C] h-1.5 rounded-full animate-pulse" style={{ width: '70%' }}></div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/* ================== CATEGORY SWITCH LOADER ================== */
-const CategorySwitchLoader = ({ isMobile = false, previousCategory = '', newCategory = '' }) => {
-  return (
-    <div 
-      className={`fixed inset-0 z-[99999] flex items-center justify-center transition-all duration-300 ${
-        isMobile ? 'bg-white/95' : 'bg-white/90 backdrop-blur-sm'
-      }`}
-      style={{
-        pointerEvents: 'all',
-        animation: 'fadeIn 0.3s ease-out'
-      }}
-    >
-      <div className={`flex flex-col items-center justify-center ${isMobile ? 'p-4' : 'p-6'}`}>
-        <div className="relative mb-6">
-          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-[#06EAFC]/10 rounded-full`}></div>
-          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-transparent border-t-[#06EAFC] rounded-full absolute top-0 left-0 animate-spin`}></div>
-        </div>
-        
-        <div className="text-center max-w-sm">
-          <p className={`font-bold text-gray-900 ${isMobile ? 'text-base' : 'text-xl'} mb-2`}>
-            Switching Categories
-          </p>
-          <div className={`flex items-center justify-center gap-2 ${isMobile ? 'text-sm' : 'text-base'} text-gray-600 mb-4`}>
-            {previousCategory && (
-              <>
-                <span className="px-3 py-1 bg-gray-100 rounded-lg">{previousCategory}</span>
-                <FontAwesomeIcon icon={faChevronRight} className="text-[#06EAFC]" />
-              </>
-            )}
-            {newCategory && (
-              <span className="px-3 py-1 bg-[#06EAFC]/10 text-[#06EAFC] font-medium rounded-lg">{newCategory}</span>
-            )}
-          </div>
-          <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-            Loading new listings...
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/* ================== DESKTOP SEARCH SUGGESTIONS - PASTE EXACT TEXT ON CLICK ================== */
+/* ================== DESKTOP SEARCH SUGGESTIONS ================== */
 const DesktopSearchSuggestions = ({
   searchQuery,
   allLocations = [],
@@ -1943,7 +1914,6 @@ const DesktopSearchSuggestions = ({
     const queryLower = searchQuery.toLowerCase().trim();
     const suggestions = [];
     
-    // GET ALL POSSIBLE IBADAN LOCATIONS (not just from current listings)
     const allIbadanLocations = [
       'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly', 'Agodi',
       'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
@@ -1953,7 +1923,6 @@ const DesktopSearchSuggestions = ({
       ...allLocations.map(loc => getLocationDisplayName(loc))
     ];
     
-    // Remove duplicates and sort
     const uniqueLocations = [...new Set(allIbadanLocations)].sort();
     
     const locationMatches = uniqueLocations
@@ -2134,7 +2103,6 @@ const DesktopSearchSuggestions = ({
                           >
                             Paste to Search
                           </button>
-                        
                         </div>
                       </div>
                     </div>
@@ -2154,7 +2122,7 @@ const DesktopSearchSuggestions = ({
   );
 };
 
-/* ================== MOBILE SEARCH MODAL FOR SEARCH RESULTS - WITH PASTE FUNCTIONALITY ================== */
+/* ================== MOBILE SEARCH MODAL ================== */
 const MobileSearchModalResults = ({
   searchQuery,
   allLocations = [],
@@ -2172,7 +2140,6 @@ const MobileSearchModalResults = ({
   const modalRef = useRef(null);
   const inputRef = useRef(null);
   
-  // Use ALL Ibadan locations
   const allIbadanLocations = useMemo(() => {
     const allLocationsList = [
       'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI',  'Agodi',
@@ -2412,7 +2379,6 @@ const MobileSearchModalResults = ({
                             >
                               Paste to Search
                             </button>
-                          
                           </div>
                         </div>
                       </div>
@@ -2613,7 +2579,6 @@ const SearchResults = () => {
   const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
   const [editingDateType, setEditingDateType] = useState(null);
   
-  // Track if we're using initial Hero values
   const [isUsingInitialState, setIsUsingInitialState] = useState({
     location: true,
     category: true,
@@ -2626,14 +2591,12 @@ const SearchResults = () => {
   const searchInputRef = useRef(null);
   const searchDebounceRef = useRef(null);
 
-  // Add state to control when to fetch data
   const [shouldFetchData, setShouldFetchData] = useState(true);
 
   const checkInDate = checkInDateParam ? new Date(checkInDateParam) : new Date();
   const checkOutDate = checkOutDateParam ? new Date(checkOutDateParam) : new Date(new Date().setDate(new Date().getDate() + 1));
   const guests = guestsParam ? JSON.parse(guestsParam) : { adults: 2, children: 0, rooms: 1 };
 
-  // Pass shouldFetchData to prevent auto-fetching while typing
   const { listings, loading, error, apiResponse, filteredCounts, allLocations } = useBackendListings(
     localSearchQuery, 
     activeFilters,
@@ -3423,23 +3386,82 @@ const SearchResults = () => {
     setShowEditGuestSelector(false);
   };
 
-  // Don't show loader while typing
-  const showLoader = loading && shouldFetchData && !isSwitchingCategory;
-
-  if (showLoader) {
+  // ================== UPDATED ERROR HANDLING ==================
+  // Loading state for all screen sizes
+  if (loading && shouldFetchData && !isSwitchingCategory) {
     return <UnifiedLoadingScreen isMobile={isMobile} category={finalCategory} />;
   }
 
+  // Error state - same UI as category page
   if (error) {
+    const isNetworkError = error?.includes?.('timeout') || 
+                           error?.includes?.('Network Error') || 
+                           error?.includes?.('Failed to load');
+    const errorMessage = isNetworkError 
+      ? "Unable to load the search results. The request took too long to complete."
+      : "The search results could not be loaded. Please try again.";
+
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="hidden md:block">
-          <Header />
-        </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 pt-32">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-            <p className="text-red-700 font-medium text-sm">{error}</p>
-            <p className="text-red-600 text-xs mt-1">Backend API Error</p>
+      <div className="min-h-screen">
+        <Header />
+        <div className="flex flex-col mt-16 items-center justify-center min-h-[60vh] px-4">
+          {/* Error Icon/Graphic */}
+          <div className="mb-6 p-4 rounded-full bg-red-50 border border-red-100">
+            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+              <svg 
+                className="w-8 h-8 text-red-500" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z" 
+                />
+              </svg>
+            </div>
+          </div>
+          
+          {/* Error Title */}
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 font-manrope">
+            {isNetworkError ? "Resource Loading Error" : "Search Results Error"}
+          </h1>
+          
+          {/* Error Description */}
+          <p className="text-gray-600 text-center mb-6 max-w-md font-manrope">
+            {errorMessage}
+            {isNetworkError && (
+              <span className="block text-xs text-gray-500 mt-2">
+                timeout of 5000ms exceeded
+              </span>
+            )}
+          </p>
+          
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Refresh Button */}
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors cursor-pointer font-medium flex items-center gap-2"
+            >
+              <svg 
+                className="w-4 h-4" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
+                />
+              </svg>
+              Refresh Page
+            </button>
+          
           </div>
         </div>
         <Footer />
@@ -3518,11 +3540,9 @@ const SearchResults = () => {
                                         onChange={(e) => {
                                           const value = e.target.value;
                                           handleSearchChange(value);
-                                          // Only update query, don't trigger search
                                           if (searchDebounceRef.current) {
                                             clearTimeout(searchDebounceRef.current);
                                           }
-                                          // Show suggestions as user types
                                           if (!isMobile && value.trim().length > 0) {
                                             setShowSuggestions(true);
                                           } else {
@@ -3538,7 +3558,6 @@ const SearchResults = () => {
                                         <button
                                           onClick={() => {
                                             handleClearSearch();
-                                            // Also mark that we're clearing initial search
                                             setIsUsingInitialState(prev => ({
                                               ...prev,
                                               search: false
@@ -3603,7 +3622,7 @@ const SearchResults = () => {
           </div>
         </div>
 
-        {/* Desktop Search Suggestions with Paste Functionality */}
+        {/* Desktop Search Suggestions */}
         {!isMobile && (
           <DesktopSearchSuggestions
             searchQuery={localSearchQuery}
@@ -3685,7 +3704,7 @@ const SearchResults = () => {
           />
         )}
 
-        {/* Mobile Search Modal with Paste Functionality */}
+        {/* Mobile Search Modal */}
         {isMobile && showMobileSearchModal && (
           <MobileSearchModalResults
             searchQuery={localSearchQuery}
@@ -3889,7 +3908,6 @@ const SearchResults = () => {
                   <div className="mt-4 text-sm text-gray-600">
                     <p>Searching for: {finalCategory !== "All Categories" ? finalCategory : "All categories"}</p>
                     <p>Location: {activeFilters.locations[0] || localSearchQuery || "All locations"}</p>
-                   
                   </div>
                 </div>
               ) : (

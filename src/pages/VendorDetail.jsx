@@ -56,6 +56,8 @@ import Footer from "../components/Footer";
 import RoomSelection from "../components/RoomSelection";
 import listingService from "../lib/listingService";
 import clsx from "clsx";
+import { motion, AnimatePresence } from "framer-motion";
+import { IoClose } from "react-icons/io5";
 
 // Fallback images for different categories
 const FALLBACK_IMAGES = {
@@ -87,6 +89,15 @@ const safeToString = (value, defaultValue = '') => {
     }
   }
   return defaultValue;
+};
+
+// Helper: format date like "May 29"
+const formatDate = (date) => {
+  if (!date) return "Select date";
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
 };
 
 // Normalize category function
@@ -604,14 +615,14 @@ function Counter({ label, sub, value, setValue, min = 0 }) {
       <div className="flex items-center gap-3">
         <button
           onClick={() => setValue(Math.max(min, value - 1))}
-          className="w-8 h-8 rounded-full border"
+          className="w-8 h-8 rounded-full border cursor-pointer"
         >
           −
         </button>
         <span className="w-5 text-center">{value}</span>
         <button
           onClick={() => setValue(value + 1)}
-          className="w-8 h-8 rounded-full border"
+          className="w-8 h-8 rounded-full border cursor-pointer"
         >
           +
         </button>
@@ -656,12 +667,25 @@ const VendorDetail = () => {
   const [children, setChildren] = useState(0);
   const [rooms, setRooms] = useState(1);
   
+  // Bottom sheet state
+  const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
+  
   const totalGuests = adults + children;
   
   const isAuthenticated = useAuthStatus();
 
   // Ref for room selection section
   const roomSelectionRef = useRef(null);
+
+  // Initialize dates
+  useEffect(() => {
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+    
+    if (!checkIn) setCheckIn(today);
+    if (!checkOut) setCheckOut(tomorrow);
+  }, []);
 
   // Reviews data
   const initialReviews = [
@@ -1058,6 +1082,44 @@ const VendorDetail = () => {
       });
   };
 
+  // Calculate price for display
+  const calculatePrice = () => {
+    if (!vendor) return 0;
+    
+    const category = normalizeCategory(vendor.category);
+    
+    if (category === 'hotel') {
+      // Use selected room price if available
+      if (selectedRoom && selectedRoom.selectedOption) {
+        return selectedRoom.selectedOption.price || 0;
+      }
+      // Fallback to vendor price
+      const price = vendor.price || vendor.details?.pricePerNight || vendor.price_from;
+      return parseFloat(safeToString(price, "66"));
+    }
+    
+    // For non-hotels, use base price
+    const price = vendor.price || vendor.details?.pricePerNight || vendor.price_from;
+    return parseFloat(safeToString(price, "66"));
+  };
+
+  // Calculate number of nights
+  const calculateNights = () => {
+    if (!checkIn || !checkOut) return 1;
+    const diffTime = Math.abs(checkOut - checkIn);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays || 1;
+  };
+
+  // Calculate total price
+  const calculateTotalPrice = () => {
+    const price = calculatePrice();
+    const nights = calculateNights();
+    const subtotal = price * nights;
+    const serviceFee = subtotal * 0.1; // 10% service fee
+    return subtotal + serviceFee;
+  };
+
   // Main booking click handler
   const handleBookingClick = () => {
     const currentCategory = normalizeCategory(vendor?.category);
@@ -1122,7 +1184,8 @@ const VendorDetail = () => {
       adults: adults,
       children: children,
       rooms: rooms,
-      totalGuests: totalGuests
+      totalGuests: totalGuests,
+      totalPrice: calculateTotalPrice()
     };
     
     console.log("Booking vendor data prepared:", vendorBookingData);
@@ -1138,6 +1201,56 @@ const VendorDetail = () => {
         category: currentCategory
       } 
     });
+  };
+
+  // Handle book now from bottom bar
+  const handleBookNowClick = () => {
+    const category = normalizeCategory(vendor?.category);
+    
+    if (category === 'hotel') {
+      // For hotels, check if room is selected
+      if (!selectedRoom && vendor.details?.roomTypes?.length > 0) {
+        // No room selected, scroll to room selection
+        if (roomSelectionRef.current) {
+          roomSelectionRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+          
+          // Add highlight effect
+          roomSelectionRef.current.classList.add('highlight-section');
+          setTimeout(() => {
+            if (roomSelectionRef.current) {
+              roomSelectionRef.current.classList.remove('highlight-section');
+            }
+          }, 1500);
+          
+          showToast("Please select a room first", "info");
+        }
+        setBottomSheetOpen(false);
+        return;
+      }
+    }
+    
+    // If room is selected or not a hotel, proceed with booking
+    handleBookingClick();
+    setBottomSheetOpen(false);
+  };
+
+  // Open calendar from bottom sheet
+  const openCalendarFromSheet = () => {
+    setBottomSheetOpen(false);
+    setTimeout(() => {
+      setOpenCalendar(true);
+    }, 300);
+  };
+
+  // Open guests from bottom sheet
+  const openGuestsFromSheet = () => {
+    setBottomSheetOpen(false);
+    setTimeout(() => {
+      setOpenGuests(true);
+    }, 300);
   };
 
   // Get features for Key Features section (from room selection modal - AMENITIES)
@@ -1275,6 +1388,18 @@ const VendorDetail = () => {
       day: "numeric",
       year: "numeric"
     });
+  };
+
+  // Handle date change from bottom sheet
+  const handleDateChange = () => {
+    const newCheckIn = new Date(checkIn);
+    newCheckIn.setDate(newCheckIn.getDate() + 1);
+
+    const newCheckOut = new Date(newCheckIn);
+    newCheckOut.setDate(newCheckOut.getDate() + 1);
+
+    setCheckIn(newCheckIn);
+    setCheckOut(newCheckOut);
   };
 
   if (loading) {
@@ -1448,6 +1573,24 @@ const VendorDetail = () => {
           }
         }
         
+        @keyframes slideUp {
+          from {
+            transform: translateY(100%);
+          }
+          to {
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        
         .highlight-section {
           animation: highlightPulse 1.5s ease-in-out;
           border-radius: 1rem;
@@ -1507,6 +1650,14 @@ const VendorDetail = () => {
           main {
             padding-bottom: 0;
           }
+        }
+        
+        .bottom-sheet-backdrop {
+          animation: fadeIn 0.2s ease-out;
+        }
+        
+        .bottom-sheet-content {
+          animation: slideUp 0.3s ease-out;
         }
       `}</style>
       
@@ -1796,7 +1947,7 @@ const VendorDetail = () => {
                       onClick={() => setCurrentImageIndex(index)}
                       className={`relative rounded overflow-hidden border-2 transition-all duration-200 cursor-pointer ${
                         currentImageIndex === index
-                          ? "border-[#06EAFC] shadow-sm"
+                          ? "border-[#06f49f] shadow-sm"
                           : "border-gray-200 hover:border-gray-300"
                       }`}
                     >
@@ -1818,7 +1969,7 @@ const VendorDetail = () => {
                   <div className="mt-1.5 text-center">
                     <button
                       onClick={() => handleOpenGallery(0)}
-                      className="text-[#06EAFC] text-xs font-medium flex items-center justify-center gap-1 mx-auto hover:text-[#05d9eb] transition-colors cursor-pointer"
+                      className="text-[#06f49f] text-xs font-medium flex items-center justify-center gap-1 mx-auto hover:text-[#05d9eb] transition-colors cursor-pointer"
                     >
                       <span>View all {galleryImages.length} photos</span>
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1899,7 +2050,7 @@ const VendorDetail = () => {
                   <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-110 ${
                     category === 'hotel' && !selectedRoom 
                       ? 'bg-gradient-to-br from-gray-400 to-gray-500 cursor-not-allowed' 
-                      : 'bg-[#6cff]'
+                      : 'bg-[#06f49f]'
                   }`}>
                     <FaBookOpen className="text-white text-lg" />
                   </div>
@@ -2194,7 +2345,7 @@ const VendorDetail = () => {
                 </div>
                 <button
                   onClick={() => setOpenCalendar(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
                 >
                   <FontAwesomeIcon icon={faTimes} className="text-gray-500" />
                 </button>
@@ -2243,7 +2394,7 @@ const VendorDetail = () => {
                 <p className="text-lg md:text-xl font-semibold">Guests & Rooms</p>
                 <button
                   onClick={() => setOpenGuests(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
                 >
                   <FontAwesomeIcon icon={faTimes} className="text-gray-500" />
                 </button>
@@ -2264,62 +2415,244 @@ const VendorDetail = () => {
         )}
       </main>
       
-      {/* ================= FIXED BOTTOM ACTION BAR ================= */}
-      {/* Floating Action Bar - Fixed at Bottom like Airbnb */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.1)] md:hidden">
-        <div className="px-3 py-3">
-          <div className="flex items-center justify-between">
-            
-            {/* Left side: Price */}
-            <div className="flex flex-col">
-              <div className="flex items-baseline gap-1">
-                <span className="text-lg font-bold text-gray-900">
-                  {getPriceRange()}
-                </span>
-                <span className="text-xs text-gray-500">
-                  {category === 'hotel' ? 'per night' : 
-                   category === 'restaurant' ? 'per meal' : 
-                   category === 'shortlet' ? 'per night' :
-                   'per guest'}
-                </span>
-              </div>
-              <span className="text-xs text-gray-500">
-                {checkIn && checkOut ? 
-                  `${formatDateForDisplay(checkIn)} - ${formatDateForDisplay(checkOut)}` : 
-                  'Select dates'
-                }
+      {/* ===== STICKY BOTTOM BAR (Mobile Only) ===== */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-white shadow md:hidden">
+        <button
+          onClick={() => setBottomSheetOpen(true)}
+          className="w-full px-4 py-3 flex items-center justify-between cursor-pointer"
+        >
+          {/* Price + dates */}
+          <div>
+            <div className="text-lg font-bold text-gray-900">
+              {formatPrice(calculatePrice())}
+              <span className="text-xs font-normal text-gray-500 ml-1">
+                {category === 'hotel' ? 'per night' : 
+                 category === 'restaurant' ? 'per meal' : 
+                 category === 'shortlet' ? 'per night' :
+                 'per guest'}
               </span>
             </div>
+            <div className="text-xs text-gray-500">
+              {formatDate(checkIn)} – {formatDate(checkOut)}
+              {category === 'hotel' && selectedRoom && (
+                <span className="ml-2 text-[#06EAFC]">• {selectedRoom.name}</span>
+              )}
+            </div>
+          </div>
 
-            {/* Right side: Book Now Button */}
-            <button
-              onClick={handleBookingClick}
-              disabled={category === "hotel" && !selectedRoom}
-              className={`
-                relative px-5 py-3 rounded-xl font-semibold text-white shadow-lg transition-all
-                flex items-center gap-2 min-w-[120px] justify-center
-                ${category === "hotel" && !selectedRoom
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-[#06EAFC] to-[#00065A] hover:shadow-xl hover:shadow-[#06EAFC]/30 active:scale-95"
-                }
-              `}
+          {/* Reserve Button */}
+          <div className={`
+            px-5 py-3 rounded-xl font-semibold text-white
+            ${category === 'hotel' && !selectedRoom
+              ? "bg-gray-400"
+              : "bg-[#06f49f] hover:bg-[#05d9eb]"
+            }
+          `}>
+            {category === 'hotel' && !selectedRoom ? "Book a room" : "Book Now"}
+          </div>
+        </button>
+      </div>
+
+      {/* ===== BOTTOM SHEET ===== */}
+      <AnimatePresence>
+        {bottomSheetOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              className="fixed inset-0 bg-black/40 z-40 md:hidden"
+              onClick={() => setBottomSheetOpen(false)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+
+            {/* Sheet */}
+            <motion.div
+              className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl p-4 md:hidden max-h-[80vh] overflow-y-auto"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 28 }}
             >
-              <FaBookOpen size={16} />
-              <span className="text-sm">Book Now</span>
-              
-              {/* Tooltip for hotel rooms */}
-              {category === "hotel" && !selectedRoom && (
-                <div className="absolute -top-12 left-1/2 -translate-x-1/2 text-xs bg-gray-900 text-white px-3 py-2 rounded-lg whitespace-nowrap">
-                  <div className="relative">
-                    Select a room first
-                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Booking Details</h3>
+                <button 
+                  onClick={() => setBottomSheetOpen(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+                >
+                  <IoClose size={22} />
+                </button>
+              </div>
+
+              {/* Selected Room Info (for hotels) */}
+              {category === 'hotel' && selectedRoom && (
+                <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h4 className="font-semibold text-gray-900">{selectedRoom.name}</h4>
+                      <p className="text-xs text-gray-600">
+                        {selectedRoom.selectedOption?.name || "Standard Option"}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-gray-900">
+                        {formatPrice(selectedRoom.selectedOption?.price || selectedRoom.pricePerNight)}
+                      </div>
+                      <div className="text-xs text-gray-500">per night</div>
+                    </div>
                   </div>
                 </div>
               )}
-            </button>
-          </div>
-        </div>
-      </div>
+
+              {/* Price breakdown */}
+              <div className="space-y-2 text-sm border-b pb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-semibold">Price Summary</span>
+                  <span className="text-xs text-gray-500">
+                    {formatDate(checkIn)} – {formatDate(checkOut)}
+                  </span>
+                </div>
+                
+                {/* Calculate number of nights */}
+                {category === 'hotel' || category === 'shortlet' ? (
+                  <>
+                    {(() => {
+                      const nights = calculateNights();
+                      const pricePerNight = calculatePrice();
+                      const subtotal = pricePerNight * nights;
+                      
+                      return (
+                        <>
+                          <div className="flex justify-between">
+                            <span>{nights} night{nights !== 1 ? 's' : ''} × {formatPrice(pricePerNight)}</span>
+                            <span>{formatPrice(subtotal)}</span>
+                          </div>
+                          
+                          {/* Service fee */}
+                          <div className="flex justify-between text-gray-600">
+                            <span>Service fee</span>
+                            <span>{formatPrice(subtotal * 0.1)}</span>
+                          </div>
+                          
+                          {/* Total */}
+                          <div className="flex justify-between font-semibold text-lg pt-2 border-t">
+                            <span>Total</span>
+                            <span>{formatPrice(subtotal * 1.1)}</span>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between">
+                      <span>Base price</span>
+                      <span>{formatPrice(calculatePrice())}</span>
+                    </div>
+                    <div className="flex justify-between font-semibold text-lg pt-2 border-t">
+                      <span>Total</span>
+                      <span>{formatPrice(calculatePrice())}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Dates Section - Clickable */}
+              <div className="mt-4">
+                <div className="text-xs font-semibold text-gray-500 mb-1">
+                  Dates
+                </div>
+
+                <button
+                  onClick={openCalendarFromSheet}
+                  className="w-full border rounded-xl p-3 text-left hover:bg-gray-50 transition cursor-pointer"
+                >
+                  <div className="font-medium">
+                    {formatDate(checkIn)} – {formatDate(checkOut)}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    Click to edit dates
+                  </div>
+                </button>
+              </div>
+
+              {/* Guests Section - Clickable */}
+              <div className="mt-4">
+                <div className="text-xs font-semibold text-gray-500 mb-1">
+                  Guests
+                </div>
+
+                <button
+                  onClick={openGuestsFromSheet}
+                  className="w-full border rounded-xl p-3 text-left hover:bg-gray-50 transition cursor-pointer"
+                >
+                  <div className="font-medium">
+                    {totalGuests} guest{totalGuests !== 1 ? 's' : ''}
+                    {rooms > 1 && `, ${rooms} rooms`}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    Click to edit guests
+                  </div>
+                </button>
+              </div>
+
+              {/* Room Selection (for hotels) */}
+              {category === 'hotel' && !selectedRoom && (
+                <div className="mt-4">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">
+                    Room Selection
+                  </div>
+                  <button
+                    onClick={() => {
+                      setBottomSheetOpen(false);
+                      setTimeout(() => {
+                        if (roomSelectionRef.current) {
+                          roomSelectionRef.current.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                          });
+                        }
+                      }, 300);
+                    }}
+                    className="w-full border-2 border-dashed border-[#06EAFC] rounded-xl p-3 text-left hover:bg-blue-50 transition cursor-pointer"
+                  >
+                    <div className="font-medium text-[#06EAFC]">
+                      Select a room to continue
+                    </div>
+                    <div className="text-xs text-gray-400 mt-1">
+                      Tap to view available rooms
+                    </div>
+                  </button>
+                </div>
+              )}
+
+              {/* Reserve Button */}
+              <button 
+                onClick={handleBookNowClick}
+                disabled={category === 'hotel' && !selectedRoom}
+                className={`
+                  mt-6 w-full py-4 rounded-xl font-semibold transition-all
+                  ${category === 'hotel' && !selectedRoom
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-[#06f49f] text-white hover:bg-[#05d9eb] active:scale-95"
+                  }
+                `}
+              >
+                {category === 'hotel' && !selectedRoom
+                  ? "Select a room first"
+                  : `Reserve for ${formatPrice(calculateTotalPrice())}`
+                }
+              </button>
+
+              {/* Footer note */}
+              <p className="text-center text-xs text-gray-500 mt-3">
+                You won't be charged yet
+              </p>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
       
       {/* FULL SCREEN GALLERY MODAL */}
       {galleryOpen && (

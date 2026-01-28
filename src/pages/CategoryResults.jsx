@@ -206,13 +206,32 @@ const useListings = (category = null, searchQuery = '', filters = {}) => {
       const url = `/listings${queryString ? `?${queryString}` : ''}`;
       
       console.log(`API URL for ${category}:`, url);
-      const response = await axiosInstance.get(url);
+      const response = await axiosInstance.get(url, {
+        timeout: 5000, // Add timeout
+      });
       console.log(`${category} API Response status:`, response.data.status);
       console.log(`${category} results count:`, response.data.results);
       
       return response.data;
     } catch (error) {
       console.error(`Error fetching ${category} listings:`, error);
+      // Check for network errors
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        return {
+          status: 'error',
+          message: 'Network timeout: The request took too long to complete.',
+          results: 0,
+          data: { listings: [] }
+        };
+      } else if (error.message.includes('Network Error')) {
+        return {
+          status: 'error',
+          message: 'Network Error: Unable to connect to the server.',
+          results: 0,
+          data: { listings: [] }
+        };
+      }
+      
       return {
         status: 'error',
         message: error.message,
@@ -486,39 +505,6 @@ const getLocationDisplayName = (location) => {
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
-};
-
-// Helper to check if search query looks like a location
-const looksLikeLocation = (query) => {
-  if (!query || query.trim() === '') return false;
-  
-  const queryLower = query.toLowerCase().trim();
-  
-  // Common Ibadan areas
-  const ibadanAreas = [
-    'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'agodi', 
-    'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
-    'molete', 'agbowo', 'sabo', 'bashorun', 'ife road',
-    'akinyele', 'mokola hill', 'sango roundabout'
-  ];
-  
-  // Location suffixes
-  const locationSuffixes = [
-    'road', 'street', 'avenue', 'drive', 'lane', 'close', 'way', 'estate',
-    'area', 'zone', 'district', 'quarters', 'extension', 'phase', 'junction',
-    'bypass', 'expressway', 'highway', 'roundabout', 'market', 'station'
-  ];
-  
-  // Check if query contains any Ibadan area
-  const isIbadanArea = ibadanAreas.some(area => queryLower.includes(area));
-  
-  // Check if query contains location suffix
-  const hasLocationSuffix = locationSuffixes.some(suffix => queryLower.includes(suffix));
-  
-  // Check if query is short (likely a location name)
-  const isShortQuery = queryLower.split(/\s+/).length <= 3 && queryLower.length <= 15;
-  
-  return isIbadanArea || hasLocationSuffix || isShortQuery;
 };
 
 // Helper to get plural category name
@@ -2814,16 +2800,73 @@ const CategoryResults = () => {
     return <UnifiedLoadingScreen isMobile={isMobile} />;
   }
 
+  // ================== UPDATED ERROR HANDLING ==================
   if (error) {
+    const isNetworkError = error?.includes?.('timeout') || error?.includes?.('Network Error') || error?.includes?.('Failed to load');
+    const errorMessage = isNetworkError 
+      ? "Unable to load the category results. The request took too long to complete."
+      : "The vendor you're looking for doesn't exist or has been removed.";
+
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="hidden md:block">
-          <Header />
-        </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 pt-32">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-            <p className="text-red-700 font-medium text-sm">{error}</p>
-            <p className="text-red-600 text-xs mt-1">Error fetching listings</p>
+      <div className="min-h-screen">
+        <Header />
+        <div className="flex flex-col mt-8 items-center justify-center min-h-[60vh] px-4">
+          {/* Error Icon/Graphic */}
+          <div className="mb-6 p-4 rounded-full bg-red-50 border border-red-100">
+            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+              <svg 
+                className="w-8 h-8 text-red-500" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z" 
+                />
+              </svg>
+            </div>
+          </div>
+          
+          {/* Error Title */}
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 font-manrope">
+            {isNetworkError ? "Resource Loading Error" : "Vendor Not Found"}
+          </h1>
+          
+          {/* Error Description */}
+          <p className="text-gray-600 text-center mb-6 max-w-md font-manrope">
+            {errorMessage}
+            {isNetworkError && (
+              <span className="block text-xs text-gray-500 mt-2">
+                timeout of 5000ms exceeded
+              </span>
+            )}
+          </p>
+          
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Refresh Button */}
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors cursor-pointer font-medium flex items-center gap-2"
+            >
+              <svg 
+                className="w-4 h-4" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
+                />
+              </svg>
+              Refresh Page
+            </button>
           </div>
         </div>
         <Footer />
