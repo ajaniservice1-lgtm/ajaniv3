@@ -567,7 +567,7 @@ const RoomSelection = ({ vendorData, category = "hotel", onRoomSelect, onRoomBoo
 
                         <button
                           onClick={() => handleBookNow(room, option)}
-                          className="w-full bg-gradient-to-r from-blue-500 to-blue-700 text-white px-4 py-1.5 rounded-full text-xs font-semibold hover:opacity-90 transition-opacity"
+                          className="w-full bg-[#06f49f] text-white px-4 py-1.5 rounded-full text-xs font-semibold hover:opacity-90 transition-opacity"
                         >
                           BOOK NOW
                         </button>
@@ -836,7 +836,7 @@ const RoomSelection = ({ vendorData, category = "hotel", onRoomSelect, onRoomBoo
 
                         <button
                           onClick={() => handleBookNow(modalRoom, bestOption)}
-                          className="w-full bg-gradient-to-r from-blue-500 to-blue-700 text-white py-2 md:py-3 rounded md:rounded-lg font-semibold hover:opacity-90 transition-opacity text-sm md:text-base"
+                          className="w-full bg-[#06f49f] text-white py-2 md:py-3 rounded md:rounded-lg font-semibold hover:opacity-90 transition-opacity text-sm md:text-base"
                         >
                           Book Now
                         </button>
