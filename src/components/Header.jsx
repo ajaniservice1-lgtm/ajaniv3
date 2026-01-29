@@ -189,7 +189,7 @@ const Header = () => {
       action: () => navigate("/shortlet")
     },
     { 
-      label: "Vendors", 
+      label: "Services", 
       id: "vendors", 
       action: () => navigate("/vendor")
     },

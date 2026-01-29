@@ -1109,7 +1109,7 @@ const AiTopPicks = () => {
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 lg:gap-8 mb-8">
             <div className="flex-1">
               <h1 className="text-xl lg:text-2xl font-bold text-gray-900 mb-1">
-                Verified Vendors
+                Verified Services
               </h1>
               <p className="text-gray-600 text-lg lg:text-[16.5px] max-w-3xl leading-relaxed">
                 Trusted businesses reviewed and approved for quality and reliability.
@@ -1156,7 +1156,7 @@ const AiTopPicks = () => {
                 transition={{ delay: 0.1, duration: 0.3 }}
                 className="text-xl lg:text-2xl text-start  font-bold text-center md:text-start text-gray-900 mb-1.5 cursor-default"
               >
-                Verified Vendors
+                Verified Services
               </motion.h1>
               <motion.p
                 initial={{ opacity: 0, y: 20 }}

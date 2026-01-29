@@ -22,7 +22,7 @@ const Footer = () => {
     { name: "Hotels", path: "/hotel" },
     { name: "Restaurants", path: "/restaurant" },
     { name: "Shortlets", path: "/shortlet" },
-    { name: "Vendors", path: "/vendor" },
+    { name: "Services", path: "/vendor" },
   ];
 
   return (

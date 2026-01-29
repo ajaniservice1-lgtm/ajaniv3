@@ -1229,7 +1229,7 @@ const DiscoverIbadan = () => {
     if (activeTab === "Hotel") return "Find Hotel";
     if (activeTab === "Shortlet") return "Find Shortlet";
     if (activeTab === "Restaurant") return "Find Restaurant";
-    if (activeTab === "Vendor") return "Find Vendor";
+    if (activeTab === "Vendor") return "Find Servies";
     return "Search";
   };
 

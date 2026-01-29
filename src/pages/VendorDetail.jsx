@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHome } from "@fortawesome/free-solid-svg-icons";
@@ -44,6 +44,9 @@ import {
   faThermometerHalf,
   faBookmark as faBookmarkSolid,
   faUser,
+  faChevronDown,
+  faChevronUp,
+  faInfoCircle,
 } from "@fortawesome/free-solid-svg-icons";
 import { CiBookmark } from "react-icons/ci";
 import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
@@ -58,6 +61,10 @@ import listingService from "../lib/listingService";
 import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
 import { IoClose } from "react-icons/io5";
+import { MdCheckCircle } from "react-icons/md";
+import { FaTimes, FaSpinner } from "react-icons/fa";
+import { ToastContainer, toast, Slide } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 
 // Fallback images for different categories
 const FALLBACK_IMAGES = {
@@ -89,7 +96,46 @@ const safeToString = (value, defaultValue = '') => {
   return defaultValue;
 };
 
-// Helper: format date like "Jan 28"
+// Notification function using react-toastify with Apple-style design
+const showNotification = (message, type = "success") => {
+  const backgroundColor = "#FFFFFF";
+  const textColor = "#1C1C1E";
+  const iconColor = type === "success" ? "#34C759" : "#FF3B30";
+  const Icon = type === "success" ? MdCheckCircle : FaTimes;
+  
+  return toast(
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <Icon size={28} color={iconColor} />
+      <span style={{
+        fontWeight: 500,
+        fontSize: '16px',
+        color: textColor,
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      }}>
+        {message}
+      </span>
+    </div>,
+    {
+      position: "top-right",
+      autoClose: 2500,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      transition: Slide,
+      style: {
+        background: backgroundColor,
+        color: textColor,
+        borderRadius: "12px",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+        padding: "12px 20px",
+        minWidth: "240px"
+      }
+    }
+  );
+};
+
+// Helper: format date like "May 1, 2026"
 const formatDate = (date) => {
   if (!date) return "Select date";
   return date.toLocaleDateString("en-US", {
@@ -102,7 +148,7 @@ const formatDate = (date) => {
 const formatDateForDisplay = (date) => {
   if (!date) return "Select date";
   return date.toLocaleDateString("en-US", {
-    month: "short",
+    month: "long",
     day: "numeric",
     year: "numeric"
   });
@@ -110,7 +156,7 @@ const formatDateForDisplay = (date) => {
 
 // Normalize category function
 const normalizeCategory = (category) => {
-  if (!category) return 'hotel';
+  if (!category) return 'restaurant';
   
   const cat = safeToString(category).toLowerCase().trim();
   
@@ -147,7 +193,7 @@ const normalizeCategory = (category) => {
     return 'event';
   }
   
-  return 'hotel';
+  return 'restaurant';
 };
 
 const getVendorImages = (vendor) => {
@@ -343,7 +389,29 @@ const getAmenities = (vendor) => {
       "Swimming Pool"
     ];
   } else if (category === 'restaurant') {
-    return ["Outdoor Seating", "Live Music", "Parking", "Takeaway", "Vegetarian Options", "Alcohol Served", "Air Conditioning"];
+    if (vendor.details?.amenities && Array.isArray(vendor.details.amenities)) {
+      return vendor.details.amenities;
+    }
+    
+    if (vendor.amenities) {
+      if (typeof vendor.amenities === 'string') {
+        return vendor.amenities.split(",").map(item => item.trim()).filter(item => item);
+      }
+      if (Array.isArray(vendor.amenities) && vendor.amenities.length > 0) {
+        return vendor.amenities;
+      }
+    }
+    
+    return [
+      "Outdoor Seating",
+      "Live Music", 
+      "Parking",
+      "Takeaway",
+      "Vegetarian Options",
+      "Alcohol Served",
+      "Air Conditioning",
+      "WiFi"
+    ];
   } else if (category === 'event') {
     return ["Stage", "Sound System", "Lighting", "Parking", "Catering Service", "Decoration Service", "Projector", "Microphones"];
   } else if (category === 'shortlet') {
@@ -390,7 +458,7 @@ const getAmenityIcon = (amenity) => {
   return faCheckCircle;
 };
 
-const getFeaturesFromRoomModal = (vendor) => {
+const getFeaturesFromVendor = (vendor) => {
   const category = normalizeCategory(vendor.category);
   
   if (category === 'hotel') {
@@ -423,9 +491,9 @@ const getFeaturesFromRoomModal = (vendor) => {
       
       if (vendorAmenities.length > 0) {
         return vendorAmenities.slice(0, 6).map(amenity => ({
-          icon: getAmenityIcon(amenity),
-          name: amenity
-        }));
+            icon: getAmenityIcon(amenity),
+            name: amenity
+          }));
       }
     }
     
@@ -443,6 +511,38 @@ const getFeaturesFromRoomModal = (vendor) => {
       { icon: faBath, name: "Private Bathroom" },
       { icon: faConciergeBell, name: "Daily Housekeeping" },
       { icon: faCheckCircle, name: "Room Service" }
+    ];
+  } else if (category === 'restaurant') {
+    if (vendor.details?.amenities && Array.isArray(vendor.details.amenities)) {
+      return vendor.details.amenities.slice(0, 6).map(amenity => ({
+        icon: getAmenityIcon(amenity),
+        name: amenity
+      }));
+    }
+    
+    if (vendor.amenities) {
+      let vendorAmenities = [];
+      if (typeof vendor.amenities === 'string') {
+        vendorAmenities = vendor.amenities.split(",").map(item => item.trim());
+      } else if (Array.isArray(vendor.amenities)) {
+        vendorAmenities = vendor.amenities;
+      }
+      
+      if (vendorAmenities.length > 0) {
+        return vendorAmenities.slice(0, 6).map(amenity => ({
+          icon: getAmenityIcon(amenity),
+          name: amenity
+        }));
+      }
+    }
+    
+    return [
+      { icon: faUtensils, name: "Fine Dining" },
+      { icon: faWineGlass, name: "Bar Service" },
+      { icon: faMusic, name: "Live Music" },
+      { icon: faCar, name: "Parking Available" },
+      { icon: faSnowflake, name: "Air Conditioning" },
+      { icon: faWifi, name: "Free WiFi" }
     ];
   }
   
@@ -495,6 +595,57 @@ const getLocationString = (location, fallback = "Ibadan, Nigeria") => {
   }
   
   return fallback;
+};
+
+const getServices = (vendor) => {
+  if (vendor?.description || vendor?.about) {
+    const description = safeToString(vendor.description || vendor.about);
+    const sentences = description.split(/[.!?]+/).filter(s => s.trim().length > 10);
+    return sentences.slice(0, 5).map(s => s.trim() + ".");
+  }
+  
+  const category = normalizeCategory(vendor?.category);
+  if (category === 'hotel') {
+    return [
+      "Standard, Deluxe & Executive Rooms",
+      "Restaurant & Bar Service",
+      "Event & Meeting Spaces Available",
+      "24/7 Reception and Concierge",
+      "Laundry & Housekeeping Services",
+    ];
+  } else if (category === 'restaurant') {
+    return [
+      "Indoor & Outdoor Seating Options",
+      "Private Dining Rooms Available",
+      "Catering Services for Events",
+      "Takeaway & Delivery Options",
+      "Special Dietary Requirements Catered For",
+    ];
+  } else if (category === 'shortlet') {
+    return [
+      "Fully Furnished Apartments",
+      "Monthly & Weekly Rates Available",
+      "24/7 Self Check-in System",
+      "Regular Cleaning Services",
+      "All Utilities Included in Price",
+    ];
+  } else if (category === 'event') {
+    return [
+      "Event Planning Assistance Provided",
+      "Audio-Visual Equipment Available",
+      "Catering Coordination Services",
+      "Decoration Services Available",
+      "Professional Staff Support",
+    ];
+  }
+  
+  return [
+    "Quality Service Guaranteed",
+    "Professional Staff",
+    "Modern Facilities",
+    "Customer Satisfaction Focus",
+    "Competitive Pricing",
+  ];
 };
 
 /* ================= DATE HELPERS ================= */
@@ -603,6 +754,213 @@ function Counter({ label, sub, value, setValue, min = 0 }) {
   );
 }
 
+/* ================= MODAL COMPONENTS ================= */
+const CalendarModal = ({ isOpen, onClose, checkIn, checkOut, setCheckIn, setCheckOut }) => {
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black/50"
+          onClick={onClose}
+        />
+        
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-hidden"
+        >
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-gray-900">Select Dates</h3>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+              >
+                <IoClose size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 overflow-y-auto max-h-[60vh]">
+              <CalendarMonth
+                month={startOfMonth(today)}
+                checkIn={checkIn}
+                checkOut={checkOut}
+                setCheckIn={setCheckIn}
+                setCheckOut={setCheckOut}
+              />
+
+              <CalendarMonth
+                month={startOfMonth(new Date(today.getFullYear(), today.getMonth() + 1, 1))}
+                checkIn={checkIn}
+                checkOut={checkOut}
+                setCheckIn={setCheckIn}
+                setCheckOut={setCheckOut}
+              />
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <p className="text-sm text-gray-600">Check-in</p>
+                  <p className="font-medium">{formatDateForDisplay(checkIn)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Checkout</p>
+                  <p className="font-medium">{formatDateForDisplay(checkOut)}</p>
+                </div>
+              </div>
+              
+              <button
+                onClick={onClose}
+                className="w-full py-3 rounded-xl bg-[#06f49f] text-white font-bold hover:bg-[#05d9eb] transition-all cursor-pointer"
+              >
+                Apply Dates
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+};
+
+const GuestsModal = ({ isOpen, onClose, guests, setGuests }) => {
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black/50"
+          onClick={onClose}
+        />
+        
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-hidden"
+        >
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-gray-900">Number of Guests</h3>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+              >
+                <IoClose size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="space-y-4 overflow-y-auto max-h-[50vh]">
+              <Counter 
+                label="Guests" 
+                sub="Number of people" 
+                value={guests} 
+                setValue={setGuests} 
+                min={1} 
+              />
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <p className="text-sm text-gray-600">Total Guests</p>
+                  <p className="font-medium">{guests} guest{guests !== 1 ? 's' : ''}</p>
+                </div>
+              </div>
+              
+              <button
+                onClick={onClose}
+                className="w-full py-3 rounded-xl bg-[#06f49f] text-white font-bold hover:bg-[#05d9eb] transition-all cursor-pointer"
+              >
+                Apply ({guests} guest{guests !== 1 ? 's' : ''})
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+};
+
+const HotelGuestsModal = ({ isOpen, onClose, adults, setAdults, children, setChildren, rooms, setRooms }) => {
+  if (!isOpen) return null;
+
+  const totalGuests = adults + children;
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black/50"
+          onClick={onClose}
+        />
+        
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-hidden"
+        >
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-gray-900">Guests & Rooms</h3>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+              >
+                <IoClose size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="space-y-4 overflow-y-auto max-h-[50vh]">
+              <Counter label="Adults" sub="Age 13+" value={adults} setValue={setAdults} min={1} />
+              <Counter label="Children" sub="Ages 2–12" value={children} setValue={setChildren} />
+              <Counter label="Rooms" sub="How many rooms" value={rooms} setValue={setRooms} min={1} />
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <p className="text-sm text-gray-600">Total Guests</p>
+                  <p className="font-medium">{totalGuests} guest{totalGuests !== 1 ? 's' : ''}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Rooms</p>
+                  <p className="font-medium">{rooms} room{rooms !== 1 ? 's' : ''}</p>
+                </div>
+              </div>
+              
+              <button
+                onClick={onClose}
+                className="w-full py-3 rounded-xl bg-[#06f49f] text-white font-bold hover:bg-[#05d9eb] transition-all cursor-pointer"
+              >
+                Apply ({totalGuests} guest{totalGuests !== 1 ? 's' : ''}, {rooms} room{rooms !== 1 ? 's' : ''})
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+};
+
 const VendorDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -618,11 +976,12 @@ const VendorDetail = () => {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
-  // Booking Calendar States
+  // Booking States
   const [openCalendar, setOpenCalendar] = useState(false);
   const [openGuests, setOpenGuests] = useState(false);
   const [checkIn, setCheckIn] = useState(null);
   const [checkOut, setCheckOut] = useState(null);
+  const [guests, setGuests] = useState(2);
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
   const [rooms, setRooms] = useState(1);
@@ -630,12 +989,33 @@ const VendorDetail = () => {
   // Bottom sheet state
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
   
-  const totalGuests = adults + children;
+  // Sticky booking widget state
+  const [isBookingSticky, setIsBookingSticky] = useState(false);
+  const [widgetPosition, setWidgetPosition] = useState({ top: 0, bottom: 0 });
+  const contentRef = useRef(null);
+  const bookingWidgetRef = useRef(null);
+  const keyFeaturesRef = useRef(null);
   
+  const totalHotelGuests = adults + children;
   const isAuthenticated = useAuthStatus();
 
   // Ref for room selection section
   const roomSelectionRef = useRef(null);
+
+  // ================= SCROLL TO TOP ON ENTRY =================
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'instant'
+    });
+    
+    const timer = setTimeout(() => {
+      window.scrollTo(0, 0);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [id]);
 
   // Initialize dates
   useEffect(() => {
@@ -647,16 +1027,54 @@ const VendorDetail = () => {
     if (!checkOut) setCheckOut(tomorrow);
   }, []);
 
-  // Calendar month helpers
-  const currentMonth = startOfMonth(today);
-  const nextMonth = startOfMonth(
-    new Date(today.getFullYear(), today.getMonth() + 1, 1)
-  );
-
-  // Scroll to top on component mount
+  // Sticky booking widget effect
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [id]);
+    const updateWidgetPosition = () => {
+      if (contentRef.current && keyFeaturesRef.current) {
+        const contentRect = contentRef.current.getBoundingClientRect();
+        const keyFeaturesRect = keyFeaturesRef.current.getBoundingClientRect();
+        
+        setWidgetPosition({
+          top: contentRect.top + window.scrollY,
+          bottom: keyFeaturesRect.bottom + window.scrollY
+        });
+      }
+    };
+
+    const handleScroll = () => {
+      if (bookingWidgetRef.current && widgetPosition.top > 0) {
+        const scrollY = window.scrollY;
+        const windowHeight = window.innerHeight;
+        const widgetHeight = bookingWidgetRef.current.offsetHeight;
+        
+        // Calculate when to make it sticky
+        const shouldBeSticky = scrollY > widgetPosition.top - 100 && 
+                              scrollY < widgetPosition.bottom - widgetHeight - 100;
+        
+        setIsBookingSticky(shouldBeSticky);
+        
+        // Update widget position when sticky
+        if (shouldBeSticky && bookingWidgetRef.current) {
+          const maxScroll = widgetPosition.bottom - widgetHeight - 100;
+          const currentScroll = Math.min(scrollY, maxScroll);
+          const offset = Math.max(100, currentScroll - widgetPosition.top + 100);
+          
+          bookingWidgetRef.current.style.transform = `translateY(${offset}px)`;
+        }
+      }
+    };
+
+    // Initial position calculation
+    updateWidgetPosition();
+    window.addEventListener('resize', updateWidgetPosition);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', updateWidgetPosition);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [widgetPosition.top, widgetPosition.bottom]);
 
   // Fetch vendor data
   useEffect(() => {
@@ -710,6 +1128,77 @@ const VendorDetail = () => {
     return `₦${Math.round(num).toLocaleString()}`;
   };
 
+  const getBusinessName = (item) => {
+    try {
+      if (item.name) return item.name;
+      if (item.title) return item.title;
+      if (item.vendorId?.vendor?.businessName) return item.vendorId.vendor.businessName;
+      return "Business";
+    } catch (error) {
+      console.error('Error getting business name:', error);
+      return "Business";
+    }
+  };
+
+  const getPriceFromItem = (item) => {
+    try {
+      if (item.price !== undefined && item.price !== null) {
+        return item.price;
+      }
+      
+      if (item.details?.priceRangePerMeal) {
+        const { priceFrom, priceTo } = item.details.priceRangePerMeal;
+        
+        if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+          return Math.round((priceFrom + priceTo) / 2);
+        } else if (priceFrom !== undefined) {
+          return priceFrom;
+        } else if (priceTo !== undefined) {
+          return priceTo;
+        }
+      }
+      
+      return 0;
+    } catch (error) {
+      console.error('Error getting price:', error);
+      return 0;
+    }
+  };
+
+  const getPriceText = (item) => {
+    const category = normalizeCategory(item?.category);
+    
+    if (category === 'restaurant' && item?.details?.priceRangePerMeal) {
+      const { priceFrom, priceTo } = item.details.priceRangePerMeal;
+      
+      if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+        return `${formatPrice(priceFrom)} - ${formatPrice(priceTo)}`;
+      } else if (priceFrom !== undefined) {
+        return `From ${formatPrice(priceFrom)}`;
+      }
+    }
+    
+    const price = getPriceFromItem(item) || 0;
+    return `${formatPrice(price)}`;
+  };
+
+  const getLocationFromItem = (item) => {
+    try {
+      if (item.location?.area) return item.location.area;
+      if (item.area) return item.area;
+      if (item.location?.address) return item.location.address;
+      if (item.address) return item.address;
+      return "Ibadan";
+    } catch (error) {
+      console.error('Error getting location:', error);
+      return "Ibadan";
+    }
+  };
+
+  const getRating = (item) => {
+    return parseFloat(safeToString(item.rating, "4.5"));
+  };
+
   const handleRoomSelect = (room) => {
     setSelectedRoom(room);
   };
@@ -719,16 +1208,16 @@ const VendorDetail = () => {
     
     const vendorBookingData = {
       id: vendor._id || vendor.id,
-      name: safeToString(vendor.title || vendor.name, "Vendor"),
+      name: getBusinessName(vendor),
       category: 'hotel',
       originalCategory: safeToString(vendor.category),
       priceFrom: option.price || room.pricePerNight || vendor.price || 0,
       priceTo: option.price || room.pricePerNight || vendor.price || 0,
-      area: getLocationString(vendor.location || vendor.area),
+      area: getLocationFromItem(vendor),
       contact: safeToString(vendor.contact || vendorInfo?.phone || vendor.contactInformation?.phone),
       email: safeToString(vendor.email || vendorInfo?.email),
       description: safeToString(vendor.description || vendor.about),
-      rating: parseFloat(safeToString(vendor.rating, "4.5")),
+      rating: getRating(vendor),
       capacity: room.maxOccupancy || vendor.details?.maxGuests || 2,
       amenities: room.amenitiesList || getAmenities(vendor),
       images: room.images || getVendorImages(vendor),
@@ -749,7 +1238,7 @@ const VendorDetail = () => {
       adults: adults,
       children: children,
       rooms: rooms,
-      totalGuests: totalGuests
+      totalGuests: totalHotelGuests
     };
     
     localStorage.setItem('currentVendorBooking', JSON.stringify(vendorBookingData));
@@ -763,58 +1252,9 @@ const VendorDetail = () => {
     });
   };
 
+  // Updated showToast function using react-toastify
   const showToast = (message, type = "success") => {
-    const existingToast = document.getElementById("toast-notification");
-    if (existingToast) {
-      existingToast.remove();
-    }
-
-    const toast = document.createElement("div");
-    toast.id = "toast-notification";
-    toast.className = `fixed z-[99999] px-4 py-3 rounded-lg shadow-lg border ${
-      type === "success" 
-        ? "bg-green-50 border-green-200 text-green-800" 
-        : "bg-blue-50 border-blue-200 text-blue-800"
-    }`;
-    
-    toast.style.top = "80px";
-    toast.style.right = "15px";
-    toast.style.maxWidth = "320px";
-    toast.style.boxShadow = "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)";
-    toast.style.backdropFilter = "blur(10px)";
-    toast.style.animation = "slideInRight 0.3s ease-out forwards";
-
-    toast.innerHTML = `
-      <div class="flex items-start gap-3">
-        <div class="${type === "success" ? "text-green-600" : "text-blue-600"} mt-0.5">
-          ${type === "success" 
-            ? '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>'
-            : '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>'}
-        </div>
-        <div class="flex-1">
-          <p class="font-medium">${message}</p>
-          <p class="text-sm opacity-80 mt-1">${safeToString(vendor?.title || vendor?.name, "Vendor")}</p>
-        </div>
-        <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70 transition-opacity cursor-pointer">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-          </svg>
-        </button>
-      </div>
-    `;
-
-    document.body.appendChild(toast);
-
-    setTimeout(() => {
-      if (toast.parentElement) {
-        toast.style.animation = "slideOutRight 0.3s ease-in forwards";
-        setTimeout(() => {
-          if (toast.parentElement) {
-            toast.remove();
-          }
-        }, 300);
-      }
-    }, 3000);
+    showNotification(message, type);
   };
 
   const handleFavoriteToggle = () => {
@@ -836,17 +1276,14 @@ const VendorDetail = () => {
 
         const itemToSaveAfterLogin = {
           id: vendorId,
-          name: safeToString(vendor.title || vendor.name, "Vendor"),
-          price: formatPrice(vendor.price || vendor.details?.pricePerNight || vendor.price_from),
-          perText: normalizeCategory(vendor.category) === 'hotel' ? 'per night' : 
-                   normalizeCategory(vendor.category) === 'restaurant' ? 'per meal' : 
-                   normalizeCategory(vendor.category) === 'shortlet' ? 'per night' :
-                   'per guest',
-          rating: parseFloat(safeToString(vendor.rating, "4.5")),
+          name: getBusinessName(vendor),
+          price: getPriceText(vendor),
+          perText: getPerText(vendor),
+          rating: getRating(vendor),
           tag: "Guest Favorite",
           image: getVendorImages(vendor)[0],
           category: safeToString(vendor.category, "Business"),
-          location: getLocationString(vendor.location || vendor.area, "Ibadan"),
+          location: getLocationFromItem(vendor),
           originalData: vendor
         };
 
@@ -868,20 +1305,16 @@ const VendorDetail = () => {
         setIsFavorite(false);
         showToast("Removed from saved listings", "info");
       } else {
-        const category = normalizeCategory(vendor.category);
         const listingToSave = {
           id: vendorId,
-          name: safeToString(vendor.title || vendor.name, "Vendor"),
-          price: formatPrice(vendor.price || vendor.details?.pricePerNight || vendor.price_from),
-          perText: category === 'hotel' ? 'per night' : 
-                   category === 'restaurant' ? 'per meal' : 
-                   category === 'shortlet' ? 'per night' :
-                   'per guest',
-          rating: parseFloat(safeToString(vendor.rating, "4.5")),
+          name: getBusinessName(vendor),
+          price: getPriceText(vendor),
+          perText: getPerText(vendor),
+          rating: getRating(vendor),
           tag: "Guest Favorite",
           image: getVendorImages(vendor)[0],
           category: safeToString(vendor.category, "Business"),
-          location: getLocationString(vendor.location || vendor.area, "Ibadan"),
+          location: getLocationFromItem(vendor),
           savedDate: new Date().toISOString().split("T")[0],
           originalData: vendor
         };
@@ -903,7 +1336,7 @@ const VendorDetail = () => {
     if (navigator.share && window.innerWidth < 768) {
       navigator.share({
         title: safeToString(vendor?.title || vendor?.name, 'Check out this vendor'),
-        text: `Check out ${safeToString(vendor?.title || vendor?.name, 'this amazing vendor')} on Ajani!`,
+        text: `Check out ${getBusinessName(vendor)} on Ajani!`,
         url: currentUrl,
       })
       .then(() => showToast("Link shared successfully!", "success"))
@@ -942,6 +1375,8 @@ const VendorDetail = () => {
       }
       const price = vendor.price || vendor.details?.pricePerNight || vendor.price_from || 0;
       return parseFloat(safeToString(price, "0"));
+    } else if (category === 'restaurant') {
+      return getPriceFromItem(vendor);
     }
     
     const price = vendor.price || vendor.details?.pricePerNight || vendor.price_from || 0;
@@ -957,9 +1392,60 @@ const VendorDetail = () => {
 
   const calculateTotalPrice = () => {
     const price = calculatePrice();
-    const nights = calculateNights();
-    const subtotal = price * nights;
-    return subtotal;
+    const category = normalizeCategory(vendor?.category);
+    
+    if (category === 'hotel' || category === 'shortlet') {
+      const nights = calculateNights();
+      const subtotal = price * nights;
+      return subtotal;
+    } else if (category === 'restaurant') {
+      return price * guests;
+    }
+    
+    return price;
+  };
+
+  const getPerText = (item) => {
+    const category = normalizeCategory(item?.category);
+    if (category === 'hotel') return 'per night';
+    if (category === 'restaurant') return 'per meal';
+    if (category === 'shortlet') return 'per night';
+    return 'per guest';
+  };
+
+  const getPriceDisplay = () => {
+    const category = normalizeCategory(vendor?.category);
+    
+    if (category === 'restaurant' && vendor?.details?.priceRangePerMeal) {
+      const { priceFrom, priceTo } = vendor.details.priceRangePerMeal;
+      
+      if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+        return `${formatPrice(priceFrom)} - ${formatPrice(priceTo)}`;
+      } else if (priceFrom !== undefined) {
+        return `From ${formatPrice(priceFrom)}`;
+      }
+    }
+    
+    if (category === 'hotel' && vendor.details?.roomTypes) {
+      const prices = vendor.details.roomTypes
+        .map(room => room.pricePerNight || 0)
+        .filter(price => price > 0);
+      
+      if (prices.length === 0) {
+        return formatPrice(vendor.price || 0);
+      }
+      
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+      
+      if (minPrice === maxPrice) {
+        return formatPrice(minPrice);
+      }
+      
+      return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`;
+    }
+    
+    return formatPrice(vendor.price || vendor.details?.pricePerNight || 0);
   };
 
   const handleBookingClick = () => {
@@ -993,16 +1479,16 @@ const VendorDetail = () => {
     
     const vendorBookingData = {
       id: vendor._id || vendor.id,
-      name: safeToString(vendor.title || vendor.name, "Vendor"),
+      name: getBusinessName(vendor),
       category: currentCategory,
       originalCategory: safeToString(vendor.category),
       priceFrom: vendor.price || vendor.details?.pricePerNight || vendor.price_from || 0,
       priceTo: vendor.price_to || vendor.price || vendor.details?.pricePerNight || 0,
-      area: getLocationString(vendor.location || vendor.area),
+      area: getLocationFromItem(vendor),
       contact: safeToString(vendor.contact || vendorInfo?.phone || vendor.contactInformation?.phone),
       email: safeToString(vendor.email || vendorInfo?.email),
       description: safeToString(vendor.description || vendor.about),
-      rating: parseFloat(safeToString(vendor.rating, "4.5")),
+      rating: getRating(vendor),
       capacity: vendor.capacity || vendor.details?.maxGuests || 2,
       amenities: getAmenities(vendor),
       images: getVendorImages(vendor),
@@ -1015,10 +1501,11 @@ const VendorDetail = () => {
       contactInformation: vendor.contactInformation,
       checkIn: checkIn,
       checkOut: checkOut,
-      adults: adults,
-      children: children,
-      rooms: rooms,
-      totalGuests: totalGuests,
+      guests: currentCategory === 'restaurant' ? guests : undefined,
+      adults: currentCategory === 'hotel' ? adults : undefined,
+      children: currentCategory === 'hotel' ? children : undefined,
+      rooms: currentCategory === 'hotel' ? rooms : undefined,
+      totalGuests: currentCategory === 'hotel' ? totalHotelGuests : guests,
       totalPrice: calculateTotalPrice()
     };
     
@@ -1071,64 +1558,18 @@ const VendorDetail = () => {
 
   const openGuestsFromSheet = () => {
     setBottomSheetOpen(false);
+    const category = normalizeCategory(vendor?.category);
     setTimeout(() => {
-      setOpenGuests(true);
+      if (category === 'hotel') {
+        // Hotel guests modal will be handled separately
+      } else {
+        setOpenGuests(true);
+      }
     }, 300);
   };
 
   const getFeatures = () => {
-    return getFeaturesFromRoomModal(vendor);
-  };
-
-  const getServices = () => {
-    if (vendor?.description || vendor?.about) {
-      const description = safeToString(vendor.description || vendor.about);
-      const sentences = description.split(/[.!?]+/).filter(s => s.trim().length > 10);
-      return sentences.slice(0, 5).map(s => s.trim() + ".");
-    }
-    
-    const category = normalizeCategory(vendor?.category);
-    if (category === 'hotel') {
-      return [
-        "Standard, Deluxe & Executive Rooms",
-        "Restaurant & Bar Service",
-        "Event & Meeting Spaces Available",
-        "24/7 Reception and Concierge",
-        "Laundry & Housekeeping Services",
-      ];
-    } else if (category === 'restaurant') {
-      return [
-        "Indoor & Outdoor Seating Options",
-        "Private Dining Rooms Available",
-        "Catering Services for Events",
-        "Takeaway & Delivery Options",
-        "Special Dietary Requirements Catered For",
-      ];
-    } else if (category === 'shortlet') {
-      return [
-        "Fully Furnished Apartments",
-        "Monthly & Weekly Rates Available",
-        "24/7 Self Check-in System",
-        "Regular Cleaning Services",
-        "All Utilities Included in Price",
-      ];
-    } else if (category === 'event') {
-      return [
-        "Event Planning Assistance Provided",
-        "Audio-Visual Equipment Available",
-        "Catering Coordination Services",
-        "Decoration Services Available",
-        "Professional Staff Support",
-      ];
-    }
-    
-    return [
-      "Quality Service Guaranteed",
-      "Professional Staff",
-      "Modern Facilities",
-      "Customer Satisfaction Focus",
-      "Competitive Pricing",
-    ];
+    return getFeaturesFromVendor(vendor);
   };
 
   const getIbadanLocation = () => {
@@ -1202,6 +1643,7 @@ const VendorDetail = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#06EAFC]"></div>
         </div>
         <Footer />
+        <ToastContainer />
       </div>
     );
   }
@@ -1273,6 +1715,7 @@ const VendorDetail = () => {
           </div>
         </div>
         <Footer />
+        <ToastContainer />
       </div>
     );
   }
@@ -1282,41 +1725,29 @@ const VendorDetail = () => {
   const category = normalizeCategory(vendor.category);
   const amenities = getAmenities(vendor);
   const features = getFeatures();
-  const services = getServices();
+  const services = getServices(vendor);
   const vendorId = getVendorIdFromListing(vendor);
-  const averageRating = vendor?.rating ? parseFloat(safeToString(vendor.rating)) : 4.5;
-  const locationString = getLocationString(vendor.location || vendor.area, "Ibadan, Nigeria");
-  const safeTitle = safeToString(vendor.title || vendor.name, "Vendor Details");
+  const averageRating = getRating(vendor);
+  const locationString = getLocationFromItem(vendor);
+  const safeTitle = getBusinessName(vendor);
+  const priceDisplay = getPriceDisplay();
+  const perText = getPerText(vendor);
+  const realPrice = calculatePrice();
+  const nights = calculateNights();
+  const totalPrice = calculateTotalPrice();
   const hotelRoomCount = category === 'hotel' 
     ? (vendor.details?.roomTypes?.length || 0)
     : 0;
 
-  const getPriceRange = () => {
-    if (category === 'hotel' && vendor.details?.roomTypes) {
-      const prices = vendor.details.roomTypes
-        .map(room => room.pricePerNight || 0)
-        .filter(price => price > 0);
-      
-      if (prices.length === 0) {
-        return formatPrice(vendor.price || 0);
-      }
-      
-      const minPrice = Math.min(...prices);
-      const maxPrice = Math.max(...prices);
-      
-      if (minPrice === maxPrice) {
-        return formatPrice(minPrice);
-      }
-      
-      return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`;
-    }
-    
-    return formatPrice(vendor.price || vendor.details?.pricePerNight || 0);
-  };
+  // Determine which modals to use based on category
+  const shouldShowCalendar = category === 'hotel' || category === 'shortlet';
+  const shouldShowHotelGuests = category === 'hotel';
+  const shouldShowRestaurantGuests = category === 'restaurant';
 
   return (
     <div className="min-h-screen font-manrope">
       <Header />
+      <ToastContainer />
       
       <style jsx>{`
         @keyframes highlightPulse {
@@ -1331,46 +1762,6 @@ const VendorDetail = () => {
           100% {
             background-color: rgba(6, 234, 252, 0.05);
             box-shadow: 0 0 0 0 rgba(6, 234, 252, 0);
-          }
-        }
-        
-        @keyframes slideInRight {
-          from {
-            opacity: 0;
-            transform: translateX(100%);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-        
-        @keyframes slideOutRight {
-          from {
-            opacity: 1;
-            transform: translateX(0);
-          }
-          to {
-            opacity: 0;
-            transform: translateX(100%);
-          }
-        }
-        
-        @keyframes slideInUp {
-          from {
-            transform: translateY(100%);
-          }
-          to {
-            transform: translateY(0);
-          }
-        }
-        
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
           }
         }
         
@@ -1390,25 +1781,7 @@ const VendorDetail = () => {
           scroll-behavior: smooth;
         }
         
-        #toast-notification {
-          position: fixed !important;
-          z-index: 99999 !important;
-          top: 80px !important;
-          right: 15px !important;
-          max-width: 320px;
-          animation: slideInRight 0.3s ease-out forwards;
-          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-          backdrop-filter: blur(10px);
-        }
-        
         @media (max-width: 768px) {
-          #toast-notification {
-            top: 70px !important;
-            right: 10px !important;
-            left: 10px !important;
-            max-width: calc(100% - 20px);
-          }
-          
           .smooth-scroll-target {
             scroll-margin-top: 10px;
           }
@@ -1428,29 +1801,12 @@ const VendorDetail = () => {
           }
         }
         
-        .bottom-sheet-backdrop {
-          animation: fadeIn 0.2s ease-out;
-        }
-        
         .full-screen-modal {
           position: fixed;
           inset: 0;
           z-index: 99999;
           background: white;
           animation: slideInUp 0.3s ease-out;
-        }
-        
-        .full-screen-modal-exit {
-          animation: slideOutDown 0.3s ease-in;
-        }
-        
-        @keyframes slideOutDown {
-          from {
-            transform: translateY(0);
-          }
-          to {
-            transform: translateY(100%);
-          }
         }
         
         .full-screen-content {
@@ -1479,6 +1835,45 @@ const VendorDetail = () => {
         
         .full-screen-body {
           padding-bottom: 100px;
+        }
+        
+        .sticky-booking-widget {
+          transition: transform 0.3s ease;
+        }
+        
+        .sticky-booking-widget.sticky {
+          position: fixed;
+          top: 100px;
+          width: 384px !important;
+          z-index: 40;
+          will-change: transform;
+        }
+        
+        .sticky-booking-widget::-webkit-scrollbar {
+          width: 4px;
+        }
+        
+        .sticky-booking-widget::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+        
+        .sticky-booking-widget::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 10px;
+        }
+        
+        .sticky-booking-widget::-webkit-scrollbar-thumb:hover {
+          background: #555;
+        }
+        
+        @keyframes slideInUp {
+          from {
+            transform: translateY(100%);
+          }
+          to {
+            transform: translateY(0);
+          }
         }
       `}</style>
       
@@ -1789,14 +2184,11 @@ const VendorDetail = () => {
                 <div className="flex flex-col justify-center gap-0.5 md:gap-3">
                   <div className="flex items-center gap-0.5 md:gap-2">
                     <span className="text-[14px] md:text-2xl text-gray-900 font-manrope font-bold">
-                      {getPriceRange()}
+                      {priceDisplay}
                     </span>
                   </div>
                   <span className="text-gray-900 text-xs md:text-base mt-0.5 cursor-pointer">
-                    {category === 'hotel' ? 'per night' : 
-                     category === 'restaurant' ? 'per meal' : 
-                     category === 'shortlet' ? 'per night' :
-                     'per guest'}
+                    {perText}
                   </span>
                 </div>
               </div>
@@ -1839,12 +2231,33 @@ const VendorDetail = () => {
                 </button>
 
                 <button
-                  onClick={handleBookingClick}
+                  onClick={() => {
+                    if (category === 'hotel' && !selectedRoom) {
+                      // Scroll to room selection
+                      if (roomSelectionRef.current) {
+                        roomSelectionRef.current.scrollIntoView({
+                          behavior: 'smooth',
+                          block: 'start'
+                        });
+                        
+                        roomSelectionRef.current.classList.add('highlight-section');
+                        setTimeout(() => {
+                          if (roomSelectionRef.current) {
+                            roomSelectionRef.current.classList.remove('highlight-section');
+                          }
+                        }, 1500);
+                        
+                        showToast("Please select a room first", "info");
+                        return;
+                      }
+                    }
+                    handleBookingClick();
+                  }}
                   className="flex flex-col items-center gap-1.5 group relative cursor-pointer"
                 >
                   <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-110 ${
                     category === 'hotel' && !selectedRoom 
-                      ? 'bg-gradient-to-br from-gray-400 to-gray-500 cursor-not-allowed' 
+                      ? 'bg-gray-400 cursor-not-allowed' 
                       : 'bg-[#06f49f]'
                   }`}>
                     <FaBookOpen className="text-white text-lg" />
@@ -1893,120 +2306,232 @@ const VendorDetail = () => {
               </div>
             </div>
 
-            {category === 'hotel' && (
-              <div className="px-2 md:px-100">
-                <div className="bg-white rounded-2xl shadow-xl border border-gray-300 p-4 space-y-4">
-                  <button
-                    onClick={() => setOpenCalendar(true)}
-                    className="grid grid-cols-2 border border-gray-300 rounded-xl overflow-hidden text-left w-full hover:bg-gray-50 transition cursor-pointer"
-                  >
-                    <div className="p-3 hover:bg-gray-50 transition">
-                      <p className="text-[10px] uppercase text-gray-500 font-semibold">
-                        Check-in
-                      </p>
-                      <p className="text-sm font-medium">{formatDateForDisplay(checkIn)}</p>
-                    </div>
-
-                    <div className="p-3 border-l border-gray-300 hover:bg-gray-50 transition">
-                      <p className="text-[10px] uppercase text-gray-500 font-semibold">
-                        Checkout
-                      </p>
-                      <p className="text-sm font-medium">{formatDateForDisplay(checkOut)}</p>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setOpenGuests(true)}
-                    className="border border-gray-300 rounded-xl p-3 flex justify-between items-center w-full text-left hover:bg-gray-50 transition cursor-pointer"
+            {/* ================== ABOUT SECTION WITH STICKY BOOKING WIDGET ================== */}
+            <section className="w-full bg-[#F7F7FA] rounded-none md:rounded-3xl relative">
+              <div className="px-2.5 sm:px-4 md:px-6 lg:px-8 py-4 md:py-8">
+                <div className="flex flex-col lg:flex-row gap-8">
+                  {/* Left Column - Content */}
+                  <div 
+                    ref={contentRef}
+                    className="flex-1 space-y-8"
                   >
                     <div>
-                      <p className="text-[10px] uppercase text-gray-500 font-semibold">
-                        Guests
+                      <h2 className="text-base md:text-xl font-bold text-[#06F49F] mb-2 md:mb-4 font-manrope">
+                        About
+                      </h2>
+                      <p className="text-gray-900 text-[13px] md:text-sm font-manrope hover:text-gray-800 cursor-pointer">
+                        {safeToString(vendor.description || vendor.about || "Welcome to our premium venue, offering exceptional service and unforgettable experiences. With modern amenities and professional staff, we ensure your stay is comfortable and memorable.")}
                       </p>
-                      <p className="text-sm font-medium">{totalGuests} guest{totalGuests !== 1 ? 's' : ''}</p>
                     </div>
 
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-gray-500">Edit</span>
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </button>
-
-                  <button 
-                    className="w-full py-4 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition shadow-md cursor-pointer"
-                    onClick={handleBookingClick}
-                  >
-                    Reserve
-                  </button>
-
-                  <p className="text-center text-xs text-gray-500">
-                    You won't be charged yet
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <section className="w-full bg-[#F7F7FA] rounded-none md:rounded-3xl">
-              <div className="px-2.5 sm:px-4 md:px-6 lg:px-8 py-4 md:py-8">
-                <div className="mb-4 md:mb-12">
-                  <h2 className="text-base md:text-xl font-bold text-[#06F49F] mb-2 md:mb-4 font-manrope">
-                    About
-                  </h2>
-                  <p className="text-gray-900 text-[13px] md:text-sm font-manrope hover:text-gray-800 cursor-pointer">
-                    {safeToString(vendor.description || vendor.about || "Welcome to our premium venue, offering exceptional service and unforgettable experiences. With modern amenities and professional staff, we ensure your stay is comfortable and memorable.")}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
-                  <div className="bg-white rounded-lg md:rounded-2 p-3 md:p-6">
-                    <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-3 md:mb-6 font-manrope">
-                      What we Do
-                    </h3>
-                    <div className="space-y-2.5 md:space-y-4">
-                      {services.map((service, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-2 md:gap-3 md:hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
-                        >
-                          <div className="flex-shrink-0 mt-0.5 md:mt-1 group-hover:scale-110 transition-transform duration-300">
-                            <FontAwesomeIcon
-                              icon={faCheckCircle}
-                              size={16}
-                              className=" text-xs md:text-base text-gray-900 md:group-hover:text-[#06EAFC] transition-colors duration-300"
-                            />
+                    {/* What we Do - First */}
+                    <div className="bg-white rounded-lg md:rounded-2 p-3 md:p-6">
+                      <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-3 md:mb-6 font-manrope">
+                        What we Do
+                      </h3>
+                      <div className="space-y-2.5 md:space-y-4">
+                        {services.map((service, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-2 md:gap-3 md:hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
+                          >
+                            <div className="flex-shrink-0 mt-0.5 md:mt-1 group-hover:scale-110 transition-transform duration-300">
+                              <FontAwesomeIcon
+                                icon={faCheckCircle}
+                                size={16}
+                                className=" text-xs md:text-base text-gray-900 md:group-hover:text-[#06EAFC] transition-colors duration-300"
+                              />
+                            </div>
+                            <span className="text-gray-700 font-manrope leading-relaxed text-[13px] md:text-sm group-hover:text-gray-900 transition-colors duration-300">
+                              {service}
+                            </span>
                           </div>
-                          <span className="text-gray-700 font-manrope leading-relaxed text-[13px] md:text-sm group-hover:text-gray-900 transition-colors duration-300">
-                            {service}
-                          </span>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Key Features - Below What we Do (for LG) */}
+                    <div 
+                      ref={keyFeaturesRef}
+                      className="bg-white rounded-lg md:rounded-2xl p-3 md:p-6"
+                    >
+                      <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-3 md:mb-6 font-manrope">
+                        Key Features
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6">
+                        {features.map((feature, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-2 md:gap-3 md:hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
+                          >
+                            <div className="w-7 h-7 md:w-10 md:h-10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                              <FontAwesomeIcon
+                                icon={feature.icon}
+                                className="text-xs md:text-base text-gray-900 md:group-hover:text-[#06EAFC] transition-colors duration-300"
+                              />
+                            </div>
+                            <span className="font-medium text-gray-900 font-manrope text-xs md:text-sm group-hover:text-gray-700 transition-colors duration-300">
+                              {feature.name}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-lg md:rounded-2xl p-3 md:p-6">
-                    <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-3 md:mb-6 font-manrope">
-                      Key Features
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6">
-                      {features.map((feature, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-2 md:gap-3 md:hover:translate-x-1 transition-transform duration-300 group cursor-pointer"
-                        >
-                          <div className="w-7 h-7 md:w-10 md:h-10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                            <FontAwesomeIcon
-                              icon={feature.icon}
-                              className="text-xs md:text-base text-gray-900 md:group-hover:text-[#06EAFC] transition-colors duration-300"
-                            />
+                  {/* Right Column - Booking Widget (Desktop Only) */}
+                  <div className="hidden lg:block w-96 flex-shrink-0">
+                    <motion.div
+                      ref={bookingWidgetRef}
+                      className={`sticky-booking-widget ${isBookingSticky ? 'sticky' : ''}`}
+                      style={{
+                        maxHeight: isBookingSticky ? 'calc(100vh - 120px)' : 'auto',
+                        overflowY: isBookingSticky ? 'auto' : 'visible'
+                      }}
+                    >
+                      <motion.div
+                        className="bg-white rounded-2xl shadow-xl border border-gray-300 p-6 space-y-6"
+                        whileHover={{ boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        {/* Price Display */}
+                        <div>
+                          <div className="flex justify-between items-baseline mb-2">
+                            <div>
+                              <span className="text-2xl font-bold text-gray-900">{formatPrice(totalPrice)}</span>
+                              <span className="text-gray-600 ml-2">total</span>
+                            </div>
                           </div>
-                          <span className="font-medium text-gray-900 font-manrope text-xs md:text-sm group-hover:text-gray-700 transition-colors duration-300">
-                            {feature.name}
-                          </span>
+                          
+                          {category === 'hotel' || category === 'shortlet' ? (
+                            <div className="mt-2 text-sm text-gray-600">
+                              {formatPrice(realPrice)} per night × {nights} night{nights !== 1 ? 's' : ''}
+                            </div>
+                          ) : category === 'restaurant' ? (
+                            <div className="mt-2 text-sm text-gray-600">
+                              {formatPrice(realPrice)} per meal × {guests} guest{guests !== 1 ? 's' : ''}
+                            </div>
+                          ) : (
+                            <div className="mt-2 text-sm text-gray-600">
+                              {formatPrice(realPrice)} per guest
+                            </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
+
+                        {/* Dates Section for hotels and shortlets */}
+                        {(category === 'hotel' || category === 'shortlet') && (
+                          <div>
+                            <div className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                              <span>Dates</span>
+                              <button
+                                onClick={() => setOpenCalendar(true)}
+                                className="text-xs text-[#06f49f] hover:text-[#05d9eb] font-medium cursor-pointer"
+                              >
+                                Edit
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="border border-gray-300 rounded-xl p-3">
+                                <p className="text-[10px] uppercase text-gray-500 font-semibold mb-1">
+                                  Check-in
+                                </p>
+                                <p className="text-sm font-medium">{formatDateForDisplay(checkIn)}</p>
+                              </div>
+                              <div className="border border-gray-300 rounded-xl p-3">
+                                <p className="text-[10px] uppercase text-gray-500 font-semibold mb-1">
+                                  Checkout
+                                </p>
+                                <p className="text-sm font-medium">{formatDateForDisplay(checkOut)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Guests Section */}
+                        <div>
+                          <div className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                            <span>{category === 'hotel' ? 'Guests & Rooms' : 'Guests'}</span>
+                            <button
+                              onClick={() => {
+                                if (category === 'hotel') {
+                                  setOpenGuests(true);
+                                } else {
+                                  setOpenGuests(true);
+                                }
+                              }}
+                              className="text-xs text-[#06f49f] hover:text-[#05d9eb] font-medium cursor-pointer"
+                            >
+                              Edit
+                            </button>
+                          </div>
+                          <div className="border border-gray-300 rounded-xl p-3">
+                            <p className="text-[10px] uppercase text-gray-500 font-semibold mb-1">
+                              {category === 'hotel' ? 'Guests & Rooms' : 'Guests'}
+                            </p>
+                            <p className="text-sm font-medium">
+                              {category === 'hotel' 
+                                ? `${totalHotelGuests} guest${totalHotelGuests !== 1 ? 's' : ''}, ${rooms} room${rooms !== 1 ? 's' : ''}`
+                                : `${guests} guest${guests !== 1 ? 's' : ''}`
+                              }
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Room Selection (if needed) */}
+                        {category === 'hotel' && !selectedRoom && (
+                          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                            <div className="flex items-start gap-2">
+                              <FontAwesomeIcon icon={faInfoCircle} className="text-yellow-500 mt-0.5" />
+                              <div>
+                                <p className="text-sm font-medium text-yellow-800">Select a room to continue</p>
+                                <p className="text-xs text-yellow-600 mt-1">
+                                  Please choose a room from the options below before booking
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Reserve Button */}
+                        <motion.button 
+                          className="w-full py-4 rounded-xl bg-[#06f49f] hover:bg-[#05d9eb] text-white font-bold transition shadow-md cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed"
+                          onClick={() => {
+                            if (category === 'hotel' && !selectedRoom) {
+                              if (roomSelectionRef.current) {
+                                roomSelectionRef.current.scrollIntoView({
+                                  behavior: 'smooth',
+                                  block: 'start'
+                                });
+                                
+                                roomSelectionRef.current.classList.add('highlight-section');
+                                setTimeout(() => {
+                                  if (roomSelectionRef.current) {
+                                    roomSelectionRef.current.classList.remove('highlight-section');
+                                  }
+                                }, 1500);
+                                
+                                showToast("Please select a room first", "info");
+                              }
+                            } else {
+                              handleBookingClick();
+                            }
+                          }}
+                          disabled={category === 'hotel' && !selectedRoom}
+                          whileHover={category === 'hotel' && !selectedRoom ? {} : { scale: 1.02 }}
+                          whileTap={category === 'hotel' && !selectedRoom ? {} : { scale: 0.98 }}
+                        >
+                          {category === 'hotel' && !selectedRoom 
+                            ? "Select a Room First" 
+                            : `Reserve for ${formatPrice(totalPrice)}`
+                          }
+                        </motion.button>
+
+                        <p className="text-center text-xs text-gray-500">
+                          You won't be charged yet
+                        </p>
+
+                      </motion.div>
+                    </motion.div>
                   </div>
                 </div>
               </div>
@@ -2054,7 +2579,7 @@ const VendorDetail = () => {
                       <div>
                         <p className="text-xs text-gray-600 mb-0.5 cursor-pointer">Address</p>
                         <p className="font-medium text-gray-900 text-sm cursor-pointer">
-                          {safeToString(vendor.address || vendor.location?.address, `${safeToString(vendor.title || vendor.name, "Vendor")}, ${locationString}`)}
+                          {safeToString(vendor.address || vendor.location?.address, `${safeTitle}, ${locationString}`)}
                         </p>
                       </div>
                       <div>
@@ -2074,7 +2599,7 @@ const VendorDetail = () => {
                       </div>
                       <div className="pt-3">
                         <a
-                          href={`https://www.google.com/maps/dir//${encodeURIComponent(safeToString(vendor.address || vendor.location?.address || vendor.title || vendor.name, "") + " Ibadan Nigeria")}`}
+                          href={`https://www.google.com/maps/dir//${encodeURIComponent(safeToString(vendor.address || vendor.location?.address || safeTitle, "") + " Ibadan Nigeria")}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors font-manrope font-medium cursor-pointer text-sm"
@@ -2093,98 +2618,40 @@ const VendorDetail = () => {
           </div>
         </div>
 
-        {/* ================= CALENDAR MODAL ================= */}
-        {openCalendar && (
-          <div className="full-screen-modal">
-            <div className="full-screen-content">
-              <div className="full-screen-header p-4 border-b border-gray-300">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-[13px] font-bold font-manrope">Select Dates</h3>
-                    <p className="text-[11px] text-gray-500 font-manrope">
-                      {checkIn && checkOut
-                        ? `${formatDateForDisplay(checkIn)} – ${formatDateForDisplay(checkOut)}`
-                        : "Select your check-in and check-out dates"}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setOpenCalendar(false)}
-                    className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
-                  >
-                    <FontAwesomeIcon icon={faTimes} className="text-gray-500 text-sm" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="full-screen-body p-4">
-                <div className="grid grid-cols-1 gap-6">
-                  <CalendarMonth
-                    month={currentMonth}
-                    checkIn={checkIn}
-                    checkOut={checkOut}
-                    setCheckIn={setCheckIn}
-                    setCheckOut={setCheckOut}
-                  />
-
-                  <CalendarMonth
-                    month={nextMonth}
-                    checkIn={checkIn}
-                    checkOut={checkOut}
-                    setCheckIn={setCheckIn}
-                    setCheckOut={setCheckOut}
-                  />
-                </div>
-              </div>
-
-              <div className="full-screen-footer">
-                <button
-                  onClick={() => setOpenCalendar(false)}
-                  className="w-full py-3 rounded-xl bg-[#06f49f] text-white text-[13px] font-bold hover:bg-[#05d9eb] transition-all cursor-pointer"
-                >
-                  Apply Dates
-                </button>
-              </div>
-            </div>
-          </div>
+        {/* ================= CALENDAR MODAL (for hotels/shortlets) ================= */}
+        {shouldShowCalendar && (
+          <CalendarModal
+            isOpen={openCalendar}
+            onClose={() => setOpenCalendar(false)}
+            checkIn={checkIn}
+            checkOut={checkOut}
+            setCheckIn={setCheckIn}
+            setCheckOut={setCheckOut}
+          />
         )}
 
-        {/* ================= GUESTS MODAL ================= */}
-        {openGuests && (
-          <div className="full-screen-modal">
-            <div className="full-screen-content">
-              <div className="full-screen-header p-4 border-b border-gray-300">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-[13px] font-bold font-manrope">Guests & Rooms</h3>
-                    <p className="text-[11px] text-gray-500 font-manrope">
-                      {totalGuests} guest{totalGuests !== 1 ? 's' : ''}, {rooms} room{rooms !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setOpenGuests(false)}
-                    className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
-                  >
-                    <FontAwesomeIcon icon={faTimes} className="text-gray-500 text-sm" />
-                  </button>
-                </div>
-              </div>
+        {/* ================= RESTAURANT GUESTS MODAL ================= */}
+        {shouldShowRestaurantGuests && (
+          <GuestsModal
+            isOpen={openGuests}
+            onClose={() => setOpenGuests(false)}
+            guests={guests}
+            setGuests={setGuests}
+          />
+        )}
 
-              <div className="full-screen-body p-4 space-y-4">
-                <Counter label="Adults" sub="Age 13+" value={adults} setValue={setAdults} min={1} />
-                <Counter label="Children" sub="Ages 2–12" value={children} setValue={setChildren} />
-                <Counter label="Rooms" sub="How many rooms" value={rooms} setValue={setRooms} min={1} />
-              </div>
-
-              <div className="full-screen-footer">
-                <button
-                  onClick={() => setOpenGuests(false)}
-                  className="w-full py-3 rounded-xl bg-[#06f49f] text-white text-[13px] font-bold hover:bg-[#05d9eb] transition-all cursor-pointer"
-                >
-                  Apply ({totalGuests} guest{totalGuests !== 1 ? 's' : ''}, {rooms} room{rooms !== 1 ? 's' : ''})
-                </button>
-              </div>
-            </div>
-          </div>
+        {/* ================= HOTEL GUESTS MODAL ================= */}
+        {shouldShowHotelGuests && (
+          <HotelGuestsModal
+            isOpen={openGuests}
+            onClose={() => setOpenGuests(false)}
+            adults={adults}
+            setAdults={setAdults}
+            children={children}
+            setChildren={setChildren}
+            rooms={rooms}
+            setRooms={setRooms}
+          />
         )}
       </main>
 
@@ -2196,16 +2663,13 @@ const VendorDetail = () => {
         >
           <div>
             <div className="text-lg font-bold text-gray-900">
-              {category === 'hotel' ? getPriceRange() : formatPrice(calculatePrice())}
+              {priceDisplay}
               <span className="text-xs font-normal text-gray-500 ml-1">
-                {category === 'hotel' ? 'per night' : 
-                 category === 'restaurant' ? 'per meal' : 
-                 category === 'shortlet' ? 'per night' :
-                 'per guest'}
+                {perText}
               </span>
             </div>
             <div className="text-xs text-gray-500">
-              {category !== 'restaurant' && category !== 'event' && (
+              {shouldShowCalendar && (
                 <>
                   {formatDate(checkIn)} – {formatDate(checkOut)}
                   {category === 'hotel' && selectedRoom && (
@@ -2213,7 +2677,7 @@ const VendorDetail = () => {
                   )}
                 </>
               )}
-              {(category === 'restaurant' || category === 'event') && (
+              {!shouldShowCalendar && (
                 <span className="text-gray-400">Tap to book</span>
               )}
             </div>
@@ -2231,7 +2695,7 @@ const VendorDetail = () => {
         </button>
       </div>
 
-      {/* ===== BOTTOM SHEET ===== */}
+      {/* ===== BOTTOM SHEET (Mobile Full Screen Modal) ===== */}
       <AnimatePresence>
         {bottomSheetOpen && (
           <>
@@ -2286,9 +2750,11 @@ const VendorDetail = () => {
                   <div className="space-y-3 border-b border-gray-300 pb-6 mb-6">
                     <div className="flex justify-between items-center mb-4">
                       <span className="font-bold text-[13px]">Price Summary</span>
-                      <span className="text-[11px] text-gray-500">
-                        {formatDate(checkIn)} – {formatDate(checkOut)}
-                      </span>
+                      {shouldShowCalendar && (
+                        <span className="text-[11px] text-gray-500">
+                          {formatDate(checkIn)} – {formatDate(checkOut)}
+                        </span>
+                      )}
                     </div>
                     
                     {category === 'hotel' || category === 'shortlet' ? (
@@ -2320,6 +2786,21 @@ const VendorDetail = () => {
                           );
                         })()}
                       </>
+                    ) : category === 'restaurant' ? (
+                      <>
+                        <div className="flex justify-between text-[12px]">
+                          <span>{guests} guest{guests !== 1 ? 's' : ''} × {formatPrice(realPrice)}</span>
+                          <span className="font-medium">{formatPrice(totalPrice)}</span>
+                        </div>
+                        <div className="flex justify-between text-gray-600 text-[12px]">
+                          <span>Service fee</span>
+                          <span>₦0</span>
+                        </div>
+                        <div className="flex justify-between font-bold text-[13px] pt-4 border-t border-gray-300">
+                          <span>Total</span>
+                          <span>{formatPrice(totalPrice)}</span>
+                        </div>
+                      </>
                     ) : (
                       <>
                         <div className="flex justify-between text-[12px]">
@@ -2338,12 +2819,12 @@ const VendorDetail = () => {
                     )}
                   </div>
 
-                  <div className="mb-6">
-                    <div className="text-[12px] font-semibold text-gray-700 mb-2">
-                      Dates
-                    </div>
+                  {shouldShowCalendar && (
+                    <div className="mb-6">
+                      <div className="text-[12px] font-semibold text-gray-700 mb-2">
+                        Dates
+                      </div>
 
-                    {category !== 'restaurant' && category !== 'event' ? (
                       <button
                         onClick={openCalendarFromSheet}
                         className="w-full border border-gray-300 rounded-xl p-4 text-left hover:bg-gray-50 transition cursor-pointer"
@@ -2355,33 +2836,35 @@ const VendorDetail = () => {
                           Click to edit dates
                         </div>
                       </button>
-                    ) : (
-                      <div className="w-full border border-gray-300 rounded-xl p-4 text-left bg-gray-50">
-                        <div className="font-medium text-gray-900 text-[13px]">
-                          Date selection not required
-                        </div>
-                        <div className="text-[11px] text-gray-400 mt-1">
-                          For {category === 'restaurant' ? 'restaurant' : 'event'} bookings
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   <div className="mb-6">
                     <div className="text-[12px] font-semibold text-gray-700 mb-2">
-                      Guests
+                      {category === 'hotel' ? 'Guests & Rooms' : 'Guests'}
                     </div>
 
                     <button
-                      onClick={openGuestsFromSheet}
+                      onClick={() => {
+                        setBottomSheetOpen(false);
+                        setTimeout(() => {
+                          if (category === 'hotel') {
+                            setOpenGuests(true);
+                          } else {
+                            setOpenGuests(true);
+                          }
+                        }, 300);
+                      }}
                       className="w-full border border-gray-300 rounded-xl p-4 text-left hover:bg-gray-50 transition cursor-pointer"
                     >
                       <div className="font-medium text-[13px]">
-                        {totalGuests} guest{totalGuests !== 1 ? 's' : ''}
-                        {rooms > 1 && `, ${rooms} rooms`}
+                        {category === 'hotel' 
+                          ? `${totalHotelGuests} guest${totalHotelGuests !== 1 ? 's' : ''}, ${rooms} room${rooms !== 1 ? 's' : ''}`
+                          : `${guests} guest${guests !== 1 ? 's' : ''}`
+                        }
                       </div>
                       <div className="text-[11px] text-gray-400 mt-1">
-                        Click to edit guests
+                        Click to edit {category === 'hotel' ? 'guests & rooms' : 'guests'}
                       </div>
                     </button>
                   </div>
@@ -2418,18 +2901,32 @@ const VendorDetail = () => {
 
                 <div className="full-screen-footer">
                   <button 
-                    onClick={handleBookNowClick}
-                    disabled={category === 'hotel' && !selectedRoom}
+                    onClick={() => {
+                      if (category === 'hotel' && !selectedRoom) {
+                        setBottomSheetOpen(false);
+                        setTimeout(() => {
+                          if (roomSelectionRef.current) {
+                            roomSelectionRef.current.scrollIntoView({
+                              behavior: 'smooth',
+                              block: 'start'
+                            });
+                          }
+                        }, 300);
+                      } else {
+                        handleBookNowClick();
+                      }
+                    }}
+                    disabled={false}
                     className={`
                       w-full py-3 rounded-xl font-bold transition-all text-[13px]
                       ${category === 'hotel' && !selectedRoom
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        ? "bg-blue-50 border-2 border-[#06EAFC] text-[#06EAFC] hover:bg-blue-100 active:scale-95"
                         : "bg-[#06f49f] text-white hover:bg-[#05d9eb] active:scale-95"
                       }
                     `}
                   >
                     {category === 'hotel' && !selectedRoom
-                      ? "Select a room first"
+                      ? "View Available Rooms"
                       : `Reserve for ${formatPrice(calculateTotalPrice())}`
                     }
                   </button>
@@ -2448,7 +2945,7 @@ const VendorDetail = () => {
         <div className="fixed inset-0 z-[9999] bg-black">
           <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent">
             <div className="text-white">
-              <h2 className="text-base font-semibold">{safeToString(vendor?.title || vendor?.name, "Gallery")}</h2>
+              <h2 className="text-base font-semibold">{safeTitle}</h2>
               <p className="text-xs text-white/80">
                 {currentImageIndex + 1} / {galleryImages.length}
               </p>

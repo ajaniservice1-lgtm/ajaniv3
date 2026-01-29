@@ -117,7 +117,7 @@ const RegisterChoicePage = () => {
               {/* Content Container */}
               <div className="w-2/3 p-3">
                 <h2 className="text-base font-bold text-gray-900 mb-1">
-                  Buyer / Explorer
+                  Explorer
                 </h2>
                 <p className="text-gray-600 text-xs leading-relaxed">
                   Discover hotels, restaurants, local vendors, events, services and price
@@ -162,7 +162,7 @@ const RegisterChoicePage = () => {
               {/* Content Container */}
               <div className="w-2/3 p-3">
                 <h2 className="text-base font-bold text-gray-900 mb-1">
-                  Vendor / Business Owner
+                  Business Owner
                 </h2>
                 <p className="text-gray-600 text-xs leading-relaxed">
                   List my business receive booking, chat with customer, and grow
@@ -211,7 +211,7 @@ const RegisterChoicePage = () => {
               {/* Content Container */}
               <div className="px-4 space-y-1.5">
                 <h2 className="text-xl font-bold text-gray-900 leading-tight">
-                  Buyer / Explorer
+                  Explorer
                 </h2>
                 <p className="text-gray-600 text-sm leading-relaxed">
                   Discover hotels, restaurants, local vendors, events, services and price
@@ -257,7 +257,7 @@ const RegisterChoicePage = () => {
               {/* Content Container */}
               <div className="px-4 space-y-1.5">
                 <h2 className="text-xl font-bold text-gray-900 leading-tight">
-                  Vendor / Business Owner
+                   Business Owner
                 </h2>
                 <p className="text-gray-600 text-sm leading-relaxed">
                   List my business receive booking, chat with customer, and grow

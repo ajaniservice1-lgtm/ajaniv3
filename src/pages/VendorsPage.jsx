@@ -435,12 +435,7 @@ const VendorsPage = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </button>
-              <button
-                onClick={handleAddVendor}
-                className="px-4 py-2 bg-[#06EAFC] text-black rounded-lg hover:bg-[#6cf5ff] transition-colors duration-200 text-sm font-medium"
-              >
-                Add Vendor
-              </button>
+              
             </div>
           </div>
           <p className="text-gray-600 text-sm lg:text-base ml-11">

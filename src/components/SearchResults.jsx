@@ -550,6 +550,102 @@ const getCardImages = (item) => {
   return [FALLBACK_IMAGES.default];
 };
 
+/* ================== UNIVERSAL HELPER FUNCTIONS ================== */
+
+// Universal price getter - works for all structures
+const getPriceFromItem = (item) => {
+  try {
+    // Check for direct price field first
+    if (item.price !== undefined && item.price !== null) {
+      return item.price;
+    }
+    
+    // Check for restaurant price range
+    if (item.details?.priceRangePerMeal) {
+      const { priceFrom, priceTo } = item.details.priceRangePerMeal;
+      
+      // Return the average price for simplicity
+      if (priceFrom !== undefined && priceTo !== undefined) {
+        return Math.round((priceFrom + priceTo) / 2);
+      } else if (priceFrom !== undefined) {
+        return priceFrom;
+      } else if (priceTo !== undefined) {
+        return priceTo;
+      }
+    }
+    
+    // Check for details.roomTypes[0].pricePerNight (hotels)
+    if (item.details?.roomTypes?.[0]?.pricePerNight !== undefined) {
+      return item.details.roomTypes[0].pricePerNight;
+    }
+    
+    // Check for details.pricePerNight (shortlets)
+    if (item.details?.pricePerNight !== undefined) {
+      return item.details.pricePerNight;
+    }
+    
+    return 0;
+  } catch (error) {
+    console.error('Error getting price:', error);
+    return 0;
+  }
+};
+
+// Universal location getter
+const getLocationFromItem = (item) => {
+  try {
+    // Check for location.area
+    if (item.location?.area) {
+      return item.location.area;
+    }
+    
+    // Check for direct area field
+    if (item.area) {
+      return item.area;
+    }
+    
+    // Check for location.address
+    if (item.location?.address) {
+      return item.location.address;
+    }
+    
+    // Check for direct address field
+    if (item.address) {
+      return item.address;
+    }
+    
+    return "Ibadan";
+  } catch (error) {
+    console.error('Error getting location:', error);
+    return "Ibadan";
+  }
+};
+
+// Universal business name getter
+const getBusinessName = (item) => {
+  try {
+    // Try name field
+    if (item.name) {
+      return item.name;
+    }
+    
+    // Try title field
+    if (item.title) {
+      return item.title;
+    }
+    
+    // Try vendor business name
+    if (item.vendorId?.vendor?.businessName) {
+      return item.vendorId.vendor.businessName;
+    }
+    
+    return "Business";
+  } catch (error) {
+    console.error('Error getting business name:', error);
+    return "Business";
+  }
+};
+
 /* ================== SIMPLE CALENDAR FOR EDITING DATES ================== */
 const SimpleCalendar = ({ onSelect, onClose, selectedDate: propSelectedDate, isCheckOut = false }) => {
   const modalRef = useRef(null);
@@ -799,36 +895,47 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   };
 
   const getPriceText = () => {
-    const price = item.price || item.price_from || "0";
+    // Special handling for restaurants with price ranges
+    const cat = (category || "").toLowerCase();
+    if (cat.includes('restaurant') && item.details?.priceRangePerMeal) {
+      const { priceFrom, priceTo } = item.details.priceRangePerMeal;
+      
+      if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+        return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
+      } else if (priceFrom !== undefined) {
+        return `From ₦${formatPrice(priceFrom)}`;
+      }
+    }
+    
+    // For other categories or restaurants without price range
+    const price = getPriceFromItem(item) || 0;
     const formattedPrice = formatPrice(price);
     return `₦${formattedPrice}`;
   };
 
-  const getPerText = () => {
-    const nightlyCategories = [
-      "hotel", "hostel", "shortlet", "apartment", "cabin", "condo", "resort", "inn", "motel",
-    ];
+  const getPriceUnit = () => {
+    const cat = (category || "").toLowerCase();
+    if (cat.includes('hotel') || cat.includes('shortlet')) return 'per night';
+    if (cat.includes('restaurant')) return 'per meal';
+    return '';
+  };
 
-    if (nightlyCategories.some((cat) => category.toLowerCase().includes(cat))) {
-      return "for 2 nights";
-    }
-
-    if (
-      category.toLowerCase().includes("restaurant") ||
-      category.toLowerCase().includes("food") ||
-      category.toLowerCase().includes("cafe")
-    ) {
-      return "per meal";
-    }
-
-    return "per guest";
+  const getTag = () => {
+    const cat = (category || "").toLowerCase();
+    if (cat.includes("hotel")) return "Hotel";
+    if (cat.includes("shortlet")) return "Shortlet";
+    if (cat.includes("restaurant")) return "Restaurant";
+    if (cat.includes("services") || cat.includes("vendor")) return "Service";
+    if (cat.includes("event")) return "Event";
+    return cat.charAt(0).toUpperCase() + cat.slice(1);
   };
 
   const priceText = getPriceText();
-  const perText = getPerText();
-  const locationText = getLocationDisplayName(item.location?.area) || "Ibadan";
+  const priceUnit = getPriceUnit();
+  const locationText = getLocationFromItem(item) || "Ibadan";
   const rating = item.rating || "4.9";
-  const businessName = item.title || item.name || "Business Name";
+  const businessName = getBusinessName(item) || "Business Name";
+  const tag = getTag();
 
   const handleCardClick = () => {
     if (item._id || item.id) {
@@ -933,13 +1040,15 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
               {locationText}
             </p>
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-baseline gap-1">
+              <div className="flex flex-col">
                 <span className="text-xs md:text-xs font-manrope text-gray-900">
                   {priceText}
                 </span>
-                <span className="text-[9px] md:text-xs text-gray-600">
-                  {perText}
-                </span>
+                {priceUnit && (
+                  <span className="text-[9px] md:text-xs text-gray-600 mt-0.5">
+                    {priceUnit}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-1">
                 <div className="flex items-center gap-1 text-gray-800 text-[9px] md:text-xs">
@@ -952,7 +1061,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
           <div className="flex items-center justify-between mt-auto pt-2">
             <div>
               <span className="inline-block text-[10px] text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
-                {category}
+                {tag}
               </span>
             </div>
             {isFavorite && !isProcessing && (
@@ -1003,7 +1112,7 @@ const CategoryButtons = ({ selectedCategories, onCategoryClick, isSwitchingCateg
     { 
       key: "vendor", 
       label: "Vendor", 
-      displayName: "Vendors",
+      displayName: "Services",
       icon: FaUserCircle
     }
   ];
