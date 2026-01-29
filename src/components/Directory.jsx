@@ -165,6 +165,20 @@ const getPriceFromItem = (item) => {
       return item.price;
     }
     
+    // Check for restaurant price range
+    if (item.details?.priceRangePerMeal) {
+      const { priceFrom, priceTo } = item.details.priceRangePerMeal;
+      
+      // Return the average price for simplicity
+      if (priceFrom !== undefined && priceTo !== undefined) {
+        return Math.round((priceFrom + priceTo) / 2);
+      } else if (priceFrom !== undefined) {
+        return priceFrom;
+      } else if (priceTo !== undefined) {
+        return priceTo;
+      }
+    }
+    
     // Check for details.roomTypes[0].pricePerNight (hotels)
     if (item.details?.roomTypes?.[0]?.pricePerNight !== undefined) {
       return item.details.roomTypes[0].pricePerNight;
@@ -388,6 +402,7 @@ const useListings = (category) => {
           console.log(`${category} listings fetched:`, fetchedListings.length);
           if (fetchedListings.length > 0) {
             console.log(`${category} sample listing:`, fetchedListings[0]);
+            console.log(`${category} sample price data:`, fetchedListings[0]?.details?.priceRangePerMeal);
           }
           setListings(fetchedListings);
         } else if (data && data.status === 'error') {
@@ -433,6 +448,18 @@ const BusinessCard = ({ item, category, isMobile }) => {
   };
 
   const getPriceText = () => {
+    // Special handling for restaurants with price ranges
+    if (category === 'restaurant' && item.details?.priceRangePerMeal) {
+      const { priceFrom, priceTo } = item.details.priceRangePerMeal;
+      
+      if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+        return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
+      } else if (priceFrom !== undefined) {
+        return `From ₦${formatPrice(priceFrom)}`;
+      }
+    }
+    
+    // For other categories or restaurants without price range
     const price = getPriceFromItem(item) || 0;
     const formattedPrice = formatPrice(price);
     return `₦${formattedPrice}`;
@@ -448,8 +475,15 @@ const BusinessCard = ({ item, category, isMobile }) => {
     return "Co";
   };
 
+  const getPriceUnit = () => {
+    if (category === 'hotel' || category === 'shortlet') return 'per night';
+    if (category === 'restaurant') return 'per meal';
+    return '';
+  };
+
   const tag = getTag();
   const priceText = getPriceText();
+  const priceUnit = getPriceUnit();
   const locationText = getLocationFromItem(item) || "Ibadan";
   const rating = "4.9";
   const businessName = getBusinessName(item) || "Business Name";
@@ -623,13 +657,15 @@ const BusinessCard = ({ item, category, isMobile }) => {
             </p>
 
             <div className="flex items-center justify-between mb-1">
-              <div className="flex items-baseline gap-0.5">
+              <div className="flex flex-col">
                 <span className="text-[12px] font-manrope text-gray-900">
                   {priceText}
                 </span>
-                <span className="text-[12px] text-gray-600">
-                  {category === 'hotel' || category === 'shortlet' ? 'per night' : ''}
-                </span>
+                {priceUnit && (
+                  <span className="text-[10px] text-gray-500 mt-0.5">
+                    {priceUnit}
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-0.5">

@@ -386,12 +386,26 @@ const getCardImages = (item) => {
   }
 };
 
-// Universal price getter (matches Directory)
+// Universal price getter (UPDATED FOR RESTAURANT PRICE RANGES)
 const getPriceFromItem = (item) => {
   try {
     // Check for direct price field first
     if (item.price !== undefined && item.price !== null) {
       return item.price;
+    }
+    
+    // Check for restaurant price range
+    if (item.details?.priceRangePerMeal) {
+      const { priceFrom, priceTo } = item.details.priceRangePerMeal;
+      
+      // Return the average price for simplicity
+      if (priceFrom !== undefined && priceTo !== undefined) {
+        return Math.round((priceFrom + priceTo) / 2);
+      } else if (priceFrom !== undefined) {
+        return priceFrom;
+      } else if (priceTo !== undefined) {
+        return priceTo;
+      }
     }
     
     // Check for details.roomTypes[0].pricePerNight (hotels)
@@ -751,6 +765,18 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   };
 
   const getPriceText = () => {
+    // Special handling for restaurants with price ranges
+    if (category === 'restaurant' && item.details?.priceRangePerMeal) {
+      const { priceFrom, priceTo } = item.details.priceRangePerMeal;
+      
+      if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+        return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
+      } else if (priceFrom !== undefined) {
+        return `From ₦${formatPrice(priceFrom)}`;
+      }
+    }
+    
+    // For other categories or restaurants without price range
     const price = getPriceFromItem(item) || 0;
     const formattedPrice = formatPrice(price);
     return `₦${formattedPrice}`;
@@ -776,8 +802,14 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
     return "per guest";
   };
 
+  const getPriceUnit = () => {
+    if (category === 'hotel' || category === 'shortlet') return 'per night';
+    if (category === 'restaurant') return 'per meal';
+    return 'per guest';
+  };
+
   const priceText = getPriceText();
-  const perText = getPerText();
+  const priceUnit = getPriceUnit();
   const locationText = getLocationFromItem(item) || "Ibadan";
   const rating = item.rating || "4.9";
   const businessName = getBusinessName(item) || "Business Name";
@@ -872,7 +904,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
             id: item._id || item.id,
             name: businessName,
             price: priceText,
-            perText: perText,
             rating: parseFloat(rating),
             tag: "Guest Favorite",
             image: images[0] || FALLBACK_IMAGES.default,
@@ -924,7 +955,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
             id: itemId || `listing_${Date.now()}`,
             name: businessName,
             price: priceText,
-            perText: perText,
             rating: parseFloat(rating),
             tag: "Guest Favorite",
             image: images[0] || FALLBACK_IMAGES.default,
@@ -961,7 +991,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
       item,
       businessName,
       priceText,
-      perText,
       rating,
       images,
       category,
@@ -1104,15 +1133,17 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
               {locationText}
             </p>
 
-            {/* Combined Price, Per Text, and Ratings */}
+            {/* Price and Ratings */}
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-baseline gap-1">
+              <div className="flex flex-col">
                 <span className="text-[12px] font-manrope text-gray-900">
                   {priceText}
                 </span>
-                <span className="text-[10px] text-gray-600">
-                  {perText}
-                </span>
+                {priceUnit && (
+                  <span className="text-[10px] text-gray-500 mt-0.5">
+                    {priceUnit}
+                  </span>
+                )}
               </div>
 
               {/* Ratings */}

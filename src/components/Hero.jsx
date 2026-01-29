@@ -1261,7 +1261,7 @@ const DiscoverIbadan = () => {
             </div>
 
             {/* TABS */}
-            <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
+            <div className="w-full max-w-sm sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
               <div className="flex justify-between items-center gap-2 p-2.5 bg-white rounded-lg border border-[#f7f7fa] shadow-sm">
                 {["Hotel", "Shortlet", "Restaurant", "Vendor"].map((category) => (
                   <button
