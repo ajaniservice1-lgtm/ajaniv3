@@ -20,6 +20,11 @@ import {
   faHome,
   faUtensils,
   faBed,
+  faToolbox,
+  faWrench,
+  faHandSparkles,
+  faPaintRoller,
+  faBolt,
 } from "@fortawesome/free-solid-svg-icons";
 import { FaUserCircle } from "react-icons/fa";
 
@@ -118,6 +123,78 @@ const glassStyles = `
   }
 `;
 
+/* ---------------- CUSTOM HOOK FOR BACKEND SERVICES ---------------- */
+const useBackendServices = () => {
+  const [serviceTypes, setServiceTypes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchServiceTypes = async () => {
+      try {
+        setLoading(true);
+        // Fetch service types from your backend
+        // This could be from your listingService or a separate serviceTypes service
+        const result = await listingService.getServiceTypes();
+        
+        if (result?.status === "success" && result.data?.serviceTypes) {
+          setServiceTypes(result.data.serviceTypes);
+        } else if (result?.data?.services) {
+          // Alternative: if the data is in services array
+          setServiceTypes(result.data.services);
+        } else {
+          // Fallback to default service types if backend doesn't return
+          setServiceTypes([
+            'Plumbing',
+            'Electrical',
+            'Cleaning',
+            'Painting',
+            'Carpentry',
+            'AC Repair',
+            'Pest Control',
+            'Tiling',
+            'Mechanic',
+            'Tailoring',
+            'Hair Styling',
+            'Makeup Artist',
+            'Photography',
+            'Catering',
+            'Delivery'
+          ]);
+          console.log("Using default service types");
+        }
+      } catch (err) {
+        console.error("Service Types API Error:", err.message);
+        setError(err.message);
+        // Fallback to default service types
+        setServiceTypes([
+          'Plumbing',
+          'Electrical',
+          'Cleaning',
+          'Painting',
+          'Carpentry',
+          'AC Repair',
+          'Pest Control',
+          'Tiling',
+          'Mechanic',
+          'Tailoring',
+          'Hair Styling',
+          'Makeup Artist',
+          'Photography',
+          'Catering',
+          'Delivery'
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchServiceTypes();
+  }, []);
+
+  return { serviceTypes, loading, error };
+};
+
 /* ---------------- CUSTOM HOOK FOR BACKEND LISTINGS ---------------- */
 const useBackendListings = () => {
   const [listings, setListings] = useState([]);
@@ -170,6 +247,21 @@ const getCategoryDisplayName = (category) => {
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+};
+
+const getServiceIcon = (serviceName) => {
+  const serviceLower = serviceName.toLowerCase();
+  
+  if (serviceLower.includes('plumb')) return faToolbox;
+  if (serviceLower.includes('electric') || serviceLower.includes('ac') || serviceLower.includes('bolt')) return faBolt;
+  if (serviceLower.includes('clean')) return faHandSparkles;
+  if (serviceLower.includes('paint')) return faPaintRoller;
+  if (serviceLower.includes('carpent') || serviceLower.includes('wood')) return faWrench;
+  if (serviceLower.includes('mechanic') || serviceLower.includes('car')) return faWrench;
+  if (serviceLower.includes('hair') || serviceLower.includes('makeup') || serviceLower.includes('tailor')) return faUser;
+  if (serviceLower.includes('photo') || serviceLower.includes('cater') || serviceLower.includes('delivery')) return faToolbox;
+  
+  return faToolbox; // default icon
 };
 
 const getLocationDisplayName = (location) => {
@@ -232,7 +324,7 @@ const getCategorySlug = (category) => {
     'Hotel': 'hotel',
     'Shortlet': 'shortlet', 
     'Restaurant': 'restaurant',
-    'Vendor': 'services',
+    'Services': 'services',
     'All Categories': ''
   };
   
@@ -246,6 +338,18 @@ const normalizeLocation = (location) => {
     .trim()
     .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
     .replace(/\s+/g, ' ');
+};
+
+const normalizeServiceName = (service) => {
+  if (!service) return '';
+  return service
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, ' ')
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 };
 
 const looksLikeLocation = (query) => {
@@ -273,6 +377,18 @@ const looksLikeLocation = (query) => {
   return isIbadanArea || hasLocationSuffix || isShortQuery;
 };
 
+const looksLikeService = (query, serviceTypes) => {
+  if (!query || query.trim() === '' || !serviceTypes || serviceTypes.length === 0) return false;
+  
+  const queryLower = query.toLowerCase().trim();
+  
+  // Check if query matches any service type
+  return serviceTypes.some(service => 
+    service.toLowerCase().includes(queryLower) || 
+    queryLower.includes(service.toLowerCase())
+  );
+};
+
 /* ---------------- MOBILE SEARCH MODAL COMPONENT ---------------- */
 const MobileSearchModal = ({
   searchQuery,
@@ -282,57 +398,93 @@ const MobileSearchModal = ({
   onTyping,
   isVisible,
   activeCategory,
+  serviceTypes = [],
 }) => {
   const [inputValue, setInputValue] = useState(searchQuery);
   const modalRef = useRef(null);
   const inputRef = useRef(null);
   
-  // Use ALL Ibadan locations, not just from current listings
-  const allIbadanLocations = useMemo(() => {
-    const locationsFromListings = listingService.getLocationsFromListings(listings);
-    const allLocations = [
-      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly',  'Agodi',
-      'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
-      'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
-      'Akinyele',  'Mokola Hill', 'Sango Roundabout',
-      'Iwo Road', 'Gate', 'New Garage', 'Old Ife Road',
-      ...locationsFromListings
-    ];
-    
-    // Remove duplicates and sort alphabetically
-    return [...new Set(allLocations)].sort();
-  }, [listings]);
+  // Use service types for Services category, locations for others
+  const suggestionsData = useMemo(() => {
+    if (activeCategory === "Services") {
+      // Return service types from backend
+      return serviceTypes || [];
+    } else {
+      // Return Ibadan locations for other categories
+      const locationsFromListings = listingService.getLocationsFromListings(listings);
+      const allLocations = [
+        'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly',  'Agodi',
+        'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
+        'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
+        'Akinyele',  'Mokola Hill', 'Sango Roundabout',
+        'Iwo Road', 'Gate', 'New Garage', 'Old Ife Road',
+        ...locationsFromListings
+      ];
+      
+      return [...new Set(allLocations)].sort();
+    }
+  }, [listings, activeCategory, serviceTypes]);
 
   const suggestions = useMemo(() => {
     if (!inputValue.trim()) return [];
     
     const queryLower = inputValue.toLowerCase().trim();
     
-    // Filter locations based on search
-    const locationMatches = allIbadanLocations
-      .filter((location) => {
-        const displayName = location.toLowerCase();
-        return displayName.includes(queryLower) || 
-               normalizeLocation(location).includes(normalizeLocation(queryLower));
-      })
-      .map((location) => ({
-        type: "location",
-        title: getLocationDisplayName(location),
-        location: location,
-        description: `${activeCategory}s in ${getLocationDisplayName(location)}, Ibadan`,
-      }));
+    if (activeCategory === "Services") {
+      // Filter service types based on search
+      const serviceMatches = suggestionsData
+        .filter((service) => {
+          const serviceName = service.toLowerCase();
+          return serviceName.includes(queryLower) || 
+                 normalizeServiceName(service).toLowerCase().includes(queryLower);
+        })
+        .map((service) => ({
+          type: "service",
+          title: service,
+          description: `${service} service providers in Ibadan`,
+          icon: getServiceIcon(service),
+        }));
 
-    // Add a general search option if no exact location matches
-    if (locationMatches.length === 0 && inputValue.trim()) {
-      return [{
-        type: "search",
-        title: `Search for "${inputValue}"`,
-        description: `Find ${activeCategory.toLowerCase()}s matching "${inputValue}" in Ibadan`,
-      }];
+      // Add a general search option if no exact service matches
+      if (serviceMatches.length === 0 && inputValue.trim()) {
+        return [{
+          type: "search",
+          title: `Search for "${inputValue}"`,
+          description: `Find service providers matching "${inputValue}" in Ibadan`,
+          icon: faSearch,
+        }];
+      }
+
+      return serviceMatches.slice(0, 8);
+    } else {
+      // For other categories: filter locations based on search
+      const locationMatches = suggestionsData
+        .filter((location) => {
+          const displayName = location.toLowerCase();
+          return displayName.includes(queryLower) || 
+                 normalizeLocation(location).includes(normalizeLocation(queryLower));
+        })
+        .map((location) => ({
+          type: "location",
+          title: getLocationDisplayName(location),
+          location: location,
+          description: `${activeCategory}s in ${getLocationDisplayName(location)}, Ibadan`,
+          icon: faMapMarkerAlt,
+        }));
+
+      // Add a general search option if no exact location matches
+      if (locationMatches.length === 0 && inputValue.trim()) {
+        return [{
+          type: "search",
+          title: `Search for "${inputValue}"`,
+          description: `Find ${activeCategory.toLowerCase()}s matching "${inputValue}" in Ibadan`,
+          icon: faSearch,
+        }];
+      }
+
+      return locationMatches.slice(0, 8);
     }
-
-    return locationMatches.slice(0, 8);
-  }, [inputValue, activeCategory, allIbadanLocations]);
+  }, [inputValue, activeCategory, suggestionsData]);
 
   const handleInputChange = (e) => {
     const value = e.target.value;
@@ -347,7 +499,7 @@ const MobileSearchModal = ({
   };
 
   const handleSuggestionClick = (suggestion) => {
-    if (suggestion.type === "location") {
+    if (suggestion.type === "service" || suggestion.type === "location") {
       // Set the search input value and close modal
       const title = suggestion.title || suggestion;
       setInputValue(title);
@@ -384,6 +536,22 @@ const MobileSearchModal = ({
     setInputValue(searchQuery);
   }, [searchQuery]);
 
+  const getModalTitle = () => {
+    if (activeCategory === "Services") {
+      return "What service do you need?";
+    } else {
+      return `Search ${activeCategory.toLowerCase()} locations in Ibadan...`;
+    }
+  };
+
+  const getPopularSuggestions = () => {
+    if (activeCategory === "Services") {
+      return ["Plumbing", "Electrical", "Cleaning", "AC Repair", "Carpentry", "Painting", "Mechanic", "Tailoring"];
+    } else {
+      return ["Akobo", "Bodija", "Sango", "UI", "Mokola", "Dugbe", "Ringroad", "Challenge", "Iwo Road", "Agodi"];
+    }
+  };
+
   if (!isVisible) return null;
 
   return (
@@ -413,7 +581,7 @@ const MobileSearchModal = ({
                 value={inputValue}
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
-                placeholder={`Search ${activeCategory.toLowerCase()} locations in Ibadan...`}
+                placeholder={getModalTitle()}
                 autoFocus
               />
               {inputValue && (
@@ -442,7 +610,7 @@ const MobileSearchModal = ({
               <div className="p-5">
                 <div className="mb-6">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-                    Locations in Ibadan ({suggestions.length})
+                    {activeCategory === "Services" ? "Services Available" : "Locations in Ibadan"} ({suggestions.length})
                   </h3>
                 </div>
                 <div className="space-y-3">
@@ -454,17 +622,10 @@ const MobileSearchModal = ({
                     >
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-gray-100">
-                          {suggestion.type === "search" ? (
-                            <FontAwesomeIcon 
-                              icon={faSearch} 
-                              className="text-gray-700 text-lg"
-                            />
-                          ) : (
-                            <FontAwesomeIcon 
-                              icon={faMapMarkerAlt} 
-                              className="text-gray-700 text-lg"
-                            />
-                          )}
+                          <FontAwesomeIcon 
+                            icon={suggestion.icon} 
+                            className="text-gray-700 text-lg"
+                          />
                         </div>
                         <div className="flex-1">
                           <div className="flex items-start justify-between mb-2">
@@ -475,9 +636,12 @@ const MobileSearchModal = ({
                             <span className={`text-xs font-medium px-2 py-1 rounded ${
                               suggestion.type === "search" 
                                 ? "text-purple-600 bg-purple-50" 
+                                : suggestion.type === "service"
+                                ? "text-green-600 bg-green-50"
                                 : "text-blue-600 bg-blue-50"
                             }`}>
-                              {suggestion.type === "search" ? "Search" : "Location"}
+                              {suggestion.type === "search" ? "Search" : 
+                               suggestion.type === "service" ? "Service" : "Location"}
                             </span>
                           </div>
                         </div>
@@ -510,9 +674,13 @@ const MobileSearchModal = ({
                 <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
                   <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-2xl" />
                 </div>
-                <h3 className="text-xl font-medium text-gray-900 mb-3">No matching locations</h3>
+                <h3 className="text-xl font-medium text-gray-900 mb-3">
+                  {activeCategory === "Services" ? "No matching services" : "No matching locations"}
+                </h3>
                 <p className="text-gray-600 text-center max-w-sm mb-8">
-                  Try a different location name or search term
+                  {activeCategory === "Services" 
+                    ? "Try a different service name or search term" 
+                    : "Try a different location name or search term"}
                 </p>
                 <button
                   onClick={() => {
@@ -527,16 +695,26 @@ const MobileSearchModal = ({
           ) : (
             <div className="flex flex-col items-center justify-center h-full py-16 px-4">
               <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                <FontAwesomeIcon icon={faMapMarkerAlt} className="text-gray-400 text-2xl" />
+                {activeCategory === "Services" ? (
+                  <FontAwesomeIcon icon={faToolbox} className="text-gray-400 text-2xl" />
+                ) : (
+                  <FontAwesomeIcon icon={faMapMarkerAlt} className="text-gray-400 text-2xl" />
+                )}
               </div>
-              <h3 className="text-xl font-medium text-gray-900 mb-3">Search Ibadan locations</h3>
+              <h3 className="text-xl font-medium text-gray-900 mb-3">
+                {activeCategory === "Services" ? "Find local services" : "Search Ibadan locations"}
+              </h3>
               <p className="text-gray-600 text-center max-w-sm mb-10">
-                Find {activeCategory.toLowerCase()}s in any area of Ibadan
+                {activeCategory === "Services" 
+                  ? "Connect with skilled professionals for all your needs"
+                  : `Find ${activeCategory.toLowerCase()}s in any area of Ibadan`}
               </p>
               <div className="w-full max-w-md px-4">
-                <p className="text-sm font-medium text-gray-500 mb-4 text-center">Popular locations in Ibadan</p>
+                <p className="text-sm font-medium text-gray-500 mb-4 text-center">
+                  {activeCategory === "Services" ? "Popular services" : "Popular locations in Ibadan"}
+                </p>
                 <div className="flex flex-wrap gap-2 justify-center">
-                  {["Akobo", "Bodija", "Sango", "UI", "Mokola", "Dugbe", "Ringroad", "Challenge", "Iwo Road", "Agodi"].map((term) => (
+                  {getPopularSuggestions().map((term) => (
                     <button
                       key={term}
                       onClick={() => {
@@ -552,7 +730,9 @@ const MobileSearchModal = ({
                 </div>
                 <div className="mt-6 text-center">
                   <p className="text-xs text-gray-500">
-                    Select a location, then click "Find {activeCategory}" button to search
+                    {activeCategory === "Services" 
+                      ? `Select a service, then click "Find Services" button to search`
+                      : `Select a location, then click "Find ${activeCategory}" button to search`}
                   </p>
                 </div>
               </div>
@@ -568,65 +748,109 @@ const MobileSearchModal = ({
 const DesktopSearchSuggestions = ({
   searchQuery,
   listings,
-  onSuggestionClick, // This just sets the search query
+  onSuggestionClick,
   onClose,
   isVisible,
   searchBarPosition,
   activeCategory,
+  serviceTypes = [],
 }) => {
   const suggestionsRef = useRef(null);
   
-  const allIbadanLocations = useMemo(() => {
-    const locationsFromListings = listingService.getLocationsFromListings(listings);
-    const allLocations = [
-      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly',  'Agodi',
-      'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
-      'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
-      'Akinyele',  'Mokola Hill', 'Sango Roundabout',
-      'Iwo Road', 'Gate', 'New Garage', 'Old Ife Road',
-      ...locationsFromListings
-    ];
-    
-    return [...new Set(allLocations)].sort();
-  }, [listings]);
+  // Use service types for Services category, locations for others
+  const suggestionsData = useMemo(() => {
+    if (activeCategory === "Services") {
+      return serviceTypes || [];
+    } else {
+      const locationsFromListings = listingService.getLocationsFromListings(listings);
+      const allLocations = [
+        'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly',  'Agodi',
+        'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
+        'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
+        'Akinyele',  'Mokola Hill', 'Sango Roundabout',
+        'Iwo Road', 'Gate', 'New Garage', 'Old Ife Road',
+        ...locationsFromListings
+      ];
+      
+      return [...new Set(allLocations)].sort();
+    }
+  }, [listings, activeCategory, serviceTypes]);
 
   const suggestions = useMemo(() => {
     if (!searchQuery.trim()) return [];
     
     const queryLower = searchQuery.toLowerCase().trim();
-    const suggestions = [];
     
-    const locationMatches = allIbadanLocations
-      .filter((location) => {
-        const displayName = location.toLowerCase();
-        return displayName.includes(queryLower) || 
-               normalizeLocation(location).includes(normalizeLocation(queryLower));
-      })
-      .map((location) => ({
-        type: "location",
-        title: getLocationDisplayName(location),
-        description: `${activeCategory}s in ${getLocationDisplayName(location)}, Ibadan`,
-      }));
+    if (activeCategory === "Services") {
+      // Filter service types based on search
+      const serviceMatches = suggestionsData
+        .filter((service) => {
+          const serviceName = service.toLowerCase();
+          return serviceName.includes(queryLower) || 
+                 normalizeServiceName(service).toLowerCase().includes(queryLower);
+        })
+        .map((service) => ({
+          type: "service",
+          title: service,
+          description: `${service} service providers in Ibadan`,
+          icon: getServiceIcon(service),
+        }));
 
-    // Also add a "Search for 'query'" option
-    if (locationMatches.length === 0 && searchQuery.trim()) {
-      suggestions.push({
-        type: "search",
-        title: `Search for "${searchQuery}"`,
-        description: `Find ${activeCategory.toLowerCase()}s matching "${searchQuery}" in Ibadan`,
-      });
+      // Add a "Search for 'query'" option
+      if (serviceMatches.length === 0 && searchQuery.trim()) {
+        return [{
+          type: "search",
+          title: `Search for "${searchQuery}"`,
+          description: `Find service providers matching "${searchQuery}" in Ibadan`,
+          icon: faSearch,
+        }];
+      }
+
+      return serviceMatches
+        .sort((a, b) => {
+          const aExact = a.title.toLowerCase() === queryLower;
+          const bExact = b.title.toLowerCase() === queryLower;
+          if (aExact && !bExact) return -1;
+          if (!aExact && bExact) return 1;
+          return 0;
+        })
+        .slice(0, 8);
+    } else {
+      // For other categories: filter locations
+      const locationMatches = suggestionsData
+        .filter((location) => {
+          const displayName = location.toLowerCase();
+          return displayName.includes(queryLower) || 
+                 normalizeLocation(location).includes(normalizeLocation(queryLower));
+        })
+        .map((location) => ({
+          type: "location",
+          title: getLocationDisplayName(location),
+          description: `${activeCategory}s in ${getLocationDisplayName(location)}, Ibadan`,
+          icon: faMapMarkerAlt,
+        }));
+
+      // Add a "Search for 'query'" option
+      if (locationMatches.length === 0 && searchQuery.trim()) {
+        return [{
+          type: "search",
+          title: `Search for "${searchQuery}"`,
+          description: `Find ${activeCategory.toLowerCase()}s matching "${searchQuery}" in Ibadan`,
+          icon: faSearch,
+        }];
+      }
+
+      return locationMatches
+        .sort((a, b) => {
+          const aExact = a.title.toLowerCase() === queryLower;
+          const bExact = b.title.toLowerCase() === queryLower;
+          if (aExact && !bExact) return -1;
+          if (!aExact && bExact) return 1;
+          return 0;
+        })
+        .slice(0, 8);
     }
-
-    return locationMatches
-      .sort((a, b) => {
-        const aExact = a.title.toLowerCase() === queryLower;
-        const bExact = b.title.toLowerCase() === queryLower;
-        if (aExact && !bExact) return -1;
-        if (!aExact && bExact) return 1;
-        return 0;
-      })
-      .slice(0, 8);
-  }, [searchQuery, listings, activeCategory]);
+  }, [searchQuery, activeCategory, suggestionsData]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -658,7 +882,9 @@ const DesktopSearchSuggestions = ({
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <FontAwesomeIcon icon={faSearch} className="text-gray-500 text-sm" />
-              <span className="text-sm font-medium text-gray-700">Search locations in Ibadan</span>
+              <span className="text-sm font-medium text-gray-700">
+                {activeCategory === "Services" ? "Search services" : "Search locations in Ibadan"}
+              </span>
             </div>
             <button
               onClick={onClose}
@@ -675,7 +901,9 @@ const DesktopSearchSuggestions = ({
               <>
                 <div className="px-3 py-2">
                   <p className="text-xs text-gray-500 mb-2">
-                    Showing {suggestions.length} location{suggestions.length !== 1 ? 's' : ''} in Ibadan
+                    {activeCategory === "Services" 
+                      ? `Showing ${suggestions.length} service${suggestions.length !== 1 ? 's' : ''}`
+                      : `Showing ${suggestions.length} location${suggestions.length !== 1 ? 's' : ''} in Ibadan`}
                   </p>
                 </div>
                 {suggestions.map((suggestion, index) => (
@@ -690,17 +918,10 @@ const DesktopSearchSuggestions = ({
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100 flex-shrink-0">
-                        {suggestion.type === "search" ? (
-                          <FontAwesomeIcon 
-                            icon={faSearch} 
-                            className="text-gray-700 text-sm"
-                          />
-                        ) : (
-                          <FontAwesomeIcon 
-                            icon={faMapMarkerAlt} 
-                            className="text-gray-700 text-sm"
-                          />
-                        )}
+                        <FontAwesomeIcon 
+                          icon={suggestion.icon} 
+                          className="text-gray-700 text-sm"
+                        />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between mb-1">
@@ -708,9 +929,12 @@ const DesktopSearchSuggestions = ({
                           <span className={`text-xs px-2 py-1 rounded ${
                             suggestion.type === "search" 
                               ? "text-purple-600 bg-purple-50" 
+                              : suggestion.type === "service"
+                              ? "text-green-600 bg-green-50"
                               : "text-blue-600 bg-blue-50"
                           }`}>
-                            {suggestion.type === "search" ? "Search" : "Location"}
+                            {suggestion.type === "search" ? "Search" : 
+                             suggestion.type === "service" ? "Service" : "Location"}
                           </span>
                         </div>
                         <p className="text-xs text-gray-600 mb-2 line-clamp-2">{suggestion.description}</p>
@@ -723,7 +947,9 @@ const DesktopSearchSuggestions = ({
                 ))}
                 <div className="px-3 py-3 mt-2 border-t border-gray-200">
                   <p className="text-xs text-gray-500 text-center">
-                    Select a location to add to search, then click "Find {activeCategory}" button to search
+                    {activeCategory === "Services"
+                      ? `Select a service to add to search, then click "Find Services" button to search`
+                      : `Select a location to add to search, then click "Find ${activeCategory}" button to search`}
                   </p>
                 </div>
               </>
@@ -1051,6 +1277,7 @@ const DiscoverIbadan = () => {
   const searchContainerRef = useRef(null);
   const searchButtonRef = useRef(null);
   const { listings = [], loading } = useBackendListings();
+  const { serviceTypes, loading: servicesLoading } = useBackendServices();
 
   const [activeTab, setActiveTab] = useState("Hotel");
 
@@ -1107,14 +1334,21 @@ const DiscoverIbadan = () => {
       ? normalizeLocationForBackend(locationToUse)
       : null;
     
+    // Check if search is a service type
+    const isServiceSearch = activeTab === "Services" && looksLikeService(locationToUse, serviceTypes);
+    
     const categorySlug = getCategorySlug(activeTab);
     const locationSlug = normalizedLocation ? createSlug(locationToUse) : null;
     
     let seoPath = '';
     
-    // Create SEO-friendly URL with location
+    // Create SEO-friendly URL
     if (categorySlug && locationSlug && looksLikeLocation(locationToUse)) {
       seoPath = `/${categorySlug}-in-${locationSlug}`;
+    } else if (categorySlug && isServiceSearch) {
+      // For services, use service name in URL
+      const serviceSlug = createSlug(locationToUse);
+      seoPath = `/${categorySlug}/${serviceSlug}`;
     } else if (categorySlug) {
       seoPath = `/${categorySlug}`;
     } else if (locationSlug) {
@@ -1126,7 +1360,7 @@ const DiscoverIbadan = () => {
     const queryParams = new URLSearchParams();
     
     const checkInToUse = checkInDate || new Date();
-    const checkOutToUse = checkOutDate || new Date(new Date().setDate(newDate().getDate() + 1));
+    const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
     
     queryParams.append("checkInDate", checkInToUse.toISOString());
     queryParams.append("checkOutDate", checkOutToUse.toISOString());
@@ -1135,7 +1369,7 @@ const DiscoverIbadan = () => {
       queryParams.append("guests", JSON.stringify(guests));
     }
     
-    // Add location as search query parameter
+    // Add search query parameter
     queryParams.append("q", searchQuery.trim());
     queryParams.append("cat", activeTab);
     
@@ -1144,6 +1378,13 @@ const DiscoverIbadan = () => {
       const properCaseLocation = normalizeLocationForBackend(searchQuery.trim());
       queryParams.append("location", properCaseLocation);
       console.log('📍 Hero: Adding location filter:', properCaseLocation);
+    }
+    
+    // ADD THIS: If it looks like a service, also add it as service filter
+    if (activeTab === "Services" && isServiceSearch) {
+      const properCaseService = normalizeServiceName(searchQuery.trim());
+      queryParams.append("service", properCaseService);
+      console.log('🔧 Hero: Adding service filter:', properCaseService);
     }
     
     const finalUrl = queryParams.toString() 
@@ -1155,7 +1396,7 @@ const DiscoverIbadan = () => {
     
     setShowSuggestions(false);
     setShowMobileModal(false);
-  }, [activeTab, searchQuery, navigate, checkInDate, checkOutDate, guests]);
+  }, [activeTab, searchQuery, navigate, checkInDate, checkOutDate, guests, serviceTypes]);
 
   const handleKeyPress = useCallback(
     (e) => {
@@ -1219,7 +1460,7 @@ const DiscoverIbadan = () => {
   };
 
   const getSearchPlaceholder = () => {
-    if (activeTab === "Vendor") return "What service do you need?";
+    if (activeTab === "Services") return "What service do you need? (e.g., Plumbing, Electrical)";
     if (activeTab === "Restaurant") return "Search by restaurant name, cuisine, or area...";
     if (activeTab === "Shortlet") return "Search by shortlet name, area, or location...";
     return "Search by hotel name, area, or location...";
@@ -1229,7 +1470,7 @@ const DiscoverIbadan = () => {
     if (activeTab === "Hotel") return "Find Hotel";
     if (activeTab === "Shortlet") return "Find Shortlet";
     if (activeTab === "Restaurant") return "Find Restaurant";
-    if (activeTab === "Vendor") return "Find Servies";
+    if (activeTab === "Services") return "Find Services";
     return "Search";
   };
 
@@ -1256,14 +1497,14 @@ const DiscoverIbadan = () => {
                 through AI & Local Stories
               </h1>
               <p className="text-[13.5px] sm:text-lg md:text-xl lg:text-[16px] md:mt-3 text-gray-600 font-medium max-w-xl mx-auto px-2">
-                Your all-in-one local guide for hotels, food, events, vendors, and market prices.
+                Your all-in-one local guide for hotels, food, events, services, and market prices.
               </p>
             </div>
 
             {/* TABS */}
             <div className="w-full max-w-sm sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
               <div className="flex justify-between items-center gap-2 p-2.5 bg-white rounded-lg border border-[#f7f7fa] shadow-sm">
-                {["Hotel", "Shortlet", "Restaurant", "Vendor"].map((category) => (
+                {["Hotel", "Shortlet", "Restaurant", "Services"].map((category) => (
                   <button
                     key={category}
                     onClick={() => handleTabClick(category)}
@@ -1283,8 +1524,8 @@ const DiscoverIbadan = () => {
                       {category === "Restaurant" && (
                         <FontAwesomeIcon icon={faUtensils} className="w-3.5 h-3.5" />
                       )}
-                      {category === "Vendor" && (
-                        <FaUserCircle className="w-3.5 h-3.5" />
+                      {category === "Services" && (
+                        <FontAwesomeIcon icon={faToolbox} className="w-3.5 h-3.5" />
                       )}
                     </span>
                     <span className="text-[12.5px] font-medium">{category}</span>
@@ -1369,7 +1610,7 @@ const DiscoverIbadan = () => {
                         </div>
                       </div>
                     </div>
-                  ) : activeTab === "Vendor" ? (
+                  ) : activeTab === "Services" ? (
                     <div className="space-y-2 mb-2">
                       <div
                         onClick={handleCheckInClick}
@@ -1475,6 +1716,7 @@ const DiscoverIbadan = () => {
           isVisible={showSuggestions && !loading}
           searchBarPosition={searchBarPosition}
           activeCategory={activeTab}
+          serviceTypes={serviceTypes}
         />
       )}
       {isMobile && (
@@ -1486,6 +1728,7 @@ const DiscoverIbadan = () => {
           onTyping={handleSearchChange}
           isVisible={showMobileModal}
           activeCategory={activeTab}
+          serviceTypes={serviceTypes}
         />
       )}
 

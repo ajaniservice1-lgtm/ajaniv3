@@ -1,9 +1,11 @@
-// Update BookingRouter.jsx
+// Updated BookingRouter.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import HotelBooking from "./HotelBooking";
 import RestaurantBooking from "./RestaurantBooking";
 import ShortletBooking from "./ShortletBooking";
+import EventBooking from "./EventBooking"; // Make sure this is imported
+import ServiceBooking from "./ServiceBooking"; // Make sure this is imported
 
 const BookingRouter = () => {
   const navigate = useNavigate();
@@ -51,25 +53,44 @@ const BookingRouter = () => {
                         data.type?.toLowerCase() || "";
         
         console.log("📊 Determining booking type from category:", category);
+        console.log("📊 Full vendor data:", data);
         
-        if (category.includes('restaurant') || category.includes('food') || category.includes('cafe')) {
+        // UPDATED CATEGORY DETECTION - Event first
+        if (category.includes('event') || category.includes('venue') || category.includes('hall') || category.includes('conference') || category.includes('party') || category.includes('wedding') || category.includes('banquet')) {
+          console.log("✅ Detected as EVENT booking");
+          setBookingType('event');
+        } else if (category.includes('service') || category.includes('professional') || category.includes('consultation') || category.includes('therapy') || category.includes('repair') || category.includes('maintenance') || category.includes('cleaning') || category.includes('installation')) {
+          console.log("✅ Detected as SERVICE booking");
+          setBookingType('service');
+        } else if (category.includes('restaurant') || category.includes('food') || category.includes('cafe') || category.includes('dining')) {
+          console.log("✅ Detected as RESTAURANT booking");
           setBookingType('restaurant');
-        } else if (category.includes('shortlet') || category.includes('apartment') || category.includes('rental') || category.includes('apartments')) {
+        } else if (category.includes('shortlet') || category.includes('apartment') || category.includes('rental') || category.includes('apartments') || category.includes('vacation')) {
+          console.log("✅ Detected as SHORTLET booking");
           setBookingType('shortlet');
-        } else if (category.includes('hotel') || category.includes('resort') || category.includes('lodging') || category.includes('hotels')) {
+        } else if (category.includes('hotel') || category.includes('resort') || category.includes('lodging') || category.includes('hotels') || category.includes('inn') || category.includes('suite')) {
+          console.log("✅ Detected as HOTEL booking");
           setBookingType('hotel');
         } else {
           // Default based on URL or other indicators
+          console.log("⚠️ Category not detected, checking URL...");
           if (location.pathname.includes('/hotel')) {
             setBookingType('hotel');
           } else if (location.pathname.includes('/shortlet')) {
             setBookingType('shortlet');
           } else if (location.pathname.includes('/restaurant')) {
             setBookingType('restaurant');
+          } else if (location.pathname.includes('/event')) {
+            setBookingType('event');
+          } else if (location.pathname.includes('/service') || location.pathname.includes('/services')) {
+            setBookingType('service');
           } else {
+            console.log("⚠️ Defaulting to hotel booking");
             setBookingType('hotel'); // Default fallback
           }
         }
+        
+        console.log("🎯 Final booking type:", bookingType);
       } else {
         // No data found, redirect to home
         console.warn("No vendor data found for booking");
@@ -108,14 +129,20 @@ const BookingRouter = () => {
 
   // Pass vendorData as prop to the appropriate component
   console.log("🎯 Rendering booking type:", bookingType);
+  console.log("📦 Vendor data:", vendorData);
   
   // Set page title based on booking type
-  document.title = bookingType === 'hotel' 
-    ? 'Complete Your Hotel Booking - Ajani' 
-    : bookingType === 'shortlet' 
-      ? 'Book Shortlet - Ajani' 
-      : 'Book Restaurant - Ajani';
+  const pageTitles = {
+    'hotel': 'Complete Your Hotel Booking - Ajani',
+    'shortlet': 'Book Shortlet - Ajani', 
+    'restaurant': 'Book Restaurant - Ajani',
+    'event': 'Book Event Venue - Ajani',
+    'service': 'Book Service - Ajani'
+  };
+  
+  document.title = pageTitles[bookingType] || 'Complete Booking - Ajani';
 
+  // UPDATED switch statement
   switch(bookingType) {
     case 'hotel':
       return <HotelBooking vendorData={vendorData} />;
@@ -123,7 +150,12 @@ const BookingRouter = () => {
       return <RestaurantBooking vendorData={vendorData} />;
     case 'shortlet':
       return <ShortletBooking vendorData={vendorData} />;
+    case 'event':
+      return <EventBooking vendorData={vendorData} />;
+    case 'service':
+      return <ServiceBooking vendorData={vendorData} />;
     default:
+      console.warn(`⚠️ Unknown booking type: ${bookingType}, defaulting to hotel`);
       return <HotelBooking vendorData={vendorData} />;
   }
 };

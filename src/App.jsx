@@ -51,6 +51,8 @@ const BookingRouter = lazy(() => import("./pages/Booking/BookingRouter"));
 const HotelBooking = lazy(() => import("./pages/Booking/HotelBooking"));
 const RestaurantBooking = lazy(() => import("./pages/Booking/RestaurantBooking"));
 const ShortletBooking = lazy(() => import("./pages/Booking/ShortletBooking"));
+const EventBooking = lazy(() => import("./pages/Booking/EventBooking")); // NEW
+const ServiceBooking = lazy(() => import("./pages/Booking/ServiceBooking")); // NEW
 const PaymentPage = lazy(() => import("./pages/Booking/PaymentPage"));
 const BookingConfirmation = lazy(() => import("./pages/Booking/BookingConfirmation"));
 const BookingFailed = lazy(() => import("./pages/Booking/BookingFailed"));
@@ -285,11 +287,13 @@ function App() {
               <Route path="/contact" element={<MainLayout><ContactPage /></MainLayout>} />
               <Route path="/contact-us" element={<MainLayout><ContactPage /></MainLayout>} />
               
-              {/* DIRECT CATEGORY PAGES*/}
+              {/* DIRECT CATEGORY PAGES - UPDATED WITH EVENT AND SERVICE */}
               <Route path="/hotel" element={<MainLayout><CategoryResults /></MainLayout>} />
               <Route path="/restaurant" element={<MainLayout><CategoryResults /></MainLayout>} />
               <Route path="/shortlet" element={<MainLayout><CategoryResults /></MainLayout>} />
               <Route path="/event" element={<MainLayout><CategoryResults /></MainLayout>} />
+              <Route path="/service" element={<MainLayout><CategoryResults /></MainLayout>} />
+              <Route path="/services" element={<MainLayout><CategoryResults /></MainLayout>} />
               
               {/* Vendor page already exists */}
               <Route path="/vendor" element={<MainLayout><VendorsPage /></MainLayout>} />
@@ -318,6 +322,28 @@ function App() {
               <Route 
                 path="/booking" 
                 element={<MainLayout><BookingRouter /></MainLayout>}
+              />
+              
+              {/* Individual booking routes for direct access if needed */}
+              <Route 
+                path="/booking/hotel" 
+                element={<MainLayout><HotelBooking /></MainLayout>}
+              />
+              <Route 
+                path="/booking/restaurant" 
+                element={<MainLayout><RestaurantBooking /></MainLayout>}
+              />
+              <Route 
+                path="/booking/shortlet" 
+                element={<MainLayout><ShortletBooking /></MainLayout>}
+              />
+              <Route 
+                path="/booking/event" 
+                element={<MainLayout><EventBooking /></MainLayout>}
+              />
+              <Route 
+                path="/booking/service" 
+                element={<MainLayout><ServiceBooking /></MainLayout>}
               />
               
               <Route 

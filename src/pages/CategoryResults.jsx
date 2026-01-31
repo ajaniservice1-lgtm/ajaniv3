@@ -386,12 +386,12 @@ const getCardImages = (item) => {
   }
 };
 
-// Universal price getter (UPDATED FOR RESTAURANT PRICE RANGES)
+// UPDATED Universal price getter - HANDLES ALL PRICE STRUCTURES
 const getPriceFromItem = (item) => {
   try {
     // Check for direct price field first
     if (item.price !== undefined && item.price !== null) {
-      return item.price;
+      return Number(item.price);
     }
     
     // Check for restaurant price range
@@ -400,31 +400,54 @@ const getPriceFromItem = (item) => {
       
       // Return the average price for simplicity
       if (priceFrom !== undefined && priceTo !== undefined) {
-        return Math.round((priceFrom + priceTo) / 2);
+        return Math.round((Number(priceFrom) + Number(priceTo)) / 2);
       } else if (priceFrom !== undefined) {
-        return priceFrom;
+        return Number(priceFrom);
       } else if (priceTo !== undefined) {
-        return priceTo;
+        return Number(priceTo);
+      }
+    }
+    
+    // Check for event venue price range (your Ibadan Civic Centre example)
+    if (item.details?.priceRange) {
+      const { priceFrom, priceTo } = item.details.priceRange;
+      
+      if (priceFrom !== undefined && priceTo !== undefined) {
+        return Math.round((Number(priceFrom) + Number(priceTo)) / 2);
+      } else if (priceFrom !== undefined) {
+        return Number(priceFrom);
+      } else if (priceTo !== undefined) {
+        return Number(priceTo);
       }
     }
     
     // Check for details.roomTypes[0].pricePerNight (hotels)
     if (item.details?.roomTypes?.[0]?.pricePerNight !== undefined) {
-      return item.details.roomTypes[0].pricePerNight;
+      return Number(item.details.roomTypes[0].pricePerNight);
     }
     
     // Check for details.pricePerNight (shortlets)
     if (item.details?.pricePerNight !== undefined) {
-      return item.details.pricePerNight;
+      return Number(item.details.pricePerNight);
+    }
+    
+    // Check for details.price (general services)
+    if (item.details?.price !== undefined) {
+      return Number(item.details.price);
+    }
+    
+    // Check for details.startingPrice (some services)
+    if (item.details?.startingPrice !== undefined) {
+      return Number(item.details.startingPrice);
     }
     
     return 0;
   } catch (error) {
     console.error('Error getting price:', error);
+    console.log('Item structure for debugging:', item);
     return 0;
   }
 };
-
 // Universal location getter (matches Directory)
 const getLocationFromItem = (item) => {
   try {
@@ -755,52 +778,91 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   const isAuthenticated = useAuthStatus();
   const isPending = item.status === 'pending';
 
-  const formatPrice = (n) => {
-    if (!n) return "–";
-    const num = Number(n);
-    return num.toLocaleString("en-US", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    });
-  };
+ const formatPrice = (n) => {
+  if (!n || n === 0) return "0";
+  const num = Number(n);
+  
+  // Format with thousand separators
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  }
+  
+  return num.toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+};
 
-  const getPriceText = () => {
-    // Special handling for restaurants with price ranges
-    if (category === 'restaurant' && item.details?.priceRangePerMeal) {
-      const { priceFrom, priceTo } = item.details.priceRangePerMeal;
-      
-      if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
-        return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
-      } else if (priceFrom !== undefined) {
-        return `From ₦${formatPrice(priceFrom)}`;
-      }
-    }
+ const getPriceText = () => {
+  // Special handling for restaurants with price ranges
+  if (category === 'restaurant' && item.details?.priceRangePerMeal) {
+    const { priceFrom, priceTo } = item.details.priceRangePerMeal;
     
-    // For other categories or restaurants without price range
-    const price = getPriceFromItem(item) || 0;
-    const formattedPrice = formatPrice(price);
-    return `₦${formattedPrice}`;
-  };
-
-  const getPerText = () => {
-    const nightlyCategories = [
-      "hotel", "hostel", "shortlet", "apartment", "cabin", "condo", "resort", "inn", "motel",
-    ];
-
-    if (nightlyCategories.some((cat) => category.toLowerCase().includes(cat))) {
-      return "per night";
+    if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+      return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
+    } else if (priceFrom !== undefined) {
+      return `From ₦${formatPrice(priceFrom)}`;
     }
+  }
+  
+  // Special handling for event venues with price ranges
+  if (category === 'event' && item.details?.priceRange) {
+    const { priceFrom, priceTo } = item.details.priceRange;
+    
+    if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+      return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
+    } else if (priceFrom !== undefined) {
+      return `From ₦${formatPrice(priceFrom)}`;
+    }
+  }
+  
+  // For other categories or without price range
+  const price = getPriceFromItem(item) || 0;
+  const formattedPrice = formatPrice(price);
+  
+  if (price === 0) {
+    // Check if it's a service that might have contact for pricing
+    if (category === 'services' || category === 'vendor') {
+      return 'Contact for pricing';
+    }
+    return 'Price not available';
+  }
+  
+  return `₦${formattedPrice}`;
+};
 
-    if (
-      category.toLowerCase().includes("restaurant") ||
+ const getPerText = () => {
+  const nightlyCategories = [
+    "hotel", "hostel", "shortlet", "apartment", "cabin", "condo", "resort", "inn", "motel",
+  ];
+
+  if (nightlyCategories.some((cat) => category.toLowerCase().includes(cat))) {
+    return "per night";
+  }
+
+  if (category.toLowerCase().includes("restaurant") ||
       category.toLowerCase().includes("food") ||
-      category.toLowerCase().includes("cafe")
-    ) {
-      return "per meal";
-    }
+      category.toLowerCase().includes("cafe")) {
+    return "per meal";
+  }
 
-    return "per guest";
-  };
+  if (category.toLowerCase().includes("event") || 
+      category.toLowerCase().includes("hall")) {
+    return "per event";
+  }
+
+  // For services/vendors, show different text or nothing
+  if (category.toLowerCase().includes("services") || 
+      category.toLowerCase().includes("vendor")) {
+    return ""; // Services might have custom pricing
+  }
+
+  return "per guest";
+};
 
   const getPriceUnit = () => {
     if (category === 'hotel' || category === 'shortlet') return 'per night';
@@ -3010,7 +3072,7 @@ const CategoryResults = () => {
                               handleSearchFocus();
                               setShowMobileSearchModal(true);
                             }}
-                            className="bg-[#d9d9d9] rounded-[15px] mr-2 px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-200 cursor-pointer w-full"
+                            className="bg-gray-200 rounded-[15px] mr-2 px-3 py-2.5 text-xs flex items-center gap-2 cursor-pointer w-full"
                           >
                             <FontAwesomeIcon icon={faSearch} className="text-gray-700 text-[15px] flex-shrink-0" />
                             <div className="flex flex-col text-left truncate w-full">

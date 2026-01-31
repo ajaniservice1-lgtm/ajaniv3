@@ -1188,7 +1188,7 @@ const AiTopPicks = () => {
                 text-center
               "
             >
-              View All Vendors →
+              View All Services →
             </motion.button>
           </motion.div>
         </div>

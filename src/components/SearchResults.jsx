@@ -584,6 +584,34 @@ const getPriceFromItem = (item) => {
       return item.details.pricePerNight;
     }
     
+    // Check for EVENT category price range (from your data)
+    if (item.category?.toLowerCase() === 'event' && item.details?.priceRange) {
+      const { priceFrom, priceTo } = item.details.priceRange;
+      
+      // Return the average price for events
+      if (priceFrom !== undefined && priceTo !== undefined) {
+        return Math.round((priceFrom + priceTo) / 2);
+      } else if (priceFrom !== undefined) {
+        return priceFrom;
+      } else if (priceTo !== undefined) {
+        return priceTo;
+      }
+    }
+    
+    // Check for services category price range
+    if (item.category?.toLowerCase() === 'services' && item.details?.pricingRange) {
+      const { priceFrom, priceTo } = item.details.pricingRange;
+      
+      // Return the average price for services
+      if (priceFrom !== undefined && priceTo !== undefined) {
+        return Math.round((priceFrom + priceTo) / 2);
+      } else if (priceFrom !== undefined) {
+        return priceFrom;
+      } else if (priceTo !== undefined) {
+        return priceTo;
+      }
+    }
+    
     return 0;
   } catch (error) {
     console.error('Error getting price:', error);
@@ -895,8 +923,9 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   };
 
   const getPriceText = () => {
-    // Special handling for restaurants with price ranges
     const cat = (category || "").toLowerCase();
+    
+    // Special handling for restaurants with price ranges
     if (cat.includes('restaurant') && item.details?.priceRangePerMeal) {
       const { priceFrom, priceTo } = item.details.priceRangePerMeal;
       
@@ -907,7 +936,29 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
       }
     }
     
-    // For other categories or restaurants without price range
+    // Special handling for EVENT category
+    if (cat.includes('event') && item.details?.priceRange) {
+      const { priceFrom, priceTo } = item.details.priceRange;
+      
+      if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+        return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
+      } else if (priceFrom !== undefined) {
+        return `From ₦${formatPrice(priceFrom)}`;
+      }
+    }
+    
+    // Special handling for SERVICES/VENDOR category
+    if ((cat.includes('services') || cat.includes('vendor')) && item.details?.pricingRange) {
+      const { priceFrom, priceTo } = item.details.pricingRange;
+      
+      if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+        return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
+      } else if (priceFrom !== undefined) {
+        return `From ₦${formatPrice(priceFrom)}`;
+      }
+    }
+    
+    // For other categories without price ranges
     const price = getPriceFromItem(item) || 0;
     const formattedPrice = formatPrice(price);
     return `₦${formattedPrice}`;
@@ -917,6 +968,8 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
     const cat = (category || "").toLowerCase();
     if (cat.includes('hotel') || cat.includes('shortlet')) return 'per night';
     if (cat.includes('restaurant')) return 'per meal';
+    if (cat.includes('event')) return 'per event';
+    if (cat.includes('services') || cat.includes('vendor')) return 'per service';
     return '';
   };
 
@@ -2599,6 +2652,518 @@ const MobileSearchModalResults = ({
   );
 };
 
+/* ================== AGODA-STYLE SEARCH MODAL - FULL SCREEN ================== */
+const AgodaStyleSearchModal = ({ 
+  isVisible, 
+  onClose, 
+  searchQuery, 
+  onSearchChange,
+  checkInDate,
+  checkOutDate,
+  guests,
+  onDateChange,
+  onGuestsChange,
+  category
+}) => {
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
+  const [localCheckIn, setLocalCheckIn] = useState(checkInDate);
+  const [localCheckOut, setLocalCheckOut] = useState(checkOutDate);
+  const [localGuests, setLocalGuests] = useState(guests);
+  const modalRef = useRef(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [locationSearch, setLocationSearch] = useState("");
+  const [allIbadanLocations] = useState([
+    'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly', 'Agodi',
+    'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
+    'Molete', 'Agbowo', 'Sabo', 'Bashorun', 'Ife Road',
+    'Akinyele', 'Mokola Hill', 'Sango Roundabout',
+    'Iwo Road', 'Gate', 'New Garage', 'Old Ife Road'
+  ]);
+
+  // State for date editing
+  const [editingDate, setEditingDate] = useState(null); // 'checkin' or 'checkout'
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const handleLocationSearch = (value) => {
+    setLocationSearch(value);
+    if (value.trim()) {
+      const filtered = allIbadanLocations.filter(loc => 
+        loc.toLowerCase().includes(value.toLowerCase())
+      );
+      setSuggestions(filtered.slice(0, 5));
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleLocationSelect = (location) => {
+    setLocationSearch(location);
+    setLocalSearchQuery(location);
+    setShowSuggestions(false);
+  };
+
+  const handleGuestChange = (type, delta) => {
+    setLocalGuests(prev => {
+      const minValue = type === "rooms" ? 1 : 0;
+      const newValue = Math.max(minValue, prev[type] + delta);
+      return { ...prev, [type]: newValue };
+    });
+  };
+
+  const handleSave = () => {
+    onSearchChange(localSearchQuery);
+    onDateChange({ checkIn: localCheckIn, checkOut: localCheckOut });
+    onGuestsChange(localGuests);
+    onClose();
+  };
+
+  const handleDateSelect = (date) => {
+    if (editingDate === 'checkin') {
+      setLocalCheckIn(date);
+    } else if (editingDate === 'checkout') {
+      setLocalCheckOut(date);
+    }
+    setShowDatePicker(false);
+    setEditingDate(null);
+  };
+
+  const handleDateClick = (type) => {
+    setEditingDate(type);
+    setShowDatePicker(true);
+  };
+
+  const totalGuests = localGuests.adults + localGuests.children;
+
+  useEffect(() => {
+    if (isVisible) {
+      document.body.style.overflow = "hidden";
+      setLocalSearchQuery(searchQuery);
+      setLocalCheckIn(checkInDate);
+      setLocalCheckOut(checkOutDate);
+      setLocalGuests(guests);
+      setLocationSearch("");
+      setShowSuggestions(false);
+      setEditingDate(null);
+      setShowDatePicker(false);
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isVisible, searchQuery, checkInDate, checkOutDate, guests]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+        if (showDatePicker) {
+          setShowDatePicker(false);
+          setEditingDate(null);
+        }
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showDatePicker]);
+
+  if (!isVisible) return null;
+
+  // Format date for display - e.g., "31th", "Sat", "Jan"
+  const formatDateDisplay = (date) => {
+    const day = date.getDate();
+    const daySuffix = day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th';
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
+    const month = date.toLocaleDateString('en-US', { month: 'short' });
+    
+    return {
+      day: `${day}${daySuffix}`,
+      weekday,
+      month
+    };
+  };
+
+  const checkInDisplay = formatDateDisplay(localCheckIn);
+  const checkOutDisplay = formatDateDisplay(localCheckOut);
+
+  // Simple inline date picker component
+  const DatePickerComponent = ({ onSelect, selectedDate, onClose }) => {
+    const [currentMonth, setCurrentMonth] = useState(selectedDate || new Date());
+    const [selectedDay, setSelectedDay] = useState(selectedDate ? selectedDate.getDate() : new Date().getDate());
+
+    const getDaysInMonth = (date) => {
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      return new Date(year, month + 1, 0).getDate();
+    };
+
+    const getFirstDayOfMonth = (date) => {
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      return new Date(year, month, 1).getDay();
+    };
+
+    const nextMonth = () => {
+      setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+    };
+
+    const prevMonth = () => {
+      setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+    };
+
+    const handleDayClick = (day) => {
+      const selectedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+      setSelectedDay(day);
+      onSelect(selectedDate);
+    };
+
+    const daysInMonth = getDaysInMonth(currentMonth);
+    const firstDay = getFirstDayOfMonth(currentMonth);
+    const days = [];
+
+    // Empty cells for days before first day of month
+    for (let i = 0; i < firstDay; i++) {
+      days.push(<div key={`empty-${i}`} className="h-8 w-8"></div>);
+    }
+
+    // Days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const isSelected = day === selectedDay;
+      days.push(
+        <button
+          key={day}
+          onClick={() => handleDayClick(day)}
+          className={`h-8 w-8 rounded-full flex items-center justify-center text-sm cursor-pointer
+            ${isSelected ? "bg-blue-500 text-white" : "hover:bg-gray-100"}
+          `}
+        >
+          {day}
+        </button>
+      );
+    }
+
+    return (
+      <div className="fixed inset-0 bg-white z-[10000] flex flex-col">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between">
+          <button
+            onClick={onClose}
+            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600"
+          >
+            <FontAwesomeIcon icon={faChevronLeft} />
+          </button>
+          <h3 className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>
+            {editingDate === 'checkin' ? 'Select Check-in Date' : 'Select Check-out Date'}
+          </h3>
+          <div className="w-10"></div>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-4">
+              <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded cursor-pointer">
+                <FontAwesomeIcon icon={faChevronLeft} />
+              </button>
+              <h3 className="font-semibold text-gray-900" style={{ fontSize: '12.5px' }}>
+                {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </h3>
+              <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded cursor-pointer">
+                <FontAwesomeIcon icon={faChevronRight} />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-7 gap-1 mb-2">
+              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
+                <div key={day} className="text-center text-xs text-gray-500 font-medium">
+                  {day}
+                </div>
+              ))}
+            </div>
+            
+            <div className="grid grid-cols-7 gap-1">
+              {days}
+            </div>
+          </div>
+          
+          <div className="mt-6">
+            <button
+              onClick={() => {
+                const today = new Date();
+                onSelect(today);
+              }}
+              className="w-full py-3 bg-blue-50 text-blue-600 font-medium rounded-lg hover:bg-blue-100 cursor-pointer"
+              style={{ fontSize: '12.5px' }}
+            >
+              Select Today
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 bg-white z-[99991] flex flex-col overflow-hidden">
+      {/* Header - Fixed */}
+      <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between z-10 flex-shrink-0">
+        <button
+          onClick={onClose}
+          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600"
+        >
+          <FontAwesomeIcon icon={faChevronLeft} size="lg" />
+        </button>
+        <h2 className="text-xl font-bold text-gray-900" style={{ fontSize: '12.5px' }}>Edit Search</h2>
+        <div className="w-10"></div> {/* Spacer for alignment */}
+      </div>
+
+      {/* Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto overscroll-contain">
+        <div className="p-6">
+          <div className="space-y-8">
+            {/* Location Field */}
+            <div>
+              <label className="block font-semibold text-gray-900 mb-4" style={{ fontSize: '12.5px' }}>
+                Where are you going?
+              </label>
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                  <FontAwesomeIcon icon={faMapMarkerAlt} className="text-gray-400" style={{ fontSize: '12.5px' }} />
+                </div>
+                <input
+                  type="text"
+                  value={locationSearch}
+                  onChange={(e) => handleLocationSearch(e.target.value)}
+                  placeholder={`Search ${category.toLowerCase()}s in Ibadan...`}
+                  className="w-full pl-12 pr-12 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  style={{ fontSize: '12.5px' }}
+                  autoFocus
+                />
+                {locationSearch && (
+                  <button
+                    onClick={() => {
+                      setLocationSearch("");
+                      setShowSuggestions(false);
+                    }}
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <FontAwesomeIcon icon={faTimes} style={{ fontSize: '12.5px' }} />
+                  </button>
+                )}
+                
+                {/* Suggestions dropdown */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
+                    {suggestions.map((location, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleLocationSelect(location)}
+                        className="w-full text-left px-6 py-4 hover:bg-gray-50 flex items-center gap-4 border-b border-gray-100 last:border-0"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                          <FontAwesomeIcon icon={faMapMarkerAlt} className="text-blue-500" style={{ fontSize: '12.5px' }} />
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900" style={{ fontSize: '12.5px' }}>{location}</div>
+                          <div className="text-gray-500" style={{ fontSize: '12.5px' }}>{category}s in {location}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Dates Section - FLEX WITH SPACE BETWEEN */}
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-4" style={{ fontSize: '12.5px' }}>Select Dates</h3>
+              
+              <div className="flex justify-between items-start">
+                {/* Check-in Date */}
+                <div 
+                  onClick={() => handleDateClick('checkin')}
+                  className="flex flex-col items-start p-0 hover:opacity-80 active:opacity-60 cursor-pointer"
+                >
+                  <div className="text-xs text-gray-600 mb-1" style={{ fontSize: '12.5px' }}>Check-in</div>
+                  <div className="flex flex-col">
+                    <span className="text-3xl font-bold text-gray-900">{checkInDisplay.day}</span>
+                    <div className="mt-1">
+                      <span className="text-gray-900 font-medium block" style={{ fontSize: '12.5px' }}>{checkInDisplay.weekday}</span>
+                      <span className="text-gray-600 block" style={{ fontSize: '12.5px' }}>{checkInDisplay.month}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Arrow in middle */}
+                <div className="pt-8">
+                  <div className="text-gray-400" style={{ fontSize: '12.5px' }}>→</div>
+                </div>
+                
+                {/* Check-out Date */}
+                <div 
+                  onClick={() => handleDateClick('checkout')}
+                  className="flex flex-col items-start p-0 hover:opacity-80 active:opacity-60 cursor-pointer"
+                >
+                  <div className="text-xs text-gray-600 mb-1" style={{ fontSize: '12.5px' }}>Check-out</div>
+                  <div className="flex flex-col">
+                    <span className="text-3xl font-bold text-gray-900">{checkOutDisplay.day}</span>
+                    <div className="mt-1">
+                      <span className="text-gray-900 font-medium block" style={{ fontSize: '12.5px' }}>{checkOutDisplay.weekday}</span>
+                      <span className="text-gray-600 block" style={{ fontSize: '12.5px' }}>{checkOutDisplay.month}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Guests/Rooms Section */}
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-4" style={{ fontSize: '12.5px' }}>
+                {category.includes('restaurant') ? 'Number of People' : 'Guests & Rooms'}
+              </h3>
+              
+              {category.includes('restaurant') ? (
+                <div>
+                  <div className="flex justify-between items-center p-5 border border-gray-300 rounded-2xl bg-white">
+                    <div>
+                      <div className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>Number of People</div>
+                      <div className="text-gray-500 mt-1" style={{ fontSize: '12.5px' }}>How many people are coming?</div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <button
+                        onClick={() => handleGuestChange("adults", -1)}
+                        disabled={localGuests.adults <= 1}
+                        className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:scale-95"
+                      >
+                        <FontAwesomeIcon icon={faChevronLeft} style={{ fontSize: '12.5px' }} />
+                      </button>
+                      <div className="text-center min-w-[60px]">
+                        <div className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>{totalGuests}</div>
+                        <div className="text-gray-500" style={{ fontSize: '12.5px' }}>people</div>
+                      </div>
+                      <button
+                        onClick={() => handleGuestChange("adults", 1)}
+                        className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center hover:bg-gray-50 active:scale-95"
+                      >
+                        <FontAwesomeIcon icon={faChevronRight} style={{ fontSize: '12.5px' }} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Rooms */}
+                  <div className="flex justify-between items-center p-5 border border-gray-300 rounded-2xl bg-white">
+                    <div>
+                      <div className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>Rooms</div>
+                      <div className="text-gray-500 mt-1" style={{ fontSize: '12.5px' }}>Number of rooms</div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <button
+                        onClick={() => handleGuestChange("rooms", -1)}
+                        disabled={localGuests.rooms <= 1}
+                        className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:scale-95"
+                      >
+                        <FontAwesomeIcon icon={faChevronLeft} style={{ fontSize: '12.5px' }} />
+                      </button>
+                      <div className="text-center min-w-[60px]">
+                        <div className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>{localGuests.rooms}</div>
+                        <div className="text-gray-500" style={{ fontSize: '12.5px' }}>rooms</div>
+                      </div>
+                      <button
+                        onClick={() => handleGuestChange("rooms", 1)}
+                        className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center hover:bg-gray-50 active:scale-95"
+                      >
+                        <FontAwesomeIcon icon={faChevronRight} style={{ fontSize: '12.5px' }} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Adults */}
+                  <div className="flex justify-between items-center p-5 border border-gray-300 rounded-2xl bg-white">
+                    <div>
+                      <div className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>Adults</div>
+                      <div className="text-gray-500 mt-1" style={{ fontSize: '12.5px' }}>Age 18+</div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <button
+                        onClick={() => handleGuestChange("adults", -1)}
+                        disabled={localGuests.adults <= 1}
+                        className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:scale-95"
+                      >
+                        <FontAwesomeIcon icon={faChevronLeft} style={{ fontSize: '12.5px' }} />
+                      </button>
+                      <div className="text-center min-w-[60px]">
+                        <div className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>{localGuests.adults}</div>
+                        <div className="text-gray-500" style={{ fontSize: '12.5px' }}>adults</div>
+                      </div>
+                      <button
+                        onClick={() => handleGuestChange("adults", 1)}
+                        className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center hover:bg-gray-50 active:scale-95"
+                      >
+                        <FontAwesomeIcon icon={faChevronRight} style={{ fontSize: '12.5px' }} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Children */}
+                  <div className="flex justify-between items-center p-5 border border-gray-300 rounded-2xl bg-white">
+                    <div>
+                      <div className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>Children</div>
+                      <div className="text-gray-500 mt-1" style={{ fontSize: '12.5px' }}>Age 0-17</div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <button
+                        onClick={() => handleGuestChange("children", -1)}
+                        disabled={localGuests.children <= 0}
+                        className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:scale-95"
+                      >
+                        <FontAwesomeIcon icon={faChevronLeft} style={{ fontSize: '12.5px' }} />
+                      </button>
+                      <div className="text-center min-w-[60px]">
+                        <div className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>{localGuests.children}</div>
+                        <div className="text-gray-500" style={{ fontSize: '12.5px' }}>children</div>
+                      </div>
+                      <button
+                        onClick={() => handleGuestChange("children", 1)}
+                        className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center hover:bg-gray-50 active:scale-95"
+                      >
+                        <FontAwesomeIcon icon={faChevronRight} style={{ fontSize: '12.5px' }} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Fixed Apply Button - Stays at bottom */}
+      <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 flex-shrink-0">
+        <button
+          onClick={handleSave}
+          className="w-full py-4 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-bold rounded-xl hover:from-[#00c97b] hover:to-teal-600 transition-all duration-300 active:scale-[0.98] shadow-lg"
+          style={{ fontSize: '12.5px' }}
+        >
+          Apply Search
+        </button>
+      </div>
+
+      {/* Date Picker Overlay */}
+      {showDatePicker && editingDate && (
+        <DatePickerComponent
+          onSelect={handleDateSelect}
+          selectedDate={editingDate === 'checkin' ? localCheckIn : localCheckOut}
+          onClose={() => {
+            setShowDatePicker(false);
+            setEditingDate(null);
+          }}
+        />
+      )}
+    </div>
+  );
+};
 /* ================== BACK BUTTON ================== */
 const BackButton = ({ className = "", onClick }) => {
   const navigate = useNavigate();
@@ -2686,7 +3251,7 @@ const SearchResults = () => {
   const [showEditGuestSelector, setShowEditGuestSelector] = useState(false);
   
   const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
-  const [editingDateType, setEditingDateType] = useState(null);
+  const [showAgodaModal, setShowAgodaModal] = useState(false);
   
   const [isUsingInitialState, setIsUsingInitialState] = useState({
     location: true,
@@ -3336,133 +3901,151 @@ const SearchResults = () => {
     };
   }, [isMobile, showSuggestions]);
 
-  const renderCategorySpecificFields = () => {
-    const activeCategory = finalCategory.toLowerCase();
-    
-    if (activeCategory.includes('hotel') || activeCategory.includes('shortlet')) {
-      return (
-        <>
-          <div className="flex items-center gap-2">
-            <div
-              onClick={() => { setEditingCheckIn(true); setShowEditCalendar(true); }}
-              className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
-            >
-              <div className="text-xs text-gray-600 mb-1">Check-in</div>
-              <div className="font-medium text-gray-900 text-sm">
-                {checkInDate ? formatDateForLargeScreen(checkInDate) : "Select date"}
-              </div>
-            </div>
-            
-            <div className="text-gray-400">→</div>
-            
-            <div
-              onClick={() => { setEditingCheckOut(true); setShowEditCalendar(true); }}
-              className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
-            >
-              <div className="text-xs text-gray-600 mb-1">Check-out</div>
-              <div className="font-medium text-gray-900 text-sm">
-                {checkOutDate ? formatDateForLargeScreen(checkOutDate) : "Select date"}
-              </div>
-            </div>
-          </div>
-          
-          <div
-            onClick={() => { setEditingGuests(true); setShowEditGuestSelector(true); }}
-            className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
-          >
-            <div className="text-xs text-gray-600 mb-1">Guests & Rooms</div>
-            <div className="font-medium text-gray-900 text-sm">
-              {guests ? `${guests.adults} adult${guests.adults !== 1 ? 's' : ''} • ${guests.rooms} room${guests.rooms !== 1 ? 's' : ''}` : "Select"}
-            </div>
-            {guests && guests.children > 0 && (
-              <div className="text-xs text-gray-500">
-                +{guests.children} child{guests.children !== 1 ? 'ren' : ''}
-              </div>
-            )}
-          </div>
-        </>
-      );
-    }
-    
-    else if (activeCategory.includes('restaurant')) {
-      return (
-        <>
-          <div
-            onClick={() => { setEditingCheckIn(true); setShowEditCalendar(true); }}
-            className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
-          >
-            <div className="text-xs text-gray-600 mb-1">When are you visiting?</div>
-            <div className="font-medium text-gray-900 text-sm">
-              {checkInDate ? formatDateForLargeScreen(checkInDate) : "Select date"}
-            </div>
-          </div>
-          
-          <div
-            onClick={() => { setEditingGuests(true); setShowEditGuestSelector(true); }}
-            className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
-          >
-            <div className="text-xs text-gray-600 mb-1">Number of People</div>
-            <div className="font-medium text-gray-900 text-sm">
-              {guests ? `${guests.adults + guests.children} ${(guests.adults + guests.children) === 1 ? 'person' : 'people'}` : "Select"}
-            </div>
-            {guests && guests.children > 0 && (
-              <div className="text-xs text-gray-500">
-                ({guests.adults} adult{guests.adults !== 1 ? 's' : ''}, {guests.children} child{guests.children !== 1 ? 'ren' : ''})
-              </div>
-            )}
-          </div>
-        </>
-      );
-    }
-    
-    else if (activeCategory.includes('vendor') || activeCategory.includes('services')) {
-      return (
-        <div
-          onClick={() => { setEditingCheckIn(true); setShowEditCalendar(true); }}
-          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
-        >
-          <div className="text-xs text-gray-600 mb-1">Preferred service date</div>
-          <div className="font-medium text-gray-900 text-sm">
-            {checkInDate ? formatDateForLargeScreen(checkInDate) : "Select date"}
-          </div>
-        </div>
-      );
-    }
-    
+const renderCategorySpecificFields = () => {
+  const activeCategory = finalCategory.toLowerCase();
+  const totalGuests = guests ? (guests.adults + guests.children) : 0;
+  
+  if (activeCategory.includes('hotel') || activeCategory.includes('shortlet')) {
     return (
       <>
-        <div
-          onClick={() => { setEditingCheckIn(true); setShowEditCalendar(true); }}
-          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
-        >
-          <div className="text-xs text-gray-600 mb-1">Check-in</div>
-          <div className="font-medium text-gray-900 text-sm">
-            {checkInDate ? formatDateForLargeScreen(checkInDate) : "Select date"}
+        <div className="flex items-center gap-2">
+          <div
+            onClick={() => setShowAgodaModal(true)}
+            className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+          >
+            <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+            <div>
+              <div className="text-xs text-gray-600 mb-1">Check-in</div>
+              <div className="font-medium text-gray-900 text-sm">
+                {checkInDate ? formatShortDate(checkInDate) : "Select date"}
+              </div>
+            </div>
+          </div>
+          
+          <div className="text-gray-400">→</div>
+          
+          <div
+            onClick={() => setShowAgodaModal(true)}
+            className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+          >
+            <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+            <div>
+              <div className="text-xs text-gray-600 mb-1">Check-out</div>
+              <div className="font-medium text-gray-900 text-sm">
+                {checkOutDate ? formatShortDate(checkOutDate) : "Select date"}
+              </div>
+            </div>
           </div>
         </div>
         
         <div
-          onClick={() => { setEditingCheckOut(true); setShowEditCalendar(true); }}
-          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
+          onClick={() => setShowAgodaModal(true)}
+          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
         >
-          <div className="text-xs text-gray-600 mb-1">Check-out</div>
-          <div className="font-medium text-gray-900 text-sm">
-            {checkOutDate ? formatDateForLargeScreen(checkOutDate) : "Select date"}
-          </div>
-        </div>
-        
-        <div
-          onClick={() => { setEditingGuests(true); setShowEditGuestSelector(true); }}
-          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px]"
-        >
-          <div className="text-xs text-gray-600 mb-1">Guests & Rooms</div>
-          <div className="font-medium text-gray-900 text-sm">
-            {guests ? `${guests.adults} adult${guests.adults !== 1 ? 's' : ''} • ${guests.rooms} room${guests.rooms !== 1 ? 's' : ''}` : "Select"}
+          <FontAwesomeIcon icon={faUser} className="text-gray-400" />
+          <div>
+            <div className="text-xs text-gray-600 mb-1">Guests & Rooms</div>
+            <div className="font-medium text-gray-900 text-sm">
+              {guests ? `${totalGuests} guest${totalGuests !== 1 ? 's' : ''} • ${guests.rooms} room${guests.rooms !== 1 ? 's' : ''}` : "Select"}
+            </div>
           </div>
         </div>
       </>
     );
-  };
+  }
+  
+  else if (activeCategory.includes('restaurant')) {
+    return (
+      <>
+        <div
+          onClick={() => setShowAgodaModal(true)}
+          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+        >
+          <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+          <div>
+            <div className="text-xs text-gray-600 mb-1">When are you visiting?</div>
+            <div className="font-medium text-gray-900 text-sm">
+              {checkInDate ? formatShortDate(checkInDate) : "Select date"}
+            </div>
+          </div>
+        </div>
+        
+        <div
+          onClick={() => setShowAgodaModal(true)}
+          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+        >
+          <FontAwesomeIcon icon={faUser} className="text-gray-400" />
+          <div>
+            <div className="text-xs text-gray-600 mb-1">Number of People</div>
+            <div className="font-medium text-gray-900 text-sm">
+              {guests ? `${totalGuests} ${totalGuests === 1 ? 'person' : 'people'}` : "Select"}
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+  
+  else if (activeCategory.includes('vendor') || activeCategory.includes('services')) {
+    return (
+      <div
+        onClick={() => setShowAgodaModal(true)}
+        className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+      >
+        <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+        <div>
+          <div className="text-xs text-gray-600 mb-1">Preferred service date</div>
+          <div className="font-medium text-gray-900 text-sm">
+            {checkInDate ? formatShortDate(checkInDate) : "Select date"}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <>
+      <div
+        onClick={() => setShowAgodaModal(true)}
+        className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+      >
+        <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+        <div>
+          <div className="text-xs text-gray-600 mb-1">Check-in</div>
+          <div className="font-medium text-gray-900 text-sm">
+            {checkInDate ? formatShortDate(checkInDate) : "Select date"}
+          </div>
+        </div>
+      </div>
+      
+      <div
+        onClick={() => setShowAgodaModal(true)}
+        className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+      >
+        <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+        <div>
+          <div className="text-xs text-gray-600 mb-1">Check-out</div>
+          <div className="font-medium text-gray-900 text-sm">
+            {checkOutDate ? formatShortDate(checkOutDate) : "Select date"}
+          </div>
+        </div>
+      </div>
+      
+      <div
+        onClick={() => setShowAgodaModal(true)}
+        className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+      >
+        <FontAwesomeIcon icon={faUser} className="text-gray-400" />
+        <div>
+          <div className="text-xs text-gray-600 mb-1">Guests & Rooms</div>
+          <div className="font-medium text-gray-900 text-sm">
+            {guests ? `${totalGuests} guest${totalGuests !== 1 ? 's' : ''} • ${guests.rooms} room${guests.rooms !== 1 ? 's' : ''}` : "Select"}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
 
   const getSearchButtonText = () => {
     const activeCategory = finalCategory.toLowerCase();
@@ -3493,6 +4076,15 @@ const SearchResults = () => {
     setSearchParams(params);
     setEditingGuests(false);
     setShowEditGuestSelector(false);
+  };
+
+  const handleAgodaModalSave = ({ checkIn, checkOut, guests: newGuests }) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("checkInDate", checkIn.toISOString());
+    params.set("checkOutDate", checkOut.toISOString());
+    params.set("guests", JSON.stringify(newGuests));
+    setSearchParams(params);
+    setShowAgodaModal(false);
   };
 
   // ================== UPDATED ERROR HANDLING ==================
@@ -3631,91 +4223,91 @@ const SearchResults = () => {
                     ref={searchContainerRef}
                   >
                     <form onSubmit={(e) => { e.preventDefault(); handleSearchSubmit(); }}>
-                      <div className="flex items-center justify-center w-full">
-                        {!isMobile ? (
-                          <div className="hidden lg:block w-full max-w-6xl mx-auto">
-                            <div className="relative w-full">
-                              <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4">
-                                <div className="flex items-center gap-4">
-                                  <div className="flex-1">
-                                    <div className="relative">
-                                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                                        <FontAwesomeIcon icon={faSearch} />
-                                      </div>
-                                      <input
-                                        ref={searchInputRef}
-                                        type="text"
-                                        value={localSearchQuery}
-                                        onChange={(e) => {
-                                          const value = e.target.value;
-                                          handleSearchChange(value);
-                                          if (searchDebounceRef.current) {
-                                            clearTimeout(searchDebounceRef.current);
-                                          }
-                                          if (!isMobile && value.trim().length > 0) {
-                                            setShowSuggestions(true);
-                                          } else {
-                                            setShowSuggestions(false);
-                                          }
-                                        }}
-                                        onFocus={handleSearchFocus}
-                                        onKeyPress={handleKeyPress}
-                                        placeholder={getSearchPlaceholder()}
-                                        className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 cursor-text"
-                                      />
-                                      {(localSearchQuery || isUsingInitialState.search) && (
-                                        <button
-                                          onClick={() => {
-                                            handleClearSearch();
-                                            setIsUsingInitialState(prev => ({
-                                              ...prev,
-                                              search: false
-                                            }));
-                                          }}
-                                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                                          title="Clear search and start fresh"
-                                        >
-                                          <FontAwesomeIcon icon={faTimesCircle} />
-                                        </button>
-                                      )}
-                                    </div>
-                                  </div>
-                                  
-                                  {renderCategorySpecificFields()}
-                                  
-                                  <button
-                                    onClick={handleSearchSubmit}
-                                    type="button"
-                                    className="px-6 py-3 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold rounded-lg hover:from-[#00c97b] hover:to-teal-600 transition-all duration-300 cursor-pointer"
-                                  >
-                                    <FontAwesomeIcon icon={faSearch} className="mr-2" />
-                                    {getSearchButtonText()}
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div 
-                            onClick={() => setShowMobileSearchModal(true)}
-                            className="bg-[#d9d9d9] rounded-[15px] mr-2 px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-200 cursor-pointer w-full"
-                          >
-                            <FontAwesomeIcon icon={faSearch} className="text-gray-700 text-[15px] flex-shrink-0" />
-                            <div className="flex flex-col text-left truncate w-full">
-                              <span className="text-gray-900 font-medium text-[13px] truncate">
-                                {getLocationDisplayName(activeFilters.locations[0] || localSearchQuery) || "Where to?"}
-                              </span>
-                              <span className="text-gray-600 text-[12px] truncate">
-                                {checkInDate && checkOutDate ? 
-                                  `${formatShortDate(checkInDate)} - ${formatShortDate(checkOutDate)}` : 
-                                  "Select dates"
-                                }
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </form>
+  <div className="flex items-center justify-center w-full">
+    {!isMobile ? (
+      <div className="hidden lg:block w-full max-w-6xl mx-auto">
+        <div className="relative w-full">
+          <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                    <FontAwesomeIcon icon={faSearch} />
+                  </div>
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={localSearchQuery}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      handleSearchChange(value);
+                      if (searchDebounceRef.current) {
+                        clearTimeout(searchDebounceRef.current);
+                      }
+                      if (!isMobile && value.trim().length > 0) {
+                        setShowSuggestions(true);
+                      } else {
+                        setShowSuggestions(false);
+                      }
+                    }}
+                    onFocus={handleSearchFocus}
+                    onKeyPress={handleKeyPress}
+                    placeholder={getSearchPlaceholder()}
+                    className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 cursor-text"
+                  />
+                  {(localSearchQuery || isUsingInitialState.search) && (
+                    <button
+                      onClick={() => {
+                        handleClearSearch();
+                        setIsUsingInitialState(prev => ({
+                          ...prev,
+                          search: false
+                        }));
+                      }}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                      title="Clear search and start fresh"
+                    >
+                      <FontAwesomeIcon icon={faTimesCircle} />
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              {renderCategorySpecificFields()}
+              
+              <button
+                onClick={handleSearchSubmit}
+                type="button"
+                className="px-6 py-3 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold rounded-lg hover:from-[#00c97b] hover:to-teal-600 transition-all duration-300 cursor-pointer"
+              >
+                <FontAwesomeIcon icon={faSearch} className="mr-2" />
+                {getSearchButtonText()}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    ) : (
+      <div 
+        onClick={() => setShowAgodaModal(true)}
+        className="bg-gray-200 rounded-[15px] mr-2 px-3 py-2.5 text-xs flex items-center gap-2  cursor-pointer w-full"
+      >
+        <FontAwesomeIcon icon={faSearch} className="text-gray-700 text-[15px] flex-shrink-0" />
+        <div className="flex flex-col text-left truncate w-full">
+          <span className="text-gray-900 font-medium text-[13px] truncate">
+            {getLocationDisplayName(activeFilters.locations[0] || localSearchQuery) || "Where to?"}
+          </span>
+          <span className="text-gray-600 text-[12px] truncate">
+            {checkInDate && checkOutDate ? 
+              `${formatShortDate(checkInDate)} - ${formatShortDate(checkOutDate)}${guests ? ` • ${guests.adults + guests.children} guest${(guests.adults + guests.children) !== 1 ? 's' : ''}` : ''}` : 
+              "Select dates"
+            }
+          </span>
+        </div>
+      </div>
+    )}
+  </div>
+</form>
                   </div>
                 </div>
               </div>
@@ -3787,6 +4379,29 @@ const SearchResults = () => {
             navigate={navigate}
           />
         )}
+
+        {/* Agoda-style Search Modal */}
+        <AgodaStyleSearchModal
+          isVisible={showAgodaModal}
+          onClose={() => setShowAgodaModal(false)}
+          searchQuery={localSearchQuery}
+          onSearchChange={handleSearchChange}
+          checkInDate={checkInDate}
+          checkOutDate={checkOutDate}
+          guests={guests}
+          onDateChange={({ checkIn, checkOut }) => {
+            const params = new URLSearchParams(window.location.search);
+            params.set("checkInDate", checkIn.toISOString());
+            params.set("checkOutDate", checkOut.toISOString());
+            setSearchParams(params);
+          }}
+          onGuestsChange={(newGuests) => {
+            const params = new URLSearchParams(window.location.search);
+            params.set("guests", JSON.stringify(newGuests));
+            setSearchParams(params);
+          }}
+          category={finalCategory}
+        />
 
         {showEditCalendar && (
           <SimpleCalendar
@@ -3863,7 +4478,7 @@ const SearchResults = () => {
                   {isMobile && filtersInitialized && (
                     <div className="flex items-center justify-between w-full">
                       <div className="text-left">
-                        <h1 className="text-xl font-bold text-[#00065A] mb-1">
+                        <h1 className="text-[16px] lg:text-xl font-bold text-[#00065A] mb-1">
                           {getPageTitle()}
                         </h1>
                         <p className="text-sm text-gray-600">
@@ -3871,7 +4486,7 @@ const SearchResults = () => {
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        {/* Add Reset Filters button */}
+                        {/* Add Reset Filters button
                         {(activeFilters.locations.length > 0 || 
                           activeFilters.priceRange.min || 
                           activeFilters.priceRange.max || 
@@ -3882,11 +4497,12 @@ const SearchResults = () => {
                           >
                             Reset Filters
                           </button>
-                        )}
+                        )} */}
                         
-                        <button
+                        <div className="flex flex-col">
+ <button
                           onClick={toggleMobileFilters}
-                          className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm cursor-pointer"
+                          className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm cursor-pointer ml-[100px]"
                           aria-label="Open filters"
                           ref={filterButtonRef}
                         >
@@ -3937,6 +4553,8 @@ const SearchResults = () => {
                             <FontAwesomeIcon icon={faChevronDown} className="text-gray-500 text-xs" />
                           </div>
                         </div>
+                        </div>
+                       
                       </div>
                     </div>
                   )}

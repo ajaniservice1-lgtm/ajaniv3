@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
+// VendorDetail.jsx - Complete with FIXED position booking card
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHome } from "@fortawesome/free-solid-svg-icons";
@@ -7,6 +8,7 @@ import {
   faPhone, 
   faEnvelope, 
   faMapMarkerAlt,
+  faLightbulb,
   faCalendar,
   faUsers,
   faBed,
@@ -47,6 +49,17 @@ import {
   faChevronDown,
   faChevronUp,
   faInfoCircle,
+  faCamera,
+  faVideo,
+  faMicrophone,
+  faBirthdayCake,
+  faGlassCheers,
+  faWrench,
+  faTools,
+  faBriefcase,
+  faPaintBrush,
+  faFirstAid,
+  faCogs
 } from "@fortawesome/free-solid-svg-icons";
 import { CiBookmark } from "react-icons/ci";
 import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
@@ -72,6 +85,7 @@ const FALLBACK_IMAGES = {
   restaurant: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80",
   event: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1200&q=80",
   shortlet: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80",
+  service: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=1200&q=80",
   cafe: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=1200&q=80",
   default: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&q=80"
 };
@@ -135,6 +149,169 @@ const showNotification = (message, type = "success") => {
   );
 };
 
+// Custom hook for FIXED sticky behavior
+const useFixedSticky = (startRef, endRef, options = {}) => {
+  const { offsetTop = 100, enabled = true } = options;
+  const [isFixed, setIsFixed] = useState(false);
+  const [stickyStyle, setStickyStyle] = useState({});
+  const [boundaries, setBoundaries] = useState({ start: 0, end: 0 });
+  const elementRef = useRef(null);
+  const containerRef = useRef(null);
+
+  const calculateBoundaries = useCallback(() => {
+    if (!startRef.current || !endRef.current || !elementRef.current || !enabled) {
+      return null;
+    }
+
+    const startRect = startRef.current.getBoundingClientRect();
+    const endRect = endRef.current.getBoundingClientRect();
+    const elementRect = elementRef.current.getBoundingClientRect();
+    const scrollTop = window.scrollY;
+
+    return {
+      start: startRect.top + scrollTop - offsetTop,
+      end: endRect.bottom + scrollTop,
+      elementHeight: elementRect.height,
+      originalWidth: elementRef.current.offsetWidth,
+      originalLeft: elementRef.current.getBoundingClientRect().left,
+      originalTop: elementRect.top + scrollTop
+    };
+  }, [startRef, endRef, offsetTop, enabled]);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const updateBoundaries = () => {
+      const calculated = calculateBoundaries();
+      if (calculated) {
+        setBoundaries({
+          start: calculated.start,
+          end: calculated.end,
+          elementHeight: calculated.elementHeight,
+          originalWidth: calculated.originalWidth,
+          originalLeft: calculated.originalLeft,
+          originalTop: calculated.originalTop
+        });
+      }
+    };
+
+    updateBoundaries();
+    window.addEventListener('resize', updateBoundaries);
+    
+    return () => window.removeEventListener('resize', updateBoundaries);
+  }, [calculateBoundaries, enabled]);
+
+  useEffect(() => {
+    if (!enabled) {
+      setIsFixed(false);
+      setStickyStyle({});
+      return;
+    }
+
+    const handleScroll = () => {
+      if (!startRef.current || !endRef.current || !elementRef.current) return;
+
+      const scrollY = window.scrollY;
+      const { start, end, elementHeight, originalWidth, originalLeft, originalTop } = boundaries;
+      
+      // Check if boundaries are valid
+      if (start === 0 && end === 0) return;
+
+      // Check if we're in the sticky zone
+      const isInStickyZone = scrollY > start && scrollY < end;
+      
+      // Should be FIXED when in the sticky zone
+      const shouldBeFixed = isInStickyZone;
+      
+      if (shouldBeFixed !== isFixed) {
+        setIsFixed(shouldBeFixed);
+      }
+
+      if (shouldBeFixed) {
+        // COMPLETELY FIXED POSITION - DOESN'T MOVE WHILE SCROLLING
+        const currentLeft = elementRef.current.getBoundingClientRect().left;
+        
+        setStickyStyle({
+          position: 'fixed',
+          top: `${offsetTop}px`,
+          left: `${currentLeft}px`,
+          width: `${originalWidth}px`,
+          zIndex: 40,
+          opacity: 1,
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          maxHeight: `calc(100vh - ${offsetTop + 20}px)`,
+          overflowY: 'auto',
+          transform: 'none', // No transform - stays exactly where it is
+          pointerEvents: 'auto'
+        });
+      } else if (scrollY >= end) {
+        // Past the end boundary - position at the bottom
+        const parent = elementRef.current.parentElement;
+        if (parent) {
+          const parentRect = parent.getBoundingClientRect();
+          const parentBottom = parentRect.bottom + scrollY;
+          const relativeTop = parentBottom - end;
+          
+          setStickyStyle({
+            position: 'absolute',
+            top: `${relativeTop}px`,
+            left: '0',
+            width: '100%',
+            zIndex: 10,
+            opacity: 1,
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            pointerEvents: 'auto'
+          });
+        } else {
+          setStickyStyle({
+            position: 'relative',
+            top: '0',
+            left: '0',
+            width: '100%',
+            zIndex: 10,
+            opacity: 1,
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            pointerEvents: 'auto'
+          });
+        }
+      } else {
+        // Before start boundary - normal flow
+        setStickyStyle({
+          position: 'relative',
+          top: '0',
+          left: '0',
+          width: '100%',
+          zIndex: 10,
+          opacity: 1,
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          pointerEvents: 'auto'
+        });
+      }
+    };
+
+    // Throttle scroll events for performance
+    let ticking = false;
+    const scrollHandler = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', scrollHandler, { passive: true });
+    handleScroll(); // Initial call
+
+    return () => {
+      window.removeEventListener('scroll', scrollHandler);
+    };
+  }, [isFixed, boundaries, startRef, endRef, offsetTop, enabled]);
+
+  return { isFixed, stickyStyle, elementRef, containerRef };
+};
+
 // Helper: format date like "May 1, 2026"
 const formatDate = (date) => {
   if (!date) return "Select date";
@@ -154,14 +331,27 @@ const formatDateForDisplay = (date) => {
   });
 };
 
-// Normalize category function
+// Normalize category function - FIXED to handle "services" properly
 const normalizeCategory = (category) => {
   if (!category) return 'restaurant';
   
   const cat = safeToString(category).toLowerCase().trim();
   
+  // Fix: Handle "services" category
+  if (cat.includes('services') || cat === 'service') {
+    return 'service';
+  }
+  
   if (cat.includes('shortlet') || cat.includes('vacation rental') || cat.includes('apartment') || cat.includes('airbnb') || cat.includes('vacation home') || cat.includes('holiday home') || cat.includes('self-catering') || cat.includes('serviced apartment')) {
     return 'shortlet';
+  }
+  
+  if (cat.includes('event') || cat.includes('venue') || cat.includes('hall') || cat.includes('center') || cat.includes('conference') || cat.includes('banquet') || cat.includes('wedding') || cat.includes('party')) {
+    return 'event';
+  }
+  
+  if (cat.includes('service') || cat.includes('professional') || cat.includes('consultation') || cat.includes('therapy') || cat.includes('repair') || cat.includes('maintenance') || cat.includes('cleaning') || cat.includes('installation')) {
+    return 'service';
   }
   
   if (cat.includes("/")) {
@@ -173,8 +363,11 @@ const normalizeCategory = (category) => {
       if (part.includes('hotel') || part.includes('resort') || part.includes('inn')) {
         return 'hotel';
       }
-      if (part.includes('event') || part.includes('venue') || part.includes('hall') || part.includes('center')) {
+      if (part.includes('event') || part.includes('venue')) {
         return 'event';
+      }
+      if (part.includes('service')) {
+        return 'service';
       }
       if (part.includes('shortlet')) {
         return 'shortlet';
@@ -194,6 +387,17 @@ const normalizeCategory = (category) => {
   }
   
   return 'restaurant';
+};
+
+// Get per text function
+const getPerText = (item) => {
+  const category = normalizeCategory(item?.category);
+  if (category === 'hotel') return 'per night';
+  if (category === 'restaurant') return 'per meal';
+  if (category === 'shortlet') return 'per night';
+  if (category === 'event') return 'per event';
+  if (category === 'service') return 'per service';
+  return 'per guest';
 };
 
 const getVendorImages = (vendor) => {
@@ -339,6 +543,7 @@ const useAuthStatus = () => {
   return isAuthenticated;
 };
 
+// Get amenities
 const getAmenities = (vendor) => {
   if (!vendor) return ["Not specified"];
   
@@ -413,17 +618,56 @@ const getAmenities = (vendor) => {
       "WiFi"
     ];
   } else if (category === 'event') {
+    if (vendor.details?.amenities && Array.isArray(vendor.details.amenities)) {
+      return vendor.details.amenities;
+    }
+    
+    if (vendor.amenities) {
+      if (typeof vendor.amenities === 'string') {
+        return vendor.amenities.split(",").map(item => item.trim()).filter(item => item);
+      }
+      if (Array.isArray(vendor.amenities) && vendor.amenities.length > 0) {
+        return vendor.amenities;
+      }
+    }
+    
     return ["Stage", "Sound System", "Lighting", "Parking", "Catering Service", "Decoration Service", "Projector", "Microphones"];
   } else if (category === 'shortlet') {
     if (vendor.details?.amenities && Array.isArray(vendor.details.amenities)) {
       return vendor.details.amenities;
     }
+    
+    if (vendor.amenities) {
+      if (typeof vendor.amenities === 'string') {
+        return vendor.amenities.split(",").map(item => item.trim()).filter(item => item);
+      }
+      if (Array.isArray(vendor.amenities) && vendor.amenities.length > 0) {
+        return vendor.amenities;
+      }
+    }
+    
     return ["Full Kitchen", "WiFi", "Air Conditioning", "Parking", "Laundry", "24/7 Check-in", "Smart TV", "Workspace", "Security"];
+  } else if (category === 'service') {
+    if (vendor.details?.amenities && Array.isArray(vendor.details.amenities)) {
+      return vendor.details.amenities;
+    }
+    
+    if (vendor.amenities) {
+      if (typeof vendor.amenities === 'string') {
+        return vendor.amenities.split(",").map(item => item.trim()).filter(item => item);
+      }
+      if (Array.isArray(vendor.amenities) && vendor.amenities.length > 0) {
+        return vendor.amenities;
+      }
+    }
+    
+    return ["Professional Staff", "Quality Guarantee", "On-time Service", "Licensed & Insured", "Free Consultation", "Flexible Scheduling"];
   }
   
   return ["Not specified"];
 };
 
+// Get amenity icon
 const getAmenityIcon = (amenity) => {
   const lowerAmenity = amenity.toLowerCase();
   
@@ -454,12 +698,31 @@ const getAmenityIcon = (amenity) => {
   if (lowerAmenity.includes('suitcase') || lowerAmenity.includes('luggage')) return faSuitcase;
   if (lowerAmenity.includes('wind') || lowerAmenity.includes('ventilation')) return faWind;
   if (lowerAmenity.includes('thermometer') || lowerAmenity.includes('heating')) return faThermometerHalf;
+  if (lowerAmenity.includes('stage') || lowerAmenity.includes('platform')) return faVideo;
+  if (lowerAmenity.includes('sound') || lowerAmenity.includes('audio')) return faMusic;
+  if (lowerAmenity.includes('lighting') || lowerAmenity.includes('lights')) return faLightbulb;
+  if (lowerAmenity.includes('catering') || lowerAmenity.includes('food')) return faUtensils;
+  if (lowerAmenity.includes('decoration') || lowerAmenity.includes('decor')) return faPaintBrush;
+  if (lowerAmenity.includes('projector') || lowerAmenity.includes('screen')) return faVideo;
+  if (lowerAmenity.includes('microphone') || lowerAmenity.includes('mic')) return faMicrophone;
+  if (lowerAmenity.includes('kitchen') || lowerAmenity.includes('cooking')) return faUtensils;
+  if (lowerAmenity.includes('professional') || lowerAmenity.includes('expert')) return faBriefcase;
+  if (lowerAmenity.includes('quality') || lowerAmenity.includes('guarantee')) return faCheckCircle;
+  if (lowerAmenity.includes('on-time') || lowerAmenity.includes('punctual')) return faClock;
+  if (lowerAmenity.includes('licensed') || lowerAmenity.includes('insured')) return faShieldAlt;
+  if (lowerAmenity.includes('consultation') || lowerAmenity.includes('advice')) return faBriefcase;
+  if (lowerAmenity.includes('scheduling') || lowerAmenity.includes('flexible')) return faCalendar;
+  if (lowerAmenity.includes('wrench') || lowerAmenity.includes('repair')) return faWrench;
+  if (lowerAmenity.includes('tools') || lowerAmenity.includes('equipment')) return faTools;
+  if (lowerAmenity.includes('first aid') || lowerAmenity.includes('emergency')) return faFirstAid;
+  if (lowerAmenity.includes('cogs') || lowerAmenity.includes('installation')) return faCogs;
   
   return faCheckCircle;
 };
 
+// Get features from vendor
 const getFeaturesFromVendor = (vendor) => {
-  const category = normalizeCategory(vendor.category);
+  const category = normalizeCategory(vendor?.category);
   
   if (category === 'hotel') {
     if (vendor.details?.roomTypes && Array.isArray(vendor.details.roomTypes)) {
@@ -544,6 +807,70 @@ const getFeaturesFromVendor = (vendor) => {
       { icon: faSnowflake, name: "Air Conditioning" },
       { icon: faWifi, name: "Free WiFi" }
     ];
+  } else if (category === 'event') {
+    if (vendor.details?.amenities && Array.isArray(vendor.details.amenities)) {
+      return vendor.details.amenities.slice(0, 6).map(amenity => ({
+        icon: getAmenityIcon(amenity),
+        name: amenity
+      }));
+    }
+    
+    if (vendor.amenities) {
+      let vendorAmenities = [];
+      if (typeof vendor.amenities === 'string') {
+        vendorAmenities = vendor.amenities.split(",").map(item => item.trim());
+      } else if (Array.isArray(vendor.amenities)) {
+        vendorAmenities = vendor.amenities;
+      }
+      
+      if (vendorAmenities.length > 0) {
+        return vendorAmenities.slice(0, 6).map(amenity => ({
+          icon: getAmenityIcon(amenity),
+          name: amenity
+        }));
+      }
+    }
+    
+    return [
+      { icon: faVideo, name: "Stage" },
+      { icon: faMusic, name: "Sound System" },
+      { icon: faLightbulb, name: "Lighting" },
+      { icon: faCar, name: "Parking" },
+      { icon: faUtensils, name: "Catering Service" },
+      { icon: faPaintBrush, name: "Decoration Service" }
+    ];
+  } else if (category === 'service') {
+    if (vendor.details?.amenities && Array.isArray(vendor.details.amenities)) {
+      return vendor.details.amenities.slice(0, 6).map(amenity => ({
+        icon: getAmenityIcon(amenity),
+        name: amenity
+      }));
+    }
+    
+    if (vendor.amenities) {
+      let vendorAmenities = [];
+      if (typeof vendor.amenities === 'string') {
+        vendorAmenities = vendor.amenities.split(",").map(item => item.trim());
+      } else if (Array.isArray(vendor.amenities)) {
+        vendorAmenities = vendor.amenities;
+      }
+      
+      if (vendorAmenities.length > 0) {
+        return vendorAmenities.slice(0, 6).map(amenity => ({
+          icon: getAmenityIcon(amenity),
+          name: amenity
+        }));
+      }
+    }
+    
+    return [
+      { icon: faBriefcase, name: "Professional Staff" },
+      { icon: faCheckCircle, name: "Quality Guarantee" },
+      { icon: faClock, name: "On-time Service" },
+      { icon: faShieldAlt, name: "Licensed & Insured" },
+      { icon: faBriefcase, name: "Free Consultation" },
+      { icon: faCalendar, name: "Flexible Scheduling" }
+    ];
   }
   
   const amenities = getAmenities(vendor);
@@ -597,6 +924,7 @@ const getLocationString = (location, fallback = "Ibadan, Nigeria") => {
   return fallback;
 };
 
+// Get services
 const getServices = (vendor) => {
   if (vendor?.description || vendor?.about) {
     const description = safeToString(vendor.description || vendor.about);
@@ -636,6 +964,14 @@ const getServices = (vendor) => {
       "Catering Coordination Services",
       "Decoration Services Available",
       "Professional Staff Support",
+    ];
+  } else if (category === 'service') {
+    return [
+      "Professional Assessment & Consultation",
+      "High-Quality Service Guaranteed",
+      "Flexible Appointment Scheduling",
+      "Emergency Services Available",
+      "Follow-up Support & Maintenance",
     ];
   }
   
@@ -961,6 +1297,71 @@ const HotelGuestsModal = ({ isOpen, onClose, adults, setAdults, children, setChi
   );
 };
 
+// Event Guests Modal Component
+const EventGuestsModal = ({ isOpen, onClose, guests, setGuests }) => {
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black/50"
+          onClick={onClose}
+        />
+        
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-hidden"
+        >
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-gray-900">Number of Event Guests</h3>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+              >
+                <IoClose size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="space-y-4 overflow-y-auto max-h-[50vh]">
+              <Counter 
+                label="Event Guests" 
+                sub="Estimated number of attendees" 
+                value={guests} 
+                setValue={setGuests} 
+                min={10} 
+              />
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <p className="text-sm text-gray-600">Total Event Guests</p>
+                  <p className="font-medium">{guests} guest{guests !== 1 ? 's' : ''}</p>
+                </div>
+              </div>
+              
+              <button
+                onClick={onClose}
+                className="w-full py-3 rounded-xl bg-[#06f49f] text-white font-bold hover:bg-[#05d9eb] transition-all cursor-pointer"
+              >
+                Apply ({guests} guest{guests !== 1 ? 's' : ''})
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+};
+
 const VendorDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -981,21 +1382,34 @@ const VendorDetail = () => {
   const [openGuests, setOpenGuests] = useState(false);
   const [checkIn, setCheckIn] = useState(null);
   const [checkOut, setCheckOut] = useState(null);
-  const [guests, setGuests] = useState(2);
-  const [adults, setAdults] = useState(1);
-  const [children, setChildren] = useState(0);
-  const [rooms, setRooms] = useState(1);
+  
+  // Different guest states for different categories
+  const [guests, setGuests] = useState(2); // Restaurant guests
+  const [eventGuests, setEventGuests] = useState(50); // Event guests
+  const [serviceGuests, setServiceGuests] = useState(1); // Service
+  
+  const [adults, setAdults] = useState(1); // Hotel adults
+  const [children, setChildren] = useState(0); // Hotel children
+  const [rooms, setRooms] = useState(1); // Hotel rooms
   
   // Bottom sheet state
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
   
-  // Sticky booking widget state
-  const [isBookingSticky, setIsBookingSticky] = useState(false);
-  const [widgetPosition, setWidgetPosition] = useState({ top: 0, bottom: 0 });
-  const contentRef = useRef(null);
-  const bookingWidgetRef = useRef(null);
+  // Refs for fixed sticky boundaries
+  const aboutSectionRef = useRef(null);
   const keyFeaturesRef = useRef(null);
   
+  // FIXED Sticky booking widget hook
+  const { isFixed, stickyStyle, elementRef } = useFixedSticky(
+    aboutSectionRef,
+    keyFeaturesRef,
+    {
+      offsetTop: 100,
+      enabled: window.innerWidth >= 1024 // Desktop only
+    }
+  );
+  
+  // Calculations for different categories
   const totalHotelGuests = adults + children;
   const isAuthenticated = useAuthStatus();
 
@@ -1026,55 +1440,6 @@ const VendorDetail = () => {
     if (!checkIn) setCheckIn(today);
     if (!checkOut) setCheckOut(tomorrow);
   }, []);
-
-  // Sticky booking widget effect
-  useEffect(() => {
-    const updateWidgetPosition = () => {
-      if (contentRef.current && keyFeaturesRef.current) {
-        const contentRect = contentRef.current.getBoundingClientRect();
-        const keyFeaturesRect = keyFeaturesRef.current.getBoundingClientRect();
-        
-        setWidgetPosition({
-          top: contentRect.top + window.scrollY,
-          bottom: keyFeaturesRect.bottom + window.scrollY
-        });
-      }
-    };
-
-    const handleScroll = () => {
-      if (bookingWidgetRef.current && widgetPosition.top > 0) {
-        const scrollY = window.scrollY;
-        const windowHeight = window.innerHeight;
-        const widgetHeight = bookingWidgetRef.current.offsetHeight;
-        
-        // Calculate when to make it sticky
-        const shouldBeSticky = scrollY > widgetPosition.top - 100 && 
-                              scrollY < widgetPosition.bottom - widgetHeight - 100;
-        
-        setIsBookingSticky(shouldBeSticky);
-        
-        // Update widget position when sticky
-        if (shouldBeSticky && bookingWidgetRef.current) {
-          const maxScroll = widgetPosition.bottom - widgetHeight - 100;
-          const currentScroll = Math.min(scrollY, maxScroll);
-          const offset = Math.max(100, currentScroll - widgetPosition.top + 100);
-          
-          bookingWidgetRef.current.style.transform = `translateY(${offset}px)`;
-        }
-      }
-    };
-
-    // Initial position calculation
-    updateWidgetPosition();
-    window.addEventListener('resize', updateWidgetPosition);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('resize', updateWidgetPosition);
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [widgetPosition.top, widgetPosition.bottom]);
 
   // Fetch vendor data
   useEffect(() => {
@@ -1110,6 +1475,69 @@ const VendorDetail = () => {
     }
   }, [id]);
 
+  // FIXED: Corrected price extraction function
+  const getPriceFromItem = (item) => {
+    try {
+      // Check for direct price first
+      if (item.price !== undefined && item.price !== null) {
+        return item.price;
+      }
+      
+      // Check for service pricing structure (FIXED: using pricingRange instead of priceRange)
+      if (item.details?.pricingRange) {
+        const { priceFrom, priceTo } = item.details.pricingRange;
+        
+        if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+          // Return average or priceFrom based on your preference
+          return Math.round((priceFrom + priceTo) / 2);
+        } else if (priceFrom !== undefined) {
+          return priceFrom;
+        } else if (priceTo !== undefined) {
+          return priceTo;
+        }
+      }
+      
+      // Check for restaurant pricing structure
+      if (item.details?.priceRangePerMeal) {
+        const { priceFrom, priceTo } = item.details.priceRangePerMeal;
+        
+        if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+          return Math.round((priceFrom + priceTo) / 2);
+        } else if (priceFrom !== undefined) {
+          return priceFrom;
+        } else if (priceTo !== undefined) {
+          return priceTo;
+        }
+      }
+      
+      // Check for event pricing structure
+      if (item.details?.priceRange) {
+        const { priceFrom, priceTo } = item.details.priceRange;
+        
+        if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+          return Math.round((priceFrom + priceTo) / 2);
+        } else if (priceFrom !== undefined) {
+          return priceFrom;
+        } else if (priceTo !== undefined) {
+          return priceTo;
+        }
+      }
+      
+      // Check for hotel room pricing
+      if (item.details?.roomTypes?.length > 0) {
+        const room = item.details.roomTypes[0];
+        if (room.pricePerNight !== undefined) {
+          return room.pricePerNight;
+        }
+      }
+      
+      return 0;
+    } catch (error) {
+      console.error('Error getting price:', error);
+      return 0;
+    }
+  };
+
   const formatPrice = (price) => {
     if (!price && price !== 0) return "₦ --";
     
@@ -1140,31 +1568,7 @@ const VendorDetail = () => {
     }
   };
 
-  const getPriceFromItem = (item) => {
-    try {
-      if (item.price !== undefined && item.price !== null) {
-        return item.price;
-      }
-      
-      if (item.details?.priceRangePerMeal) {
-        const { priceFrom, priceTo } = item.details.priceRangePerMeal;
-        
-        if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
-          return Math.round((priceFrom + priceTo) / 2);
-        } else if (priceFrom !== undefined) {
-          return priceFrom;
-        } else if (priceTo !== undefined) {
-          return priceTo;
-        }
-      }
-      
-      return 0;
-    } catch (error) {
-      console.error('Error getting price:', error);
-      return 0;
-    }
-  };
-
+  // FIXED: Corrected price text function
   const getPriceText = (item) => {
     const category = normalizeCategory(item?.category);
     
@@ -1176,6 +1580,49 @@ const VendorDetail = () => {
       } else if (priceFrom !== undefined) {
         return `From ${formatPrice(priceFrom)}`;
       }
+    }
+    
+    // Handle service pricing (FIXED: using pricingRange)
+    if (category === 'service' && item?.details?.pricingRange) {
+      const { priceFrom, priceTo } = item.details.pricingRange;
+      
+      if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+        return `${formatPrice(priceFrom)} - ${formatPrice(priceTo)}`;
+      } else if (priceFrom !== undefined) {
+        return `From ${formatPrice(priceFrom)}`;
+      }
+    }
+    
+    // Handle event pricing
+    if (category === 'event' && item?.details?.priceRange) {
+      const { priceFrom, priceTo } = item.details.priceRange;
+      
+      if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+        return `${formatPrice(priceFrom)} - ${formatPrice(priceTo)}`;
+      } else if (priceFrom !== undefined) {
+        return `From ${formatPrice(priceFrom)}`;
+      }
+    }
+    
+    // Handle hotel pricing
+    if (category === 'hotel' && item.details?.roomTypes) {
+      const prices = item.details.roomTypes
+        .map(room => room.pricePerNight || 0)
+        .filter(price => price > 0);
+      
+      if (prices.length === 0) {
+        const price = getPriceFromItem(item) || 0;
+        return `${formatPrice(price)}`;
+      }
+      
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+      
+      if (minPrice === maxPrice) {
+        return formatPrice(minPrice);
+      }
+      
+      return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`;
     }
     
     const price = getPriceFromItem(item) || 0;
@@ -1377,6 +1824,8 @@ const VendorDetail = () => {
       return parseFloat(safeToString(price, "0"));
     } else if (category === 'restaurant') {
       return getPriceFromItem(vendor);
+    } else if (category === 'event' || category === 'service') {
+      return getPriceFromItem(vendor);
     }
     
     const price = vendor.price || vendor.details?.pricePerNight || vendor.price_from || 0;
@@ -1400,17 +1849,13 @@ const VendorDetail = () => {
       return subtotal;
     } else if (category === 'restaurant') {
       return price * guests;
+    } else if (category === 'event') {
+      return price * Math.ceil(eventGuests / 10);
+    } else if (category === 'service') {
+      return price;
     }
     
     return price;
-  };
-
-  const getPerText = (item) => {
-    const category = normalizeCategory(item?.category);
-    if (category === 'hotel') return 'per night';
-    if (category === 'restaurant') return 'per meal';
-    if (category === 'shortlet') return 'per night';
-    return 'per guest';
   };
 
   const getPriceDisplay = () => {
@@ -1418,6 +1863,17 @@ const VendorDetail = () => {
     
     if (category === 'restaurant' && vendor?.details?.priceRangePerMeal) {
       const { priceFrom, priceTo } = vendor.details.priceRangePerMeal;
+      
+      if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+        return `${formatPrice(priceFrom)} - ${formatPrice(priceTo)}`;
+      } else if (priceFrom !== undefined) {
+        return `From ${formatPrice(priceFrom)}`;
+      }
+    }
+    
+    // Handle service pricing (FIXED)
+    if (category === 'service' && vendor?.details?.pricingRange) {
+      const { priceFrom, priceTo } = vendor.details.pricingRange;
       
       if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
         return `${formatPrice(priceFrom)} - ${formatPrice(priceTo)}`;
@@ -1445,12 +1901,23 @@ const VendorDetail = () => {
       return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`;
     }
     
+    if (category === 'event' && vendor?.details?.priceRange) {
+      const { priceFrom, priceTo } = vendor.details.priceRange;
+      
+      if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+        return `${formatPrice(priceFrom)} - ${formatPrice(priceTo)}`;
+      } else if (priceFrom !== undefined) {
+        return `From ${formatPrice(priceFrom)}`;
+      }
+    }
+    
     return formatPrice(vendor.price || vendor.details?.pricePerNight || 0);
   };
 
   const handleBookingClick = () => {
     const currentCategory = normalizeCategory(vendor?.category);
     
+    // Handle hotel room selection requirement
     if (currentCategory === 'hotel') {
       if (!selectedRoom && vendor.details?.roomTypes?.length > 0) {
         if (roomSelectionRef.current) {
@@ -1477,6 +1944,7 @@ const VendorDetail = () => {
       }
     }
     
+    // Prepare vendor booking data based on category
     const vendorBookingData = {
       id: vendor._id || vendor.id,
       name: getBusinessName(vendor),
@@ -1501,11 +1969,35 @@ const VendorDetail = () => {
       contactInformation: vendor.contactInformation,
       checkIn: checkIn,
       checkOut: checkOut,
-      guests: currentCategory === 'restaurant' ? guests : undefined,
-      adults: currentCategory === 'hotel' ? adults : undefined,
-      children: currentCategory === 'hotel' ? children : undefined,
-      rooms: currentCategory === 'hotel' ? rooms : undefined,
-      totalGuests: currentCategory === 'hotel' ? totalHotelGuests : guests,
+      
+      // Category-specific data
+      ...(currentCategory === 'hotel' ? {
+        adults: adults,
+        children: children,
+        rooms: rooms,
+        totalGuests: totalHotelGuests
+      } : {}),
+      
+      ...(currentCategory === 'restaurant' ? {
+        guests: guests,
+        totalGuests: guests
+      } : {}),
+      
+      ...(currentCategory === 'event' ? {
+        guests: eventGuests,
+        totalGuests: eventGuests
+      } : {}),
+      
+      ...(currentCategory === 'service' ? {
+        guests: serviceGuests,
+        totalGuests: serviceGuests
+      } : {}),
+      
+      ...(currentCategory === 'shortlet' ? {
+        guests: guests,
+        totalGuests: guests
+      } : {}),
+      
       totalPrice: calculateTotalPrice()
     };
     
@@ -1561,7 +2053,9 @@ const VendorDetail = () => {
     const category = normalizeCategory(vendor?.category);
     setTimeout(() => {
       if (category === 'hotel') {
-        // Hotel guests modal will be handled separately
+        setOpenGuests(true);
+      } else if (category === 'event') {
+        setOpenGuests(true);
       } else {
         setOpenGuests(true);
       }
@@ -1740,9 +2234,23 @@ const VendorDetail = () => {
     : 0;
 
   // Determine which modals to use based on category
-  const shouldShowCalendar = category === 'hotel' || category === 'shortlet';
+  const shouldShowCalendar = category === 'hotel' || category === 'shortlet' || category === 'event';
   const shouldShowHotelGuests = category === 'hotel';
   const shouldShowRestaurantGuests = category === 'restaurant';
+  const shouldShowEventGuests = category === 'event';
+  const shouldShowServiceGuests = category === 'service';
+
+  // Get appropriate guest count for current category
+  const getCurrentGuests = () => {
+    switch(category) {
+      case 'hotel': return totalHotelGuests;
+      case 'restaurant': return guests;
+      case 'event': return eventGuests;
+      case 'service': return serviceGuests;
+      case 'shortlet': return guests;
+      default: return guests;
+    }
+  };
 
   return (
     <div className="min-h-screen font-manrope">
@@ -1837,36 +2345,6 @@ const VendorDetail = () => {
           padding-bottom: 100px;
         }
         
-        .sticky-booking-widget {
-          transition: transform 0.3s ease;
-        }
-        
-        .sticky-booking-widget.sticky {
-          position: fixed;
-          top: 100px;
-          width: 384px !important;
-          z-index: 40;
-          will-change: transform;
-        }
-        
-        .sticky-booking-widget::-webkit-scrollbar {
-          width: 4px;
-        }
-        
-        .sticky-booking-widget::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 10px;
-        }
-        
-        .sticky-booking-widget::-webkit-scrollbar-thumb {
-          background: #888;
-          border-radius: 10px;
-        }
-        
-        .sticky-booking-widget::-webkit-scrollbar-thumb:hover {
-          background: #555;
-        }
-        
         @keyframes slideInUp {
           from {
             transform: translateY(100%);
@@ -1874,6 +2352,60 @@ const VendorDetail = () => {
           to {
             transform: translateY(0);
           }
+        }
+        
+        .fixed-booking-card {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          will-change: transform, position, top, left;
+        }
+        
+        .fixed-booking-card::-webkit-scrollbar {
+          width: 4px;
+        }
+        
+        .fixed-booking-card::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+        
+        .fixed-booking-card::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 10px;
+        }
+        
+        .fixed-booking-card::-webkit-scrollbar-thumb:hover {
+          background: #555;
+        }
+        
+        @media (max-width: 1024px) {
+          .fixed-booking-card {
+            position: relative !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+          }
+        }
+        
+        .fixed-badge {
+          position: absolute;
+          top: -10px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #06f49f;
+          color: white;
+          font-size: 11px;
+          font-weight: 600;
+          padding: 3px 10px;
+          border-radius: 12px;
+          z-index: 50;
+          white-space: nowrap;
+          box-shadow: 0 2px 8px rgba(6, 244, 159, 0.3);
+          animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(-5px); }
+          to { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
       `}</style>
       
@@ -2233,7 +2765,6 @@ const VendorDetail = () => {
                 <button
                   onClick={() => {
                     if (category === 'hotel' && !selectedRoom) {
-                      // Scroll to room selection
                       if (roomSelectionRef.current) {
                         roomSelectionRef.current.scrollIntoView({
                           behavior: 'smooth',
@@ -2306,13 +2837,13 @@ const VendorDetail = () => {
               </div>
             </div>
 
-            {/* ================== ABOUT SECTION WITH STICKY BOOKING WIDGET ================== */}
+            {/* ================== ABOUT SECTION WITH FIXED BOOKING CARD ================== */}
             <section className="w-full bg-[#F7F7FA] rounded-none md:rounded-3xl relative">
               <div className="px-2.5 sm:px-4 md:px-6 lg:px-8 py-4 md:py-8">
                 <div className="flex flex-col lg:flex-row gap-8">
-                  {/* Left Column - Content */}
+                  {/* Left Column - Content (THIS SCROLLS) */}
                   <div 
-                    ref={contentRef}
+                    ref={aboutSectionRef}
                     className="flex-1 space-y-8"
                   >
                     <div>
@@ -2324,7 +2855,7 @@ const VendorDetail = () => {
                       </p>
                     </div>
 
-                    {/* What we Do - First */}
+                    {/* What we Do - THIS SCROLLS */}
                     <div className="bg-white rounded-lg md:rounded-2 p-3 md:p-6">
                       <h3 className="text-base md:text-lg font-bold text-[#00065A] mb-3 md:mb-6 font-manrope">
                         What we Do
@@ -2350,7 +2881,7 @@ const VendorDetail = () => {
                       </div>
                     </div>
 
-                    {/* Key Features - Below What we Do (for LG) */}
+                    {/* Key Features - THIS SCROLLS */}
                     <div 
                       ref={keyFeaturesRef}
                       className="bg-white rounded-lg md:rounded-2xl p-3 md:p-6"
@@ -2379,18 +2910,25 @@ const VendorDetail = () => {
                     </div>
                   </div>
 
-                  {/* Right Column - Booking Widget (Desktop Only) */}
-                  <div className="hidden lg:block w-96 flex-shrink-0">
+                  {/* Right Column - Booking Card (FIXED POSITION - DOES NOT MOVE) */}
+                  <div className="hidden lg:block w-96 flex-shrink-0 relative">
                     <motion.div
-                      ref={bookingWidgetRef}
-                      className={`sticky-booking-widget ${isBookingSticky ? 'sticky' : ''}`}
+                      ref={elementRef}
+                      className="fixed-booking-card"
                       style={{
-                        maxHeight: isBookingSticky ? 'calc(100vh - 120px)' : 'auto',
-                        overflowY: isBookingSticky ? 'auto' : 'visible'
+                        ...stickyStyle,
+                        maxHeight: isFixed ? 'calc(100vh - 120px)' : 'auto',
+                        overflowY: isFixed ? 'auto' : 'visible'
                       }}
                     >
+                      {isFixed && (
+                        <div className="fixed-badge">
+                          Fixed Position
+                        </div>
+                      )}
+                      
                       <motion.div
-                        className="bg-white rounded-2xl shadow-xl border border-gray-300 p-6 space-y-6"
+                        className={`bg-white rounded-2xl border border-gray-300 p-6 space-y-6 ${isFixed ? 'shadow-xl' : 'shadow-lg'}`}
                         whileHover={{ boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
                         transition={{ duration: 0.2 }}
                       >
@@ -2411,6 +2949,14 @@ const VendorDetail = () => {
                             <div className="mt-2 text-sm text-gray-600">
                               {formatPrice(realPrice)} per meal × {guests} guest{guests !== 1 ? 's' : ''}
                             </div>
+                          ) : category === 'event' ? (
+                            <div className="mt-2 text-sm text-gray-600">
+                              {formatPrice(realPrice)} per event × {eventGuests} guest{eventGuests !== 1 ? 's' : ''}
+                            </div>
+                          ) : category === 'service' ? (
+                            <div className="mt-2 text-sm text-gray-600">
+                              {formatPrice(realPrice)} per service
+                            </div>
                           ) : (
                             <div className="mt-2 text-sm text-gray-600">
                               {formatPrice(realPrice)} per guest
@@ -2418,8 +2964,8 @@ const VendorDetail = () => {
                           )}
                         </div>
 
-                        {/* Dates Section for hotels and shortlets */}
-                        {(category === 'hotel' || category === 'shortlet') && (
+                        {/* Dates Section for hotels, shortlets, and events */}
+                        {(category === 'hotel' || category === 'shortlet' || category === 'event') && (
                           <div>
                             <div className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
                               <span>Dates</span>
@@ -2433,13 +2979,13 @@ const VendorDetail = () => {
                             <div className="grid grid-cols-2 gap-3">
                               <div className="border border-gray-300 rounded-xl p-3">
                                 <p className="text-[10px] uppercase text-gray-500 font-semibold mb-1">
-                                  Check-in
+                                  {category === 'event' ? 'Event Date' : 'Check-in'}
                                 </p>
                                 <p className="text-sm font-medium">{formatDateForDisplay(checkIn)}</p>
                               </div>
                               <div className="border border-gray-300 rounded-xl p-3">
                                 <p className="text-[10px] uppercase text-gray-500 font-semibold mb-1">
-                                  Checkout
+                                  {category === 'event' ? 'End Date' : 'Checkout'}
                                 </p>
                                 <p className="text-sm font-medium">{formatDateForDisplay(checkOut)}</p>
                               </div>
@@ -2450,15 +2996,13 @@ const VendorDetail = () => {
                         {/* Guests Section */}
                         <div>
                           <div className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
-                            <span>{category === 'hotel' ? 'Guests & Rooms' : 'Guests'}</span>
+                            <span>
+                              {category === 'hotel' ? 'Guests & Rooms' : 
+                               category === 'event' ? 'Event Guests' :
+                               category === 'service' ? 'Service Details' : 'Guests'}
+                            </span>
                             <button
-                              onClick={() => {
-                                if (category === 'hotel') {
-                                  setOpenGuests(true);
-                                } else {
-                                  setOpenGuests(true);
-                                }
-                              }}
+                              onClick={() => setOpenGuests(true)}
                               className="text-xs text-[#06f49f] hover:text-[#05d9eb] font-medium cursor-pointer"
                             >
                               Edit
@@ -2466,11 +3010,17 @@ const VendorDetail = () => {
                           </div>
                           <div className="border border-gray-300 rounded-xl p-3">
                             <p className="text-[10px] uppercase text-gray-500 font-semibold mb-1">
-                              {category === 'hotel' ? 'Guests & Rooms' : 'Guests'}
+                              {category === 'hotel' ? 'Guests & Rooms' : 
+                               category === 'event' ? 'Event Guests' :
+                               category === 'service' ? 'Service Details' : 'Guests'}
                             </p>
                             <p className="text-sm font-medium">
                               {category === 'hotel' 
                                 ? `${totalHotelGuests} guest${totalHotelGuests !== 1 ? 's' : ''}, ${rooms} room${rooms !== 1 ? 's' : ''}`
+                                : category === 'event'
+                                ? `${eventGuests} guest${eventGuests !== 1 ? 's' : ''}`
+                                : category === 'service'
+                                ? `${serviceGuests} service${serviceGuests !== 1 ? 's' : ''}`
                                 : `${guests} guest${guests !== 1 ? 's' : ''}`
                               }
                             </p>
@@ -2529,7 +3079,6 @@ const VendorDetail = () => {
                         <p className="text-center text-xs text-gray-500">
                           You won't be charged yet
                         </p>
-
                       </motion.div>
                     </motion.div>
                   </div>
@@ -2618,8 +3167,8 @@ const VendorDetail = () => {
           </div>
         </div>
 
-        {/* ================= CALENDAR MODAL (for hotels/shortlets) ================= */}
-        {shouldShowCalendar && (
+        {/* ================= CALENDAR MODAL (for hotels/shortlets/events) ================= */}
+        {(category === 'hotel' || category === 'shortlet' || category === 'event') && (
           <CalendarModal
             isOpen={openCalendar}
             onClose={() => setOpenCalendar(false)}
@@ -2651,6 +3200,26 @@ const VendorDetail = () => {
             setChildren={setChildren}
             rooms={rooms}
             setRooms={setRooms}
+          />
+        )}
+
+        {/* ================= EVENT GUESTS MODAL ================= */}
+        {shouldShowEventGuests && (
+          <EventGuestsModal
+            isOpen={openGuests}
+            onClose={() => setOpenGuests(false)}
+            guests={eventGuests}
+            setGuests={setEventGuests}
+          />
+        )}
+
+        {/* ================= SERVICE GUESTS MODAL ================= */}
+        {shouldShowServiceGuests && (
+          <GuestsModal
+            isOpen={openGuests}
+            onClose={() => setOpenGuests(false)}
+            guests={serviceGuests}
+            setGuests={setServiceGuests}
           />
         )}
       </main>
@@ -2801,6 +3370,36 @@ const VendorDetail = () => {
                           <span>{formatPrice(totalPrice)}</span>
                         </div>
                       </>
+                    ) : category === 'event' ? (
+                      <>
+                        <div className="flex justify-between text-[12px]">
+                          <span>{eventGuests} guest{eventGuests !== 1 ? 's' : ''} × {formatPrice(realPrice)}</span>
+                          <span className="font-medium">{formatPrice(totalPrice)}</span>
+                        </div>
+                        <div className="flex justify-between text-gray-600 text-[12px]">
+                          <span>Service fee</span>
+                          <span>₦0</span>
+                        </div>
+                        <div className="flex justify-between font-bold text-[13px] pt-4 border-t border-gray-300">
+                          <span>Total</span>
+                          <span>{formatPrice(totalPrice)}</span>
+                        </div>
+                      </>
+                    ) : category === 'service' ? (
+                      <>
+                        <div className="flex justify-between text-[12px]">
+                          <span>Base price</span>
+                          <span className="font-medium">{formatPrice(calculatePrice())}</span>
+                        </div>
+                        <div className="flex justify-between text-gray-600 text-[12px]">
+                          <span>Service fee</span>
+                          <span>₦0</span>
+                        </div>
+                        <div className="flex justify-between font-bold text-[13px] pt-4 border-t border-gray-300">
+                          <span>Total</span>
+                          <span>{formatPrice(calculatePrice())}</span>
+                        </div>
+                      </>
                     ) : (
                       <>
                         <div className="flex justify-between text-[12px]">
@@ -2841,18 +3440,16 @@ const VendorDetail = () => {
 
                   <div className="mb-6">
                     <div className="text-[12px] font-semibold text-gray-700 mb-2">
-                      {category === 'hotel' ? 'Guests & Rooms' : 'Guests'}
+                      {category === 'hotel' ? 'Guests & Rooms' : 
+                       category === 'event' ? 'Event Guests' :
+                       category === 'service' ? 'Service Details' : 'Guests'}
                     </div>
 
                     <button
                       onClick={() => {
                         setBottomSheetOpen(false);
                         setTimeout(() => {
-                          if (category === 'hotel') {
-                            setOpenGuests(true);
-                          } else {
-                            setOpenGuests(true);
-                          }
+                          setOpenGuests(true);
                         }, 300);
                       }}
                       className="w-full border border-gray-300 rounded-xl p-4 text-left hover:bg-gray-50 transition cursor-pointer"
@@ -2860,11 +3457,17 @@ const VendorDetail = () => {
                       <div className="font-medium text-[13px]">
                         {category === 'hotel' 
                           ? `${totalHotelGuests} guest${totalHotelGuests !== 1 ? 's' : ''}, ${rooms} room${rooms !== 1 ? 's' : ''}`
+                          : category === 'event'
+                          ? `${eventGuests} guest${eventGuests !== 1 ? 's' : ''}`
+                          : category === 'service'
+                          ? `${serviceGuests} service${serviceGuests !== 1 ? 's' : ''}`
                           : `${guests} guest${guests !== 1 ? 's' : ''}`
                         }
                       </div>
                       <div className="text-[11px] text-gray-400 mt-1">
-                        Click to edit {category === 'hotel' ? 'guests & rooms' : 'guests'}
+                        Click to edit {category === 'hotel' ? 'guests & rooms' : 
+                                      category === 'event' ? 'event guests' :
+                                      category === 'service' ? 'service details' : 'guests'}
                       </div>
                     </button>
                   </div>
