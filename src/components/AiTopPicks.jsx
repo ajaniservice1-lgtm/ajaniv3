@@ -459,26 +459,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                       </div>
                     </div>
                     
-                    {/* Gallery Section */}
-                    {vendor.images && vendor.images.length > 0 && (
-                      <div className="mt-4 sm:mt-5 lg:mt-6">
-                        <h4 className="font-semibold text-gray-900 mb-2 sm:mb-3 lg:mb-4 text-sm sm:text-base lg:text-base flex items-center gap-2">
-                          <FaImages className="text-[#06EAFC]" />
-                          Gallery
-                        </h4>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
-                          {vendor.images.slice(0, 3).map((image, index) => (
-                            <div key={index} className="aspect-square rounded-lg sm:rounded-xl lg:rounded-2xl overflow-hidden">
-                              <img
-                                src={image.url}
-                                alt={`${vendor.name} - Image ${index + 1}`}
-                                className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                   
                   </div>
                 </div>
 
