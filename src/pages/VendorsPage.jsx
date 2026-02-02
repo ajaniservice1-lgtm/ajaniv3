@@ -932,28 +932,7 @@ const VendorCard = ({ vendor, index, onShowContact, onContact }) => {
         
         <div className="mt-auto pt-3 lg:pt-4 border-t border-gray-100">
           <div className="flex flex-col gap-2 lg:gap-3">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onShowContact(vendor);
-              }}
-              className="
-                w-full 
-                py-2.5 lg:py-3
-                bg-[#06EAFC] hover:bg-[#6cf5ff]
-                text-black 
-                font-semibold
-                text-xs lg:text-sm
-                rounded-lg lg:rounded-xl
-                transition-all duration-200
-                hover:shadow-md
-                cursor-pointer
-                flex items-center justify-center gap-2
-              "
-            >
-              <FaUser className="text-black text-xs lg:text-sm" />
-              View Details
-            </button>
+        
 
             <div className="grid grid-cols-2 gap-2 lg:gap-3">
               <button
