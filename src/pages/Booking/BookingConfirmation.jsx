@@ -876,11 +876,11 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
                           support@ajani.com
                         </a>
                         <a
-                          href="tel:+2348000000000"
+                          href="tel:+2348022662256"
                           className="flex items-center justify-center gap-1.5 text-xs text-blue-600 hover:text-blue-700"
                         >
                           <Phone className="w-3 h-3" />
-                          +234 800 000 0000
+                          +234 8022662256
                         </a>
                       </div>
                     </div>

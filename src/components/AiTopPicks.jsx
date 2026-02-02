@@ -451,6 +451,11 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                         <p className="font-semibold text-gray-900 text-sm sm:text-base lg:text-base">
                           {vendor.cacRegistered ? `Yes - ${vendor.cacNumber}` : "Not Registered"}
                         </p>
+                        {vendor.cacRegistered && (
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Registration Number: {vendor.cacNumber}
+                          </p>
+                        )}
                       </div>
                     </div>
                     
@@ -636,7 +641,8 @@ const useBackendData = () => {
         }
 
         const json = await response.json();
-        console.log('API Response:', json);
+        console.log('FULL API RESPONSE STRUCTURE:', json);
+        console.log('First listing structure:', json.data?.listings?.[0]);
 
         let listings = [];
         
@@ -652,6 +658,33 @@ const useBackendData = () => {
           throw new Error("No valid listings array found in response");
         }
 
+        // Log the details structure of first listing
+        if (listings.length > 0) {
+          console.log('First listing details:', listings[0].details);
+          console.log('First listing vendorId:', listings[0].vendorId);
+          
+          // Check all possible CAC locations
+          const firstItem = listings[0];
+          console.log('All possible CAC data locations in first item:');
+          console.log('1. item.cacRegistered:', firstItem.cacRegistered);
+          console.log('2. item.cacNumber:', firstItem.cacNumber);
+          console.log('3. item.vendorId.cacRegistered:', firstItem.vendorId?.cacRegistered);
+          console.log('4. item.vendorId.cacNumber:', firstItem.vendorId?.cacNumber);
+          console.log('5. item.details.cacRegistered:', firstItem.details?.cacRegistered);
+          console.log('6. item.details.cacNumber:', firstItem.details?.cacNumber);
+          console.log('7. Full item.details object:', firstItem.details);
+        }
+
+        // Format CAC number helper function
+        const formatCACNumber = (cacNumber) => {
+          if (!cacNumber || cacNumber === "Registered") return "Registered";
+          // Format as RC 123456 if it's RC123456
+          if (cacNumber.startsWith('RC') && cacNumber.length > 2) {
+            return `RC ${cacNumber.substring(2)}`;
+          }
+          return cacNumber;
+        };
+
         const transformedData = listings.map((item, index) => {
           const vendor = item.vendorId || {};
           const details = item.details || {};
@@ -659,6 +692,44 @@ const useBackendData = () => {
           const location = item.location || {};
           const geolocation = location.geolocation || {};
           const mainImage = item.images?.[0]?.url;
+          
+          // Log this item's details for debugging
+          console.log(`Item ${index} - ${item.name} details:`, details);
+          
+          // Try multiple possible locations for CAC data
+          // Check if CAC data is in details object
+          const hasDetailsCac = details.cacRegistered !== undefined || details.cacNumber !== undefined;
+          const hasItemCac = item.cacRegistered !== undefined || item.cacNumber !== undefined;
+          const hasVendorCac = vendor.cacRegistered !== undefined || vendor.cacNumber !== undefined;
+          
+          console.log(`Item ${index} CAC search results:`, {
+            hasDetailsCac,
+            hasItemCac,
+            hasVendorCac,
+            detailsCacRegistered: details.cacRegistered,
+            detailsCacNumber: details.cacNumber,
+            itemCacRegistered: item.cacRegistered,
+            itemCacNumber: item.cacNumber,
+            vendorCacRegistered: vendor.cacRegistered,
+            vendorCacNumber: vendor.cacNumber
+          });
+          
+          // Priority: details > item > vendor
+          let cacRegistered = false;
+          let cacNumber = "Not Registered";
+          
+          if (hasDetailsCac) {
+            cacRegistered = details.cacRegistered || false;
+            cacNumber = formatCACNumber(details.cacNumber) || (cacRegistered ? "Registered" : "Not Registered");
+          } else if (hasItemCac) {
+            cacRegistered = item.cacRegistered || false;
+            cacNumber = formatCACNumber(item.cacNumber) || (cacRegistered ? "Registered" : "Not Registered");
+          } else if (hasVendorCac) {
+            cacRegistered = vendor.cacRegistered || false;
+            cacNumber = formatCACNumber(vendor.cacNumber) || (cacRegistered ? "Registered" : "Not Registered");
+          }
+          
+          console.log(`Item ${index} final CAC:`, { cacRegistered, cacNumber });
           
           return {
             id: item._id || `venue-${index}`,
@@ -696,8 +767,11 @@ const useBackendData = () => {
             operatingHours: details.operatingHours || "09:00 AM - 05:00 PM",
             services: details.listOfServices || ["Consultation", "Delivery"],
             listOfServices: details.listOfServices || [],
-            cacRegistered: details.cacRegistered || false,
-            cacNumber: details.cacNumber || "Not Registered",
+            
+            // CAC information
+            cacRegistered: cacRegistered,
+            cacNumber: cacNumber,
+            
             serviceCategory: details.serviceCategory || "General Services",
             businessDescription: details.businessDescription || item.about,
             about: item.about,
@@ -713,13 +787,21 @@ const useBackendData = () => {
             activeWithin: `Within 15 km of ${location.area || "Ibadan"}`,
             languages: ["English (Native)", "Yoruba (Fluent)"],
             specialties: ["Professional Service", "Quality Workmanship"],
-            certifications: details.cacRegistered ? ["CAC Registered"] : ["Verified Vendor"],
+            certifications: cacRegistered ? ["CAC Registered"] : ["Verified Vendor"],
             minOrder: "₦15,000",
             deliveryAvailable: true,
             onlineBookings: true,
             workType: details.serviceCategory
           };
         });
+
+        // Debug: Log all transformed data
+        console.log('All transformed vendors with CAC:', transformedData.map(v => ({
+          name: v.name,
+          cacRegistered: v.cacRegistered,
+          cacNumber: v.cacNumber,
+          serviceCategory: v.serviceCategory
+        })));
 
         setData(transformedData);
         setError(null);
@@ -765,6 +847,18 @@ const VendorCard = ({ venue, index }) => {
     };
     checkTouchDevice();
   }, []);
+
+  // Debug log to see what data we're receiving
+  useEffect(() => {
+    console.log(`VendorCard ${venue.name} data:`, {
+      cacRegistered: venue.cacRegistered,
+      cacNumber: venue.cacNumber,
+      details: {
+        serviceCategory: venue.serviceCategory,
+        years_experience: venue.years_experience
+      }
+    });
+  }, [venue]);
 
   const vendorData = {
     id: venue.id,
@@ -1077,7 +1171,10 @@ const AiTopPicks = () => {
       response_time: "1-4 hours",
       price_range: "₦1,500 - ₦5,000",
       priceFrom: 1500,
-      priceTo: 5000
+      priceTo: 5000,
+      cacRegistered: true,
+      cacNumber: "RC 123456",
+      serviceCategory: "Plumbing Services"
     },
     {
       id: "2",
@@ -1099,7 +1196,10 @@ const AiTopPicks = () => {
       response_time: "1-4 hours",
       price_range: "₦4,000 - ₦8,000",
       priceFrom: 4000,
-      priceTo: 8000
+      priceTo: 8000,
+      cacRegistered: true,
+      cacNumber: "RC 789012",
+      serviceCategory: "Electrical Services"
     },
     {
       id: "3",
@@ -1121,7 +1221,10 @@ const AiTopPicks = () => {
       response_time: "1-4 hours",
       price_range: "₦3,000 - ₦6,000",
       priceFrom: 3000,
-      priceTo: 6000
+      priceTo: 6000,
+      cacRegistered: false,
+      cacNumber: "Not Registered",
+      serviceCategory: "Catering Services"
     },
     {
       id: "4",
@@ -1143,7 +1246,10 @@ const AiTopPicks = () => {
       response_time: "1-4 hours",
       price_range: "₦5,000 - ₦12,000",
       priceFrom: 5000,
-      priceTo: 12000
+      priceTo: 12000,
+      cacRegistered: true,
+      cacNumber: "RC 345678",
+      serviceCategory: "Automotive Services"
     },
     {
       id: "5",
@@ -1165,7 +1271,10 @@ const AiTopPicks = () => {
       response_time: "1-4 hours",
       price_range: "₦8,000 - ₦20,000",
       priceFrom: 8000,
-      priceTo: 20000
+      priceTo: 20000,
+      cacRegistered: false,
+      cacNumber: "Not Registered",
+      serviceCategory: "Event Planning"
     },
     {
       id: "6",
@@ -1187,7 +1296,10 @@ const AiTopPicks = () => {
       response_time: "1-4 hours",
       price_range: "₦5,000 - ₦15,000",
       priceFrom: 5000,
-      priceTo: 15000
+      priceTo: 15000,
+      cacRegistered: true,
+      cacNumber: "RC 901234",
+      serviceCategory: "Beauty Services"
     },
   ];
 
