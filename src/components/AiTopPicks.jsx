@@ -16,16 +16,22 @@ import {
   FaTruck,
   FaCalendarCheck,
   FaWhatsapp,
-  FaUser
+  FaUser,
+  FaGlobe,
+  FaCertificate,
+  FaBriefcase,
+  FaMoneyBillWave,
+  FaImages,
+  FaBuilding
 } from "react-icons/fa";
 
-// ---------------- Vendor Modal Component ----------------
+// ---------------- Vendor Modal Component (WITH BACKGROUND IMAGE) ----------------
 const VendorModal = ({ vendor, isOpen, onClose }) => {
   const modalRef = useRef(null);
   const contentRef = useRef(null);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [bgImageError, setBgImageError] = useState(false);
 
-  // Check if device is touch-enabled on mount
   useEffect(() => {
     const checkTouchDevice = () => {
       const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -34,7 +40,6 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
     checkTouchDevice();
   }, []);
 
-  // Close modal on ESC key
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape' && isOpen) {
@@ -42,7 +47,6 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
       }
     };
     
-    // Trap focus inside modal for accessibility
     const handleTabKey = (e) => {
       if (!isOpen) return;
       
@@ -71,7 +75,6 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
       document.body.style.width = '100%';
       document.body.style.height = '100%';
       
-      // Focus the close button when modal opens
       setTimeout(() => {
         const closeButton = modalRef.current?.querySelector('button[aria-label="Close modal"]');
         closeButton?.focus();
@@ -88,15 +91,12 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
     };
   }, [isOpen, onClose]);
 
-  // Close modal when clicking outside - Only on backdrop
   const handleBackdropClick = (e) => {
-    // Only close if clicking directly on the backdrop (not on any modal content)
     if (e.target === e.currentTarget) {
       onClose();
     }
   };
 
-  // Prevent closing when clicking inside modal
   const handleModalClick = (e) => {
     e.stopPropagation();
   };
@@ -105,7 +105,6 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
 
   return (
     <>
-      {/* Enhanced Glassy Blur Background */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -119,7 +118,6 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
         onClick={handleBackdropClick}
       />
 
-      {/* Modal Container - Increased size for both mobile and lg */}
       <div 
         className="fixed inset-0 z-[10000] flex items-center justify-center p-2 sm:p-3 lg:p-4"
         onClick={handleBackdropClick}
@@ -143,7 +141,6 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
           aria-labelledby="modal-title"
           onClick={handleModalClick}
         >
-          {/* Close Button - Positioned for larger modal */}
           <button
             onClick={onClose}
             className="
@@ -165,17 +162,32 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
             <IoClose className="text-xl sm:text-2xl text-gray-700" />
           </button>
 
-          {/* Modal Content with increased height */}
           <div 
             ref={contentRef}
             className="overflow-y-auto h-full"
           >
             <div className="relative">
-              <div className="h-40 sm:h-48 lg:h-56 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500" />
+              {/* Background Image with Gradient Overlay - ONLY IN MODAL */}
+              <div className="h-40 sm:h-48 lg:h-56 relative">
+                {vendor.image_url && !bgImageError ? (
+                  <>
+                    <img
+                      src={vendor.image_url}
+                      alt={vendor.fullName}
+                      className="w-full h-full object-cover"
+                      onError={() => setBgImageError(true)}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent"></div>
+                  </>
+                ) : (
+                  <div className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500"></div>
+                )}
+              </div>
+              
               <div className="absolute -bottom-10 sm:-bottom-12 lg:-bottom-16 left-3 sm:left-4 lg:left-6">
                 <div className="relative">
                   <img
-                    src={vendor.image_url}
+                    src={vendor.image_url || vendor.businessLogo}
                     alt={vendor.fullName}
                     className="
                       w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32
@@ -197,7 +209,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
             </div>
 
             <div className="p-3 sm:p-4 lg:p-6 pt-16 sm:pt-20 lg:pt-24">
-              {/* Header Section - Reduced text sizes for lg */}
+              {/* Header Section */}
               <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 sm:gap-4 lg:gap-5 mb-4 sm:mb-6 lg:mb-8">
                 <div className="flex-1">
                   <div className="flex flex-col lg:flex-row lg:items-center gap-2 sm:gap-3 lg:gap-4 mb-2 sm:mb-3 lg:mb-4">
@@ -206,18 +218,21 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                     </h2>
                     <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                       <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 lg:px-3 lg:py-1 bg-green-100 text-green-800 rounded-full text-xs sm:text-sm lg:text-sm font-semibold">
-                        Verified Vendor
+                        {vendor.status === "approved" ? "Approved" : "Pending"}
                       </span>
-                      {vendor.years_experience && (
-                        <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 lg:px-3 lg:py-1 bg-blue-100 text-blue-800 rounded-full text-xs sm:text-sm lg:text-sm font-semibold">
-                          {vendor.years_experience} years experience
+                      <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 lg:px-3 lg:py-1 bg-blue-100 text-blue-800 rounded-full text-xs sm:text-sm lg:text-sm font-semibold">
+                        {vendor.years_experience} years experience
+                      </span>
+                      {vendor.cacRegistered && (
+                        <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 lg:px-3 lg:py-1 bg-purple-100 text-purple-800 rounded-full text-xs sm:text-sm lg:text-sm font-semibold">
+                          CAC Registered
                         </span>
                       )}
                     </div>
                   </div>
                   
                   <p className="text-sm sm:text-base lg:text-lg text-gray-600 mb-2 sm:mb-3 lg:mb-4">
-                    {vendor.category} • {vendor.service_type}
+                    {vendor.serviceCategory} • {vendor.category}
                   </p>
                   
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3 lg:gap-4 mt-2 sm:mt-3 lg:mt-4">
@@ -236,12 +251,11 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                     <span className="text-gray-300 hidden lg:inline">•</span>
                     <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-2 text-gray-600 text-xs sm:text-sm lg:text-base">
                       <FaCheckCircle className="text-green-500 text-sm sm:text-base" />
-                      <span>{vendor.completedProjects || 0} projects completed</span>
+                      <span>Approved on {new Date(vendor.approvedAt).toLocaleDateString()}</span>
                     </div>
                   </div>
                 </div>
                 
-                {/* Action Buttons - Reduced size for lg */}
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 lg:gap-4 mt-3 sm:mt-0">
                   <button 
                     className="
@@ -294,16 +308,19 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                 </div>
               </div>
 
-              {/* Stats Grid - Compact for lg */}
+              {/* Stats Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6 lg:mb-8">
                 <motion.div 
                   whileHover={isTouchDevice ? {} : { scale: 1.02 }}
                   transition={{ duration: 0.1 }}
                   className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
                 >
-                  <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1 sm:mb-1.5 lg:mb-2">Completed Projects</p>
+                  <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
+                    <FaBriefcase className="text-[#06EAFC]" />
+                    Experience
+                  </p>
                   <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-                    {vendor.completedProjects || 0}
+                    {vendor.years_experience} years
                   </p>
                 </motion.div>
                 <motion.div 
@@ -311,33 +328,39 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   transition={{ duration: 0.1 }}
                   className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
                 >
-                  <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1 sm:mb-1.5 lg:mb-2">Repeat Clients</p>
-                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-                    {vendor.repeatClients || 85}%
+                  <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
+                    <FaMoneyBillWave className="text-[#06EAFC]" />
+                    Price Range
                   </p>
-                  <p className="text-xs text-green-600 mt-0.5 sm:mt-0.5 lg:mt-1">High retention rate</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+                    ₦{vendor.priceFrom?.toLocaleString()} - ₦{vendor.priceTo?.toLocaleString()}
+                  </p>
                 </motion.div>
                 <motion.div 
                   whileHover={isTouchDevice ? {} : { scale: 1.02 }}
                   transition={{ duration: 0.1 }}
                   className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
                 >
-                  <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1 sm:mb-1.5 lg:mb-2">Satisfaction Rate</p>
-                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-                    {vendor.satisfactionRate || 96}%
+                  <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
+                    <FaCertificate className="text-[#06EAFC]" />
+                    Status
                   </p>
-                  <p className="text-xs text-green-600 mt-0.5 sm:mt-0.5 lg:mt-1">Excellent feedback</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 capitalize">
+                    {vendor.status}
+                  </p>
                 </motion.div>
                 <motion.div 
                   whileHover={isTouchDevice ? {} : { scale: 1.02 }}
                   transition={{ duration: 0.1 }}
                   className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
                 >
-                  <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1 sm:mb-1.5 lg:mb-2">Response Time</p>
-                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-                    {vendor.response_time || "1-4 hours"}
+                  <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
+                    <FaGlobe className="text-[#06EAFC]" />
+                    Service Area
                   </p>
-                  <p className="text-xs text-gray-500 mt-0.5 sm:mt-0.5 lg:mt-1">Typically responds</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">
+                    {vendor.area}
+                  </p>
                 </motion.div>
               </div>
 
@@ -351,29 +374,16 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                       <span className="w-1 h-3 sm:h-4 lg:h-6 bg-[#06EAFC] rounded-full"></span>
                       About
                     </h3>
-                    <p className="text-gray-700 leading-relaxed text-xs sm:text-sm lg:text-base">
-                      {vendor.description || "No description available."}
+                    <p className="text-gray-700 leading-relaxed text-xs sm:text-sm lg:text-base whitespace-pre-line">
+                      {vendor.about || vendor.businessDescription || "No description available."}
                     </p>
                     
-                    {vendor.description && (
-                      <div className="mt-3 sm:mt-4 lg:mt-5">
-                        <h4 className="font-semibold text-gray-900 mb-1.5 sm:mb-2 lg:mb-3 text-sm sm:text-base lg:text-base">Why choose this vendor:</h4>
-                        <ul className="space-y-1 sm:space-y-1.5 lg:space-y-2">
-                          <li className="flex items-start gap-1.5 sm:gap-2 lg:gap-3">
-                            <FaCheckCircle className="text-green-500 mt-0.5 sm:mt-0.5 lg:mt-1 text-xs sm:text-sm lg:text-base" />
-                            <span className="text-xs sm:text-sm lg:text-base">Professional and reliable service</span>
-                          </li>
-                          <li className="flex items-start gap-1.5 sm:gap-2 lg:gap-3">
-                            <FaCheckCircle className="text-green-500 mt-0.5 sm:mt-0.5 lg:mt-1 text-xs sm:text-sm lg:text-base" />
-                            <span className="text-xs sm:text-sm lg:text-base">Competitive pricing with transparent quotes</span>
-                          </li>
-                          <li className="flex items-start gap-1.5 sm:gap-2 lg:gap-3">
-                            <FaCheckCircle className="text-green-500 mt-0.5 sm:mt-0.5 lg:mt-1 text-xs sm:text-sm lg:text-base" />
-                            <span className="text-xs sm:text-sm lg:text-base">High-quality workmanship and attention to detail</span>
-                          </li>
-                        </ul>
-                      </div>
-                    )}
+                    <div className="mt-3 sm:mt-4 lg:mt-5">
+                      <h4 className="font-semibold text-gray-900 mb-1.5 sm:mb-2 lg:mb-3 text-sm sm:text-base lg:text-base">What We Do:</h4>
+                      <p className="text-gray-700 text-xs sm:text-sm lg:text-base">
+                        {vendor.whatWeDo || "We offer premium services tailored to your needs."}
+                      </p>
+                    </div>
                   </div>
 
                   {/* Services Offered */}
@@ -383,7 +393,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                       Services Offered
                     </h3>
                     <div className="flex flex-wrap gap-1.5 sm:gap-2 lg:gap-3">
-                      {(vendor.services || [vendor.service_type || "Service"]).map((service, index) => (
+                      {(vendor.listOfServices || []).map((service, index) => (
                         <motion.span
                           key={index}
                           whileHover={isTouchDevice ? {} : { scale: 1.05 }}
@@ -407,55 +417,59 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                     </div>
                   </div>
 
-                  {/* Specialties & Expertise */}
+                  {/* Business Details */}
                   <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default">
                     <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 mb-2 sm:mb-3 lg:mb-4 flex items-center gap-1.5 sm:gap-2">
                       <span className="w-1 h-3 sm:h-4 lg:h-6 bg-[#06EAFC] rounded-full"></span>
-                      Specialties & Expertise
+                      Business Details
                     </h3>
-                    <div className="flex flex-wrap gap-1.5 sm:gap-2 lg:gap-3">
-                      {(vendor.specialties || ["General Services"]).map((specialty, index) => (
-                        <motion.span
-                          key={index}
-                          whileHover={isTouchDevice ? {} : { scale: 1.05 }}
-                          transition={{ duration: 0.1 }}
-                          className="
-                            px-2 py-1 sm:px-3 sm:py-1.5 lg:px-4 lg:py-2
-                            bg-gradient-to-r from-green-50 to-teal-50
-                            text-gray-700
-                            rounded-md sm:rounded-lg lg:rounded-xl
-                            font-semibold
-                            border border-green-200
-                            hover:border-green-300
-                            transition-all duration-150
-                            cursor-default
-                            text-xs sm:text-sm lg:text-sm
-                          "
-                        >
-                          {specialty}
-                        </motion.span>
-                      ))}
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <div>
+                        <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1">Business Name</p>
+                        <p className="font-semibold text-gray-900 text-sm sm:text-base lg:text-base">
+                          {vendor.vendorBusinessName || vendor.name}
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1">Service Category</p>
+                        <p className="font-semibold text-gray-900 text-sm sm:text-base lg:text-base">
+                          {vendor.serviceCategory}
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1">Years of Experience</p>
+                        <p className="font-semibold text-gray-900 text-sm sm:text-base lg:text-base">
+                          {vendor.years_experience} years
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1">CAC Registration</p>
+                        <p className="font-semibold text-gray-900 text-sm sm:text-base lg:text-base">
+                          {vendor.cacRegistered ? `Yes - ${vendor.cacNumber}` : "Not Registered"}
+                        </p>
+                      </div>
                     </div>
                     
-                    {(vendor.certifications && vendor.certifications.length > 0) && (
-                      <div className="mt-3 sm:mt-4 lg:mt-5">
-                        <h4 className="font-semibold text-gray-900 mb-1.5 sm:mb-2 lg:mb-3 text-sm sm:text-base lg:text-base">Certifications:</h4>
-                        <div className="flex flex-wrap gap-1.5 sm:gap-2 lg:gap-3">
-                          {vendor.certifications.map((cert, index) => (
-                            <span
-                              key={index}
-                              className="
-                                px-2 py-0.5 sm:px-2.5 sm:py-1 lg:px-3 lg:py-1
-                                bg-yellow-50 text-yellow-800
-                                rounded sm:rounded-md lg:rounded-lg
-                                font-medium
-                                border border-yellow-200
-                                text-xs
-                                cursor-default
-                              "
-                            >
-                              {cert}
-                            </span>
+                    {/* Gallery Section */}
+                    {vendor.images && vendor.images.length > 0 && (
+                      <div className="mt-4 sm:mt-5 lg:mt-6">
+                        <h4 className="font-semibold text-gray-900 mb-2 sm:mb-3 lg:mb-4 text-sm sm:text-base lg:text-base flex items-center gap-2">
+                          <FaImages className="text-[#06EAFC]" />
+                          Gallery
+                        </h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
+                          {vendor.images.slice(0, 3).map((image, index) => (
+                            <div key={index} className="aspect-square rounded-lg sm:rounded-xl lg:rounded-2xl overflow-hidden">
+                              <img
+                                src={image.url}
+                                alt={`${vendor.name} - Image ${index + 1}`}
+                                className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                              />
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -467,10 +481,11 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                 <div className="space-y-3 sm:space-y-4 lg:space-y-6">
                   <div className="bg-gradient-to-br from-gray-50 to-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 shadow-sm cursor-default">
                     <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 mb-3 sm:mb-4 lg:mb-5">
-                      Contact & Details
+                      Contact & Location
                     </h3>
 
                     <div className="space-y-3 sm:space-y-4 lg:space-y-5">
+                      {/* Location */}
                       <div className="flex items-start gap-2.5 sm:gap-3 lg:gap-4">
                         <div className="p-1.5 sm:p-1.5 lg:p-2 bg-[#06EAFC]/20 rounded-lg flex-shrink-0">
                           <FaMapMarkerAlt className="text-[#06EAFC] text-sm sm:text-base lg:text-xl" />
@@ -478,116 +493,123 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                         <div className="min-w-0">
                           <p className="text-xs sm:text-sm lg:text-sm text-gray-600">Location</p>
                           <p className="font-semibold text-gray-900 text-xs sm:text-sm lg:text-base">
-                            {vendor.location}
+                            {vendor.address}
                           </p>
                           <p className="text-xs text-gray-500 mt-0.5 sm:mt-0.5 lg:mt-1">
-                            {vendor.activeWithin || `Within 15 km of ${vendor.location?.split(",")[0] || "your location"}`}
+                            {vendor.area}
                           </p>
+                          {vendor.geolocation && (
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              Coordinates: {vendor.geolocation.lat}, {vendor.geolocation.lng}
+                            </p>
+                          )}
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-2.5 sm:gap-3 lg:gap-4">
-                        <div className="p-1.5 sm:p-1.5 lg:p-2 bg-[#06EAFC]/20 rounded-lg flex-shrink-0">
-                          <span className="font-bold text-[#06EAFC] text-xs sm:text-sm lg:text-base">BN</span>
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs sm:text-sm lg:text-sm text-gray-600">Business Name</p>
-                          <p className="font-semibold text-gray-900 text-xs sm:text-sm lg:text-base">
-                            {vendor.businessName || vendor.name}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:gap-4">
-                        <div>
-                          <p className="text-xs sm:text-sm lg:text-sm text-gray-600">Hourly Rate</p>
-                          <p className="font-bold text-gray-900 text-sm sm:text-base lg:text-lg">
-                            {vendor.price_range || "₦5,000 - ₦10,000"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs sm:text-sm lg:text-sm text-gray-600">Minimum Order</p>
-                          <p className="font-bold text-gray-900 text-sm sm:text-base lg:text-lg">
-                            {vendor.minOrder || "₦15,000"}
-                          </p>
-                        </div>
-                      </div>
-
+                      {/* Operating Hours */}
                       <div className="flex items-start gap-2.5 sm:gap-3 lg:gap-4">
                         <div className="p-1.5 sm:p-1.5 lg:p-2 bg-[#06EAFC]/20 rounded-lg flex-shrink-0">
                           <FaClock className="text-[#06EAFC] text-sm sm:text-base lg:text-xl" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs sm:text-sm lg:text-sm text-gray-600">Business Hours</p>
+                          <p className="text-xs sm:text-sm lg:text-sm text-gray-600">Operating Hours</p>
                           <p className="font-semibold text-gray-900 text-xs sm:text-sm lg:text-base">
-                            {vendor.businessHours || "8:00 AM - 10:00 PM"}
+                            {vendor.operatingHours}
                           </p>
                         </div>
                       </div>
 
-                      <div className="space-y-1.5 sm:space-y-2 lg:space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
-                            <div className={`
-                              w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full
-                              ${vendor.deliveryAvailable ? 'bg-green-500' : 'bg-gray-300'}
-                            `} />
-                            <span className="text-gray-700 text-xs sm:text-sm lg:text-base">Delivery Available</span>
-                          </div>
-                          {vendor.deliveryAvailable ? (
-                            <FaTruck className="text-green-500 text-sm sm:text-base lg:text-lg" />
-                          ) : (
-                            <span className="text-gray-400 text-xs sm:text-sm">Not available</span>
-                          )}
+                    
+
+                      {/* Vendor Info */}
+                      <div className="flex items-start gap-2.5 sm:gap-3 lg:gap-4">
+                        <div className="p-1.5 sm:p-1.5 lg:p-2 bg-[#06EAFC]/20 rounded-lg flex-shrink-0">
+                          <FaBuilding className="text-[#06EAFC] text-sm sm:text-base lg:text-xl" />
                         </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
-                            <div className={`
-                              w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full
-                              ${vendor.onlineBookings ? 'bg-green-500' : 'bg-gray-300'}
-                            `} />
-                            <span className="text-gray-700 text-xs sm:text-sm lg:text-base">Online Bookings</span>
-                          </div>
-                          {vendor.onlineBookings ? (
-                            <FaCalendarCheck className="text-green-500 text-sm sm:text-base lg:text-lg" />
-                          ) : (
-                            <span className="text-gray-400 text-xs sm:text-sm">Not available</span>
-                          )}
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm lg:text-sm text-gray-600">Vendor</p>
+                          <p className="font-semibold text-gray-900 text-xs sm:text-sm lg:text-base">
+                            {vendor.vendorName}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {vendor.vendorEmail}
+                          </p>
                         </div>
                       </div>
 
+                      {/* Contact Information */}
                       <div className="pt-2.5 sm:pt-3 lg:pt-4 border-t border-gray-200">
                         <h4 className="font-semibold text-gray-900 mb-1.5 sm:mb-2 lg:mb-3 text-sm sm:text-base lg:text-base">Contact Information</h4>
                         <div className="space-y-1.5 sm:space-y-2 lg:space-y-3">
-                          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
+                          <a 
+                            href={`tel:${vendor.phone}`}
+                            className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 hover:text-[#06EAFC] transition-colors duration-150"
+                          >
+                            <FaPhone className="text-gray-400 text-xs sm:text-sm lg:text-base" />
+                            <span className="text-gray-700 text-xs sm:text-sm lg:text-base truncate">{vendor.phone}</span>
+                          </a>
+                          
+                          <a 
+                            href={`https://wa.me/${vendor.whatsapp?.replace('+', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 hover:text-green-600 transition-colors duration-150"
+                          >
+                            <FaWhatsapp className="text-green-500 text-xs sm:text-sm lg:text-base" />
+                            <span className="text-gray-700 text-xs sm:text-sm lg:text-base truncate">{vendor.whatsapp}</span>
+                          </a>
+                          
+                          <a 
+                            href={`mailto:${vendor.email}`}
+                            className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 hover:text-[#06EAFC] transition-colors duration-150"
+                          >
                             <FaEnvelope className="text-gray-400 text-xs sm:text-sm lg:text-base" />
                             <span className="text-gray-700 text-xs sm:text-sm lg:text-base truncate">{vendor.email}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
-                            <FaPhone className="text-gray-400 text-xs sm:text-sm lg:text-base" />
-                            <span className="text-gray-700 text-xs sm:text-sm lg:text-base">{vendor.phone}</span>
-                          </div>
+                          </a>
                         </div>
                       </div>
                     </div>
                   </div>
 
+                  {/* Approval Status */}
                   <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default">
-                    <h4 className="font-semibold text-gray-900 mb-2 sm:mb-3 lg:mb-4 text-sm sm:text-base lg:text-base">Languages</h4>
-                    <div className="space-y-1 sm:space-y-1.5 lg:space-y-2">
-                      {(vendor.languages || ["English (Native)", "Yoruba (Fluent)"]).map((language, index) => (
-                        <div key={index} className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
-                          <div className="w-1.5 h-1.5 sm:w-1.5 sm:h-1.5 lg:w-2 lg:h-2 bg-[#06EAFC] rounded-full"></div>
-                          <span className="text-gray-700 text-xs sm:text-sm lg:text-base">{language}</span>
+                    <h4 className="font-semibold text-gray-900 mb-2 sm:mb-3 lg:mb-4 text-sm sm:text-base lg:text-base">Approval Status</h4>
+                    <div className="space-y-1.5 sm:space-y-2 lg:space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-700 text-xs sm:text-sm lg:text-base">Status</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          vendor.status === 'approved' 
+                            ? 'bg-green-100 text-green-800' 
+                            : vendor.status === 'pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {vendor.status?.toUpperCase()}
+                        </span>
+                      </div>
+                      
+                      {vendor.approvedAt && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-700 text-xs sm:text-sm lg:text-base">Approved On</span>
+                          <span className="text-gray-900 text-xs sm:text-sm lg:text-base font-medium">
+                            {new Date(vendor.approvedAt).toLocaleDateString()}
+                          </span>
                         </div>
-                      ))}
+                      )}
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-700 text-xs sm:text-sm lg:text-base">Verified</span>
+                        <span className="flex items-center gap-1 text-green-600 text-xs sm:text-sm lg:text-base">
+                          <FaCheckCircle />
+                          {vendor.isVerified ? 'Yes' : 'No'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* View All Vendors Section - Removed extra button, only modal close */}
+             
             </div>
           </div>
         </motion.div>
@@ -596,8 +618,8 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
   );
 };
 
-// ---------------- Custom Hook ----------------
-const useGoogleSheet = (sheetId, apiKey) => {
+// ---------------- Custom Hook for Backend API ----------------
+const useBackendData = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -605,54 +627,113 @@ const useGoogleSheet = (sheetId, apiKey) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sheet1!A1:K100?key=${apiKey}`;
-        const response = await fetch(url);
-
+        setLoading(true);
+        
+        const response = await fetch('https://ajanibackend.onrender.com/api/v1/listings?category=services');
+        
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
         const json = await response.json();
+        console.log('API Response:', json);
 
-        if (
-          !json.values ||
-          !Array.isArray(json.values) ||
-          json.values.length < 2
-        ) {
-          throw new Error("No data found or sheet is empty.");
+        let listings = [];
+        
+        if (json.status === 'success' && json.data && json.data.listings) {
+          listings = json.data.listings;
+        } else if (Array.isArray(json.data)) {
+          listings = json.data;
+        } else if (Array.isArray(json)) {
+          listings = json;
         }
 
-        const headers = json.values[0].map((header) =>
-          header?.toString().trim()
-        );
-        const rows = json.values.slice(1);
+        if (!Array.isArray(listings)) {
+          throw new Error("No valid listings array found in response");
+        }
 
-        const result = rows
-          .filter(
-            (row) => row && row.length > 0 && row[0] && row[0].trim() !== ""
-          )
-          .map((row, index) => {
-            const obj = { id: `venue-${index}` };
-            headers.forEach((header, i) => {
-              if (header && row[i] !== undefined) {
-                const key = header.toLowerCase();
-                obj[key] = row[i]?.toString().trim() || "";
-              }
-            });
-            return obj;
-          });
+        const transformedData = listings.map((item, index) => {
+          const vendor = item.vendorId || {};
+          const details = item.details || {};
+          const contact = item.contactInformation || {};
+          const location = item.location || {};
+          const geolocation = location.geolocation || {};
+          const mainImage = item.images?.[0]?.url;
+          
+          return {
+            id: item._id || `venue-${index}`,
+            name: item.name,
+            service_type: details.serviceCategory || item.category || "Service Provider",
+            description: item.about,
+            rating: "4.8",
+            review_count: "128",
+            image_url: mainImage || 
+                      details.businessLogo || 
+                      "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face",
+            district: location.area || "Ibadan",
+            location: location.address || "",
+            area: location.area || "",
+            address: location.address || "",
+            geolocation: geolocation,
+            is_verified: vendor.isVerified ? "TRUE" : "FALSE",
+            is_available: item.status === "approved" ? "TRUE" : "FALSE",
+            years_experience: details.yearsOfExperience?.toString() || "3",
+            phone: contact.phone || vendor.phone || "+234 801 234 5678",
+            whatsapp: contact.whatsapp,
+            email: contact.email || vendor.email || "vendor@example.com",
+            category: item.category || "services",
+            completed_projects: Math.floor(Math.random() * 200) + 100,
+            response_time: "1-4 hours",
+            priceFrom: details.pricingRange?.priceFrom || 5000,
+            priceTo: details.pricingRange?.priceTo || 50000,
+            price_range: details.pricingRange ? 
+                        `₦${details.pricingRange.priceFrom?.toLocaleString()} - ₦${details.pricingRange.priceTo?.toLocaleString()}` : 
+                        "₦5,000 - ₦50,000",
+            businessName: vendor.businessName || item.name,
+            vendorBusinessName: vendor.vendor?.businessName || item.name,
+            vendorName: `${vendor.firstName || ''} ${vendor.lastName || ''}`.trim() || vendor.email,
+            vendorEmail: vendor.email,
+            operatingHours: details.operatingHours || "09:00 AM - 05:00 PM",
+            services: details.listOfServices || ["Consultation", "Delivery"],
+            listOfServices: details.listOfServices || [],
+            cacRegistered: details.cacRegistered || false,
+            cacNumber: details.cacNumber || "Not Registered",
+            serviceCategory: details.serviceCategory || "General Services",
+            businessDescription: details.businessDescription || item.about,
+            about: item.about,
+            whatWeDo: item.whatWeDo,
+            status: item.status || "pending",
+            approvedAt: item.approvedAt,
+            images: item.images || [],
+            isVerified: vendor.isVerified,
+            fullName: item.name,
+            completedProjects: Math.floor(Math.random() * 200) + 100,
+            repeatClients: 85,
+            satisfactionRate: 96,
+            activeWithin: `Within 15 km of ${location.area || "Ibadan"}`,
+            languages: ["English (Native)", "Yoruba (Fluent)"],
+            specialties: ["Professional Service", "Quality Workmanship"],
+            certifications: details.cacRegistered ? ["CAC Registered"] : ["Verified Vendor"],
+            minOrder: "₦15,000",
+            deliveryAvailable: true,
+            onlineBookings: true,
+            workType: details.serviceCategory
+          };
+        });
 
-        setData(result);
+        setData(transformedData);
+        setError(null);
       } catch (err) {
-        console.error("Google Sheets error:", err);
+        console.error("Backend API error:", err);
         setError(`Failed to load data: ${err.message}`);
+        setData([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [sheetId, apiKey]);
+  }, []);
 
   return { data, loading, error };
 };
@@ -672,12 +753,11 @@ const FilterBar = ({
   );
 };
 
-// ---------------- Vendor Card Component ----------------
+// ---------------- Vendor Card Component (NO BACKGROUND IMAGE - Clean White Design) ----------------
 const VendorCard = ({ venue, index }) => {
   const [showModal, setShowModal] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
 
-  // Check if device is touch-enabled on mount
   useEffect(() => {
     const checkTouchDevice = () => {
       const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -686,40 +766,60 @@ const VendorCard = ({ venue, index }) => {
     checkTouchDevice();
   }, []);
 
-  // Use the exact same data structure as VendorsPage
   const vendorData = {
     id: venue.id,
     name: venue.name,
     service_type: venue.service_type,
     description: venue.description,
-    rating: venue.rating || "4.9",
+    rating: venue.rating || "4.8",
     review_count: venue.review_count || "128",
     image_url: venue.image_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face",
     district: venue.district,
-    location: venue.location || "Ibadan",
+    location: venue.address || venue.location || "Ibadan",
+    address: venue.address,
+    area: venue.area,
+    geolocation: venue.geolocation,
     is_verified: venue.is_verified || "TRUE",
     is_available: venue.is_available || "TRUE",
-    years_experience: venue.years_experience || "5+",
+    years_experience: venue.years_experience || "3",
     phone: venue.phone || "+234 801 234 5678",
+    whatsapp: venue.whatsapp,
     email: venue.email || `${venue.name.toLowerCase().replace(/\s+/g, "")}@example.com`,
-    category: venue.category || "Services",
+    category: venue.category || "services",
     fullName: venue.name,
     completedProjects: venue.completed_projects || 128,
     repeatClients: 85,
     satisfactionRate: 96,
     response_time: venue.response_time || "1-4 hours",
-    activeWithin: `Within 15 km of ${venue.district || "Ibadan"}`,
+    activeWithin: `Within 15 km of ${venue.area || venue.district || "Ibadan"}`,
     languages: ["English (Native)", "Yoruba (Fluent)"],
-    services: [venue.service_type || "Service"],
+    services: venue.services || [venue.service_type || "Service"],
+    listOfServices: venue.listOfServices || [],
     specialties: ["Professional Service", "Quality Workmanship"],
-    certifications: ["Verified Vendor"],
-    businessName: venue.name,
-    price_range: venue.price_range || "₦5,000 - ₦10,000",
+    certifications: venue.cacRegistered ? ["CAC Registered"] : ["Verified Vendor"],
+    cacRegistered: venue.cacRegistered || false,
+    cacNumber: venue.cacNumber,
+    businessName: venue.businessName || venue.name,
+    vendorBusinessName: venue.vendorBusinessName || venue.name,
+    vendorName: venue.vendorName,
+    vendorEmail: venue.vendorEmail,
+    price_range: venue.price_range || "₦5,000 - ₦50,000",
+    priceFrom: venue.priceFrom || 5000,
+    priceTo: venue.priceTo || 50000,
     minOrder: "₦15,000",
-    businessHours: "8:00 AM - 10:00 PM",
+    businessHours: venue.operatingHours || "09:00 AM - 05:00 PM",
+    operatingHours: venue.operatingHours || "09:00 AM - 05:00 PM",
     deliveryAvailable: true,
     onlineBookings: true,
-    workType: venue.service_type
+    workType: venue.service_type,
+    serviceCategory: venue.serviceCategory || "General Services",
+    businessDescription: venue.businessDescription || venue.description,
+    about: venue.about || venue.description,
+    whatWeDo: venue.whatWeDo || "We offer premium services tailored to your needs",
+    status: venue.status || "approved",
+    approvedAt: venue.approvedAt,
+    images: venue.images || [],
+    isVerified: venue.isVerified || true
   };
 
   const handleViewVendor = () => {
@@ -761,6 +861,7 @@ const VendorCard = ({ venue, index }) => {
         "
         onClick={handleViewVendor}
       >
+        {/* NO BACKGROUND IMAGE - Clean White Design */}
         <div className="p-6 flex-1 flex flex-col">
           <div className="flex items-start gap-4 mb-5">
             <div className="relative flex-shrink-0">
@@ -792,21 +893,21 @@ const VendorCard = ({ venue, index }) => {
                     className="text-black text-sm"
                   />
                   <span className="font-bold text-gray-900 text-sm">
-                    {venue.rating || "4.9"}
+                    {venue.rating || "4.8"}
                   </span>
                 </div>
               </div>
 
               <div className="mb-2">
                 <span className="text-gray-600 font-medium text-sm">
-                  {venue.service_type || venue.category || "Service Provider"}
+                  {venue.serviceCategory || venue.service_type || "Service Provider"}
                 </span>
               </div>
 
               <div className="flex items-center gap-2">
                 <FaMapMarkerAlt className="text-gray-400 text-sm flex-shrink-0" />
                 <span className="text-gray-600 text-sm font-medium truncate">
-                  {venue.district || venue.location || "Ibadan"}
+                  {venue.area || venue.district || venue.location || "Ibadan"}
                 </span>
               </div>
 
@@ -815,36 +916,32 @@ const VendorCard = ({ venue, index }) => {
           
           <div className="">
             <p className="text-gray-700 leading-relaxed text-sm line-clamp-3">
-              {venue.description || 
+              {venue.about || venue.description || 
                 `Professional ${venue.service_type?.toLowerCase() || "service"} with ${
-                  venue.years_experience || "5+"
+                  venue.years_experience || "3"
                 } years experience.`}
             </p>
           </div>
           
-          <div className="mt-auto pt-4">
-            <motion.button
-              whileHover={isTouchDevice ? {} : { scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              transition={{ duration: 0.1 }}
-              className="
-                w-full 
-                py-3
-                text-black 
-                font-bold 
-                text-sm
-                rounded-lg
-                transition-all duration-100
-                border-2 border-gray-300
-                cursor-pointer
-                flex items-center justify-center gap-2
-                hover:shadow-md
-              "
-            >
-              <FaUser className="text-black text-sm" />
-              View Details
-            </motion.button>
+          <div className="mt-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-gray-900">
+                ₦{venue.priceFrom?.toLocaleString() || "5,000"}
+              </span>
+              <span className="text-gray-500 text-sm">-</span>
+              <span className="text-sm font-bold text-gray-900">
+                ₦{venue.priceTo?.toLocaleString() || "50,000"}
+              </span>
+            </div>
+            
+            {venue.cacRegistered && (
+              <span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold">
+                CAC Registered
+              </span>
+            )}
           </div>
+          
+       
         </div>
       </motion.div>
 
@@ -915,7 +1012,6 @@ const AiTopPicks = () => {
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
 
-  // Check if device is touch-enabled on mount
   useEffect(() => {
     const checkTouchDevice = () => {
       const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -953,16 +1049,13 @@ const AiTopPicks = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, [initialCounts]);
 
-  const SHEET_ID = "1GK10i6VZnZ3I-WVHs1yOrj2WbaByp00UmZ2k3oqb8_8";
-  const API_KEY = "AIzaSyCELfgRKcAaUeLnInsvenpXJRi2kSSwS3E";
-
+  // Use the new backend hook
   const {
     data: venues = [],
     loading,
     error,
-  } = useGoogleSheet(SHEET_ID, API_KEY);
+  } = useBackendData();
 
-  // Use the exact same demo data as VendorsPage
   const demoVenues = [
     {
       id: "1",
@@ -982,7 +1075,9 @@ const AiTopPicks = () => {
       category: "Services",
       completed_projects: "247",
       response_time: "1-4 hours",
-      price_range: "₦1,500 - ₦5,000"
+      price_range: "₦1,500 - ₦5,000",
+      priceFrom: 1500,
+      priceTo: 5000
     },
     {
       id: "2",
@@ -1002,7 +1097,9 @@ const AiTopPicks = () => {
       category: "Services",
       completed_projects: "189",
       response_time: "1-4 hours",
-      price_range: "₦4,000 - ₦8,000"
+      price_range: "₦4,000 - ₦8,000",
+      priceFrom: 4000,
+      priceTo: 8000
     },
     {
       id: "3",
@@ -1022,7 +1119,9 @@ const AiTopPicks = () => {
       category: "Food",
       completed_projects: "156",
       response_time: "1-4 hours",
-      price_range: "₦3,000 - ₦6,000"
+      price_range: "₦3,000 - ₦6,000",
+      priceFrom: 3000,
+      priceTo: 6000
     },
     {
       id: "4",
@@ -1042,7 +1141,9 @@ const AiTopPicks = () => {
       category: "Automotive",
       completed_projects: "142",
       response_time: "1-4 hours",
-      price_range: "₦5,000 - ₦12,000"
+      price_range: "₦5,000 - ₦12,000",
+      priceFrom: 5000,
+      priceTo: 12000
     },
     {
       id: "5",
@@ -1062,7 +1163,9 @@ const AiTopPicks = () => {
       category: "Events",
       completed_projects: "201",
       response_time: "1-4 hours",
-      price_range: "₦8,000 - ₦20,000"
+      price_range: "₦8,000 - ₦20,000",
+      priceFrom: 8000,
+      priceTo: 20000
     },
     {
       id: "6",
@@ -1082,7 +1185,9 @@ const AiTopPicks = () => {
       category: "Beauty",
       completed_projects: "178",
       response_time: "1-4 hours",
-      price_range: "₦5,000 - ₦15,000"
+      price_range: "₦5,000 - ₦15,000",
+      priceFrom: 5000,
+      priceTo: 15000
     },
   ];
 
@@ -1131,7 +1236,26 @@ const AiTopPicks = () => {
 
   if (error) {
     return (
-      <section className="py-16 text-center text-red-500">{error}</section>
+      <section className="bg-white py-16 font-manrope" id="toppicks">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Verified Services</h2>
+            <div className="bg-red-50 border border-red-200 rounded-xl p-8 max-w-md mx-auto">
+              <h3 className="text-lg text-red-800 mb-2">Unable to load services</h3>
+              <p className="text-red-600">{error}</p>
+              <p className="text-gray-600 mt-4 text-sm">
+                Showing demo data instead...
+              </p>
+            </div>
+          </div>
+          
+          <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-3'} gap-4 lg:gap-8 mt-8`}>
+            {demoVenues.slice(0, visibleCount).map((venue, index) => (
+              <VendorCard key={venue.id} venue={venue} index={index} />
+            ))}
+          </div>
+        </div>
+      </section>
     );
   }
 

@@ -57,6 +57,21 @@ const cacheStore = {
   }
 };
 
+// Helper function to check if text looks like a location
+const looksLikeLocation = (text) => {
+  if (!text) return false;
+  
+  const textLower = text.toLowerCase().trim();
+  const ibadanAreas = [
+    'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly', 'agodi',
+    'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
+    'molete', 'agbowo', 'sabo', 'bashorun', 'ife road',
+    'akinyele', 'mokola hill', 'sango roundabout'
+  ];
+  
+  return ibadanAreas.some(area => textLower.includes(area) || area.includes(textLower));
+};
+
 // MAIN SERVICE FUNCTIONS
 export const listingService = {
   // Get all listings with filters
@@ -158,6 +173,72 @@ export const listingService = {
     return listingService.getAll({ ...filters, category });
   },
 
+  // Get all services (for AiTopPicks)
+  getAllServices: async (page = 1, limit = 20) => {
+    try {
+      const cacheKey = `${CACHE_CONFIG.PREFIX}services_${page}_${limit}`;
+      const cached = cacheStore.get(cacheKey);
+      
+      if (cached) {
+        console.log('Cache hit for services');
+        return cached;
+      }
+      
+      const response = await axiosInstance.get(`/listings?category=services&page=${page}&limit=${limit}`, {
+        timeout: 10000,
+        headers: { 'Accept': 'application/json' }
+      });
+      
+      console.log('✅ Services API Response:', response.data);
+      
+      if (response.data) {
+        const apiData = response.data;
+        let result;
+        
+        if (apiData.status === 'success') {
+          result = apiData;
+        } else if (apiData.message && apiData.data) {
+          result = {
+            status: 'success',
+            message: apiData.message,
+            data: apiData.data,
+            results: apiData.results || apiData.data.listings?.length || 0
+          };
+        } else {
+          result = {
+            status: 'error',
+            message: 'Invalid API response structure',
+            results: 0,
+            data: { listings: [] }
+          };
+        }
+        
+        if (result.status === 'success') {
+          cacheStore.set(cacheKey, result);
+        }
+        
+        return result;
+      }
+      
+      return {
+        status: 'error',
+        message: 'No data received from server',
+        results: 0,
+        data: { listings: [] }
+      };
+      
+    } catch (error) {
+      console.error('❌ Error fetching services:', error);
+      console.error('❌ Error response:', error.response?.data);
+      return {
+        status: 'error',
+        message: error.response?.data?.message || error.message,
+        results: 0,
+        data: { listings: [] }
+      };
+    }
+  },
+
   // Search listings (for Hero & SearchResults)
   search: async (searchParams = {}) => {
     const {
@@ -255,21 +336,6 @@ export const listingService = {
     const uniqueLocations = [...new Set(locations)];
     return uniqueLocations.sort();
   }
-};
-
-// Helper function to check if text looks like a location
-const looksLikeLocation = (text) => {
-  if (!text) return false;
-  
-  const textLower = text.toLowerCase().trim();
-  const ibadanAreas = [
-    'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly', 'agodi',
-    'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
-    'molete', 'agbowo', 'sabo', 'bashorun', 'ife road',
-    'akinyele', 'mokola hill', 'sango roundabout'
-  ];
-  
-  return ibadanAreas.some(area => textLower.includes(area) || area.includes(textLower));
 };
 
 export default listingService;

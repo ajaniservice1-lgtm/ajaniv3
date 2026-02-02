@@ -44,10 +44,10 @@ const SkeletonCard = ({ isMobile }) => (
   >
     <div
       className={`relative overflow-hidden rounded-xl bg-gray-200 ${
-        isMobile ? "h-[150px]" : "h-[165px] md:h-[180px] lg:h-[150px]"
+        isMobile ? "h-[150px]" : "h-[150px]"
       }`}
     ></div>
-    <div className={`${isMobile ? "p-1.5" : "p-2 md:p-3 lg:p-2"} flex flex-col gap-1.5`}>
+    <div className={`${isMobile ? "p-1.5" : "p-2"} flex flex-col gap-1.5`}>
       <div className="h-4 bg-gray-200 rounded w-3/4"></div>
       <div className="h-3 bg-gray-200 rounded w-1/2"></div>
       <div className="flex items-center gap-1 mt-1">
@@ -60,19 +60,19 @@ const SkeletonCard = ({ isMobile }) => (
 
 const SkeletonCategorySection = ({ isMobile }) => (
   <section className="mb-4">
-    <div className="flex justify-between items-center mb-2 md:mb-4 lg:mb-2">
+    <div className="flex justify-between items-center mb-2">
       <div
-        className={`${isMobile ? "h-5" : "h-7 md:h-8 lg:h-7"} bg-gray-200 rounded w-1/3`}
+        className={`${isMobile ? "h-5" : "h-7"} bg-gray-200 rounded w-1/3`}
       ></div>
       <div
-        className={`${isMobile ? "h-4" : "h-6 md:h-7 lg:h-6"} bg-gray-200 rounded w-24`}
+        className={`${isMobile ? "h-4" : "h-6"} bg-gray-200 rounded w-24`}
       ></div>
     </div>
     <div
       className={`${
         isMobile
           ? "flex overflow-x-auto gap-[8px] pb-4 -mx-[16px] pl-[16px] snap-x snap-mandatory"
-          : "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4 lg:gap-3"
+          : "grid grid-cols-2 md:grid-cols-5 lg:grid-cols-3 xl:grid-cols-6 gap-3"
       }`}
     >
       {[...Array(6)].map((_, index) => (
@@ -581,8 +581,8 @@ const BusinessCard = ({ item, category, isMobile }) => {
       }}
     >
       {isPending && (
-        <div className="absolute top-1.5 md:top-2 lg:top-1.5 left-1.5 md:left-2 lg:left-1.5 bg-yellow-500 text-white px-2 py-0.5 md:px-2.5 md:py-1 lg:px-2 lg:py-0.5 rounded-md shadow-sm z-10">
-          <span className="text-[8px] md:text-[9px] lg:text-[8px] font-semibold">PENDING</span>
+        <div className="absolute top-1.5 left-1.5 bg-yellow-500 text-white px-2 py-0.5 rounded-md shadow-sm z-10">
+          <span className="text-[8px] font-semibold">PENDING</span>
         </div>
       )}
 
@@ -606,8 +606,8 @@ const BusinessCard = ({ item, category, isMobile }) => {
         />
 
         {!isPending && (
-          <div className="absolute top-1.5 md:top-2 lg:top-1.5 right-12 md:right-14 lg:right-12 bg-white px-1 py-0.5 md:px-2 md:py-1 lg:px-1 lg:py-0.5 rounded-md shadow-sm flex items-center gap-0.5 md:gap-1 lg:gap-0.5">
-            <span className="text-[8px] md:text-[10px] lg:text-[8px] font-semibold text-gray-900">
+          <div className="absolute top-1.5 right-12 bg-white px-1 py-0.5 rounded-md shadow-sm flex items-center gap-0.5">
+            <span className="text-[8px] font-semibold text-gray-900">
               Guest favorite
             </span>
           </div>
@@ -616,7 +616,7 @@ const BusinessCard = ({ item, category, isMobile }) => {
         <button
           onClick={handleFavoriteClick}
           disabled={isProcessing}
-          className={`absolute top-1.5 md:top-2 lg:top-1.5 right-1.5 md:right-2 lg:right-1.5 w-6 h-6 md:w-7 md:h-7 lg:w-6 lg:h-6 rounded-full flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110 active:scale-95 ${
+          className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110 active:scale-95 ${
             isFavorite
               ? "bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
               : "bg-white/90 hover:bg-white backdrop-blur-sm"
@@ -627,43 +627,43 @@ const BusinessCard = ({ item, category, isMobile }) => {
           style={{ cursor: isProcessing ? "not-allowed" : "pointer" }}
         >
           {isProcessing ? (
-            <div className="w-3 h-3 md:w-3.5 md:h-3.5 lg:w-3 lg:h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           ) : isFavorite ? (
-            <svg className="w-3 h-3 md:w-3.5 md:h-3.5 lg:w-3 lg:h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"/>
             </svg>
           ) : (
-            <MdFavoriteBorder className="text-[#00d1ff] w-3 h-3 md:w-3.5 md:h-3.5 lg:w-3 lg:h-3" />
+            <MdFavoriteBorder className="text-[#00d1ff] w-3 h-3" />
           )}
         </button>
       </div>
 
-      <div className={`flex-1 p-2 md:p-3 lg:p-2 flex flex-col`}>
-        <h3 className="font-semibold text-gray-900 leading-tight line-clamp-2 text-[13.5px] md:text-sm lg:text-[13.5px] mb-1 flex-shrink-0">
+      <div className={`flex-1 p-2 flex flex-col`}>
+        <h3 className="font-semibold text-gray-900 leading-tight line-clamp-2 text-[13.5px] mb-1 flex-shrink-0">
           {businessName}
         </h3>
 
         <div className="flex-1 flex flex-col justify-between">
           <div>
-            <p className="text-gray-600 text-[12.5px] md:text-xs lg:text-[12.5px] line-clamp-1 mb-1">
+            <p className="text-gray-600 text-[12.5px] line-clamp-1 mb-1">
               {locationText}
             </p>
 
             <div className="flex items-center justify-between mb-1">
               <div className="flex flex-col">
-                <span className="text-[12px] md:text-sm lg:text-[12px] font-manrope text-gray-900">
+                <span className="text-[12px] font-manrope text-gray-900">
                   {priceText}
                 </span>
                 {priceUnit && (
-                  <span className="text-[10px] md:text-xs lg:text-[10px] text-gray-500 mt-0.5">
+                  <span className="text-[10px] text-gray-500 mt-0.5">
                     {priceUnit}
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-0.5 md:gap-1 lg:gap-0.5">
-                <div className="flex items-center gap-0.5 text-gray-800 text-[12px] md:text-sm lg:text-[12px]">
-                  <FontAwesomeIcon icon={faStar} className="text-black w-2 h-2 md:w-3 md:h-3 lg:w-2 lg:h-2" />
+              <div className="flex items-center gap-0.5">
+                <div className="flex items-center gap-0.5 text-gray-800 text-[12px]">
+                  <FontAwesomeIcon icon={faStar} className="text-black w-2 h-2" />
                   <span className="font-semibold text-black">{rating}</span>
                 </div>
               </div>
@@ -672,14 +672,14 @@ const BusinessCard = ({ item, category, isMobile }) => {
 
           <div className="flex items-center justify-between mt-auto pt-1">
             <div>
-              <span className="inline-block text-[11px] md:text-xs lg:text-[11px] text-gray-600 bg-gray-100 px-1.5 py-0.5 md:px-2 md:py-1 lg:px-1.5 lg:py-0.5 rounded">
+              <span className="inline-block text-[11px] text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
                 {tag}
               </span>
             </div>
 
             {isFavorite && !isProcessing && (
-              <span className="inline-flex items-center gap-0.5 text-[9px] md:text-xs lg:text-[9px] text-green-700 bg-green-100 px-1.5 py-0.5 md:px-2 md:py-1 lg:px-1.5 lg:py-0.5 rounded-full">
-                <svg className="w-1.5 h-1.5 md:w-3 md:h-3 lg:w-1.5 lg:h-1.5" fill="currentColor" viewBox="0 0 20 20">
+              <span className="inline-flex items-center gap-0.5 text-[9px] text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">
+                <svg className="w-1.5 h-1.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
                 </svg>
                 Saved
@@ -701,9 +701,9 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
   if (loading) {
     return (
       <section className="mb-4">
-        <div className="flex justify-between items-center mb-2 md:mb-4 lg:mb-2">
+        <div className="flex justify-between items-center mb-2">
           <div>
-            <h2 className="text-gray-900 font-bold text-xl md:text-2xl lg:text-xl" style={{ color: "#000651" }}>
+            <h2 className="text-gray-900 font-bold text-xl" style={{ color: "#000651" }}>
               {title}
             </h2>
           </div>
@@ -712,13 +712,13 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
             style={{ color: "#000651" }} 
             onClick={() => navigate(`/${category}`)}
           >
-            <span className="text-[13.5px] md:text-sm lg:text-[13.5px]">View all</span>
-            <svg className={`transition-transform group-hover:translate-x-1 w-4 h-4 md:w-5 md:h-5 lg:w-4 lg:h-4`} fill="currentColor" viewBox="0 0 16 16">
+            <span className="text-[13.5px]">View all</span>
+            <svg className="transition-transform group-hover:translate-x-1 w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
               <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
             </svg>
           </button>
         </div>
-        <div className={`${isMobile ? "flex overflow-x-auto gap-[8px] pb-4 -mx-[16px] pl-[16px] snap-x snap-mandatory" : "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4 lg:gap-3"}`}>
+        <div className={`${isMobile ? "flex overflow-x-auto gap-[8px] pb-4 -mx-[16px] pl-[16px] snap-x snap-mandatory" : "grid grid-cols-2 md:grid-cols-5 lg:grid-cols-3 xl:grid-cols-6 gap-3"}`}>
           {[...Array(6)].map((_, index) => <SkeletonCard key={index} isMobile={isMobile} />)}
         </div>
       </section>
@@ -728,9 +728,9 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
   if (error) {
     return (
       <section className="mb-4">
-        <div className="flex justify-between items-center mb-2 md:mb-4 lg:mb-2">
+        <div className="flex justify-between items-center mb-2">
           <div>
-            <h2 className="text-gray-900 font-bold text-xl md:text-2xl lg:text-xl" style={{ color: "#000651" }}>
+            <h2 className="text-gray-900 font-bold text-xl" style={{ color: "#000651" }}>
               {title}
             </h2>
           </div>
@@ -739,8 +739,8 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
             style={{ color: "#000651" }} 
             onClick={() => navigate(`/${category}`)}
           >
-            <span className="text-[13.5px] md:text-sm lg:text-[13.5px]">View all</span>
-            <svg className={`transition-transform group-hover:translate-x-1 w-4 h-4 md:w-5 md:h-5 lg:w-4 lg:h-4`} fill="currentColor" viewBox="0 0 16 16">
+            <span className="text-[13.5px]">View all</span>
+            <svg className="transition-transform group-hover:translate-x-1 w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
               <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
             </svg>
           </button>
@@ -756,10 +756,10 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
   const displayItems = items.slice(0, 6);
 
   return (
-    <section className="mb-4 md:mb-6 lg:mb-4">
-      <div className="flex justify-between items-center mb-2 md:mb-4 lg:mb-2">
+    <section className="mb-4">
+      <div className="flex justify-between items-center mb-2">
         <div>
-          <h2 className="text-gray-900 font-bold text-xl md:text-2xl lg:text-xl" style={{ color: "#000651" }}>
+          <h2 className="text-gray-900 font-bold text-xl" style={{ color: "#000651" }}>
             {title}
           </h2>
         </div>
@@ -768,8 +768,8 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
           className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" 
           style={{ color: "#000651" }}
         >
-          <span className="text-[13.5px] md:text-sm lg:text-[13.5px]">View all</span>
-          <svg className={`transition-transform group-hover:translate-x-1 w-4 h-4 md:w-5 md:h-5 lg:w-4 lg:h-4`} fill="currentColor" viewBox="0 0 16 16">
+          <span className="text-[13.5px]">View all</span>
+          <svg className="transition-transform group-hover:translate-x-1 w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
             <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
           </svg>
         </button>
@@ -783,7 +783,7 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
       ) : (
         <>
           {!isMobile ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4 lg:gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-3 xl:grid-cols-6 gap-3">
               {displayItems.map((item, index) => (
                 <BusinessCard key={item._id || index} item={item} category={category} isMobile={isMobile} />
               ))}
@@ -840,8 +840,8 @@ const Directory = () => {
 
   return (
     <>
-      <section id="directory" className="bg-white font-manrope lg:max-w-7xl lg:mx-auto ml-3">
-        <div className={`${isMobile ? "py-0" : "py-8 md:py-12 lg:py-8"}`}>
+      <section id="directory" className="bg-white font-manrope lg:max-w-7xl md:px-4 lg:mx-auto ml-3">
+        <div className={`${isMobile ? "py-0" : "py-8"}`}>
           {isMobile ? (
             <div className="w-full" style={{ paddingLeft: "0", paddingRight: "0" }}>
               <motion.div ref={headerRef} initial={{ opacity: 0, y: 20 }} animate={headerInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, ease: "easeOut" }} className="mb-4">
@@ -869,12 +869,12 @@ const Directory = () => {
             </div>
           ) : (
             <div className="max-w-[1800px] mx-auto" style={{ paddingLeft: "0", paddingRight: "0" }}>
-              <motion.div ref={headerRef} initial={{ opacity: 0, y: 20 }} animate={headerInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, ease: "easeOut" }} className="mb-6 md:mb-8 lg:mb-6">
-                <h1 className="text-xl md:text-3xl lg:text-xl font-semibold text-gray-900 md:text-start">Explore Categories</h1>
-                <p className="text-gray-600 md:text-lg lg:text-[13.5px] md:text-start text-[13.5px]">Find the best places and services in Ibadan</p>
+              <motion.div ref={headerRef} initial={{ opacity: 0, y: 20 }} animate={headerInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, ease: "easeOut" }} className="mb-6">
+                <h1 className="text-xl font-semibold text-gray-900 md:text-start">Explore Categories</h1>
+                <p className="text-gray-600 md:text-[15px] md:text-start text-[13.5px]">Find the best places and services in Ibadan</p>
               </motion.div>
 
-              <div className="space-y-6 md:space-y-8 lg:space-y-6">
+              <div className="space-y-6">
                 {categories.map(({ key, name }) => {
                   const { listings, loading, error } = categoryData[key];
                   const title = `Popular ${name} in Ibadan`;

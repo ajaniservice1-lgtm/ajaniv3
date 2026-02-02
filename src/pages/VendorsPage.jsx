@@ -16,161 +16,448 @@ import {
   FaCheckCircle,
   FaTruck,
   FaCalendarCheck,
-  FaClock
+  FaClock,
+  FaBriefcase,
+  FaMoneyBillWave,
+  FaCertificate,
+  FaGlobe,
+  FaImages,
+  FaBuilding
 } from "react-icons/fa";
 
 // ======================= VENDOR MODAL COMPONENT =======================
 const VendorModal = ({ vendor, isOpen, onClose }) => {
-  // ... (keep your existing VendorModal component as is)
-  // (The VendorModal component you provided remains unchanged)
+  const modalRef = useRef(null);
+  const [bgImageError, setBgImageError] = useState(false);
+
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+      document.body.style.position = 'static';
+      document.body.style.width = 'auto';
+      document.body.style.height = 'auto';
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen || !vendor) return null;
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      
+      <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+        <motion.div
+          ref={modalRef}
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ duration: 0.3 }}
+          className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header with background image */}
+          <div className="relative h-48">
+            {vendor.image_url && !bgImageError ? (
+              <>
+                <img
+                  src={vendor.image_url}
+                  alt={vendor.name}
+                  className="w-full h-full object-cover"
+                  onError={() => setBgImageError(true)}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent" />
+              </>
+            ) : (
+              <div className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500" />
+            )}
+            
+            {/* Profile image */}
+            <div className="absolute -bottom-16 left-6">
+              <div className="relative">
+                <img
+                  src={vendor.image_url}
+                  alt={vendor.name}
+                  className="w-32 h-32 rounded-full border-4 border-white shadow-2xl object-cover bg-white"
+                  onError={(e) => {
+                    e.target.src = "https://via.placeholder.com/160/DDDDDD/808080?text=No+Image";
+                  }}
+                />
+                {vendor.is_verified === "TRUE" && (
+                  <div className="absolute -top-2 -right-2 bg-white rounded-full p-2 shadow-lg border border-green-200">
+                    <VscVerifiedFilled className="text-2xl text-green-500" />
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Close button */}
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full p-3 shadow-lg hover:bg-white transition-colors"
+            >
+              <IoClose className="text-2xl text-gray-700" />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="p-6 pt-20 overflow-y-auto max-h-[calc(90vh-12rem)]">
+            {/* Header info */}
+            <div className="mb-8">
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">{vendor.name}</h2>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
+                      {vendor.status === "approved" ? "Approved" : "Pending"}
+                    </span>
+                    <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+                      {vendor.years_experience || vendor.yearsExperience || "0"} years experience
+                    </span>
+                    {vendor.cacRegistered && (
+                      <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-semibold">
+                        CAC Registered
+                      </span>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => window.open(`mailto:${vendor.email}`)}
+                    className="px-4 py-2 bg-[#06EAFC] hover:bg-[#6cf5ff] text-black font-semibold rounded-lg transition-colors"
+                  >
+                    <FaEnvelope className="inline mr-2" />
+                    Contact
+                  </button>
+                  <button className="px-4 py-2 bg-white text-gray-800 border border-gray-300 hover:bg-gray-50 font-semibold rounded-lg transition-colors">
+                    <FaCalendarCheck className="inline mr-2" />
+                    Book Now
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-6 text-gray-600">
+                <div className="flex items-center gap-2">
+                  <FontAwesomeIcon icon={faStar} className="text-yellow-500" />
+                  <span className="font-bold text-gray-900">{vendor.rating}</span>
+                  <span className="text-gray-500">({vendor.review_count} reviews)</span>
+                </div>
+                {vendor.approvedAt && (
+                  <div className="flex items-center gap-2">
+                    <FaCheckCircle className="text-green-500" />
+                    <span>Approved on {new Date(vendor.approvedAt).toLocaleDateString()}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Stats grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <p className="text-sm text-gray-600 mb-1 flex items-center gap-2">
+                  <FaBriefcase className="text-[#06EAFC]" />
+                  Experience
+                </p>
+                <p className="text-2xl font-bold text-gray-900">{vendor.years_experience || "0"} years</p>
+              </div>
+              
+              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <p className="text-sm text-gray-600 mb-1 flex items-center gap-2">
+                  <FaMoneyBillWave className="text-[#06EAFC]" />
+                  Price Range
+                </p>
+                <p className="text-2xl font-bold text-gray-900">{vendor.price_range || "₦5,000 - ₦50,000"}</p>
+              </div>
+              
+              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <p className="text-sm text-gray-600 mb-1 flex items-center gap-2">
+                  <FaCertificate className="text-[#06EAFC]" />
+                  Status
+                </p>
+                <p className="text-2xl font-bold text-gray-900 capitalize">{vendor.status || "active"}</p>
+              </div>
+              
+              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <p className="text-sm text-gray-600 mb-1 flex items-center gap-2">
+                  <FaGlobe className="text-[#06EAFC]" />
+                  Service Area
+                </p>
+                <p className="text-2xl font-bold text-gray-900 truncate">{vendor.area || "Ibadan"}</p>
+              </div>
+            </div>
+
+            {/* Main content */}
+            <div className="grid lg:grid-cols-3 gap-6">
+              {/* Left column */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* About section */}
+                <div className="bg-white rounded-xl p-5 border border-gray-200">
+                  <h3 className="text-xl font-bold text-gray-900 mb-3">About</h3>
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                    {vendor.about || vendor.description || "No description available."}
+                  </p>
+                  
+                  {vendor.whatWeDo && (
+                    <div className="mt-4">
+                      <h4 className="font-semibold text-gray-900 mb-2">What We Do:</h4>
+                      <p className="text-gray-700">{vendor.whatWeDo}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Services offered */}
+                <div className="bg-white rounded-xl p-5 border border-gray-200">
+                  <h3 className="text-xl font-bold text-gray-900 mb-3">Services Offered</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {(vendor.listOfServices || vendor.services || []).map((service, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-2 bg-gradient-to-r from-[#06EAFC]/10 to-blue-50 text-gray-700 rounded-lg font-semibold border border-[#06EAFC]/30"
+                      >
+                        {service}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right column */}
+              <div className="space-y-6">
+                {/* Contact & Location */}
+                <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Contact & Location</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-[#06EAFC]/20 rounded-lg">
+                        <FaMapMarkerAlt className="text-[#06EAFC] text-xl" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Location</p>
+                        <p className="font-semibold text-gray-900">{vendor.address}</p>
+                        <p className="text-sm text-gray-500">{vendor.area}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-[#06EAFC]/20 rounded-lg">
+                        <FaClock className="text-[#06EAFC] text-xl" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Operating Hours</p>
+                        <p className="font-semibold text-gray-900">{vendor.operatingHours || "09:00 AM - 05:00 PM"}</p>
+                      </div>
+                    </div>
+
+                    {/* Contact Information */}
+                    <div className="pt-4 border-t border-gray-200">
+                      <h4 className="font-semibold text-gray-900 mb-3">Contact Information</h4>
+                      <div className="space-y-2">
+                        <a 
+                          href={`tel:${vendor.phone}`}
+                          className="flex items-center gap-3 hover:text-[#06EAFC] transition-colors"
+                        >
+                          <FaPhone className="text-gray-400" />
+                          <span className="text-gray-700 truncate">{vendor.phone}</span>
+                        </a>
+                        
+                        {vendor.whatsapp && (
+                          <a 
+                            href={`https://wa.me/${vendor.whatsapp?.replace('+', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 hover:text-green-600 transition-colors"
+                          >
+                            <FaWhatsapp className="text-green-500" />
+                            <span className="text-gray-700 truncate">{vendor.whatsapp}</span>
+                          </a>
+                        )}
+                        
+                        <a 
+                          href={`mailto:${vendor.email}`}
+                          className="flex items-center gap-3 hover:text-[#06EAFC] transition-colors"
+                        >
+                          <FaEnvelope className="text-gray-400" />
+                          <span className="text-gray-700 truncate">{vendor.email}</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Approval Status */}
+                <div className="bg-white rounded-xl p-5 border border-gray-200">
+                  <h4 className="font-semibold text-gray-900 mb-3">Approval Status</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-700">Status</span>
+                      <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                        vendor.status === 'approved' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {vendor.status?.toUpperCase() || 'ACTIVE'}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-700">Verified</span>
+                      <span className="flex items-center gap-1 text-green-600">
+                        <FaCheckCircle />
+                        {vendor.isVerified || vendor.is_verified === "TRUE" ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </>
+  );
 };
 
 // ======================= VENDOR SERVICE FUNCTIONS =======================
 
-// Function to get all registered vendors from localStorage
-const getAllRegisteredVendors = () => {
-  try {
-    // Get vendors from registration flow
-    const vendorProfile = JSON.parse(localStorage.getItem("vendorCompleteProfile") || "null");
-    const currentVendor = JSON.parse(localStorage.getItem("currentVendor") || "null");
-    
-    // Get pending vendors from registration steps
-    const process1Data = JSON.parse(localStorage.getItem("vendorProcess1Data") || "null");
-    const process2Data = JSON.parse(localStorage.getItem("vendorProcess2Data") || "null");
-    const tempVendorData = JSON.parse(localStorage.getItem("tempVendorData") || "null");
-    
-    const vendors = [];
-    
-    // Add complete vendor profile
-    if (vendorProfile) {
-      vendors.push({
-        id: `real_${vendorProfile.id || Date.now()}`,
-        name: vendorProfile.businessName || `${vendorProfile.firstName}'s Business`,
-        service_type: vendorProfile.workType || "Service Provider",
-        description: vendorProfile.description || "Professional service provider",
-        rating: "4.5", // New vendors start with base rating
-        review_count: "0",
-        image_url: vendorProfile.avatar || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face",
-        district: vendorProfile.location?.split(",")[0] || "City",
-        location: vendorProfile.location || "Location not specified",
-        is_verified: vendorProfile.status ? "TRUE" : "FALSE",
-        is_available: "TRUE",
-        years_experience: vendorProfile.yearsExperience || "1",
-        phone: vendorProfile.phone || "+234 000 000 0000",
-        email: vendorProfile.email || "vendor@example.com",
-        businessType: vendorProfile.businessType || "Services",
-        workType: vendorProfile.workType || "Service Provider",
-        fullName: vendorProfile.fullName || `${vendorProfile.firstName} ${vendorProfile.lastName}`,
-        completedProjects: vendorProfile.completedProjects || 0,
-        repeatClients: vendorProfile.repeatClients || 0,
-        satisfactionRate: vendorProfile.satisfactionRate || 0,
-        responseTime: vendorProfile.responseTime || "Within 2 hours",
-        activeWithin: vendorProfile.activeWithin || "Within 15 km",
-        languages: vendorProfile.languages || ["English (Native)"],
-        services: vendorProfile.services || [vendorProfile.workType || "General Services"],
-        specialties: vendorProfile.specialties || ["New Vendor"],
-        certifications: vendorProfile.certifications || [],
-        businessName: vendorProfile.businessName || `${vendorProfile.firstName}'s Business`,
-        hourlyRate: vendorProfile.hourlyRate || "₦0 - ₦0",
-        minOrder: vendorProfile.minOrder || "₦0",
-        businessHours: vendorProfile.businessHours || "9:00 AM - 6:00 PM",
-        deliveryAvailable: vendorProfile.deliveryAvailable || false,
-        onlineBookings: vendorProfile.onlineBookings || true,
-        totalReviews: 0
-      });
-    }
-    
-    // Add current vendor (might be duplicate but ensures we capture all)
-    if (currentVendor && !vendors.some(v => v.email === currentVendor.email)) {
-      vendors.push({
-        id: `current_${currentVendor.id || Date.now() + 1}`,
-        name: currentVendor.businessName || `${currentVendor.firstName}'s Business`,
-        service_type: currentVendor.workType || "Service Provider",
-        description: currentVendor.description || "Professional service provider",
-        rating: "4.5",
-        review_count: "0",
-        image_url: currentVendor.avatar || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face",
-        district: currentVendor.location?.split(",")[0] || "City",
-        location: currentVendor.location || "Location not specified",
-        is_verified: "TRUE",
-        is_available: "TRUE",
-        years_experience: currentVendor.yearsExperience || "1",
-        phone: currentVendor.phone || "+234 000 000 0000",
-        email: currentVendor.email || "vendor@example.com",
-        businessType: currentVendor.businessType || "Services",
-        workType: currentVendor.workType || "Service Provider",
-        fullName: currentVendor.fullName || `${currentVendor.firstName} ${currentVendor.lastName}`,
-        completedProjects: 0,
-        repeatClients: 0,
-        satisfactionRate: 0,
-        responseTime: "Within 2 hours",
-        activeWithin: "Within 15 km",
-        languages: ["English (Native)"],
-        services: [currentVendor.workType || "General Services"],
-        specialties: ["New Vendor"],
-        certifications: [],
-        businessName: currentVendor.businessName || `${currentVendor.firstName}'s Business`,
-        hourlyRate: "₦0 - ₦0",
-        minOrder: "₦0",
-        businessHours: "9:00 AM - 6:00 PM",
-        deliveryAvailable: false,
-        onlineBookings: true,
-        totalReviews: 0
-      });
-    }
-    
-    // Add vendors from intermediate registration steps
-    const registrationData = process2Data || process1Data || tempVendorData;
-    if (registrationData && !vendors.some(v => v.email === registrationData.email)) {
-      vendors.push({
-        id: `reg_${Date.now() + 2}`,
-        name: `${registrationData.firstName}'s ${registrationData.workType || "Business"}`,
-        service_type: registrationData.workType || "Service Provider",
-        description: registrationData.description || "Professional service provider",
-        rating: "4.5",
-        review_count: "0",
-        image_url: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face",
-        district: registrationData.location?.split(",")[0] || "City",
-        location: registrationData.location || "Location not specified",
-        is_verified: "FALSE",
-        is_available: "TRUE",
-        years_experience: registrationData.yearsExperience || "1",
-        phone: registrationData.phone || "+234 000 000 0000",
-        email: registrationData.email || "vendor@example.com",
-        businessType: registrationData.businessType || "Services",
-        workType: registrationData.workType || "Service Provider",
-        fullName: `${registrationData.firstName} ${registrationData.lastName}`,
-        completedProjects: 0,
-        repeatClients: 0,
-        satisfactionRate: 0,
-        responseTime: "Within 2 hours",
-        activeWithin: "Within 15 km",
-        languages: ["English (Native)"],
-        services: [registrationData.workType || "General Services"],
-        specialties: ["New Vendor"],
-        certifications: [],
-        businessName: `${registrationData.firstName}'s ${registrationData.workType || "Business"}`,
-        hourlyRate: "₦0 - ₦0",
-        minOrder: "₦0",
-        businessHours: "9:00 AM - 6:00 PM",
-        deliveryAvailable: false,
-        onlineBookings: true,
-        totalReviews: 0
-      });
-    }
-    
-    return vendors;
-  } catch (error) {
-    console.error("Error loading registered vendors:", error);
-    return [];
-  }
+// Custom hook for fetching backend data
+const useBackendData = () => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        const response = await fetch('https://ajanibackend.onrender.com/api/v1/listings?category=services');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const json = await response.json();
+        console.log('API Response:', json);
+
+        let listings = [];
+        
+        if (json.status === 'success' && json.data && json.data.listings) {
+          listings = json.data.listings;
+        } else if (Array.isArray(json.data)) {
+          listings = json.data;
+        } else if (Array.isArray(json)) {
+          listings = json;
+        }
+
+        if (!Array.isArray(listings)) {
+          throw new Error("No valid listings array found in response");
+        }
+
+        const transformedData = listings.map((item, index) => {
+          const vendor = item.vendorId || {};
+          const details = item.details || {};
+          const contact = item.contactInformation || {};
+          const location = item.location || {};
+          const geolocation = location.geolocation || {};
+          const mainImage = item.images?.[0]?.url;
+          
+          return {
+            id: item._id || `venue-${index}`,
+            name: item.name,
+            service_type: details.serviceCategory || item.category || "Service Provider",
+            description: item.about,
+            rating: "4.8",
+            review_count: "128",
+            image_url: mainImage || 
+                      details.businessLogo || 
+                      "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face",
+            district: location.area || "Ibadan",
+            location: location.address || "",
+            area: location.area || "",
+            address: location.address || "",
+            geolocation: geolocation,
+            is_verified: vendor.isVerified ? "TRUE" : "FALSE",
+            is_available: item.status === "approved" ? "TRUE" : "FALSE",
+            years_experience: details.yearsOfExperience?.toString() || "3",
+            phone: contact.phone || vendor.phone || "+234 801 234 5678",
+            whatsapp: contact.whatsapp,
+            email: contact.email || vendor.email || "vendor@example.com",
+            category: item.category || "services",
+            completed_projects: Math.floor(Math.random() * 200) + 100,
+            response_time: "1-4 hours",
+            priceFrom: details.pricingRange?.priceFrom || 5000,
+            priceTo: details.pricingRange?.priceTo || 50000,
+            price_range: details.pricingRange ? 
+                        `₦${details.pricingRange.priceFrom?.toLocaleString()} - ₦${details.pricingRange.priceTo?.toLocaleString()}` : 
+                        "₦5,000 - ₦50,000",
+            businessName: vendor.businessName || item.name,
+            vendorBusinessName: vendor.vendor?.businessName || item.name,
+            vendorName: `${vendor.firstName || ''} ${vendor.lastName || ''}`.trim() || vendor.email,
+            vendorEmail: vendor.email,
+            operatingHours: details.operatingHours || "09:00 AM - 05:00 PM",
+            services: details.listOfServices || ["Consultation", "Delivery"],
+            listOfServices: details.listOfServices || [],
+            cacRegistered: details.cacRegistered || false,
+            cacNumber: details.cacNumber || "Not Registered",
+            serviceCategory: details.serviceCategory || "General Services",
+            businessDescription: details.businessDescription || item.about,
+            about: item.about,
+            whatWeDo: item.whatWeDo,
+            status: item.status || "pending",
+            approvedAt: item.approvedAt,
+            images: item.images || [],
+            isVerified: vendor.isVerified,
+            fullName: item.name,
+            completedProjects: Math.floor(Math.random() * 200) + 100,
+            repeatClients: 85,
+            satisfactionRate: 96,
+            activeWithin: `Within 15 km of ${location.area || "Ibadan"}`,
+            languages: ["English (Native)", "Yoruba (Fluent)"],
+            specialties: ["Professional Service", "Quality Workmanship"],
+            certifications: details.cacRegistered ? ["CAC Registered"] : ["Verified Vendor"],
+            minOrder: "₦15,000",
+            deliveryAvailable: true,
+            onlineBookings: true,
+            workType: details.serviceCategory
+          };
+        });
+
+        setData(transformedData);
+        setError(null);
+      } catch (err) {
+        console.error("Backend API error:", err);
+        setError(`Failed to load data: ${err.message}`);
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  return { data, loading, error };
 };
 
-// Function to get all verified vendors (combines real and demo data)
-const getAllVendors = () => {
-  const registeredVendors = getAllRegisteredVendors();
-  
-  // Your existing demo vendors
+// Function to get all vendors (from backend)
+const getAllVendors = (vendorsData = []) => {
+  // Your demo data as fallback
   const demoVendors = [
     {
       id: "1",
@@ -187,25 +474,10 @@ const getAllVendors = () => {
       years_experience: "10",
       phone: "+234 801 234 5678",
       email: "aj.plumbing@example.com",
-      businessType: "Services",
-      workType: "Plumber",
-      fullName: "AJ Plumbing Services",
-      completedProjects: 247,
-      repeatClients: 89,
-      satisfactionRate: 98,
-      responseTime: "Within 2 hours",
-      activeWithin: "Within 15 km of Bodija",
-      languages: ["English (Native)", "Yoruba (Fluent)"],
-      services: ["Plumbing", "Pipe Repair", "Drain Cleaning"],
-      specialties: ["Emergency Plumbing", "Pipe Installation", "Water Heater Repair"],
-      certifications: ["Licensed Plumber", "Certified Professional"],
-      businessName: "AJ Plumbing Services",
-      hourlyRate: "₦5,000 - ₦10,000",
-      minOrder: "₦15,000",
-      businessHours: "24/7",
-      deliveryAvailable: true,
-      onlineBookings: true,
-      totalReviews: 234
+      category: "Services",
+      price_range: "₦1,500 - ₦5,000",
+      priceFrom: 1500,
+      priceTo: 5000
     },
     {
       id: "2",
@@ -222,27 +494,11 @@ const getAllVendors = () => {
       years_experience: "8",
       phone: "+234 802 345 6789",
       email: "bright.electric@example.com",
-      businessType: "Services",
-      workType: "Electrician",
-      fullName: "Bright Electric Solutions",
-      completedProjects: 189,
-      repeatClients: 85,
-      satisfactionRate: 96,
-      responseTime: "Within 3 hours",
-      activeWithin: "Within 20 km of Mokola",
-      languages: ["English (Native)", "Yoruba (Fluent)"],
-      services: ["Electrical Wiring", "Circuit Repair", "Lighting Installation"],
-      specialties: ["Residential Electrical", "Commercial Wiring", "Emergency Electrical"],
-      certifications: ["Certified Electrician", "Safety Certified"],
-      businessName: "Bright Electric Solutions",
-      hourlyRate: "₦4,000 - ₦8,000",
-      minOrder: "₦10,000",
-      businessHours: "8:00 AM - 8:00 PM",
-      deliveryAvailable: false,
-      onlineBookings: true,
-      totalReviews: 189
+      category: "Services",
+      price_range: "₦4,000 - ₦8,000",
+      priceFrom: 4000,
+      priceTo: 8000
     },
-    // Add 2-3 more demo vendors if needed, but leave space for real ones
     {
       id: "3",
       name: "Taste of Yoruba Catering",
@@ -258,39 +514,15 @@ const getAllVendors = () => {
       years_experience: "5",
       phone: "+234 803 456 7890",
       email: "yoruba.taste@example.com",
-      businessType: "Food",
-      workType: "Caterer",
-      fullName: "Taste of Yoruba Catering",
-      completedProjects: 156,
-      repeatClients: 92,
-      satisfactionRate: 97,
-      responseTime: "Within 4 hours",
-      activeWithin: "Within 25 km of Dugbe",
-      languages: ["English (Native)", "Yoruba (Fluent)"],
-      services: ["Catering", "Event Planning", "Food Delivery"],
-      specialties: ["Yoruba Cuisine", "Wedding Catering", "Corporate Events"],
-      certifications: ["Food Safety Certified", "Health Department Approved"],
-      businessName: "Taste of Yoruba Catering",
-      hourlyRate: "₦3,000 - ₦6,000",
-      minOrder: "₦20,000",
-      businessHours: "9:00 AM - 10:00 PM",
-      deliveryAvailable: true,
-      onlineBookings: true,
-      totalReviews: 156
+      category: "Food",
+      price_range: "₦3,000 - ₦6,000",
+      priceFrom: 3000,
+      priceTo: 6000
     }
   ];
-  
-  // Combine registered vendors with demo vendors, avoiding duplicates by email
-  const allVendors = [...registeredVendors];
-  const registeredEmails = new Set(registeredVendors.map(v => v.email));
-  
-  demoVendors.forEach(demoVendor => {
-    if (!registeredEmails.has(demoVendor.email)) {
-      allVendors.push(demoVendor);
-    }
-  });
-  
-  return allVendors;
+
+  // Use backend data if available, otherwise use demo data
+  return vendorsData.length > 0 ? vendorsData : demoVendors;
 };
 
 // ======================= SERVICE CATEGORIES =======================
@@ -304,7 +536,9 @@ const serviceCategories = [
   "Makeup Artist",
   "Photographer",
   "Carpenter",
-  "Painter"
+  "Painter",
+  "Cleaning",
+  "General Services"
 ];
 
 // ======================= MAIN VENDORS PAGE =======================
@@ -315,56 +549,41 @@ const VendorsPage = () => {
   const [filteredVendors, setFilteredVendors] = useState([]);
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // Use the backend hook
+  const { data: backendVendors, loading, error } = useBackendData();
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    loadVendors();
   }, []);
 
   useEffect(() => {
-    filterVendors();
-  }, [searchTerm, selectedCategory]);
-
-  const loadVendors = () => {
-    setIsLoading(true);
-    try {
-      const allVendors = getAllVendors();
-      setFilteredVendors(allVendors);
-    } catch (error) {
-      console.error("Error loading vendors:", error);
-      // Fallback to demo data
-      const demoVendors = getAllVendors().slice(0, 3);
-      setFilteredVendors(demoVendors);
-    }
-    setIsLoading(false);
-  };
-
-  const filterVendors = () => {
-    let results = getAllVendors();
+    // Filter vendors whenever search term, category, or backend data changes
+    let results = getAllVendors(backendVendors);
 
     if (selectedCategory !== "All Services") {
-      results = results.filter(vendor => 
-        vendor.service_type === selectedCategory || 
-        vendor.workType === selectedCategory ||
-        vendor.businessType?.toLowerCase().includes(selectedCategory.toLowerCase())
-      );
+      results = results.filter(vendor => {
+        const vendorCategory = vendor.serviceCategory || vendor.service_type || vendor.category;
+        return vendorCategory?.toLowerCase().includes(selectedCategory.toLowerCase());
+      });
     }
 
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase().trim();
       results = results.filter(vendor =>
-        vendor.name.toLowerCase().includes(term) ||
-        vendor.service_type.toLowerCase().includes(term) ||
-        vendor.description.toLowerCase().includes(term) ||
-        vendor.location.toLowerCase().includes(term) ||
-        vendor.workType?.toLowerCase().includes(term) ||
-        vendor.businessType?.toLowerCase().includes(term)
+        vendor.name?.toLowerCase().includes(term) ||
+        vendor.service_type?.toLowerCase().includes(term) ||
+        vendor.description?.toLowerCase().includes(term) ||
+        vendor.location?.toLowerCase().includes(term) ||
+        vendor.area?.toLowerCase().includes(term) ||
+        vendor.address?.toLowerCase().includes(term) ||
+        vendor.about?.toLowerCase().includes(term) ||
+        vendor.serviceCategory?.toLowerCase().includes(term)
       );
     }
 
     setFilteredVendors(results);
-  };
+  }, [searchTerm, selectedCategory, backendVendors]);
 
   const handleContact = (vendor, method) => {
     switch(method) {
@@ -372,7 +591,8 @@ const VendorsPage = () => {
         window.location.href = `tel:${vendor.phone}`;
         break;
       case 'whatsapp':
-        window.open(`https://wa.me/${vendor.phone.replace(/\D/g, '')}`, '_blank');
+        const whatsappNumber = vendor.whatsapp || vendor.phone;
+        window.open(`https://wa.me/${whatsappNumber.replace(/\D/g, '')}`, '_blank');
         break;
       case 'email':
         window.location.href = `mailto:${vendor.email}`;
@@ -397,7 +617,7 @@ const VendorsPage = () => {
   };
 
   const handleRefresh = () => {
-    loadVendors();
+    window.location.reload();
   };
 
   const handleAddVendor = () => {
@@ -435,13 +655,12 @@ const VendorsPage = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </button>
-              
             </div>
           </div>
           <p className="text-gray-600 text-sm lg:text-base ml-11">
-            Find trusted local service providers in Ibadan
-            {getAllRegisteredVendors().length > 0 && 
-              ` • ${getAllRegisteredVendors().length} registered vendor${getAllRegisteredVendors().length > 1 ? 's' : ''} from your area`
+            Find trusted service providers from our database
+            {backendVendors.length > 0 && 
+              ` • ${backendVendors.length} service${backendVendors.length > 1 ? 's' : ''} available`
             }
           </p>
         </div>
@@ -501,17 +720,23 @@ const VendorsPage = () => {
             Showing {filteredVendors.length} vendors
             {selectedCategory !== "All Services" && ` in ${selectedCategory}`}
           </p>
-          {isLoading && (
+          {loading && (
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-              Loading vendors...
+              Loading vendors from API...
+            </div>
+          )}
+          {error && (
+            <div className="flex items-center gap-2 text-sm text-red-500">
+              <span>⚠️</span>
+              <span>Using demo data</span>
             </div>
           )}
         </div>
 
-        {isLoading ? (
+        {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-8 lg:mb-12">
-            {[1, 2, 3].map((skeleton) => (
+            {[1, 2, 3, 4, 5, 6].map((skeleton) => (
               <div key={skeleton} className="bg-white rounded-xl lg:rounded-2xl shadow-sm border border-gray-200 p-6 animate-pulse">
                 <div className="flex items-start gap-4">
                   <div className="w-16 h-16 bg-gray-200 rounded-full"></div>
@@ -519,6 +744,7 @@ const VendorsPage = () => {
                     <div className="h-4 bg-gray-200 rounded w-3/4"></div>
                     <div className="h-3 bg-gray-200 rounded w-1/2"></div>
                     <div className="h-3 bg-gray-200 rounded w-full"></div>
+                    <div className="h-3 bg-gray-200 rounded w-2/3"></div>
                   </div>
                 </div>
               </div>
@@ -526,31 +752,7 @@ const VendorsPage = () => {
           </div>
         ) : (
           <>
-            {/* Show registered vendors first */}
-            {getAllRegisteredVendors().length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Registered Vendors ({getAllRegisteredVendors().length})
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-6">
-                  {getAllRegisteredVendors()
-                    .filter(vendor => 
-                      filteredVendors.some(fv => fv.id === vendor.id)
-                    )
-                    .map((vendor, index) => (
-                      <VendorCard 
-                        key={`registered_${vendor.id}`} 
-                        vendor={vendor} 
-                        index={index}
-                        onShowContact={handleShowContact}
-                        onContact={handleContact}
-                      />
-                    ))}
-                </div>
-              </div>
-            )}
-
-            {/* Show all other vendors */}
+            {/* Show all vendors */}
             {filteredVendors.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-8 lg:mb-12">
                 {filteredVendors.map((vendor, index) => (
@@ -567,7 +769,7 @@ const VendorsPage = () => {
           </>
         )}
 
-        {!isLoading && filteredVendors.length === 0 && (
+        {!loading && filteredVendors.length === 0 && (
           <div className="text-center py-12 lg:py-16">
             <div className="bg-white rounded-xl lg:rounded-2xl p-6 lg:p-12 max-w-md mx-auto shadow-sm border border-gray-200">
               <div className="text-4xl mb-4">🔍</div>
@@ -575,10 +777,7 @@ const VendorsPage = () => {
                 No vendors found
               </h3>
               <p className="text-gray-600 mb-4 lg:mb-6 text-sm lg:text-base">
-                {getAllRegisteredVendors().length === 0 
-                  ? "Try registering as a vendor or check back later for available services."
-                  : "Try adjusting your search or filters"
-                }
+                Try adjusting your search or filters
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <button
@@ -594,21 +793,19 @@ const VendorsPage = () => {
                 >
                   Clear All Filters
                 </button>
-                {getAllRegisteredVendors().length === 0 && (
-                  <button
-                    onClick={handleAddVendor}
-                    className="
-                      px-4 lg:px-6 py-2.5 lg:py-3
-                      bg-green-600 hover:bg-green-700
-                      text-white
-                      rounded-lg lg:rounded-xl
-                      transition-all duration-200
-                      font-semibold text-sm lg:text-base
-                    "
-                  >
-                    Register as Vendor
-                  </button>
-                )}
+                <button
+                  onClick={() => navigate('/register/vendor')}
+                  className="
+                    px-4 lg:px-6 py-2.5 lg:py-3
+                    bg-green-600 hover:bg-green-700
+                    text-white
+                    rounded-lg lg:rounded-xl
+                    transition-all duration-200
+                    font-semibold text-sm lg:text-base
+                  "
+                >
+                  Register as Vendor
+                </button>
               </div>
             </div>
           </div>
@@ -664,6 +861,7 @@ const VendorCard = ({ vendor, index, onShowContact, onContact }) => {
         flex flex-col
         h-full
       "
+      onClick={() => onShowContact(vendor)}
     >
       <div className="p-4 lg:p-6 flex-1 flex flex-col">
         <div className="flex items-start gap-3 lg:gap-4 mb-4 lg:mb-5">
@@ -682,11 +880,6 @@ const VendorCard = ({ vendor, index, onShowContact, onContact }) => {
             {vendor.is_verified === "TRUE" && (
               <div className="absolute -top-1 -right-1 bg-white rounded-full p-1 shadow-sm border border-green-200">
                 <VscVerifiedFilled className="text-green-500 text-xs" />
-              </div>
-            )}
-            {vendor.id.startsWith('real_') && (
-              <div className="absolute -bottom-1 -right-1 bg-blue-500 text-white rounded-full p-1 shadow-sm text-xs px-1">
-                New
               </div>
             )}
           </div>
@@ -713,11 +906,11 @@ const VendorCard = ({ vendor, index, onShowContact, onContact }) => {
 
             <div className="mb-1 lg:mb-2">
               <span className="text-gray-600 font-medium text-xs lg:text-sm">
-                {vendor.service_type}
+                {vendor.serviceCategory || vendor.service_type}
               </span>
-              {vendor.id.startsWith('real_') && (
-                <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-                  Registered
+              {vendor.cacRegistered && (
+                <span className="ml-2 text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
+                  CAC
                 </span>
               )}
             </div>
@@ -725,13 +918,13 @@ const VendorCard = ({ vendor, index, onShowContact, onContact }) => {
             <div className="flex items-center gap-2 mb-3 lg:mb-4">
               <FaMapMarkerAlt className="text-gray-400 text-xs flex-shrink-0" />
               <span className="text-gray-600 text-xs lg:text-sm font-medium truncate">
-                {vendor.location}
+                {vendor.area || vendor.district || "Ibadan"}
               </span>
             </div>
 
             <div className="mb-3 lg:mb-4 pl-0">
               <p className="text-gray-700 leading-relaxed text-xs lg:text-sm line-clamp-2">
-                {vendor.description}
+                {vendor.about || vendor.description || "Professional service provider"}
               </p>
             </div>
           </div>
@@ -740,7 +933,10 @@ const VendorCard = ({ vendor, index, onShowContact, onContact }) => {
         <div className="mt-auto pt-3 lg:pt-4 border-t border-gray-100">
           <div className="flex flex-col gap-2 lg:gap-3">
             <button
-              onClick={() => onShowContact(vendor)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onShowContact(vendor);
+              }}
               className="
                 w-full 
                 py-2.5 lg:py-3
@@ -756,12 +952,15 @@ const VendorCard = ({ vendor, index, onShowContact, onContact }) => {
               "
             >
               <FaUser className="text-black text-xs lg:text-sm" />
-              Show Contact
+              View Details
             </button>
 
             <div className="grid grid-cols-2 gap-2 lg:gap-3">
               <button
-                onClick={() => onContact(vendor, 'call')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onContact(vendor, 'call');
+                }}
                 className="
                   py-2 lg:py-2.5
                   bg-green-600
@@ -780,7 +979,10 @@ const VendorCard = ({ vendor, index, onShowContact, onContact }) => {
                 Call Now
               </button>
               <button
-                onClick={() => onContact(vendor, 'whatsapp')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onContact(vendor, 'whatsapp');
+                }}
                 className="
                   py-2 lg:py-2.5
                   bg-green-100
