@@ -167,6 +167,8 @@ const Toast = ({ message, onClose }) => {
           <button
             onClick={onClose}
             className="text-yellow-600 hover:text-yellow-800"
+            aria-label="Close notification"
+            type="button"
           >
             <X className="w-4 h-4" />
           </button>
@@ -544,12 +546,16 @@ const PaymentPage = () => {
               <button
                 onClick={() => navigate('/')}
                 className="bg-[#6cff] text-white font-semibold py-3 px-6 rounded-lg transition cursor-pointer"
+                type="button"
+                aria-label="Return to home page"
               >
                 Return Home
               </button>
               <button
                 onClick={() => navigate(-1)}
                 className="ml-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition cursor-pointer"
+                type="button"
+                aria-label="Go back to previous page"
               >
                 Go Back
               </button>
@@ -591,7 +597,7 @@ const PaymentPage = () => {
           {/* User Status Banner */}
           {authStatus?.isGuest && (
             <div className="mb-4 sm:mb-6  border border-gray-200 shadow-sm rounded-lg p-3 sm:p-4 flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-gray-600" />
+              <AlertCircle className="w-5 h-5 text-gray-600" aria-hidden="true" />
               <div className="flex-1">
                 <p className="font-medium text-gray-800 text-sm">Continuing as Guest</p>
                 <p className="text-xs text-gray-700">
@@ -612,8 +618,10 @@ const PaymentPage = () => {
                   <button
                     onClick={() => navigate(-1)}
                     className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors group cursor-pointer text-sm"
+                    type="button"
+                    aria-label="Go back to previous page"
                   >
-                    <ChevronLeft className="w-3 h-3" />
+                    <ChevronLeft className="w-3 h-3" aria-hidden="true" />
                     <span className="font-medium">Back to booking details</span>
                   </button>
                 </div>
@@ -632,7 +640,7 @@ const PaymentPage = () => {
                   {/* Guest Information Summary */}
                   <div className="mb-4 sm:mb-6  rounded-lg p-3 sm:p-4">
                     <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-2.5 flex items-center gap-1.5">
-                      <Users className="w-4 h-4 text-blue-500" />
+                      <Users className="w-4 h-4 text-blue-500" aria-hidden="true" />
                       Guest Information
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -660,7 +668,7 @@ const PaymentPage = () => {
                   {/* Payment Methods */}
                   <div className="mb-4 sm:mb-6">
                     <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-2.5 flex items-center gap-1.5">
-                      <CreditCard className="w-4 h-4 text-blue-500" />
+                      <CreditCard className="w-4 h-4 text-blue-500" aria-hidden="true" />
                       Choose Payment Method
                     </h2>
                     
@@ -673,6 +681,11 @@ const PaymentPage = () => {
                             ? 'border-[#6cff] bg-blue-50 shadow-sm' 
                             : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
                         }`}
+                        type="button"
+                        aria-label="Select pay at property option"
+                        aria-pressed={paymentMethod === "hotel"}
+                        role="radio"
+                        tabIndex="0"
                       >
                         <div className="flex items-start gap-2">
                           <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
@@ -685,7 +698,7 @@ const PaymentPage = () => {
                             )}
                           </div>
                           <div className="flex items-center gap-1.5 flex-1">
-                            <Building className="w-4 h-4 text-blue-600" />
+                            <Building className="w-4 h-4 text-blue-600" aria-hidden="true" />
                             <div className="text-left">
                               <span className="font-bold text-gray-900 text-xs sm:text-sm block">Pay at Property</span>
                               <p className="text-xs text-gray-600 leading-tight mt-0.5">
@@ -700,13 +713,17 @@ const PaymentPage = () => {
                       <div
                         onClick={() => showToast(`For security reasons, you can only pay at the ${getLocationName()}. Online payments are currently unavailable.`)}
                         className="p-2.5 sm:p-3 rounded-lg border-2 border-gray-200 text-left cursor-not-allowed opacity-70 relative"
+                        role="radio"
+                        aria-label="Pay now with card (unavailable)"
+                        aria-disabled="true"
+                        tabIndex="-1"
                       >
                         <div className="flex items-start gap-2">
                           <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-gray-300 flex items-center justify-center flex-shrink-0">
                             <div className="w-1.5 h-1.5 bg-gray-300 rounded-full"></div>
                           </div>
                           <div className="flex items-center gap-1.5 flex-1">
-                            <CreditCard className="w-4 h-4 text-gray-400" />
+                            <CreditCard className="w-4 h-4 text-gray-400" aria-hidden="true" />
                             <div className="text-left">
                               <span className="font-bold text-gray-400 text-xs sm:text-sm block">Pay Now with Card</span>
                               <p className="text-xs text-gray-400 leading-tight mt-0.5">
@@ -726,7 +743,7 @@ const PaymentPage = () => {
                     {/* Information message */}
                     <div className="mt-3 bg-yellow-50 border border-yellow-100 rounded-lg p-3">
                       <div className="flex items-start gap-2">
-                        <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                        <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
                         <div>
                           <p className="text-xs font-medium text-yellow-800">Important Payment Information</p>
                           <p className="text-xs text-yellow-700 mt-0.5">
@@ -738,53 +755,66 @@ const PaymentPage = () => {
                   </div>
 
                   {/* Terms and Submit */}
-                  <div className="mt-6">
-                    <div className="mb-3 space-y-2">
-                      <div className="flex items-start gap-2">
-                        <input
-                          type="checkbox"
-                          id="termsAgreement"
-                          required
-                          className="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500 mt-0.5 cursor-pointer"
-                        />
-                <label htmlFor="terms" className="text-xs text-gray-900 leading-relaxed cursor-pointer">
-  By proceeding with this booking, I agree to Ajani's{' '}
-  <a href="/terms-service" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">
-    Terms of Use
-  </a>{' '}
-  and{' '}
-  <a href="/privacy" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">
-    Privacy Policy
-  </a>.{' '}
-  I understand that my booking is subject to the property's cancellation policy.
-</label>
+                  <form onSubmit={handleSubmit}>
+                    <div className="mt-6">
+                      <div className="mb-3 space-y-2">
+                        <div className="flex items-start gap-2">
+                          <input
+                            type="checkbox"
+                            id="termsAgreement"
+                            name="termsAgreement"
+                            required
+                            className="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500 mt-0.5 cursor-pointer"
+                            aria-required="true"
+                            aria-describedby="terms-description"
+                          />
+                          <label htmlFor="termsAgreement" className="text-xs text-gray-900 leading-relaxed cursor-pointer">
+                            <span id="terms-description">
+                              By proceeding with this booking, I agree to Ajani's{' '}
+                              <a href="/terms-service" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">
+                                Terms of Use
+                              </a>{' '}
+                              and{' '}
+                              <a href="/privacy" onClick={(e) => e.stopPropagation()} className="underline hover:text-blue-600 transition-colors">
+                                Privacy Policy
+                              </a>.{' '}
+                              I understand that my booking is subject to the property's cancellation policy.
+                            </span>
+                          </label>
+                        </div>
+                        
+                        <div className="flex items-start gap-2">
+                          <input
+                            type="checkbox"
+                            id="cancellationPolicy"
+                            name="cancellationPolicy"
+                            required
+                            className="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500 mt-0.5 cursor-pointer"
+                            aria-required="true"
+                            aria-describedby="cancellation-description"
+                          />
+                          <label htmlFor="cancellationPolicy" className="text-xs text-gray-600 cursor-pointer">
+                            <span id="cancellation-description">
+                              I accept the cancellation policy (free cancellation up to 24 hours before check-in)
+                            </span>
+                          </label>
+                        </div>
                       </div>
-                      
-                      <div className="flex items-start gap-2">
-                        <input
-                          type="checkbox"
-                          id="cancellationPolicy"
-                          required
-                          className="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500 mt-0.5 cursor-pointer"
-                        />
-                        <label htmlFor="cancellationPolicy" className="text-xs text-gray-600 cursor-pointer">
-                          I accept the cancellation policy (free cancellation up to 24 hours before check-in)
-                        </label>
-                      </div>
-                    </div>
 
-                    <button
-                      onClick={handleSubmit}
-                      className="w-full bg-[#6cff] text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer text-sm"
-                    >
-                      Confirm Booking & Continue
-                      <span className="ml-2">→</span>
-                    </button>
-                    
-                    <p className="text-center text-gray-500 text-xs mt-2">
-                      Confirmation will be sent to {guestInfo.email || guestInfo.contactInfo?.email || authStatus?.email || "your email"}
-                    </p>
-                  </div>
+                      <button
+                        type="submit"
+                        className="w-full bg-[#6cff] text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer text-sm"
+                        aria-label="Confirm booking and continue"
+                      >
+                        Confirm Booking & Continue
+                        <span className="ml-2" aria-hidden="true">→</span>
+                      </button>
+                      
+                      <p className="text-center text-gray-500 text-xs mt-2">
+                        Confirmation will be sent to {guestInfo.email || guestInfo.contactInfo?.email || authStatus?.email || "your email"}
+                      </p>
+                    </div>
+                  </form>
                 </div>
               </div>
             </div>
@@ -804,13 +834,14 @@ const PaymentPage = () => {
                     <div className="flex items-start gap-2.5">
                       <img 
                         src={hotelData?.image || vendorData?.image || "https://images.unsplash.com/photo-1552566626-52f8b828add9"} 
-                        alt={hotelData?.name || vendorData?.name}
+                        alt={hotelData?.name || vendorData?.name || "Property image"}
                         className="w-10 h-10 object-cover rounded"
+                        loading="lazy"
                       />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-gray-900 text-sm truncate">{hotelData?.name || vendorData?.name || "Property Name"}</h4>
                         <div className="flex items-center gap-1 mt-0.5">
-                          <Star className="w-3 h-3 text-yellow-500 fill-current" />
+                          <Star className="w-3 h-3 text-yellow-500 fill-current" aria-hidden="true" />
                           <span className="text-xs font-medium">{hotelData?.rating || vendorData?.rating || 4.5}</span>
                           <span className="text-xs text-gray-500 hidden sm:inline">
                             • {getLocationString(hotelData?.location || vendorData?.area)}
@@ -825,7 +856,7 @@ const PaymentPage = () => {
                           <>
                             <div className="flex justify-between items-center">
                               <div className="flex items-center gap-2">
-                                <Calendar className="w-3 h-3 text-gray-500" />
+                                <Calendar className="w-3 h-3 text-gray-500" aria-hidden="true" />
                                 <span className="text-xs text-gray-600">Dates</span>
                               </div>
                               <div className="text-right">
@@ -836,7 +867,7 @@ const PaymentPage = () => {
                             
                             <div className="flex justify-between items-center">
                               <div className="flex items-center gap-2">
-                                <Users className="w-3 h-3 text-gray-500" />
+                                <Users className="w-3 h-3 text-gray-500" aria-hidden="true" />
                                 <span className="text-xs text-gray-600">Guests</span>
                               </div>
                               <span className="text-xs font-medium">{bookingDetails?.adults || bookingData?.guests?.adults || 2} adults</span>
@@ -851,7 +882,7 @@ const PaymentPage = () => {
                           <>
                             <div className="flex justify-between items-center">
                               <div className="flex items-center gap-2">
-                                <Calendar className="w-3 h-3 text-gray-500" />
+                                <Calendar className="w-3 h-3 text-gray-500" aria-hidden="true" />
                                 <span className="text-xs text-gray-600">Date</span>
                               </div>
                               <div className="text-right">
@@ -861,7 +892,7 @@ const PaymentPage = () => {
                             
                             <div className="flex justify-between items-center">
                               <div className="flex items-center gap-2">
-                                <Users className="w-3 h-3 text-gray-500" />
+                                <Users className="w-3 h-3 text-gray-500" aria-hidden="true" />
                                 <span className="text-xs text-gray-600">Guests</span>
                               </div>
                               <span className="text-xs font-medium">{bookingDetails?.numberOfGuests || bookingData?.guests?.adults || 2} people</span>
@@ -869,7 +900,7 @@ const PaymentPage = () => {
                             
                             <div className="flex justify-between items-center">
                               <div className="flex items-center gap-2">
-                                <Coffee className="w-3 h-3 text-gray-500" />
+                                <Coffee className="w-3 h-3 text-gray-500" aria-hidden="true" />
                                 <span className="text-xs text-gray-600">Time</span>
                               </div>
                               <span className="text-xs font-medium">{bookingDetails?.time || "19:00"}</span>
@@ -895,8 +926,9 @@ const PaymentPage = () => {
                       <h6 className="font-semibold text-gray-900 text-xs mb-1">{roomData.title || "Room"}</h6>
                       <img 
                         src={roomData.image} 
-                        alt={roomData.title}
+                        alt={roomData.title || "Room image"}
                         className="w-full h-28 object-cover rounded-md"
+                        loading="lazy"
                       />
                     </div>
                     
@@ -961,7 +993,7 @@ const PaymentPage = () => {
                 {/* Payment Info */}
                 <div className="bg-yellow-50 rounded-lg border border-yellow-100 p-2.5">
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                    <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
                     <div>
                       <p className="font-medium text-yellow-800 text-xs">Payment Instructions</p>
                       <p className="text-xs text-yellow-700 mt-0.5">
@@ -974,7 +1006,7 @@ const PaymentPage = () => {
                 {/* Guarantee */}
                 <div className="text-center">
                   <div className="inline-flex items-center gap-1.5 text-xs text-gray-600">
-                    <Shield className="w-3 h-3 text-green-500" />
+                    <Shield className="w-3 h-3 text-green-500" aria-hidden="true" />
                     <span className="font-medium">Best Price Guarantee</span>
                   </div>
                   <p className="text-xs text-gray-500 mt-0.5">
