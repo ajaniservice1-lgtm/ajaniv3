@@ -13,6 +13,8 @@ import {
   faChevronLeft, faNotesMedical,
   faChair, faWifi
 } from "@fortawesome/free-solid-svg-icons";
+import { ToastContainer, toast, Slide } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 
 const EventBooking = ({ vendorData: propVendorData }) => {
   const navigate = useNavigate();
@@ -90,6 +92,20 @@ const EventBooking = ({ vendorData: propVendorData }) => {
     const token = localStorage.getItem("auth_token");
     const guestSession = localStorage.getItem("guestSession");
     return !!(token || guestSession);
+  };
+
+  // Show toast notification
+  const showToast = (message, type = "error") => {
+    toast[type](message, {
+      position: "top-right",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      transition: Slide,
+    });
   };
 
   useEffect(() => {
@@ -271,31 +287,31 @@ const EventBooking = ({ vendorData: propVendorData }) => {
 
     // Validate number of guests
     if (!bookingData.numberOfGuests || bookingData.numberOfGuests < 1) {
-      alert("Please enter a valid number of guests (minimum: 1)");
+      showToast("Please enter a valid number of guests (minimum: 1)");
       return;
     }
 
     const missingFields = requiredFields.filter(f => !f.field || f.field.toString().trim() === "");
     
     if (missingFields.length > 0) {
-      alert(`Please fill in all required fields:\n${missingFields.map(f => `• ${f.name}`).join('\n')}`);
+      showToast(`Please fill in all required fields:\n${missingFields.map(f => `• ${f.name}`).join('\n')}`);
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(bookingData.contactPerson.email)) {
-      alert("Please enter a valid email address");
+      showToast("Please enter a valid email address");
       return;
     }
 
     const phoneDigits = bookingData.contactPerson.phone.replace(/\D/g, '');
     if (phoneDigits.length !== 13) {
-      alert("Please enter a complete 10-digit Nigerian phone number");
+      showToast("Please enter a complete 10-digit Nigerian phone number");
       return;
     }
 
     if (!isTermsAccepted) {
-      alert("You must accept the terms and conditions to proceed");
+      showToast("You must accept the terms and conditions to proceed");
       return;
     }
 
@@ -468,6 +484,7 @@ const EventBooking = ({ vendorData: propVendorData }) => {
   return (
     <div className="min-h-screen bg-white">
       <Header />
+      <ToastContainer />
       
       <div className="pt-0">
         <div className="max-w-7xl mx-auto px-2.5 sm:px-4 py-20 sm:py-26">
@@ -527,7 +544,7 @@ const EventBooking = ({ vendorData: propVendorData }) => {
                           </h3>
                           <div className="flex items-center gap-1.5 text-xs text-gray-600 mb-2">
                             <FontAwesomeIcon icon={faMapMarkerAlt} style={{ color: brandColors.primary }} />
-                            <span className="truncate">{vendorData.area || vendorData.location || "Victoria Island, Lagos"}</span>
+                            <span className="truncate">{vendorData.area || vendorData.location || "Ibadan, Oyo State"}</span>
                           </div>
                         </div>
                         <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
@@ -566,47 +583,7 @@ const EventBooking = ({ vendorData: propVendorData }) => {
                   </div>
                 </div>
 
-                {/* Event Type Selection */}
-                <div className="mb-4 sm:mb-6">
-                  <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 flex items-center gap-1.5">
-                    <FontAwesomeIcon icon={faMusic} style={{ color: brandColors.primary }} className="text-sm" />
-                    Event Type
-                  </h2>
-                  
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {eventTypes.map((event) => (
-                      <button
-                        key={event.id}
-                        type="button"
-                        onClick={() => setBookingData(prev => ({ ...prev, eventType: event.id }))}
-                        className={`p-2 sm:p-3 rounded-lg border transition-all cursor-pointer text-left ${
-                          bookingData.eventType === event.id 
-                            ? 'border-blue-500 bg-blue-50 text-blue-700' 
-                            : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                        }`}
-                        style={bookingData.eventType === event.id ? {
-                          borderColor: brandColors.primary,
-                          backgroundColor: `${brandColors.primary}10`,
-                          color: brandColors.primaryDark
-                        } : {}}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            bookingData.eventType === event.id ? 'bg-blue-100' : 'bg-gray-100'
-                          }`}
-                          style={bookingData.eventType === event.id ? { backgroundColor: `${brandColors.primary}20` } : {}}>
-                            <FontAwesomeIcon 
-                              icon={event.icon} 
-                              className={`text-sm ${bookingData.eventType === event.id ? 'text-blue-600' : 'text-gray-600'}`}
-                              style={bookingData.eventType === event.id ? { color: brandColors.primary } : {}}
-                            />
-                          </div>
-                          <span className="text-xs font-medium">{event.name}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+               
 
                 {/* Event Details Section */}
                 <div className="mb-4 sm:mb-6">
@@ -699,208 +676,9 @@ const EventBooking = ({ vendorData: propVendorData }) => {
                   </div>
                 </div>
 
-                {/* Price Selection Section */}
-                <div className="mb-4 sm:mb-6">
-                  <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 flex items-center gap-1.5">
-                    <FontAwesomeIcon icon={faStar} style={{ color: brandColors.primary }} className="text-sm" />
-                    Select Event Package Price *
-                  </h2>
-                  
-                  <div className="border border-gray-300 rounded-lg p-3 sm:p-4">
-                    <label className="block text-xs font-semibold text-gray-700 mb-3">
-                      Choose your preferred package price
-                    </label>
-                    
-                    {/* Price Buttons Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mb-3">
-                      {priceOptions.map((price) => (
-                        <button
-                          key={price.value}
-                          type="button"
-                          onClick={() => handlePriceChange(price.value)}
-                          className={`p-2 sm:p-3 rounded-lg border transition-all cursor-pointer text-center ${
-                            bookingData.selectedPrice === price.value
-                              ? 'border-blue-500 bg-blue-50 text-blue-700'
-                              : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                          }`}
-                          style={bookingData.selectedPrice === price.value ? {
-                            borderColor: brandColors.primary,
-                            backgroundColor: `${brandColors.primary}10`,
-                            color: brandColors.primaryDark
-                          } : {}}
-                        >
-                          <div className="font-medium text-sm">{price.label}</div>
-                        </button>
-                      ))}
-                    </div>
-                    
-                    {/* Custom Price Input */}
-                    <div className="mt-4">
-                      <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                        Or enter custom amount (₦10,000 - ₦500,000)
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₦</span>
-                        <input
-                          type="number"
-                          min="10000"
-                          max="500000"
-                          step="1000"
-                          value={bookingData.selectedPrice}
-                          onChange={(e) => {
-                            const value = Math.min(500000, Math.max(10000, parseInt(e.target.value) || 10000));
-                            handlePriceChange(value);
-                          }}
-                          className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
-                          style={{ '--tw-ring-color': brandColors.primary }}
-                        />
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Selected: {formatPrice(bookingData.selectedPrice)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+               
 
-                {/* Guests Section - SIMPLIFIED with just input field */}
-                <div className="mb-4 sm:mb-6">
-                  <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 flex items-center gap-1.5">
-                    <FontAwesomeIcon icon={faUsers} style={{ color: brandColors.primary }} className="text-sm" />
-                    Number of Guests
-                  </h2>
-                  
-                  <div className="border border-gray-300 rounded-lg p-3 sm:p-4">
-                    <label className="block text-xs font-semibold text-gray-700 mb-3">
-                      Estimated number of guests *
-                    </label>
-                    
-                    <div className="flex items-center justify-center gap-3">
-                      {/* Decrease Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleGuestChange('decrease')}
-                        className="w-10 h-10 rounded-full border-2 bg-white flex items-center justify-center hover:bg-blue-50 transition-all cursor-pointer text-base font-bold flex-shrink-0"
-                        style={{ 
-                          borderColor: `${brandColors.primary}80`,
-                          color: brandColors.primaryDark,
-                          '&:hover': { borderColor: brandColors.primaryDark }
-                        }}
-                        title="Decrease guests"
-                      >
-                        -
-                      </button>
-                      
-                      {/* Simple Input Field - No double display */}
-                      <div className="relative w-full max-w-[140px]">
-                        <input
-                          type="text"
-                          value={bookingData.numberOfGuests || ""}
-                          onChange={handleGuestInputChange}
-                          className="w-full text-center py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-2xl font-bold text-gray-900"
-                          style={{ '--tw-ring-color': brandColors.primary }}
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                        />
-                        <div className="absolute -bottom-5 left-0 right-0 text-center">
-                          <div className="text-xs text-gray-600">
-                            guest{bookingData.numberOfGuests !== 1 ? 's' : ''}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Increase Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleGuestChange('increase')}
-                        className="w-10 h-10 rounded-full border-2 bg-white flex items-center justify-center hover:bg-emerald-50 transition-all cursor-pointer text-base font-bold flex-shrink-0"
-                        style={{ 
-                          borderColor: `${brandColors.accent}80`,
-                          color: brandColors.accent,
-                          '&:hover': { borderColor: brandColors.accent }
-                        }}
-                        title="Increase guests"
-                      >
-                        +
-                      </button>
-                    </div>
-                    
-                    <div className="mt-6 flex flex-col items-center gap-1">
-                      <p className="text-xs text-center text-gray-500">
-                        Type directly in the box, or use +/- buttons
-                      </p>
-                      
-                    </div>
-                  </div>
-                </div>
-
-                {/* Equipment & Services */}
-                <div className="mb-4 sm:mb-6">
-                  <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 flex items-center gap-1.5">
-                    <FontAwesomeIcon icon={faVideo} style={{ color: brandColors.primary }} className="text-sm" />
-                    Equipment & Services (Free)
-                  </h2>
-                  
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {[
-                        { name: 'soundSystem', label: 'Sound System', icon: faMusic },
-                        { name: 'projector', label: 'Projector', icon: faVideo },
-                        { name: 'microphone', label: 'Microphone', icon: faMicrophone },
-                        { name: 'stage', label: 'Stage Setup', icon: faVideo },
-                        { name: 'seating', label: 'Seating', icon: faChair },
-                        { name: 'wifi', label: 'WiFi', icon: faWifi }
-                      ].map((item) => (
-                        <button
-                          key={item.name}
-                          type="button"
-                          onClick={() => handleEquipmentChange(item.name)}
-                          className={`p-2 rounded-lg border transition-all cursor-pointer ${
-                            bookingData.equipment[item.name]
-                              ? 'border-blue-500 bg-blue-50 text-blue-700'
-                              : 'border-gray-200 hover:border-blue-300'
-                          }`}
-                          style={bookingData.equipment[item.name] ? {
-                            borderColor: brandColors.primary,
-                            backgroundColor: `${brandColors.primary}10`,
-                            color: brandColors.primaryDark
-                          } : {}}
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className={`w-6 h-6 rounded flex items-center justify-center ${
-                              bookingData.equipment[item.name] ? 'bg-blue-100' : 'bg-gray-100'
-                            }`}
-                            style={bookingData.equipment[item.name] ? { backgroundColor: `${brandColors.primary}20` } : {}}>
-                              <FontAwesomeIcon 
-                                icon={item.icon} 
-                                className={`text-xs ${bookingData.equipment[item.name] ? 'text-blue-600' : 'text-gray-600'}`}
-                                style={bookingData.equipment[item.name] ? { color: brandColors.primary } : {}}
-                              />
-                            </div>
-                            <span className="text-xs font-medium">{item.label}</span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                    
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                        Setup Time Required (hours before event)
-                      </label>
-                      <select
-                        name="setupTime"
-                        value={bookingData.setupTime}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
-                        style={{ '--tw-ring-color': brandColors.primary }}
-                      >
-                        <option value="1">1 hour</option>
-                        <option value="2">2 hours</option>
-                        <option value="3">3 hours</option>
-                        <option value="4">4 hours</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
+             
 
                 {/* Contact Information */}
                 <div className="mb-4 sm:mb-6">
@@ -990,6 +768,48 @@ const EventBooking = ({ vendorData: propVendorData }) => {
                           style={{ '--tw-ring-color': brandColors.primary }}
                           required
                           maxLength={10}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Fixed Location Fields */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                          Country
+                        </label>
+                        <input
+                          type="text"
+                          value="Nigeria"
+                          disabled
+                          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 text-sm cursor-not-allowed"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                          State
+                        </label>
+                        <input
+                          type="text"
+                          value="Oyo"
+                          disabled
+                          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 text-sm cursor-not-allowed"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                          City
+                        </label>
+                        <input
+                          type="text"
+                          value="Ibadan"
+                          disabled
+                          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 text-sm cursor-not-allowed"
+                          required
                         />
                       </div>
                     </div>
@@ -1115,7 +935,7 @@ const EventBooking = ({ vendorData: propVendorData }) => {
                     </div>
                   </div>
                   
-                  {/* Price Breakdown - Updated */}
+                  {/* Price Breakdown */}
                   <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
                     <div className="p-3">
                       <h5 className="font-bold text-gray-900 mb-2 text-sm">Price Breakdown</h5>
@@ -1162,27 +982,20 @@ const EventBooking = ({ vendorData: propVendorData }) => {
                     </div>
                   </div>
                   
-                  {/* Services Included */}
+                
+                  
+                  {/* Location Information - Fixed to Oyo State */}
                   <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
                     <div className="p-3">
-                      <h5 className="font-bold text-gray-900 mb-2 text-sm">Services Included</h5>
+                      <h5 className="font-bold text-gray-900 mb-2 text-sm">Location</h5>
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2 text-xs">
-                          <FontAwesomeIcon icon={faCheck} style={{ color: brandColors.accent }} className="text-xs" />
-                          <span>Basic venue setup</span>
+                          <FontAwesomeIcon icon={faMapMarkerAlt} style={{ color: brandColors.primary }} className="text-xs" />
+                          <span className="font-medium">Nigeria, Oyo State, Ibadan</span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs">
-                          <FontAwesomeIcon icon={faCheck} style={{ color: brandColors.accent }} className="text-xs" />
-                          <span>Security personnel</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs">
-                          <FontAwesomeIcon icon={faCheck} style={{ color: brandColors.accent }} className="text-xs" />
-                          <span>Cleaning services</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs">
-                          <FontAwesomeIcon icon={faCheck} style={{ color: brandColors.accent }} className="text-xs" />
-                          <span>Power supply</span>
-                        </div>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          All events are currently limited to Oyo State, Nigeria
+                        </p>
                       </div>
                     </div>
                   </div>

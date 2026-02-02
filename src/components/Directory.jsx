@@ -19,13 +19,9 @@ const buildQueryString = (filters = {}) => {
 
 const getListingsByCategory = async (category) => {
   try {
-    console.log(`Fetching ${category} listings...`);
     const result = await listingService.getByCategory(category);
-    console.log(`${category} API Response status:`, result.status);
-    console.log(`${category} results count:`, result.results);
     return result;
   } catch (error) {
-    console.error(`Error fetching ${category} listings:`, error);
     return {
       status: 'error',
       message: error.message,
@@ -151,7 +147,6 @@ const getCardImages = (item) => {
     if (cat.includes("event")) return [FALLBACK_IMAGES.event];
     return [FALLBACK_IMAGES.default];
   } catch (error) {
-    console.error('Error getting card images:', error);
     return [FALLBACK_IMAGES.default];
   }
 };
@@ -190,7 +185,6 @@ const getPriceFromItem = (item) => {
     
     return 0;
   } catch (error) {
-    console.error('Error getting price:', error);
     return 0;
   }
 };
@@ -220,7 +214,6 @@ const getLocationFromItem = (item) => {
     
     return "Ibadan";
   } catch (error) {
-    console.error('Error getting location:', error);
     return "Ibadan";
   }
 };
@@ -245,7 +238,6 @@ const getBusinessName = (item) => {
     
     return "Business";
   } catch (error) {
-    console.error('Error getting business name:', error);
     return "Business";
   }
 };
@@ -391,29 +383,18 @@ const useListings = (category) => {
         setLoading(true);
         setError(null);
         
-        console.log(`Fetching ${category} listings...`);
         const data = await getListingsByCategory(category);
-        
-        console.log(`${category} API response:`, data);
         
         if (data && data.status === 'success' && data.data && data.data.listings) {
           const fetchedListings = data.data.listings;
-          console.log(`${category} listings fetched:`, fetchedListings.length);
-          if (fetchedListings.length > 0) {
-            console.log(`${category} sample listing:`, fetchedListings[0]);
-            console.log(`${category} sample price data:`, fetchedListings[0]?.details?.priceRangePerMeal);
-          }
           setListings(fetchedListings);
         } else if (data && data.status === 'error') {
-          console.error(`${category} API error:`, data.message);
           setError(data.message || 'API Error');
           setListings([]);
         } else {
-          console.warn(`${category} No listings found or unexpected response structure`);
           setListings([]);
         }
       } catch (err) {
-        console.error(`${category} Fetch error:`, err);
         setError(err.message);
         setListings([]);
       } finally {
@@ -703,7 +684,8 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
       <section className="mb-4">
         <div className="flex justify-between items-center mb-2">
           <div>
-            <h2 className="text-gray-900 font-bold text-xl" style={{ color: "#000651" }}>
+            {/* UPDATED: 13.5px font size for mobile */}
+            <h2 className={`${isMobile ? "text-[13.5px]" : "text-xl"} font-bold text-gray-900`} style={{ color: "#000651" }}>
               {title}
             </h2>
           </div>
@@ -730,7 +712,8 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
       <section className="mb-4">
         <div className="flex justify-between items-center mb-2">
           <div>
-            <h2 className="text-gray-900 font-bold text-xl" style={{ color: "#000651" }}>
+            {/* UPDATED: 13.5px font size for mobile */}
+            <h2 className={`${isMobile ? "text-[13.5px]" : "text-xl"} font-bold text-gray-900`} style={{ color: "#000651" }}>
               {title}
             </h2>
           </div>
@@ -759,7 +742,8 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
     <section className="mb-4">
       <div className="flex justify-between items-center mb-2">
         <div>
-          <h2 className="text-gray-900 font-bold text-xl" style={{ color: "#000651" }}>
+          {/* UPDATED: 13.5px font size for mobile, kept xl for desktop */}
+          <h2 className={`${isMobile ? "text-[13.5px]" : "text-xl"} font-bold text-gray-900`} style={{ color: "#000651" }}>
             {title}
           </h2>
         </div>

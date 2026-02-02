@@ -40,7 +40,7 @@ const cacheStore = {
       };
       localStorage.setItem(key, JSON.stringify(cacheItem));
     } catch (error) {
-      console.warn('Cache storage failed:', error);
+      // Silent fail on cache storage error
     }
   },
   
@@ -52,7 +52,7 @@ const cacheStore = {
         }
       });
     } catch (error) {
-      console.warn('Cache invalidation failed:', error);
+      // Silent fail on cache invalidation
     }
   }
 };
@@ -81,7 +81,6 @@ export const listingService = {
       const cached = cacheStore.get(cacheKey);
       
       if (cached) {
-        console.log('Cache hit for all listings');
         return cached;
       }
       
@@ -110,15 +109,10 @@ export const listingService = {
       const queryString = params.toString();
       const url = `/listings${queryString ? `?${queryString}` : ''}`;
       
-      console.log('🔍 Backend API Request URL:', url);
-      console.log('📡 Backend API Request params:', Object.fromEntries(params));
-      
       const response = await axiosInstance.get(url, {
         timeout: 10000,
         headers: { 'Accept': 'application/json' }
       });
-      
-      console.log('✅ Backend API Response:', response.data);
       
       if (response.data) {
         const apiData = response.data;
@@ -157,8 +151,6 @@ export const listingService = {
       };
       
     } catch (error) {
-      console.error('❌ Error fetching all listings:', error);
-      console.error('❌ Error response:', error.response?.data);
       return {
         status: 'error',
         message: error.response?.data?.message || error.message,
@@ -180,7 +172,6 @@ export const listingService = {
       const cached = cacheStore.get(cacheKey);
       
       if (cached) {
-        console.log('Cache hit for services');
         return cached;
       }
       
@@ -188,8 +179,6 @@ export const listingService = {
         timeout: 10000,
         headers: { 'Accept': 'application/json' }
       });
-      
-      console.log('✅ Services API Response:', response.data);
       
       if (response.data) {
         const apiData = response.data;
@@ -228,8 +217,6 @@ export const listingService = {
       };
       
     } catch (error) {
-      console.error('❌ Error fetching services:', error);
-      console.error('❌ Error response:', error.response?.data);
       return {
         status: 'error',
         message: error.response?.data?.message || error.message,
@@ -268,7 +255,6 @@ export const listingService = {
     if (limit) filters.limit = limit;
     if (page > 1) filters.page = page;
     
-    console.log('🔍 Search params to filters:', { searchParams, filters });
     return listingService.getAll(filters);
   },
 

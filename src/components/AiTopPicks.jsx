@@ -31,6 +31,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
   const contentRef = useRef(null);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [bgImageError, setBgImageError] = useState(false);
+  const scrollPositionRef = useRef(0);
 
   useEffect(() => {
     const checkTouchDevice = () => {
@@ -68,12 +69,19 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      document.addEventListener('keydown', handleTabKey);
+      // Store the current scroll position
+      scrollPositionRef.current = window.pageYOffset || document.documentElement.scrollTop;
+      
+      // Lock body scroll without moving the page
       document.body.style.overflow = 'hidden';
       document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollPositionRef.current}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
       document.body.style.width = '100%';
-      document.body.style.height = '100%';
+      
+      document.addEventListener('keydown', handleEscape);
+      document.addEventListener('keydown', handleTabKey);
       
       setTimeout(() => {
         const closeButton = modalRef.current?.querySelector('button[aria-label="Close modal"]');
@@ -84,10 +92,19 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
     return () => {
       document.removeEventListener('keydown', handleEscape);
       document.removeEventListener('keydown', handleTabKey);
-      document.body.style.overflow = 'unset';
-      document.body.style.position = 'static';
-      document.body.style.width = 'auto';
-      document.body.style.height = 'auto';
+      
+      if (isOpen) {
+        // Restore body styles
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.width = '';
+        
+        // Restore scroll position
+        window.scrollTo(0, scrollPositionRef.current);
+      }
     };
   }, [isOpen, onClose]);
 
@@ -213,7 +230,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
               <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 sm:gap-4 lg:gap-5 mb-4 sm:mb-6 lg:mb-8">
                 <div className="flex-1">
                   <div className="flex flex-col lg:flex-row lg:items-center gap-2 sm:gap-3 lg:gap-4 mb-2 sm:mb-3 lg:mb-4">
-                    <h2 id="modal-title" className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+                    <h2 id="modal-title" className="text-lg sm:text-xl lg:text-[19.5px] font-bold text-gray-900">
                       {vendor.fullName}
                     </h2>
                     <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
@@ -231,7 +248,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                     </div>
                   </div>
                   
-                  <p className="text-sm sm:text-base lg:text-lg text-gray-600 mb-2 sm:mb-3 lg:mb-4">
+                  <p className="text-sm sm:text-base lg:text-[15px] text-gray-600 mb-2 sm:mb-3 lg:mb-4">
                     {vendor.serviceCategory} • {vendor.category}
                   </p>
                   
@@ -241,15 +258,15 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                         icon={faStar}
                         className="text-black text-sm sm:text-base lg:text-lg"
                       />
-                      <span className="font-bold text-gray-900 text-sm sm:text-base lg:text-lg">
+                      <span className="font-bold text-gray-900 text-sm sm:text-base lg:text-[15px]">
                         {vendor.rating}
                       </span>
-                      <span className="text-gray-500 text-xs sm:text-sm lg:text-base">
+                      <span className="text-gray-500 text-xs sm:text-sm lg:text-[14px]">
                         ({vendor.review_count} reviews)
                       </span>
                     </div>
                     <span className="text-gray-300 hidden lg:inline">•</span>
-                    <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-2 text-gray-600 text-xs sm:text-sm lg:text-base">
+                    <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-2 text-gray-600 text-xs sm:text-sm lg:text-[14px]">
                       <FaCheckCircle className="text-green-500 text-sm sm:text-base" />
                       <span>Approved on {new Date(vendor.approvedAt).toLocaleDateString()}</span>
                     </div>
@@ -271,14 +288,14 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                       border border-[#06EAFC]
                       focus:outline-none
                       focus:ring-2 focus:ring-[#06EAFC] focus:ring-offset-2
-                      text-xs sm:text-sm lg:text-base
+                      text-xs sm:text-sm lg:text-[14px]
                     "
                     onClick={(e) => {
                       e.stopPropagation();
                       window.location.href = `mailto:${vendor.email}`;
                     }}
                   >
-                    <FaEnvelope className="text-xs sm:text-sm lg:text-base" />
+                    <FaEnvelope className="text-xs sm:text-sm lg:text-[14px]" />
                     <span className="whitespace-nowrap">Contact Vendor</span>
                   </button>
                   <button 
@@ -295,14 +312,14 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                       border border-gray-300
                       focus:outline-none
                       focus:ring-2 focus:ring-gray-300 focus:ring-offset-2
-                      text-xs sm:text-sm lg:text-base
+                      text-xs sm:text-sm lg:text-[14px]
                     "
                     onClick={(e) => {
                       e.stopPropagation();
                       // Add booking logic here
                     }}
                   >
-                    <FaCalendarCheck className="text-xs sm:text-sm lg:text-base" />
+                    <FaCalendarCheck className="text-xs sm:text-sm lg:text-[14px]" />
                     <span className="whitespace-nowrap">Book Now</span>
                   </button>
                 </div>
@@ -315,11 +332,11 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   transition={{ duration: 0.1 }}
                   className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
                 >
-                  <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
+                  <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
                     <FaBriefcase className="text-[#06EAFC]" />
                     Experience
                   </p>
-                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+                  <p className="text-lg sm:text-xl lg:text-[22px] font-bold text-gray-900">
                     {vendor.years_experience} years
                   </p>
                 </motion.div>
@@ -328,11 +345,11 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   transition={{ duration: 0.1 }}
                   className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
                 >
-                  <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
+                  <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
                     <FaMoneyBillWave className="text-[#06EAFC]" />
                     Price Range
                   </p>
-                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+                  <p className="text-lg sm:text-xl lg:text-[22px] font-bold text-gray-900">
                     ₦{vendor.priceFrom?.toLocaleString()} - ₦{vendor.priceTo?.toLocaleString()}
                   </p>
                 </motion.div>
@@ -341,11 +358,11 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   transition={{ duration: 0.1 }}
                   className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
                 >
-                  <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
+                  <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
                     <FaCertificate className="text-[#06EAFC]" />
                     Status
                   </p>
-                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 capitalize">
+                  <p className="text-lg sm:text-xl lg:text-[22px] font-bold text-gray-900 capitalize">
                     {vendor.status}
                   </p>
                 </motion.div>
@@ -354,11 +371,11 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   transition={{ duration: 0.1 }}
                   className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
                 >
-                  <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
+                  <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
                     <FaGlobe className="text-[#06EAFC]" />
                     Service Area
                   </p>
-                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">
+                  <p className="text-lg sm:text-xl lg:text-[22px] font-bold text-gray-900 truncate">
                     {vendor.area}
                   </p>
                 </motion.div>
@@ -370,17 +387,17 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                 <div className="lg:col-span-2 space-y-3 sm:space-y-4 lg:space-y-6">
                   {/* About Section */}
                   <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default">
-                    <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 mb-2 sm:mb-3 lg:mb-4 flex items-center gap-1.5 sm:gap-2">
+                    <h3 className="text-base sm:text-lg lg:text-[19.5px] font-bold text-gray-900 mb-2 sm:mb-3 lg:mb-4 flex items-center gap-1.5 sm:gap-2">
                       <span className="w-1 h-3 sm:h-4 lg:h-6 bg-[#06EAFC] rounded-full"></span>
                       About
                     </h3>
-                    <p className="text-gray-700 leading-relaxed text-xs sm:text-sm lg:text-base whitespace-pre-line">
+                    <p className="text-gray-700 leading-relaxed text-xs sm:text-sm lg:text-[14px] whitespace-pre-line">
                       {vendor.about || vendor.businessDescription || "No description available."}
                     </p>
                     
                     <div className="mt-3 sm:mt-4 lg:mt-5">
-                      <h4 className="font-semibold text-gray-900 mb-1.5 sm:mb-2 lg:mb-3 text-sm sm:text-base lg:text-base">What We Do:</h4>
-                      <p className="text-gray-700 text-xs sm:text-sm lg:text-base">
+                      <h4 className="font-semibold text-gray-900 mb-1.5 sm:mb-2 lg:mb-3 text-sm sm:text-base lg:text-[14px]">What We Do:</h4>
+                      <p className="text-gray-700 text-xs sm:text-sm lg:text-[14px]">
                         {vendor.whatWeDo || "We offer premium services tailored to your needs."}
                       </p>
                     </div>
@@ -388,7 +405,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
 
                   {/* Services Offered */}
                   <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default">
-                    <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 mb-2 sm:mb-3 lg:mb-4 flex items-center gap-1.5 sm:gap-2">
+                    <h3 className="text-base sm:text-lg lg:text-[19.5px] font-bold text-gray-900 mb-2 sm:mb-3 lg:mb-4 flex items-center gap-1.5 sm:gap-2">
                       <span className="w-1 h-3 sm:h-4 lg:h-6 bg-[#06EAFC] rounded-full"></span>
                       Services Offered
                     </h3>
@@ -408,7 +425,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                             hover:border-[#06EAFC]
                             transition-all duration-150
                             cursor-default
-                            text-xs sm:text-sm lg:text-sm
+                            text-xs sm:text-sm lg:text-[13px]
                           "
                         >
                           {service}
@@ -419,36 +436,36 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
 
                   {/* Business Details */}
                   <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default">
-                    <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 mb-2 sm:mb-3 lg:mb-4 flex items-center gap-1.5 sm:gap-2">
+                    <h3 className="text-base sm:text-lg lg:text-[19.5px] font-bold text-gray-900 mb-2 sm:mb-3 lg:mb-4 flex items-center gap-1.5 sm:gap-2">
                       <span className="w-1 h-3 sm:h-4 lg:h-6 bg-[#06EAFC] rounded-full"></span>
                       Business Details
                     </h3>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div>
-                        <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1">Business Name</p>
-                        <p className="font-semibold text-gray-900 text-sm sm:text-base lg:text-base">
+                        <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600 mb-1">Business Name</p>
+                        <p className="font-semibold text-gray-900 text-sm sm:text-base lg:text-[14px]">
                           {vendor.vendorBusinessName || vendor.name}
                         </p>
                       </div>
                       
                       <div>
-                        <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1">Service Category</p>
-                        <p className="font-semibold text-gray-900 text-sm sm:text-base lg:text-base">
+                        <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600 mb-1">Service Category</p>
+                        <p className="font-semibold text-gray-900 text-sm sm:text-base lg:text-[14px]">
                           {vendor.serviceCategory}
                         </p>
                       </div>
                       
                       <div>
-                        <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1">Years of Experience</p>
-                        <p className="font-semibold text-gray-900 text-sm sm:text-base lg:text-base">
+                        <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600 mb-1">Years of Experience</p>
+                        <p className="font-semibold text-gray-900 text-sm sm:text-base lg:text-[14px]">
                           {vendor.years_experience} years
                         </p>
                       </div>
                       
                       <div>
-                        <p className="text-xs sm:text-sm lg:text-sm text-gray-600 mb-1">CAC Registration</p>
-                        <p className="font-semibold text-gray-900 text-sm sm:text-base lg:text-base">
+                        <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600 mb-1">CAC Registration</p>
+                        <p className="font-semibold text-gray-900 text-sm sm:text-base lg:text-[14px]">
                           {vendor.cacRegistered ? `Yes - ${vendor.cacNumber}` : "Not Registered"}
                         </p>
                         {vendor.cacRegistered && (
@@ -466,7 +483,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                 {/* Right Column - Contact & Details */}
                 <div className="space-y-3 sm:space-y-4 lg:space-y-6">
                   <div className="bg-gradient-to-br from-gray-50 to-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 shadow-sm cursor-default">
-                    <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 mb-3 sm:mb-4 lg:mb-5">
+                    <h3 className="text-base sm:text-lg lg:text-[19.5px] font-bold text-gray-900 mb-3 sm:mb-4 lg:mb-5">
                       Contact & Location
                     </h3>
 
@@ -477,8 +494,8 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                           <FaMapMarkerAlt className="text-[#06EAFC] text-sm sm:text-base lg:text-xl" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs sm:text-sm lg:text-sm text-gray-600">Location</p>
-                          <p className="font-semibold text-gray-900 text-xs sm:text-sm lg:text-base">
+                          <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600">Location</p>
+                          <p className="font-semibold text-gray-900 text-xs sm:text-sm lg:text-[14px]">
                             {vendor.address}
                           </p>
                           <p className="text-xs text-gray-500 mt-0.5 sm:mt-0.5 lg:mt-1">
@@ -498,8 +515,8 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                           <FaClock className="text-[#06EAFC] text-sm sm:text-base lg:text-xl" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs sm:text-sm lg:text-sm text-gray-600">Operating Hours</p>
-                          <p className="font-semibold text-gray-900 text-xs sm:text-sm lg:text-base">
+                          <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600">Operating Hours</p>
+                          <p className="font-semibold text-gray-900 text-xs sm:text-sm lg:text-[14px]">
                             {vendor.operatingHours}
                           </p>
                         </div>
@@ -513,8 +530,8 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                           <FaBuilding className="text-[#06EAFC] text-sm sm:text-base lg:text-xl" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs sm:text-sm lg:text-sm text-gray-600">Vendor</p>
-                          <p className="font-semibold text-gray-900 text-xs sm:text-sm lg:text-base">
+                          <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600">Vendor</p>
+                          <p className="font-semibold text-gray-900 text-xs sm:text-sm lg:text-[14px]">
                             {vendor.vendorName}
                           </p>
                           <p className="text-xs text-gray-500 mt-0.5">
@@ -525,14 +542,14 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
 
                       {/* Contact Information */}
                       <div className="pt-2.5 sm:pt-3 lg:pt-4 border-t border-gray-200">
-                        <h4 className="font-semibold text-gray-900 mb-1.5 sm:mb-2 lg:mb-3 text-sm sm:text-base lg:text-base">Contact Information</h4>
+                        <h4 className="font-semibold text-gray-900 mb-1.5 sm:mb-2 lg:mb-3 text-sm sm:text-base lg:text-[14px]">Contact Information</h4>
                         <div className="space-y-1.5 sm:space-y-2 lg:space-y-3">
                           <a 
                             href={`tel:${vendor.phone}`}
                             className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 hover:text-[#06EAFC] transition-colors duration-150"
                           >
-                            <FaPhone className="text-gray-400 text-xs sm:text-sm lg:text-base" />
-                            <span className="text-gray-700 text-xs sm:text-sm lg:text-base truncate">{vendor.phone}</span>
+                            <FaPhone className="text-gray-400 text-xs sm:text-sm lg:text-[14px]" />
+                            <span className="text-gray-700 text-xs sm:text-sm lg:text-[14px] truncate">{vendor.phone}</span>
                           </a>
                           
                           <a 
@@ -541,16 +558,16 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                             rel="noopener noreferrer"
                             className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 hover:text-green-600 transition-colors duration-150"
                           >
-                            <FaWhatsapp className="text-green-500 text-xs sm:text-sm lg:text-base" />
-                            <span className="text-gray-700 text-xs sm:text-sm lg:text-base truncate">{vendor.whatsapp}</span>
+                            <FaWhatsapp className="text-green-500 text-xs sm:text-sm lg:text-[14px]" />
+                            <span className="text-gray-700 text-xs sm:text-sm lg:text-[14px] truncate">{vendor.whatsapp}</span>
                           </a>
                           
                           <a 
                             href={`mailto:${vendor.email}`}
                             className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 hover:text-[#06EAFC] transition-colors duration-150"
                           >
-                            <FaEnvelope className="text-gray-400 text-xs sm:text-sm lg:text-base" />
-                            <span className="text-gray-700 text-xs sm:text-sm lg:text-base truncate">{vendor.email}</span>
+                            <FaEnvelope className="text-gray-400 text-xs sm:text-sm lg:text-[14px]" />
+                            <span className="text-gray-700 text-xs sm:text-sm lg:text-[14px] truncate">{vendor.email}</span>
                           </a>
                         </div>
                       </div>
@@ -559,10 +576,10 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
 
                   {/* Approval Status */}
                   <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default">
-                    <h4 className="font-semibold text-gray-900 mb-2 sm:mb-3 lg:mb-4 text-sm sm:text-base lg:text-base">Approval Status</h4>
+                    <h4 className="font-semibold text-gray-900 mb-2 sm:mb-3 lg:mb-4 text-sm sm:text-base lg:text-[14px]">Approval Status</h4>
                     <div className="space-y-1.5 sm:space-y-2 lg:space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-700 text-xs sm:text-sm lg:text-base">Status</span>
+                        <span className="text-gray-700 text-xs sm:text-sm lg:text-[14px]">Status</span>
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
                           vendor.status === 'approved' 
                             ? 'bg-green-100 text-green-800' 
@@ -576,16 +593,16 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                       
                       {vendor.approvedAt && (
                         <div className="flex items-center justify-between">
-                          <span className="text-gray-700 text-xs sm:text-sm lg:text-base">Approved On</span>
-                          <span className="text-gray-900 text-xs sm:text-sm lg:text-base font-medium">
+                          <span className="text-gray-700 text-xs sm:text-sm lg:text-[14px]">Approved On</span>
+                          <span className="text-gray-900 text-xs sm:text-sm lg:text-[14px] font-medium">
                             {new Date(vendor.approvedAt).toLocaleDateString()}
                           </span>
                         </div>
                       )}
                       
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-700 text-xs sm:text-sm lg:text-base">Verified</span>
-                        <span className="flex items-center gap-1 text-green-600 text-xs sm:text-sm lg:text-base">
+                        <span className="text-gray-700 text-xs sm:text-sm lg:text-[14px]">Verified</span>
+                        <span className="flex items-center gap-1 text-green-600 text-xs sm:text-sm lg:text-[14px]">
                           <FaCheckCircle />
                           {vendor.isVerified ? 'Yes' : 'No'}
                         </span>
@@ -622,8 +639,6 @@ const useBackendData = () => {
         }
 
         const json = await response.json();
-        console.log('FULL API RESPONSE STRUCTURE:', json);
-        console.log('First listing structure:', json.data?.listings?.[0]);
 
         let listings = [];
         
@@ -639,34 +654,16 @@ const useBackendData = () => {
           throw new Error("No valid listings array found in response");
         }
 
-        // Log the details structure of first listing
-        if (listings.length > 0) {
-          console.log('First listing details:', listings[0].details);
-          console.log('First listing vendorId:', listings[0].vendorId);
-          
-          // Check all possible CAC locations
-          const firstItem = listings[0];
-          console.log('All possible CAC data locations in first item:');
-          console.log('1. item.cacRegistered:', firstItem.cacRegistered);
-          console.log('2. item.cacNumber:', firstItem.cacNumber);
-          console.log('3. item.vendorId.cacRegistered:', firstItem.vendorId?.cacRegistered);
-          console.log('4. item.vendorId.cacNumber:', firstItem.vendorId?.cacNumber);
-          console.log('5. item.details.cacRegistered:', firstItem.details?.cacRegistered);
-          console.log('6. item.details.cacNumber:', firstItem.details?.cacNumber);
-          console.log('7. Full item.details object:', firstItem.details);
-        }
-
         // Format CAC number helper function
         const formatCACNumber = (cacNumber) => {
           if (!cacNumber || cacNumber === "Registered") return "Registered";
-          // Format as RC 123456 if it's RC123456
           if (cacNumber.startsWith('RC') && cacNumber.length > 2) {
             return `RC ${cacNumber.substring(2)}`;
           }
           return cacNumber;
         };
 
-        const transformedData = listings.map((item, index) => {
+        const transformedData = listings.map((item) => {
           const vendor = item.vendorId || {};
           const details = item.details || {};
           const contact = item.contactInformation || {};
@@ -674,28 +671,11 @@ const useBackendData = () => {
           const geolocation = location.geolocation || {};
           const mainImage = item.images?.[0]?.url;
           
-          // Log this item's details for debugging
-          console.log(`Item ${index} - ${item.name} details:`, details);
-          
           // Try multiple possible locations for CAC data
-          // Check if CAC data is in details object
           const hasDetailsCac = details.cacRegistered !== undefined || details.cacNumber !== undefined;
           const hasItemCac = item.cacRegistered !== undefined || item.cacNumber !== undefined;
           const hasVendorCac = vendor.cacRegistered !== undefined || vendor.cacNumber !== undefined;
           
-          console.log(`Item ${index} CAC search results:`, {
-            hasDetailsCac,
-            hasItemCac,
-            hasVendorCac,
-            detailsCacRegistered: details.cacRegistered,
-            detailsCacNumber: details.cacNumber,
-            itemCacRegistered: item.cacRegistered,
-            itemCacNumber: item.cacNumber,
-            vendorCacRegistered: vendor.cacRegistered,
-            vendorCacNumber: vendor.cacNumber
-          });
-          
-          // Priority: details > item > vendor
           let cacRegistered = false;
           let cacNumber = "Not Registered";
           
@@ -710,10 +690,8 @@ const useBackendData = () => {
             cacNumber = formatCACNumber(vendor.cacNumber) || (cacRegistered ? "Registered" : "Not Registered");
           }
           
-          console.log(`Item ${index} final CAC:`, { cacRegistered, cacNumber });
-          
           return {
-            id: item._id || `venue-${index}`,
+            id: item._id || `venue-${Math.random()}`,
             name: item.name,
             service_type: details.serviceCategory || item.category || "Service Provider",
             description: item.about,
@@ -776,18 +754,9 @@ const useBackendData = () => {
           };
         });
 
-        // Debug: Log all transformed data
-        console.log('All transformed vendors with CAC:', transformedData.map(v => ({
-          name: v.name,
-          cacRegistered: v.cacRegistered,
-          cacNumber: v.cacNumber,
-          serviceCategory: v.serviceCategory
-        })));
-
         setData(transformedData);
         setError(null);
       } catch (err) {
-        console.error("Backend API error:", err);
         setError(`Failed to load data: ${err.message}`);
         setData([]);
       } finally {
@@ -828,18 +797,6 @@ const VendorCard = ({ venue, index }) => {
     };
     checkTouchDevice();
   }, []);
-
-  // Debug log to see what data we're receiving
-  useEffect(() => {
-    console.log(`VendorCard ${venue.name} data:`, {
-      cacRegistered: venue.cacRegistered,
-      cacNumber: venue.cacNumber,
-      details: {
-        serviceCategory: venue.serviceCategory,
-        years_experience: venue.years_experience
-      }
-    });
-  }, [venue]);
 
   const vendorData = {
     id: venue.id,
@@ -1371,7 +1328,7 @@ const AiTopPicks = () => {
                   headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
                 }
                 transition={{ delay: 0.1, duration: 0.3 }}
-                className="text-xl lg:text-2xl text-start  font-bold text-center md:text-start text-gray-900 mb-1.5 cursor-default"
+                className="text-xl lg:text-[22px] text-start  font-bold text-center md:text-start text-gray-900 mb-1.5 cursor-default"
               >
                 Verified Services
               </motion.h1>
@@ -1381,7 +1338,7 @@ const AiTopPicks = () => {
                   headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
                 }
                 transition={{ delay: 0.15, duration: 0.3 }}
-                className="text-gray-600 text-[13.5px]  md:text-start lg:text-[16.5px] max-w-3xl mb-4 leading-relaxed cursor-default"
+                className="text-gray-600 text-[13.5px]  md:text-start lg:text-[16px] max-w-3xl mb-4 leading-relaxed cursor-default"
               >
                 Trusted businesses reviewed and approved for quality and reliability.
               </motion.p>

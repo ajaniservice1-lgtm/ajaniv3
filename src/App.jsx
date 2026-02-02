@@ -1,4 +1,3 @@
-// src/App.js
 import React, { Suspense, lazy, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -51,11 +50,17 @@ const BookingRouter = lazy(() => import("./pages/Booking/BookingRouter"));
 const HotelBooking = lazy(() => import("./pages/Booking/HotelBooking"));
 const RestaurantBooking = lazy(() => import("./pages/Booking/RestaurantBooking"));
 const ShortletBooking = lazy(() => import("./pages/Booking/ShortletBooking"));
-const EventBooking = lazy(() => import("./pages/Booking/EventBooking")); // NEW
-const ServiceBooking = lazy(() => import("./pages/Booking/ServiceBooking")); // NEW
+const EventBooking = lazy(() => import("./pages/Booking/EventBooking")); 
+const ServiceBooking = lazy(() => import("./pages/Booking/ServiceBooking")); 
 const PaymentPage = lazy(() => import("./pages/Booking/PaymentPage"));
 const BookingConfirmation = lazy(() => import("./pages/Booking/BookingConfirmation"));
 const BookingFailed = lazy(() => import("./pages/Booking/BookingFailed"));
+
+/* =======================
+   BOOKING MANAGEMENT PAGES
+======================= */
+const BookingsPage = lazy(() => import("./pages/BookingsPage"));
+const BookingDetailsPage = lazy(() => import("./pages/BookingDetailsPage"));
 
 /* =======================
    AUTH PAGES
@@ -359,6 +364,24 @@ function App() {
               <Route 
                 path="/booking-failed" 
                 element={<MainLayout><BookingFailed /></MainLayout>}
+              />
+
+              {/* BOOKING MANAGEMENT ROUTES */}
+              <Route 
+                path="/my-bookings" 
+                element={
+                  <ProtectedRoute>
+                    <MainLayout><BookingsPage /></MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/booking-details/:reference" 
+                element={
+                  <ProtectedRoute>
+                    <MainLayout><BookingDetailsPage /></MainLayout>
+                  </ProtectedRoute>
+                }
               />
 
               {/* AUTH ROUTES */}

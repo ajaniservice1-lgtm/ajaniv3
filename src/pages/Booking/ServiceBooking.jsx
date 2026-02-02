@@ -6,28 +6,26 @@ import Footer from "../../components/Footer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
   faUser, faCalendar, faClock, 
-  faWrench, faCheck, faStar, faPhone,
+  faWrench, faStar, faPhone,
   faEnvelope, faMapMarkerAlt, faShieldAlt,
-  faCreditCard, faTools, faCar,
   faChevronLeft, faNotesMedical, faHome,
-  faBriefcase, faPaintBrush, faPlane,
-  faTruck, faFirstAid, faCogs
+  faBriefcase, faTools
 } from "@fortawesome/free-solid-svg-icons";
+import { ToastContainer, toast, Slide } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 
 const ServiceBooking = ({ vendorData: propVendorData }) => {
   const navigate = useNavigate();
   const location = useLocation();
   
   const [bookingData, setBookingData] = useState({
-    serviceType: "repair",
     serviceDate: "",
     serviceTime: "09:00",
-    duration: "2",
     locationType: "residential",
     address: {
       street: "",
       city: "",
-      state: "Lagos",
+      state: "Oyo",
       postalCode: ""
     },
     contactPerson: {
@@ -37,11 +35,7 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
       email: ""
     },
     problemDescription: "",
-    urgency: "standard",
-    preferredProfessional: "any",
-    specialRequirements: "",
-    recurringService: false,
-    recurrence: "none"
+    specialRequirements: ""
   });
 
   const [vendorData, setVendorData] = useState(null);
@@ -49,21 +43,6 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
   const [bookingId, setBookingId] = useState("");
   const [isTermsAccepted, setIsTermsAccepted] = useState(false);
   const [phoneInput, setPhoneInput] = useState("");
-
-  const serviceTypes = [
-    { id: "repair", name: "Repair Service", icon: faWrench, color: "blue" },
-    { id: "cleaning", name: "Cleaning Service", icon: faHome, color: "green" },
-    { id: "maintenance", name: "Maintenance", icon: faTools, color: "orange" },
-    { id: "consultation", name: "Consultation", icon: faBriefcase, color: "purple" },
-    { id: "installation", name: "Installation", icon: faCogs, color: "red" },
-    { id: "other", name: "Other Service", icon: faTruck, color: "gray" }
-  ];
-
-  const urgencyLevels = [
-    { id: "emergency", name: "Emergency", desc: "Within 2 hours", priceMultiplier: 2.5 },
-    { id: "urgent", name: "Urgent", desc: "Same day", priceMultiplier: 1.5 },
-    { id: "standard", name: "Standard", desc: "Next available slot", priceMultiplier: 1 }
-  ];
 
   const locationTypes = [
     { id: "residential", name: "Residential", icon: faHome },
@@ -75,6 +54,20 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
     const token = localStorage.getItem("auth_token");
     const guestSession = localStorage.getItem("guestSession");
     return !!(token || guestSession);
+  };
+
+  // Show toast notification
+  const showToast = (message, type = "error") => {
+    toast[type](message, {
+      position: "top-right",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      transition: Slide,
+    });
   };
 
   useEffect(() => {
@@ -135,8 +128,8 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
               },
               address: {
                 ...prev.address,
-                city: userProfile.city || prev.address.city,
-                state: userProfile.state || prev.address.state
+                city: "Ibadan",
+                state: "Oyo"
               }
             }));
           } else if (guestSession) {
@@ -147,6 +140,11 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
                 contactPerson: {
                   ...prev.contactPerson,
                   email: session.email
+                },
+                address: {
+                  ...prev.address,
+                  city: "Ibadan",
+                  state: "Oyo"
                 }
               }));
             }
@@ -209,31 +207,30 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
       { field: bookingData.contactPerson.email, name: "Email Address" },
       { field: bookingData.contactPerson.phone, name: "Phone Number" },
       { field: bookingData.address.street, name: "Street Address" },
-      { field: bookingData.address.city, name: "City" },
       { field: bookingData.problemDescription, name: "Problem Description" }
     ];
 
     const missingFields = requiredFields.filter(f => !f.field || f.field.toString().trim() === "");
     
     if (missingFields.length > 0) {
-      alert(`Please fill in all required fields:\n${missingFields.map(f => `• ${f.name}`).join('\n')}`);
+      showToast(`Please fill in all required fields:\n${missingFields.map(f => `• ${f.name}`).join('\n')}`);
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(bookingData.contactPerson.email)) {
-      alert("Please enter a valid email address");
+      showToast("Please enter a valid email address");
       return;
     }
 
     const phoneDigits = bookingData.contactPerson.phone.replace(/\D/g, '');
     if (phoneDigits.length !== 13) {
-      alert("Please enter a complete 10-digit Nigerian phone number");
+      showToast("Please enter a complete 10-digit Nigerian phone number");
       return;
     }
 
     if (!isTermsAccepted) {
-      alert("You must accept the terms and conditions to proceed");
+      showToast("You must accept the terms and conditions to proceed");
       return;
     }
 
@@ -245,7 +242,7 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
         vendorData: vendorData,
         bookingData: bookingData,
         bookingId: bookingId,
-        totalAmount: calculateTotal(),
+        totalAmount: 15000,
         timestamp: Date.now()
       };
       
@@ -272,7 +269,7 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
       bookingDate: new Date().toISOString(),
       bookingId: bookingId,
       status: "pending",
-      totalAmount: calculateTotal(),
+      totalAmount: 15000,
       timestamp: Date.now(),
       ...(isGuest ? {
         isGuestBooking: true,
@@ -330,23 +327,6 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
     return slots;
   };
 
-  const formatPrice = (price) => {
-    if (!price && price !== 0) return "₦ --";
-    const num = typeof price === 'number' ? price : parseInt(price.toString().replace(/[^\d]/g, ""));
-    if (isNaN(num)) return "₦ --";
-    return `₦${num.toLocaleString()}`;
-  };
-
-  const calculateTotal = () => {
-    const basePrice = vendorData?.priceFrom || 15000;
-    const durationMultiplier = parseInt(bookingData.duration) / 2;
-    const urgencyMultiplier = urgencyLevels.find(u => u.id === bookingData.urgency)?.priceMultiplier || 1;
-    const locationMultiplier = bookingData.locationType === 'commercial' ? 1.2 : 
-                              bookingData.locationType === 'industrial' ? 1.5 : 1;
-    
-    return Math.round(basePrice * durationMultiplier * urgencyMultiplier * locationMultiplier);
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
@@ -386,14 +366,10 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
     );
   }
 
-  const total = calculateTotal();
-  const serviceFee = 0;
-  const taxes = 0;
-  const urgencyMultiplier = urgencyLevels.find(u => u.id === bookingData.urgency)?.priceMultiplier || 1;
-
   return (
     <div className="min-h-screen bg-white">
       <Header />
+      <ToastContainer />
       
       <div className="pt-0">
         <div className="max-w-7xl mx-auto px-2.5 sm:px-4 py-20 sm:py-26">
@@ -452,7 +428,7 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
                           </h3>
                           <div className="flex items-center gap-1.5 text-xs text-gray-600 mb-2">
                             <FontAwesomeIcon icon={faMapMarkerAlt} className="text-blue-500" />
-                            <span className="truncate">{vendorData.area || vendorData.location || "Lagos, Nigeria"}</span>
+                            <span className="truncate">Ibadan, Oyo State</span>
                           </div>
                         </div>
                         <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full">
@@ -461,15 +437,7 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
                       </div>
                       
                       <div className="grid grid-cols-2 gap-1.5 mb-2">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center flex-shrink-0">
-                            <FontAwesomeIcon icon={faWrench} className="text-blue-600 text-xs" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">Specialty</p>
-                            <p className="font-medium text-xs">{vendorData.specialty || "General Repairs"}</p>
-                          </div>
-                        </div>
+                      
                         <div className="flex items-center gap-1.5">
                           <div className="w-6 h-6 bg-cyan-100 rounded flex items-center justify-center flex-shrink-0">
                             <FontAwesomeIcon icon={faBriefcase} className="text-cyan-600 text-xs" />
@@ -488,19 +456,15 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
                   </div>
                 </div>
 
-             
-
-               
-
                 {/* Service Details */}
                 <div className="mb-4 sm:mb-6">
                   <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 flex items-center gap-1.5">
                     <FontAwesomeIcon icon={faCalendar} className="text-blue-500 text-sm" />
-                    Service Schedule
+                    Service Schedule *
                   </h2>
                   
                   <div className="space-y-3">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                           Service Date *
@@ -536,24 +500,6 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
                           ))}
                         </select>
                       </div>
-                      
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                          Estimated Duration
-                        </label>
-                        <select
-                          name="duration"
-                          value={bookingData.duration}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
-                        >
-                          <option value="1">1 hour</option>
-                          <option value="2">2 hours</option>
-                          <option value="3">3 hours</option>
-                          <option value="4">4 hours</option>
-                          <option value="5">5+ hours</option>
-                        </select>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -568,7 +514,7 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
                   <div className="space-y-3">
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                        Location Type
+                        Location Type *
                       </label>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                         {locationTypes.map((location) => (
@@ -609,16 +555,13 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
                       
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                          City *
+                          City
                         </label>
                         <input
                           type="text"
-                          name="address.city"
-                          value={bookingData.address.city}
-                          onChange={handleInputChange}
-                          placeholder="City"
-                          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
-                          required
+                          value="Ibadan"
+                          disabled
+                          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 text-sm cursor-not-allowed"
                         />
                       </div>
                     </div>
@@ -626,23 +569,14 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                          State *
+                          State
                         </label>
-                        <select
-                          name="address.state"
-                          value={bookingData.address.state}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
-                        >
-                          <option value="Lagos">Lagos</option>
-                          <option value="Abuja">Abuja</option>
-                          <option value="Rivers">Rivers</option>
-                          <option value="Kano">Kano</option>
-                          <option value="Oyo">Oyo</option>
-                          <option value="Edo">Edo</option>
-                          <option value="Delta">Delta</option>
-                          <option value="other">Other</option>
-                        </select>
+                        <input
+                          type="text"
+                          value="Oyo"
+                          disabled
+                          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 text-sm cursor-not-allowed"
+                        />
                       </div>
                       
                       <div>
@@ -698,40 +632,6 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
                         className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
                       />
                     </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="recurringService"
-                        name="recurringService"
-                        checked={bookingData.recurringService}
-                        onChange={handleInputChange}
-                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
-                      />
-                      <label htmlFor="recurringService" className="text-sm text-gray-700 cursor-pointer">
-                        This is a recurring service
-                      </label>
-                    </div>
-                    
-                    {bookingData.recurringService && (
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                          Recurrence Schedule
-                        </label>
-                        <select
-                          name="recurrence"
-                          value={bookingData.recurrence}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
-                        >
-                          <option value="none">None</option>
-                          <option value="weekly">Weekly</option>
-                          <option value="biweekly">Bi-weekly</option>
-                          <option value="monthly">Monthly</option>
-                          <option value="quarterly">Quarterly</option>
-                        </select>
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -822,22 +722,6 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
                         />
                       </div>
                     </div>
-                    
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                        Preferred Professional
-                      </label>
-                      <select
-                        name="preferredProfessional"
-                        value={bookingData.preferredProfessional}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-blue-300 text-sm"
-                      >
-                        <option value="any">Any available professional</option>
-                        <option value="experienced">Experienced professional only</option>
-                        <option value="specific">Request specific professional</option>
-                      </select>
-                    </div>
                   </div>
                 </div>
 
@@ -901,13 +785,7 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
                       
                       <div className="mt-2.5 pt-2.5 border-t border-gray-100">
                         <div className="flex justify-between items-center mb-1.5">
-                          <span className="text-xs text-gray-600">Service Type</span>
-                          <span className="text-xs font-medium">
-                            {serviceTypes.find(s => s.id === bookingData.serviceType)?.name}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center mb-1.5">
-                          <span className="text-xs text-gray-600">Date</span>
+                          <span className="text-xs text-gray-600">Service Date</span>
                           <span className="text-xs font-medium">{formatDateForDisplay(bookingData.serviceDate)}</span>
                         </div>
                         <div className="flex justify-between items-center mb-1.5">
@@ -917,91 +795,27 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-600">Duration</span>
-                          <span className="text-xs font-medium">{bookingData.duration} hours</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Price Breakdown */}
-                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                    <div className="p-3">
-                      <h5 className="font-bold text-gray-900 mb-2 text-sm">Price Estimate</h5>
-                      
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-600">Base service fee ({bookingData.duration} hours)</span>
-                          <span className="font-medium">{formatPrice((vendorData?.priceFrom || 15000) * (parseInt(bookingData.duration) / 2))}</span>
-                        </div>
-                        
-                        {urgencyMultiplier > 1 && (
-                          <div className="flex justify-between text-xs">
-                            <span className="text-gray-600">Urgency fee ({bookingData.urgency})</span>
-                            <span className="font-medium text-amber-600">
-                              +{formatPrice((calculateTotal() * (urgencyMultiplier - 1)) / urgencyMultiplier)}
-                            </span>
-                          </div>
-                        )}
-                        
-                        {bookingData.locationType !== 'residential' && (
-                          <div className="flex justify-between text-xs">
-                            <span className="text-gray-600">Location surcharge</span>
-                            <span className="font-medium">
-                              {bookingData.locationType === 'commercial' ? '+20%' : '+50%'}
-                            </span>
-                          </div>
-                        )}
-                        
-                        {/* Taxes & Fees */}
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-600">Taxes & fees</span>
-                          <span className="font-medium">{formatPrice(taxes)}</span>
-                        </div>
-                        
-                        {/* Service fee */}
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-600">Platform fee</span>
-                          <span className="font-medium">{formatPrice(serviceFee)}</span>
-                        </div>
-                      </div>
-                      
-                      {/* Total */}
-                      <div className="mt-2.5 pt-2.5 border-t border-gray-300">
-                        <div className="flex justify-between items-center">
-                          <span className="font-bold text-gray-900 text-sm">Estimated Total</span>
-                          <span className="text-lg font-bold text-blue-600">
-                            {formatPrice(total)}
+                          <span className="text-xs text-gray-600">Location Type</span>
+                          <span className="text-xs font-medium">
+                            {locationTypes.find(l => l.id === bookingData.locationType)?.name}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500 text-center mt-1">
-                          Final price may vary based on actual service requirements
-                        </p>
                       </div>
                     </div>
                   </div>
                   
-                  {/* Included Services */}
+                  {/* Location Information */}
                   <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
                     <div className="p-3">
-                      <h5 className="font-bold text-gray-900 mb-2 text-sm">What's Included</h5>
+                      <h5 className="font-bold text-gray-900 mb-2 text-sm">Location</h5>
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2 text-xs">
-                          <FontAwesomeIcon icon={faCheck} className="text-green-500 text-xs" />
-                          <span>Professional assessment</span>
+                          <FontAwesomeIcon icon={faMapMarkerAlt} className="text-blue-500 text-xs" />
+                          <span className="font-medium">Oyo State, Nigeria</span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs">
-                          <FontAwesomeIcon icon={faCheck} className="text-green-500 text-xs" />
-                          <span>Service completion</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs">
-                          <FontAwesomeIcon icon={faCheck} className="text-green-500 text-xs" />
-                          <span>Basic materials (if specified)</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs">
-                          <FontAwesomeIcon icon={faCheck} className="text-green-500 text-xs" />
-                          <span>30-day service warranty</span>
-                        </div>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          All services are currently limited to Oyo State
+                        </p>
                       </div>
                     </div>
                   </div>

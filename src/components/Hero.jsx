@@ -161,10 +161,8 @@ const useBackendServices = () => {
             'Catering',
             'Delivery'
           ]);
-          console.log("Using default service types");
         }
       } catch (err) {
-        console.error("Service Types API Error:", err.message);
         setError(err.message);
         // Fallback to default service types
         setServiceTypes([
@@ -214,7 +212,6 @@ const useBackendListings = () => {
           setError(result?.message || "No data received");
         }
       } catch (err) {
-        console.error("Hero API Error:", err.message);
         setError(err.message);
         setListings([]);
       } finally {
@@ -1377,21 +1374,18 @@ const DiscoverIbadan = () => {
     if (looksLikeLocation(searchQuery.trim())) {
       const properCaseLocation = normalizeLocationForBackend(searchQuery.trim());
       queryParams.append("location", properCaseLocation);
-      console.log('📍 Hero: Adding location filter:', properCaseLocation);
     }
     
     // ADD THIS: If it looks like a service, also add it as service filter
     if (activeTab === "Services" && isServiceSearch) {
       const properCaseService = normalizeServiceName(searchQuery.trim());
       queryParams.append("service", properCaseService);
-      console.log('🔧 Hero: Adding service filter:', properCaseService);
     }
     
     const finalUrl = queryParams.toString() 
       ? `${seoPath}?${queryParams.toString()}`
       : seoPath;
     
-    console.log("🔍 Hero: Navigating to SEO-friendly URL:", finalUrl);
     navigate(finalUrl);
     
     setShowSuggestions(false);
@@ -1732,7 +1726,7 @@ const DiscoverIbadan = () => {
         />
       )}
 
-      <style jsx global>{`
+      <style>{`
         @keyframes slideInUp {
           from { transform: translateY(100%); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }

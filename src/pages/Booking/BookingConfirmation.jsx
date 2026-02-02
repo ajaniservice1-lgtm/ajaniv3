@@ -45,6 +45,79 @@ const getPersistentBookingKey = (type) => {
   return `confirmedBooking_${type}_persistent`;
 };
 
+// Helper to save booking to user profile
+const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, totalAmount) => {
+  try {
+    // Get current user profile
+    const userProfileStr = localStorage.getItem("userProfile");
+    const isLoggedIn = localStorage.getItem("ajani_dummy_login") === "true" || localStorage.getItem("auth_token");
+    
+    if (isLoggedIn && userProfileStr) {
+      const userProfile = JSON.parse(userProfileStr);
+      
+      // Create booking record
+      const bookingRecord = {
+        id: bookingReference,
+        type: type,
+        status: "confirmed",
+        date: new Date().toISOString(),
+        vendor: {
+          name: vendorInfo.name,
+          location: vendorInfo.location,
+          image: vendorInfo.image,
+          rating: vendorInfo.rating
+        },
+        details: {
+          checkIn: bookingData?.checkInDate || bookingData?.bookingData?.checkIn,
+          checkOut: bookingData?.checkOutDate || bookingData?.bookingData?.checkOut,
+          guests: bookingData?.guests || bookingData?.bookingData?.numberOfGuests,
+          totalAmount: totalAmount,
+          paymentMethod: bookingData?.paymentMethod,
+          specialRequests: bookingData?.specialRequests,
+          time: bookingData?.bookingData?.time
+        },
+        reference: bookingReference
+      };
+      
+      // Initialize bookings array if it doesn't exist
+      if (!userProfile.bookings) {
+        userProfile.bookings = [];
+      }
+      
+      // Add booking to user's bookings (prepend to show newest first)
+      userProfile.bookings.unshift(bookingRecord);
+      
+      // Update localStorage
+      localStorage.setItem("userProfile", JSON.stringify(userProfile));
+      
+      // Also store in separate bookings storage for easy access
+      const allBookings = JSON.parse(localStorage.getItem("userBookings") || "[]");
+      allBookings.unshift(bookingRecord);
+      localStorage.setItem("userBookings", JSON.stringify(allBookings));
+      
+      console.log("✅ Booking saved to user profile:", bookingRecord);
+      return true;
+    } else {
+      // For guest bookings, store separately
+      const guestBookings = JSON.parse(localStorage.getItem("guestBookings") || "[]");
+      const guestBookingRecord = {
+        ...bookingRecord,
+        guestEmail: bookingData?.email || bookingData?.guestEmail,
+        guestPhone: bookingData?.phone,
+        guestName: `${bookingData?.firstName || bookingData?.bookingData?.firstName || ""} ${bookingData?.lastName || bookingData?.bookingData?.lastName || ""}`.trim()
+      };
+      guestBookings.unshift(guestBookingRecord);
+      localStorage.setItem("guestBookings", JSON.stringify(guestBookings));
+      
+      console.log("✅ Booking saved to guest bookings:", guestBookingRecord);
+      return false;
+    }
+  } catch (error) {
+    console.error("Failed to save booking to profile:", error);
+    return false;
+  }
+};
+
 const BookingConfirmation = () => {
   const navigate = useNavigate();
   const { type } = useParams();
@@ -53,6 +126,7 @@ const BookingConfirmation = () => {
   const [bookingReference, setBookingReference] = useState("");
   const [loading, setLoading] = useState(true);
   const [isGuestBooking, setIsGuestBooking] = useState(false);
+  const [bookingSaved, setBookingSaved] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -204,6 +278,23 @@ const BookingConfirmation = () => {
         // Store type for reference
         localStorage.setItem('lastBookingType', type);
         
+        // Save booking to user profile
+        const vendorInfo = {
+          name: getVendorName(data),
+          location: getVendorLocation(data),
+          image: getVendorImage(data),
+          rating: getVendorRating(data)
+        };
+        
+        const totalAmount = getTotalAmount(data);
+        const isLoggedInUser = saveBookingToProfile(data, type, ref, vendorInfo, totalAmount);
+        
+        if (!isLoggedInUser) {
+          setIsGuestBooking(true);
+        }
+        
+        setBookingSaved(true);
+        
         // Clean up temporary data (but keep persistent one)
         const tempKeys = [
           'pendingHotelBooking',
@@ -233,6 +324,65 @@ const BookingConfirmation = () => {
     // Small delay to ensure DOM is ready
     setTimeout(loadBookingData, 50);
   }, [type]);
+
+  // Helper functions that accept data parameter
+  const getVendorName = (data = bookingData) => {
+    return data?.hotelData?.name || 
+           data?.vendorData?.name || 
+           data?.roomData?.hotel?.name || 
+           data?.propertyName ||
+           "Vendor";
+  };
+
+  const getVendorLocation = (data = bookingData) => {
+    const hotelLocation = data?.hotelData?.location;
+    if (hotelLocation && typeof hotelLocation === 'string') {
+      return hotelLocation;
+    }
+    
+    const vendorData = data?.vendorData;
+    if (vendorData?.area) {
+      if (typeof vendorData.area === 'object' && vendorData.area.address) {
+        return vendorData.area.address;
+      }
+      if (typeof vendorData.area === 'object' && vendorData.area.area) {
+        return vendorData.area.area;
+      }
+      if (typeof vendorData.area === 'string') {
+        return vendorData.area;
+      }
+    }
+    
+    const roomHotelLocation = data?.roomData?.hotel?.location;
+    if (roomHotelLocation && typeof roomHotelLocation === 'string') {
+      return roomHotelLocation;
+    }
+    
+    return "Location not specified";
+  };
+
+  const getVendorImage = (data = bookingData) => {
+    return data?.hotelData?.image || 
+           data?.vendorData?.image || 
+           data?.roomData?.hotel?.image || 
+           data?.propertyImage ||
+           "https://images.unsplash.com/photo-1552566626-52f8b828add9";
+  };
+
+  const getVendorRating = (data = bookingData) => {
+    return data?.hotelData?.rating || 
+           data?.vendorData?.rating || 
+           data?.roomData?.hotel?.rating || 
+           data?.propertyRating ||
+           4.5;
+  };
+
+  const getTotalAmount = (data = bookingData) => {
+    return data?.totalAmount || 
+           data?.roomData?.booking?.price || 
+           data?.bookingData?.totalPrice ||
+           0;
+  };
 
   // Function to download confirmation as PDF/text
   const downloadConfirmation = () => {
@@ -468,57 +618,6 @@ This confirmation was generated on: ${new Date().toLocaleString()}
     }
   };
 
-  const getVendorName = () => {
-    return bookingData?.hotelData?.name || 
-           bookingData?.vendorData?.name || 
-           bookingData?.roomData?.hotel?.name || 
-           bookingData?.propertyName ||
-           "Vendor";
-  };
-
-  const getVendorLocation = () => {
-    const hotelLocation = bookingData?.hotelData?.location;
-    if (hotelLocation && typeof hotelLocation === 'string') {
-      return hotelLocation;
-    }
-    
-    const vendorData = bookingData?.vendorData;
-    if (vendorData?.area) {
-      if (typeof vendorData.area === 'object' && vendorData.area.address) {
-        return vendorData.area.address;
-      }
-      if (typeof vendorData.area === 'object' && vendorData.area.area) {
-        return vendorData.area.area;
-      }
-      if (typeof vendorData.area === 'string') {
-        return vendorData.area;
-      }
-    }
-    
-    const roomHotelLocation = bookingData?.roomData?.hotel?.location;
-    if (roomHotelLocation && typeof roomHotelLocation === 'string') {
-      return roomHotelLocation;
-    }
-    
-    return "Location not specified";
-  };
-
-  const getVendorImage = () => {
-    return bookingData?.hotelData?.image || 
-           bookingData?.vendorData?.image || 
-           bookingData?.roomData?.hotel?.image || 
-           bookingData?.propertyImage ||
-           "https://images.unsplash.com/photo-1552566626-52f8b828add9";
-  };
-
-  const getVendorRating = () => {
-    return bookingData?.hotelData?.rating || 
-           bookingData?.vendorData?.rating || 
-           bookingData?.roomData?.hotel?.rating || 
-           bookingData?.propertyRating ||
-           4.5;
-  };
-
   const getBookingDetailsText = () => {
     if (type === 'hotel') {
       return `
@@ -544,13 +643,6 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
     const num = typeof price === 'number' ? price : parseInt(price.toString().replace(/[^\d]/g, ""));
     if (isNaN(num)) return "₦ --";
     return `₦${num.toLocaleString()}`;
-  };
-
-  const getTotalAmount = () => {
-    return bookingData?.totalAmount || 
-           bookingData?.roomData?.booking?.price || 
-           bookingData?.bookingData?.totalPrice ||
-           0;
   };
 
   // Clear persistent storage after 24 hours (optional safety feature)
@@ -668,9 +760,13 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
                 <div className="mb-4 sm:mb-6 bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 flex items-center gap-3">
                   <AlertCircle className="w-5 h-5 text-blue-600" />
                   <div className="flex-1">
-                    <p className="font-medium text-blue-800 text-sm">Guest Booking Complete</p>
+                    <p className="font-medium text-blue-800 text-sm">
+                      {bookingSaved ? "Guest Booking Complete" : "Booking Saved"}
+                    </p>
                     <p className="text-xs text-blue-700">
-                      Your booking as a guest has been successfully submitted. Please save your booking reference for future reference.
+                      {bookingSaved 
+                        ? "Your booking as a guest has been successfully submitted. Please save your booking reference for future reference."
+                        : "Your booking has been saved to your profile. You can view it anytime in 'My Bookings'."}
                     </p>
                   </div>
                 </div>
@@ -1040,6 +1136,30 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
                   className="flex items-center justify-center gap-2 px-4 py-3 border border-[#6cff] text-[#6cff] rounded-lg hover:bg-blue-50 transition-all font-medium text-sm"
                 >
                   Browse More {type ? type.charAt(0).toUpperCase() + type.slice(1) + 's' : 'Hotels'}
+                </button>
+              </div>
+
+              {/* View Bookings Link */}
+              <div className="mt-8 pt-6 border-t border-gray-200 text-center">
+                <p className="text-sm text-gray-600 mb-3">
+                  View all your bookings in one place
+                </p>
+                <button
+                  onClick={() => {
+                    // Check if user is logged in
+                    const isLoggedIn = localStorage.getItem("ajani_dummy_login") === "true" || localStorage.getItem("auth_token");
+                    if (isLoggedIn) {
+                      navigate("/buyer/profile");
+                    } else {
+                      navigate("/login", { state: { from: "/my-bookings" } });
+                    }
+                  }}
+                  className="inline-flex items-center gap-2 text-[#6cff] font-medium hover:text-blue-700"
+                >
+                  Go to My Bookings
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </button>
               </div>
             </div>
