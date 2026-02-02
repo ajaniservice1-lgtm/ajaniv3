@@ -17,6 +17,8 @@ import {
   ChevronLeft,
   X
 } from "lucide-react";
+import { ToastContainer, toast, Slide } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 
 // Helper function to check authentication status
 const checkAuthStatus = () => {
@@ -146,38 +148,6 @@ const getLocationString = (locationData) => {
   return "Location";
 };
 
-// Toast Component
-const Toast = ({ message, onClose }) => {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onClose();
-    }, 3000);
-    
-    return () => clearTimeout(timer);
-  }, [onClose]);
-  
-  return (
-    <div className="fixed top-20 right-4 z-50 animate-slideIn">
-      <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg shadow-lg p-4 max-w-sm">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm font-medium">{message}</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-yellow-600 hover:text-yellow-800"
-            aria-label="Close notification"
-            type="button"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const PaymentPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -196,7 +166,8 @@ const PaymentPage = () => {
   const [bookingId, setBookingId] = useState("");
   const [authStatus, setAuthStatus] = useState(null);
   const [error, setError] = useState("");
-  const [toastMessage, setToastMessage] = useState("");
+  const [isTermsAgreed, setIsTermsAgreed] = useState(false);
+  const [isCancellationPolicyAgreed, setIsCancellationPolicyAgreed] = useState(false);
 
   // Fix: Scroll to top on route change
   useEffect(() => {
@@ -291,6 +262,7 @@ const PaymentPage = () => {
           const guestHotelBooking = localStorage.getItem('pendingGuestHotelBooking');
           const guestRestaurantBooking = localStorage.getItem('pendingGuestRestaurantBooking');
           const guestShortletBooking = localStorage.getItem('pendingGuestShortletBooking');
+          const guestServiceBooking = localStorage.getItem('pendingGuestServiceBooking');
           
           if (guestHotelBooking) {
             console.log("📦 Found pending guest hotel booking");
@@ -301,12 +273,16 @@ const PaymentPage = () => {
           } else if (guestShortletBooking) {
             console.log("📦 Found pending guest shortlet booking");
             loadedData = JSON.parse(guestShortletBooking);
+          } else if (guestServiceBooking) {
+            console.log("📦 Found pending guest service booking");
+            loadedData = JSON.parse(guestServiceBooking);
           }
         } else {
           // Regular user - check for logged in pending bookings
           const loggedInHotelBooking = localStorage.getItem('pendingLoggedInHotelBooking');
           const loggedInRestaurantBooking = localStorage.getItem('pendingLoggedInRestaurantBooking');
           const loggedInShortletBooking = localStorage.getItem('pendingLoggedInShortletBooking');
+          const loggedInServiceBooking = localStorage.getItem('pendingLoggedInServiceBooking');
           
           if (loggedInHotelBooking) {
             console.log("📦 Found pending logged-in hotel booking");
@@ -317,6 +293,9 @@ const PaymentPage = () => {
           } else if (loggedInShortletBooking) {
             console.log("📦 Found pending logged-in shortlet booking");
             loadedData = JSON.parse(loggedInShortletBooking);
+          } else if (loggedInServiceBooking) {
+            console.log("📦 Found pending logged-in service booking");
+            loadedData = JSON.parse(loggedInServiceBooking);
           }
         }
         
@@ -378,26 +357,25 @@ const PaymentPage = () => {
     loadBookingData();
   }, [location.state, navigate, location.pathname]);
 
-  const handleCardInputChange = (e) => {
-    const { name, value } = e.target;
-    setCardDetails(prev => ({ ...prev, [name]: value }));
-  };
-
-  // Function to show toast message
-  const showToast = (message) => {
-    setToastMessage(message);
-  };
-
-  // Function to close toast
-  const closeToast = () => {
-    setToastMessage("");
+  // Function to show toast notification
+  const showToast = (message, type = "error") => {
+    toast[type](message, {
+      position: "top-right",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      transition: Slide,
+    });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
     if (!bookingData) {
-      alert("No booking data found. Please start over.");
+      showToast("No booking data found. Please start over.");
       navigate('/');
       return;
     }
@@ -405,7 +383,7 @@ const PaymentPage = () => {
     // Check authentication again
     const currentAuthStatus = checkAuthStatus();
     if (!currentAuthStatus.authenticated) {
-      alert("Your session has expired. Please login again.");
+      showToast("Your session has expired. Please login again.");
       navigate('/login', {
         state: {
           message: "Your session has expired. Please login again.",
@@ -414,6 +392,17 @@ const PaymentPage = () => {
           returnTo: location.pathname
         }
       });
+      return;
+    }
+
+    // Validate required checkboxes
+    if (!isTermsAgreed) {
+      showToast("You must agree to the Terms of Use and Privacy Policy to proceed.");
+      return;
+    }
+
+    if (!isCancellationPolicyAgreed) {
+      showToast("You must accept the cancellation policy to proceed.");
       return;
     }
 
@@ -460,7 +449,8 @@ const PaymentPage = () => {
       const guestKeys = [
         'pendingGuestHotelBooking',
         'pendingGuestRestaurantBooking',
-        'pendingGuestShortletBooking'
+        'pendingGuestShortletBooking',
+        'pendingGuestServiceBooking'
       ];
       
       guestKeys.forEach(key => localStorage.removeItem(key));
@@ -481,6 +471,7 @@ const PaymentPage = () => {
     localStorage.removeItem('pendingHotelBooking');
     localStorage.removeItem('pendingRestaurantBooking');
     localStorage.removeItem('pendingShortletBooking');
+    localStorage.removeItem('pendingServiceBooking');
     localStorage.removeItem('pendingBooking');
     
     // Navigate to confirmation page
@@ -511,6 +502,9 @@ const PaymentPage = () => {
   const taxes = 0; // All fees set to 0
   const serviceFee = 0; // All fees set to 0
   const total = roomPrice + taxes + serviceFee;
+
+  // Check if this is a service booking
+  const isServiceBooking = bookingData?.bookingType === 'service';
 
   if (loading) {
     return (
@@ -569,7 +563,9 @@ const PaymentPage = () => {
 
   // Get specific location name for the toast message
   const getLocationName = () => {
-    if (bookingData.bookingType === 'restaurant') {
+    if (isServiceBooking) {
+      return "service provider";
+    } else if (bookingData.bookingType === 'restaurant') {
       return "restaurant";
     } else if (bookingData.bookingType === 'shortlet') {
       return "shortlet property";
@@ -581,9 +577,7 @@ const PaymentPage = () => {
   return (
     <div className="min-h-screen bg-white">
       <Header />
-      
-      {/* Toast Message */}
-      {toastMessage && <Toast message={toastMessage} onClose={closeToast} />}
+      <ToastContainer />
       
       {/* Reduced top spacing - matches hotelbooking page */}
       <div className="pt-0">
@@ -633,7 +627,7 @@ const PaymentPage = () => {
                       Complete Payment
                     </h1>
                     <p className="text-sm text-gray-600">
-                      Final step to confirm your booking at {hotelData?.name || vendorData?.name || "the property"}
+                      Final step to confirm your {isServiceBooking ? "service appointment" : "booking"} at {hotelData?.name || vendorData?.name || "the property"}
                     </p>
                   </div>
 
@@ -764,6 +758,8 @@ const PaymentPage = () => {
                             id="termsAgreement"
                             name="termsAgreement"
                             required
+                            checked={isTermsAgreed}
+                            onChange={(e) => setIsTermsAgreed(e.target.checked)}
                             className="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500 mt-0.5 cursor-pointer"
                             aria-required="true"
                             aria-describedby="terms-description"
@@ -789,6 +785,8 @@ const PaymentPage = () => {
                             id="cancellationPolicy"
                             name="cancellationPolicy"
                             required
+                            checked={isCancellationPolicyAgreed}
+                            onChange={(e) => setIsCancellationPolicyAgreed(e.target.checked)}
                             className="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500 mt-0.5 cursor-pointer"
                             aria-required="true"
                             aria-describedby="cancellation-description"
@@ -852,7 +850,32 @@ const PaymentPage = () => {
                     
                     <div className="mt-2.5 pt-2.5 border-t border-gray-100">
                       <div className="space-y-1.5">
-                        {bookingData.bookingType === 'hotel' || bookingData.type === 'hotel' ? (
+                        {isServiceBooking ? (
+                          <>
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="w-3 h-3 text-gray-500" aria-hidden="true" />
+                                <span className="text-xs text-gray-600">Service Date</span>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs font-medium">{bookingDetails?.serviceDate || "Today"}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <Coffee className="w-3 h-3 text-gray-500" aria-hidden="true" />
+                                <span className="text-xs text-gray-600">Time</span>
+                              </div>
+                              <span className="text-xs font-medium">{bookingDetails?.serviceTime || "09:00"}</span>
+                            </div>
+                            
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-gray-600">Service Type</span>
+                              <span className="text-xs font-medium">{bookingDetails?.locationType || "Residential"}</span>
+                            </div>
+                          </>
+                        ) : bookingData.bookingType === 'hotel' || bookingData.type === 'hotel' ? (
                           <>
                             <div className="flex justify-between items-center">
                               <div className="flex items-center gap-2">
@@ -913,7 +936,7 @@ const PaymentPage = () => {
                 </div>
                 
                 {/* Room Details (for hotels only) */}
-                {roomData && (
+                {roomData && !isServiceBooking && (
                   <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-2.5">
                     <div className="flex items-center justify-between mb-2">
                       <h5 className="font-medium text-gray-800 text-sm">Room</h5>
@@ -949,59 +972,63 @@ const PaymentPage = () => {
                   </div>
                 )}
                 
-                {/* Price Breakdown */}
-                <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-2.5">
-                  <h5 className="font-medium text-gray-800 mb-2 text-sm">Price Breakdown</h5>
-                  
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-600">
-                        {bookingData.bookingType === 'hotel' || bookingData.type === 'hotel' 
-                          ? `Room x ${bookingDetails?.nights || 1} night` 
-                          : "Reservation fee"}
-                      </span>
-                      <span className="font-medium">{formatPrice(roomPrice)}</span>
-                    </div>
+                {/* Price Breakdown - Only for non-service bookings */}
+                {!isServiceBooking && (
+                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-2.5">
+                    <h5 className="font-medium text-gray-800 mb-2 text-sm">Price Breakdown</h5>
                     
-                    {/* Taxes & Fees - Showing as ₦0 */}
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-600">Taxes & fees</span>
-                      <span className="font-medium">{formatPrice(taxes)}</span>
-                    </div>
-                    
-                    {/* Service fee - Showing as ₦0 */}
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-600">Service fee</span>
-                      <span className="font-medium">{formatPrice(serviceFee)}</span>
-                    </div>
-                    
-                    {/* Total */}
-                    <div className="pt-2 border-t border-gray-300">
-                      <div className="flex justify-between items-center">
-                        <span className="font-bold text-gray-900 text-sm">Total Amount</span>
-                        <span className="text-lg font-bold text-emerald-600">
-                          {formatPrice(total)}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600">
+                          {bookingData.bookingType === 'hotel' || bookingData.type === 'hotel' 
+                            ? `Room x ${bookingDetails?.nights || 1} night` 
+                            : "Reservation fee"}
                         </span>
+                        <span className="font-medium">{formatPrice(roomPrice)}</span>
                       </div>
-                      <p className="text-xs text-gray-500 text-center mt-0.5">
-                        Pay at property
-                      </p>
+                      
+                      {/* Taxes & Fees - Showing as ₦0 */}
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600">Taxes & fees</span>
+                        <span className="font-medium">{formatPrice(taxes)}</span>
+                      </div>
+                      
+                      {/* Service fee - Showing as ₦0 */}
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600">Service fee</span>
+                        <span className="font-medium">{formatPrice(serviceFee)}</span>
+                      </div>
+                      
+                      {/* Total */}
+                      <div className="pt-2 border-t border-gray-300">
+                        <div className="flex justify-between items-center">
+                          <span className="font-bold text-gray-900 text-sm">Total Amount</span>
+                          <span className="text-lg font-bold text-emerald-600">
+                            {formatPrice(total)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 text-center mt-0.5">
+                          Pay at property
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
                 
-                {/* Payment Info */}
-                <div className="bg-yellow-50 rounded-lg border border-yellow-100 p-2.5">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
-                    <div>
-                      <p className="font-medium text-yellow-800 text-xs">Payment Instructions</p>
-                      <p className="text-xs text-yellow-700 mt-0.5">
-                        Bring this amount with you to pay at the property: <span className="font-bold">{formatPrice(total)}</span>
-                      </p>
+                {/* Payment Info - Only for service bookings */}
+                {isServiceBooking && (
+                  <div className="bg-yellow-50 rounded-lg border border-yellow-100 p-2.5">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                      <div>
+                        <p className="font-medium text-yellow-800 text-xs">Payment Instructions</p>
+                        <p className="text-xs text-yellow-700 mt-0.5">
+                          Bring this amount with you to pay at the property: <span className="font-bold">{formatPrice(total)}</span>
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
                 
                 {/* Guarantee */}
                 <div className="text-center">
