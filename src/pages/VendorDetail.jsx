@@ -1812,6 +1812,7 @@ const VendorDetail = () => {
     
     const category = normalizeCategory(vendor.category);
     
+    // For restaurants, events, and services, return the base price (not multiplied by guests)
     if (category === 'hotel') {
       if (selectedRoom && selectedRoom.selectedOption) {
         return selectedRoom.selectedOption.price || selectedRoom.pricePerNight || 0;
@@ -1823,8 +1824,10 @@ const VendorDetail = () => {
       const price = vendor.price || vendor.details?.pricePerNight || vendor.price_from || 0;
       return parseFloat(safeToString(price, "0"));
     } else if (category === 'restaurant') {
+      // For restaurants, return the price per meal (not multiplied by guests)
       return getPriceFromItem(vendor);
     } else if (category === 'event' || category === 'service') {
+      // For events and services, return the base price (not multiplied by guests)
       return getPriceFromItem(vendor);
     }
     
@@ -1839,23 +1842,55 @@ const VendorDetail = () => {
     return diffDays || 1;
   };
 
+  // FIXED: Updated calculateTotalPrice function for fixed price ranges
   const calculateTotalPrice = () => {
-    const price = calculatePrice();
     const category = normalizeCategory(vendor?.category);
     
-    if (category === 'hotel' || category === 'shortlet') {
-      const nights = calculateNights();
-      const subtotal = price * nights;
-      return subtotal;
-    } else if (category === 'restaurant') {
-      return price * guests;
-    } else if (category === 'event') {
-      return price * Math.ceil(eventGuests / 10);
-    } else if (category === 'service') {
-      return price;
+    // For events: Fixed range 100,000 - 500,000 (use priceFrom as the price)
+    if (category === 'event') {
+      if (vendor?.details?.priceRange?.priceFrom) {
+        return vendor.details.priceRange.priceFrom;
+      }
+      // Fallback to average if range exists
+      if (vendor?.details?.priceRange?.priceFrom && vendor?.details?.priceRange?.priceTo) {
+        return Math.round((vendor.details.priceRange.priceFrom + vendor.details.priceRange.priceTo) / 2);
+      }
+      return 250000; // Default average for events
     }
     
-    return price;
+    // For services: Fixed range 5,000 - 50,000 (use priceFrom as the price)
+    if (category === 'service') {
+      if (vendor?.details?.pricingRange?.priceFrom) {
+        return vendor.details.pricingRange.priceFrom;
+      }
+      // Fallback to average if range exists
+      if (vendor?.details?.pricingRange?.priceFrom && vendor?.details?.pricingRange?.priceTo) {
+        return Math.round((vendor.details.pricingRange.priceFrom + vendor.details.pricingRange.priceTo) / 2);
+      }
+      return 27500; // Default average for services
+    }
+    
+    // For restaurants: Fixed range 2,000 - 10,000 (use priceFrom as the price)
+    if (category === 'restaurant') {
+      if (vendor?.details?.priceRangePerMeal?.priceFrom) {
+        return vendor.details.priceRangePerMeal.priceFrom;
+      }
+      // Fallback to average if range exists
+      if (vendor?.details?.priceRangePerMeal?.priceFrom && vendor?.details?.priceRangePerMeal?.priceTo) {
+        return Math.round((vendor.details.priceRangePerMeal.priceFrom + vendor.details.priceRangePerMeal.priceTo) / 2);
+      }
+      return 6000; // Default average for restaurants
+    }
+    
+    // For hotels/shortlets: Calculate based on nights and price
+    if (category === 'hotel' || category === 'shortlet') {
+      const price = calculatePrice();
+      const nights = calculateNights();
+      return price * nights;
+    }
+    
+    // Default: Return the price without guest multiplication
+    return calculatePrice();
   };
 
   const getPriceDisplay = () => {
@@ -2947,11 +2982,11 @@ const VendorDetail = () => {
                             </div>
                           ) : category === 'restaurant' ? (
                             <div className="mt-2 text-sm text-gray-600">
-                              {formatPrice(realPrice)} per meal × {guests} guest{guests !== 1 ? 's' : ''}
+                              {formatPrice(realPrice)} per meal
                             </div>
                           ) : category === 'event' ? (
                             <div className="mt-2 text-sm text-gray-600">
-                              {formatPrice(realPrice)} per event × {eventGuests} guest{eventGuests !== 1 ? 's' : ''}
+                              {formatPrice(realPrice)} per event
                             </div>
                           ) : category === 'service' ? (
                             <div className="mt-2 text-sm text-gray-600">
@@ -3358,8 +3393,8 @@ const VendorDetail = () => {
                     ) : category === 'restaurant' ? (
                       <>
                         <div className="flex justify-between text-[12px]">
-                          <span>{guests} guest{guests !== 1 ? 's' : ''} × {formatPrice(realPrice)}</span>
-                          <span className="font-medium">{formatPrice(totalPrice)}</span>
+                          <span>Meal price</span>
+                          <span className="font-medium">{formatPrice(realPrice)}</span>
                         </div>
                         <div className="flex justify-between text-gray-600 text-[12px]">
                           <span>Service fee</span>
@@ -3373,8 +3408,8 @@ const VendorDetail = () => {
                     ) : category === 'event' ? (
                       <>
                         <div className="flex justify-between text-[12px]">
-                          <span>{eventGuests} guest{eventGuests !== 1 ? 's' : ''} × {formatPrice(realPrice)}</span>
-                          <span className="font-medium">{formatPrice(totalPrice)}</span>
+                          <span>Event price</span>
+                          <span className="font-medium">{formatPrice(realPrice)}</span>
                         </div>
                         <div className="flex justify-between text-gray-600 text-[12px]">
                           <span>Service fee</span>
@@ -3388,8 +3423,8 @@ const VendorDetail = () => {
                     ) : category === 'service' ? (
                       <>
                         <div className="flex justify-between text-[12px]">
-                          <span>Base price</span>
-                          <span className="font-medium">{formatPrice(calculatePrice())}</span>
+                          <span>Service price</span>
+                          <span className="font-medium">{formatPrice(realPrice)}</span>
                         </div>
                         <div className="flex justify-between text-gray-600 text-[12px]">
                           <span>Service fee</span>
@@ -3397,7 +3432,7 @@ const VendorDetail = () => {
                         </div>
                         <div className="flex justify-between font-bold text-[13px] pt-4 border-t border-gray-300">
                           <span>Total</span>
-                          <span>{formatPrice(calculatePrice())}</span>
+                          <span>{formatPrice(totalPrice)}</span>
                         </div>
                       </>
                     ) : (
