@@ -17,10 +17,16 @@ import {
   Building,
   Shield,
   Download,
-  Printer
+  Printer,
+  Wrench,
+  Utensils,
+  Bed,
+  Hotel
 } from "lucide-react";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
+import { ToastContainer, toast, Slide } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 
 // Helper function to update session activity (for guest sessions)
 const updateSessionActivity = () => {
@@ -74,7 +80,12 @@ const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, t
           totalAmount: totalAmount,
           paymentMethod: bookingData?.paymentMethod,
           specialRequests: bookingData?.specialRequests,
-          time: bookingData?.bookingData?.time
+          time: bookingData?.bookingData?.time,
+          // Service specific fields
+          serviceDate: bookingData?.bookingData?.serviceDate,
+          serviceTime: bookingData?.bookingData?.serviceTime,
+          locationType: bookingData?.bookingData?.locationType,
+          problemDescription: bookingData?.bookingData?.problemDescription
         },
         reference: bookingReference
       };
@@ -103,8 +114,8 @@ const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, t
       const guestBookingRecord = {
         ...bookingRecord,
         guestEmail: bookingData?.email || bookingData?.guestEmail,
-        guestPhone: bookingData?.phone,
-        guestName: `${bookingData?.firstName || bookingData?.bookingData?.firstName || ""} ${bookingData?.lastName || bookingData?.bookingData?.lastName || ""}`.trim()
+        guestPhone: bookingData?.phone || bookingData?.bookingData?.contactPerson?.phone,
+        guestName: `${bookingData?.firstName || bookingData?.bookingData?.contactPerson?.firstName || ""} ${bookingData?.lastName || bookingData?.bookingData?.contactPerson?.lastName || ""}`.trim()
       };
       guestBookings.unshift(guestBookingRecord);
       localStorage.setItem("guestBookings", JSON.stringify(guestBookings));
@@ -128,6 +139,23 @@ const BookingConfirmation = () => {
   const [isGuestBooking, setIsGuestBooking] = useState(false);
   const [bookingSaved, setBookingSaved] = useState(false);
 
+  // Check if this is a service booking
+  const isServiceBooking = type === 'service';
+
+  // Show toast notification
+  const showToast = (message, toastType = "success") => {
+    toast[toastType](message, {
+      position: "top-right",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      transition: Slide,
+    });
+  };
+
   useEffect(() => {
     window.scrollTo(0, 0);
     
@@ -138,7 +166,8 @@ const BookingConfirmation = () => {
     const generateReference = () => {
       const prefix = type === 'restaurant' ? 'REST-' : 
                      type === 'shortlet' ? 'SHORT-' : 
-                     type === 'hotel' ? 'AJN-' : 'BOOK-';
+                     type === 'hotel' ? 'AJN-' : 
+                     type === 'service' ? 'SVC-' : 'BOOK-';
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
       let result = prefix;
       for (let i = 0; i < 8; i++) {
@@ -267,7 +296,8 @@ const BookingConfirmation = () => {
           const guestKeys = [
             'pendingGuestHotelBooking',
             'pendingGuestRestaurantBooking',
-            'pendingGuestShortletBooking'
+            'pendingGuestShortletBooking',
+            'pendingGuestServiceBooking'
           ];
           
           guestKeys.forEach(key => localStorage.removeItem(key));
@@ -294,18 +324,22 @@ const BookingConfirmation = () => {
         }
         
         setBookingSaved(true);
+        showToast("Booking confirmed successfully!");
         
         // Clean up temporary data (but keep persistent one)
         const tempKeys = [
           'pendingHotelBooking',
           'pendingRestaurantBooking',
           'pendingShortletBooking',
+          'pendingServiceBooking',
           'pendingGuestHotelBooking',
           'pendingLoggedInHotelBooking',
           'pendingGuestRestaurantBooking',
           'pendingLoggedInRestaurantBooking',
           'pendingGuestShortletBooking',
           'pendingLoggedInShortletBooking',
+          'pendingGuestServiceBooking',
+          'pendingLoggedInServiceBooking',
           'completeBooking',
           'confirmedBooking'
         ];
@@ -327,14 +361,18 @@ const BookingConfirmation = () => {
 
   // Helper functions that accept data parameter
   const getVendorName = (data = bookingData) => {
-    return data?.hotelData?.name || 
-           data?.vendorData?.name || 
+    return data?.vendorData?.name || 
+           data?.hotelData?.name || 
            data?.roomData?.hotel?.name || 
            data?.propertyName ||
-           "Vendor";
+           (isServiceBooking ? "Service Provider" : "Property");
   };
 
   const getVendorLocation = (data = bookingData) => {
+    if (isServiceBooking) {
+      return "Oyo State, Nigeria";
+    }
+    
     const hotelLocation = data?.hotelData?.location;
     if (hotelLocation && typeof hotelLocation === 'string') {
       return hotelLocation;
@@ -362,16 +400,18 @@ const BookingConfirmation = () => {
   };
 
   const getVendorImage = (data = bookingData) => {
-    return data?.hotelData?.image || 
-           data?.vendorData?.image || 
+    return data?.vendorData?.image || 
+           data?.hotelData?.image || 
            data?.roomData?.hotel?.image || 
            data?.propertyImage ||
-           "https://images.unsplash.com/photo-1552566626-52f8b828add9";
+           (isServiceBooking 
+             ? "https://images.unsplash.com/photo-1581094794329-c8112a89af12" 
+             : "https://images.unsplash.com/photo-1552566626-52f8b828add9");
   };
 
   const getVendorRating = (data = bookingData) => {
-    return data?.hotelData?.rating || 
-           data?.vendorData?.rating || 
+    return data?.vendorData?.rating || 
+           data?.hotelData?.rating || 
            data?.roomData?.hotel?.rating || 
            data?.propertyRating ||
            4.5;
@@ -384,58 +424,131 @@ const BookingConfirmation = () => {
            0;
   };
 
+  // Function to get category icon
+  const getCategoryIcon = () => {
+    switch(type) {
+      case 'service':
+        return Wrench;
+      case 'restaurant':
+        return Utensils;
+      case 'shortlet':
+        return Bed;
+      case 'hotel':
+      default:
+        return Hotel;
+    }
+  };
+
   // Function to download confirmation as PDF/text
   const downloadConfirmation = () => {
     if (!bookingData) {
-      alert('No booking data available to download');
+      showToast('No booking data available to download', 'error');
       return;
     }
     
-    const confirmationText = `
+    const CategoryIcon = getCategoryIcon();
+    const categoryName = type === 'hotel' ? 'Hotel' :
+                        type === 'restaurant' ? 'Restaurant' :
+                        type === 'shortlet' ? 'Shortlet' :
+                        type === 'service' ? 'Service' : 'Booking';
+    
+    let confirmationText = `
 AJANI.AI BOOKING CONFIRMATION
 ================================
 
 Booking Reference: ${bookingReference}
-Booking Type: ${type?.toUpperCase() || "BOOKING"}
+Booking Type: ${categoryName.toUpperCase()} ${type === 'service' ? 'SERVICE' : 'BOOKING'}
 Status: Confirmed
 Date: ${new Date().toLocaleDateString()}
 Confirmation Time: ${new Date().toLocaleTimeString()}
 
-PROPERTY DETAILS:
------------------
+${categoryName.toUpperCase()} DETAILS:
+${'='.repeat(categoryName.length + 9)}
 Name: ${getVendorName()}
 Location: ${getVendorLocation()}
 Rating: ${getVendorRating()}/5
 
 GUEST INFORMATION:
 ------------------
-Name: ${bookingData?.firstName || bookingData?.bookingData?.firstName || "Guest"} ${bookingData?.lastName || bookingData?.bookingData?.lastName || ""}
-Email: ${bookingData?.email || bookingData?.bookingData?.email || bookingData?.guestEmail || "Not provided"}
-Phone: ${bookingData?.phone || bookingData?.bookingData?.phone || "Not provided"}
+Name: ${bookingData?.firstName || bookingData?.bookingData?.contactPerson?.firstName || bookingData?.bookingData?.firstName || "Guest"} ${bookingData?.lastName || bookingData?.bookingData?.contactPerson?.lastName || bookingData?.bookingData?.lastName || ""}
+Email: ${bookingData?.email || bookingData?.bookingData?.contactPerson?.email || bookingData?.bookingData?.email || bookingData?.guestEmail || "Not provided"}
+Phone: ${bookingData?.phone || bookingData?.bookingData?.contactPerson?.phone || bookingData?.bookingData?.phone || "Not provided"}
+    `;
 
+    // Add booking type specific details
+    if (type === 'hotel') {
+      confirmationText += `
 BOOKING DETAILS:
 ----------------
-${getBookingDetailsText()}
+Check-in: ${bookingData?.checkInDate || bookingData?.bookingData?.checkIn || "Not specified"}
+Check-out: ${bookingData?.checkOutDate || bookingData?.bookingData?.checkOut || "Not specified"}
+Guests: ${bookingData?.guests?.adults || bookingData?.bookingData?.adults || 2} adults
+${bookingData?.guests?.children ? `Children: ${bookingData.guests.children}` : ''}
+Nights: ${bookingData?.bookingData?.nights || 1}
+Room: ${bookingData?.roomData?.room?.title || "Standard Room"}
+      `;
+    } else if (type === 'restaurant' || type === 'shortlet') {
+      confirmationText += `
+BOOKING DETAILS:
+----------------
+Date: ${bookingData?.bookingData?.date || "Today"}
+Time: ${bookingData?.bookingData?.time || "Not specified"}
+Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adults || 2} people
+      `;
+    } else if (type === 'service') {
+      confirmationText += `
+SERVICE DETAILS:
+----------------
+Service Date: ${bookingData?.bookingData?.serviceDate || "Not specified"}
+Service Time: ${bookingData?.bookingData?.serviceTime || "Not specified"}
+Location Type: ${bookingData?.bookingData?.locationType || "Residential"}
+Problem Description: ${bookingData?.bookingData?.problemDescription || "Not specified"}
+${bookingData?.bookingData?.specialRequirements ? `Special Requirements: ${bookingData.bookingData.specialRequirements}` : ""}
 
+ADDRESS:
+--------
+Street: ${bookingData?.bookingData?.address?.street || "Not specified"}
+City: ${bookingData?.bookingData?.address?.city || "Ibadan"}
+State: ${bookingData?.bookingData?.address?.state || "Oyo"}
+${bookingData?.bookingData?.address?.postalCode ? `Postal Code: ${bookingData.bookingData.address.postalCode}` : ""}
+      `;
+    }
+
+    // Add price information for non-service bookings
+    if (type !== 'service') {
+      const totalAmount = getTotalAmount();
+      confirmationText += `
 PAYMENT INFORMATION:
 --------------------
 Payment Method: ${getPaymentMethodText()}
-Total Amount: ${formatPrice(getTotalAmount())}
+Total Amount: ₦${totalAmount?.toLocaleString() || '0'}
 Payment Status: ${bookingData?.paymentStatus || "Pending"}
+      `;
+    } else {
+      confirmationText += `
+PAYMENT INFORMATION:
+--------------------
+Payment Method: Pay at Service Completion
+Payment Status: Pending (Pay when service is completed)
+Note: Price will be determined after service assessment
+      `;
+    }
 
+    // Common footer
+    confirmationText += `
 ADDITIONAL INFORMATION:
 -----------------------
 ${bookingData?.specialRequests ? `Special Requests: ${bookingData.specialRequests}` : "No special requests"}
 
 IMPORTANT NOTES:
 ----------------
-• Keep this booking reference for check-in: ${bookingReference}
-• Present this confirmation at the property
+• Keep this booking reference for reference: ${bookingReference}
+• Present this confirmation at the ${type === 'service' ? 'service location' : 'property'}
 • Contact support for any changes
 • Booking ID stored in your account (if logged in)
 
 Thank you for booking with Ajani.ai!
-For assistance, contact support@ajani.com or call +234 800 000 0000
+For assistance, contact support@ajani.com or call +234 8022662256
 
 This confirmation was generated on: ${new Date().toLocaleString()}
 ================================
@@ -444,10 +557,11 @@ This confirmation was generated on: ${new Date().toLocaleString()}
     const element = document.createElement("a");
     const file = new Blob([confirmationText], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
-    element.download = `ajani-booking-${bookingReference}.txt`;
+    element.download = `ajani-${type}-booking-${bookingReference}.txt`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+    showToast('Confirmation downloaded!', 'success');
   };
 
   // Function to print confirmation
@@ -462,13 +576,13 @@ This confirmation was generated on: ${new Date().toLocaleString()}
     if (paymentMethod === "hotel" || paymentMethod === "restaurant") {
       return {
         status: "pending",
-        text: "Pending Confirmation",
+        text: type === 'service' ? "Service Scheduled" : "Pending Confirmation",
         color: "text-yellow-600",
         bgColor: "bg-yellow-50",
         borderColor: "border-yellow-100",
         icon: AlertCircle,
-        message: "Awaiting payment at the property",
-        note: "Please pay when you arrive"
+        message: type === 'service' ? "Service appointment scheduled" : "Awaiting payment at the property",
+        note: type === 'service' ? "Service provider will contact you to confirm" : "Please pay when you arrive"
       };
     } else if (paymentMethod === "card" && bookingData?.paymentStatus === "paid") {
       return {
@@ -484,13 +598,13 @@ This confirmation was generated on: ${new Date().toLocaleString()}
     } else {
       return {
         status: "pending",
-        text: "Pending",
+        text: type === 'service' ? "Scheduled" : "Pending",
         color: "text-yellow-600",
         bgColor: "bg-yellow-50",
         borderColor: "border-yellow-100",
         icon: AlertCircle,
-        message: "Awaiting confirmation",
-        note: "Will be confirmed shortly"
+        message: type === 'service' ? "Service appointment scheduled" : "Awaiting confirmation",
+        note: type === 'service' ? "Will be confirmed shortly" : "Will be confirmed shortly"
       };
     }
   };
@@ -500,13 +614,13 @@ This confirmation was generated on: ${new Date().toLocaleString()}
     const method = bookingData?.paymentMethod || "hotel";
     switch(method) {
       case "hotel":
-        return "Pay at Hotel";
+        return type === 'service' ? "Pay After Service" : "Pay at Property";
       case "restaurant":
         return "Pay at Restaurant";
       case "card":
         return "Paid with Card";
       default:
-        return "Pay at Property";
+        return type === 'service' ? "Pay After Service" : "Pay at Property";
     }
   };
 
@@ -591,6 +705,20 @@ This confirmation was generated on: ${new Date().toLocaleString()}
           contactMessage: "Need help with your shortlet booking?"
         };
       
+      case 'service':
+        return {
+          title: "Thank you for booking on Ajani.ai, Service Request Received!",
+          subtitle: "Your service appointment has been scheduled",
+          message: "Your service request has been submitted successfully. The service provider will contact you to confirm the appointment time and discuss pricing. Payment will be made after the service is completed and you're satisfied with the work.",
+          nextSteps: [
+            "Service provider will contact you within 24 hours",
+            "Discuss service details and pricing with the provider",
+            "Provider will confirm the appointment time",
+            "Pay after service completion when satisfied"
+          ],
+          contactMessage: "Need help with your service booking?"
+        };
+      
       default:
         return {
           title: isPayAtProperty 
@@ -616,26 +744,6 @@ This confirmation was generated on: ${new Date().toLocaleString()}
           contactMessage: "Need help with your booking?"
         };
     }
-  };
-
-  const getBookingDetailsText = () => {
-    if (type === 'hotel') {
-      return `
-Check-in: ${bookingData?.checkInDate || bookingData?.bookingData?.checkIn || "Not specified"}
-Check-out: ${bookingData?.checkOutDate || bookingData?.bookingData?.checkOut || "Not specified"}
-Guests: ${bookingData?.guests?.adults || bookingData?.bookingData?.adults || 2} adults
-${bookingData?.guests?.children ? `Children: ${bookingData.guests.children}` : ''}
-Nights: ${bookingData?.bookingData?.nights || 1}
-Room: ${bookingData?.roomData?.room?.title || "Standard Room"}
-      `;
-    } else if (type === 'restaurant' || type === 'shortlet') {
-      return `
-Date: ${bookingData?.bookingData?.date || "Today"}
-Time: ${bookingData?.bookingData?.time || "Not specified"}
-Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adults || 2} people
-      `;
-    }
-    return "Booking details not specified";
   };
 
   const formatPrice = (price) => {
@@ -743,13 +851,16 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
 
   const bookingStatus = getBookingStatus();
   const StatusIcon = bookingStatus.icon;
+  const CategoryIcon = getCategoryIcon();
   const paymentMethod = bookingData?.paymentMethod || "hotel";
   const isPayAtProperty = paymentMethod === "hotel" || paymentMethod === "restaurant";
   const messages = getCategoryMessages();
+  const totalAmount = getTotalAmount();
 
   return (
     <div className="min-h-screen bg-white">
       <Header />
+      <ToastContainer />
       
       <div className="pt-0">
         <div className="max-w-7xl mx-auto px-2.5 sm:px-4 py-20 sm:py-26">
@@ -774,7 +885,7 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
 
               <div className="text-center mb-4 sm:mb-8">
                 <div className={`w-16 h-16 sm:w-20 sm:h-20 ${bookingStatus.bgColor} rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4`}>
-                  <StatusIcon className={`w-10 h-10 sm:w-12 sm:h-12 ${bookingStatus.color}`} />
+                  <CategoryIcon className={`w-10 h-10 sm:w-12 sm:h-12 ${bookingStatus.color}`} />
                 </div>
                 
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
@@ -793,7 +904,7 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h3 className="text-base sm:text-lg font-bold mb-1">
-                      {isPayAtProperty ? "Booking Request Received" : "Booking Confirmed"}
+                      {isServiceBooking ? "Service Request Received" : (isPayAtProperty ? "Booking Request Received" : "Booking Confirmed")}
                     </h3>
                     <p className="text-xs sm:text-sm opacity-90">
                       Your booking reference number
@@ -810,19 +921,23 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
 
               {/* Status Banner */}
               <div className={`mb-4 sm:mb-6 ${bookingStatus.bgColor} border ${bookingStatus.borderColor} rounded-lg p-3 sm:p-4 flex items-center gap-3`}>
-                {isPayAtProperty ? (
+                {isServiceBooking ? (
+                  <Wrench className={`w-5 h-5 ${bookingStatus.color}`} />
+                ) : isPayAtProperty ? (
                   <Building className={`w-5 h-5 ${bookingStatus.color}`} />
                 ) : (
                   <CreditCard className={`w-5 h-5 ${bookingStatus.color}`} />
                 )}
                 <div className="flex-1">
                   <p className="font-medium text-sm">
-                    {isPayAtProperty ? "Pay at Property" : "Paid Online"} • {bookingStatus.text}
+                    {getPaymentMethodText()} • {bookingStatus.text}
                   </p>
                   <p className="text-xs opacity-80 mt-0.5">
-                    {isPayAtProperty 
-                      ? `You'll pay when you arrive. Amount: ${formatPrice(getTotalAmount())}`
-                      : "Payment processed successfully"}
+                    {isServiceBooking 
+                      ? "Service provider will contact you to discuss pricing"
+                      : isPayAtProperty 
+                        ? `You'll pay when you arrive. ${type !== 'service' ? `Amount: ${formatPrice(totalAmount)}` : ''}`
+                        : "Payment processed successfully"}
                   </p>
                 </div>
               </div>
@@ -838,7 +953,7 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
                           alt={getVendorName()}
                           className="w-full h-32 sm:h-40 object-cover rounded-lg shadow-sm"
                           onError={(e) => {
-                            e.target.src = "https://images.unsplash.com/photo-1552566626-52f8b828add9";
+                            e.target.src = getVendorImage();
                           }}
                         />
                         <div className="absolute top-1.5 left-1.5 bg-black/70 text-white text-xs px-2 py-0.5 rounded-full">
@@ -864,47 +979,102 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
                         </div>
                         
                         <div className="space-y-2">
-                          {bookingData?.checkInDate && (
-                            <div className="flex items-center justify-between text-sm">
-                              <div className="flex items-center gap-1.5 text-gray-600">
-                                <Calendar className="w-3 h-3" />
-                                <span>Check-in</span>
+                          {/* Show different details based on booking type */}
+                          {isServiceBooking ? (
+                            <>
+                              <div className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-1.5 text-gray-600">
+                                  <Calendar className="w-3 h-3" />
+                                  <span>Service Date</span>
+                                </div>
+                                <span className="font-medium">{bookingData?.bookingData?.serviceDate || "Not specified"}</span>
                               </div>
-                              <span className="font-medium">{bookingData.checkInDate}</span>
-                            </div>
-                          )}
-                          
-                          {bookingData?.checkOutDate && (
-                            <div className="flex items-center justify-between text-sm">
-                              <div className="flex items-center gap-1.5 text-gray-600">
-                                <Calendar className="w-3 h-3" />
-                                <span>Check-out</span>
+                              
+                              <div className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-1.5 text-gray-600">
+                                  <Clock className="w-3 h-3" />
+                                  <span>Service Time</span>
+                                </div>
+                                <span className="font-medium">{bookingData?.bookingData?.serviceTime || "Not specified"}</span>
                               </div>
-                              <span className="font-medium">{bookingData.checkOutDate}</span>
-                            </div>
-                          )}
-                          
-                          {(bookingData?.guests?.adults || bookingData?.bookingData?.numberOfGuests) && (
-                            <div className="flex items-center justify-between text-sm">
-                              <div className="flex items-center gap-1.5 text-gray-600">
-                                <Users className="w-3 h-3" />
-                                <span>Guests</span>
+                              
+                              <div className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-1.5 text-gray-600">
+                                  <Home className="w-3 h-3" />
+                                  <span>Location Type</span>
+                                </div>
+                                <span className="font-medium">{bookingData?.bookingData?.locationType || "Residential"}</span>
                               </div>
-                              <span className="font-medium">
-                                {bookingData?.guests?.adults || bookingData?.bookingData?.numberOfGuests} 
-                                {bookingData?.guests?.children ? ` + ${bookingData.guests.children} children` : ''}
-                              </span>
-                            </div>
-                          )}
-                          
-                          {bookingData?.bookingData?.time && (
-                            <div className="flex items-center justify-between text-sm">
-                              <div className="flex items-center gap-1.5 text-gray-600">
-                                <Clock className="w-3 h-3" />
-                                <span>Time</span>
-                              </div>
-                              <span className="font-medium">{bookingData.bookingData.time}</span>
-                            </div>
+                            </>
+                          ) : type === 'hotel' ? (
+                            <>
+                              {bookingData?.checkInDate && (
+                                <div className="flex items-center justify-between text-sm">
+                                  <div className="flex items-center gap-1.5 text-gray-600">
+                                    <Calendar className="w-3 h-3" />
+                                    <span>Check-in</span>
+                                  </div>
+                                  <span className="font-medium">{bookingData.checkInDate}</span>
+                                </div>
+                              )}
+                              
+                              {bookingData?.checkOutDate && (
+                                <div className="flex items-center justify-between text-sm">
+                                  <div className="flex items-center gap-1.5 text-gray-600">
+                                    <Calendar className="w-3 h-3" />
+                                    <span>Check-out</span>
+                                  </div>
+                                  <span className="font-medium">{bookingData.checkOutDate}</span>
+                                </div>
+                              )}
+                              
+                              {(bookingData?.guests?.adults || bookingData?.bookingData?.numberOfGuests) && (
+                                <div className="flex items-center justify-between text-sm">
+                                  <div className="flex items-center gap-1.5 text-gray-600">
+                                    <Users className="w-3 h-3" />
+                                    <span>Guests</span>
+                                  </div>
+                                  <span className="font-medium">
+                                    {bookingData?.guests?.adults || bookingData?.bookingData?.numberOfGuests} 
+                                    {bookingData?.guests?.children ? ` + ${bookingData.guests.children} children` : ''}
+                                  </span>
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              {bookingData?.bookingData?.date && (
+                                <div className="flex items-center justify-between text-sm">
+                                  <div className="flex items-center gap-1.5 text-gray-600">
+                                    <Calendar className="w-3 h-3" />
+                                    <span>Date</span>
+                                  </div>
+                                  <span className="font-medium">{bookingData.bookingData.date}</span>
+                                </div>
+                              )}
+                              
+                              {(bookingData?.guests?.adults || bookingData?.bookingData?.numberOfGuests) && (
+                                <div className="flex items-center justify-between text-sm">
+                                  <div className="flex items-center gap-1.5 text-gray-600">
+                                    <Users className="w-3 h-3" />
+                                    <span>Guests</span>
+                                  </div>
+                                  <span className="font-medium">
+                                    {bookingData?.guests?.adults || bookingData?.bookingData?.numberOfGuests} people
+                                  </span>
+                                </div>
+                              )}
+                              
+                              {bookingData?.bookingData?.time && (
+                                <div className="flex items-center justify-between text-sm">
+                                  <div className="flex items-center gap-1.5 text-gray-600">
+                                    <Clock className="w-3 h-3" />
+                                    <span>Time</span>
+                                  </div>
+                                  <span className="font-medium">{bookingData.bookingData.time}</span>
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
@@ -915,28 +1085,37 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
                   <div className="mb-4 sm:mb-6 shadow-sm rounded-lg p-3 sm:p-4">
                     <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-2.5 flex items-center gap-1.5">
                       <Users className="w-4 h-4 text-blue-500" />
-                      Guest Information
+                      {isServiceBooking ? "Contact Information" : "Guest Information"}
                     </h2>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div className="space-y-0.5">
-                        <p className="text-xs text-gray-500">Lead Guest</p>
+                        <p className="text-xs text-gray-500">{isServiceBooking ? "Contact Person" : "Lead Guest"}</p>
                         <p className="font-medium text-sm">
-                          {bookingData?.firstName || bookingData?.bookingData?.firstName || "Guest"} {bookingData?.lastName || bookingData?.bookingData?.lastName || ""}
+                          {isServiceBooking 
+                            ? `${bookingData?.bookingData?.contactPerson?.firstName || "Guest"} ${bookingData?.bookingData?.contactPerson?.lastName || ""}`
+                            : `${bookingData?.firstName || bookingData?.bookingData?.firstName || "Guest"} ${bookingData?.lastName || bookingData?.bookingData?.lastName || ""}`
+                          }
                         </p>
                       </div>
                       
                       <div className="space-y-0.5">
                         <p className="text-xs text-gray-500">Email</p>
                         <p className="font-medium text-sm">
-                          {bookingData?.email || bookingData?.bookingData?.email || bookingData?.guestEmail || "Not provided"}
+                          {isServiceBooking 
+                            ? bookingData?.bookingData?.contactPerson?.email || bookingData?.guestEmail || "Not provided"
+                            : bookingData?.email || bookingData?.bookingData?.email || bookingData?.guestEmail || "Not provided"
+                          }
                         </p>
                       </div>
                       
                       <div className="space-y-0.5">
                         <p className="text-xs text-gray-500">Phone</p>
                         <p className="font-medium text-sm">
-                          {bookingData?.phone || bookingData?.bookingData?.phone || "Not provided"}
+                          {isServiceBooking 
+                            ? bookingData?.bookingData?.contactPerson?.phone || "Not provided"
+                            : bookingData?.phone || bookingData?.bookingData?.phone || "Not provided"
+                          }
                         </p>
                       </div>
                       
@@ -948,7 +1127,27 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
                       </div>
                     </div>
                     
-                    {bookingData?.specialRequests && (
+                    {/* Service specific details */}
+                    {isServiceBooking && bookingData?.bookingData?.problemDescription && (
+                      <div className="mt-3 pt-3 border-t border-blue-100">
+                        <p className="text-xs text-gray-500 mb-1">Problem Description</p>
+                        <p className="text-sm text-gray-700 bg-white p-2 rounded border border-gray-300" >
+                          {bookingData.bookingData.problemDescription}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {isServiceBooking && bookingData?.bookingData?.specialRequirements && (
+                      <div className="mt-3 pt-3 border-t border-blue-100">
+                        <p className="text-xs text-gray-500 mb-1">Special Requirements</p>
+                        <p className="text-sm text-gray-700 bg-white p-2 rounded border border-gray-300" >
+                          {bookingData.bookingData.specialRequirements}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Non-service special requests */}
+                    {!isServiceBooking && bookingData?.specialRequests && (
                       <div className="mt-3 pt-3 border-t border-blue-100">
                         <p className="text-xs text-gray-500 mb-1">Special Requests</p>
                         <p className="text-sm text-gray-700 bg-white p-2 rounded border">
@@ -963,7 +1162,7 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(bookingReference);
-                        alert('Booking reference copied to clipboard!');
+                        showToast('Booking reference copied to clipboard!', 'success');
                       }}
                       className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
                     >
@@ -995,8 +1194,8 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
                     {/* Status Card */}
                     <div className={`${bookingStatus.bgColor} border ${bookingStatus.borderColor} rounded-lg p-3`}>
                       <h6 className="font-bold text-gray-900 mb-1.5 flex items-center gap-1.5 text-sm">
-                        <StatusIcon className={`w-4 h-4 ${bookingStatus.color}`} />
-                        Booking Status
+                        <CategoryIcon className={`w-4 h-4 ${bookingStatus.color}`} />
+                        {isServiceBooking ? "Service Status" : "Booking Status"}
                       </h6>
                       <div className="space-y-2">
                         <div className="flex justify-between items-center">
@@ -1024,46 +1223,82 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
                       </div>
                     </div>
 
-                    {/* Price Breakdown */}
-                    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3">
-                      <h5 className="font-medium text-gray-800 mb-2 text-sm">Price Breakdown</h5>
-                      
-                      <div className="space-y-1.5 mb-3">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-600">
-                            {type === 'hotel' ? `Room` : 'Reservation fee'}
-                          </span>
-                          <span className="font-medium">{formatPrice(getTotalAmount())}</span>
+                    {/* Price Breakdown - Only for non-service bookings */}
+                    {!isServiceBooking ? (
+                      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3">
+                        <h5 className="font-medium text-gray-800 mb-2 text-sm">Price Breakdown</h5>
+                        
+                        <div className="space-y-1.5 mb-3">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-600">
+                              {type === 'hotel' ? `Room` : 'Reservation fee'}
+                            </span>
+                            <span className="font-medium">{formatPrice(totalAmount)}</span>
+                          </div>
+                          
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-600">Taxes & fees</span>
+                            <span className="font-medium">{formatPrice(0)}</span>
+                          </div>
+                          
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-600">Service fee</span>
+                            <span className="font-medium">{formatPrice(0)}</span>
+                          </div>
                         </div>
                         
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-600">Taxes & fees</span>
-                          <span className="font-medium">{formatPrice(0)}</span>
+                        <div className="pt-2 border-t border-gray-300">
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-gray-900 text-sm">Total Amount</span>
+                            <span className="text-lg font-bold text-emerald-600">
+                              {formatPrice(totalAmount)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 text-center mt-0.5">
+                            {isPayAtProperty ? "Pay at property" : "Payment received"}
+                          </p>
                         </div>
+                      </div>
+                    ) : (
+                      /* Service Details Card - Only for service bookings */
+                      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3">
+                        <h5 className="font-medium text-gray-800 mb-2 text-sm">Service Details</h5>
                         
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-600">Service fee</span>
-                          <span className="font-medium">{formatPrice(0)}</span>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-start">
+                            <span className="text-xs text-gray-600">Date</span>
+                            <span className="font-medium text-xs text-right">{bookingData?.bookingData?.serviceDate || "Not specified"}</span>
+                          </div>
+                          
+                          <div className="flex justify-between items-start">
+                            <span className="text-xs text-gray-600">Time</span>
+                            <span className="font-medium text-xs text-right">{bookingData?.bookingData?.serviceTime || "Not specified"}</span>
+                          </div>
+                          
+                          <div className="flex justify-between items-start">
+                            <span className="text-xs text-gray-600">Location Type</span>
+                            <span className="font-medium text-xs text-right">{bookingData?.bookingData?.locationType || "Residential"}</span>
+                          </div>
+                          
+                          <div className="pt-2 border-t border-gray-300">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-gray-900 text-sm">Pricing</span>
+                            </div>
+                            <p className="text-xs text-gray-500 text-center mt-0.5">
+                              Price will be determined after service assessment
+                            </p>
+                            <p className="text-xs text-gray-600 mt-2 text-center">
+                              Pay only when satisfied with the service
+                            </p>
+                          </div>
                         </div>
                       </div>
-                      
-                      <div className="pt-2 border-t border-gray-300">
-                        <div className="flex justify-between items-center">
-                          <span className="font-bold text-gray-900 text-sm">Total Amount</span>
-                          <span className="text-lg font-bold text-emerald-600">
-                            {formatPrice(getTotalAmount())}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-500 text-center mt-0.5">
-                          {isPayAtProperty ? "Pay at property" : "Payment received"}
-                        </p>
-                      </div>
-                    </div>
+                    )}
 
                     {/* Next Steps */}
                     <div className="bg-blue-50 rounded-lg border border-blue-100 p-3">
                       <h6 className="font-bold text-gray-900 mb-1.5 text-sm">
-                        {isPayAtProperty ? "What Happens Next?" : "What's Next?"}
+                        {isServiceBooking ? "What Happens Next?" : (isPayAtProperty ? "What Happens Next?" : "What's Next?")}
                       </h6>
                       <ul className="space-y-1.5 text-xs">
                         {messages.nextSteps.map((step, index) => (
@@ -1082,18 +1317,41 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
                         <h6 className="font-bold text-gray-900 text-sm">Ajani Guarantee</h6>
                       </div>
                       <ul className="space-y-1 text-xs text-gray-700">
-                        <li className="flex items-start gap-1.5">
-                          <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
-                          <span>Free cancellation up to 24 hours before check-in</span>
-                        </li>
-                        <li className="flex items-start gap-1.5">
-                          <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
-                          <span>Best price guarantee</span>
-                        </li>
-                        <li className="flex items-start gap-1.5">
-                          <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
-                          <span>24/7 customer support</span>
-                        </li>
+                        {isServiceBooking ? (
+                          <>
+                            <li className="flex items-start gap-1.5">
+                              <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
+                              <span>Pay only when satisfied with service</span>
+                            </li>
+                            <li className="flex items-start gap-1.5">
+                              <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
+                              <span>Free cancellation up to 24 hours before service</span>
+                            </li>
+                            <li className="flex items-start gap-1.5">
+                              <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
+                              <span>Verified service providers</span>
+                            </li>
+                            <li className="flex items-start gap-1.5">
+                              <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
+                              <span>24/7 customer support</span>
+                            </li>
+                          </>
+                        ) : (
+                          <>
+                            <li className="flex items-start gap-1.5">
+                              <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
+                              <span>Free cancellation up to 24 hours before check-in</span>
+                            </li>
+                            <li className="flex items-start gap-1.5">
+                              <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
+                              <span>Best price guarantee</span>
+                            </li>
+                            <li className="flex items-start gap-1.5">
+                              <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
+                              <span>24/7 customer support</span>
+                            </li>
+                          </>
+                        )}
                       </ul>
                     </div>
 
@@ -1135,7 +1393,7 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
                   onClick={() => navigate(`/category/${type || 'hotel'}`)}
                   className="flex items-center justify-center gap-2 px-4 py-3 border border-[#6cff] text-[#6cff] rounded-lg hover:bg-blue-50 transition-all font-medium text-sm"
                 >
-                  Browse More {type ? type.charAt(0).toUpperCase() + type.slice(1) + 's' : 'Hotels'}
+                  Browse More {type ? type.charAt(0).toUpperCase() + type.slice(1) + (type === 'service' ? 's' : 's') : 'Hotels'}
                 </button>
               </div>
 
