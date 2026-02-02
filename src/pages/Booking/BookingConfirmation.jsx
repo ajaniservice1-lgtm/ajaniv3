@@ -40,6 +40,11 @@ const updateSessionActivity = () => {
   }
 };
 
+// Helper to get persistent storage key
+const getPersistentBookingKey = (type) => {
+  return `confirmedBooking_${type}_persistent`;
+};
+
 const BookingConfirmation = () => {
   const navigate = useNavigate();
   const { type } = useParams();
@@ -68,9 +73,34 @@ const BookingConfirmation = () => {
       return result;
     };
     
-    setBookingReference(generateReference());
+    // Check if we have a reference in localStorage or URL
+    const loadBookingReference = () => {
+      // Check URL parameters first
+      const urlParams = new URLSearchParams(window.location.search);
+      const refFromUrl = urlParams.get('ref');
+      
+      if (refFromUrl) {
+        setBookingReference(refFromUrl);
+        return refFromUrl;
+      }
+      
+      // Check localStorage for existing reference
+      const storedRef = localStorage.getItem('lastBookingReference');
+      if (storedRef) {
+        setBookingReference(storedRef);
+        return storedRef;
+      }
+      
+      // Generate new reference
+      const newRef = generateReference();
+      setBookingReference(newRef);
+      localStorage.setItem('lastBookingReference', newRef);
+      return newRef;
+    };
     
-    // Load booking data based on type
+    const ref = loadBookingReference();
+    
+    // Load booking data
     const loadBookingData = () => {
       setLoading(true);
       console.log("📦 Loading booking data for type:", type);
@@ -78,48 +108,85 @@ const BookingConfirmation = () => {
       let data = null;
       let guestBooking = false;
       
-      // Try multiple storage locations
-      const possibleKeys = [
-        'confirmedBooking',
-        `${type}Booking`,
-        'completeBooking',
-        'hotelBooking',
-        'restaurantBooking',
-        'shortletBooking',
-        'pendingGuestHotelBooking',
-        'pendingLoggedInHotelBooking',
-        'pendingGuestRestaurantBooking',
-        'pendingLoggedInRestaurantBooking',
-        'pendingGuestShortletBooking',
-        'pendingLoggedInShortletBooking'
-      ];
+      // Check URL parameters first (for payment redirects)
+      const urlParams = new URLSearchParams(window.location.search);
+      const bookingDataParam = urlParams.get('bookingData');
       
-      for (const key of possibleKeys) {
-        const storedData = localStorage.getItem(key);
-        if (storedData) {
+      if (bookingDataParam) {
+        try {
+          data = JSON.parse(decodeURIComponent(bookingDataParam));
+          console.log("✅ Found booking data in URL parameters:", data);
+          
+          // Store in localStorage for persistence
+          if (data) {
+            const persistentKey = getPersistentBookingKey(type);
+            localStorage.setItem(persistentKey, JSON.stringify({
+              ...data,
+              timestamp: new Date().toISOString(),
+              reference: ref
+            }));
+          }
+        } catch (error) {
+          console.error("Failed to parse URL booking data:", error);
+        }
+      }
+      
+      // If not in URL, check localStorage
+      if (!data) {
+        // Try persistent storage first
+        const persistentKey = getPersistentBookingKey(type);
+        const persistentData = localStorage.getItem(persistentKey);
+        
+        if (persistentData) {
           try {
-            data = JSON.parse(storedData);
-            console.log(`✅ Found booking data in ${key}:`, data);
-            
-            // Check if it's a guest booking
-            if (data.isGuestBooking || key.includes('Guest')) {
-              guestBooking = true;
-              setIsGuestBooking(true);
-            }
-            break;
+            data = JSON.parse(persistentData);
+            console.log(`✅ Found booking data in persistent storage:`, data);
           } catch (error) {
-            console.error(`Failed to parse data from ${key}:`, error);
+            console.error(`Failed to parse persistent data:`, error);
+          }
+        }
+      }
+      
+      // If still not found, try other storage locations
+      if (!data) {
+        const possibleKeys = [
+          `confirmedBooking_${type}`,
+          `${type}Booking`,
+          'completeBooking',
+          'confirmedBooking',
+          `pendingGuest${type.charAt(0).toUpperCase() + type.slice(1)}Booking`,
+          `pendingLoggedIn${type.charAt(0).toUpperCase() + type.slice(1)}Booking`
+        ];
+        
+        for (const key of possibleKeys) {
+          const storedData = localStorage.getItem(key);
+          if (storedData) {
+            try {
+              data = JSON.parse(storedData);
+              console.log(`✅ Found booking data in ${key}:`, data);
+              
+              // Store in persistent storage
+              const persistentKey = getPersistentBookingKey(type);
+              localStorage.setItem(persistentKey, JSON.stringify({
+                ...data,
+                timestamp: new Date().toISOString(),
+                reference: ref
+              }));
+              break;
+            } catch (error) {
+              console.error(`Failed to parse data from ${key}:`, error);
+            }
           }
         }
       }
       
       if (data) {
-        setBookingData(data);
-        
-        // CRITICAL: Always clear guest session on confirmation page
-        // Even if it wasn't cleared earlier, clear it now
-        if (data.isGuestBooking || localStorage.getItem("guestSession")) {
-          console.log("🚫 Clearing any remaining guest session on confirmation");
+        // Check if it's a guest booking
+        if (data.isGuestBooking || data.bookingType === 'guest') {
+          guestBooking = true;
+          setIsGuestBooking(true);
+          
+          // Clear guest session but keep booking data
           localStorage.removeItem("guestSession");
           
           // Also clear any pending guest bookings
@@ -132,7 +199,12 @@ const BookingConfirmation = () => {
           guestKeys.forEach(key => localStorage.removeItem(key));
         }
         
-        // Clean up temporary data
+        setBookingData(data);
+        
+        // Store type for reference
+        localStorage.setItem('lastBookingType', type);
+        
+        // Clean up temporary data (but keep persistent one)
         const tempKeys = [
           'pendingHotelBooking',
           'pendingRestaurantBooking',
@@ -147,10 +219,9 @@ const BookingConfirmation = () => {
           'confirmedBooking'
         ];
         
-        // Keep the main booking data but clean up pending ones
-        const mainBookingKey = `${type}Booking`;
+        // Only clear temporary keys, keep persistent
         tempKeys.forEach(key => {
-          if (key !== mainBookingKey) {
+          if (key !== getPersistentBookingKey(type)) {
             localStorage.removeItem(key);
           }
         });
@@ -159,11 +230,17 @@ const BookingConfirmation = () => {
       setLoading(false);
     };
     
-    loadBookingData();
+    // Small delay to ensure DOM is ready
+    setTimeout(loadBookingData, 50);
   }, [type]);
 
   // Function to download confirmation as PDF/text
   const downloadConfirmation = () => {
+    if (!bookingData) {
+      alert('No booking data available to download');
+      return;
+    }
+    
     const confirmationText = `
 AJANI.AI BOOKING CONFIRMATION
 ================================
@@ -172,6 +249,7 @@ Booking Reference: ${bookingReference}
 Booking Type: ${type?.toUpperCase() || "BOOKING"}
 Status: Confirmed
 Date: ${new Date().toLocaleDateString()}
+Confirmation Time: ${new Date().toLocaleTimeString()}
 
 PROPERTY DETAILS:
 -----------------
@@ -199,8 +277,18 @@ ADDITIONAL INFORMATION:
 -----------------------
 ${bookingData?.specialRequests ? `Special Requests: ${bookingData.specialRequests}` : "No special requests"}
 
+IMPORTANT NOTES:
+----------------
+• Keep this booking reference for check-in: ${bookingReference}
+• Present this confirmation at the property
+• Contact support for any changes
+• Booking ID stored in your account (if logged in)
+
 Thank you for booking with Ajani.ai!
 For assistance, contact support@ajani.com or call +234 800 000 0000
+
+This confirmation was generated on: ${new Date().toLocaleString()}
+================================
     `;
     
     const element = document.createElement("a");
@@ -384,6 +472,7 @@ For assistance, contact support@ajani.com or call +234 800 000 0000
     return bookingData?.hotelData?.name || 
            bookingData?.vendorData?.name || 
            bookingData?.roomData?.hotel?.name || 
+           bookingData?.propertyName ||
            "Vendor";
   };
 
@@ -418,6 +507,7 @@ For assistance, contact support@ajani.com or call +234 800 000 0000
     return bookingData?.hotelData?.image || 
            bookingData?.vendorData?.image || 
            bookingData?.roomData?.hotel?.image || 
+           bookingData?.propertyImage ||
            "https://images.unsplash.com/photo-1552566626-52f8b828add9";
   };
 
@@ -425,6 +515,7 @@ For assistance, contact support@ajani.com or call +234 800 000 0000
     return bookingData?.hotelData?.rating || 
            bookingData?.vendorData?.rating || 
            bookingData?.roomData?.hotel?.rating || 
+           bookingData?.propertyRating ||
            4.5;
   };
 
@@ -458,8 +549,37 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
   const getTotalAmount = () => {
     return bookingData?.totalAmount || 
            bookingData?.roomData?.booking?.price || 
+           bookingData?.bookingData?.totalPrice ||
            0;
   };
+
+  // Clear persistent storage after 24 hours (optional safety feature)
+  const clearOldPersistentData = () => {
+    const persistentKey = getPersistentBookingKey(type);
+    const storedData = localStorage.getItem(persistentKey);
+    
+    if (storedData) {
+      try {
+        const data = JSON.parse(storedData);
+        const storedTime = new Date(data.timestamp);
+        const now = new Date();
+        const hoursDiff = (now - storedTime) / (1000 * 60 * 60);
+        
+        if (hoursDiff > 24) {
+          localStorage.removeItem(persistentKey);
+          localStorage.removeItem('lastBookingReference');
+          localStorage.removeItem('lastBookingType');
+        }
+      } catch (error) {
+        console.error("Error clearing old data:", error);
+      }
+    }
+  };
+
+  // Check for old data on mount
+  useEffect(() => {
+    clearOldPersistentData();
+  }, []);
 
   if (loading) {
     return (
@@ -491,7 +611,7 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
             <p className="text-gray-600 mb-5">
               Please start your booking again or check your email for confirmation.
             </p>
-            <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 onClick={() => navigate('/')}
                 className="bg-[#6cff] text-white font-semibold py-3 px-6 rounded-lg transition cursor-pointer"
@@ -499,12 +619,29 @@ Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adult
                 Return Home
               </button>
               <button
-                onClick={() => navigate(-1)}
-                className="ml-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition cursor-pointer"
+                onClick={() => {
+                  // Try to load from persistent storage one more time
+                  const persistentKey = getPersistentBookingKey(type);
+                  const storedData = localStorage.getItem(persistentKey);
+                  if (storedData) {
+                    try {
+                      const data = JSON.parse(storedData);
+                      setBookingData(data);
+                      return;
+                    } catch (error) {
+                      console.error("Failed to load persistent data:", error);
+                    }
+                  }
+                  navigate(-1);
+                }}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition cursor-pointer"
               >
                 Go Back
               </button>
             </div>
+            <p className="text-sm text-gray-500 mt-4">
+              If you've already completed a booking, your confirmation may have been sent to your email.
+            </p>
           </div>
         </div>
         <Footer />
