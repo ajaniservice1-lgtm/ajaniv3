@@ -14,7 +14,8 @@ import {
   Download,
   Printer,
   Shield,
-  DollarSign
+  DollarSign,
+  User
 } from "lucide-react";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
@@ -43,81 +44,150 @@ const getPersistentBookingKey = (type) => {
   return `confirmedBooking_${type}_persistent`;
 };
 
+// Helper function to format location
+const formatLocation = (location) => {
+  if (!location) return "Location available";
+  
+  if (typeof location === 'string') {
+    return location;
+  }
+  
+  if (typeof location === 'object') {
+    const parts = [];
+    if (location.address) parts.push(location.address);
+    if (location.area) parts.push(location.area);
+    if (location.city) parts.push(location.city);
+    if (location.state) parts.push(location.state);
+    if (location.country) parts.push(location.country);
+    
+    if (parts.length > 0) {
+      return parts.join(', ');
+    }
+    
+    // Try to extract string values from the object
+    try {
+      return Object.values(location)
+        .filter(value => typeof value === 'string' && value.trim().length > 0)
+        .join(', ');
+    } catch {
+      return "Location available";
+    }
+  }
+  
+  return String(location);
+};
+
 // Helper to save booking to user profile
 const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, totalAmount) => {
   try {
-    const userProfileStr = localStorage.getItem("userProfile");
-    const isLoggedIn = localStorage.getItem("ajani_dummy_login") === "true" || localStorage.getItem("auth_token");
+    // Check if user is logged in
+    const isLoggedIn = localStorage.getItem("ajani_dummy_login") === "true" || 
+                      localStorage.getItem("auth_token") ||
+                      localStorage.getItem("user_email");
     
-    if (isLoggedIn && userProfileStr) {
-      const userProfile = JSON.parse(userProfileStr);
-      
-      const bookingRecord = {
-        id: bookingReference,
-        type: type,
-        status: "confirmed",
-        date: new Date().toISOString(),
-        vendor: vendorInfo,
-        details: {
-          checkIn: bookingData?.checkInDate || bookingData?.bookingData?.checkIn,
-          checkOut: bookingData?.checkOutDate || bookingData?.bookingData?.checkOut,
-          guests: bookingData?.guests || bookingData?.bookingData?.numberOfGuests,
-          totalAmount: totalAmount,
-          paymentMethod: bookingData?.paymentMethod,
-          specialRequests: bookingData?.specialRequests,
-          time: bookingData?.bookingData?.time,
-          serviceDate: bookingData?.bookingData?.serviceDate,
-          serviceTime: bookingData?.bookingData?.serviceTime,
-          locationType: bookingData?.bookingData?.locationType,
-          problemDescription: bookingData?.bookingData?.problemDescription
-        },
-        reference: bookingReference
+    // Get user profile or create one
+    let userProfile = null;
+    const userProfileStr = localStorage.getItem("userProfile");
+    
+    if (userProfileStr) {
+      userProfile = JSON.parse(userProfileStr);
+    } else if (isLoggedIn) {
+      // Create a basic user profile if logged in but no profile exists
+      userProfile = {
+        firstName: localStorage.getItem("user_firstName") || "User",
+        lastName: localStorage.getItem("user_lastName") || "",
+        email: localStorage.getItem("user_email") || "",
+        phone: localStorage.getItem("user_phone") || "",
+        role: "user",
+        registrationDate: new Date().toISOString(),
+        bookings: [],
+        savedListings: []
       };
-      
+      localStorage.setItem("userProfile", JSON.stringify(userProfile));
+    }
+    
+    // Create booking record
+    const bookingRecord = {
+      id: bookingReference,
+      type: type,
+      status: "confirmed",
+      date: new Date().toISOString(),
+      confirmedDate: new Date().toISOString(),
+      vendor: vendorInfo,
+      details: {
+        checkIn: bookingData?.checkInDate || bookingData?.bookingData?.checkIn,
+        checkOut: bookingData?.checkOutDate || bookingData?.bookingData?.checkOut,
+        guests: bookingData?.guests || bookingData?.bookingData?.numberOfGuests,
+        totalAmount: totalAmount,
+        paymentMethod: bookingData?.paymentMethod,
+        specialRequests: bookingData?.specialRequests,
+        time: bookingData?.bookingData?.time,
+        serviceDate: bookingData?.bookingData?.serviceDate,
+        serviceTime: bookingData?.bookingData?.serviceTime,
+        locationType: bookingData?.bookingData?.locationType,
+        problemDescription: bookingData?.bookingData?.problemDescription,
+        address: bookingData?.bookingData?.address
+      },
+      reference: bookingReference,
+      // Add guest info for guest bookings
+      ...(!userProfile && {
+        guestEmail: bookingData?.email || bookingData?.guestEmail,
+        guestPhone: bookingData?.phone || bookingData?.bookingData?.contactPerson?.phone,
+        guestName: `${bookingData?.firstName || bookingData?.bookingData?.contactPerson?.firstName || ""} ${bookingData?.lastName || bookingData?.bookingData?.contactPerson?.lastName || ""}`.trim()
+      })
+    };
+    
+    if (isLoggedIn && userProfile) {
+      // Save to logged-in user's profile
       if (!userProfile.bookings) {
         userProfile.bookings = [];
       }
       
-      userProfile.bookings.unshift(bookingRecord);
+      // Check if booking already exists
+      const existingIndex = userProfile.bookings.findIndex(b => b.id === bookingReference);
+      if (existingIndex >= 0) {
+        userProfile.bookings[existingIndex] = bookingRecord;
+      } else {
+        userProfile.bookings.unshift(bookingRecord);
+      }
+      
+      // Limit bookings to last 50
+      if (userProfile.bookings.length > 50) {
+        userProfile.bookings = userProfile.bookings.slice(0, 50);
+      }
+      
       localStorage.setItem("userProfile", JSON.stringify(userProfile));
       
+      // Also save to separate bookings storage for easy access
       const allBookings = JSON.parse(localStorage.getItem("userBookings") || "[]");
-      allBookings.unshift(bookingRecord);
+      const allBookingIndex = allBookings.findIndex(b => b.id === bookingReference);
+      
+      if (allBookingIndex >= 0) {
+        allBookings[allBookingIndex] = bookingRecord;
+      } else {
+        allBookings.unshift(bookingRecord);
+      }
+      
       localStorage.setItem("userBookings", JSON.stringify(allBookings));
       
       return true;
     } else {
+      // Save as guest booking
       const guestBookings = JSON.parse(localStorage.getItem("guestBookings") || "[]");
-      const guestBookingRecord = {
-        id: bookingReference,
-        type: type,
-        status: "confirmed",
-        date: new Date().toISOString(),
-        vendor: vendorInfo,
-        details: {
-          checkIn: bookingData?.checkInDate || bookingData?.bookingData?.checkIn,
-          checkOut: bookingData?.checkOutDate || bookingData?.bookingData?.checkOut,
-          guests: bookingData?.guests || bookingData?.bookingData?.numberOfGuests,
-          totalAmount: totalAmount,
-          paymentMethod: bookingData?.paymentMethod,
-          specialRequests: bookingData?.specialRequests,
-          time: bookingData?.bookingData?.time,
-          serviceDate: bookingData?.bookingData?.serviceDate,
-          serviceTime: bookingData?.bookingData?.serviceTime,
-          locationType: bookingData?.bookingData?.locationType,
-          problemDescription: bookingData?.bookingData?.problemDescription
-        },
-        reference: bookingReference,
-        guestEmail: bookingData?.email || bookingData?.guestEmail,
-        guestPhone: bookingData?.phone || bookingData?.bookingData?.contactPerson?.phone,
-        guestName: `${bookingData?.firstName || bookingData?.bookingData?.contactPerson?.firstName || ""} ${bookingData?.lastName || bookingData?.bookingData?.contactPerson?.lastName || ""}`.trim()
-      };
-      guestBookings.unshift(guestBookingRecord);
+      const guestBookingIndex = guestBookings.findIndex(b => b.id === bookingReference);
+      
+      if (guestBookingIndex >= 0) {
+        guestBookings[guestBookingIndex] = bookingRecord;
+      } else {
+        guestBookings.unshift(bookingRecord);
+      }
+      
       localStorage.setItem("guestBookings", JSON.stringify(guestBookings));
       
       return false;
     }
   } catch (error) {
+    console.error("Error saving booking to profile:", error);
     return false;
   }
 };
@@ -292,7 +362,7 @@ const BookingConfirmation = () => {
         }
         
         setBookingSaved(true);
-        showToast("Booking confirmed successfully!");
+        showToast("Booking confirmed and saved to your profile!");
         
         const tempKeys = [
           'pendingHotelBooking',
@@ -334,33 +404,20 @@ const BookingConfirmation = () => {
 
   const getVendorLocation = (data = bookingData) => {
     if (isServiceBooking) {
+      const address = data?.bookingData?.address;
+      if (address) {
+        return formatLocation(address);
+      }
       return "Oyo State, Nigeria";
     }
     
-    const hotelLocation = data?.hotelData?.location;
-    if (hotelLocation && typeof hotelLocation === 'string') {
-      return hotelLocation;
-    }
+    const location = data?.vendorData?.area || 
+                     data?.hotelData?.location || 
+                     data?.roomData?.hotel?.location || 
+                     data?.propertyLocation || 
+                     data?.location;
     
-    const vendorData = data?.vendorData;
-    if (vendorData?.area) {
-      if (typeof vendorData.area === 'object' && vendorData.area.address) {
-        return vendorData.area.address;
-      }
-      if (typeof vendorData.area === 'object' && vendorData.area.area) {
-        return vendorData.area.area;
-      }
-      if (typeof vendorData.area === 'string') {
-        return vendorData.area;
-      }
-    }
-    
-    const roomHotelLocation = data?.roomData?.hotel?.location;
-    if (roomHotelLocation && typeof roomHotelLocation === 'string') {
-      return roomHotelLocation;
-    }
-    
-    return "Location not specified";
+    return formatLocation(location);
   };
 
   const getVendorImage = (data = bookingData) => {
@@ -489,10 +546,7 @@ ${bookingData?.bookingData?.specialRequirements ? `Special Requirements: ${booki
 
 ADDRESS:
 --------
-Street: ${bookingData?.bookingData?.address?.street || "Not specified"}
-City: ${bookingData?.bookingData?.address?.city || "Ibadan"}
-State: ${bookingData?.bookingData?.address?.state || "Oyo"}
-${bookingData?.bookingData?.address?.postalCode ? `Postal Code: ${bookingData.bookingData.address.postalCode}` : ""}
+${getVendorLocation()}
       `;
     }
 
@@ -757,7 +811,7 @@ This confirmation was generated on: ${new Date().toLocaleString()}
   }
 
   const bookingStatus = getBookingStatus();
-  const StatusIcon = CheckCircle; // Always use CheckCircle icon
+  const StatusIcon = CheckCircle;
   const paymentMethod = bookingData?.paymentMethod || "hotel";
   const isPayAtProperty = paymentMethod === "hotel" || paymentMethod === "restaurant";
   const messages = getCategoryMessages();
@@ -972,7 +1026,6 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                                 </div>
                               )}
                               
-                              {/* Add price range display for restaurant */}
                               <div className="flex items-center justify-between text-sm">
                                 <div className="flex items-center gap-1.5 text-gray-600">
                                   <DollarSign className="w-3 h-3" />
@@ -984,7 +1037,6 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                               </div>
                             </>
                           ) : (
-                            // Shortlet or other types
                             <>
                               {bookingData?.bookingData?.date && (
                                 <div className="flex items-center justify-between text-sm">
@@ -1382,7 +1434,8 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                   }}
                   className="inline-flex items-center gap-2 text-[#6cff] font-medium hover:text-blue-700"
                 >
-                  Go to My Bookings
+                  <User className="w-4 h-4" />
+                  Go to My Profile
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
