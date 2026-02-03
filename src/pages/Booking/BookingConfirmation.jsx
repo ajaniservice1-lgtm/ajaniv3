@@ -5,23 +5,16 @@ import {
   Mail, 
   Phone, 
   Home, 
-  FileText, 
   Share2,
   Calendar,
   Users,
   Clock,
   MapPin,
   Star,
-  AlertCircle,
-  CreditCard,
-  Building,
-  Shield,
   Download,
   Printer,
-  Wrench,
-  Utensils,
-  Bed,
-  Hotel
+  Shield,
+  DollarSign
 } from "lucide-react";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
@@ -39,9 +32,8 @@ const updateSessionActivity = () => {
         lastActive: new Date().toISOString()
       };
       localStorage.setItem("guestSession", JSON.stringify(updatedSession));
-      console.log("✅ Session activity updated");
     } catch (error) {
-      console.error("Failed to update session activity:", error);
+      // Silent error handling
     }
   }
 };
@@ -54,25 +46,18 @@ const getPersistentBookingKey = (type) => {
 // Helper to save booking to user profile
 const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, totalAmount) => {
   try {
-    // Get current user profile
     const userProfileStr = localStorage.getItem("userProfile");
     const isLoggedIn = localStorage.getItem("ajani_dummy_login") === "true" || localStorage.getItem("auth_token");
     
     if (isLoggedIn && userProfileStr) {
       const userProfile = JSON.parse(userProfileStr);
       
-      // Create booking record
       const bookingRecord = {
         id: bookingReference,
         type: type,
         status: "confirmed",
         date: new Date().toISOString(),
-        vendor: {
-          name: vendorInfo.name,
-          location: vendorInfo.location,
-          image: vendorInfo.image,
-          rating: vendorInfo.rating
-        },
+        vendor: vendorInfo,
         details: {
           checkIn: bookingData?.checkInDate || bookingData?.bookingData?.checkIn,
           checkOut: bookingData?.checkOutDate || bookingData?.bookingData?.checkOut,
@@ -81,7 +66,6 @@ const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, t
           paymentMethod: bookingData?.paymentMethod,
           specialRequests: bookingData?.specialRequests,
           time: bookingData?.bookingData?.time,
-          // Service specific fields
           serviceDate: bookingData?.bookingData?.serviceDate,
           serviceTime: bookingData?.bookingData?.serviceTime,
           locationType: bookingData?.bookingData?.locationType,
@@ -90,29 +74,40 @@ const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, t
         reference: bookingReference
       };
       
-      // Initialize bookings array if it doesn't exist
       if (!userProfile.bookings) {
         userProfile.bookings = [];
       }
       
-      // Add booking to user's bookings (prepend to show newest first)
       userProfile.bookings.unshift(bookingRecord);
-      
-      // Update localStorage
       localStorage.setItem("userProfile", JSON.stringify(userProfile));
       
-      // Also store in separate bookings storage for easy access
       const allBookings = JSON.parse(localStorage.getItem("userBookings") || "[]");
       allBookings.unshift(bookingRecord);
       localStorage.setItem("userBookings", JSON.stringify(allBookings));
       
-      console.log("✅ Booking saved to user profile:", bookingRecord);
       return true;
     } else {
-      // For guest bookings, store separately
       const guestBookings = JSON.parse(localStorage.getItem("guestBookings") || "[]");
       const guestBookingRecord = {
-        ...bookingRecord,
+        id: bookingReference,
+        type: type,
+        status: "confirmed",
+        date: new Date().toISOString(),
+        vendor: vendorInfo,
+        details: {
+          checkIn: bookingData?.checkInDate || bookingData?.bookingData?.checkIn,
+          checkOut: bookingData?.checkOutDate || bookingData?.bookingData?.checkOut,
+          guests: bookingData?.guests || bookingData?.bookingData?.numberOfGuests,
+          totalAmount: totalAmount,
+          paymentMethod: bookingData?.paymentMethod,
+          specialRequests: bookingData?.specialRequests,
+          time: bookingData?.bookingData?.time,
+          serviceDate: bookingData?.bookingData?.serviceDate,
+          serviceTime: bookingData?.bookingData?.serviceTime,
+          locationType: bookingData?.bookingData?.locationType,
+          problemDescription: bookingData?.bookingData?.problemDescription
+        },
+        reference: bookingReference,
         guestEmail: bookingData?.email || bookingData?.guestEmail,
         guestPhone: bookingData?.phone || bookingData?.bookingData?.contactPerson?.phone,
         guestName: `${bookingData?.firstName || bookingData?.bookingData?.contactPerson?.firstName || ""} ${bookingData?.lastName || bookingData?.bookingData?.contactPerson?.lastName || ""}`.trim()
@@ -120,11 +115,9 @@ const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, t
       guestBookings.unshift(guestBookingRecord);
       localStorage.setItem("guestBookings", JSON.stringify(guestBookings));
       
-      console.log("✅ Booking saved to guest bookings:", guestBookingRecord);
       return false;
     }
   } catch (error) {
-    console.error("Failed to save booking to profile:", error);
     return false;
   }
 };
@@ -139,10 +132,9 @@ const BookingConfirmation = () => {
   const [isGuestBooking, setIsGuestBooking] = useState(false);
   const [bookingSaved, setBookingSaved] = useState(false);
 
-  // Check if this is a service booking
   const isServiceBooking = type === 'service';
+  const isRestaurantBooking = type === 'restaurant';
 
-  // Show toast notification
   const showToast = (message, toastType = "success") => {
     toast[toastType](message, {
       position: "top-right",
@@ -159,10 +151,8 @@ const BookingConfirmation = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
     
-    // Update session activity for guest sessions
     updateSessionActivity();
     
-    // Generate booking reference
     const generateReference = () => {
       const prefix = type === 'restaurant' ? 'REST-' : 
                      type === 'shortlet' ? 'SHORT-' : 
@@ -176,9 +166,7 @@ const BookingConfirmation = () => {
       return result;
     };
     
-    // Check if we have a reference in localStorage or URL
     const loadBookingReference = () => {
-      // Check URL parameters first
       const urlParams = new URLSearchParams(window.location.search);
       const refFromUrl = urlParams.get('ref');
       
@@ -187,14 +175,12 @@ const BookingConfirmation = () => {
         return refFromUrl;
       }
       
-      // Check localStorage for existing reference
       const storedRef = localStorage.getItem('lastBookingReference');
       if (storedRef) {
         setBookingReference(storedRef);
         return storedRef;
       }
       
-      // Generate new reference
       const newRef = generateReference();
       setBookingReference(newRef);
       localStorage.setItem('lastBookingReference', newRef);
@@ -203,24 +189,18 @@ const BookingConfirmation = () => {
     
     const ref = loadBookingReference();
     
-    // Load booking data
     const loadBookingData = () => {
       setLoading(true);
-      console.log("📦 Loading booking data for type:", type);
       
       let data = null;
       let guestBooking = false;
       
-      // Check URL parameters first (for payment redirects)
       const urlParams = new URLSearchParams(window.location.search);
       const bookingDataParam = urlParams.get('bookingData');
       
       if (bookingDataParam) {
         try {
           data = JSON.parse(decodeURIComponent(bookingDataParam));
-          console.log("✅ Found booking data in URL parameters:", data);
-          
-          // Store in localStorage for persistence
           if (data) {
             const persistentKey = getPersistentBookingKey(type);
             localStorage.setItem(persistentKey, JSON.stringify({
@@ -230,27 +210,23 @@ const BookingConfirmation = () => {
             }));
           }
         } catch (error) {
-          console.error("Failed to parse URL booking data:", error);
+          // Silent error handling
         }
       }
       
-      // If not in URL, check localStorage
       if (!data) {
-        // Try persistent storage first
         const persistentKey = getPersistentBookingKey(type);
         const persistentData = localStorage.getItem(persistentKey);
         
         if (persistentData) {
           try {
             data = JSON.parse(persistentData);
-            console.log(`✅ Found booking data in persistent storage:`, data);
           } catch (error) {
-            console.error(`Failed to parse persistent data:`, error);
+            // Silent error handling
           }
         }
       }
       
-      // If still not found, try other storage locations
       if (!data) {
         const possibleKeys = [
           `confirmedBooking_${type}`,
@@ -266,9 +242,6 @@ const BookingConfirmation = () => {
           if (storedData) {
             try {
               data = JSON.parse(storedData);
-              console.log(`✅ Found booking data in ${key}:`, data);
-              
-              // Store in persistent storage
               const persistentKey = getPersistentBookingKey(type);
               localStorage.setItem(persistentKey, JSON.stringify({
                 ...data,
@@ -277,22 +250,19 @@ const BookingConfirmation = () => {
               }));
               break;
             } catch (error) {
-              console.error(`Failed to parse data from ${key}:`, error);
+              // Silent error handling
             }
           }
         }
       }
       
       if (data) {
-        // Check if it's a guest booking
         if (data.isGuestBooking || data.bookingType === 'guest') {
           guestBooking = true;
           setIsGuestBooking(true);
           
-          // Clear guest session but keep booking data
           localStorage.removeItem("guestSession");
           
-          // Also clear any pending guest bookings
           const guestKeys = [
             'pendingGuestHotelBooking',
             'pendingGuestRestaurantBooking',
@@ -305,10 +275,8 @@ const BookingConfirmation = () => {
         
         setBookingData(data);
         
-        // Store type for reference
         localStorage.setItem('lastBookingType', type);
         
-        // Save booking to user profile
         const vendorInfo = {
           name: getVendorName(data),
           location: getVendorLocation(data),
@@ -326,7 +294,6 @@ const BookingConfirmation = () => {
         setBookingSaved(true);
         showToast("Booking confirmed successfully!");
         
-        // Clean up temporary data (but keep persistent one)
         const tempKeys = [
           'pendingHotelBooking',
           'pendingRestaurantBooking',
@@ -344,7 +311,6 @@ const BookingConfirmation = () => {
           'confirmedBooking'
         ];
         
-        // Only clear temporary keys, keep persistent
         tempKeys.forEach(key => {
           if (key !== getPersistentBookingKey(type)) {
             localStorage.removeItem(key);
@@ -355,11 +321,9 @@ const BookingConfirmation = () => {
       setLoading(false);
     };
     
-    // Small delay to ensure DOM is ready
     setTimeout(loadBookingData, 50);
   }, [type]);
 
-  // Helper functions that accept data parameter
   const getVendorName = (data = bookingData) => {
     return data?.vendorData?.name || 
            data?.hotelData?.name || 
@@ -424,29 +388,38 @@ const BookingConfirmation = () => {
            0;
   };
 
-  // Function to get category icon
-  const getCategoryIcon = () => {
-    switch(type) {
-      case 'service':
-        return Wrench;
-      case 'restaurant':
-        return Utensils;
-      case 'shortlet':
-        return Bed;
-      case 'hotel':
-      default:
-        return Hotel;
+  const getPriceRange = (data = bookingData) => {
+    if (isRestaurantBooking) {
+      const priceFrom = data?.priceFrom || data?.bookingData?.priceFrom || 1000;
+      const priceTo = data?.priceTo || data?.bookingData?.priceTo || 10000;
+      
+      const fromNum = typeof priceFrom === 'number' ? priceFrom : parseInt(priceFrom.toString().replace(/[^\d]/g, ""));
+      const toNum = typeof priceTo === 'number' ? priceTo : parseInt(priceTo.toString().replace(/[^\d]/g, ""));
+      
+      if (isNaN(fromNum) && isNaN(toNum)) return "₦ --";
+      if (isNaN(fromNum)) return `₦${toNum.toLocaleString()}`;
+      if (isNaN(toNum)) return `₦${fromNum.toLocaleString()}`;
+      
+      if (fromNum === toNum) return `₦${fromNum.toLocaleString()}`;
+      
+      return `₦${fromNum.toLocaleString()} - ${toNum.toLocaleString()}`;
     }
+    return null;
   };
 
-  // Function to download confirmation as PDF/text
+  const getReservationFee = (data = bookingData) => {
+    if (isRestaurantBooking) {
+      return data?.reservationFee || data?.bookingData?.reservationFee || 0;
+    }
+    return 0;
+  };
+
   const downloadConfirmation = () => {
     if (!bookingData) {
       showToast('No booking data available to download', 'error');
       return;
     }
     
-    const CategoryIcon = getCategoryIcon();
     const categoryName = type === 'hotel' ? 'Hotel' :
                         type === 'restaurant' ? 'Restaurant' :
                         type === 'shortlet' ? 'Shortlet' :
@@ -475,7 +448,6 @@ Email: ${bookingData?.email || bookingData?.bookingData?.contactPerson?.email ||
 Phone: ${bookingData?.phone || bookingData?.bookingData?.contactPerson?.phone || bookingData?.bookingData?.phone || "Not provided"}
     `;
 
-    // Add booking type specific details
     if (type === 'hotel') {
       confirmationText += `
 BOOKING DETAILS:
@@ -487,7 +459,17 @@ ${bookingData?.guests?.children ? `Children: ${bookingData.guests.children}` : '
 Nights: ${bookingData?.bookingData?.nights || 1}
 Room: ${bookingData?.roomData?.room?.title || "Standard Room"}
       `;
-    } else if (type === 'restaurant' || type === 'shortlet') {
+    } else if (type === 'restaurant') {
+      const priceRange = getPriceRange();
+      confirmationText += `
+BOOKING DETAILS:
+----------------
+Date: ${bookingData?.bookingData?.date || "Today"}
+Time: ${bookingData?.bookingData?.time || "Not specified"}
+Guests: ${bookingData?.bookingData?.numberOfGuests || bookingData?.guests?.adults || 2} people
+Price Range: ${priceRange}
+      `;
+    } else if (type === 'shortlet') {
       confirmationText += `
 BOOKING DETAILS:
 ----------------
@@ -514,14 +496,15 @@ ${bookingData?.bookingData?.address?.postalCode ? `Postal Code: ${bookingData.bo
       `;
     }
 
-    // Add price information for non-service bookings
     if (type !== 'service') {
       const totalAmount = getTotalAmount();
+      const priceRange = getPriceRange();
+      
       confirmationText += `
 PAYMENT INFORMATION:
 --------------------
 Payment Method: ${getPaymentMethodText()}
-Total Amount: ₦${totalAmount?.toLocaleString() || '0'}
+${isRestaurantBooking ? `Estimated Total Cost: ${priceRange}` : `Total Amount: ₦${totalAmount?.toLocaleString() || '0'}`}
 Payment Status: ${bookingData?.paymentStatus || "Pending"}
       `;
     } else {
@@ -534,7 +517,6 @@ Note: Price will be determined after service assessment
       `;
     }
 
-    // Common footer
     confirmationText += `
 ADDITIONAL INFORMATION:
 -----------------------
@@ -564,27 +546,14 @@ This confirmation was generated on: ${new Date().toLocaleString()}
     showToast('Confirmation downloaded!', 'success');
   };
 
-  // Function to print confirmation
   const printConfirmation = () => {
     window.print();
   };
 
-  // Determine booking status based on payment method
   const getBookingStatus = () => {
     const paymentMethod = bookingData?.paymentMethod || "hotel";
     
     if (paymentMethod === "hotel" || paymentMethod === "restaurant") {
-      return {
-        status: "pending",
-        text: type === 'service' ? "Service Scheduled" : "Pending Confirmation",
-        color: "text-yellow-600",
-        bgColor: "bg-yellow-50",
-        borderColor: "border-yellow-100",
-        icon: AlertCircle,
-        message: type === 'service' ? "Service appointment scheduled" : "Awaiting payment at the property",
-        note: type === 'service' ? "Service provider will contact you to confirm" : "Please pay when you arrive"
-      };
-    } else if (paymentMethod === "card" && bookingData?.paymentStatus === "paid") {
       return {
         status: "confirmed",
         text: "Confirmed",
@@ -592,39 +561,37 @@ This confirmation was generated on: ${new Date().toLocaleString()}
         bgColor: "bg-emerald-50",
         borderColor: "border-emerald-100",
         icon: CheckCircle,
-        message: "Payment received & booking confirmed",
-        note: "Payment processed successfully"
+        message: type === 'service' ? "Service appointment scheduled" : "Booking confirmed",
+        note: type === 'service' ? "Service provider will contact you" : "Please pay when you arrive"
       };
     } else {
       return {
-        status: "pending",
-        text: type === 'service' ? "Scheduled" : "Pending",
-        color: "text-yellow-600",
-        bgColor: "bg-yellow-50",
-        borderColor: "border-yellow-100",
-        icon: AlertCircle,
-        message: type === 'service' ? "Service appointment scheduled" : "Awaiting confirmation",
-        note: type === 'service' ? "Will be confirmed shortly" : "Will be confirmed shortly"
+        status: "confirmed",
+        text: "Confirmed",
+        color: "text-emerald-600",
+        bgColor: "bg-emerald-50",
+        borderColor: "border-emerald-100",
+        icon: CheckCircle,
+        message: "Booking confirmed",
+        note: "Payment processed successfully"
       };
     }
   };
 
-  // Get payment method display text
   const getPaymentMethodText = () => {
     const method = bookingData?.paymentMethod || "hotel";
     switch(method) {
       case "hotel":
-        return type === 'service' ? "Pay After Service" : "Pay at Property";
+        return type === 'service' ? "Payment after negotiation" : "Pay at Property";
       case "restaurant":
         return "Pay at Restaurant";
       case "card":
         return "Paid with Card";
       default:
-        return type === 'service' ? "Pay After Service" : "Pay at Property";
+        return type === 'service' ? "Payment after negotiation" : "Pay at Property";
     }
   };
 
-  // Get category-specific messages
   const getCategoryMessages = () => {
     const paymentMethod = bookingData?.paymentMethod || "hotel";
     const isPayAtProperty = paymentMethod === "hotel" || paymentMethod === "restaurant";
@@ -632,21 +599,10 @@ This confirmation was generated on: ${new Date().toLocaleString()}
     switch(type) {
       case 'hotel':
         return {
-          title: isPayAtProperty 
-            ? "Thank you for booking on Ajani.ai, Hotel Reservation Request Received!" 
-            : "Thank you for booking on Ajani.ai, Hotel Payment Successful!",
-          subtitle: isPayAtProperty 
-            ? "Your hotel reservation request is being processed" 
-            : "Your hotel booking is confirmed!",
-          message: isPayAtProperty
-            ? "Your hotel reservation request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed. You'll pay when you arrive at the hotel."
-            : "Your hotel payment has been processed successfully! Your reservation is now confirmed. You'll receive a confirmation email with all the details shortly.",
-          nextSteps: isPayAtProperty ? [
-            "You'll receive a confirmation email with hotel details",
-            "Our team will review your request within 24 hours",
-            "Pay the amount when you arrive at the hotel",
-            "Keep your booking reference handy"
-          ] : [
+          title: "Thank you for booking on Ajani.ai, Hotel Booking Confirmed!",
+          subtitle: "Your hotel reservation has been received",
+          message: "Your hotel booking has been confirmed successfully. You'll receive a confirmation email with all the details shortly.",
+          nextSteps: [
             "Confirmation email sent to your inbox",
             "Check your email for booking details",
             "Present your booking reference at check-in",
@@ -657,21 +613,10 @@ This confirmation was generated on: ${new Date().toLocaleString()}
       
       case 'restaurant':
         return {
-          title: isPayAtProperty 
-            ? "Thank you for booking on Ajani.ai, Restaurant Reservation Request Received!" 
-            : "Thank you for booking on Ajani.ai, Restaurant Payment Successful!",
-          subtitle: isPayAtProperty 
-            ? "Your restaurant reservation request is being processed" 
-            : "Your restaurant booking is confirmed!",
-          message: isPayAtProperty
-            ? "Your restaurant reservation request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed. You'll pay at the restaurant."
-            : "Your restaurant payment has been processed successfully! Your table reservation is now confirmed. You'll receive a confirmation email with all the details shortly.",
-          nextSteps: isPayAtProperty ? [
-            "You'll receive a confirmation email with restaurant details",
-            "Our team will review your request within 12 hours",
-            "Pay when you arrive at the restaurant",
-            "Arrive 10 minutes before your reservation time"
-          ] : [
+          title: "Thank you for booking on Ajani.ai, Restaurant Booking Confirmed!",
+          subtitle: "Your restaurant reservation has been received",
+          message: "Your restaurant booking has been confirmed successfully. You'll receive a confirmation email with all the details shortly.",
+          nextSteps: [
             "Confirmation email sent to your inbox",
             "Check your email for reservation details",
             "Present your booking reference at the restaurant",
@@ -682,37 +627,26 @@ This confirmation was generated on: ${new Date().toLocaleString()}
       
       case 'shortlet':
         return {
-          title: isPayAtProperty 
-            ? "Thank you for booking on Ajani.ai, Shortlet Reservation Request Received!" 
-            : "Thank you for booking on Ajani.ai, Shortlet Payment Successful!",
-          subtitle: isPayAtProperty 
-            ? "Your shortlet reservation request is being processed" 
-            : "Your shortlet booking is confirmed!",
-          message: isPayAtProperty
-            ? "Your shortlet reservation request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed. You'll pay when you arrive at the property."
-            : "Your shortlet payment has been processed successfully! Your accommodation is now confirmed. You'll receive a confirmation email with all the details shortly.",
-          nextSteps: isPayAtProperty ? [
-            "You'll receive a confirmation email with property details",
-            "Our team will review your request within 24 hours",
-            "Pay the amount when you arrive at the property",
-            "Check-in instructions will be provided"
-          ] : [
+          title: "Thank you for booking on Ajani.ai, Shortlet Booking Confirmed!",
+          subtitle: "Your shortlet reservation has been received",
+          message: "Your shortlet booking has been confirmed successfully. You'll receive a confirmation email with all the details shortly.",
+          nextSteps: [
             "Confirmation email sent to your inbox",
-            "Check your email for property details and access instructions",
+            "Check your email for property details",
             "Present your booking reference at check-in",
-            "Enjoy your stay at the shortlet property!"
+            "Enjoy your stay!"
           ],
           contactMessage: "Need help with your shortlet booking?"
         };
       
       case 'service':
         return {
-          title: "Thank you for booking on Ajani.ai, Service Request Received!",
+          title: "Thank you for booking on Ajani.ai, Service Booking Confirmed!",
           subtitle: "Your service appointment has been scheduled",
-          message: "Your service request has been submitted successfully. The service provider will contact you to confirm the appointment time and discuss pricing. Payment will be made after the service is completed and you're satisfied with the work.",
+          message: "Your service booking has been confirmed successfully. The service provider will contact you to confirm the appointment time.",
           nextSteps: [
             "Service provider will contact you within 24 hours",
-            "Discuss service details and pricing with the provider",
+            "Discuss service details with the provider",
             "Provider will confirm the appointment time",
             "Pay after service completion when satisfied"
           ],
@@ -721,21 +655,10 @@ This confirmation was generated on: ${new Date().toLocaleString()}
       
       default:
         return {
-          title: isPayAtProperty 
-            ? "Thank you for booking on Ajani.ai, Booking Request Received!" 
-            : "Thank you for booking on Ajani.ai, Payment Successful!",
-          subtitle: isPayAtProperty 
-            ? "Your booking request is being processed" 
-            : "Your booking is confirmed!",
-          message: isPayAtProperty
-            ? "Thank you for booking on Ajani.ai. Your booking request is under review and subject to availability. Our team will confirm shortly or contact you if alternatives are needed."
-            : "Your payment has been processed successfully! Your booking is now confirmed. You'll receive a confirmation email with all the details shortly.",
-          nextSteps: isPayAtProperty ? [
-            "You'll receive a confirmation email with booking details",
-            "Our team will review your request shortly",
-            "Pay when you arrive at the property",
-            "Keep your booking reference for your records"
-          ] : [
+          title: "Thank you for booking on Ajani.ai, Booking Confirmed!",
+          subtitle: "Your booking has been received",
+          message: "Your booking has been confirmed successfully. You'll receive a confirmation email with all the details shortly.",
+          nextSteps: [
             "Confirmation email sent to your inbox",
             "Check your email for booking details",
             "Present your booking reference when required",
@@ -753,7 +676,6 @@ This confirmation was generated on: ${new Date().toLocaleString()}
     return `₦${num.toLocaleString()}`;
   };
 
-  // Clear persistent storage after 24 hours (optional safety feature)
   const clearOldPersistentData = () => {
     const persistentKey = getPersistentBookingKey(type);
     const storedData = localStorage.getItem(persistentKey);
@@ -771,12 +693,11 @@ This confirmation was generated on: ${new Date().toLocaleString()}
           localStorage.removeItem('lastBookingType');
         }
       } catch (error) {
-        console.error("Error clearing old data:", error);
+        // Silent error handling
       }
     }
   };
 
-  // Check for old data on mount
   useEffect(() => {
     clearOldPersistentData();
   }, []);
@@ -803,7 +724,7 @@ This confirmation was generated on: ${new Date().toLocaleString()}
         <div className="max-w-4xl mx-auto px-2.5 sm:px-4 py-16">
           <div className="bg-white rounded-lg sm:rounded-2xl shadow-lg p-6 text-center">
             <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-10 h-10 text-yellow-600" />
+              <CheckCircle className="w-10 h-10 text-yellow-600" />
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-3">
               No Booking Data Found
@@ -819,21 +740,7 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                 Return Home
               </button>
               <button
-                onClick={() => {
-                  // Try to load from persistent storage one more time
-                  const persistentKey = getPersistentBookingKey(type);
-                  const storedData = localStorage.getItem(persistentKey);
-                  if (storedData) {
-                    try {
-                      const data = JSON.parse(storedData);
-                      setBookingData(data);
-                      return;
-                    } catch (error) {
-                      console.error("Failed to load persistent data:", error);
-                    }
-                  }
-                  navigate(-1);
-                }}
+                onClick={() => navigate(-1)}
                 className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition cursor-pointer"
               >
                 Go Back
@@ -850,12 +757,13 @@ This confirmation was generated on: ${new Date().toLocaleString()}
   }
 
   const bookingStatus = getBookingStatus();
-  const StatusIcon = bookingStatus.icon;
-  const CategoryIcon = getCategoryIcon();
+  const StatusIcon = CheckCircle; // Always use CheckCircle icon
   const paymentMethod = bookingData?.paymentMethod || "hotel";
   const isPayAtProperty = paymentMethod === "hotel" || paymentMethod === "restaurant";
   const messages = getCategoryMessages();
   const totalAmount = getTotalAmount();
+  const priceRange = getPriceRange();
+  const reservationFee = getReservationFee();
 
   return (
     <div className="min-h-screen bg-white">
@@ -866,10 +774,9 @@ This confirmation was generated on: ${new Date().toLocaleString()}
         <div className="max-w-7xl mx-auto px-2.5 sm:px-4 py-20 sm:py-26">
           <div className="bg-white rounded-lg sm:rounded-2xl shadow-lg overflow-hidden border border-gray-100">
             <div className="p-3 sm:p-6">
-              {/* Guest Session Notice */}
               {isGuestBooking && (
                 <div className="mb-4 sm:mb-6 bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 flex items-center gap-3">
-                  <AlertCircle className="w-5 h-5 text-blue-600" />
+                  <CheckCircle className="w-5 h-5 text-blue-600" />
                   <div className="flex-1">
                     <p className="font-medium text-blue-800 text-sm">
                       {bookingSaved ? "Guest Booking Complete" : "Booking Saved"}
@@ -884,8 +791,8 @@ This confirmation was generated on: ${new Date().toLocaleString()}
               )}
 
               <div className="text-center mb-4 sm:mb-8">
-                <div className={`w-16 h-16 sm:w-20 sm:h-20 ${bookingStatus.bgColor} rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4`}>
-                  <CategoryIcon className={`w-10 h-10 sm:w-12 sm:h-12 ${bookingStatus.color}`} />
+                <div className={`w-16 h-16 sm:w-20 sm:h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4`}>
+                  <CheckCircle className={`w-10 h-10 sm:w-12 sm:h-12 text-emerald-600`} />
                 </div>
                 
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
@@ -899,12 +806,11 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                 </p>
               </div>
 
-              {/* Booking Reference Banner */}
               <div className="bg-[#6cff] rounded-lg p-3 sm:p-4 text-white mb-4 sm:mb-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h3 className="text-base sm:text-lg font-bold mb-1">
-                      {isServiceBooking ? "Service Request Received" : (isPayAtProperty ? "Booking Request Received" : "Booking Confirmed")}
+                      Booking Confirmed
                     </h3>
                     <p className="text-xs sm:text-sm opacity-90">
                       Your booking reference number
@@ -919,24 +825,17 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                 </div>
               </div>
 
-              {/* Status Banner */}
-              <div className={`mb-4 sm:mb-6 ${bookingStatus.bgColor} border ${bookingStatus.borderColor} rounded-lg p-3 sm:p-4 flex items-center gap-3`}>
-                {isServiceBooking ? (
-                  <Wrench className={`w-5 h-5 ${bookingStatus.color}`} />
-                ) : isPayAtProperty ? (
-                  <Building className={`w-5 h-5 ${bookingStatus.color}`} />
-                ) : (
-                  <CreditCard className={`w-5 h-5 ${bookingStatus.color}`} />
-                )}
+              <div className={`mb-4 sm:mb-6 bg-emerald-50 border border-emerald-100 rounded-lg p-3 sm:p-4 flex items-center gap-3`}>
+                <CheckCircle className={`w-5 h-5 text-emerald-600`} />
                 <div className="flex-1">
                   <p className="font-medium text-sm">
-                    {getPaymentMethodText()} • {bookingStatus.text}
+                    {getPaymentMethodText()} • Confirmed
                   </p>
                   <p className="text-xs opacity-80 mt-0.5">
                     {isServiceBooking 
-                      ? "Service provider will contact you to discuss pricing"
+                      ? "Service provider will contact you to discuss details"
                       : isPayAtProperty 
-                        ? `You'll pay when you arrive. ${type !== 'service' ? `Amount: ${formatPrice(totalAmount)}` : ''}`
+                        ? `You'll pay when you arrive. ${type !== 'service' ? `${isRestaurantBooking ? `Total estimated: ${priceRange}` : `Amount: ${formatPrice(totalAmount)}`}` : ''}`
                         : "Payment processed successfully"}
                   </p>
                 </div>
@@ -944,7 +843,6 @@ This confirmation was generated on: ${new Date().toLocaleString()}
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
-                  {/* Property/Vendor Summary */}
                   <div className="mb-4 sm:mb-6 shadow-sm rounded-lg p-3 sm:p-4 border border-blue-100">
                     <div className="flex flex-col md:flex-row gap-3">
                       <div className="md:w-1/3 relative">
@@ -979,7 +877,6 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                         </div>
                         
                         <div className="space-y-2">
-                          {/* Show different details based on booking type */}
                           {isServiceBooking ? (
                             <>
                               <div className="flex items-center justify-between text-sm">
@@ -1000,7 +897,7 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                               
                               <div className="flex items-center justify-between text-sm">
                                 <div className="flex items-center gap-1.5 text-gray-600">
-                                  <Home className="w-3 h-3" />
+                                  <CheckCircle className="w-3 h-3" />
                                   <span>Location Type</span>
                                 </div>
                                 <span className="font-medium">{bookingData?.bookingData?.locationType || "Residential"}</span>
@@ -1041,7 +938,53 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                                 </div>
                               )}
                             </>
+                          ) : type === 'restaurant' ? (
+                            <>
+                              {bookingData?.bookingData?.date && (
+                                <div className="flex items-center justify-between text-sm">
+                                  <div className="flex items-center gap-1.5 text-gray-600">
+                                    <Calendar className="w-3 h-3" />
+                                    <span>Date</span>
+                                  </div>
+                                  <span className="font-medium">{bookingData.bookingData.date}</span>
+                                </div>
+                              )}
+                              
+                              {(bookingData?.guests?.adults || bookingData?.bookingData?.numberOfGuests) && (
+                                <div className="flex items-center justify-between text-sm">
+                                  <div className="flex items-center gap-1.5 text-gray-600">
+                                    <Users className="w-3 h-3" />
+                                    <span>Guests</span>
+                                  </div>
+                                  <span className="font-medium">
+                                    {bookingData?.guests?.adults || bookingData?.bookingData?.numberOfGuests} people
+                                  </span>
+                                </div>
+                              )}
+                              
+                              {bookingData?.bookingData?.time && (
+                                <div className="flex items-center justify-between text-sm">
+                                  <div className="flex items-center gap-1.5 text-gray-600">
+                                    <Clock className="w-3 h-3" />
+                                    <span>Time</span>
+                                  </div>
+                                  <span className="font-medium">{bookingData.bookingData.time}</span>
+                                </div>
+                              )}
+                              
+                              {/* Add price range display for restaurant */}
+                              <div className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-1.5 text-gray-600">
+                                  <DollarSign className="w-3 h-3" />
+                                  <span>Price Range</span>
+                                </div>
+                                <span className="font-medium text-emerald-600">
+                                  {priceRange}
+                                </span>
+                              </div>
+                            </>
                           ) : (
+                            // Shortlet or other types
                             <>
                               {bookingData?.bookingData?.date && (
                                 <div className="flex items-center justify-between text-sm">
@@ -1081,7 +1024,6 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                     </div>
                   </div>
 
-                  {/* Guest Information */}
                   <div className="mb-4 sm:mb-6 shadow-sm rounded-lg p-3 sm:p-4">
                     <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-2.5 flex items-center gap-1.5">
                       <Users className="w-4 h-4 text-blue-500" />
@@ -1094,7 +1036,7 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                         <p className="font-medium text-sm">
                           {isServiceBooking 
                             ? `${bookingData?.bookingData?.contactPerson?.firstName || "Guest"} ${bookingData?.bookingData?.contactPerson?.lastName || ""}`
-                            : `${bookingData?.firstName || bookingData?.bookingData?.firstName || "Guest"} ${bookingData?.lastName || bookingData?.bookingData?.lastName || ""}`
+                            : `${bookingData?.firstName || bookingData?.bookingData?.contactPerson?.firstName || "Guest"} ${bookingData?.lastName || bookingData?.bookingData?.contactPerson?.lastName || ""}`
                           }
                         </p>
                       </div>
@@ -1104,7 +1046,7 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                         <p className="font-medium text-sm">
                           {isServiceBooking 
                             ? bookingData?.bookingData?.contactPerson?.email || bookingData?.guestEmail || "Not provided"
-                            : bookingData?.email || bookingData?.bookingData?.email || bookingData?.guestEmail || "Not provided"
+                            : bookingData?.email || bookingData?.bookingData?.contactPerson?.email || bookingData?.guestEmail || "Not provided"
                           }
                         </p>
                       </div>
@@ -1114,7 +1056,7 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                         <p className="font-medium text-sm">
                           {isServiceBooking 
                             ? bookingData?.bookingData?.contactPerson?.phone || "Not provided"
-                            : bookingData?.phone || bookingData?.bookingData?.phone || "Not provided"
+                            : bookingData?.phone || bookingData?.bookingData?.contactPerson?.phone || "Not provided"
                           }
                         </p>
                       </div>
@@ -1127,11 +1069,10 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                       </div>
                     </div>
                     
-                    {/* Service specific details */}
                     {isServiceBooking && bookingData?.bookingData?.problemDescription && (
                       <div className="mt-3 pt-3 border-t border-blue-100">
                         <p className="text-xs text-gray-500 mb-1">Problem Description</p>
-                        <p className="text-sm text-gray-700 bg-white p-2 rounded border border-gray-300" >
+                        <p className="text-sm text-gray-700 border-gray-300 bg-white p-2 rounded border">
                           {bookingData.bookingData.problemDescription}
                         </p>
                       </div>
@@ -1140,13 +1081,12 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                     {isServiceBooking && bookingData?.bookingData?.specialRequirements && (
                       <div className="mt-3 pt-3 border-t border-blue-100">
                         <p className="text-xs text-gray-500 mb-1">Special Requirements</p>
-                        <p className="text-sm text-gray-700 bg-white p-2 rounded border border-gray-300" >
+                        <p className="text-sm text-gray-700 bg-white p-2 border-gray-300 rounded border">
                           {bookingData.bookingData.specialRequirements}
                         </p>
                       </div>
                     )}
                     
-                    {/* Non-service special requests */}
                     {!isServiceBooking && bookingData?.specialRequests && (
                       <div className="mt-3 pt-3 border-t border-blue-100">
                         <p className="text-xs text-gray-500 mb-1">Special Requests</p>
@@ -1157,7 +1097,6 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                     )}
                   </div>
 
-                  {/* Action Buttons */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 sm:mb-6">
                     <button
                       onClick={() => {
@@ -1188,13 +1127,11 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                   </div>
                 </div>
 
-                {/* Right Column - Summary & Actions */}
                 <div className="lg:col-span-1">
                   <div className="lg:sticky lg:top-20 space-y-4">
-                    {/* Status Card */}
-                    <div className={`${bookingStatus.bgColor} border ${bookingStatus.borderColor} rounded-lg p-3`}>
+                    <div className={`bg-emerald-50 border border-emerald-100 rounded-lg p-3`}>
                       <h6 className="font-bold text-gray-900 mb-1.5 flex items-center gap-1.5 text-sm">
-                        <CategoryIcon className={`w-4 h-4 ${bookingStatus.color}`} />
+                        <CheckCircle className={`w-4 h-4 text-emerald-600`} />
                         {isServiceBooking ? "Service Status" : "Booking Status"}
                       </h6>
                       <div className="space-y-2">
@@ -1204,8 +1141,8 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-xs text-gray-600">Status</span>
-                          <span className={`font-medium ${bookingStatus.color} text-xs`}>
-                            {bookingStatus.text}
+                          <span className={`font-medium text-emerald-600 text-xs`}>
+                            Confirmed
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
@@ -1223,18 +1160,33 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                       </div>
                     </div>
 
-                    {/* Price Breakdown - Only for non-service bookings */}
                     {!isServiceBooking ? (
                       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3">
                         <h5 className="font-medium text-gray-800 mb-2 text-sm">Price Breakdown</h5>
                         
                         <div className="space-y-1.5 mb-3">
-                          <div className="flex justify-between text-xs">
-                            <span className="text-gray-600">
-                              {type === 'hotel' ? `Room` : 'Reservation fee'}
-                            </span>
-                            <span className="font-medium">{formatPrice(totalAmount)}</span>
-                          </div>
+                          {isRestaurantBooking && (
+                            <>
+                              <div className="flex justify-between text-xs">
+                                <span className="text-gray-600">Reservation fee</span>
+                                <span className="font-medium">{formatPrice(reservationFee)}</span>
+                              </div>
+                              
+                              <div className="flex justify-between text-xs">
+                                <span className="text-gray-600">Estimated meal cost</span>
+                                <span className="font-medium">{priceRange}</span>
+                              </div>
+                            </>
+                          )}
+                          
+                          {!isRestaurantBooking && (
+                            <div className="flex justify-between text-xs">
+                              <span className="text-gray-600">
+                                {type === 'hotel' ? `Room` : 'Reservation fee'}
+                              </span>
+                              <span className="font-medium">{formatPrice(totalAmount)}</span>
+                            </div>
+                          )}
                           
                           <div className="flex justify-between text-xs">
                             <span className="text-gray-600">Taxes & fees</span>
@@ -1249,18 +1201,21 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                         
                         <div className="pt-2 border-t border-gray-300">
                           <div className="flex justify-between items-center">
-                            <span className="font-bold text-gray-900 text-sm">Total Amount</span>
+                            <span className="font-bold text-gray-900 text-sm">
+                              {isRestaurantBooking ? 'Total Estimated Cost' : 'Total Amount'}
+                            </span>
                             <span className="text-lg font-bold text-emerald-600">
-                              {formatPrice(totalAmount)}
+                              {isRestaurantBooking ? priceRange : formatPrice(totalAmount)}
                             </span>
                           </div>
                           <p className="text-xs text-gray-500 text-center mt-0.5">
-                            {isPayAtProperty ? "Pay at property" : "Payment received"}
+                            {isRestaurantBooking 
+                              ? "Reservation fee + meal cost" 
+                              : isPayAtProperty ? "Pay at property" : "Payment received"}
                           </p>
                         </div>
                       </div>
                     ) : (
-                      /* Service Details Card - Only for service bookings */
                       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3">
                         <h5 className="font-medium text-gray-800 mb-2 text-sm">Service Details</h5>
                         
@@ -1295,10 +1250,9 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                       </div>
                     )}
 
-                    {/* Next Steps */}
                     <div className="bg-blue-50 rounded-lg border border-blue-100 p-3">
                       <h6 className="font-bold text-gray-900 mb-1.5 text-sm">
-                        {isServiceBooking ? "What Happens Next?" : (isPayAtProperty ? "What Happens Next?" : "What's Next?")}
+                        Next Steps
                       </h6>
                       <ul className="space-y-1.5 text-xs">
                         {messages.nextSteps.map((step, index) => (
@@ -1310,7 +1264,6 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                       </ul>
                     </div>
 
-                    {/* Guarantee */}
                     <div className="bg-green-50 rounded-lg border border-green-100 p-3">
                       <div className="flex items-center gap-2 mb-1">
                         <Shield className="w-4 h-4 text-green-500" />
@@ -1336,6 +1289,25 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                               <span>24/7 customer support</span>
                             </li>
                           </>
+                        ) : isRestaurantBooking ? (
+                          <>
+                            <li className="flex items-start gap-1.5">
+                              <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
+                              <span>Pay only at restaurant</span>
+                            </li>
+                            <li className="flex items-start gap-1.5">
+                              <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
+                              <span>Free cancellation up to 2 hours before reservation</span>
+                            </li>
+                            <li className="flex items-start gap-1.5">
+                              <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
+                              <span>Best table guarantee</span>
+                            </li>
+                            <li className="flex items-start gap-1.5">
+                              <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
+                              <span>24/7 customer support</span>
+                            </li>
+                          </>
                         ) : (
                           <>
                             <li className="flex items-start gap-1.5">
@@ -1355,7 +1327,6 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                       </ul>
                     </div>
 
-                    {/* Contact Information */}
                     <div className="text-center border border-gray-200 rounded-lg p-3">
                       <p className="text-xs text-gray-600 mb-2">{messages.contactMessage}</p>
                       <div className="flex flex-col gap-1.5">
@@ -1379,7 +1350,6 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                 </div>
               </div>
 
-              {/* Main Action Buttons */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
                 <button
                   onClick={() => navigate("/")}
@@ -1397,14 +1367,12 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                 </button>
               </div>
 
-              {/* View Bookings Link */}
               <div className="mt-8 pt-6 border-t border-gray-200 text-center">
                 <p className="text-sm text-gray-600 mb-3">
                   View all your bookings in one place
                 </p>
                 <button
                   onClick={() => {
-                    // Check if user is logged in
                     const isLoggedIn = localStorage.getItem("ajani_dummy_login") === "true" || localStorage.getItem("auth_token");
                     if (isLoggedIn) {
                       navigate("/buyer/profile");

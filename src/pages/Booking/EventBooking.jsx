@@ -43,7 +43,7 @@ const EventBooking = ({ vendorData: propVendorData }) => {
       wifi: false
     },
     setupTime: "1",
-    selectedPrice: 10000
+    // Remove selectedPrice since we're using fixed range
   });
 
   const [vendorData, setVendorData] = useState(null);
@@ -62,22 +62,9 @@ const EventBooking = ({ vendorData: propVendorData }) => {
     dark: "#1a365d"
   };
 
-  // Price options from ₦10,000 to ₦500,000
-  const priceOptions = [
-    { value: 10000, label: "₦10,000" },
-    { value: 25000, label: "₦25,000" },
-    { value: 50000, label: "₦50,000" },
-    { value: 75000, label: "₦75,000" },
-    { value: 100000, label: "₦100,000" },
-    { value: 150000, label: "₦150,000" },
-    { value: 200000, label: "₦200,000" },
-    { value: 250000, label: "₦250,000" },
-    { value: 300000, label: "₦300,000" },
-    { value: 350000, label: "₦350,000" },
-    { value: 400000, label: "₦400,000" },
-    { value: 450000, label: "₦450,000" },
-    { value: 500000, label: "₦500,000" }
-  ];
+  // FIXED PRICE RANGE - like restaurant ₦1,000 - 10,000
+  const priceFrom = 100000;
+  const priceTo = 500000;
 
   const eventTypes = [
     { id: "birthday", name: "Birthday Party", icon: faBirthdayCake },
@@ -231,10 +218,6 @@ const EventBooking = ({ vendorData: propVendorData }) => {
     setBookingData(prev => ({ ...prev, numberOfGuests: numValue }));
   };
 
-  const handlePriceChange = (priceValue) => {
-    setBookingData(prev => ({ ...prev, selectedPrice: priceValue }));
-  };
-
   const handlePhoneChange = (e) => {
     const value = e.target.value;
     const digits = value.replace(/\D/g, '');
@@ -281,8 +264,7 @@ const EventBooking = ({ vendorData: propVendorData }) => {
       { field: bookingData.contactPerson.firstName, name: "First Name" },
       { field: bookingData.contactPerson.lastName, name: "Last Name" },
       { field: bookingData.contactPerson.email, name: "Email Address" },
-      { field: bookingData.contactPerson.phone, name: "Phone Number" },
-      { field: bookingData.selectedPrice, name: "Event Package Price" }
+      { field: bookingData.contactPerson.phone, name: "Phone Number" }
     ];
 
     // Validate number of guests
@@ -321,9 +303,15 @@ const EventBooking = ({ vendorData: propVendorData }) => {
       const pendingBooking = {
         type: "event",
         vendorData: vendorData,
-        bookingData: bookingData,
+        bookingData: {
+          ...bookingData,
+          // Add price range data like restaurant
+          priceFrom: priceFrom,
+          priceTo: priceTo,
+          totalPriceRange: `${priceFrom} - ${priceTo}`
+        },
         bookingId: bookingId,
-        totalAmount: calculateTotal(),
+        totalAmount: formatPriceRange(priceFrom, priceTo),
         timestamp: Date.now()
       };
       
@@ -343,15 +331,46 @@ const EventBooking = ({ vendorData: propVendorData }) => {
     const guestSession = localStorage.getItem("guestSession");
     const isGuest = !!guestSession;
     
+    // IMPORTANT: Structure data exactly like restaurant booking for consistency
     const completeBooking = {
+      type: "event",
       vendorData: vendorData,
-      bookingData: bookingData,
+      bookingData: {
+        ...bookingData,
+        // Add price range data like restaurant
+        priceFrom: priceFrom,
+        priceTo: priceTo,
+        totalPriceRange: `${priceFrom} - ${priceTo}`,
+        // Add contact person structure like restaurant
+        contactPerson: {
+          firstName: bookingData.contactPerson.firstName,
+          lastName: bookingData.contactPerson.lastName,
+          email: bookingData.contactPerson.email,
+          phone: bookingData.contactPerson.phone
+        }
+      },
       bookingType: 'event',
       bookingDate: new Date().toISOString(),
       bookingId: bookingId,
       status: "pending",
-      totalAmount: calculateTotal(),
+      totalAmount: formatPriceRange(priceFrom, priceTo),
       timestamp: Date.now(),
+      
+      // Extract contact info to root level for easy access
+      firstName: bookingData.contactPerson.firstName,
+      lastName: bookingData.contactPerson.lastName,
+      email: bookingData.contactPerson.email,
+      phone: bookingData.contactPerson.phone,
+      guests: { adults: bookingData.numberOfGuests },
+      specialRequests: bookingData.specialRequirements,
+      paymentMethod: "event", // Changed from "hotel" to "event"
+      
+      // Add price range data
+      priceFrom: priceFrom,
+      priceTo: priceTo,
+      reservationFee: priceFrom, // Use priceFrom as base fee
+      
+      // Add user info
       ...(isGuest ? {
         isGuestBooking: true,
         guestSessionId: JSON.parse(guestSession).sessionId,
@@ -399,6 +418,19 @@ const EventBooking = ({ vendorData: propVendorData }) => {
     return `${hour12}:${minutes} ${ampm}`;
   };
 
+  const formatPriceRange = (from, to) => {
+    const fromNum = from ? parseInt(from.toString().replace(/[^\d]/g, "")) : 0;
+    const toNum = to ? parseInt(to.toString().replace(/[^\d]/g, "")) : 0;
+    
+    if (isNaN(fromNum) && isNaN(toNum)) return "₦ --";
+    if (isNaN(fromNum)) return `₦${toNum.toLocaleString()}`;
+    if (isNaN(toNum)) return `₦${fromNum.toLocaleString()}`;
+    
+    if (fromNum === toNum) return `₦${fromNum.toLocaleString()}`;
+    
+    return `₦${fromNum.toLocaleString()} - ${toNum.toLocaleString()}`;
+  };
+
   const getTimeSlots = () => {
     const slots = [];
     for (let hour = 8; hour <= 22; hour++) {
@@ -413,15 +445,6 @@ const EventBooking = ({ vendorData: propVendorData }) => {
     const num = typeof price === 'number' ? price : parseInt(price.toString().replace(/[^\d]/g, ""));
     if (isNaN(num)) return "₦ --";
     return `₦${num.toLocaleString()}`;
-  };
-
-  const calculateTotal = () => {
-    // Use selected price from user choice
-    const basePrice = bookingData.selectedPrice;
-    // Equipment is free (0 cost)
-    const equipmentCost = Object.values(bookingData.equipment).filter(v => v).length * 0;
-    
-    return basePrice + equipmentCost;
   };
 
   const calculateDuration = () => {
@@ -476,10 +499,10 @@ const EventBooking = ({ vendorData: propVendorData }) => {
     );
   }
 
-  const total = calculateTotal();
+  const duration = calculateDuration();
   const serviceFee = 0;
   const taxes = 0;
-  const duration = calculateDuration();
+  const priceRange = formatPriceRange(priceFrom, priceTo);
 
   return (
     <div className="min-h-screen bg-white">
@@ -570,8 +593,10 @@ const EventBooking = ({ vendorData: propVendorData }) => {
                             <FontAwesomeIcon icon={faChair} style={{ color: brandColors.accent }} className="text-xs" />
                           </div>
                           <div>
-                            <p className="text-xs text-gray-500">Venue Type</p>
-                            <p className="font-medium text-xs">{vendorData.venueType || "Banquet Hall"}</p>
+                            <p className="text-xs text-gray-500">Price Range</p>
+                            <p className="font-medium text-xs" style={{ color: brandColors.accent }}>
+                              {priceRange}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -582,8 +607,6 @@ const EventBooking = ({ vendorData: propVendorData }) => {
                     </div>
                   </div>
                 </div>
-
-               
 
                 {/* Event Details Section */}
                 <div className="mb-4 sm:mb-6">
@@ -675,10 +698,6 @@ const EventBooking = ({ vendorData: propVendorData }) => {
                     </div>
                   </div>
                 </div>
-
-               
-
-             
 
                 {/* Contact Information */}
                 <div className="mb-4 sm:mb-6">
@@ -935,24 +954,21 @@ const EventBooking = ({ vendorData: propVendorData }) => {
                     </div>
                   </div>
                   
-                  {/* Price Breakdown */}
+                  {/* Price Breakdown - Shows fixed range like restaurant */}
                   <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
                     <div className="p-3">
                       <h5 className="font-bold text-gray-900 mb-2 text-sm">Price Breakdown</h5>
                       
                       <div className="space-y-1.5">
                         <div className="flex justify-between text-xs">
-                          <span className="text-gray-600">Event Package</span>
-                          <span className="font-medium">{formatPrice(bookingData.selectedPrice)}</span>
+                          <span className="text-gray-600">Venue Booking Fee</span>
+                          <span className="font-medium">{formatPrice(priceFrom)}</span>
                         </div>
                         
-                        {/* Equipment Rental - Free */}
-                        {Object.entries(bookingData.equipment).filter(([_, value]) => value).length > 0 && (
-                          <div className="flex justify-between text-xs">
-                            <span className="text-gray-600">Equipment Rental</span>
-                            <span className="font-medium">₦0</span>
-                          </div>
-                        )}
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-600">Estimated Event Cost</span>
+                          <span className="font-medium">{priceRange}</span>
+                        </div>
                         
                         {/* Taxes & Fees */}
                         <div className="flex justify-between text-xs">
@@ -967,22 +983,20 @@ const EventBooking = ({ vendorData: propVendorData }) => {
                         </div>
                       </div>
                       
-                      {/* Total */}
+                      {/* Total - Shows price range */}
                       <div className="mt-2.5 pt-2.5 border-t border-gray-300">
-                        <div className="flex justify-between items-center">
-                          <span className="font-bold text-gray-900 text-sm">Total Amount</span>
-                          <span className="text-lg font-bold" style={{ color: brandColors.accent }}>
-                            {formatPrice(total)}
-                          </span>
+                        <div className="text-center mb-2">
+                          <span className="font-bold text-gray-900 text-sm">Total Estimated Cost</span>
+                          <div className="text-lg font-bold" style={{ color: brandColors.accent }}>
+                            {priceRange}
+                          </div>
                         </div>
                         <p className="text-xs text-gray-500 text-center mt-1">
-                          Full payment required
+                          Booking fee + estimated event cost
                         </p>
                       </div>
                     </div>
                   </div>
-                  
-                
                   
                   {/* Location Information - Fixed to Oyo State */}
                   <div className="bg-white rounded-lg border border-gray-200 shadow-sm">

@@ -259,42 +259,73 @@ const ServiceBooking = ({ vendorData: propVendorData }) => {
       return;
     }
 
+    // Get user information
     const guestSession = localStorage.getItem("guestSession");
     const isGuest = !!guestSession;
+    const userProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+    const userEmail = localStorage.getItem("user_email");
     
+    // Create complete booking with proper structure
     const completeBooking = {
+      // Service-specific data
       vendorData: vendorData,
-      bookingData: bookingData,
+      bookingData: {
+        ...bookingData,
+        // Ensure contact info is properly structured
+        contactPerson: {
+          ...bookingData.contactPerson,
+          // Use phone from bookingData (already formatted)
+          phone: bookingData.contactPerson.phone
+        }
+      },
       bookingType: 'service',
       bookingDate: new Date().toISOString(),
       bookingId: bookingId,
       status: "pending",
       totalAmount: 15000,
       timestamp: Date.now(),
-      ...(isGuest ? {
+      
+      // User information
+      firstName: bookingData.contactPerson.firstName,
+      lastName: bookingData.contactPerson.lastName,
+      email: bookingData.contactPerson.email,
+      phone: bookingData.contactPerson.phone,
+      
+      // Clear user type identification
+      userType: isGuest ? "guest" : "authenticated",
+      
+      // Guest-specific data
+      ...(isGuest && {
         isGuestBooking: true,
         guestSessionId: JSON.parse(guestSession).sessionId,
         guestEmail: JSON.parse(guestSession).email
-      } : {
-        userId: JSON.parse(localStorage.getItem("userProfile") || "{}")._id || null,
-        userEmail: localStorage.getItem("user_email")
       }),
+      
+      // Logged-in user data
+      ...(!isGuest && {
+        userId: userProfile._id || null,
+        userEmail: userEmail || bookingData.contactPerson.email
+      }),
+      
       termsAccepted: isTermsAccepted
     };
 
-    if (isGuest) {
-      localStorage.setItem('pendingGuestServiceBooking', JSON.stringify(completeBooking));
-    } else {
-      localStorage.setItem('pendingLoggedInServiceBooking', JSON.stringify(completeBooking));
-    }
+    // Store in localStorage with consistent naming
+    const storageKey = isGuest ? 'pendingGuestServiceBooking' : 'pendingLoggedInServiceBooking';
+    localStorage.setItem(storageKey, JSON.stringify(completeBooking));
     
+    // Also store in a generic key for backward compatibility
+    localStorage.setItem('completeBooking', JSON.stringify(completeBooking));
+    
+    // Clear any old pending bookings
     localStorage.removeItem('pendingServiceBooking');
     
+    // Navigate to payment with all data
     navigate('/booking/payment', { 
       state: { 
         bookingData: completeBooking,
         bookingType: 'service',
-        isGuestBooking: isGuest || false
+        isGuestBooking: isGuest
       } 
     });
   };

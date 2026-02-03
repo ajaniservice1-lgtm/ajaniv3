@@ -149,7 +149,7 @@ const showNotification = (message, type = "success") => {
   );
 };
 
-// Custom hook for FIXED sticky behavior
+// Updated the useFixedSticky hook with corrected boundary logic
 const useFixedSticky = (startRef, endRef, options = {}) => {
   const { offsetTop = 100, enabled = true } = options;
   const [isFixed, setIsFixed] = useState(false);
@@ -157,6 +157,8 @@ const useFixedSticky = (startRef, endRef, options = {}) => {
   const [boundaries, setBoundaries] = useState({ start: 0, end: 0 });
   const elementRef = useRef(null);
   const containerRef = useRef(null);
+  const originalPositionRef = useRef({ top: 0, left: 0, width: 0, height: 0 });
+  const parentRef = useRef(null);
 
   const calculateBoundaries = useCallback(() => {
     if (!startRef.current || !endRef.current || !elementRef.current || !enabled) {
@@ -172,9 +174,8 @@ const useFixedSticky = (startRef, endRef, options = {}) => {
       start: startRect.top + scrollTop - offsetTop,
       end: endRect.bottom + scrollTop,
       elementHeight: elementRect.height,
-      originalWidth: elementRef.current.offsetWidth,
-      originalLeft: elementRef.current.getBoundingClientRect().left,
-      originalTop: elementRect.top + scrollTop
+      elementTop: elementRect.top + scrollTop,
+      elementLeft: elementRect.left
     };
   }, [startRef, endRef, offsetTop, enabled]);
 
@@ -188,10 +189,24 @@ const useFixedSticky = (startRef, endRef, options = {}) => {
           start: calculated.start,
           end: calculated.end,
           elementHeight: calculated.elementHeight,
-          originalWidth: calculated.originalWidth,
-          originalLeft: calculated.originalLeft,
-          originalTop: calculated.originalTop
+          elementTop: calculated.elementTop,
+          elementLeft: calculated.elementLeft
         });
+        
+        // Store original position
+        if (elementRef.current) {
+          const rect = elementRef.current.getBoundingClientRect();
+          const scrollTop = window.scrollY;
+          originalPositionRef.current = {
+            top: rect.top + scrollTop,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height
+          };
+          
+          // Store parent reference
+          parentRef.current = elementRef.current.parentElement;
+        }
       }
     };
 
@@ -209,16 +224,20 @@ const useFixedSticky = (startRef, endRef, options = {}) => {
     }
 
     const handleScroll = () => {
-      if (!startRef.current || !endRef.current || !elementRef.current) return;
+      if (!startRef.current || !endRef.current || !elementRef.current || !parentRef.current) return;
 
       const scrollY = window.scrollY;
-      const { start, end, elementHeight, originalWidth, originalLeft, originalTop } = boundaries;
+      const { start, end, elementHeight } = boundaries;
       
       // Check if boundaries are valid
       if (start === 0 && end === 0) return;
 
+      // Calculate the point where the element should stop being fixed
+      // This is when the bottom of the element reaches the bottom of the container
+      const stopFixedPoint = end - elementHeight;
+      
       // Check if we're in the sticky zone
-      const isInStickyZone = scrollY > start && scrollY < end;
+      const isInStickyZone = scrollY > start && scrollY < stopFixedPoint;
       
       // Should be FIXED when in the sticky zone
       const shouldBeFixed = isInStickyZone;
@@ -228,52 +247,36 @@ const useFixedSticky = (startRef, endRef, options = {}) => {
       }
 
       if (shouldBeFixed) {
-        // COMPLETELY FIXED POSITION - DOESN'T MOVE WHILE SCROLLING
-        const currentLeft = elementRef.current.getBoundingClientRect().left;
+        // FIXED AT EXACT ORIGINAL POSITION
+        const { left, width } = originalPositionRef.current;
         
         setStickyStyle({
           position: 'fixed',
-          top: `${offsetTop}px`,
-          left: `${currentLeft}px`,
-          width: `${originalWidth}px`,
+          top: `${offsetTop}px`, // Fixed at the offsetTop position
+          left: `${left}px`, // Original left position
+          width: `${width}px`, // Original width
           zIndex: 40,
           opacity: 1,
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           maxHeight: `calc(100vh - ${offsetTop + 20}px)`,
           overflowY: 'auto',
-          transform: 'none', // No transform - stays exactly where it is
           pointerEvents: 'auto'
         });
-      } else if (scrollY >= end) {
-        // Past the end boundary - position at the bottom
-        const parent = elementRef.current.parentElement;
-        if (parent) {
-          const parentRect = parent.getBoundingClientRect();
-          const parentBottom = parentRect.bottom + scrollY;
-          const relativeTop = parentBottom - end;
-          
-          setStickyStyle({
-            position: 'absolute',
-            top: `${relativeTop}px`,
-            left: '0',
-            width: '100%',
-            zIndex: 10,
-            opacity: 1,
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            pointerEvents: 'auto'
-          });
-        } else {
-          setStickyStyle({
-            position: 'relative',
-            top: '0',
-            left: '0',
-            width: '100%',
-            zIndex: 10,
-            opacity: 1,
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            pointerEvents: 'auto'
-          });
-        }
+      } else if (scrollY >= stopFixedPoint) {
+        // Past the stop point - position at the bottom of the parent container
+        // Calculate the absolute bottom position relative to the parent
+        const absoluteBottomPosition = end - boundaries.elementTop;
+        
+        setStickyStyle({
+          position: 'absolute',
+          top: `${absoluteBottomPosition}px`,
+          left: '0',
+          width: '100%',
+          zIndex: 10,
+          opacity: 1,
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          pointerEvents: 'auto'
+        });
       } else {
         // Before start boundary - normal flow
         setStickyStyle({
@@ -389,15 +392,15 @@ const normalizeCategory = (category) => {
   return 'restaurant';
 };
 
-// Get per text function
+// Get per text function - UPDATED: Empty string for events
 const getPerText = (item) => {
   const category = normalizeCategory(item?.category);
+  if (category === 'event') return ''; // Empty string for events
   if (category === 'hotel') return 'per night';
   if (category === 'restaurant') return 'per meal';
   if (category === 'shortlet') return 'per night';
-  if (category === 'event') return 'per event';
   if (category === 'service') return 'per service';
-  return 'per guest';
+  return '';
 };
 
 const getVendorImages = (vendor) => {
@@ -1297,70 +1300,7 @@ const HotelGuestsModal = ({ isOpen, onClose, adults, setAdults, children, setChi
   );
 };
 
-// Event Guests Modal Component
-const EventGuestsModal = ({ isOpen, onClose, guests, setGuests }) => {
-  if (!isOpen) return null;
-
-  return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-black/50"
-          onClick={onClose}
-        />
-        
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-hidden"
-        >
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-bold text-gray-900">Number of Event Guests</h3>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
-              >
-                <IoClose size={20} className="text-gray-500" />
-              </button>
-            </div>
-
-            <div className="space-y-4 overflow-y-auto max-h-[50vh]">
-              <Counter 
-                label="Event Guests" 
-                sub="Estimated number of attendees" 
-                value={guests} 
-                setValue={setGuests} 
-                min={10} 
-              />
-            </div>
-
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  <p className="text-sm text-gray-600">Total Event Guests</p>
-                  <p className="font-medium">{guests} guest{guests !== 1 ? 's' : ''}</p>
-                </div>
-              </div>
-              
-              <button
-                onClick={onClose}
-                className="w-full py-3 rounded-xl bg-[#06f49f] text-white font-bold hover:bg-[#05d9eb] transition-all cursor-pointer"
-              >
-                Apply ({guests} guest{guests !== 1 ? 's' : ''})
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    </AnimatePresence>
-  );
-};
+// Event Guests Modal Component - REMOVED: Not needed for events
 
 const VendorDetail = () => {
   const { id } = useParams();
@@ -1385,7 +1325,7 @@ const VendorDetail = () => {
   
   // Different guest states for different categories
   const [guests, setGuests] = useState(2); // Restaurant guests
-  const [eventGuests, setEventGuests] = useState(50); // Event guests
+  const [eventGuests, setEventGuests] = useState(50); // Event guests - kept but not displayed
   const [serviceGuests, setServiceGuests] = useState(1); // Service
   
   const [adults, setAdults] = useState(1); // Hotel adults
@@ -1593,14 +1533,14 @@ const VendorDetail = () => {
       }
     }
     
-    // Handle event pricing
+    // Handle event pricing - just show the price range, no "per guest"
     if (category === 'event' && item?.details?.priceRange) {
       const { priceFrom, priceTo } = item.details.priceRange;
       
       if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
         return `${formatPrice(priceFrom)} - ${formatPrice(priceTo)}`;
       } else if (priceFrom !== undefined) {
-        return `From ${formatPrice(priceFrom)}`;
+        return `${formatPrice(priceFrom)}`;
       }
     }
     
@@ -1846,7 +1786,7 @@ const VendorDetail = () => {
   const calculateTotalPrice = () => {
     const category = normalizeCategory(vendor?.category);
     
-    // For events: Fixed range 100,000 - 500,000 (use priceFrom as the price)
+    // For events: Fixed price only
     if (category === 'event') {
       if (vendor?.details?.priceRange?.priceFrom) {
         return vendor.details.priceRange.priceFrom;
@@ -1855,7 +1795,7 @@ const VendorDetail = () => {
       if (vendor?.details?.priceRange?.priceFrom && vendor?.details?.priceRange?.priceTo) {
         return Math.round((vendor.details.priceRange.priceFrom + vendor.details.priceRange.priceTo) / 2);
       }
-      return 250000; // Default average for events
+      return vendor.price || vendor.details?.price || 0; // Just return the base price
     }
     
     // For services: Fixed range 5,000 - 50,000 (use priceFrom as the price)
@@ -1942,7 +1882,7 @@ const VendorDetail = () => {
       if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
         return `${formatPrice(priceFrom)} - ${formatPrice(priceTo)}`;
       } else if (priceFrom !== undefined) {
-        return `From ${formatPrice(priceFrom)}`;
+        return `${formatPrice(priceFrom)}`;
       }
     }
     
@@ -2090,7 +2030,8 @@ const VendorDetail = () => {
       if (category === 'hotel') {
         setOpenGuests(true);
       } else if (category === 'event') {
-        setOpenGuests(true);
+        // For events, don't open guests modal
+        return;
       } else {
         setOpenGuests(true);
       }
@@ -2272,7 +2213,7 @@ const VendorDetail = () => {
   const shouldShowCalendar = category === 'hotel' || category === 'shortlet' || category === 'event';
   const shouldShowHotelGuests = category === 'hotel';
   const shouldShowRestaurantGuests = category === 'restaurant';
-  const shouldShowEventGuests = category === 'event';
+  const shouldShowEventGuests = false; // No guest selection for events
   const shouldShowServiceGuests = category === 'service';
 
   // Get appropriate guest count for current category
@@ -2280,7 +2221,7 @@ const VendorDetail = () => {
     switch(category) {
       case 'hotel': return totalHotelGuests;
       case 'restaurant': return guests;
-      case 'event': return eventGuests;
+      case 'event': return 0; // No guest count for events
       case 'service': return serviceGuests;
       case 'shortlet': return guests;
       default: return guests;
@@ -2391,7 +2332,22 @@ const VendorDetail = () => {
         
         .fixed-booking-card {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          will-change: transform, position, top, left;
+          will-change: position, top, left, width;
+        }
+        
+        .fixed-booking-card.fixed {
+          position: fixed;
+          z-index: 40;
+        }
+        
+        .fixed-booking-card.absolute {
+          position: absolute;
+          z-index: 10;
+        }
+        
+        .fixed-booking-card.relative {
+          position: relative;
+          z-index: 10;
         }
         
         .fixed-booking-card::-webkit-scrollbar {
@@ -2754,9 +2710,12 @@ const VendorDetail = () => {
                       {priceDisplay}
                     </span>
                   </div>
-                  <span className="text-gray-900 text-xs md:text-base mt-0.5 cursor-pointer">
-                    {perText}
-                  </span>
+                  {/* Only show perText if category is not 'event' */}
+                  {category !== 'event' && perText && (
+                    <span className="text-gray-900 text-xs md:text-base mt-0.5 cursor-pointer">
+                      {perText}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -2945,177 +2904,177 @@ const VendorDetail = () => {
                     </div>
                   </div>
 
-                  {/* Right Column - Booking Card (FIXED POSITION - DOES NOT MOVE) */}
+                  {/* Right Column - Booking Card (FIXED POSITION - STAYS EXACTLY WHERE IT IS) */}
                   <div className="hidden lg:block w-96 flex-shrink-0 relative">
-                    <motion.div
-                      ref={elementRef}
-                      className="fixed-booking-card"
-                      style={{
-                        ...stickyStyle,
-                        maxHeight: isFixed ? 'calc(100vh - 120px)' : 'auto',
-                        overflowY: isFixed ? 'auto' : 'visible'
-                      }}
-                    >
-                      {isFixed && (
-                        <div className="fixed-badge">
-                          Fixed Position
-                        </div>
-                      )}
-                      
+                    <div style={{ height: elementRef.current ? elementRef.current.offsetHeight + 20 : 'auto', minHeight: '400px' }}>
                       <motion.div
-                        className={`bg-white rounded-2xl border border-gray-300 p-6 space-y-6 ${isFixed ? 'shadow-xl' : 'shadow-lg'}`}
-                        whileHover={{ boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
-                        transition={{ duration: 0.2 }}
+                        ref={elementRef}
+                        className="fixed-booking-card"
+                        style={{
+                          ...stickyStyle,
+                          maxHeight: isFixed ? 'calc(100vh - 120px)' : 'auto',
+                          overflowY: isFixed ? 'auto' : 'visible'
+                        }}
                       >
-                        {/* Price Display */}
-                        <div>
-                          <div className="flex justify-between items-baseline mb-2">
-                            <div>
-                              <span className="text-2xl font-bold text-gray-900">{formatPrice(totalPrice)}</span>
-                              <span className="text-gray-600 ml-2">total</span>
-                            </div>
+                        {isFixed && (
+                          <div className="fixed-badge">
+                            Fixed Position
                           </div>
-                          
-                          {category === 'hotel' || category === 'shortlet' ? (
-                            <div className="mt-2 text-sm text-gray-600">
-                              {formatPrice(realPrice)} per night × {nights} night{nights !== 1 ? 's' : ''}
+                        )}
+                        
+                        <motion.div
+                          className={`bg-white rounded-2xl border border-gray-300 p-6 space-y-6 ${isFixed ? 'shadow-xl' : 'shadow-lg'}`}
+                          whileHover={{ boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          {/* Price Display */}
+                          <div>
+                            <div className="flex justify-between items-baseline mb-2">
+                              <div>
+                                <span className="text-2xl font-bold text-gray-900">{formatPrice(totalPrice)}</span>
+                                <span className="text-gray-600 ml-2">total</span>
+                              </div>
                             </div>
-                          ) : category === 'restaurant' ? (
-                            <div className="mt-2 text-sm text-gray-600">
-                              {formatPrice(realPrice)} per meal
-                            </div>
-                          ) : category === 'event' ? (
-                            <div className="mt-2 text-sm text-gray-600">
-                              {formatPrice(realPrice)} per event
-                            </div>
-                          ) : category === 'service' ? (
-                            <div className="mt-2 text-sm text-gray-600">
-                              {formatPrice(realPrice)} per service
-                            </div>
-                          ) : (
-                            <div className="mt-2 text-sm text-gray-600">
-                              {formatPrice(realPrice)} per guest
+                            
+                            {category === 'hotel' || category === 'shortlet' ? (
+                              <div className="mt-2 text-sm text-gray-600">
+                                {formatPrice(realPrice)} per night × {nights} night{nights !== 1 ? 's' : ''}
+                              </div>
+                            ) : category === 'restaurant' ? (
+                              <div className="mt-2 text-sm text-gray-600">
+                                {formatPrice(realPrice)} per meal
+                              </div>
+                            ) : category === 'event' ? (
+                              <div className="mt-2 text-sm text-gray-600">
+                                Fixed event price
+                              </div>
+                            ) : category === 'service' ? (
+                              <div className="mt-2 text-sm text-gray-600">
+                                {formatPrice(realPrice)} per service
+                              </div>
+                            ) : (
+                              <div className="mt-2 text-sm text-gray-600">
+                                {formatPrice(realPrice)} per guest
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Dates Section for hotels, shortlets, and events */}
+                          {(category === 'hotel' || category === 'shortlet' || category === 'event') && (
+                            <div>
+                              <div className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                                <span>Dates</span>
+                                <button
+                                  onClick={() => setOpenCalendar(true)}
+                                  className="text-xs text-[#06f49f] hover:text-[#05d9eb] font-medium cursor-pointer"
+                                >
+                                  Edit
+                                </button>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="border border-gray-300 rounded-xl p-3">
+                                  <p className="text-[10px] uppercase text-gray-500 font-semibold mb-1">
+                                    {category === 'event' ? 'Event Date' : 'Check-in'}
+                                  </p>
+                                  <p className="text-sm font-medium">{formatDateForDisplay(checkIn)}</p>
+                                </div>
+                                <div className="border border-gray-300 rounded-xl p-3">
+                                  <p className="text-[10px] uppercase text-gray-500 font-semibold mb-1">
+                                    {category === 'event' ? 'End Date' : 'Checkout'}
+                                  </p>
+                                  <p className="text-sm font-medium">{formatDateForDisplay(checkOut)}</p>
+                                </div>
+                              </div>
                             </div>
                           )}
-                        </div>
 
-                        {/* Dates Section for hotels, shortlets, and events */}
-                        {(category === 'hotel' || category === 'shortlet' || category === 'event') && (
-                          <div>
-                            <div className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
-                              <span>Dates</span>
-                              <button
-                                onClick={() => setOpenCalendar(true)}
-                                className="text-xs text-[#06f49f] hover:text-[#05d9eb] font-medium cursor-pointer"
-                              >
-                                Edit
-                              </button>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="border border-gray-300 rounded-xl p-3">
-                                <p className="text-[10px] uppercase text-gray-500 font-semibold mb-1">
-                                  {category === 'event' ? 'Event Date' : 'Check-in'}
-                                </p>
-                                <p className="text-sm font-medium">{formatDateForDisplay(checkIn)}</p>
+                          {/* Guests Section - Completely hidden for events */}
+                          {category !== 'event' && (
+                            <div>
+                              <div className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                                <span>
+                                  {category === 'hotel' ? 'Guests & Rooms' : 
+                                  category === 'service' ? 'Service Details' : 'Guests'}
+                                </span>
+                                <button
+                                  onClick={() => setOpenGuests(true)}
+                                  className="text-xs text-[#06f49f] hover:text-[#05d9eb] font-medium cursor-pointer"
+                                >
+                                  Edit
+                                </button>
                               </div>
                               <div className="border border-gray-300 rounded-xl p-3">
                                 <p className="text-[10px] uppercase text-gray-500 font-semibold mb-1">
-                                  {category === 'event' ? 'End Date' : 'Checkout'}
+                                  {category === 'hotel' ? 'Guests & Rooms' : 
+                                  category === 'service' ? 'Service Details' : 'Guests'}
                                 </p>
-                                <p className="text-sm font-medium">{formatDateForDisplay(checkOut)}</p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Guests Section */}
-                        <div>
-                          <div className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
-                            <span>
-                              {category === 'hotel' ? 'Guests & Rooms' : 
-                               category === 'event' ? 'Event Guests' :
-                               category === 'service' ? 'Service Details' : 'Guests'}
-                            </span>
-                            <button
-                              onClick={() => setOpenGuests(true)}
-                              className="text-xs text-[#06f49f] hover:text-[#05d9eb] font-medium cursor-pointer"
-                            >
-                              Edit
-                            </button>
-                          </div>
-                          <div className="border border-gray-300 rounded-xl p-3">
-                            <p className="text-[10px] uppercase text-gray-500 font-semibold mb-1">
-                              {category === 'hotel' ? 'Guests & Rooms' : 
-                               category === 'event' ? 'Event Guests' :
-                               category === 'service' ? 'Service Details' : 'Guests'}
-                            </p>
-                            <p className="text-sm font-medium">
-                              {category === 'hotel' 
-                                ? `${totalHotelGuests} guest${totalHotelGuests !== 1 ? 's' : ''}, ${rooms} room${rooms !== 1 ? 's' : ''}`
-                                : category === 'event'
-                                ? `${eventGuests} guest${eventGuests !== 1 ? 's' : ''}`
-                                : category === 'service'
-                                ? `${serviceGuests} service${serviceGuests !== 1 ? 's' : ''}`
-                                : `${guests} guest${guests !== 1 ? 's' : ''}`
-                              }
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Room Selection (if needed) */}
-                        {category === 'hotel' && !selectedRoom && (
-                          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-                            <div className="flex items-start gap-2">
-                              <FontAwesomeIcon icon={faInfoCircle} className="text-yellow-500 mt-0.5" />
-                              <div>
-                                <p className="text-sm font-medium text-yellow-800">Select a room to continue</p>
-                                <p className="text-xs text-yellow-600 mt-1">
-                                  Please choose a room from the options below before booking
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Reserve Button */}
-                        <motion.button 
-                          className="w-full py-4 rounded-xl bg-[#06f49f] hover:bg-[#05d9eb] text-white font-bold transition shadow-md cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed"
-                          onClick={() => {
-                            if (category === 'hotel' && !selectedRoom) {
-                              if (roomSelectionRef.current) {
-                                roomSelectionRef.current.scrollIntoView({
-                                  behavior: 'smooth',
-                                  block: 'start'
-                                });
-                                
-                                roomSelectionRef.current.classList.add('highlight-section');
-                                setTimeout(() => {
-                                  if (roomSelectionRef.current) {
-                                    roomSelectionRef.current.classList.remove('highlight-section');
+                                <p className="text-sm font-medium">
+                                  {category === 'hotel' 
+                                    ? `${totalHotelGuests} guest${totalHotelGuests !== 1 ? 's' : ''}, ${rooms} room${rooms !== 1 ? 's' : ''}`
+                                    : category === 'service'
+                                    ? `${serviceGuests} service${serviceGuests !== 1 ? 's' : ''}`
+                                    : `${guests} guest${guests !== 1 ? 's' : ''}`
                                   }
-                                }, 1500);
-                                
-                                showToast("Please select a room first", "info");
-                              }
-                            } else {
-                              handleBookingClick();
-                            }
-                          }}
-                          disabled={category === 'hotel' && !selectedRoom}
-                          whileHover={category === 'hotel' && !selectedRoom ? {} : { scale: 1.02 }}
-                          whileTap={category === 'hotel' && !selectedRoom ? {} : { scale: 0.98 }}
-                        >
-                          {category === 'hotel' && !selectedRoom 
-                            ? "Select a Room First" 
-                            : `Reserve for ${formatPrice(totalPrice)}`
-                          }
-                        </motion.button>
+                                </p>
+                              </div>
+                            </div>
+                          )}
 
-                        <p className="text-center text-xs text-gray-500">
-                          You won't be charged yet
-                        </p>
+                          {/* Room Selection (if needed) */}
+                          {category === 'hotel' && !selectedRoom && (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                              <div className="flex items-start gap-2">
+                                <FontAwesomeIcon icon={faInfoCircle} className="text-yellow-500 mt-0.5" />
+                                <div>
+                                  <p className="text-sm font-medium text-yellow-800">Select a room to continue</p>
+                                  <p className="text-xs text-yellow-600 mt-1">
+                                    Please choose a room from the options below before booking
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Reserve Button */}
+                          <motion.button 
+                            className="w-full py-4 rounded-xl bg-[#06f49f] hover:bg-[#05d9eb] text-white font-bold transition shadow-md cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            onClick={() => {
+                              if (category === 'hotel' && !selectedRoom) {
+                                if (roomSelectionRef.current) {
+                                  roomSelectionRef.current.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'start'
+                                  });
+                                  
+                                  roomSelectionRef.current.classList.add('highlight-section');
+                                  setTimeout(() => {
+                                    if (roomSelectionRef.current) {
+                                      roomSelectionRef.current.classList.remove('highlight-section');
+                                    }
+                                  }, 1500);
+                                  
+                                  showToast("Please select a room first", "info");
+                                }
+                              } else {
+                                handleBookingClick();
+                              }
+                            }}
+                            disabled={category === 'hotel' && !selectedRoom}
+                            whileHover={category === 'hotel' && !selectedRoom ? {} : { scale: 1.02 }}
+                            whileTap={category === 'hotel' && !selectedRoom ? {} : { scale: 0.98 }}
+                          >
+                            {category === 'hotel' && !selectedRoom 
+                              ? "Select a Room First" 
+                              : `Reserve for ${formatPrice(totalPrice)}`
+                            }
+                          </motion.button>
+
+                          <p className="text-center text-xs text-gray-500">
+                            You won't be charged yet
+                          </p>
+                        </motion.div>
                       </motion.div>
-                    </motion.div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3238,16 +3197,6 @@ const VendorDetail = () => {
           />
         )}
 
-        {/* ================= EVENT GUESTS MODAL ================= */}
-        {shouldShowEventGuests && (
-          <EventGuestsModal
-            isOpen={openGuests}
-            onClose={() => setOpenGuests(false)}
-            guests={eventGuests}
-            setGuests={setEventGuests}
-          />
-        )}
-
         {/* ================= SERVICE GUESTS MODAL ================= */}
         {shouldShowServiceGuests && (
           <GuestsModal
@@ -3268,9 +3217,12 @@ const VendorDetail = () => {
           <div>
             <div className="text-lg font-bold text-gray-900">
               {priceDisplay}
-              <span className="text-xs font-normal text-gray-500 ml-1">
-                {perText}
-              </span>
+              {/* No perText for events */}
+              {category !== 'event' && perText && (
+                <span className="text-xs font-normal text-gray-500 ml-1">
+                  {perText}
+                </span>
+              )}
             </div>
             <div className="text-xs text-gray-500">
               {shouldShowCalendar && (
@@ -3281,7 +3233,7 @@ const VendorDetail = () => {
                   )}
                 </>
               )}
-              {!shouldShowCalendar && (
+              {!shouldShowCalendar && category !== 'event' && (
                 <span className="text-gray-400">Tap to book</span>
               )}
             </div>
@@ -3473,39 +3425,38 @@ const VendorDetail = () => {
                     </div>
                   )}
 
-                  <div className="mb-6">
-                    <div className="text-[12px] font-semibold text-gray-700 mb-2">
-                      {category === 'hotel' ? 'Guests & Rooms' : 
-                       category === 'event' ? 'Event Guests' :
-                       category === 'service' ? 'Service Details' : 'Guests'}
-                    </div>
+                  {/* Only show guest selection for non-event categories */}
+                  {category !== 'event' && (
+                    <div className="mb-6">
+                      <div className="text-[12px] font-semibold text-gray-700 mb-2">
+                        {category === 'hotel' ? 'Guests & Rooms' : 
+                         category === 'service' ? 'Service Details' : 'Guests'}
+                      </div>
 
-                    <button
-                      onClick={() => {
-                        setBottomSheetOpen(false);
-                        setTimeout(() => {
-                          setOpenGuests(true);
-                        }, 300);
-                      }}
-                      className="w-full border border-gray-300 rounded-xl p-4 text-left hover:bg-gray-50 transition cursor-pointer"
-                    >
-                      <div className="font-medium text-[13px]">
-                        {category === 'hotel' 
-                          ? `${totalHotelGuests} guest${totalHotelGuests !== 1 ? 's' : ''}, ${rooms} room${rooms !== 1 ? 's' : ''}`
-                          : category === 'event'
-                          ? `${eventGuests} guest${eventGuests !== 1 ? 's' : ''}`
-                          : category === 'service'
-                          ? `${serviceGuests} service${serviceGuests !== 1 ? 's' : ''}`
-                          : `${guests} guest${guests !== 1 ? 's' : ''}`
-                        }
-                      </div>
-                      <div className="text-[11px] text-gray-400 mt-1">
-                        Click to edit {category === 'hotel' ? 'guests & rooms' : 
-                                      category === 'event' ? 'event guests' :
-                                      category === 'service' ? 'service details' : 'guests'}
-                      </div>
-                    </button>
-                  </div>
+                      <button
+                        onClick={() => {
+                          setBottomSheetOpen(false);
+                          setTimeout(() => {
+                            setOpenGuests(true);
+                          }, 300);
+                        }}
+                        className="w-full border border-gray-300 rounded-xl p-4 text-left hover:bg-gray-50 transition cursor-pointer"
+                      >
+                        <div className="font-medium text-[13px]">
+                          {category === 'hotel' 
+                            ? `${totalHotelGuests} guest${totalHotelGuests !== 1 ? 's' : ''}, ${rooms} room${rooms !== 1 ? 's' : ''}`
+                            : category === 'service'
+                            ? `${serviceGuests} service${serviceGuests !== 1 ? 's' : ''}`
+                            : `${guests} guest${guests !== 1 ? 's' : ''}`
+                          }
+                        </div>
+                        <div className="text-[11px] text-gray-400 mt-1">
+                          Click to edit {category === 'hotel' ? 'guests & rooms' : 
+                                        category === 'service' ? 'service details' : 'guests'}
+                        </div>
+                      </button>
+                    </div>
+                  )}
 
                   {category === 'hotel' && !selectedRoom && (
                     <div className="mb-8">

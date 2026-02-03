@@ -9,7 +9,8 @@ import {
   faUtensils, faCheck, faStar, faPhone,
   faEnvelope, faMapMarkerAlt, faShieldAlt,
   faCreditCard, faConciergeBell,
-  faChevronLeft, faNotesMedical
+  faChevronLeft, faNotesMedical,
+  faMoneyBillWave
 } from "@fortawesome/free-solid-svg-icons";
 
 const RestaurantBooking = ({ vendorData: propVendorData }) => {
@@ -238,20 +239,41 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
       // Convert 24-hour time to 12-hour format for display
       const timeString = formatTimeForDisplay(bookingData.time);
       
-      // Calculate total
-      const total = calculateTotal();
+      // Calculate total (use the reservation fee)
+      const total = calculateReservationFee();
       
-      // Save ALL booking data to localStorage
+      // Save ALL booking data to localStorage - FIXED STRUCTURE
       const pendingBooking = {
         type: "restaurant",
         vendorData: vendorData,
         bookingData: {
-          ...bookingData,
+          date: bookingData.date,
           time: timeString,
-          paymentMethod: selectedPayment
+          numberOfGuests: bookingData.numberOfGuests,
+          contactPerson: {
+            firstName: bookingData.contactInfo.firstName,
+            lastName: bookingData.contactInfo.lastName,
+            email: bookingData.contactInfo.email,
+            phone: bookingData.contactInfo.phone
+          },
+          specialRequests: bookingData.specialRequests,
+          paymentMethod: selectedPayment,
+          totalPrice: total,
+          // Add price range data
+          priceFrom: vendorData?.priceFrom || 1000,
+          priceTo: vendorData?.priceTo || 10000,
+          reservationFee: total
         },
-        bookingId: bookingId,
+        // Root level fields for easy access
+        firstName: bookingData.contactInfo.firstName,
+        lastName: bookingData.contactInfo.lastName,
+        email: bookingData.contactInfo.email,
+        phone: bookingData.contactInfo.phone,
+        guests: { adults: bookingData.numberOfGuests },
+        specialRequests: bookingData.specialRequests,
+        paymentMethod: selectedPayment,
         totalAmount: total,
+        bookingId: bookingId,
         timestamp: Date.now()
       };
       
@@ -279,41 +301,77 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
     // Check if user is guest or logged in
     const guestSession = localStorage.getItem("guestSession");
     const isGuest = !!guestSession;
+    const userProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+    const userEmail = localStorage.getItem("user_email");
     
-    // Combine all data
+    // Get the reservation fee for the booking
+    const reservationFee = calculateReservationFee();
+    
+    // Combine all data with proper structure - FIXED STRUCTURE
     const completeBooking = {
+      // Restaurant and booking data
+      type: "restaurant",
       vendorData: vendorData,
       bookingData: {
-        ...bookingData,
+        date: bookingData.date,
         time: timeString,
-        paymentMethod: selectedPayment
+        numberOfGuests: bookingData.numberOfGuests,
+        contactPerson: {
+          firstName: bookingData.contactInfo.firstName,
+          lastName: bookingData.contactInfo.lastName,
+          email: bookingData.contactInfo.email,
+          phone: bookingData.contactInfo.phone
+        },
+        specialRequests: bookingData.specialRequests,
+        paymentMethod: selectedPayment,
+        totalPrice: reservationFee,
+        // Add price range data
+        priceFrom: vendorData?.priceFrom || 1000,
+        priceTo: vendorData?.priceTo || 10000,
+        reservationFee: reservationFee
       },
       bookingType: 'restaurant',
       bookingDate: new Date().toISOString(),
       bookingId: bookingId,
-      status: "pending", // Set to pending initially
-      totalAmount: calculateTotal(),
+      status: "pending",
+      totalAmount: reservationFee,
       timestamp: Date.now(),
+      
+      // Extract contact info to root level for easy access in payment page
+      firstName: bookingData.contactInfo.firstName,
+      lastName: bookingData.contactInfo.lastName,
+      email: bookingData.contactInfo.email,
+      phone: bookingData.contactInfo.phone,
+      guests: { adults: bookingData.numberOfGuests },
+      specialRequests: bookingData.specialRequests,
+      paymentMethod: selectedPayment,
+      
       // Add user info based on authentication type
       ...(isGuest ? {
         isGuestBooking: true,
         guestSessionId: JSON.parse(guestSession).sessionId,
         guestEmail: JSON.parse(guestSession).email
       } : {
-        userId: JSON.parse(localStorage.getItem("userProfile") || "{}")._id || null,
-        userEmail: localStorage.getItem("user_email")
+        userId: userProfile._id || null,
+        userEmail: userEmail || bookingData.contactInfo.email
       }),
-      termsAccepted: isTermsAccepted
+      
+      // Additional metadata
+      termsAccepted: isTermsAccepted,
+      numberOfGuests: bookingData.numberOfGuests,
+      priceFrom: vendorData?.priceFrom || 1000,
+      priceTo: vendorData?.priceTo || 10000,
+      reservationFee: reservationFee
     };
 
     console.log("Complete booking data for payment:", completeBooking);
 
-    // Save to localStorage TEMPORARILY
-    if (isGuest) {
-      localStorage.setItem('pendingGuestRestaurantBooking', JSON.stringify(completeBooking));
-    } else {
-      localStorage.setItem('pendingLoggedInRestaurantBooking', JSON.stringify(completeBooking));
-    }
+    // Save to localStorage with consistent naming
+    const storageKey = isGuest ? 'pendingGuestRestaurantBooking' : 'pendingLoggedInRestaurantBooking';
+    localStorage.setItem(storageKey, JSON.stringify(completeBooking));
+    
+    // Also save to a generic key for backward compatibility
+    localStorage.setItem('completeBooking', JSON.stringify(completeBooking));
     
     // Clear any pending booking data
     localStorage.removeItem('pendingRestaurantBooking');
@@ -326,7 +384,7 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
       state: { 
         bookingData: completeBooking,
         bookingType: 'restaurant',
-        isGuestBooking: isGuest || false
+        isGuestBooking: isGuest
       } 
     });
   };
@@ -367,8 +425,23 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
     return `₦${num.toLocaleString()}`;
   };
 
-  const calculateTotal = () => {
-    return vendorData?.priceFrom || 5000;
+  const formatPriceRange = (from, to) => {
+    if (!from && !to) return "₦ --";
+    const fromNum = from ? parseInt(from.toString().replace(/[^\d]/g, "")) : 0;
+    const toNum = to ? parseInt(to.toString().replace(/[^\d]/g, "")) : 0;
+    
+    if (isNaN(fromNum) && isNaN(toNum)) return "₦ --";
+    if (isNaN(fromNum)) return `₦${toNum.toLocaleString()}`;
+    if (isNaN(toNum)) return `₦${fromNum.toLocaleString()}`;
+    
+    if (fromNum === toNum) return `₦${fromNum.toLocaleString()}`;
+    
+    return `₦${fromNum.toLocaleString()} - ${toNum.toLocaleString()}`;
+  };
+
+  const calculateReservationFee = () => {
+    // Use the lower end of price range as reservation fee
+    return vendorData?.priceFrom || 1000;
   };
 
   if (loading) {
@@ -410,9 +483,14 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
     );
   }
 
-  const total = calculateTotal();
+  const reservationFee = calculateReservationFee();
   const serviceFee = 0;
   const taxes = 0;
+  
+  // Get price range from vendor data
+  const priceFrom = vendorData?.priceFrom || 1000;
+  const priceTo = vendorData?.priceTo || 10000;
+  const priceRange = formatPriceRange(priceFrom, priceTo);
 
   return (
     <div className="min-h-screen bg-white">
@@ -495,11 +573,11 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                         </div>
                         <div className="flex items-center gap-1.5">
                           <div className="w-6 h-6 bg-emerald-100 rounded flex items-center justify-center flex-shrink-0">
-                            <FontAwesomeIcon icon={faClock} className="text-emerald-600 text-xs" />
+                            <FontAwesomeIcon icon={faMoneyBillWave} className="text-emerald-600 text-xs" />
                           </div>
                           <div>
-                            <p className="text-xs text-gray-500">Reservation</p>
-                            <p className="font-medium text-xs">Table Booking</p>
+                            <p className="text-xs text-gray-500">Price Range</p>
+                            <p className="font-medium text-xs">{priceRange}</p>
                           </div>
                         </div>
                       </div>
@@ -784,7 +862,7 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                     </div>
                   </div>
                   
-                  {/* Price Breakdown - ALL FEES SET TO 0 */}
+                  {/* Price Breakdown - Show price range */}
                   <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
                     <div className="p-3">
                       <h5 className="font-bold text-gray-900 mb-2 text-sm">Price Breakdown</h5>
@@ -792,7 +870,12 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                       <div className="space-y-1.5">
                         <div className="flex justify-between text-xs">
                           <span className="text-gray-600">Reservation fee</span>
-                          <span className="font-medium">{formatPrice(total)}</span>
+                          <span className="font-medium">{formatPrice(reservationFee)}</span>
+                        </div>
+                        
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-600">Estimated meal cost</span>
+                          <span className="font-medium">{priceRange}</span>
                         </div>
                         
                         {/* Taxes & Fees - Showing as ₦0 */}
@@ -808,17 +891,15 @@ const RestaurantBooking = ({ vendorData: propVendorData }) => {
                         </div>
                       </div>
                       
-                      {/* Total */}
+                      {/* Total - Show price range */}
                       <div className="mt-2.5 pt-2.5 border-t border-gray-300">
-                        <div className="flex justify-between items-center">
-                          <span className="font-bold text-gray-900 text-sm">Total Amount</span>
-                          <span className="text-lg font-bold text-emerald-600">
-                            {formatPrice(total)}
-                          </span>
+                        <div className="text-center mb-2">
+                          <span className="font-bold text-gray-900 text-sm">Total Estimated Cost</span>
+                          <div className="text-lg font-bold text-emerald-600">
+                            {priceRange}
+                          </div>
                         </div>
-                        <p className="text-xs text-gray-500 text-center mt-1">
-                          Payment required on next page
-                        </p>
+                        
                       </div>
                     </div>
                   </div>

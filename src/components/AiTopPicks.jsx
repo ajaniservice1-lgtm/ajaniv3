@@ -328,9 +328,9 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
               {/* Stats Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6 lg:mb-8">
                 <motion.div 
-                  whileHover={isTouchDevice ? {} : { scale: 1.02 }}
+                  whileHover={isTouchDevice ? {} : {}}
                   transition={{ duration: 0.1 }}
-                  className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
+                  className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default hover:shadow-sm"
                 >
                   <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
                     <FaBriefcase className="text-[#06EAFC]" />
@@ -341,9 +341,9 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   </p>
                 </motion.div>
                 <motion.div 
-                  whileHover={isTouchDevice ? {} : { scale: 1.02 }}
+                  whileHover={isTouchDevice ? {} : {}}
                   transition={{ duration: 0.1 }}
-                  className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
+                  className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default hover:shadow-sm"
                 >
                   <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
                     <FaMoneyBillWave className="text-[#06EAFC]" />
@@ -354,9 +354,9 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   </p>
                 </motion.div>
                 <motion.div 
-                  whileHover={isTouchDevice ? {} : { scale: 1.02 }}
+                  whileHover={isTouchDevice ? {} : {}}
                   transition={{ duration: 0.1 }}
-                  className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
+                  className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default hover:shadow-sm"
                 >
                   <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
                     <FaCertificate className="text-[#06EAFC]" />
@@ -367,9 +367,9 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   </p>
                 </motion.div>
                 <motion.div 
-                  whileHover={isTouchDevice ? {} : { scale: 1.02 }}
+                  whileHover={isTouchDevice ? {} : {}}
                   transition={{ duration: 0.1 }}
-                  className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default"
+                  className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 hover:border-[#06EAFC] transition-all duration-150 cursor-default hover:shadow-sm"
                 >
                   <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
                     <FaGlobe className="text-[#06EAFC]" />
@@ -386,7 +386,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                 {/* Left Column - About & Services */}
                 <div className="lg:col-span-2 space-y-3 sm:space-y-4 lg:space-y-6">
                   {/* About Section */}
-                  <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default">
+                  <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default hover:shadow-sm transition-all duration-150">
                     <h3 className="text-base sm:text-lg lg:text-[19.5px] font-bold text-gray-900 mb-2 sm:mb-3 lg:mb-4 flex items-center gap-1.5 sm:gap-2">
                       <span className="w-1 h-3 sm:h-4 lg:h-6 bg-[#06EAFC] rounded-full"></span>
                       About
@@ -404,7 +404,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   </div>
 
                   {/* Services Offered */}
-                  <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default">
+                  <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default hover:shadow-sm transition-all duration-150">
                     <h3 className="text-base sm:text-lg lg:text-[19.5px] font-bold text-gray-900 mb-2 sm:mb-3 lg:mb-4 flex items-center gap-1.5 sm:gap-2">
                       <span className="w-1 h-3 sm:h-4 lg:h-6 bg-[#06EAFC] rounded-full"></span>
                       Services Offered
@@ -413,7 +413,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                       {(vendor.listOfServices || []).map((service, index) => (
                         <motion.span
                           key={index}
-                          whileHover={isTouchDevice ? {} : { scale: 1.05 }}
+                          whileHover={isTouchDevice ? {} : {}}
                           transition={{ duration: 0.1 }}
                           className="
                             px-2 py-1 sm:px-3 sm:py-1.5 lg:px-4 lg:py-2
@@ -425,6 +425,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                             hover:border-[#06EAFC]
                             transition-all duration-150
                             cursor-default
+                            hover:shadow-sm
                             text-xs sm:text-sm lg:text-[13px]
                           "
                         >
@@ -435,7 +436,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   </div>
 
                   {/* Business Details */}
-                  <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default">
+                  <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default hover:shadow-sm transition-all duration-150">
                     <h3 className="text-base sm:text-lg lg:text-[19.5px] font-bold text-gray-900 mb-2 sm:mb-3 lg:mb-4 flex items-center gap-1.5 sm:gap-2">
                       <span className="w-1 h-3 sm:h-4 lg:h-6 bg-[#06EAFC] rounded-full"></span>
                       Business Details
@@ -482,7 +483,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
 
                 {/* Right Column - Contact & Details */}
                 <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-                  <div className="bg-gradient-to-br from-gray-50 to-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 shadow-sm cursor-default">
+                  <div className="bg-gradient-to-br from-gray-50 to-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 shadow-sm cursor-default hover:shadow-sm transition-all duration-150">
                     <h3 className="text-base sm:text-lg lg:text-[19.5px] font-bold text-gray-900 mb-3 sm:mb-4 lg:mb-5">
                       Contact & Location
                     </h3>
@@ -575,7 +576,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   </div>
 
                   {/* Approval Status */}
-                  <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default">
+                  <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default hover:shadow-sm transition-all duration-150">
                     <h4 className="font-semibold text-gray-900 mb-2 sm:mb-3 lg:mb-4 text-sm sm:text-base lg:text-[14px]">Approval Status</h4>
                     <div className="space-y-1.5 sm:space-y-2 lg:space-y-3">
                       <div className="flex items-center justify-between">
@@ -866,7 +867,6 @@ const VendorCard = ({ venue, index }) => {
         transition={{ duration: 0.2, delay: index * 0.05 }}
         whileHover={isTouchDevice ? {} : {
           y: -6,
-          scale: 1.01,
           boxShadow: "0 10px 25px rgba(0, 0, 0, 0.12), 0 5px 10px rgba(0, 0, 0, 0.08)",
           transition: { 
             duration: 0.15,
