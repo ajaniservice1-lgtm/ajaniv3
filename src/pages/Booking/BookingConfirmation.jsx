@@ -77,6 +77,33 @@ const formatLocation = (location) => {
   return String(location);
 };
 
+// Helper function to generate unique booking ID
+const generateBookingId = () => {
+  return `booking_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
+// Helper function to merge bookings ensuring uniqueness
+const mergeBookings = (existingBookings, newBookings) => {
+  const bookingMap = new Map();
+  
+  // Add existing bookings to map
+  existingBookings.forEach(booking => {
+    if (booking.id) {
+      bookingMap.set(booking.id, booking);
+    }
+  });
+  
+  // Add new bookings to map, ensuring unique IDs
+  newBookings.forEach(booking => {
+    if (!booking.id) {
+      booking.id = generateBookingId();
+    }
+    bookingMap.set(booking.id, booking);
+  });
+  
+  return Array.from(bookingMap.values());
+};
+
 // Helper to save booking to user profile
 const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, totalAmount) => {
   try {
@@ -108,7 +135,7 @@ const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, t
     
     // Create booking record
     const bookingRecord = {
-      id: bookingReference,
+      id: generateBookingId(),
       type: type,
       status: "confirmed",
       date: new Date().toISOString(),
@@ -129,12 +156,8 @@ const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, t
         address: bookingData?.bookingData?.address
       },
       reference: bookingReference,
-      // Add guest info for guest bookings
-      ...(!userProfile && {
-        guestEmail: bookingData?.email || bookingData?.guestEmail,
-        guestPhone: bookingData?.phone || bookingData?.bookingData?.contactPerson?.phone,
-        guestName: `${bookingData?.firstName || bookingData?.bookingData?.contactPerson?.firstName || ""} ${bookingData?.lastName || bookingData?.bookingData?.contactPerson?.lastName || ""}`.trim()
-      })
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
     
     if (isLoggedIn && userProfile) {
@@ -143,13 +166,9 @@ const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, t
         userProfile.bookings = [];
       }
       
-      // Check if booking already exists
-      const existingIndex = userProfile.bookings.findIndex(b => b.id === bookingReference);
-      if (existingIndex >= 0) {
-        userProfile.bookings[existingIndex] = bookingRecord;
-      } else {
-        userProfile.bookings.unshift(bookingRecord);
-      }
+      // Merge and deduplicate bookings
+      const mergedBookings = mergeBookings(userProfile.bookings, [bookingRecord]);
+      userProfile.bookings = mergedBookings;
       
       // Limit bookings to last 50
       if (userProfile.bookings.length > 50) {
@@ -160,35 +179,35 @@ const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, t
       
       // Also save to separate bookings storage for easy access
       const allBookings = JSON.parse(localStorage.getItem("userBookings") || "[]");
-      const allBookingIndex = allBookings.findIndex(b => b.id === bookingReference);
+      const mergedAllBookings = mergeBookings(allBookings, [bookingRecord]);
       
-      if (allBookingIndex >= 0) {
-        allBookings[allBookingIndex] = bookingRecord;
-      } else {
-        allBookings.unshift(bookingRecord);
-      }
+      localStorage.setItem("userBookings", JSON.stringify(mergedAllBookings));
       
-      localStorage.setItem("userBookings", JSON.stringify(allBookings));
+      // Trigger storage event to update profile page
+      window.dispatchEvent(new Event("storage"));
       
-      return true;
+      return { success: true, isLoggedIn: true, bookingId: bookingRecord.id };
     } else {
       // Save as guest booking
       const guestBookings = JSON.parse(localStorage.getItem("guestBookings") || "[]");
-      const guestBookingIndex = guestBookings.findIndex(b => b.id === bookingReference);
+      const mergedGuestBookings = mergeBookings(guestBookings, [bookingRecord]);
       
-      if (guestBookingIndex >= 0) {
-        guestBookings[guestBookingIndex] = bookingRecord;
-      } else {
-        guestBookings.unshift(bookingRecord);
-      }
+      localStorage.setItem("guestBookings", JSON.stringify(mergedGuestBookings));
       
-      localStorage.setItem("guestBookings", JSON.stringify(guestBookings));
+      // Also save to persistent storage for this session
+      const persistentKey = getPersistentBookingKey(type);
+      localStorage.setItem(persistentKey, JSON.stringify({
+        ...bookingData,
+        timestamp: new Date().toISOString(),
+        reference: bookingReference,
+        bookingId: bookingRecord.id
+      }));
       
-      return false;
+      return { success: true, isLoggedIn: false, bookingId: bookingRecord.id };
     }
   } catch (error) {
     console.error("Error saving booking to profile:", error);
-    return false;
+    return { success: false, error: error.message };
   }
 };
 
@@ -201,21 +220,39 @@ const BookingConfirmation = () => {
   const [loading, setLoading] = useState(true);
   const [isGuestBooking, setIsGuestBooking] = useState(false);
   const [bookingSaved, setBookingSaved] = useState(false);
+  const [bookingId, setBookingId] = useState("");
 
   const isServiceBooking = type === 'service';
   const isRestaurantBooking = type === 'restaurant';
 
-  const showToast = (message, toastType = "success") => {
-    toast[toastType](message, {
+  const showToast = (message, type = "success") => {
+    const toastOptions = {
       position: "top-right",
-      autoClose: 3000,
+      autoClose: 4000,
       hideProgressBar: false,
       closeOnClick: true,
       pauseOnHover: true,
       draggable: true,
       progress: undefined,
       transition: Slide,
-    });
+    };
+
+    switch(type) {
+      case "success":
+        toast.success(message, toastOptions);
+        break;
+      case "error":
+        toast.error(message, toastOptions);
+        break;
+      case "info":
+        toast.info(message, toastOptions);
+        break;
+      case "warning":
+        toast.warning(message, toastOptions);
+        break;
+      default:
+        toast(message, toastOptions);
+    }
   };
 
   useEffect(() => {
@@ -280,7 +317,7 @@ const BookingConfirmation = () => {
             }));
           }
         } catch (error) {
-          // Silent error handling
+          console.error("Error parsing booking data:", error);
         }
       }
       
@@ -292,7 +329,7 @@ const BookingConfirmation = () => {
           try {
             data = JSON.parse(persistentData);
           } catch (error) {
-            // Silent error handling
+            console.error("Error parsing persistent data:", error);
           }
         }
       }
@@ -320,7 +357,7 @@ const BookingConfirmation = () => {
               }));
               break;
             } catch (error) {
-              // Silent error handling
+              console.error(`Error parsing data from ${key}:`, error);
             }
           }
         }
@@ -331,6 +368,7 @@ const BookingConfirmation = () => {
           guestBooking = true;
           setIsGuestBooking(true);
           
+          // Clean up guest session
           localStorage.removeItem("guestSession");
           
           const guestKeys = [
@@ -355,15 +393,23 @@ const BookingConfirmation = () => {
         };
         
         const totalAmount = getTotalAmount(data);
-        const isLoggedInUser = saveBookingToProfile(data, type, ref, vendorInfo, totalAmount);
+        const saveResult = saveBookingToProfile(data, type, ref, vendorInfo, totalAmount);
         
-        if (!isLoggedInUser) {
-          setIsGuestBooking(true);
+        if (saveResult.success) {
+          setBookingId(saveResult.bookingId);
+          setBookingSaved(true);
+          setIsGuestBooking(!saveResult.isLoggedIn);
+          
+          if (saveResult.isLoggedIn) {
+            showToast("✅ Booking confirmed and saved to your profile!", "success");
+          } else {
+            showToast("✅ Guest booking complete! Save your reference for future access.", "info");
+          }
+        } else {
+          showToast("⚠️ Booking confirmed but could not save to profile. Please take a screenshot.", "warning");
         }
         
-        setBookingSaved(true);
-        showToast("Booking confirmed and saved to your profile!");
-        
+        // Clean up temporary storage
         const tempKeys = [
           'pendingHotelBooking',
           'pendingRestaurantBooking',
@@ -386,12 +432,15 @@ const BookingConfirmation = () => {
             localStorage.removeItem(key);
           }
         });
+      } else {
+        showToast("❌ No booking data found. Please start your booking again.", "error");
       }
       
       setLoading(false);
     };
     
-    setTimeout(loadBookingData, 50);
+    // Small delay to ensure all data is loaded
+    setTimeout(loadBookingData, 100);
   }, [type]);
 
   const getVendorName = (data = bookingData) => {
@@ -459,7 +508,7 @@ const BookingConfirmation = () => {
       
       if (fromNum === toNum) return `₦${fromNum.toLocaleString()}`;
       
-      return `₦${fromNum.toLocaleString()} - ${toNum.toLocaleString()}`;
+      return `₦${fromNum.toLocaleString()} - ₦${toNum.toLocaleString()}`;
     }
     return null;
   };
@@ -473,7 +522,7 @@ const BookingConfirmation = () => {
 
   const downloadConfirmation = () => {
     if (!bookingData) {
-      showToast('No booking data available to download', 'error');
+      showToast('❌ No booking data available to download', 'error');
       return;
     }
     
@@ -487,6 +536,7 @@ AJANI.AI BOOKING CONFIRMATION
 ================================
 
 Booking Reference: ${bookingReference}
+Booking ID: ${bookingId}
 Booking Type: ${categoryName.toUpperCase()} ${type === 'service' ? 'SERVICE' : 'BOOKING'}
 Status: Confirmed
 Date: ${new Date().toLocaleDateString()}
@@ -579,9 +629,10 @@ ${bookingData?.specialRequests ? `Special Requests: ${bookingData.specialRequest
 IMPORTANT NOTES:
 ----------------
 • Keep this booking reference for reference: ${bookingReference}
+• Booking ID: ${bookingId}
 • Present this confirmation at the ${type === 'service' ? 'service location' : 'property'}
 • Contact support for any changes
-• Booking ID stored in your account (if logged in)
+• Booking is stored ${isGuestBooking ? 'as a guest booking' : 'in your account profile'}
 
 Thank you for booking with Ajani.ai!
 For assistance, contact support@ajani.com or call +234 8022662256
@@ -590,14 +641,19 @@ This confirmation was generated on: ${new Date().toLocaleString()}
 ================================
     `;
     
-    const element = document.createElement("a");
-    const file = new Blob([confirmationText], { type: 'text/plain' });
-    element.href = URL.createObjectURL(file);
-    element.download = `ajani-${type}-booking-${bookingReference}.txt`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-    showToast('Confirmation downloaded!', 'success');
+    try {
+      const element = document.createElement("a");
+      const file = new Blob([confirmationText], { type: 'text/plain' });
+      element.href = URL.createObjectURL(file);
+      element.download = `ajani-${type}-booking-${bookingReference}.txt`;
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+      showToast('✅ Confirmation downloaded successfully!', 'success');
+    } catch (error) {
+      showToast('❌ Failed to download confirmation', 'error');
+      console.error('Download error:', error);
+    }
   };
 
   const printConfirmation = () => {
@@ -747,7 +803,7 @@ This confirmation was generated on: ${new Date().toLocaleString()}
           localStorage.removeItem('lastBookingType');
         }
       } catch (error) {
-        // Silent error handling
+        console.error("Error clearing old data:", error);
       }
     }
   };
@@ -877,6 +933,11 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                     <p className="text-xs mt-1 opacity-90">Keep this for your records</p>
                   </div>
                 </div>
+                {bookingId && (
+                  <div className="mt-2 text-xs opacity-90">
+                    Booking ID: <span className="font-mono">{bookingId}</span>
+                  </div>
+                )}
               </div>
 
               <div className={`mb-4 sm:mb-6 bg-emerald-50 border border-emerald-100 rounded-lg p-3 sm:p-4 flex items-center gap-3`}>
@@ -1152,8 +1213,11 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 sm:mb-6">
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText(bookingReference);
-                        showToast('Booking reference copied to clipboard!', 'success');
+                        navigator.clipboard.writeText(bookingReference).then(() => {
+                          showToast('✅ Booking reference copied to clipboard!', 'success');
+                        }).catch(() => {
+                          showToast('❌ Failed to copy to clipboard', 'error');
+                        });
                       }}
                       className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
                     >
@@ -1191,6 +1255,14 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                           <span className="text-xs text-gray-600">Reference</span>
                           <span className="font-mono font-bold text-emerald-600 text-xs">{bookingReference}</span>
                         </div>
+                        {bookingId && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-600">Booking ID</span>
+                            <span className="font-mono font-bold text-emerald-600 text-xs truncate max-w-[100px]">
+                              {bookingId}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex justify-between items-center">
                           <span className="text-xs text-gray-600">Status</span>
                           <span className={`font-medium text-emerald-600 text-xs`}>

@@ -3,662 +3,27 @@ import { useNavigate } from "react-router-dom";
 import {
   Home,
   CalendarCheck,
-  Star,
   Settings,
   Search,
   Menu,
   Eye,
-  Trash2,
-  Mail,
-  MessageSquare,
-  User,
-  Bell,
-  Edit3,
   X,
   Save,
   Camera,
-  ChevronDown,
-  Check,
-  LogOut,
+  Bell,
+  Edit3,
+  Trash2,
+  Mail,
+  MessageSquare,
   Award as AwardIcon,
   Heart as HeartIcon,
   MapPin as MapPinIcon,
-  Calendar as CalendarIcon,
-  Clock as ClockIcon,
-  Users,
-  DollarSign,
-  Package,
-  Building,
-  Phone,
-  FileText,
-  CreditCard as CreditCardIcon,
-  Shield,
-  HelpCircle,
-  Info,
-  AlertTriangle,
-  CheckCircle,
-  PlusCircle,
-  MinusCircle,
-  Filter,
-  Download,
-  MoreHorizontal,
-  ArrowLeft,
-  ExternalLink,
-  Copy,
-  RefreshCw,
-  Share2,
-  BookOpen,
-  Compass,
-  Target,
-  TrendingUp,
-  Zap,
-  Gift,
-  Globe,
-  LockKeyhole,
-  Unlock,
-  Headphones,
-  Mic,
-  Video,
-  Send,
-  Inbox,
-  Archive,
-  UserPlus,
-  UserMinus,
-  UserCheck,
-  UserX,
-  HeartCrack,
-  Volume2,
-  VolumeX,
-  PhoneCall,
-  PhoneOff,
-  VideoOff,
   Bed,
   Utensils,
   Briefcase,
-  Music,
-  Camera as CameraIcon,
-  Car,
-  Plane,
-  Ship,
-  Bike,
-  Wifi,
-  Coffee,
-  Dumbbell,
-  Tv,
-  Wind,
-  Thermometer,
-  Bath,
   Home as HomeIcon,
   CalendarDays,
-  PartyPopper,
-  Cake,
-  Music2,
-  Sparkles,
-  Palette,
-  Scissors,
-  Droplets,
-  Leaf,
-  Cloud,
-  Sun,
-  Moon,
-  Umbrella,
-  ShoppingBag,
-  ShoppingCart,
-  Tag,
-  Percent,
-  Gift as GiftIcon,
-  Crown,
-  Trophy,
-  Medal,
-  Flag,
-  Map,
-  Navigation,
-  Compass as CompassIcon,
-  Globe as GlobeIcon,
-  MapPin,
-  Navigation2,
-  Route,
-  Train,
-  Bus,
-  Taxi,
-  Truck,
-  Anchor,
-  Sailboat,
-  Bike as BikeIcon,
-  Car as CarIcon,
-  Plane as PlaneIcon,
-  Ship as ShipIcon,
-  Hotel,
-  Restaurant,
-  Coffee as CoffeeIcon,
-  Wine,
-  Beer,
-  Pizza,
-  Hamburger,
-  Salad,
-  Sandwich,
-  Soup,
-  Egg,
-  Milk,
-  Bread,
-  Apple,
-  Banana,
-  Carrot,
-  Fish,
-  Drumstick,
-  EggFried,
-  Cookie,
-  IceCream,
-  CakeSlice,
-  Candy,
-  Coffee as CoffeeBean,
-  ChefHat,
-  CookingPot,
-  Microwave,
-  Refrigerator,
-  Blender,
-  Toaster,
-  Knife,
-  CookingPan,
-  EggCracked,
-  Salt,
-  Pepper,
-  Citrus,
-  Grape,
-  Cherry,
-  Strawberry,
-  Watermelon,
-  Pineapple,
-  Lemon,
-  Coconut,
-  Avocado,
-  Broccoli,
-  Corn,
-  Pepper as PepperIcon,
-  Mushroom,
-  Onion,
-  Garlic,
-  Potato,
-  Pumpkin,
-  Eggplant,
-  Tomato,
-  Cucumber,
-  Lettuce,
-  Wheat,
-  Rice,
-  Noodles,
-  Donut,
-  Croissant,
-  Baguette,
-  Cheese,
-  Bacon,
-  Sausage,
-  Steak,
-  Chicken,
-  Turkey,
-  Crab,
-  Shrimp,
-  Octopus,
-  Squid,
-  Lobster,
-  Oyster,
-  Mussel,
-  FishSimple,
-  Snail,
-  Bee,
-  Honey,
-  Cactus,
-  TreePine,
-  TreeDeciduous,
-  Flower2,
-  Rose,
-  Tulip,
-  Cactus as CactusIcon,
-  Leaf as LeafIcon,
-  Sprout,
-  Tree,
-  CloudRain,
-  CloudSnow,
-  CloudLightning,
-  Tornado,
-  Hurricane,
-  Earthquake,
-  Volcano,
-  Fire,
-  Snowflake,
-  Wind as WindIcon,
-  ThermometerSun,
-  ThermometerSnowflake,
-  Droplet,
-  Waves,
-  Beach,
-  Mountain,
-  Forest,
-  Castle,
-  Church,
-  Mosque,
-  Synagogue,
-  Temple,
-  Monument,
-  Tower,
-  Bridge,
-  Dam,
-  Lighthouse,
-  Windmill,
-  Factory,
-  Warehouse,
-  Office,
-  Bank,
-  Hospital,
-  School,
-  University,
-  Library,
-  Museum,
-  Theater,
-  Cinema,
-  Stadium,
-  Pool,
-  Gym,
-  Spa,
-  Pharmacy,
-  Ambulance,
-  Police,
-  FireExtinguisher,
-  ShieldAlert,
-  ShieldCheck,
-  ShieldOff,
-  ShieldPlus,
-  ShieldMinus,
-  ShieldQuestion,
-  ShieldX,
-  Shield as ShieldIcon,
-  Lock,
-  Unlock as UnlockIcon,
-  Key,
-  KeyRound,
-  KeySquare,
-  Fingerprint,
-  EyeOff,
-  QrCode,
-  Barcode,
-  Radio,
-  Tv as TvIcon,
-  Smartphone,
-  Tablet,
-  Laptop,
-  Monitor,
-  Printer,
-  Scanner,
-  Keyboard,
-  Mouse,
-  Gamepad2,
-  Headphones as HeadphonesIcon,
-  Speaker,
-  Microphone,
-  Webcam,
-  Router,
-  Cpu,
-  HardDrive,
-  MemoryStick,
-  SdCard,
-  Usb,
-  Plug,
-  Battery,
-  BatteryCharging,
-  BatteryFull,
-  BatteryLow,
-  BatteryMedium,
-  BatteryWarning,
-  Power,
-  PowerOff,
-  Wifi as WifiIcon,
-  WifiOff,
-  Bluetooth,
-  BluetoothConnected,
-  BluetoothOff,
-  Signal,
-  SignalHigh,
-  SignalLow,
-  SignalMedium,
-  SignalZero,
-  Satellite,
-  SatelliteDish,
-  Antenna,
-  Radar,
-  Broadcast,
-  RadioTower,
-  TvMinimal,
-  TvMinimalPlay,
-  Projector,
-  Film,
-  FilmStrip,
-  Clapperboard,
-  Video as VideoIcon,
-  VideoOff as VideoOffIcon,
-  CameraOff,
-  Image,
-  ImageOff,
-  Images,
-  PictureInPicture,
-  PictureInPicture2,
-  FilmStrip as FilmStripIcon,
-  Clapperboard as ClapperboardIcon,
-  Ticket,
-  TicketCheck,
-  TicketPercent,
-  TicketPlus,
-  TicketSlash,
-  TicketStar,
-  TicketX,
-  Receipt,
-  ReceiptCent,
-  ReceiptEuro,
-  ReceiptPound,
-  ReceiptRussianRuble,
-  ReceiptSwissFranc,
-  ReceiptYen,
-  ReceiptIndianRupee,
-  ReceiptText,
-  File,
-  FileArchive,
-  FileAudio,
-  FileBox,
-  FileCheck,
-  FileCode,
-  FileCog,
-  FileDiff,
-  FileDigit,
-  FileDown,
-  FileEdit,
-  FileHeart,
-  FileImage,
-  FileInput,
-  FileJson,
-  FileKey,
-  FileKey2,
-  FileLock,
-  FileMinus,
-  FileMusic,
-  FileOutput,
-  FilePieChart,
-  FilePlus,
-  FileQuestion,
-  FileScan,
-  FileSearch,
-  FileSliders,
-  FileSpreadsheet,
-  FileStack,
-  FileSymlink,
-  FileTerminal,
-  FileText as FileTextIcon,
-  FileType,
-  FileUp,
-  FileVideo,
-  FileVolume,
-  FileWarning,
-  FileX,
-  FileZip,
-  Folder,
-  FolderArchive,
-  FolderCheck,
-  FolderClock,
-  FolderClosed,
-  FolderCog,
-  FolderDot,
-  FolderDown,
-  FolderEdit,
-  FolderGit,
-  FolderGit2,
-  FolderHeart,
-  FolderInput,
-  FolderKanban,
-  FolderKey,
-  FolderLock,
-  FolderMinus,
-  FolderOpen,
-  FolderOpenDot,
-  FolderOutput,
-  FolderPlus,
-  FolderRoot,
-  FolderSearch,
-  FolderSymlink,
-  FolderSync,
-  FolderTree,
-  FolderUp,
-  FolderX,
-  StickyNote,
-  Bookmark,
-  BookmarkCheck,
-  BookmarkMinus,
-  BookmarkPlus,
-  BookmarkX,
-  Notebook,
-  NotebookPen,
-  NotebookTabs,
-  NotepadText,
-  NotepadTextDashed,
-  PanelLeft,
-  PanelLeftClose,
-  PanelLeftOpen,
-  PanelRight,
-  PanelRightClose,
-  PanelRightOpen,
-  Scroll,
-  ScrollText,
-  Sheet,
-  SheetPlus,
-  SquareMenu,
-  TextCursor,
-  TextCursorInput,
-  Type as TypeIcon,
-  AlignCenter,
-  AlignJustify,
-  AlignLeft,
-  AlignRight,
-  Bold,
-  Code,
-  Code2,
-  CodeXml,
-  Columns2,
-  Columns3,
-  Columns4,
-  Container,
-  Database,
-  DatabaseBackup,
-  DatabaseZap,
-  Divide,
-  Equal,
-  EqualNot,
-  FunctionSquare,
-  Infinity,
-  Lambda,
-  Minus,
-  Parentheses,
-  Percent as PercentIcon,
-  Pi,
-  Pilcrow,
-  PilcrowSquare,
-  Plus,
-  PlusMinus,
-  Radical,
-  Sigma,
-  Square,
-  SquareAsterisk,
-  SquareCode,
-  SquareDashed,
-  SquareDot,
-  SquareEqual,
-  SquareFunction,
-  SquareKanban,
-  SquareM,
-  SquareMousePointer,
-  SquareParking,
-  SquarePen,
-  SquarePi,
-  SquarePilcrow,
-  SquarePlay,
-  SquarePlus,
-  SquareSigma,
-  SquareSlash,
-  SquareSplitHorizontal,
-  SquareSplitVertical,
-  SquareStack,
-  SquareTerminal,
-  SquareUser,
-  SquareUserRound,
-  SquareX,
-  Subscript,
-  Superscript,
-  Table,
-  Table2,
-  TableProperties,
-  Text,
-  TextQuote,
-  TextSelect,
-  ThumbsDown,
-  ThumbsUp,
-  Underline,
-  Variable,
-  WrapText,
-  Omega,
-  Alpha,
-  Beta,
-  Gamma,
-  Delta,
-  Epsilon,
-  Zeta,
-  Eta,
-  Theta,
-  Iota,
-  Kappa,
-  Lambda as LambdaIcon,
-  Mu,
-  Nu,
-  Xi,
-  Omicron,
-  Pi as PiIcon,
-  Rho,
-  Sigma as SigmaIcon,
-  Tau,
-  Upsilon,
-  Phi,
-  Chi,
-  Psi,
-  Omega as OmegaIcon,
-  Ampersand,
-  Ampersands,
-  Asterisk,
-  AtSign,
-  Backslash,
-  CaretDown,
-  CaretLeft,
-  CaretRight,
-  CaretUp,
-  Circle,
-  CircleAlert,
-  CircleArrowDown,
-  CircleArrowLeft,
-  CircleArrowOutDownLeft,
-  CircleArrowOutDownRight,
-  CircleArrowOutUpLeft,
-  CircleArrowOutUpRight,
-  CircleArrowRight,
-  CircleArrowUp,
-  CircleCheck,
-  CircleCheckBig,
-  CircleChevronDown,
-  CircleChevronLeft,
-  CircleChevronRight,
-  CircleChevronUp,
-  CircleDashed,
-  CircleDivide,
-  CircleDollarSign,
-  CircleDot,
-  CircleDotDashed,
-  CircleEllipsis,
-  CircleEqual,
-  CircleFadingPlus,
-  CircleGauge,
-  CircleHelp,
-  CircleMinus,
-  CircleOff,
-  CircleParking,
-  CirclePause,
-  CirclePercent,
-  CirclePlay,
-  CirclePlus,
-  CirclePower,
-  CircleSlash,
-  CircleSlash2,
-  CircleStop,
-  CircleUser,
-  CircleUserRound,
-  CircleX,
-  Cross,
-  Crosshair,
-  Ellipsis,
-  EllipsisVertical,
-  EqualSquare,
-  Hash,
-  Hexagon,
-  Infinity as InfinityIcon,
-  Octagon,
-  OctagonAlert,
-  OctagonPause,
-  OctagonX,
-  Pentagon,
-  PercentSquare,
-  PilcrowLeft,
-  PilcrowRight,
-  PlusSquare,
-  RectangleHorizontal,
-  RectangleVertical,
-  Slash,
-  SlashSquare,
-  SquareAsterisk as SquareAsteriskIcon,
-  SquareBottomDashedScissors,
-  SquareChartGantt,
-  SquareChevronDown,
-  SquareChevronLeft,
-  SquareChevronRight,
-  SquareChevronUp,
-  SquareCode as SquareCodeIcon,
-  SquareDashedBottom,
-  SquareDashedBottomCode,
-  SquareDashedKanban,
-  SquareDashedMousePointer,
-  SquareDivide,
-  SquareDot as SquareDotIcon,
-  SquareEqual as SquareEqualIcon,
-  SquareGanttChart,
-  SquareKanban as SquareKanbanIcon,
-  SquareLibrary,
-  SquareM as SquareMIcon,
-  SquareMenu as SquareMenuIcon,
-  SquareMinus,
-  SquareMousePointer as SquareMousePointerIcon,
-  SquareParking as SquareParkingIcon,
-  SquarePen as SquarePenIcon,
-  SquarePercent,
-  SquarePi as SquarePiIcon,
-  SquarePilcrow as SquarePilcrowIcon,
-  SquarePlay as SquarePlayIcon,
-  SquarePlus as SquarePlusIcon,
-  SquareRadical,
-  SquareSigma as SquareSigmaIcon,
-  SquareSlash as SquareSlashIcon,
-  SquareSplitHorizontal as SquareSplitHorizontalIcon,
-  SquareSplitVertical as SquareSplitVerticalIcon,
-  SquareStack as SquareStackIcon,
-  SquareTerminal as SquareTerminalIcon,
-  SquareUser as SquareUserIcon,
-  SquareUserRound as SquareUserRoundIcon,
-  SquareX as SquareXIcon,
-  Triangle,
-  TriangleAlert,
-  TriangleRight,
-  Waves as WavesIcon,
-  Zap as ZapIcon
+  User
 } from "lucide-react";
 import Logo from "../assets/Logos/logo5.png";
 import { motion, AnimatePresence } from "framer-motion";
@@ -695,6 +60,15 @@ const formatLocation = (location) => {
   return String(location);
 };
 
+// Default profile avatar component
+const DefaultProfileAvatar = ({ size = "w-10 h-10", className = "" }) => {
+  return (
+    <div className={`${size} rounded-full bg-blue-100 flex items-center justify-center ${className}`}>
+      <User size={size === "w-10 h-10" ? 24 : 32} className="text-blue-600" />
+    </div>
+  );
+};
+
 const BuyerProfilePage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -723,7 +97,7 @@ const BuyerProfilePage = () => {
     promotionalEmail: false,
     promotionalWhatsapp: false
   });
-  const [profileImage, setProfileImage] = useState("");
+  const [profileImage, setProfileImage] = useState(null);
 
   // Tab configuration for buyer profile
   const tabs = [
@@ -742,6 +116,56 @@ const BuyerProfilePage = () => {
     { id: "event", label: "Events", icon: CalendarDays, color: "orange" },
     { id: "service", label: "Services", icon: Briefcase, color: "indigo" }
   ];
+
+  // Helper function to generate unique booking ID
+  const generateBookingId = () => {
+    return `booking_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  };
+
+  // Helper function to merge bookings ensuring uniqueness
+  const mergeBookings = (existingBookings, newBookings) => {
+    const bookingMap = new Map();
+    
+    // Add existing bookings to map
+    existingBookings.forEach(booking => {
+      if (booking.id) {
+        bookingMap.set(booking.id, booking);
+      }
+    });
+    
+    // Add new bookings to map, ensuring unique IDs
+    newBookings.forEach(booking => {
+      if (!booking.id) {
+        booking.id = generateBookingId();
+      }
+      bookingMap.set(booking.id, booking);
+    });
+    
+    return Array.from(bookingMap.values());
+  };
+
+  // Helper function to save bookings to localStorage
+  const saveBookingsToStorage = (bookings) => {
+    try {
+      // Save to user profile
+      const updatedProfile = { ...userProfile, bookings };
+      localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
+      
+      // Also save to separate bookings storage for redundancy
+      localStorage.setItem("userBookings", JSON.stringify(bookings));
+      
+      // Update state
+      setUserProfile(updatedProfile);
+      
+      // Trigger storage event for other components
+      window.dispatchEvent(new Event("storage"));
+      
+      return bookings;
+    } catch (error) {
+      console.error("Error saving bookings:", error);
+      return bookings;
+    }
+  };
 
   useEffect(() => {
     fetchUserData();
@@ -787,14 +211,21 @@ const BuyerProfilePage = () => {
         localStorage.setItem("userProfile", JSON.stringify(profile));
       }
       
+      // Process guest bookings if any
       if (dummyLogin === "true" || token) {
         const guestBookings = JSON.parse(localStorage.getItem("guestBookings") || "[]");
+        const existingBookings = profile.bookings || [];
+        
         if (guestBookings.length > 0) {
-          const existingIds = new Set(profile.bookings?.map(b => b.id) || []);
-          const newBookings = guestBookings.filter(b => !existingIds.has(b.id));
-          profile.bookings = [...newBookings, ...(profile.bookings || [])];
+          // Merge and deduplicate bookings
+          const mergedBookings = mergeBookings(existingBookings, guestBookings);
           
+          // Update profile with merged bookings
+          profile.bookings = mergedBookings;
           localStorage.setItem("userProfile", JSON.stringify(profile));
+          localStorage.setItem("userBookings", JSON.stringify(mergedBookings));
+          
+          // Clear guest bookings
           localStorage.removeItem("guestBookings");
         }
       }
@@ -818,8 +249,8 @@ const BuyerProfilePage = () => {
         bio: profile.bio || "I enjoy exploring new destinations and experiencing local hospitality."
       });
 
-      setProfileImage(profile.profileImage || 
-        "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80");
+      // Set profile image - use default avatar if no image is set
+      setProfileImage(profile.profileImage || null);
 
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -954,25 +385,19 @@ const BuyerProfilePage = () => {
   const handleCancelBooking = (bookingId) => {
     if (window.confirm("Are you sure you want to cancel this booking?")) {
       try {
-        const updatedProfile = {
-          ...userProfile,
-          bookings: userProfile.bookings.map(booking => 
-            booking.id === bookingId 
-              ? { ...booking, status: "cancelled", cancelledDate: new Date().toISOString() }
-              : booking
-          )
-        };
-        
-        setUserProfile(updatedProfile);
-        localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
-        
-        const allBookings = JSON.parse(localStorage.getItem("userBookings") || "[]");
-        const updatedAllBookings = allBookings.map(booking => 
+        const updatedBookings = bookings.map(booking => 
           booking.id === bookingId 
-            ? { ...booking, status: "cancelled", cancelledDate: new Date().toISOString() }
+            ? { 
+                ...booking, 
+                status: "cancelled", 
+                cancelledDate: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              }
             : booking
         );
-        localStorage.setItem("userBookings", JSON.stringify(updatedAllBookings));
+        
+        // Save updated bookings
+        saveBookingsToStorage(updatedBookings);
         
         alert("Booking cancelled successfully!");
       } catch (error) {
@@ -1124,11 +549,15 @@ const BuyerProfilePage = () => {
           </button>
 
           <div className="w-10 h-10 rounded-full overflow-hidden cursor-pointer border-2 border-blue-500">
-            <img
-              src={profileImage}
-              alt="Profile"
-              className="w-full h-full object-cover"
-            />
+            {profileImage ? (
+              <img
+                src={profileImage}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <DefaultProfileAvatar />
+            )}
           </div>
         </div>
       </div>
@@ -1194,7 +623,7 @@ const BuyerProfilePage = () => {
                 {bookingCategories.map((category) => (
                   <button
                     key={category.id}
-                    onClick={() => navigate(`/category/${category.id}`)}
+                    onClick={() => navigate(`/${category.id}`)}
                     className={`w-full text-left px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 text-sm font-manrope flex items-center gap-2`}
                   >
                     <category.icon size={16} strokeWidth={2.5} className={`text-${category.color}-500`} />
@@ -1208,11 +637,15 @@ const BuyerProfilePage = () => {
               <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center">
-                    <img
-                      src={profileImage}
-                      alt="Profile"
-                      className="w-full h-full object-cover sidebar-avatar"
-                    />
+                    {profileImage ? (
+                      <img
+                        src={profileImage}
+                        alt="Profile"
+                        className="w-full h-full object-cover sidebar-avatar"
+                      />
+                    ) : (
+                      <DefaultProfileAvatar />
+                    )}
                   </div>
                   <div className="overflow-hidden">
                     <p 
@@ -1265,13 +698,13 @@ const BuyerProfilePage = () => {
                   {activeTab === "overview" && (
                     <div className="space-y-6">
                       {/* Welcome Header */}
-                      <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl p-6 text-white">
+                      <div className="bg-[#6cff] rounded-xl p-6 text-white">
                         <div className="flex items-center justify-between">
                           <div>
                             <h1 className="text-2xl md:text-3xl font-bold mb-2 font-manrope">
                               Welcome back, {userProfile.firstName}!
                             </h1>
-                            <p className="text-blue-100 font-manrope">Your personalized booking dashboard</p>
+                            <p className="text-white/90 font-manrope">Your personalized booking dashboard</p>
                           </div>
                           <button
                             onClick={() => setActiveTab("settings")}
@@ -1469,7 +902,7 @@ const BuyerProfilePage = () => {
                             key={category.id}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            onClick={() => navigate(`/category/${category.id}`)}
+                            onClick={() => navigate(`/${category.id}`)}
                             className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all text-left"
                           >
                             <div className="flex items-center gap-3 mb-4">
@@ -1506,7 +939,7 @@ const BuyerProfilePage = () => {
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
                               onClick={() => navigate("/")}
-                              className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium font-manrope transition-colors"
+                              className="px-4 py-2.5 bg-[#6cff] text-white rounded-lg hover:opacity-90 text-sm font-medium font-manrope transition-colors"
                             >
                               Book Now
                             </motion.button>
@@ -1567,7 +1000,7 @@ const BuyerProfilePage = () => {
                                 <div className="text-center py-4">
                                   <p className="text-gray-500 text-sm font-manrope">No {category.label.toLowerCase()} bookings yet</p>
                                   <button
-                                    onClick={() => navigate(`/category/${category.id}`)}
+                                    onClick={() => navigate(`/${category.id}`)}
                                     className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-manrope"
                                   >
                                     Book {category.label} →
@@ -1679,7 +1112,7 @@ const BuyerProfilePage = () => {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => navigate("/")}
-                            className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium font-manrope transition-colors"
+                            className="px-4 py-2.5 bg-[#6cff] text-white rounded-lg hover:opacity-90 text-sm font-medium font-manrope transition-colors"
                           >
                             Explore More
                           </motion.button>
@@ -1743,7 +1176,7 @@ const BuyerProfilePage = () => {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => navigate("/")}
-                            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium font-manrope transition-colors"
+                            className="px-6 py-3 bg-[#6cff] text-white rounded-lg hover:opacity-90 font-medium font-manrope transition-colors"
                           >
                             Explore Listings
                           </motion.button>
@@ -1752,7 +1185,7 @@ const BuyerProfilePage = () => {
                     </div>
                   )}
 
-                  {/* Notifications Tab - Same as before */}
+                  {/* Notifications Tab */}
                   {activeTab === "notifications" && (
                     <div className="space-y-6">
                       <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm">
@@ -1765,7 +1198,7 @@ const BuyerProfilePage = () => {
                             <motion.button 
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
-                              className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium font-manrope transition-colors"
+                              className="px-4 py-2.5 bg-[#6cff] text-white rounded-lg hover:opacity-90 text-sm font-medium font-manrope transition-colors"
                             >
                               Mark All as Read
                             </motion.button>
@@ -1796,7 +1229,7 @@ const BuyerProfilePage = () => {
                     </div>
                   )}
 
-                  {/* Settings Tab - Same as before */}
+                  {/* Settings Tab */}
                   {activeTab === "settings" && (
                     <div className="space-y-6">
                       <motion.div 
@@ -1811,12 +1244,18 @@ const BuyerProfilePage = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="flex items-center gap-4">
                             <div className="relative group">
-                              <img 
-                                src={profileImage} 
-                                alt="Profile" 
-                                className="w-20 h-20 rounded-full object-cover cursor-pointer group-hover:scale-105 transition-transform"
-                              />
-                              <label className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 cursor-pointer group-hover:scale-110 transition-transform shadow-lg">
+                              {profileImage ? (
+                                <img 
+                                  src={profileImage} 
+                                  alt="Profile" 
+                                  className="w-20 h-20 rounded-full object-cover cursor-pointer group-hover:scale-105 transition-transform"
+                                />
+                              ) : (
+                                <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center cursor-pointer group-hover:scale-105 transition-transform">
+                                  <User size={40} className="text-blue-600" />
+                                </div>
+                              )}
+                              <label className="absolute bottom-0 right-0 bg-[#6cff] text-white rounded-full p-2 cursor-pointer group-hover:scale-110 transition-transform shadow-lg">
                                 <Camera size={16} strokeWidth={2.5} />
                                 <input 
                                   type="file" 
@@ -1905,7 +1344,7 @@ const BuyerProfilePage = () => {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={handleSaveProfile}
-                            className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2 font-manrope transition-colors"
+                            className="px-6 py-2.5 bg-[#6cff] text-white rounded-lg hover:opacity-90 text-sm font-medium flex items-center gap-2 font-manrope transition-colors"
                           >
                             <Save size={16} strokeWidth={2.5} /> Save Changes
                           </motion.button>
@@ -1940,7 +1379,7 @@ const BuyerProfilePage = () => {
                                 <label 
                                   htmlFor="email-toggle"
                                   className={`block overflow-hidden h-6 rounded-full cursor-pointer ${
-                                    notificationSettings.email ? 'bg-blue-600' : 'bg-gray-300'
+                                    notificationSettings.email ? 'bg-[#6cff]' : 'bg-gray-300'
                                   }`}
                                 >
                                   <span 
@@ -1971,7 +1410,7 @@ const BuyerProfilePage = () => {
                                 <label 
                                   htmlFor="whatsapp-toggle"
                                   className={`block overflow-hidden h-6 rounded-full cursor-pointer ${
-                                    notificationSettings.whatsapp ? 'bg-blue-600' : 'bg-gray-300'
+                                    notificationSettings.whatsapp ? 'bg-[#6cff]' : 'bg-gray-300'
                                   }`}
                                 >
                                   <span 
