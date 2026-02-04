@@ -65,6 +65,14 @@ const getAmenityIcon = (amenityName) => {
   return faCheck;
 };
 
+// Helper function to generate random price between 100,000 and 500,000
+const generatePriceInRange = (multiplier = 1) => {
+  const min = 100000;
+  const max = 500000;
+  const basePrice = Math.floor(Math.random() * (max - min + 1)) + min;
+  return Math.round(basePrice * multiplier);
+};
+
 const HallSelection = ({ vendorData, category = "event", onHallSelect, onHallBookNow }) => {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
@@ -105,9 +113,9 @@ const HallSelection = ({ vendorData, category = "event", onHallSelect, onHallBoo
           'Decoration Services'
         ];
         
-        // Create pricing options based on hall capacity and event type
+        // Create pricing options with prices between 100,000 and 500,000
         const pricingOptions = [];
-        const basePrice = hall.pricePerEvent || hall.price || 0;
+        const basePrice = generatePriceInRange();
         const minCapacity = hall.minCapacity || 50;
         const maxCapacity = hall.maxCapacity || 500;
         
@@ -116,11 +124,16 @@ const HallSelection = ({ vendorData, category = "event", onHallSelect, onHallBoo
           { type: 'Wedding', multiplier: 1.2 },
           { type: 'Conference', multiplier: 1.0 },
           { type: 'Birthday Party', multiplier: 0.9 },
-          { type: 'Corporate Event', multiplier: 1.1 }
+          { type: 'Corporate Event', multiplier: 1.1 },
+          { type: 'Seminar', multiplier: 0.8 },
+          { type: 'Product Launch', multiplier: 1.15 }
         ];
         
         eventTypes.forEach((eventType, i) => {
-          const eventPrice = Math.round(basePrice * eventType.multiplier);
+          // Ensure price stays within 100k-500k range
+          let eventPrice = Math.round(basePrice * eventType.multiplier);
+          eventPrice = Math.max(100000, Math.min(500000, eventPrice));
+          
           const originalPrice = Math.round(eventPrice * 1.25); // 25% discount
           
           pricingOptions.push({
@@ -184,14 +197,14 @@ const HallSelection = ({ vendorData, category = "event", onHallSelect, onHallBoo
           availableDates: hall.availableDates || [],
           rating: vendorData.rating || 4.5,
           reviewCount: vendorData.reviewCount || 120,
-          pricePerEvent: hall.pricePerEvent || 0,
+          pricePerEvent: basePrice,
           originalData: hall
         };
       });
     }
     
-    // Fallback to default halls if no hallTypes in API
-    return [
+    // Fallback to default halls with prices between 100k-500k
+    const defaultHalls = [
       {
         id: 'hall-1',
         title: 'Grand Ballroom',
@@ -250,7 +263,7 @@ const HallSelection = ({ vendorData, category = "event", onHallSelect, onHallBoo
             id: 'price-1-1',
             eventType: 'Wedding',
             capacity: '200-500 people',
-            price: 1500000,
+            price: generatePriceInRange(1.2),
             originalPrice: 2000000,
             discount: '-25%',
             duration: 'Full day (8 hours)',
@@ -262,21 +275,259 @@ const HallSelection = ({ vendorData, category = "event", onHallSelect, onHallBoo
             id: 'price-1-2',
             eventType: 'Conference',
             capacity: '300-500 people',
-            price: 1200000,
+            price: generatePriceInRange(1.0),
             originalPrice: 1600000,
             discount: '-25%',
             duration: 'Full day (8 hours)',
             setupTime: '2 hours before event',
             benefits: ['Projector & screen', 'Sound system', 'Wireless microphones', 'High-speed WiFi'],
             isAvailable: true
+          },
+          { 
+            id: 'price-1-3',
+            eventType: 'Birthday Party',
+            capacity: '200-350 people',
+            price: generatePriceInRange(0.9),
+            originalPrice: 1400000,
+            discount: '-25%',
+            duration: 'Full day (8 hours)',
+            setupTime: '2 hours before event',
+            benefits: ['Decoration services', 'Sound system', 'Basic lighting', 'Event coordination'],
+            isAvailable: true
+          },
+          { 
+            id: 'price-1-4',
+            eventType: 'Corporate Event',
+            capacity: '250-400 people',
+            price: generatePriceInRange(1.1),
+            originalPrice: 1800000,
+            discount: '-25%',
+            duration: 'Full day (8 hours)',
+            setupTime: '3 hours before event',
+            benefits: ['Professional AV setup', 'High-speed WiFi', 'Catering space', 'Event coordinator'],
+            isAvailable: true
           }
         ],
         availableDates: [],
         rating: 4.5,
         reviewCount: 120,
-        pricePerEvent: 1500000
+        pricePerEvent: generatePriceInRange(1.0)
+      },
+      {
+        id: 'hall-2',
+        title: 'Executive Conference Hall',
+        name: 'Executive Conference Hall',
+        description: 'Modern conference hall ideal for corporate meetings, seminars, and workshops. Equipped with advanced audiovisual technology and ergonomic seating.',
+        size: '300 m²',
+        capacity: '100-250',
+        minCapacity: 100,
+        maxCapacity: 250,
+        seatingStyle: 'Theater Style',
+        mainImage: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800&q=80',
+        image: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800&q=80',
+        images: [
+          'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800&q=80',
+          'https://images.unsplash.com/photo-1573164713988-8665fc963095?w=800&q=80',
+          'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80',
+          'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800&q=80'
+        ],
+        subImages: [
+          'https://images.unsplash.com/photo-1573164713988-8665fc963095?w=400&q=80',
+          'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&q=80',
+          'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400&q=80'
+        ],
+        specifications: [
+          { icon: faRulerCombined, label: 'Hall Size', value: '300 m²' },
+          { icon: faUsersGroup, label: 'Capacity', value: '100-250 Guests' },
+          { icon: faChair, label: 'Seating Style', value: 'Theater Style' },
+          { icon: faDoorClosed, label: 'Hall Type', value: 'Conference Hall' },
+          { icon: faClock, label: 'Setup Time', value: '2 hours before' },
+          { icon: faCalendarAlt, label: 'Booking Period', value: 'Minimum 1 week' }
+        ],
+        features: [
+          { name: 'High-speed WiFi', included: true, icon: faWifi },
+          { name: 'Projector & Screen', included: true, icon: faTv },
+          { name: 'Audio System', included: true, icon: faMicrophone },
+          { name: 'Conference Phone', included: true, icon: faDesktop },
+          { name: 'Air Conditioning', included: true, icon: faSnowflake },
+          { name: 'Whiteboard', included: true, icon: faPaintBrush }
+        ],
+        amenitiesList: [
+          'High-speed WiFi',
+          'Projector & Screen',
+          'Sound System',
+          'Wireless Microphones',
+          'Conference Phones',
+          'Tables & Chairs (250 pax)',
+          'Air Conditioning',
+          'Parking Space (50 cars)',
+          'Refreshment Area',
+          'Whiteboard',
+          'Flip Charts',
+          'Event Coordination'
+        ],
+        pricing: [
+          { 
+            id: 'price-2-1',
+            eventType: 'Conference',
+            capacity: '100-250 people',
+            price: generatePriceInRange(0.9),
+            originalPrice: 1200000,
+            discount: '-25%',
+            duration: 'Full day (8 hours)',
+            setupTime: '2 hours before event',
+            benefits: ['Projector & screen', 'Sound system', 'Wireless microphones', 'High-speed WiFi'],
+            isAvailable: true
+          },
+          { 
+            id: 'price-2-2',
+            eventType: 'Seminar',
+            capacity: '150-200 people',
+            price: generatePriceInRange(0.8),
+            originalPrice: 1000000,
+            discount: '-25%',
+            duration: 'Full day (8 hours)',
+            setupTime: '2 hours before event',
+            benefits: ['Basic AV setup', 'Whiteboard', 'Flip charts', 'Event coordination'],
+            isAvailable: true
+          },
+          { 
+            id: 'price-2-3',
+            eventType: 'Training',
+            capacity: '100-150 people',
+            price: generatePriceInRange(0.85),
+            originalPrice: 1100000,
+            discount: '-25%',
+            duration: 'Full day (8 hours)',
+            setupTime: '2 hours before event',
+            benefits: ['Classroom setup', 'Projector', 'Sound system', 'Whiteboard'],
+            isAvailable: true
+          }
+        ],
+        availableDates: [],
+        rating: 4.3,
+        reviewCount: 85,
+        pricePerEvent: generatePriceInRange(0.9)
+      },
+      {
+        id: 'hall-3',
+        title: 'Intimate Event Space',
+        name: 'Intimate Event Space',
+        description: 'Cozy and stylish space perfect for small weddings, birthday parties, and intimate gatherings. Features modern decor and flexible seating arrangements.',
+        size: '200 m²',
+        capacity: '50-150',
+        minCapacity: 50,
+        maxCapacity: 150,
+        seatingStyle: 'Round Table',
+        mainImage: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800&q=80',
+        image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800&q=80',
+        images: [
+          'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800&q=80',
+          'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=800&q=80',
+          'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80',
+          'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80'
+        ],
+        subImages: [
+          'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&q=80',
+          'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&q=80',
+          'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&q=80'
+        ],
+        specifications: [
+          { icon: faRulerCombined, label: 'Hall Size', value: '200 m²' },
+          { icon: faUsersGroup, label: 'Capacity', value: '50-150 Guests' },
+          { icon: faChair, label: 'Seating Style', value: 'Round Table' },
+          { icon: faDoorClosed, label: 'Hall Type', value: 'Event Space' },
+          { icon: faClock, label: 'Setup Time', value: '2 hours before' },
+          { icon: faCalendarAlt, label: 'Booking Period', value: 'Minimum 3 days' }
+        ],
+        features: [
+          { name: 'Basic Sound System', included: true, icon: faMusic },
+          { name: 'Lighting', included: true, icon: faLightbulb },
+          { name: 'Tables & Chairs', included: true, icon: faChair },
+          { name: 'Air Conditioning', included: true, icon: faSnowflake },
+          { name: 'Kitchen Access', included: true, icon: faUtensils },
+          { name: 'Parking Space', included: true, icon: faCar }
+        ],
+        amenitiesList: [
+          'Sound System',
+          'Lighting System',
+          'Tables & Chairs (150 pax)',
+          'Air Conditioning',
+          'Parking Space (30 cars)',
+          'Kitchen Access',
+          'Decoration Services',
+          'Event Coordination',
+          'Bar Setup Area',
+          'Dance Floor'
+        ],
+        pricing: [
+          { 
+            id: 'price-3-1',
+            eventType: 'Birthday Party',
+            capacity: '50-150 people',
+            price: generatePriceInRange(0.85),
+            originalPrice: 900000,
+            discount: '-25%',
+            duration: 'Full day (8 hours)',
+            setupTime: '2 hours before event',
+            benefits: ['Decoration services', 'Sound system', 'Basic lighting', 'Event coordination'],
+            isAvailable: true
+          },
+          { 
+            id: 'price-3-2',
+            eventType: 'Small Wedding',
+            capacity: '50-100 people',
+            price: generatePriceInRange(1.1),
+            originalPrice: 1200000,
+            discount: '-25%',
+            duration: 'Full day (8 hours)',
+            setupTime: '3 hours before event',
+            benefits: ['Bridal dressing room', 'Decoration services', 'Sound system', 'Event coordination'],
+            isAvailable: true
+          },
+          { 
+            id: 'price-3-3',
+            eventType: 'Baby Shower',
+            capacity: '30-80 people',
+            price: generatePriceInRange(0.75),
+            originalPrice: 800000,
+            discount: '-25%',
+            duration: '6 hours',
+            setupTime: '2 hours before event',
+            benefits: ['Decoration services', 'Sound system', 'Tables & chairs', 'Event coordination'],
+            isAvailable: true
+          }
+        ],
+        availableDates: [],
+        rating: 4.7,
+        reviewCount: 65,
+        pricePerEvent: generatePriceInRange(0.85)
       }
     ];
+
+    // Ensure all prices are within 100k-500k range
+    return defaultHalls.map(hall => {
+      const updatedPricing = hall.pricing.map(option => {
+        let price = option.price;
+        // Ensure price is within range
+        price = Math.max(100000, Math.min(500000, price));
+        
+        // Recalculate original price based on updated price
+        const originalPrice = Math.round(price * 1.25);
+        
+        return {
+          ...option,
+          price,
+          originalPrice
+        };
+      });
+      
+      return {
+        ...hall,
+        pricing: updatedPricing,
+        pricePerEvent: Math.max(100000, Math.min(500000, hall.pricePerEvent))
+      };
+    });
   };
 
   const hallTypes = getHallTypesFromVendor();
@@ -526,6 +777,9 @@ const HallSelection = ({ vendorData, category = "event", onHallSelect, onHallBoo
                               icon={option.eventType === 'Wedding' ? faGlassCheers : 
                                     option.eventType === 'Conference' ? faDesktop :
                                     option.eventType === 'Birthday Party' ? faBirthdayCake :
+                                    option.eventType === 'Seminar' ? faDesktop :
+                                    option.eventType === 'Training' ? faDesktop :
+                                    option.eventType === 'Baby Shower' ? faBirthdayCake :
                                     faCalendarAlt}
                               className="text-purple-600 text-xs"
                             />
@@ -793,6 +1047,9 @@ const HallSelection = ({ vendorData, category = "event", onHallSelect, onHallBoo
                             icon={bestOption.eventType === 'Wedding' ? faGlassCheers : 
                                   bestOption.eventType === 'Conference' ? faDesktop :
                                   bestOption.eventType === 'Birthday Party' ? faBirthdayCake :
+                                  bestOption.eventType === 'Seminar' ? faDesktop :
+                                  bestOption.eventType === 'Training' ? faDesktop :
+                                  bestOption.eventType === 'Baby Shower' ? faBirthdayCake :
                                   faCalendarAlt}
                             className="text-purple-600 text-sm"
                           />
@@ -861,6 +1118,9 @@ const HallSelection = ({ vendorData, category = "event", onHallSelect, onHallBoo
                                           icon={option.eventType === 'Wedding' ? faGlassCheers : 
                                                 option.eventType === 'Conference' ? faDesktop :
                                                 option.eventType === 'Birthday Party' ? faBirthdayCake :
+                                                option.eventType === 'Seminar' ? faDesktop :
+                                                option.eventType === 'Training' ? faDesktop :
+                                                option.eventType === 'Baby Shower' ? faBirthdayCake :
                                                 faCalendarAlt}
                                           className="text-purple-600 text-xs"
                                         />

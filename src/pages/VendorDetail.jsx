@@ -1,8 +1,9 @@
-// VendorDetail.jsx - Complete with FIXED position booking card
+// VendorDetail.jsx - Complete with FIXED position booking card and Hall Selection for events
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHome } from "@fortawesome/free-solid-svg-icons";
+import ReviewSection from "../components/ReviewSection";
 import { 
   faStar, 
   faPhone, 
@@ -59,7 +60,12 @@ import {
   faBriefcase,
   faPaintBrush,
   faFirstAid,
-  faCogs
+  faCogs,
+  faUsers as faUsersGroup,
+  faRuler,
+  faDoorClosed,
+  faExpand,
+  faShower
 } from "@fortawesome/free-solid-svg-icons";
 import { CiBookmark } from "react-icons/ci";
 import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
@@ -70,6 +76,7 @@ import { VscVerifiedFilled } from "react-icons/vsc";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import RoomSelection from "../components/RoomSelection";
+import HallSelection from "../components/HallSelection"; // New component for events
 import listingService from "../lib/listingService";
 import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
@@ -334,13 +341,12 @@ const formatDateForDisplay = (date) => {
   });
 };
 
-// Normalize category function - FIXED to handle "services" properly
+// Normalize category function
 const normalizeCategory = (category) => {
   if (!category) return 'restaurant';
   
   const cat = safeToString(category).toLowerCase().trim();
   
-  // Fix: Handle "services" category
   if (cat.includes('services') || cat === 'service') {
     return 'service';
   }
@@ -428,6 +434,8 @@ const getVendorImages = (vendor) => {
   }
   
   const category = normalizeCategory(vendor.category);
+  
+  // Check for hotel room images
   if (category === 'hotel' && vendor.details?.roomTypes && Array.isArray(vendor.details.roomTypes)) {
     const allRoomImages = vendor.details.roomTypes.flatMap(room => 
       room.images ? room.images.map(img => img.url).filter(url => url) : []
@@ -435,6 +443,27 @@ const getVendorImages = (vendor) => {
     
     if (allRoomImages.length > 0) {
       const uniqueImages = [...new Set(allRoomImages)].slice(0, 5);
+      if (uniqueImages.length >= 5) {
+        return uniqueImages;
+      }
+      
+      const filledImages = [...uniqueImages];
+      const fallbackImage = FALLBACK_IMAGES[category] || FALLBACK_IMAGES.default;
+      while (filledImages.length < 5) {
+        filledImages.push(fallbackImage);
+      }
+      return filledImages.slice(0, 5);
+    }
+  }
+  
+  // Check for event hall images
+  if (category === 'event' && vendor.details?.hallTypes && Array.isArray(vendor.details.hallTypes)) {
+    const allHallImages = vendor.details.hallTypes.flatMap(hall => 
+      hall.images ? hall.images.map(img => img.url).filter(url => url) : []
+    );
+    
+    if (allHallImages.length > 0) {
+      const uniqueImages = [...new Set(allHallImages)].slice(0, 5);
       if (uniqueImages.length >= 5) {
         return uniqueImages;
       }
@@ -621,8 +650,24 @@ const getAmenities = (vendor) => {
       "WiFi"
     ];
   } else if (category === 'event') {
-    if (vendor.details?.amenities && Array.isArray(vendor.details.amenities)) {
-      return vendor.details.amenities;
+    if (vendor.details?.hallTypes && Array.isArray(vendor.details.hallTypes)) {
+      const allHallAmenities = [];
+      vendor.details.hallTypes.forEach(hall => {
+        if (hall.amenities) {
+          if (Array.isArray(hall.amenities)) {
+            allHallAmenities.push(...hall.amenities);
+          } else if (typeof hall.amenities === 'string') {
+            allHallAmenities.push(hall.amenities);
+          }
+        }
+      });
+      
+      if (allHallAmenities.length > 0) {
+        const uniqueAmenities = [...new Set(allHallAmenities.map(a => safeToString(a)).filter(a => a))];
+        if (uniqueAmenities.length > 0) {
+          return uniqueAmenities.slice(0, 8);
+        }
+      }
     }
     
     if (vendor.amenities) {
@@ -632,6 +677,10 @@ const getAmenities = (vendor) => {
       if (Array.isArray(vendor.amenities) && vendor.amenities.length > 0) {
         return vendor.amenities;
       }
+    }
+    
+    if (vendor.details?.amenities && Array.isArray(vendor.details.amenities)) {
+      return vendor.details.amenities;
     }
     
     return ["Stage", "Sound System", "Lighting", "Parking", "Catering Service", "Decoration Service", "Projector", "Microphones"];
@@ -676,7 +725,7 @@ const getAmenityIcon = (amenity) => {
   
   if (lowerAmenity.includes('wifi') || lowerAmenity.includes('internet')) return faWifi;
   if (lowerAmenity.includes('air conditioning') || lowerAmenity.includes('ac') || lowerAmenity.includes('cooling')) return faSnowflake;
-  if (lowerAmenity.includes('tv') || lowerAmenity.includes('television') || lowerAmenity.includes('flat-screen')) return faTv;
+  if (lowerAmenity.includes('tv') || lowerAmenity.includes('television') || lowerAmenity.includes('flat-screen') || lowerAmenity.includes('projector') || lowerAmenity.includes('screen')) return faTv;
   if (lowerAmenity.includes('bathroom') || lowerAmenity.includes('bath') || lowerAmenity.includes('shower')) return faBath;
   if (lowerAmenity.includes('housekeeping') || lowerAmenity.includes('cleaning')) return faConciergeBell;
   if (lowerAmenity.includes('room service') || lowerAmenity.includes('service')) return faCheckCircle;
@@ -684,41 +733,41 @@ const getAmenityIcon = (amenity) => {
   if (lowerAmenity.includes('pool') || lowerAmenity.includes('swimming')) return faSwimmingPool;
   if (lowerAmenity.includes('gym') || lowerAmenity.includes('fitness')) return faDumbbell;
   if (lowerAmenity.includes('spa') || lowerAmenity.includes('massage')) return faSpa;
-  if (lowerAmenity.includes('music') || lowerAmenity.includes('entertainment')) return faMusic;
-  if (lowerAmenity.includes('food') || lowerAmenity.includes('restaurant') || lowerAmenity.includes('meal')) return faUtensils;
+  if (lowerAmenity.includes('music') || lowerAmenity.includes('entertainment') || lowerAmenity.includes('dj') || lowerAmenity.includes('sound') || lowerAmenity.includes('audio')) return faMusic;
+  if (lowerAmenity.includes('food') || lowerAmenity.includes('restaurant') || lowerAmenity.includes('meal') || lowerAmenity.includes('catering') || lowerAmenity.includes('kitchen')) return faUtensils;
   if (lowerAmenity.includes('bed') || lowerAmenity.includes('room') || lowerAmenity.includes('sleep')) return faBed;
   if (lowerAmenity.includes('home') || lowerAmenity.includes('apartment')) return faHome;
   if (lowerAmenity.includes('security') || lowerAmenity.includes('reception')) return faUserCheck;
   if (lowerAmenity.includes('laundry')) return faClock;
   if (lowerAmenity.includes('coffee') || lowerAmenity.includes('tea')) return faCoffee;
   if (lowerAmenity.includes('plug') || lowerAmenity.includes('socket')) return faPlug;
-  if (lowerAmenity.includes('wine') || lowerAmenity.includes('bar')) return faWineGlass;
+  if (lowerAmenity.includes('wine') || lowerAmenity.includes('bar') || lowerAmenity.includes('drinks') || lowerAmenity.includes('alcohol')) return faWineGlass;
   if (lowerAmenity.includes('shield') || lowerAmenity.includes('safe')) return faShieldAlt;
   if (lowerAmenity.includes('key') || lowerAmenity.includes('access')) return faKey;
-  if (lowerAmenity.includes('chair') || lowerAmenity.includes('furniture')) return faChair;
+  if (lowerAmenity.includes('chair') || lowerAmenity.includes('furniture') || lowerAmenity.includes('table') || lowerAmenity.includes('seating')) return faChair;
   if (lowerAmenity.includes('desk') || lowerAmenity.includes('workspace')) return faDesktop;
   if (lowerAmenity.includes('sofa') || lowerAmenity.includes('couch')) return faCouch;
   if (lowerAmenity.includes('suitcase') || lowerAmenity.includes('luggage')) return faSuitcase;
   if (lowerAmenity.includes('wind') || lowerAmenity.includes('ventilation')) return faWind;
   if (lowerAmenity.includes('thermometer') || lowerAmenity.includes('heating')) return faThermometerHalf;
   if (lowerAmenity.includes('stage') || lowerAmenity.includes('platform')) return faVideo;
-  if (lowerAmenity.includes('sound') || lowerAmenity.includes('audio')) return faMusic;
   if (lowerAmenity.includes('lighting') || lowerAmenity.includes('lights')) return faLightbulb;
-  if (lowerAmenity.includes('catering') || lowerAmenity.includes('food')) return faUtensils;
   if (lowerAmenity.includes('decoration') || lowerAmenity.includes('decor')) return faPaintBrush;
-  if (lowerAmenity.includes('projector') || lowerAmenity.includes('screen')) return faVideo;
   if (lowerAmenity.includes('microphone') || lowerAmenity.includes('mic')) return faMicrophone;
-  if (lowerAmenity.includes('kitchen') || lowerAmenity.includes('cooking')) return faUtensils;
   if (lowerAmenity.includes('professional') || lowerAmenity.includes('expert')) return faBriefcase;
   if (lowerAmenity.includes('quality') || lowerAmenity.includes('guarantee')) return faCheckCircle;
   if (lowerAmenity.includes('on-time') || lowerAmenity.includes('punctual')) return faClock;
   if (lowerAmenity.includes('licensed') || lowerAmenity.includes('insured')) return faShieldAlt;
   if (lowerAmenity.includes('consultation') || lowerAmenity.includes('advice')) return faBriefcase;
-  if (lowerAmenity.includes('scheduling') || lowerAmenity.includes('flexible')) return faCalendar;
+  if (lowerAmenity.includes('scheduling') || lowerAmenity.includes('flexible') || lowerAmenity.includes('planning') || lowerAmenity.includes('coordination')) return faCalendar;
   if (lowerAmenity.includes('wrench') || lowerAmenity.includes('repair')) return faWrench;
   if (lowerAmenity.includes('tools') || lowerAmenity.includes('equipment')) return faTools;
   if (lowerAmenity.includes('first aid') || lowerAmenity.includes('emergency')) return faFirstAid;
   if (lowerAmenity.includes('cogs') || lowerAmenity.includes('installation')) return faCogs;
+  if (lowerAmenity.includes('wedding') || lowerAmenity.includes('ceremony')) return faGlassCheers;
+  if (lowerAmenity.includes('birthday') || lowerAmenity.includes('party')) return faBirthdayCake;
+  if (lowerAmenity.includes('capacity') || lowerAmenity.includes('people') || lowerAmenity.includes('guests')) return faUsersGroup;
+  if (lowerAmenity.includes('size') || lowerAmenity.includes('dimension') || lowerAmenity.includes('area')) return faRulerCombined;
   
   return faCheckCircle;
 };
@@ -757,9 +806,9 @@ const getFeaturesFromVendor = (vendor) => {
       
       if (vendorAmenities.length > 0) {
         return vendorAmenities.slice(0, 6).map(amenity => ({
-            icon: getAmenityIcon(amenity),
-            name: amenity
-          }));
+          icon: getAmenityIcon(amenity),
+          name: amenity
+        }));
       }
     }
     
@@ -811,11 +860,23 @@ const getFeaturesFromVendor = (vendor) => {
       { icon: faWifi, name: "Free WiFi" }
     ];
   } else if (category === 'event') {
-    if (vendor.details?.amenities && Array.isArray(vendor.details.amenities)) {
-      return vendor.details.amenities.slice(0, 6).map(amenity => ({
-        icon: getAmenityIcon(amenity),
-        name: amenity
-      }));
+    if (vendor.details?.hallTypes && Array.isArray(vendor.details.hallTypes)) {
+      const allHallAmenities = [];
+      vendor.details.hallTypes.forEach(hall => {
+        if (hall.amenities && Array.isArray(hall.amenities)) {
+          allHallAmenities.push(...hall.amenities);
+        }
+      });
+      
+      if (allHallAmenities.length > 0) {
+        const uniqueAmenities = [...new Set(allHallAmenities.map(a => safeToString(a)).filter(a => a))];
+        if (uniqueAmenities.length > 0) {
+          return uniqueAmenities.slice(0, 6).map(amenity => ({
+            icon: getAmenityIcon(amenity),
+            name: amenity
+          }));
+        }
+      }
     }
     
     if (vendor.amenities) {
@@ -834,13 +895,20 @@ const getFeaturesFromVendor = (vendor) => {
       }
     }
     
+    if (vendor.details?.amenities && Array.isArray(vendor.details.amenities)) {
+      return vendor.details.amenities.slice(0, 6).map(amenity => ({
+        icon: getAmenityIcon(amenity),
+        name: amenity
+      }));
+    }
+    
     return [
-      { icon: faVideo, name: "Stage" },
+      { icon: faVideo, name: "Stage Setup" },
       { icon: faMusic, name: "Sound System" },
-      { icon: faLightbulb, name: "Lighting" },
-      { icon: faCar, name: "Parking" },
-      { icon: faUtensils, name: "Catering Service" },
-      { icon: faPaintBrush, name: "Decoration Service" }
+      { icon: faLightbulb, name: "Lighting System" },
+      { icon: faCar, name: "Ample Parking" },
+      { icon: faUtensils, name: "Catering Services" },
+      { icon: faUsersGroup, name: "Large Capacity" }
     ];
   } else if (category === 'service') {
     if (vendor.details?.amenities && Array.isArray(vendor.details.amenities)) {
@@ -963,9 +1031,9 @@ const getServices = (vendor) => {
   } else if (category === 'event') {
     return [
       "Event Planning Assistance Provided",
+      "Multiple Halls for Different Event Types",
       "Audio-Visual Equipment Available",
       "Catering Coordination Services",
-      "Decoration Services Available",
       "Professional Staff Support",
     ];
   } else if (category === 'service') {
@@ -1300,7 +1368,69 @@ const HotelGuestsModal = ({ isOpen, onClose, adults, setAdults, children, setChi
   );
 };
 
-// Event Guests Modal Component - REMOVED: Not needed for events
+const EventGuestsModal = ({ isOpen, onClose, guests, setGuests }) => {
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black/50"
+          onClick={onClose}
+        />
+        
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-hidden"
+        >
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-gray-900">Event Guests</h3>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+              >
+                <IoClose size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="space-y-4 overflow-y-auto max-h-[50vh]">
+              <Counter 
+                label="Estimated Guests" 
+                sub="Approximate number of attendees" 
+                value={guests} 
+                setValue={setGuests} 
+                min={10} 
+              />
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <p className="text-sm text-gray-600">Total Guests</p>
+                  <p className="font-medium">{guests} guest{guests !== 1 ? 's' : ''}</p>
+                </div>
+              </div>
+              
+              <button
+                onClick={onClose}
+                className="w-full py-3 rounded-xl bg-[#06f49f] text-white font-bold hover:bg-[#05d9eb] transition-all cursor-pointer"
+              >
+                Apply ({guests} guest{guests !== 1 ? 's' : ''})
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+};
 
 const VendorDetail = () => {
   const { id } = useParams();
@@ -1312,6 +1442,7 @@ const VendorDetail = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [selectedHall, setSelectedHall] = useState(null);
   
   // Gallery state
   const [galleryOpen, setGalleryOpen] = useState(false);
@@ -1325,7 +1456,7 @@ const VendorDetail = () => {
   
   // Different guest states for different categories
   const [guests, setGuests] = useState(2); // Restaurant guests
-  const [eventGuests, setEventGuests] = useState(50); // Event guests - kept but not displayed
+  const [eventGuests, setEventGuests] = useState(50); // Event guests
   const [serviceGuests, setServiceGuests] = useState(1); // Service
   
   const [adults, setAdults] = useState(1); // Hotel adults
@@ -1353,8 +1484,8 @@ const VendorDetail = () => {
   const totalHotelGuests = adults + children;
   const isAuthenticated = useAuthStatus();
 
-  // Ref for room selection section
-  const roomSelectionRef = useRef(null);
+  // Ref for selection section (used for both rooms and halls)
+  const selectionRef = useRef(null);
 
   // ================= SCROLL TO TOP ON ENTRY =================
   useEffect(() => {
@@ -1471,6 +1602,14 @@ const VendorDetail = () => {
         }
       }
       
+      // Check for event hall pricing
+      if (item.details?.hallTypes?.length > 0) {
+        const hall = item.details.hallTypes[0];
+        if (hall.pricePerEvent !== undefined) {
+          return hall.pricePerEvent;
+        }
+      }
+      
       return 0;
     } catch (error) {
       console.error('Error getting price:', error);
@@ -1565,6 +1704,27 @@ const VendorDetail = () => {
       return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`;
     }
     
+    // Handle event hall pricing
+    if (category === 'event' && item.details?.hallTypes) {
+      const prices = item.details.hallTypes
+        .map(hall => hall.pricePerEvent || 0)
+        .filter(price => price > 0);
+      
+      if (prices.length === 0) {
+        const price = getPriceFromItem(item) || 0;
+        return `${formatPrice(price)}`;
+      }
+      
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+      
+      if (minPrice === maxPrice) {
+        return formatPrice(minPrice);
+      }
+      
+      return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`;
+    }
+    
     const price = getPriceFromItem(item) || 0;
     return `${formatPrice(price)}`;
   };
@@ -1588,6 +1748,10 @@ const VendorDetail = () => {
 
   const handleRoomSelect = (room) => {
     setSelectedRoom(room);
+  };
+
+  const handleHallSelect = (hall) => {
+    setSelectedHall(hall);
   };
 
   const handleRoomBookNow = (room, option) => {
@@ -1635,6 +1799,54 @@ const VendorDetail = () => {
       state: { 
         vendorData: vendorBookingData,
         category: 'hotel'
+      } 
+    });
+  };
+
+  const handleHallBookNow = (hall, option) => {
+    setSelectedHall({...hall, selectedOption: option});
+    
+    const vendorBookingData = {
+      id: vendor._id || vendor.id,
+      name: getBusinessName(vendor),
+      category: 'event',
+      originalCategory: safeToString(vendor.category),
+      priceFrom: option.price || hall.pricePerEvent || vendor.price || 0,
+      priceTo: option.price || hall.pricePerEvent || vendor.price || 0,
+      area: getLocationFromItem(vendor),
+      contact: safeToString(vendor.contact || vendorInfo?.phone || vendor.contactInformation?.phone),
+      email: safeToString(vendor.email || vendorInfo?.email),
+      description: safeToString(vendor.description || vendor.about),
+      rating: getRating(vendor),
+      capacity: hall.maxCapacity || vendor.details?.maxGuests || 100,
+      amenities: hall.amenitiesList || getAmenities(vendor),
+      images: hall.images || getVendorImages(vendor),
+      vendorId: getVendorIdFromListing(vendor),
+      vendorInfo: vendorInfo,
+      image: getVendorImages(vendor)[0],
+      selectedHall: hall,
+      selectedBookingOption: option,
+      bookingType: 'event',
+      hallName: hall.name,
+      hallDescription: hall.description,
+      hallSize: hall.size,
+      hallCapacity: hall.capacity,
+      eventType: option.eventType,
+      details: vendor.details,
+      contactInformation: vendor.contactInformation,
+      checkIn: checkIn,
+      checkOut: checkOut,
+      guests: eventGuests,
+      totalGuests: eventGuests
+    };
+    
+    localStorage.setItem('currentVendorBooking', JSON.stringify(vendorBookingData));
+    sessionStorage.setItem('currentVendorBooking', JSON.stringify(vendorBookingData));
+    
+    navigate('/booking', { 
+      state: { 
+        vendorData: vendorBookingData,
+        category: 'event'
       } 
     });
   };
@@ -1752,7 +1964,6 @@ const VendorDetail = () => {
     
     const category = normalizeCategory(vendor.category);
     
-    // For restaurants, events, and services, return the base price (not multiplied by guests)
     if (category === 'hotel') {
       if (selectedRoom && selectedRoom.selectedOption) {
         return selectedRoom.selectedOption.price || selectedRoom.pricePerNight || 0;
@@ -1763,11 +1974,21 @@ const VendorDetail = () => {
       }
       const price = vendor.price || vendor.details?.pricePerNight || vendor.price_from || 0;
       return parseFloat(safeToString(price, "0"));
+    } else if (category === 'event') {
+      if (selectedHall && selectedHall.selectedOption) {
+        return selectedHall.selectedOption.price || selectedHall.pricePerEvent || 0;
+      }
+      if (vendor.details?.hallTypes?.length > 0) {
+        const firstHall = vendor.details.hallTypes[0];
+        return firstHall.pricePerEvent || firstHall.price || 0;
+      }
+      const price = vendor.price || vendor.details?.pricePerEvent || vendor.price_from || 0;
+      return parseFloat(safeToString(price, "0"));
     } else if (category === 'restaurant') {
       // For restaurants, return the price per meal (not multiplied by guests)
       return getPriceFromItem(vendor);
-    } else if (category === 'event' || category === 'service') {
-      // For events and services, return the base price (not multiplied by guests)
+    } else if (category === 'service') {
+      // For services, return the base price (not multiplied by guests)
       return getPriceFromItem(vendor);
     }
     
@@ -1788,6 +2009,9 @@ const VendorDetail = () => {
     
     // For events: Fixed price only
     if (category === 'event') {
+      if (selectedHall && selectedHall.selectedOption) {
+        return selectedHall.selectedOption.price;
+      }
       if (vendor?.details?.priceRange?.priceFrom) {
         return vendor.details.priceRange.priceFrom;
       }
@@ -1876,6 +2100,25 @@ const VendorDetail = () => {
       return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`;
     }
     
+    if (category === 'event' && vendor.details?.hallTypes) {
+      const prices = vendor.details.hallTypes
+        .map(hall => hall.pricePerEvent || 0)
+        .filter(price => price > 0);
+      
+      if (prices.length === 0) {
+        return formatPrice(vendor.price || 0);
+      }
+      
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+      
+      if (minPrice === maxPrice) {
+        return formatPrice(minPrice);
+      }
+      
+      return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`;
+    }
+    
     if (category === 'event' && vendor?.details?.priceRange) {
       const { priceFrom, priceTo } = vendor.details.priceRange;
       
@@ -1895,16 +2138,16 @@ const VendorDetail = () => {
     // Handle hotel room selection requirement
     if (currentCategory === 'hotel') {
       if (!selectedRoom && vendor.details?.roomTypes?.length > 0) {
-        if (roomSelectionRef.current) {
-          roomSelectionRef.current.scrollIntoView({
+        if (selectionRef.current) {
+          selectionRef.current.scrollIntoView({
             behavior: 'smooth',
             block: 'start'
           });
           
-          roomSelectionRef.current.classList.add('highlight-section');
+          selectionRef.current.classList.add('highlight-section');
           setTimeout(() => {
-            if (roomSelectionRef.current) {
-              roomSelectionRef.current.classList.remove('highlight-section');
+            if (selectionRef.current) {
+              selectionRef.current.classList.remove('highlight-section');
             }
           }, 1500);
           
@@ -1915,6 +2158,33 @@ const VendorDetail = () => {
       
       if (selectedRoom && selectedRoom.selectedOption) {
         handleRoomBookNow(selectedRoom, selectedRoom.selectedOption);
+        return;
+      }
+    }
+    
+    // Handle event hall selection requirement
+    if (currentCategory === 'event') {
+      if (!selectedHall && vendor.details?.hallTypes?.length > 0) {
+        if (selectionRef.current) {
+          selectionRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+          
+          selectionRef.current.classList.add('highlight-section');
+          setTimeout(() => {
+            if (selectionRef.current) {
+              selectionRef.current.classList.remove('highlight-section');
+            }
+          }, 1500);
+          
+          showToast("Please select a hall first", "info");
+        }
+        return;
+      }
+      
+      if (selectedHall && selectedHall.selectedOption) {
+        handleHallBookNow(selectedHall, selectedHall.selectedOption);
         return;
       }
     }
@@ -1940,6 +2210,7 @@ const VendorDetail = () => {
       image: getVendorImages(vendor)[0],
       bookingType: currentCategory,
       selectedRoom: selectedRoom,
+      selectedHall: selectedHall,
       details: vendor.details,
       contactInformation: vendor.contactInformation,
       checkIn: checkIn,
@@ -1992,20 +2263,42 @@ const VendorDetail = () => {
     
     if (category === 'hotel') {
       if (!selectedRoom && vendor.details?.roomTypes?.length > 0) {
-        if (roomSelectionRef.current) {
-          roomSelectionRef.current.scrollIntoView({
+        if (selectionRef.current) {
+          selectionRef.current.scrollIntoView({
             behavior: 'smooth',
             block: 'start'
           });
           
-          roomSelectionRef.current.classList.add('highlight-section');
+          selectionRef.current.classList.add('highlight-section');
           setTimeout(() => {
-            if (roomSelectionRef.current) {
-              roomSelectionRef.current.classList.remove('highlight-section');
+            if (selectionRef.current) {
+              selectionRef.current.classList.remove('highlight-section');
             }
           }, 1500);
           
           showToast("Please select a room first", "info");
+        }
+        setBottomSheetOpen(false);
+        return;
+      }
+    }
+    
+    if (category === 'event') {
+      if (!selectedHall && vendor.details?.hallTypes?.length > 0) {
+        if (selectionRef.current) {
+          selectionRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+          
+          selectionRef.current.classList.add('highlight-section');
+          setTimeout(() => {
+            if (selectionRef.current) {
+              selectionRef.current.classList.remove('highlight-section');
+            }
+          }, 1500);
+          
+          showToast("Please select a hall first", "info");
         }
         setBottomSheetOpen(false);
         return;
@@ -2030,8 +2323,8 @@ const VendorDetail = () => {
       if (category === 'hotel') {
         setOpenGuests(true);
       } else if (category === 'event') {
-        // For events, don't open guests modal
-        return;
+        // Use EventGuestsModal for events
+        setOpenGuests(true);
       } else {
         setOpenGuests(true);
       }
@@ -2208,12 +2501,15 @@ const VendorDetail = () => {
   const hotelRoomCount = category === 'hotel' 
     ? (vendor.details?.roomTypes?.length || 0)
     : 0;
+  const eventHallCount = category === 'event'
+    ? (vendor.details?.hallTypes?.length || 0)
+    : 0;
 
   // Determine which modals to use based on category
   const shouldShowCalendar = category === 'hotel' || category === 'shortlet' || category === 'event';
   const shouldShowHotelGuests = category === 'hotel';
   const shouldShowRestaurantGuests = category === 'restaurant';
-  const shouldShowEventGuests = false; // No guest selection for events
+  const shouldShowEventGuests = category === 'event';
   const shouldShowServiceGuests = category === 'service';
 
   // Get appropriate guest count for current category
@@ -2221,7 +2517,7 @@ const VendorDetail = () => {
     switch(category) {
       case 'hotel': return totalHotelGuests;
       case 'restaurant': return guests;
-      case 'event': return 0; // No guest count for events
+      case 'event': return eventGuests;
       case 'service': return serviceGuests;
       case 'shortlet': return guests;
       default: return guests;
@@ -2487,6 +2783,9 @@ const VendorDetail = () => {
                         {category.charAt(0).toUpperCase() + category.slice(1)}
                         {category === 'hotel' && hotelRoomCount > 0 && (
                           <span className="text-gray-500 ml-1">({hotelRoomCount} room types)</span>
+                        )}
+                        {category === 'event' && eventHallCount > 0 && (
+                          <span className="text-gray-500 ml-1">({eventHallCount} hall types)</span>
                         )}
                       </span>
                     </div>
@@ -2759,16 +3058,16 @@ const VendorDetail = () => {
                 <button
                   onClick={() => {
                     if (category === 'hotel' && !selectedRoom) {
-                      if (roomSelectionRef.current) {
-                        roomSelectionRef.current.scrollIntoView({
+                      if (selectionRef.current) {
+                        selectionRef.current.scrollIntoView({
                           behavior: 'smooth',
                           block: 'start'
                         });
                         
-                        roomSelectionRef.current.classList.add('highlight-section');
+                        selectionRef.current.classList.add('highlight-section');
                         setTimeout(() => {
-                          if (roomSelectionRef.current) {
-                            roomSelectionRef.current.classList.remove('highlight-section');
+                          if (selectionRef.current) {
+                            selectionRef.current.classList.remove('highlight-section');
                           }
                         }, 1500);
                         
@@ -2776,29 +3075,58 @@ const VendorDetail = () => {
                         return;
                       }
                     }
+                    
+                    if (category === 'event' && !selectedHall) {
+                      if (selectionRef.current) {
+                        selectionRef.current.scrollIntoView({
+                          behavior: 'smooth',
+                          block: 'start'
+                        });
+                        
+                        selectionRef.current.classList.add('highlight-section');
+                        setTimeout(() => {
+                          if (selectionRef.current) {
+                            selectionRef.current.classList.remove('highlight-section');
+                          }
+                        }, 1500);
+                        
+                        showToast("Please select a hall first", "info");
+                        return;
+                      }
+                    }
+                    
                     handleBookingClick();
                   }}
                   className="flex flex-col items-center gap-1.5 group relative cursor-pointer"
                 >
                   <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-110 ${
-                    category === 'hotel' && !selectedRoom 
+                    (category === 'hotel' && !selectedRoom) || (category === 'event' && !selectedHall)
                       ? 'bg-gray-400 cursor-not-allowed' 
                       : 'bg-[#06f49f]'
                   }`}>
                     <FaBookOpen className="text-white text-lg" />
                   </div>
                   <span className={`text-xs font-medium ${
-                    category === 'hotel' && !selectedRoom 
+                    (category === 'hotel' && !selectedRoom) || (category === 'event' && !selectedHall)
                       ? 'text-gray-500' 
                       : 'text-gray-700 group-hover:text-[#06EAFC]'
                   } transition-colors`}>
                     Book
                   </span>
                   
-                  {category === 'hotel' && !selectedRoom && (
+                  {(category === 'hotel' && !selectedRoom) && (
                     <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none shadow-lg">
                       <div className="relative">
                         Select a room first
+                        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {(category === 'event' && !selectedHall) && (
+                    <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none shadow-lg">
+                      <div className="relative">
+                        Select a hall first
                         <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
                       </div>
                     </div>
@@ -2988,7 +3316,7 @@ const VendorDetail = () => {
                             </div>
                           )}
 
-                          {/* Guests Section - Completely hidden for events */}
+                          {/* Guests Section for all categories except events with no guest selection */}
                           {category !== 'event' && (
                             <div>
                               <div className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
@@ -3020,7 +3348,30 @@ const VendorDetail = () => {
                             </div>
                           )}
 
-                          {/* Room Selection (if needed) */}
+                          {/* Guests Section for events - show estimated guests */}
+                          {category === 'event' && (
+                            <div>
+                              <div className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                                <span>Estimated Guests</span>
+                                <button
+                                  onClick={() => setOpenGuests(true)}
+                                  className="text-xs text-[#06f49f] hover:text-[#05d9eb] font-medium cursor-pointer"
+                                >
+                                  Edit
+                                </button>
+                              </div>
+                              <div className="border border-gray-300 rounded-xl p-3">
+                                <p className="text-[10px] uppercase text-gray-500 font-semibold mb-1">
+                                  Estimated Guests
+                                </p>
+                                <p className="text-sm font-medium">
+                                  {eventGuests} guest{eventGuests !== 1 ? 's' : ''}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Room/Hall Selection Warning */}
                           {category === 'hotel' && !selectedRoom && (
                             <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
                               <div className="flex items-start gap-2">
@@ -3035,36 +3386,68 @@ const VendorDetail = () => {
                             </div>
                           )}
 
+                          {category === 'event' && !selectedHall && (
+                            <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                              <div className="flex items-start gap-2">
+                                <FontAwesomeIcon icon={faInfoCircle} className="text-purple-500 mt-0.5" />
+                                <div>
+                                  <p className="text-sm font-medium text-purple-800">Select a hall to continue</p>
+                                  <p className="text-xs text-purple-600 mt-1">
+                                    Please choose a hall from the options below before booking
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           {/* Reserve Button */}
                           <motion.button 
                             className="w-full py-4 rounded-xl bg-[#06f49f] hover:bg-[#05d9eb] text-white font-bold transition shadow-md cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed"
                             onClick={() => {
                               if (category === 'hotel' && !selectedRoom) {
-                                if (roomSelectionRef.current) {
-                                  roomSelectionRef.current.scrollIntoView({
+                                if (selectionRef.current) {
+                                  selectionRef.current.scrollIntoView({
                                     behavior: 'smooth',
                                     block: 'start'
                                   });
                                   
-                                  roomSelectionRef.current.classList.add('highlight-section');
+                                  selectionRef.current.classList.add('highlight-section');
                                   setTimeout(() => {
-                                    if (roomSelectionRef.current) {
-                                      roomSelectionRef.current.classList.remove('highlight-section');
+                                    if (selectionRef.current) {
+                                      selectionRef.current.classList.remove('highlight-section');
                                     }
                                   }, 1500);
                                   
                                   showToast("Please select a room first", "info");
                                 }
+                              } else if (category === 'event' && !selectedHall) {
+                                if (selectionRef.current) {
+                                  selectionRef.current.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'start'
+                                  });
+                                  
+                                  selectionRef.current.classList.add('highlight-section');
+                                  setTimeout(() => {
+                                    if (selectionRef.current) {
+                                      selectionRef.current.classList.remove('highlight-section');
+                                    }
+                                  }, 1500);
+                                  
+                                  showToast("Please select a hall first", "info");
+                                }
                               } else {
                                 handleBookingClick();
                               }
                             }}
-                            disabled={category === 'hotel' && !selectedRoom}
-                            whileHover={category === 'hotel' && !selectedRoom ? {} : { scale: 1.02 }}
-                            whileTap={category === 'hotel' && !selectedRoom ? {} : { scale: 0.98 }}
+                            disabled={(category === 'hotel' && !selectedRoom) || (category === 'event' && !selectedHall)}
+                            whileHover={(category === 'hotel' && !selectedRoom) || (category === 'event' && !selectedHall) ? {} : { scale: 1.02 }}
+                            whileTap={(category === 'hotel' && !selectedRoom) || (category === 'event' && !selectedHall) ? {} : { scale: 0.98 }}
                           >
                             {category === 'hotel' && !selectedRoom 
                               ? "Select a Room First" 
+                              : category === 'event' && !selectedHall
+                              ? "Select a Hall First"
                               : `Reserve for ${formatPrice(totalPrice)}`
                             }
                           </motion.button>
@@ -3080,10 +3463,11 @@ const VendorDetail = () => {
               </div>
             </section>
 
+            {/* Room Selection for Hotels */}
             {category === 'hotel' && (
               <div 
-                ref={roomSelectionRef}
-                id="room-selection-section"
+                ref={selectionRef}
+                id="selection-section"
                 className="smooth-scroll-target px-2.5 md:px-4"
               >
                 <RoomSelection 
@@ -3095,10 +3479,36 @@ const VendorDetail = () => {
               </div>
             )}
 
+            {/* Hall Selection for Events */}
+            {category === 'event' && (
+              <div 
+                ref={selectionRef}
+                id="selection-section"
+                className="smooth-scroll-target px-2.5 md:px-4"
+              >
+                <HallSelection 
+                  vendorData={vendor}
+                  category={category}
+                  onHallSelect={handleHallSelect}
+                  onHallBookNow={handleHallBookNow}
+                />
+              </div>
+            )}
+
+
+{/* ================= REVIEW SECTION ================= */}
+<ReviewSection 
+  vendorName={getBusinessName(vendor)}
+  category={category}
+  reviewsCount={vendor.reviewCount || 9}
+/>
+
+
+
             <div className="px-2.5 md:px-4">
               <div className="bg-white rounded-lg shadow-sm p-3 md:p-6">
                 <h2 className="text-lg font-bold text-[#00065A] mb-4 font-manrope">
-                  Location
+                  Locationn
                 </h2>
                 
                 <div className="space-y-4">
@@ -3197,6 +3607,16 @@ const VendorDetail = () => {
           />
         )}
 
+        {/* ================= EVENT GUESTS MODAL ================= */}
+        {shouldShowEventGuests && (
+          <EventGuestsModal
+            isOpen={openGuests}
+            onClose={() => setOpenGuests(false)}
+            guests={eventGuests}
+            setGuests={setEventGuests}
+          />
+        )}
+
         {/* ================= SERVICE GUESTS MODAL ================= */}
         {shouldShowServiceGuests && (
           <GuestsModal
@@ -3231,6 +3651,9 @@ const VendorDetail = () => {
                   {category === 'hotel' && selectedRoom && (
                     <span className="ml-2 text-[#06EAFC]">• {selectedRoom.name}</span>
                   )}
+                  {category === 'event' && selectedHall && (
+                    <span className="ml-2 text-[#06EAFC]">• {selectedHall.name}</span>
+                  )}
                 </>
               )}
               {!shouldShowCalendar && category !== 'event' && (
@@ -3241,12 +3664,14 @@ const VendorDetail = () => {
 
           <div className={`
             px-5 py-3 rounded-xl font-semibold text-white
-            ${category === 'hotel' && !selectedRoom
+            ${(category === 'hotel' && !selectedRoom) || (category === 'event' && !selectedHall)
               ? "bg-gray-400"
               : "bg-[#06f49f] hover:bg-[#05d9eb]"
             }
           `}>
-            {category === 'hotel' && !selectedRoom ? "Book a room" : "Book Now"}
+            {category === 'hotel' && !selectedRoom ? "Book a room" : 
+             category === 'event' && !selectedHall ? "Book a hall" : 
+             "Book Now"}
           </div>
         </button>
       </div>
@@ -3298,6 +3723,28 @@ const VendorDetail = () => {
                             {formatPrice(selectedRoom.selectedOption?.price || selectedRoom.pricePerNight)}
                           </div>
                           <div className="text-[11px] text-gray-500">per night</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {category === 'event' && selectedHall && (
+                    <div className="mb-6 p-4 bg-purple-50 rounded-xl border border-gray-300">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h4 className="font-bold text-gray-900 text-[13px]">{selectedHall.name}</h4>
+                          <p className="text-[11px] text-gray-600">
+                            {selectedHall.selectedOption?.eventType || "Standard Event"}
+                          </p>
+                          <p className="text-[10px] text-gray-500 mt-1">
+                            Capacity: {selectedHall.capacity}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-gray-900 text-[13px]">
+                            {formatPrice(selectedHall.selectedOption?.price || selectedHall.pricePerEvent)}
+                          </div>
+                          <div className="text-[11px] text-gray-500">per event</div>
                         </div>
                       </div>
                     </div>
@@ -3425,50 +3872,47 @@ const VendorDetail = () => {
                     </div>
                   )}
 
-                  {/* Only show guest selection for non-event categories */}
-                  {category !== 'event' && (
-                    <div className="mb-6">
-                      <div className="text-[12px] font-semibold text-gray-700 mb-2">
-                        {category === 'hotel' ? 'Guests & Rooms' : 
-                         category === 'service' ? 'Service Details' : 'Guests'}
-                      </div>
-
-                      <button
-                        onClick={() => {
-                          setBottomSheetOpen(false);
-                          setTimeout(() => {
-                            setOpenGuests(true);
-                          }, 300);
-                        }}
-                        className="w-full border border-gray-300 rounded-xl p-4 text-left hover:bg-gray-50 transition cursor-pointer"
-                      >
-                        <div className="font-medium text-[13px]">
-                          {category === 'hotel' 
-                            ? `${totalHotelGuests} guest${totalHotelGuests !== 1 ? 's' : ''}, ${rooms} room${rooms !== 1 ? 's' : ''}`
-                            : category === 'service'
-                            ? `${serviceGuests} service${serviceGuests !== 1 ? 's' : ''}`
-                            : `${guests} guest${guests !== 1 ? 's' : ''}`
-                          }
-                        </div>
-                        <div className="text-[11px] text-gray-400 mt-1">
-                          Click to edit {category === 'hotel' ? 'guests & rooms' : 
-                                        category === 'service' ? 'service details' : 'guests'}
-                        </div>
-                      </button>
+                  {/* Guest selection for all categories */}
+                  <div className="mb-6">
+                    <div className="text-[12px] font-semibold text-gray-700 mb-2">
+                      {category === 'hotel' ? 'Guests & Rooms' : 
+                       category === 'service' ? 'Service Details' : 
+                       category === 'event' ? 'Estimated Guests' : 'Guests'}
                     </div>
-                  )}
 
-                  {category === 'hotel' && !selectedRoom && (
+                    <button
+                      onClick={openGuestsFromSheet}
+                      className="w-full border border-gray-300 rounded-xl p-4 text-left hover:bg-gray-50 transition cursor-pointer"
+                    >
+                      <div className="font-medium text-[13px]">
+                        {category === 'hotel' 
+                          ? `${totalHotelGuests} guest${totalHotelGuests !== 1 ? 's' : ''}, ${rooms} room${rooms !== 1 ? 's' : ''}`
+                          : category === 'service'
+                          ? `${serviceGuests} service${serviceGuests !== 1 ? 's' : ''}`
+                          : category === 'event'
+                          ? `${eventGuests} guest${eventGuests !== 1 ? 's' : ''}`
+                          : `${guests} guest${guests !== 1 ? 's' : ''}`
+                        }
+                      </div>
+                      <div className="text-[11px] text-gray-400 mt-1">
+                        Click to edit {category === 'hotel' ? 'guests & rooms' : 
+                                      category === 'service' ? 'service details' : 
+                                      category === 'event' ? 'estimated guests' : 'guests'}
+                      </div>
+                    </button>
+                  </div>
+
+                  {(category === 'hotel' && !selectedRoom) || (category === 'event' && !selectedHall) ? (
                     <div className="mb-8">
                       <div className="text-[12px] font-semibold text-gray-700 mb-2">
-                        Room Selection
+                        {category === 'hotel' ? 'Room Selection' : 'Hall Selection'}
                       </div>
                       <button
                         onClick={() => {
                           setBottomSheetOpen(false);
                           setTimeout(() => {
-                            if (roomSelectionRef.current) {
-                              roomSelectionRef.current.scrollIntoView({
+                            if (selectionRef.current) {
+                              selectionRef.current.scrollIntoView({
                                 behavior: 'smooth',
                                 block: 'start'
                               });
@@ -3478,24 +3922,26 @@ const VendorDetail = () => {
                         className="w-full border-2 border-dashed border-[#06EAFC] rounded-xl p-4 text-left hover:bg-blue-50 transition cursor-pointer"
                       >
                         <div className="font-bold text-[#06EAFC] text-[13px]">
-                          Select a room to continue
+                          {category === 'hotel' 
+                            ? "Select a room to continue" 
+                            : "Select a hall to continue"}
                         </div>
                         <div className="text-[11px] text-gray-400 mt-1">
-                          Tap to view available rooms
+                          Tap to view available {category === 'hotel' ? 'rooms' : 'halls'}
                         </div>
                       </button>
                     </div>
-                  )}
+                  ) : null}
                 </div>
 
                 <div className="full-screen-footer">
                   <button 
                     onClick={() => {
-                      if (category === 'hotel' && !selectedRoom) {
+                      if ((category === 'hotel' && !selectedRoom) || (category === 'event' && !selectedHall)) {
                         setBottomSheetOpen(false);
                         setTimeout(() => {
-                          if (roomSelectionRef.current) {
-                            roomSelectionRef.current.scrollIntoView({
+                          if (selectionRef.current) {
+                            selectionRef.current.scrollIntoView({
                               behavior: 'smooth',
                               block: 'start'
                             });
@@ -3508,14 +3954,16 @@ const VendorDetail = () => {
                     disabled={false}
                     className={`
                       w-full py-3 rounded-xl font-bold transition-all text-[13px]
-                      ${category === 'hotel' && !selectedRoom
+                      ${(category === 'hotel' && !selectedRoom) || (category === 'event' && !selectedHall)
                         ? "bg-blue-50 border-2 border-[#06EAFC] text-[#06EAFC] hover:bg-blue-100 active:scale-95"
                         : "bg-[#06f49f] text-white hover:bg-[#05d9eb] active:scale-95"
                       }
                     `}
                   >
-                    {category === 'hotel' && !selectedRoom
+                    {(category === 'hotel' && !selectedRoom)
                       ? "View Available Rooms"
+                      : (category === 'event' && !selectedHall)
+                      ? "View Available Halls"
                       : `Reserve for ${formatPrice(calculateTotalPrice())}`
                     }
                   </button>
