@@ -3274,7 +3274,7 @@ const VendorDetail = () => {
                               </div>
                             ) : category === 'event' ? (
                               <div className="mt-2 text-sm text-gray-600">
-                                Fixed event price
+                                event price
                               </div>
                             ) : category === 'service' ? (
                               <div className="mt-2 text-sm text-gray-600">
