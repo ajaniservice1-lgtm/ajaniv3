@@ -126,6 +126,24 @@ const UserProfilePage = () => {
     // navigate("/profile/edit");
   };
 
+  const handleViewSaved = () => {
+    // Navigate to saved listings page
+    alert("Saved listings page coming soon!");
+    // navigate("/saved");
+  };
+
+  const handleViewBookings = () => {
+    // Navigate to bookings page
+    alert("Bookings page coming soon!");
+    // navigate("/my-bookings");
+  };
+
+  const handleViewReviews = () => {
+    // Navigate to reviews page
+    alert("Reviews page coming soon!");
+    // navigate("/reviews");
+  };
+
   const formatPrice = (price) => {
     if (!price && price !== 0) return "₦ --";
     const num = typeof price === 'number' ? price : parseInt(price.toString().replace(/[^\d]/g, ""));
@@ -221,9 +239,9 @@ const UserProfilePage = () => {
         <div className="mb-6 flex items-center justify-between">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition"
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition text-[13.5px]"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={18} />
             <span className="font-medium">Back</span>
           </button>
 
@@ -231,7 +249,7 @@ const UserProfilePage = () => {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
               My Profile
             </h1>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-[13.5px] text-gray-600 mt-1">
               Member since {userProfile.memberSince || 
                 (userProfile.registrationDate 
                   ? new Date(userProfile.registrationDate).toLocaleDateString('en-US', {
@@ -243,8 +261,8 @@ const UserProfilePage = () => {
           </div>
         </div>
 
-        {/* Profile Summary Card */}
-        <div className="bg-gradient-to-r from-[#00d1ff] to-[#00d37f] rounded-2xl p-6 mb-8 text-white">
+        {/* Profile Summary Card - WITH GRADIENT BACKGROUND */}
+        <div className="bg-gradient-to-r from-[#00d1ff] via-[#00d3af] to-[#00d370] rounded-2xl p-6 mb-8 text-white">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white">
@@ -267,13 +285,13 @@ const UserProfilePage = () => {
                 <h2 className="text-2xl font-bold">{userProfile.fullName || 
                   `${userProfile.firstName || ""} ${userProfile.lastName || ""}`.trim() || 
                   "User"}</h2>
-                <p className="text-white/80 text-sm mt-1">
+                <p className="text-white/80 text-[13.5px] mt-1">
                   {userProfile.email ||
                     localStorage.getItem("ajani_dummy_email")}
                 </p>
                 <div className="flex items-center gap-2 mt-2">
                   <Shield className="w-4 h-4" />
-                  <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">
+                  <span className="text-[11px] bg-white/20 px-2 py-0.5 rounded-full">
                     Verified Account
                   </span>
                 </div>
@@ -282,14 +300,14 @@ const UserProfilePage = () => {
             <div className="mt-4 md:mt-0 flex items-center gap-3">
               <button
                 onClick={() => navigate("/my-bookings")}
-                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition"
+                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition text-[13.5px]"
               >
                 <Package className="w-4 h-4" />
                 My Bookings
               </button>
               <button
                 onClick={handleEditProfile}
-                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition"
+                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition text-[13.5px]"
               >
                 <Edit size={16} />
                 Edit Profile
@@ -303,25 +321,25 @@ const UserProfilePage = () => {
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Saved Listings</p>
+                <p className="text-[13.5px] text-gray-600">Saved Listings</p>
                 <p className="text-3xl font-bold text-gray-900">{savedCount}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                 <Heart className="w-6 h-6 text-blue-600" />
               </div>
             </div>
-            <Link
-              to="/saved"
-              className="inline-block mt-4 text-sm text-blue-600 hover:text-blue-800 font-medium"
+            <button
+              onClick={handleViewSaved}
+              className="inline-block mt-4 text-[13.5px] text-blue-600 hover:text-blue-800 font-medium"
             >
               View all →
-            </Link>
+            </button>
           </div>
 
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">My Bookings</p>
+                <p className="text-[13.5px] text-gray-600">My Bookings</p>
                 <p className="text-3xl font-bold text-gray-900">
                   {bookingsCount}
                 </p>
@@ -330,18 +348,18 @@ const UserProfilePage = () => {
                 <Package className="w-6 h-6 text-purple-600" />
               </div>
             </div>
-            <Link
-              to="/my-bookings"
-              className="inline-block mt-4 text-sm text-purple-600 hover:text-purple-800 font-medium"
+            <button
+              onClick={handleViewBookings}
+              className="inline-block mt-4 text-[13.5px] text-purple-600 hover:text-purple-800 font-medium"
             >
               View all →
-            </Link>
+            </button>
           </div>
 
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Reviews Written</p>
+                <p className="text-[13.5px] text-gray-600">Reviews Written</p>
                 <p className="text-3xl font-bold text-gray-900">
                   {reviewsCount}
                 </p>
@@ -351,8 +369,8 @@ const UserProfilePage = () => {
               </div>
             </div>
             <button
-              onClick={() => navigate("/register/user/process4")}
-              className="inline-block mt-4 text-sm text-green-600 hover:text-green-800 font-medium"
+              onClick={handleViewReviews}
+              className="inline-block mt-4 text-[13.5px] text-green-600 hover:text-green-800 font-medium"
             >
               View all →
             </button>
@@ -361,14 +379,14 @@ const UserProfilePage = () => {
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Account Status</p>
+                <p className="text-[13.5px] text-gray-600">Account Status</p>
                 <p className="text-3xl font-bold text-green-600">Active</p>
               </div>
               <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
                 <CheckCircle className="w-6 h-6 text-emerald-600" />
               </div>
             </div>
-            <p className="mt-4 text-sm text-gray-500">
+            <p className="mt-4 text-[13.5px] text-gray-500">
               Member since {userProfile.memberSince || "today"}
             </p>
           </div>
@@ -379,7 +397,7 @@ const UserProfilePage = () => {
           <div className="flex space-x-8">
             <button
               onClick={() => setActiveTab("overview")}
-              className={`py-3 px-1 font-medium text-sm border-b-2 transition-colors ${
+              className={`py-3 px-1 font-medium text-[13.5px] border-b-2 transition-colors ${
                 activeTab === "overview"
                   ? "border-[#00d37f] text-[#00d37f]"
                   : "border-transparent text-gray-500 hover:text-gray-700"
@@ -392,7 +410,7 @@ const UserProfilePage = () => {
             </button>
             <button
               onClick={() => setActiveTab("bookings")}
-              className={`py-3 px-1 font-medium text-sm border-b-2 transition-colors ${
+              className={`py-3 px-1 font-medium text-[13.5px] border-b-2 transition-colors ${
                 activeTab === "bookings"
                   ? "border-[#00d37f] text-[#00d37f]"
                   : "border-transparent text-gray-500 hover:text-gray-700"
@@ -402,7 +420,7 @@ const UserProfilePage = () => {
                 <Calendar className="w-4 h-4" />
                 Upcoming Bookings
                 {upcomingBookings.length > 0 && (
-                  <span className="bg-[#00d37f] text-white text-xs px-1.5 py-0.5 rounded-full">
+                  <span className="bg-[#00d37f] text-white text-[11px] px-1.5 py-0.5 rounded-full">
                     {upcomingBookings.length}
                   </span>
                 )}
@@ -410,7 +428,7 @@ const UserProfilePage = () => {
             </button>
             <button
               onClick={() => setActiveTab("security")}
-              className={`py-3 px-1 font-medium text-sm border-b-2 transition-colors ${
+              className={`py-3 px-1 font-medium text-[13.5px] border-b-2 transition-colors ${
                 activeTab === "security"
                   ? "border-[#00d37f] text-[#00d37f]"
                   : "border-transparent text-gray-500 hover:text-gray-700"
@@ -431,7 +449,7 @@ const UserProfilePage = () => {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="p-6 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">About Me</h3>
-                <p className="text-gray-600 mt-2">
+                <p className="text-[13.5px] text-gray-600 mt-2">
                   {userProfile.about || userProfile.bio || "No bio added yet."}
                 </p>
               </div>
@@ -447,8 +465,8 @@ const UserProfilePage = () => {
                         <Mail className="w-5 h-5 text-blue-600" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Email</p>
-                        <p className="font-medium text-gray-900">
+                        <p className="text-[13.5px] text-gray-500">Email</p>
+                        <p className="font-medium text-gray-900 text-[13.5px]">
                           {userProfile.email}
                         </p>
                       </div>
@@ -461,8 +479,8 @@ const UserProfilePage = () => {
                         <Phone className="w-5 h-5 text-green-600" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Phone</p>
-                        <p className="font-medium text-gray-900">
+                        <p className="text-[13.5px] text-gray-500">Phone</p>
+                        <p className="font-medium text-gray-900 text-[13.5px]">
                           {userProfile.phone}
                         </p>
                       </div>
@@ -474,8 +492,8 @@ const UserProfilePage = () => {
                       <MapPin className="w-5 h-5 text-purple-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500">Location</p>
-                      <p className="font-medium text-gray-900">
+                      <p className="text-[13.5px] text-gray-500">Location</p>
+                      <p className="font-medium text-gray-900 text-[13.5px]">
                         {userProfile.location || "Ibadan, Nigeria"}
                       </p>
                     </div>
@@ -486,8 +504,8 @@ const UserProfilePage = () => {
                       <Calendar className="w-5 h-5 text-yellow-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500">Member Since</p>
-                      <p className="font-medium text-gray-900">
+                      <p className="text-[13.5px] text-gray-500">Member Since</p>
+                      <p className="font-medium text-gray-900 text-[13.5px]">
                         {userProfile.registrationDate
                           ? new Date(userProfile.registrationDate).toLocaleDateString()
                           : "N/A"}
@@ -507,26 +525,26 @@ const UserProfilePage = () => {
               </div>
 
               <div className="divide-y divide-gray-200">
-                <Link
-                  to="/saved"
-                  className="flex items-center justify-between p-6 hover:bg-gray-50 transition-colors"
+                <button
+                  onClick={handleViewSaved}
+                  className="flex items-center justify-between p-6 hover:bg-gray-50 transition-colors w-full text-left"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                       <Heart className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900">Saved Listings</h4>
-                      <p className="text-sm text-gray-500">
+                      <h4 className="font-medium text-gray-900 text-[13.5px]">Saved Listings</h4>
+                      <p className="text-[13.5px] text-gray-500">
                         View all your saved businesses
                       </p>
                     </div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400" />
-                </Link>
+                </button>
 
                 <button
-                  onClick={() => navigate("/my-bookings")}
+                  onClick={handleViewBookings}
                   className="flex items-center justify-between p-6 hover:bg-gray-50 transition-colors w-full text-left"
                 >
                   <div className="flex items-center gap-4">
@@ -534,10 +552,10 @@ const UserProfilePage = () => {
                       <Package className="w-5 h-5 text-purple-600" />
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900">
+                      <h4 className="font-medium text-gray-900 text-[13.5px]">
                         My Bookings
                       </h4>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-[13.5px] text-gray-500">
                         View all your reservations
                       </p>
                     </div>
@@ -554,10 +572,10 @@ const UserProfilePage = () => {
                       <MapPin className="w-5 h-5 text-green-600" />
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900">
+                      <h4 className="font-medium text-gray-900 text-[13.5px]">
                         Explore Listings
                       </h4>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-[13.5px] text-gray-500">
                         Discover new businesses
                       </p>
                     </div>
@@ -574,10 +592,10 @@ const UserProfilePage = () => {
                       <Settings className="w-5 h-5 text-yellow-600" />
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900">
+                      <h4 className="font-medium text-gray-900 text-[13.5px]">
                         Account Settings
                       </h4>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-[13.5px] text-gray-500">
                         Update preferences and privacy
                       </p>
                     </div>
@@ -594,8 +612,8 @@ const UserProfilePage = () => {
                       <LogOut className="w-5 h-5 text-red-600" />
                     </div>
                     <div>
-                      <h4 className="font-medium">Logout</h4>
-                      <p className="text-sm text-red-500">
+                      <h4 className="font-medium text-[13.5px]">Logout</h4>
+                      <p className="text-[13.5px] text-red-500">
                         Sign out of your account
                       </p>
                     </div>
@@ -617,12 +635,12 @@ const UserProfilePage = () => {
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   No Upcoming Bookings
                 </h3>
-                <p className="text-gray-600 mb-6">
+                <p className="text-[13.5px] text-gray-600 mb-6">
                   You don't have any upcoming bookings in the next 30 days.
                 </p>
                 <button
                   onClick={() => navigate("/")}
-                  className="px-6 py-2.5 bg-[#00d37f] text-white rounded-lg hover:bg-[#02be72] transition font-medium"
+                  className="px-6 py-2.5 bg-[#00d37f] text-white rounded-lg hover:bg-[#02be72] transition font-medium text-[13.5px]"
                 >
                   Book Now
                 </button>
@@ -633,12 +651,12 @@ const UserProfilePage = () => {
                   <h3 className="text-lg font-semibold text-gray-900">
                     Upcoming Bookings
                   </h3>
-                  <Link
-                    to="/my-bookings"
-                    className="text-[#00d37f] hover:text-[#02be72] font-medium text-sm"
+                  <button
+                    onClick={handleViewBookings}
+                    className="text-[13.5px] text-[#00d37f] hover:text-[#02be72] font-medium"
                   >
                     View All Bookings →
-                  </Link>
+                  </button>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -653,18 +671,18 @@ const UserProfilePage = () => {
                                 <BookingIcon className="w-5 h-5 text-blue-600" />
                               </div>
                               <div>
-                                <h4 className="font-semibold text-gray-900">
+                                <h4 className="font-semibold text-gray-900 text-[13.5px]">
                                   {booking.vendor?.name || "Property"}
                                 </h4>
-                                <p className="text-xs text-gray-500 capitalize">{booking.type}</p>
+                                <p className="text-[12px] text-gray-500 capitalize">{booking.type}</p>
                               </div>
                             </div>
-                            <span className={`text-xs px-2 py-1 rounded-full ${getBookingStatusColor(booking.status)}`}>
+                            <span className={`text-[12px] px-2 py-1 rounded-full ${getBookingStatusColor(booking.status)}`}>
                               {booking.status}
                             </span>
                           </div>
                           
-                          <div className="space-y-3 text-sm">
+                          <div className="space-y-3 text-[13.5px]">
                             {booking.details?.checkIn && (
                               <div className="flex items-center gap-2">
                                 <Calendar className="w-4 h-4 text-gray-400" />
@@ -694,15 +712,15 @@ const UserProfilePage = () => {
                           </div>
                           
                           <div className="mt-6 pt-4 border-t border-gray-100">
-                            <p className="text-xs text-gray-500 mb-1">Booking Reference</p>
-                            <p className="font-mono text-sm font-medium">{booking.reference}</p>
+                            <p className="text-[12px] text-gray-500 mb-1">Booking Reference</p>
+                            <p className="font-mono text-[13.5px] font-medium">{booking.reference}</p>
                           </div>
                         </div>
                         
                         <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
                           <button
-                            onClick={() => navigate(`/booking-details/${booking.reference}`)}
-                            className="w-full text-center text-sm text-[#00d37f] hover:text-[#02be72] font-medium"
+                            onClick={() => navigate(`/booking/confirmation/${booking.type || 'hotel'}?ref=${booking.reference}`)}
+                            className="w-full text-center text-[13.5px] text-[#00d37f] hover:text-[#02be72] font-medium"
                           >
                             View Details
                           </button>
@@ -723,40 +741,40 @@ const UserProfilePage = () => {
             <div className="space-y-6">
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
-                  <h4 className="font-medium text-gray-900">Two-Factor Authentication</h4>
-                  <p className="text-sm text-gray-600 mt-1">Add an extra layer of security</p>
+                  <h4 className="font-medium text-gray-900 text-[13.5px]">Two-Factor Authentication</h4>
+                  <p className="text-[13.5px] text-gray-600 mt-1">Add an extra layer of security</p>
                 </div>
-                <button className="px-4 py-2 bg-[#00d37f] text-white rounded-lg hover:bg-[#02be72] text-sm font-medium">
+                <button className="px-4 py-2 bg-[#00d37f] text-white rounded-lg hover:bg-[#02be72] text-[13.5px] font-medium">
                   Enable
                 </button>
               </div>
               
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
-                  <h4 className="font-medium text-gray-900">Change Password</h4>
-                  <p className="text-sm text-gray-600 mt-1">Update your password regularly</p>
+                  <h4 className="font-medium text-gray-900 text-[13.5px]">Change Password</h4>
+                  <p className="text-[13.5px] text-gray-600 mt-1">Update your password regularly</p>
                 </div>
-                <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
+                <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-[13.5px] font-medium">
                   Change
                 </button>
               </div>
               
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
-                  <h4 className="font-medium text-gray-900">Login Activity</h4>
-                  <p className="text-sm text-gray-600 mt-1">Review recent account activity</p>
+                  <h4 className="font-medium text-gray-900 text-[13.5px]">Login Activity</h4>
+                  <p className="text-[13.5px] text-gray-600 mt-1">Review recent account activity</p>
                 </div>
-                <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
+                <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-[13.5px] font-medium">
                   View
                 </button>
               </div>
               
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
-                  <h4 className="font-medium text-gray-900">Connected Devices</h4>
-                  <p className="text-sm text-gray-600 mt-1">Manage devices with access</p>
+                  <h4 className="font-medium text-gray-900 text-[13.5px]">Connected Devices</h4>
+                  <p className="text-[13.5px] text-gray-600 mt-1">Manage devices with access</p>
                 </div>
-                <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
+                <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-[13.5px] font-medium">
                   Manage
                 </button>
               </div>
@@ -766,10 +784,10 @@ const UserProfilePage = () => {
 
         {/* Account Information */}
         <div className="mt-8 bg-gray-50 rounded-xl p-6">
-          <h4 className="text-sm font-medium text-gray-700 mb-4">
+          <h4 className="text-[13.5px] font-medium text-gray-700 mb-4">
             Account Information
           </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-[13.5px]">
             <div>
               <p className="text-gray-600">User ID</p>
               <p className="font-medium text-gray-900">
