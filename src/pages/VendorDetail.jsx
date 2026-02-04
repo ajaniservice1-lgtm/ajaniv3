@@ -3348,28 +3348,7 @@ const VendorDetail = () => {
                             </div>
                           )}
 
-                          {/* Guests Section for events - show estimated guests */}
-                          {category === 'event' && (
-                            <div>
-                              <div className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
-                                <span>Estimated Guests</span>
-                                <button
-                                  onClick={() => setOpenGuests(true)}
-                                  className="text-xs text-[#06f49f] hover:text-[#05d9eb] font-medium cursor-pointer"
-                                >
-                                  Edit
-                                </button>
-                              </div>
-                              <div className="border border-gray-300 rounded-xl p-3">
-                                <p className="text-[10px] uppercase text-gray-500 font-semibold mb-1">
-                                  Estimated Guests
-                                </p>
-                                <p className="text-sm font-medium">
-                                  {eventGuests} guest{eventGuests !== 1 ? 's' : ''}
-                                </p>
-                              </div>
-                            </div>
-                          )}
+                        
 
                           {/* Room/Hall Selection Warning */}
                           {category === 'hotel' && !selectedRoom && (
