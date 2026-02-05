@@ -1,41 +1,21 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  useMemo,
-} from "react";
-import {
-  useParams,
-  useNavigate,
-  useSearchParams,
-  useLocation,
-} from "react-router-dom";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faStar,
-  faFilter,
   faSearch,
   faTimes,
   faMapMarkerAlt,
   faChevronDown,
   faChevronUp,
-  faDollarSign,
   faCheck,
   faChevronRight,
-  faTimesCircle,
   faBed,
   faHome,
-  faCalendarWeek,
   faArrowLeft,
   faBuilding,
   faUtensils,
-  faLandmark,
-  faTools,
-  faUser,
   faChevronLeft,
-  faCalendarAlt,
-  faPencilAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
@@ -47,6 +27,10 @@ import { createPortal } from "react-dom";
 import BackButton from "../components/BackButton";
 import { FaUserCircle } from "react-icons/fa";
 import axiosInstance from "../lib/axios";
+import { ToastContainer, toast, Slide } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
+import { MdCheckCircle } from "react-icons/md";
+import { FaTimes } from "react-icons/fa";
 
 // ================== CATEGORY SWITCH LOADER COMPONENT ==================
 
@@ -62,14 +46,12 @@ const CategorySwitchLoader = ({ isMobile = false, previousCategory = '', newCate
       }}
     >
       <div className={`flex flex-col items-center justify-center ${isMobile ? 'p-4' : 'p-6'}`}>
-        {/* Animated spinner */}
         <div className="relative mb-6">
           <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-[#06EAFC]/10 rounded-full`}></div>
           <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-transparent border-t-[#06EAFC] rounded-full absolute top-0 left-0 animate-spin`}></div>
           <div className={`${isMobile ? 'w-8 h-8' : 'w-12 h-12'} border-4 border-transparent border-b-[#00E38C] rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-spin`} style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
         </div>
         
-        {/* Loading text with category transition */}
         <div className="text-center max-w-sm">
           <p className={`font-bold text-gray-900 ${isMobile ? 'text-base' : 'text-xl'} mb-2`}>
             Switching Categories
@@ -90,7 +72,6 @@ const CategorySwitchLoader = ({ isMobile = false, previousCategory = '', newCate
           </p>
         </div>
         
-        {/* Animated dots */}
         <div className="flex space-x-1 mt-6">
           <div className="w-2 h-2 bg-[#06EAFC] rounded-full animate-pulse"></div>
           <div className="w-2 h-2 bg-[#06EAFC] rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
@@ -98,7 +79,6 @@ const CategorySwitchLoader = ({ isMobile = false, previousCategory = '', newCate
         </div>
       </div>
       
-      {/* Embedded CSS styles */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; }
@@ -137,13 +117,11 @@ const UnifiedLoadingScreen = ({ isMobile = false }) => {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="flex flex-col items-center max-w-sm mx-auto px-4">
-        {/* Animated spinner - larger for desktop */}
         <div className="relative mb-6">
           <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-[#06EAFC]/10 rounded-full`}></div>
           <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-transparent border-t-[#06EAFC] rounded-full absolute top-0 left-0 animate-spin`}></div>
         </div>
         
-        {/* Loading text with dynamic sizing */}
         <div className="text-center">
           <h3 className={`font-bold text-gray-900 ${isMobile ? 'text-lg' : 'text-xl'} mb-2`}>
             Loading Results
@@ -156,12 +134,10 @@ const UnifiedLoadingScreen = ({ isMobile = false }) => {
           </p>
         </div>
         
-        {/* Progress indicator */}
         <div className="w-full bg-gray-200 rounded-full h-1.5 mt-4">
           <div className="bg-gradient-to-r from-[#06EAFC] to-[#00E38C] h-1.5 rounded-full animate-pulse" style={{ width: '70%' }}></div>
         </div>
         
-        {/* Loading tips for desktop */}
         {!isMobile && (
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-500 mb-2">Tip: You can use filters to narrow down results</p>
@@ -178,7 +154,6 @@ const UnifiedLoadingScreen = ({ isMobile = false }) => {
 };
 
 // ================== UPDATED USE LISTINGS HOOK ==================
-// Matches the Directory's API call exactly
 
 const useListings = (category = null, searchQuery = '', filters = {}) => {
   const [listings, setListings] = useState([]);
@@ -186,31 +161,26 @@ const useListings = (category = null, searchQuery = '', filters = {}) => {
   const [error, setError] = useState(null);
   const [apiResponse, setApiResponse] = useState(null);
 
-  // Helper function to build query string (matches Directory)
   const buildQueryString = (filters = {}) => {
     const params = new URLSearchParams();
     if (filters.category) params.append('category', filters.category);
-    // REMOVED status filter to get all listings (both approved and pending)
     return params.toString();
   };
 
-  // Helper function to fetch listings (matches Directory)
   const getListingsByCategory = async (category, filters = {}) => {
     try {
       const queryFilters = { 
         category: category,
-        // No status filter - get ALL listings
       };
       const queryString = buildQueryString(queryFilters);
       const url = `/listings${queryString ? `?${queryString}` : ''}`;
       
       const response = await axiosInstance.get(url, {
-        timeout: 5000, // Add timeout
+        timeout: 5000,
       });
       
       return response.data;
     } catch (error) {
-      // Check for network errors
       if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
         return {
           status: 'error',
@@ -236,13 +206,11 @@ const useListings = (category = null, searchQuery = '', filters = {}) => {
     }
   };
 
-  // Helper to check if search query looks like a location
   const looksLikeLocation = (query) => {
     if (!query || query.trim() === '') return false;
     
     const queryLower = query.toLowerCase().trim();
     
-    // Common Ibadan areas
     const ibadanAreas = [
       'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'agodi', 
       'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
@@ -250,20 +218,14 @@ const useListings = (category = null, searchQuery = '', filters = {}) => {
       'akinyele', 'mokola hill', 'sango roundabout'
     ];
     
-    // Location suffixes
     const locationSuffixes = [
       'road', 'street', 'avenue', 'drive', 'lane', 'close', 'way', 'estate',
       'area', 'zone', 'district', 'quarters', 'extension', 'phase', 'junction',
       'bypass', 'expressway', 'highway', 'roundabout', 'market', 'station'
     ];
     
-    // Check if query contains any Ibadan area
     const isIbadanArea = ibadanAreas.some(area => queryLower.includes(area));
-    
-    // Check if query contains location suffix
     const hasLocationSuffix = locationSuffixes.some(suffix => queryLower.includes(suffix));
-    
-    // Check if query is short (likely a location name)
     const isShortQuery = queryLower.split(/\s+/).length <= 3 && queryLower.length <= 15;
     
     return isIbadanArea || hasLocationSuffix || isShortQuery;
@@ -275,26 +237,18 @@ const useListings = (category = null, searchQuery = '', filters = {}) => {
         setLoading(true);
         setError(null);
         
-        
-        // ✅ USE THE SAME METHOD AS DIRECTORY
         const data = await getListingsByCategory(category);
-        
         
         if (data && data.status === 'success' && data.data && data.data.listings) {
           const fetchedListings = data.data.listings;
-          if (fetchedListings.length > 0) {
-          }
           setListings(fetchedListings);
         } else if (data && data.status === 'error') {
-          console.error(`${category} API error:`, data.message);
           setError(data.message || 'API Error');
           setListings([]);
         } else {
-          console.warn(`${category} No listings found or unexpected response structure`);
           setListings([]);
         }
       } catch (err) {
-        console.error(`${category} Fetch error:`, err);
         setError(err.message);
         setListings([]);
       } finally {
@@ -341,10 +295,8 @@ const FALLBACK_IMAGES = {
   default: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
 };
 
-// Universal image getter - works for all structures (matches Directory)
 const getCardImages = (item) => {
   try {
-    // Check for images array first
     if (item.images && item.images.length > 0) {
       const images = item.images;
       if (typeof images[0] === 'string') {
@@ -355,7 +307,6 @@ const getCardImages = (item) => {
       }
     }
     
-    // Check for details.roomTypes structure (for hotels)
     if (item.details?.roomTypes?.[0]?.images?.length > 0) {
       const images = item.details.roomTypes[0].images;
       if (images[0]?.url) {
@@ -363,7 +314,6 @@ const getCardImages = (item) => {
       }
     }
     
-    // Use fallback based on category
     const cat = (item.category || "").toLowerCase();
     if (cat.includes("hotel")) return [FALLBACK_IMAGES.hotel];
     if (cat.includes("restaurant")) return [FALLBACK_IMAGES.restaurant];
@@ -372,24 +322,19 @@ const getCardImages = (item) => {
     if (cat.includes("event")) return [FALLBACK_IMAGES.event];
     return [FALLBACK_IMAGES.default];
   } catch (error) {
-    console.error('Error getting card images:', error);
     return [FALLBACK_IMAGES.default];
   }
 };
 
-// UPDATED Universal price getter - HANDLES ALL PRICE STRUCTURES
 const getPriceFromItem = (item) => {
   try {
-    // Check for direct price field first
     if (item.price !== undefined && item.price !== null) {
       return Number(item.price);
     }
     
-    // Check for restaurant price range
     if (item.details?.priceRangePerMeal) {
       const { priceFrom, priceTo } = item.details.priceRangePerMeal;
       
-      // Return the average price for simplicity
       if (priceFrom !== undefined && priceTo !== undefined) {
         return Math.round((Number(priceFrom) + Number(priceTo)) / 2);
       } else if (priceFrom !== undefined) {
@@ -399,7 +344,6 @@ const getPriceFromItem = (item) => {
       }
     }
     
-    // Check for event venue price range (your Ibadan Civic Centre example)
     if (item.details?.priceRange) {
       const { priceFrom, priceTo } = item.details.priceRange;
       
@@ -412,22 +356,18 @@ const getPriceFromItem = (item) => {
       }
     }
     
-    // Check for details.roomTypes[0].pricePerNight (hotels)
     if (item.details?.roomTypes?.[0]?.pricePerNight !== undefined) {
       return Number(item.details.roomTypes[0].pricePerNight);
     }
     
-    // Check for details.pricePerNight (shortlets)
     if (item.details?.pricePerNight !== undefined) {
       return Number(item.details.pricePerNight);
     }
     
-    // Check for details.price (general services)
     if (item.details?.price !== undefined) {
       return Number(item.details.price);
     }
     
-    // Check for details.startingPrice (some services)
     if (item.details?.startingPrice !== undefined) {
       return Number(item.details.startingPrice);
     }
@@ -438,57 +378,46 @@ const getPriceFromItem = (item) => {
   }
 };
 
-// Universal location getter (matches Directory)
 const getLocationFromItem = (item) => {
   try {
-    // Check for location.area
     if (item.location?.area) {
       return item.location.area;
     }
     
-    // Check for direct area field
     if (item.area) {
       return item.area;
     }
     
-    // Check for location.address
     if (item.location?.address) {
       return item.location.address;
     }
     
-    // Check for direct address field
     if (item.address) {
       return item.address;
     }
     
     return "Ibadan";
   } catch (error) {
-    console.error('Error getting location:', error);
     return "Ibadan";
   }
 };
 
-// Universal business name getter (matches Directory)
 const getBusinessName = (item) => {
   try {
-    // Try name field
     if (item.name) {
       return item.name;
     }
     
-    // Try title field
     if (item.title) {
       return item.title;
     }
     
-    // Try vendor business name
     if (item.vendorId?.vendor?.businessName) {
       return item.vendorId.vendor.businessName;
     }
     
     return "Business";
   } catch (error) {
-    console.error('Error getting business name:', error);
     return "Business";
   }
 };
@@ -501,8 +430,8 @@ const getCategoryDisplayName = (category) => {
     'hotel': 'Hotels',
     'restaurant': 'Restaurants',
     'shortlet': 'Shortlets',
-    'vendor': 'Vendors',
-    'services': 'Vendors',
+    'vendor': 'Services',
+    'services': 'Services',
     'event': 'Events'
   };
 
@@ -521,7 +450,7 @@ const getCategoryDisplayName = (category) => {
   return category
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+      .join(" ");
 };
 
 const getLocationDisplayName = (location) => {
@@ -534,7 +463,6 @@ const getLocationDisplayName = (location) => {
     .join(" ");
 };
 
-// Helper to get plural category name
 const getPluralCategoryName = (category) => {
   if (!category) return "Places";
   
@@ -542,19 +470,19 @@ const getPluralCategoryName = (category) => {
   if (categoryLower.includes("hotel")) return "Hotels";
   if (categoryLower.includes("shortlet")) return "Shortlets";
   if (categoryLower.includes("restaurant")) return "Restaurants";
-  if (categoryLower.includes("vendor") || categoryLower.includes("services")) return "Vendors";
+  if (categoryLower.includes("vendor") || categoryLower.includes("services")) return "Services";
   if (categoryLower.includes("tourist")) return "Tourist Centers";
   if (categoryLower.includes("event")) return "Events";
   return category + "s";
 };
 
-// Helper functions for SEO-friendly URLs
 const getCategorySlug = (category) => {
   const categoryMap = {
     'Hotel': 'hotel',
     'Shortlet': 'shortlet', 
     'Restaurant': 'restaurant',
     'Vendor': 'services',
+    'Services': 'services',
     'All Categories': ''
   };
   
@@ -580,14 +508,12 @@ const normalizeLocation = (location) => {
     .replace(/\s+/g, ' ');
 };
 
-// ✅ FIXED: UPDATED SEARCH SUGGESTIONS FOR CATEGORY PAGES (SEO-FRIENDLY URLs)
 const generateSearchSuggestions = (query, listings, activeCategory = '') => {
   if (!query.trim() || !listings.length) return [];
 
   const queryLower = query.toLowerCase().trim();
   const suggestions = [];
 
-  // For category pages, we should focus on suggestions within the current category
   const categoryFilteredListings = activeCategory 
     ? listings.filter(item => {
         const itemCategory = (item.category || '').toLowerCase();
@@ -599,7 +525,6 @@ const generateSearchSuggestions = (query, listings, activeCategory = '') => {
       })
     : listings;
 
-  // Get unique locations from category-filtered listings
   const uniqueLocations = [
     ...new Set(
       categoryFilteredListings
@@ -609,14 +534,12 @@ const generateSearchSuggestions = (query, listings, activeCategory = '') => {
     ),
   ];
 
-  // For category pages, focus on location suggestions within the category
   const locationMatches = uniqueLocations
     .filter((location) => {
       const displayName = getLocationDisplayName(location).toLowerCase();
       return displayName.includes(queryLower);
     })
     .map((location) => {
-      // ✅ FIX 1: Create SEO-friendly URL for category pages
       const categorySlug = getCategorySlug(activeCategory);
       const locationSlug = createSlug(location);
       let seoPath = '';
@@ -641,7 +564,6 @@ const generateSearchSuggestions = (query, listings, activeCategory = '') => {
       };
     });
 
-  // Also check for exact category matches
   if (activeCategory) {
     const categoryLower = activeCategory.toLowerCase();
     if (categoryLower.includes(queryLower) || queryLower.includes(categoryLower)) {
@@ -661,13 +583,11 @@ const generateSearchSuggestions = (query, listings, activeCategory = '') => {
 
   return [...suggestions, ...locationMatches]
     .sort((a, b) => {
-      // Exact matches first
       const aExact = a.title.toLowerCase() === queryLower;
       const bExact = b.title.toLowerCase() === queryLower;
       if (aExact && !bExact) return -1;
       if (!aExact && bExact) return 1;
       
-      // Then by title length (shorter titles first)
       return a.title.length - b.title.length;
     })
     .slice(0, 8);
@@ -761,7 +681,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   const images = getCardImages(item);
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
-  // INCREASED: Mobile 150 → 180, Desktop 170 → 200
   const [imageHeight] = useState(isMobile ? 180 : 200);
   const isFavorite = useIsFavorite(item._id || item.id);
   const cardRef = useRef(null);
@@ -769,61 +688,51 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   const isAuthenticated = useAuthStatus();
   const isPending = item.status === 'pending';
 
+  // ✅ UPDATED: Shows full numbers with Naira symbol
   const formatPrice = (n) => {
-    if (!n || n === 0) return "0";
+    if (!n || n === 0) return "₦0";
     const num = Number(n);
     
-    // Format with thousand separators
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-    }
-    
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
-    }
-    
-    return num.toLocaleString("en-US", {
+    // Return full number with thousand separators and Naira symbol
+    return `₦${num.toLocaleString("en-US", {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    });
+    })}`;
   };
 
+  // ✅ UPDATED: With Naira symbol
   const getPriceText = () => {
-    // Special handling for restaurants with price ranges
     if (category === 'restaurant' && item.details?.priceRangePerMeal) {
       const { priceFrom, priceTo } = item.details.priceRangePerMeal;
       
       if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
-        return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
+        return `${formatPrice(priceFrom)} - ${formatPrice(priceTo)}`;
       } else if (priceFrom !== undefined) {
-        return `From ₦${formatPrice(priceFrom)}`;
+        return `From ${formatPrice(priceFrom)}`;
       }
     }
     
-    // Special handling for event venues with price ranges
     if (category === 'event' && item.details?.priceRange) {
       const { priceFrom, priceTo } = item.details.priceRange;
       
       if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
-        return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
+        return `${formatPrice(priceFrom)} - ${formatPrice(priceTo)}`;
       } else if (priceFrom !== undefined) {
-        return `From ₦${formatPrice(priceFrom)}`;
+        return `From ${formatPrice(priceFrom)}`;
       }
     }
     
-    // For other categories or without price range
     const price = getPriceFromItem(item) || 0;
     const formattedPrice = formatPrice(price);
     
     if (price === 0) {
-      // Check if it's a service that might have contact for pricing
       if (category === 'services' || category === 'vendor') {
         return 'Contact for pricing';
       }
       return 'Price not available';
     }
     
-    return `₦${formattedPrice}`;
+    return formattedPrice; // ✅ With Naira symbol
   };
 
   const getPerText = () => {
@@ -846,10 +755,9 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
       return "per event";
     }
 
-    // For services/vendors, show different text or nothing
     if (category.toLowerCase().includes("services") || 
         category.toLowerCase().includes("vendor")) {
-      return ""; // Services might have custom pricing
+      return "";
     }
 
     return "per guest";
@@ -876,65 +784,46 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
     }
   };
 
+  // ✅ UPDATED TO USE LOGIN PAGE TOAST DESIGN
   const showToast = useCallback(
     (message, type = "success") => {
-      const existingToast = document.getElementById("toast-notification");
-      if (existingToast) {
-        existingToast.remove();
-      }
-
-      const toast = document.createElement("div");
-      toast.id = "toast-notification";
-      toast.className = `fixed z-[9999] px-4 py-3 rounded-lg shadow-lg border ${
-        type === "success"
-          ? "bg-green-50 border-green-200 text-green-800"
-          : "bg-blue-50 border-blue-200 text-blue-800"
-      }`;
-
-      toast.style.top = isMobile ? "15px" : "15px";
-      toast.style.right = "15px";
-      toast.style.maxWidth = "320px";
-      toast.style.animation = "slideInRight 0.3s ease-out forwards";
-
-      toast.innerHTML = `
-      <div class="flex items-start gap-3">
-        <div class="${
-          type === "success"
-            ? "text-green-600"
-            : "text-blue-600"
-        } mt-0.5">
-          ${
-            type === "success"
-              ? '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>'
-              : '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>'
+      const backgroundColor = "#FFFFFF";
+      const textColor = "#1C1C1E";
+      const iconColor = type === "success" ? "#34C759" : "#FF3B30";
+      const Icon = type === "success" ? MdCheckCircle : FaTimes;
+      
+      return toast(
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Icon size={28} color={iconColor} />
+          <span style={{
+            fontWeight: 500,
+            fontSize: '16px',
+            color: textColor,
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+          }}>
+            {message}
+          </span>
+        </div>,
+        {
+          position: "top-right",
+          autoClose: 2500,
+          hideProgressBar: true,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          transition: Slide,
+          style: {
+            background: backgroundColor,
+            color: textColor,
+            borderRadius: "12px",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+            padding: "12px 20px",
+            minWidth: "240px"
           }
-        </div>
-        <div class="flex-1">
-          <p class="font-medium">${message}</p>
-          <p class="text-sm opacity-80 mt-1">${businessName}</p>
-        </div>
-        <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70 transition-opacity">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-          </svg>
-        </button>
-      </div>
-    `;
-
-      document.body.appendChild(toast);
-
-      setTimeout(() => {
-        if (toast.parentElement) {
-          toast.style.animation = "slideOutRight 0.3s ease-in forwards";
-          setTimeout(() => {
-            if (toast.parentElement) {
-              toast.remove();
-            }
-          }, 300);
         }
-      }, 3000);
+      );
     },
-    [isMobile, businessName]
+    []
   );
 
   const handleFavoriteClick = useCallback(
@@ -1090,10 +979,10 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
       ref={cardRef}
       className="bg-white rounded-[13px] overflow-hidden flex-shrink-0 font-manrope relative group flex flex-col cursor-pointer hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] transition-all duration-200"
       style={{
-        width: isMobile ? "165px" : "220px",
+        width: isMobile ? "180px" : "220px",
         height: isMobile ? "310px" : "350px",
         minWidth: isMobile ? "165px" : "100px",
-        maxWidth: isMobile ? "165px" : "450px",
+        maxWidth: isMobile ? "250px" : "450px",
         minHeight: isMobile ? "310px" : "350px",
         maxHeight: isMobile ? "310px" : "350px",
       }}
@@ -1105,7 +994,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
         </div>
       )}
 
-      {/* Image with INCREASED FIXED dimensions */}
       <div
         className="relative overflow-hidden rounded-xl"
         style={{
@@ -1132,7 +1020,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
           loading="lazy"
         />
 
-        {/* Guest favorite badge */}
         {!isPending && (
           <div className="absolute top-2 left-2 bg-white px-1.5 py-1 rounded-md shadow-sm flex items-center gap-1">
             <span className="text-[9px] font-semibold text-gray-900">
@@ -1141,7 +1028,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
           </div>
         )}
 
-        {/* Heart icon */}
         <button
           onClick={handleFavoriteClick}
           disabled={isProcessing}
@@ -1174,7 +1060,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
         </button>
       </div>
 
-      {/* Text Content */}
       <div className="flex-1 p-2.5 flex flex-col">
         <h3 className="font-semibold text-gray-900 leading-tight line-clamp-2 text-sm mb-1">
           {businessName}
@@ -1186,11 +1071,10 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
               {locationText}
             </p>
 
-            {/* Price and Ratings */}
             <div className="flex items-center justify-between mb-2">
               <div className="flex flex-col">
                 <span className="text-[12px] font-manrope text-gray-900">
-                  {priceText}
+                  {priceText} {/* ✅ Now with Naira symbol */}
                 </span>
                 {priceUnit && (
                   <span className="text-[10px] text-gray-500 mt-0.5">
@@ -1199,7 +1083,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
                 )}
               </div>
 
-              {/* Ratings */}
               <div className="flex items-center gap-1">
                 <div className="flex items-center gap-1 text-gray-800 text-xs">
                   <FontAwesomeIcon icon={faStar} className="text-black" />
@@ -1209,16 +1092,13 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
             </div>
           </div>
 
-          {/* Bottom row: Category tag and Saved indicator */}
           <div className="flex items-center justify-between mt-auto pt-2">
-            {/* Category tag */}
             <div>
               <span className="inline-block text-[10px] text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
                 {subcategory || capitalizeFirst(category)}
               </span>
             </div>
 
-            {/* Saved indicator badge */}
             {isFavorite && !isProcessing && (
               <span className="inline-flex items-center gap-1 text-[10px] text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
                 <svg
@@ -1239,13 +1119,10 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
         </div>
       </div>
 
-      {/* Hover overlay effect */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none"></div>
     </div>
   );
 };
-
-// ================== CATEGORY BUTTONS ==================
 
 const CategoryButtons = ({ selectedCategory, onCategoryClick, isSwitchingCategory = false }) => {
   const [isMobile, setIsMobile] = useState(false);
@@ -1286,14 +1163,14 @@ const CategoryButtons = ({ selectedCategory, onCategoryClick, isSwitchingCategor
     },
     { 
       key: "vendor", 
-      label: "Vendor", 
-      displayName: "Vendors",
+      label: "Services", 
+      displayName: "Services",
       icon: FaUserCircle
     }
   ];
 
   return (
-    <div className="mt-4  md:mt-6 mb-4 md:mb-6 relative">
+    <div className="mt-4 md:mt-6 mb-4 md:mb-6 relative">
       {isSwitchingCategory && (
         <div className="absolute inset-0 bg-white/80 backdrop-blur-xs z-10 rounded-xl flex items-center justify-center">
           <div className="flex flex-col items-center">
@@ -1304,9 +1181,9 @@ const CategoryButtons = ({ selectedCategory, onCategoryClick, isSwitchingCategor
       )}
       
       <div className="relative">
-        {/* Mobile: Horizontal scroll */}
-        <div className="md:hidden overflow-x-auto scrollbar-hide pb-2">
-          <div className="flex space-x-2  pl-0 pr-1">
+        {/* MOBILE BUTTONS - PERFECTLY FITTED, NO EXCESS PADDING */}
+        <div className="md:hidden overflow-x-auto scrollbar-hide pb-2 px-4">
+          <div className="flex space-x-2 min-w-max">
             {buttonConfigs.map((button) => {
               const isSelected = selectedCategory === button.key;
               
@@ -1316,16 +1193,20 @@ const CategoryButtons = ({ selectedCategory, onCategoryClick, isSwitchingCategor
                   onClick={() => onCategoryClick(button.key)}
                   disabled={isSwitchingCategory}
                   className={`
-                    flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-full
+                    flex items-center justify-center gap-1.5 rounded-full
                     whitespace-nowrap transition-all duration-200 font-medium
                     ${isSelected 
                       ? 'bg-[#06f49f] text-white shadow-sm'
                       : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
                     }
                     ${isSwitchingCategory ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}
-                    text-xs
+                    text-xs font-manrope
                   `}
-                  style={{ minWidth: 'auto' }}
+                  style={{ 
+                    minWidth: 'auto',
+                    padding: '8px 14px', // Symmetrical: 14px both sides (fitted)
+                    marginRight: '6px'
+                  }}
                 >
                   {button.icon === FaUserCircle ? (
                     <button.icon className={`${isSelected ? 'text-white' : 'text-gray-500'} text-xs`} />
@@ -1335,14 +1216,14 @@ const CategoryButtons = ({ selectedCategory, onCategoryClick, isSwitchingCategor
                       className={`${isSelected ? 'text-white' : 'text-gray-500'} text-xs`}
                     />
                   )}
-                  <span>{button.displayName}</span>
+                  <span className="font-medium">{button.displayName}</span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Desktop: Grid layout */}
+        {/* DESKTOP BUTTONS */}
         <div className="hidden md:block">
           <div className="flex gap-2 justify-center">
             {buttonConfigs.map((button) => {
@@ -1354,15 +1235,19 @@ const CategoryButtons = ({ selectedCategory, onCategoryClick, isSwitchingCategor
                   onClick={() => onCategoryClick(button.key)}
                   disabled={isSwitchingCategory}
                   className={`
-                    flex items-center justify-center gap-2 px-3 py-2.5 rounded-[15px]
+                    flex items-center justify-center gap-2 rounded-[15px]
                     transition-all duration-200 font-medium
                     ${isSelected 
                       ? 'bg-[#06f49f] text-white shadow-sm'
                       : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
                     }
                     ${isSwitchingCategory ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}
-                    ${isMd ? 'text-sm px-3 py-2.5' : 'text-base px-4 py-3'}
                   `}
+                  style={{
+                    padding: isMd 
+                      ? '10px 20px'   // Medium screens: symmetrical
+                      : '12px 24px',  // Large screens: symmetrical
+                  }}
                 >
                   {button.icon === FaUserCircle ? (
                     <button.icon className={`${isSelected ? 'text-white' : 'text-gray-500'} ${isMd ? 'text-sm' : 'text-base'}`} />
@@ -1372,7 +1257,7 @@ const CategoryButtons = ({ selectedCategory, onCategoryClick, isSwitchingCategor
                       className={`${isSelected ? 'text-white' : 'text-gray-500'} ${isMd ? 'text-sm' : 'text-base'}`}
                     />
                   )}
-                  <span className={isMd ? 'text-sm' : 'text-base'}>
+                  <span className={`${isMd ? 'text-sm' : 'text-base'} font-medium ml-1`}>
                     {button.displayName}
                   </span>
                 </button>
@@ -1443,7 +1328,6 @@ const FilterSidebar = ({
     }
   }, [currentFilters, isInitialized]);
 
-  // Handle location change - APPLIES IMMEDIATELY
   const handleLocationChange = (location) => {
     const updatedFilters = {
       ...localFilters,
@@ -1531,7 +1415,6 @@ const FilterSidebar = ({
         </div>
       )}
 
-      {/* LOCATION SECTION */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("location")}
@@ -1642,14 +1525,14 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* PRICE RANGE SECTION */}
+      {/* UPDATED PRICE RANGE SECTION - REMOVED NAIRA SYMBOLS */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("price")}
           className="w-full flex justify-between items-center mb-3 cursor-pointer"
         >
           <div className="flex items-center gap-2">
-            <FontAwesomeIcon icon={faDollarSign} className="text-yellow-500" />
+            {/* Removed Naira symbol */}
             <h4 className="font-semibold text-gray-900 text-base">
               Price Range
             </h4>
@@ -1673,15 +1556,13 @@ const FilterSidebar = ({
                   Min Price
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                    #
-                  </span>
+                  {/* Removed Naira symbol */}
                   <input
                     type="number"
-                    placeholder="2,500"
+                    placeholder="2500"
                     value={localFilters.priceRange.min}
                     onChange={(e) => handlePriceChange("min", e.target.value)}
-                    className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-text"
+                    className="w-full pl-3 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-text"
                   />
                 </div>
               </div>
@@ -1691,15 +1572,13 @@ const FilterSidebar = ({
                   Max Price
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                    #
-                  </span>
+                  {/* Removed Naira symbol */}
                   <input
                     type="number"
-                    placeholder="50,000"
+                    placeholder="50000"
                     value={localFilters.priceRange.max}
                     onChange={(e) => handlePriceChange("max", e.target.value)}
-                    className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-text"
+                    className="w-full pl-3 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-text"
                   />
                 </div>
               </div>
@@ -1725,7 +1604,6 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* RATING SECTION */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("rating")}
@@ -1806,7 +1684,6 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* CLEAR ALL FILTERS BUTTON */}
       {(localFilters.locations.length > 0 || 
         localFilters.priceRange.min || 
         localFilters.priceRange.max || 
@@ -1901,7 +1778,6 @@ const FilterSidebar = ({
 
 // ================== UPDATED SEARCH MODALS ==================
 
-// ✅ Desktop Search Suggestions for Category Pages (SEO-friendly URLs)
 const DesktopSearchSuggestions = ({
   searchQuery,
   listings,
@@ -2017,7 +1893,6 @@ const DesktopSearchSuggestions = ({
 
             <button
               onClick={() => {
-                // Create SEO-friendly URL for general search
                 const categorySlug = getCategorySlug(activeCategory);
                 const locationSlug = createSlug(searchQuery.trim());
                 let seoPath = '';
@@ -2056,7 +1931,6 @@ const DesktopSearchSuggestions = ({
   );
 };
 
-// ✅ Mobile Search Modal for Category Pages (SEO-friendly URLs)
 const MobileSearchModal = ({
   searchQuery,
   listings,
@@ -2093,7 +1967,6 @@ const MobileSearchModal = ({
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && inputValue.trim()) {
-      // Create SEO-friendly URL for Enter key press
       const categorySlug = getCategorySlug(activeCategory);
       const locationSlug = createSlug(inputValue.trim());
       let seoPath = '';
@@ -2173,12 +2046,12 @@ const MobileSearchModal = ({
                 value={inputValue}
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
-                placeholder={`Search ${activeCategory || 'hotels, restaurants, shortlets, vendors'}...`}
+                placeholder={`Search ${activeCategory || 'hotels, restaurants, shortlets, services'}...`}
                 autoFocus
               />
               {inputValue && (
                 <button
-                  onClick={handleClearInput}
+                  onClick={() => handleClearInput}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                 >
                   <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
@@ -2243,7 +2116,6 @@ const MobileSearchModal = ({
 
                   <button
                     onClick={() => {
-                      // Create SEO-friendly URL for general search
                       const categorySlug = getCategorySlug(activeCategory);
                       const locationSlug = createSlug(inputValue.trim());
                       let seoPath = '';
@@ -2322,7 +2194,7 @@ const MobileSearchModal = ({
                 Start searching
               </h3>
               <p className="text-gray-600 text-center max-w-sm mb-10">
-                Search for hotels, restaurants, shortlets, and vendors in Ibadan
+                Search for hotels, restaurants, shortlets, and services in Ibadan
               </p>
 
               <div className="w-full max-w-md px-4">
@@ -2330,7 +2202,7 @@ const MobileSearchModal = ({
                   Popular searches
                 </p>
                 <div className="flex flex-wrap gap-2 justify-center">
-                  {["Hotels", "Restaurants", "Shortlets", "Vendors"].map((term) => (
+                  {["Hotels", "Restaurants", "Shortlets", "Services"].map((term) => (
                     <button
                       key={term}
                       onClick={() => {
@@ -2365,15 +2237,12 @@ const CategoryResults = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // ✅ Determine category from URL path - HANDLE BOTH PATTERNS
   const path = location.pathname;
-  let activeCategory = category || 'hotel'; // Default fallback
+  let activeCategory = category || 'hotel';
   
-  // Check for SEO-friendly routes like /hotel-in-agbowo
   const seoRouteMatch = path.match(/\/([a-z]+)-in-([a-z-]+)/i);
   if (seoRouteMatch) {
     const [, categorySlug] = seoRouteMatch;
-    // Map URL slugs to actual category names
     const slugToCategory = {
       'hotel': 'hotel',
       'restaurant': 'restaurant',
@@ -2383,7 +2252,6 @@ const CategoryResults = () => {
     };
     activeCategory = slugToCategory[categorySlug.toLowerCase()] || categorySlug;
   }
-  // Check for direct routes
   else if (path === '/hotel') {
     activeCategory = 'hotel';
   } else if (path === '/restaurant') {
@@ -2397,7 +2265,6 @@ const CategoryResults = () => {
   const searchQuery = searchParams.get("q") || "";
   const urlLocation = searchParams.get("location.area") || searchParams.get("location");
   
-  // Category switching loader states
   const [isSwitchingCategory, setIsSwitchingCategory] = useState(false);
   const [previousCategory, setPreviousCategory] = useState('');
   const [newCategory, setNewCategory] = useState('');
@@ -2428,7 +2295,6 @@ const CategoryResults = () => {
   const resultsRef = useRef(null);
   const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
 
-  // ✅ UPDATED: Use the new useListings hook that matches Directory
   const { listings, loading, error, apiResponse } = useListings(activeCategory, searchQuery, activeFilters);
 
   useEffect(() => {
@@ -2537,7 +2403,6 @@ const CategoryResults = () => {
     };
 
     const locationParams = [];
-    // Check for location in URL
     if (urlLocation) {
       const displayName = getLocationDisplayName(urlLocation);
       if (displayName !== "All Locations" && displayName !== "All") {
@@ -2589,11 +2454,9 @@ const CategoryResults = () => {
     }, 50);
   };
 
-  // ✅ Updated search submit to handle SEO-friendly URLs
   const handleSearchSubmit = (e) => {
     e?.preventDefault();
     if (localSearchQuery.trim()) {
-      // Create SEO-friendly slug
       const categorySlug = getCategorySlug(activeCategory);
       const locationSlug = createSlug(localSearchQuery.trim());
       
@@ -2609,10 +2472,8 @@ const CategoryResults = () => {
         seoPath = '/search';
       }
       
-      // Add query parameters for filters, dates, etc.
       const queryParams = new URLSearchParams();
       
-      // Add any existing date parameters if available
       const checkInDate = searchParams.get("checkInDate");
       const checkOutDate = searchParams.get("checkOutDate");
       const guests = searchParams.get("guests");
@@ -2624,7 +2485,6 @@ const CategoryResults = () => {
       queryParams.append("q", localSearchQuery.trim());
       queryParams.append("cat", activeCategory);
       
-      // Add filter parameters
       if (activeFilters.locations.length > 0) {
         queryParams.append("location.area", activeFilters.locations[0]);
       }
@@ -2673,14 +2533,12 @@ const CategoryResults = () => {
         }
       }
 
-      // Clear existing location params
       for (const [key] of searchParams.entries()) {
         if (key.startsWith("location")) {
           params.delete(key);
         }
       }
 
-      // Add new location filters
       newFilters.locations.forEach((locationDisplayName, index) => {
         const selectedLocation = allLocations.find(
           (loc) => getLocationDisplayName(loc) === locationDisplayName
@@ -2692,7 +2550,6 @@ const CategoryResults = () => {
         }
       });
 
-      // Keep category - use activeCategory
       if (activeCategory) {
         params.set("category", activeCategory);
       }
@@ -2701,9 +2558,7 @@ const CategoryResults = () => {
     }
   };
 
-  // ✅ Category switching with SEO-friendly URLs
   const handleCategoryButtonClick = (categoryKey) => {
-    // Set loading state
     setIsSwitchingCategory(true);
     const currentCategory = activeCategory || "all";
     setPreviousCategory(getCategoryDisplayName(currentCategory));
@@ -2712,14 +2567,12 @@ const CategoryResults = () => {
       'hotel': 'Hotels',
       'restaurant': 'Restaurants',
       'shortlet': 'Shortlets',
-      'vendor': 'Vendors'
+      'vendor': 'Services'
     };
     setNewCategory(categoryMap[categoryKey] || categoryKey);
     
-    // Navigate to SEO-friendly direct route
     navigate(`/${categoryKey}`);
     
-    // Auto-hide loader after 1.5 seconds
     setTimeout(() => {
       setIsSwitchingCategory(false);
     }, 1500);
@@ -2751,14 +2604,12 @@ const CategoryResults = () => {
         params.set("q", searchQuery);
       }
     }
-    // Keep category - use activeCategory
     if (activeCategory) {
       params.set("category", activeCategory);
     }
     setSearchParams(params);
   };
 
-  // ✅ Dynamic search header like search results page
   const getPageTitle = () => {
     const locationParams = [];
     if (activeFilters.locations.length > 0) {
@@ -2816,7 +2667,6 @@ const CategoryResults = () => {
     }
   };
 
-  // ✅ Get accurate count text like search results page
   const getAccurateCountText = () => {
     const total = listings.length;
     const categoryTitle = getCategoryDisplayName(activeCategory);
@@ -2857,14 +2707,13 @@ const CategoryResults = () => {
     };
   }, [showDesktopFilters]);
 
-  // Auto-hide loader timeout
   useEffect(() => {
     let timeoutId;
     
     if (isSwitchingCategory) {
       timeoutId = setTimeout(() => {
         setIsSwitchingCategory(false);
-      }, 5000); // Auto-hide after 5 seconds max
+      }, 5000);
     }
     
     return () => {
@@ -2877,13 +2726,10 @@ const CategoryResults = () => {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const currentListings = listings.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  // ================== UPDATED LOADING CONDITION ==================
-  // Loading state for all screen sizes (both mobile and desktop)
   if (loading && !isSwitchingCategory) {
     return <UnifiedLoadingScreen isMobile={isMobile} />;
   }
 
-  // ================== UPDATED ERROR HANDLING ==================
   if (error) {
     const isNetworkError = error?.includes?.('timeout') || error?.includes?.('Network Error') || error?.includes?.('Failed to load');
     const errorMessage = isNetworkError 
@@ -2894,7 +2740,6 @@ const CategoryResults = () => {
       <div className="min-h-screen">
         <Header />
         <div className="flex flex-col mt-8 items-center justify-center min-h-[60vh] px-4">
-          {/* Error Icon/Graphic */}
           <div className="mb-6 p-4 rounded-full bg-red-50 border border-red-100">
             <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
               <svg 
@@ -2913,12 +2758,10 @@ const CategoryResults = () => {
             </div>
           </div>
           
-          {/* Error Title */}
           <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 font-manrope">
             {isNetworkError ? "Resource Loading Error" : "Vendor Not Found"}
           </h1>
           
-          {/* Error Description */}
           <p className="text-gray-600 text-center mb-6 max-w-md font-manrope">
             {errorMessage}
             {isNetworkError && (
@@ -2928,9 +2771,7 @@ const CategoryResults = () => {
             )}
           </p>
           
-          {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3">
-            {/* Refresh Button */}
             <button 
               onClick={() => window.location.reload()}
               className="px-6 py-3 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors cursor-pointer font-medium flex items-center gap-2"
@@ -2945,7 +2786,7 @@ const CategoryResults = () => {
                   strokeLinecap="round" 
                   strokeLinejoin="round" 
                   strokeWidth={2} 
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01 fifteen.357-2m15.357 2H15" 
                 />
               </svg>
               Refresh Page
@@ -2957,7 +2798,6 @@ const CategoryResults = () => {
     );
   }
 
-  // Get active category name for search suggestions
   const activeCategoryName = getCategoryDisplayName(activeCategory);
 
   return (
@@ -2970,7 +2810,6 @@ const CategoryResults = () => {
         image="https://ajani.ai/images/category-og.jpg"
       />
 
-      {/* Category Switch Loader */}
       {isSwitchingCategory && (
         <CategorySwitchLoader 
           isMobile={isMobile} 
@@ -2982,7 +2821,6 @@ const CategoryResults = () => {
       <Header />
 
       <main className="pb-8 w-full mx-auto max-w-[100vw] pt-16">
-        {/* Search Section - Updated with dynamic header */}
         <div className="z-30 py-4 md:py-6 relative w-full" id="search-section">
           <div 
             className={`
@@ -2997,13 +2835,11 @@ const CategoryResults = () => {
                   <div className="w-full relative max-w-6xl" ref={searchContainerRef}>
                     <form onSubmit={handleSearchSubmit}>
                       <div className="flex items-center justify-center w-full">
-                        {/* DESKTOP SEARCH BAR - Similar to search results page */}
                         {!isMobile ? (
                           <div className="hidden lg:block w-full max-w-6xl mx-auto">
                             <div className="relative w-full">
                               <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4">
                                 <div className="flex items-center gap-4">
-                                  {/* Search Input */}
                                   <div className="flex-1">
                                     <div className="relative">
                                       <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
@@ -3033,7 +2869,6 @@ const CategoryResults = () => {
                                     </div>
                                   </div>
                                   
-                                  {/* Search Button */}
                                   <button
                                     onClick={handleSearchSubmit}
                                     className="px-6 py-3 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold rounded-lg hover:from-[#00c97b] hover:to-teal-600 transition-all duration-300 cursor-pointer"
@@ -3046,7 +2881,6 @@ const CategoryResults = () => {
                             </div>
                           </div>
                         ) : (
-                          // MOBILE - Search input with similar styling to search results page
                           <div 
                             onClick={() => {
                               handleSearchFocus();
@@ -3074,7 +2908,6 @@ const CategoryResults = () => {
             </div>
           </div>
 
-          {/* Category Buttons with switching loader - MADE SWIPABLE */}
           <div 
             className={`
               mt-4 md:mt-6
@@ -3089,7 +2922,6 @@ const CategoryResults = () => {
           </div>
         </div>
 
-        {/* ✅ Updated Search Modals for Category Pages with SEO-friendly URLs */}
         {!isMobile && (
           <DesktopSearchSuggestions
             searchQuery={localSearchQuery}
@@ -3138,21 +2970,19 @@ const CategoryResults = () => {
           />
         )}
 
-        {/* Main Content */}
         <div 
           className={`
             flex flex-col lg:flex-row gap-6 w-full
             ${isMobile ? 'pl-0 pr-0' : 'px-4 md:px-6 lg:px-8'}
           `}
         >
-          {/* Desktop Filter Sidebar - Fixed with 20% width reduction on large screens */}
           {!isMobile && filtersInitialized && (
             <div 
               className="lg:w-1/4"
               style={{
                 minWidth: '250px',
                 maxWidth: '280px',
-                width: isMobile ? '100%' : 'calc(25% - 20%)', // Reduce by 20% on large screens
+                width: isMobile ? '100%' : 'calc(25% - 20%)',
                 flexShrink: 0,
                 position: 'sticky',
                 top: '100px',
@@ -3169,7 +2999,6 @@ const CategoryResults = () => {
             </div>
           )}
 
-          {/* Results Content - Fixed width and padding */}
           <div 
             className="lg:w-3/4 w-full"
             style={{
@@ -3179,8 +3008,7 @@ const CategoryResults = () => {
             }}
             ref={resultsRef}
           >
-            {/* Page Header - Updated with dynamic header like search results page */}
-            <div className="mb-6 w-full">
+            <div className="mb-6 w-full mr">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
                 <div className="flex-1 flex items-center gap-3 w-full">
                   {isMobile && filtersInitialized && (
@@ -3193,7 +3021,6 @@ const CategoryResults = () => {
                           {getAccurateCountText()}
                         </p>
                       </div>
-                      {/* REORDERED: Filter icon first, then sort by relevance */}
                       <div className="flex items-center gap-2">
                         <button
                           onClick={toggleMobileFilters}
@@ -3236,7 +3063,7 @@ const CategoryResults = () => {
                               };
                               handleFilterChange(updatedFilters);
                             }}
-                            className="appearance-none px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-8"
+                            className="appearance-none px-3 py-2  text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-8"
                           >
                             <option value="relevance">Sort by: Relevance</option>
                             <option value="price_low">Price: Low to High</option>
@@ -3264,16 +3091,15 @@ const CategoryResults = () => {
                 </div>
                 {!isMobile && filtersInitialized && (
                   <div className="flex items-center gap-2">
-                   
                     {!isMobile && (
                       <div className="relative">
                         <select
                           value={activeFilters.sortBy}
                           onChange={(e) => {
                             const updatedFilters = {
-                              ...activeFilters,
-                              sortBy: e.target.value,
-                            };
+                                ...activeFilters,
+                                sortBy: e.target.value,
+                              };
                             handleFilterChange(updatedFilters);
                           }}
                           className="appearance-none px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-0 cursor-pointer pr-8 bg-transparent border-0"
@@ -3299,7 +3125,6 @@ const CategoryResults = () => {
               </div>
             </div>
 
-            {/* Results Display - Fixed grid layout */}
             <div className="space-y-6 w-full">
               {listings.length === 0 && filtersInitialized && (
                 <div className="text-center py-12 bg-white rounded-xl border border-gray-200 w-full">
@@ -3330,7 +3155,6 @@ const CategoryResults = () => {
                             paddingLeft: "0",
                             paddingRight: "0",
                             marginRight: "0",
-                            // Add space between cards
                             gap: "4px"
                           }}
                         >
@@ -3348,7 +3172,6 @@ const CategoryResults = () => {
                                 />
                               </div>
                             ))}
-                          {/* Add extra space at the end for better scrolling */}
                           <div className="flex-shrink-0 w-2"></div>
                         </div>
                       ))}
@@ -3365,11 +3188,11 @@ const CategoryResults = () => {
                           key={listing._id || index}
                           style={{
                             width: '240px',
-                            height: '350px', // Updated to 350px to match increased height
+                            height: '350px',
                             minWidth: '240px',
                             maxWidth: '240px',
-                            minHeight: '350px', // Updated to 350px
-                            maxHeight: '350px' // Updated to 350px
+                            minHeight: '350px',
+                            maxHeight: '350px'
                           }}
                         >
                           <SearchResultBusinessCard
@@ -3434,8 +3257,9 @@ const CategoryResults = () => {
       </main>
 
       <Footer />
+      
+      <ToastContainer />
 
-      {/* Custom styles for fixed layout with UPDATED IMAGE HEIGHTS */}
       <style jsx global>{`
         html {
           scroll-behavior: smooth;
@@ -3448,7 +3272,6 @@ const CategoryResults = () => {
 
         .search-result-card img {
           width: 100% !important;
-          /* UPDATED: Desktop 170 → 200 */
           height: 200px !important;
           min-height: 200px !important;
           max-height: 200px !important;
@@ -3459,7 +3282,6 @@ const CategoryResults = () => {
         
         @media (max-width: 768px) {
           .search-result-card img {
-            /* UPDATED: Mobile 150 → 180 */
             height: 180px !important;
             min-height: 180px !important;
             max-height: 180px !important;
@@ -3472,7 +3294,6 @@ const CategoryResults = () => {
         
         .search-result-card > div:first-child {
           width: 100% !important;
-          /* UPDATED: Desktop 170 → 200 */
           height: 200px !important;
           min-height: 200px !important;
           max-height: 200px !important;
@@ -3480,25 +3301,22 @@ const CategoryResults = () => {
         
         @media (max-width: 768px) {
           .search-result-card > div:first-child {
-            /* UPDATED: Mobile 150 → 180 */
             height: 180px !important;
             min-height: 180px !important;
             max-height: 180px !important;
           }
         }
 
-        /* Fixed container styles */
         main {
           box-sizing: border-box;
         }
 
-        /* Remove right padding for mobile only */
         @media (max-width: 768px) {
           main, 
           .pl-3.pr-0,
           [class*="px-"] {
             padding-right: 0 !important;
-            padding-left: 12px !important; /* Reduced from 16px to 12px */
+            padding-left: 12px !important;
           }
           
           .w-full {
@@ -3506,26 +3324,22 @@ const CategoryResults = () => {
             margin-right: 0 !important;
           }
           
-          /* Fix for the horizontal scroll container */
           .overflow-x-auto {
             padding-right: 0 !important;
             padding-left: 0 !important;
           }
           
-          /* Make buttons swipable with momentum scrolling */
           .scrollbar-hide {
             -webkit-overflow-scrolling: touch !important;
             scroll-snap-type: x mandatory;
           }
           
-          /* Category buttons container should be swipable */
           .md\\:hidden .overflow-x-auto {
             -webkit-overflow-scrolling: touch !important;
           }
           
-          /* Ensure category buttons can be swiped */
           .min-w-max {
-            padding-right: 12px; /* Reduced padding */
+            padding-right: 12px;
           }
         }
 
@@ -3539,7 +3353,7 @@ const CategoryResults = () => {
           }
           
           .lg\\:w-1\\/4 {
-            width: 20% !important; /* 20% reduction from 25% */
+            width: 20% !important;
           }
           
           .lg\\:w-3\\/4 {

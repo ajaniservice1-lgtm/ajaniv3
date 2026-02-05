@@ -4541,7 +4541,7 @@ const renderCategorySpecificFields = () => {
                               };
                               handleFilterChange(updatedFilters);
                             }}
-                            className="appearance-none px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-8"
+                            className="appearance-none px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-12"
                           >
                             <option value="relevance">Sort by: Relevance</option>
                             <option value="price_low">Price: Low to High</option>
