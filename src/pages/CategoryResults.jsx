@@ -3008,122 +3008,131 @@ const CategoryResults = () => {
             }}
             ref={resultsRef}
           >
-            <div className="mb-6 w-full mr">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
-                <div className="flex-1 flex items-center gap-3 w-full">
-                  {isMobile && filtersInitialized && (
-                    <div className="flex items-center justify-between w-full" style={{ paddingRight: 0 }}>
-                      <div className="text-left">
-                        <h1 className="text-xl font-bold text-[#00065A] mb-1">
-                          {getPageTitle()}
-                        </h1>
-                        <p className="text-sm text-gray-600">
-                          {getAccurateCountText()}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={toggleMobileFilters}
-                          className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm cursor-pointer"
-                          aria-label="Open filters"
-                          ref={filterButtonRef}
-                        >
-                          <div className="relative">
-                            <PiSliders className="text-gray-600 text-lg" />
-                            {Object.keys(activeFilters).some((key) => {
-                              if (key === "priceRange") {
-                                return (
-                                  activeFilters.priceRange.min ||
-                                  activeFilters.priceRange.max
-                                );
-                              }
-                              return Array.isArray(activeFilters[key])
-                                ? activeFilters[key].length > 0
-                                : activeFilters[key] !== "relevance";
-                            }) && (
-                              <span className="absolute -top-1 -right-1 bg-[#06EAFC] text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
-                                {Object.values(activeFilters).reduce((acc, val) => {
-                                  if (Array.isArray(val)) return acc + val.length;
-                                  if (typeof val === "object" && val !== null) {
-                                    return acc + (val.min || val.max ? 1 : 0);
-                                  }
-                                  return acc + (val && val !== "relevance" ? 1 : 0);
-                                }, 0)}
-                              </span>
-                            )}
-                          </div>
-                        </button>
-                        <div className="relative">
-                          <select
-                            value={activeFilters.sortBy}
-                            onChange={(e) => {
-                              const updatedFilters = {
-                                ...activeFilters,
-                                sortBy: e.target.value,
-                              };
-                              handleFilterChange(updatedFilters);
-                            }}
-                            className="appearance-none px-3 py-2  text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-8"
-                          >
-                            <option value="relevance">Sort by: Relevance</option>
-                            <option value="price_low">Price: Low to High</option>
-                            <option value="price_high">Price: High to Low</option>
-                            <option value="rating">Highest Rated</option>
-                            <option value="name">Name: A to Z</option>
-                          </select>
-                          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                            <FontAwesomeIcon icon={faChevronDown} className="text-gray-500 text-xs" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {!isMobile && (
-                    <div className="flex-1">
-                      <h1 className="text-xl font-bold text-[#00065A] mb-1">
-                        {getPageTitle()}
-                      </h1>
-                      <p className="text-sm text-gray-600">
-                        {getAccurateCountText()}
-                      </p>
-                    </div>
-                  )}
-                </div>
-                {!isMobile && filtersInitialized && (
-                  <div className="flex items-center gap-2">
-                    {!isMobile && (
-                      <div className="relative">
-                        <select
-                          value={activeFilters.sortBy}
-                          onChange={(e) => {
-                            const updatedFilters = {
-                                ...activeFilters,
-                                sortBy: e.target.value,
-                              };
-                            handleFilterChange(updatedFilters);
-                          }}
-                          className="appearance-none px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-0 cursor-pointer pr-8 bg-transparent border-0"
-                          style={{
-                            background: "transparent",
-                            border: "none",
-                            boxShadow: "none",
-                          }}
-                        >
-                          <option value="relevance">Sort by: Relevance</option>
-                          <option value="price_low">Price: Low to High</option>
-                          <option value="price_high">Price: High to Low</option>
-                          <option value="rating">Highest Rated</option>
-                          <option value="name">Name: A to Z</option>
-                        </select>
-                        <div className="absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                          <FontAwesomeIcon icon={faChevronDown} className="text-gray-500 text-xs" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
+     <div className="mb-6 w-full">
+  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+    <div className="flex-1 flex items-center gap-3 w-full">
+      {isMobile && filtersInitialized && (
+        <div className="w-full">
+          {/* First row: Title + Filter icon */}
+          <div className="flex items-center justify-between w-full mb-2">
+            <div className="text-left">
+              <h1 className="text-xl font-bold text-[#00065A]">
+                {getPageTitle()}
+              </h1>
+            </div>
+            
+            {/* Filter icon - Same line as title, far right with padding */}
+            <button
+              onClick={toggleMobileFilters}
+              className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm cursor-pointer mr-4"
+              aria-label="Open filters"
+              ref={filterButtonRef}
+            >
+              <div className="relative">
+                <PiSliders className="text-gray-600 text-lg" />
+                {Object.keys(activeFilters).some((key) => {
+                  if (key === "priceRange") {
+                    return (
+                      activeFilters.priceRange.min ||
+                      activeFilters.priceRange.max
+                    );
+                  }
+                  return Array.isArray(activeFilters[key])
+                    ? activeFilters[key].length > 0
+                    : activeFilters[key] !== "relevance";
+                }) && (
+                  <span className="absolute -top-1 -right-1 bg-[#06EAFC] text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                    {Object.values(activeFilters).reduce((acc, val) => {
+                      if (Array.isArray(val)) return acc + val.length;
+                      if (typeof val === "object" && val !== null) {
+                        return acc + (val.min || val.max ? 1 : 0);
+                      }
+                      return acc + (val && val !== "relevance" ? 1 : 0);
+                    }, 0)}
+                  </span>
                 )}
               </div>
+            </button>
+          </div>
+          
+          {/* Second row: Count text + Sort dropdown */}
+          <div className="flex items-center justify-between w-full">
+            <p className="text-sm text-gray-600">
+              {getAccurateCountText()}
+            </p>
+            
+            {/* Sort dropdown - Same line as count, far right with padding */}
+            <div className="relative">
+              <select
+                value={activeFilters.sortBy}
+                onChange={(e) => {
+                  const updatedFilters = {
+                    ...activeFilters,
+                    sortBy: e.target.value,
+                  };
+                  handleFilterChange(updatedFilters);
+                }}
+                className="appearance-none px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-8"
+              >
+                <option value="relevance">Sort by: Relevance</option>
+                <option value="price_low">Price: Low to High</option>
+                <option value="price_high">Price: High to Low</option>
+                <option value="rating">Highest Rated</option>
+                <option value="name">Name: A to Z</option>
+              </select>
+              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                <FontAwesomeIcon icon={faChevronDown} className="text-gray-500 text-xs" />
+              </div>
             </div>
+          </div>
+        </div>
+      )}
+      {!isMobile && (
+        <div className="flex-1">
+          <h1 className="text-xl font-bold text-[#00065A] mb-1">
+            {getPageTitle()}
+          </h1>
+          <p className="text-sm text-gray-600">
+            {getAccurateCountText()}
+          </p>
+        </div>
+      )}
+    </div>
+    
+    {/* Desktop sort dropdown */}
+    {!isMobile && filtersInitialized && (
+      <div className="flex items-center gap-2">
+        <div className="relative">
+          <select
+            value={activeFilters.sortBy}
+            onChange={(e) => {
+              const updatedFilters = {
+                  ...activeFilters,
+                  sortBy: e.target.value,
+                };
+              handleFilterChange(updatedFilters);
+            }}
+            className="appearance-none px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-0 cursor-pointer pr-8 bg-transparent border-0"
+            style={{
+              background: "transparent",
+              border: "none",
+              boxShadow: "none",
+            }}
+          >
+            <option value="relevance">Sort by: Relevance</option>
+            <option value="price_low">Price: Low to High</option>
+            <option value="price_high">Price: High to Low</option>
+            <option value="rating">Highest Rated</option>
+            <option value="name">Name: A to Z</option>
+          </select>
+          <div className="absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
+            <FontAwesomeIcon icon={faChevronDown} className="text-gray-500 text-xs" />
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+</div>
 
             <div className="space-y-6 w-full">
               {listings.length === 0 && filtersInitialized && (
