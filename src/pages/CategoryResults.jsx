@@ -3009,22 +3009,23 @@ const CategoryResults = () => {
             ref={resultsRef}
           >
      <div className="mb-6 w-full">
+  <div className="mb-3 w-full">
   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
     <div className="flex-1 flex items-center gap-3 w-full">
       {isMobile && filtersInitialized && (
         <div className="w-full">
           {/* First row: Title + Filter icon */}
-          <div className="flex items-center justify-between w-full mb-2">
+          <div className="flex items-center justify-between w-full mb-1">
             <div className="text-left">
               <h1 className="text-xl font-bold text-[#00065A]">
                 {getPageTitle()}
               </h1>
             </div>
             
-            {/* Filter icon - Same line as title, far right with padding */}
+            {/* Filter icon - Same line as title, far right */}
             <button
               onClick={toggleMobileFilters}
-              className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm cursor-pointer mr-4"
+              className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm cursor-pointer mr-3"
               aria-label="Open filters"
               ref={filterButtonRef}
             >
@@ -3061,8 +3062,8 @@ const CategoryResults = () => {
               {getAccurateCountText()}
             </p>
             
-            {/* Sort dropdown - Same line as count, far right with padding */}
-            <div className="relative">
+            {/* Sort dropdown - Same line as count */}
+            <div className="relative mr-3">
               <select
                 value={activeFilters.sortBy}
                 onChange={(e) => {
@@ -3132,6 +3133,7 @@ const CategoryResults = () => {
       </div>
     )}
   </div>
+</div>
 </div>
 
             <div className="space-y-6 w-full">
