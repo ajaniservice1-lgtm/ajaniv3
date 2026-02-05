@@ -1195,7 +1195,7 @@ const CategoryButtons = ({ selectedCategories, onCategoryClick, isSwitchingCateg
       
       <div className="relative">
         <div className="md:hidden overflow-x-auto scrollbar-hide pb-2">
-          <div className="flex space-x-2 min-w-max pl-0">
+          <div className="flex space-x-2 min-w-max px-1">
             {buttonConfigs.map((button) => {
               const isSelected = selectedCategories.some(
                 cat => cat.toLowerCase() === button.key.toLowerCase()
@@ -1685,7 +1685,16 @@ const FilterSidebar = ({
                 </div>
               )}
             </div>
-            
+            {currentFilters.locations.length > 0 && (
+              <div className="mt-3 p-2 bg-blue-50 rounded-lg border border-blue-100">
+                <p className="text-xs text-blue-800 font-medium mb-1">
+                  Currently selected location:
+                </p>
+                <p className="text-sm text-blue-700">
+                  {currentFilters.locations[0]}
+                </p>
+              </div>
+            )}
           </>
         )}
       </div>

@@ -197,7 +197,6 @@ const useListings = (category = null, searchQuery = '', filters = {}) => {
   // Helper function to fetch listings (matches Directory)
   const getListingsByCategory = async (category, filters = {}) => {
     try {
-      console.log(`Fetching ${category} listings...`);
       const queryFilters = { 
         category: category,
         // No status filter - get ALL listings
@@ -205,16 +204,12 @@ const useListings = (category = null, searchQuery = '', filters = {}) => {
       const queryString = buildQueryString(queryFilters);
       const url = `/listings${queryString ? `?${queryString}` : ''}`;
       
-      console.log(`API URL for ${category}:`, url);
       const response = await axiosInstance.get(url, {
         timeout: 5000, // Add timeout
       });
-      console.log(`${category} API Response status:`, response.data.status);
-      console.log(`${category} results count:`, response.data.results);
       
       return response.data;
     } catch (error) {
-      console.error(`Error fetching ${category} listings:`, error);
       // Check for network errors
       if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
         return {
@@ -284,13 +279,10 @@ const useListings = (category = null, searchQuery = '', filters = {}) => {
         // ✅ USE THE SAME METHOD AS DIRECTORY
         const data = await getListingsByCategory(category);
         
-        console.log(`${category} API response:`, data);
         
         if (data && data.status === 'success' && data.data && data.data.listings) {
           const fetchedListings = data.data.listings;
-          console.log(`${category} listings fetched:`, fetchedListings.length);
           if (fetchedListings.length > 0) {
-            console.log(`${category} sample listing:`, fetchedListings[0]);
           }
           setListings(fetchedListings);
         } else if (data && data.status === 'error') {
@@ -442,11 +434,10 @@ const getPriceFromItem = (item) => {
     
     return 0;
   } catch (error) {
-    console.error('Error getting price:', error);
-    console.log('Item structure for debugging:', item);
     return 0;
   }
 };
+
 // Universal location getter (matches Directory)
 const getLocationFromItem = (item) => {
   try {
@@ -589,7 +580,7 @@ const normalizeLocation = (location) => {
     .replace(/\s+/g, ' ');
 };
 
-// ✅ FIX 1: UPDATED SEARCH SUGGESTIONS FOR CATEGORY PAGES (SEO-FRIENDLY URLs)
+// ✅ FIXED: UPDATED SEARCH SUGGESTIONS FOR CATEGORY PAGES (SEO-FRIENDLY URLs)
 const generateSearchSuggestions = (query, listings, activeCategory = '') => {
   if (!query.trim() || !listings.length) return [];
 
@@ -770,98 +761,99 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   const images = getCardImages(item);
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [imageHeight] = useState(isMobile ? 150 : 170);
+  // INCREASED: Mobile 150 → 180, Desktop 170 → 200
+  const [imageHeight] = useState(isMobile ? 180 : 200);
   const isFavorite = useIsFavorite(item._id || item.id);
   const cardRef = useRef(null);
   
   const isAuthenticated = useAuthStatus();
   const isPending = item.status === 'pending';
 
- const formatPrice = (n) => {
-  if (!n || n === 0) return "0";
-  const num = Number(n);
-  
-  // Format with thousand separators
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-  }
-  
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
-  }
-  
-  return num.toLocaleString("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
-};
-
- const getPriceText = () => {
-  // Special handling for restaurants with price ranges
-  if (category === 'restaurant' && item.details?.priceRangePerMeal) {
-    const { priceFrom, priceTo } = item.details.priceRangePerMeal;
+  const formatPrice = (n) => {
+    if (!n || n === 0) return "0";
+    const num = Number(n);
     
-    if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
-      return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
-    } else if (priceFrom !== undefined) {
-      return `From ₦${formatPrice(priceFrom)}`;
+    // Format with thousand separators
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
     }
-  }
-  
-  // Special handling for event venues with price ranges
-  if (category === 'event' && item.details?.priceRange) {
-    const { priceFrom, priceTo } = item.details.priceRange;
     
-    if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
-      return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
-    } else if (priceFrom !== undefined) {
-      return `From ₦${formatPrice(priceFrom)}`;
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
     }
-  }
-  
-  // For other categories or without price range
-  const price = getPriceFromItem(item) || 0;
-  const formattedPrice = formatPrice(price);
-  
-  if (price === 0) {
-    // Check if it's a service that might have contact for pricing
-    if (category === 'services' || category === 'vendor') {
-      return 'Contact for pricing';
+    
+    return num.toLocaleString("en-US", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+  };
+
+  const getPriceText = () => {
+    // Special handling for restaurants with price ranges
+    if (category === 'restaurant' && item.details?.priceRangePerMeal) {
+      const { priceFrom, priceTo } = item.details.priceRangePerMeal;
+      
+      if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+        return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
+      } else if (priceFrom !== undefined) {
+        return `From ₦${formatPrice(priceFrom)}`;
+      }
     }
-    return 'Price not available';
-  }
-  
-  return `₦${formattedPrice}`;
-};
+    
+    // Special handling for event venues with price ranges
+    if (category === 'event' && item.details?.priceRange) {
+      const { priceFrom, priceTo } = item.details.priceRange;
+      
+      if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+        return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
+      } else if (priceFrom !== undefined) {
+        return `From ₦${formatPrice(priceFrom)}`;
+      }
+    }
+    
+    // For other categories or without price range
+    const price = getPriceFromItem(item) || 0;
+    const formattedPrice = formatPrice(price);
+    
+    if (price === 0) {
+      // Check if it's a service that might have contact for pricing
+      if (category === 'services' || category === 'vendor') {
+        return 'Contact for pricing';
+      }
+      return 'Price not available';
+    }
+    
+    return `₦${formattedPrice}`;
+  };
 
- const getPerText = () => {
-  const nightlyCategories = [
-    "hotel", "hostel", "shortlet", "apartment", "cabin", "condo", "resort", "inn", "motel",
-  ];
+  const getPerText = () => {
+    const nightlyCategories = [
+      "hotel", "hostel", "shortlet", "apartment", "cabin", "condo", "resort", "inn", "motel",
+    ];
 
-  if (nightlyCategories.some((cat) => category.toLowerCase().includes(cat))) {
-    return "per night";
-  }
+    if (nightlyCategories.some((cat) => category.toLowerCase().includes(cat))) {
+      return "per night";
+    }
 
-  if (category.toLowerCase().includes("restaurant") ||
-      category.toLowerCase().includes("food") ||
-      category.toLowerCase().includes("cafe")) {
-    return "per meal";
-  }
+    if (category.toLowerCase().includes("restaurant") ||
+        category.toLowerCase().includes("food") ||
+        category.toLowerCase().includes("cafe")) {
+      return "per meal";
+    }
 
-  if (category.toLowerCase().includes("event") || 
-      category.toLowerCase().includes("hall")) {
-    return "per event";
-  }
+    if (category.toLowerCase().includes("event") || 
+        category.toLowerCase().includes("hall")) {
+      return "per event";
+    }
 
-  // For services/vendors, show different text or nothing
-  if (category.toLowerCase().includes("services") || 
-      category.toLowerCase().includes("vendor")) {
-    return ""; // Services might have custom pricing
-  }
+    // For services/vendors, show different text or nothing
+    if (category.toLowerCase().includes("services") || 
+        category.toLowerCase().includes("vendor")) {
+      return ""; // Services might have custom pricing
+    }
 
-  return "per guest";
-};
+    return "per guest";
+  };
 
   const getPriceUnit = () => {
     if (category === 'hotel' || category === 'shortlet') return 'per night';
@@ -1096,14 +1088,14 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   return (
     <div
       ref={cardRef}
-      className="bg-white rounded-xl overflow-hidden flex-shrink-0 font-manrope relative group flex flex-col cursor-pointer hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] transition-all duration-200"
+      className="bg-white rounded-[13px] overflow-hidden flex-shrink-0 font-manrope relative group flex flex-col cursor-pointer hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] transition-all duration-200"
       style={{
-        width: isMobile ? "165px" : "240px",
-        height: isMobile ? "280px" : "320px",
-        minWidth: isMobile ? "165px" : "240px",
-        maxWidth: isMobile ? "165px" : "240px",
-        minHeight: isMobile ? "280px" : "320px",
-        maxHeight: isMobile ? "280px" : "320px",
+        width: isMobile ? "165px" : "220px",
+        height: isMobile ? "310px" : "350px",
+        minWidth: isMobile ? "165px" : "100px",
+        maxWidth: isMobile ? "165px" : "450px",
+        minHeight: isMobile ? "310px" : "350px",
+        maxHeight: isMobile ? "310px" : "350px",
       }}
       onClick={handleCardClick}
     >
@@ -1113,7 +1105,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
         </div>
       )}
 
-      {/* Image with FIXED dimensions */}
+      {/* Image with INCREASED FIXED dimensions */}
       <div
         className="relative overflow-hidden rounded-xl"
         style={{
@@ -2653,7 +2645,6 @@ const CategoryResults = () => {
         ? `${seoPath}?${queryParams.toString()}`
         : seoPath;
       
-      console.log("🔍 Category page navigating to:", finalUrl);
       navigate(finalUrl);
       
       setShowSuggestions(false);
@@ -3340,7 +3331,7 @@ const CategoryResults = () => {
                             paddingRight: "0",
                             marginRight: "0",
                             // Add space between cards
-                            gap: "8px"
+                            gap: "4px"
                           }}
                         >
                           {currentListings
@@ -3374,11 +3365,11 @@ const CategoryResults = () => {
                           key={listing._id || index}
                           style={{
                             width: '240px',
-                            height: '320px',
+                            height: '350px', // Updated to 350px to match increased height
                             minWidth: '240px',
                             maxWidth: '240px',
-                            minHeight: '320px',
-                            maxHeight: '320px'
+                            minHeight: '350px', // Updated to 350px
+                            maxHeight: '350px' // Updated to 350px
                           }}
                         >
                           <SearchResultBusinessCard
@@ -3444,7 +3435,7 @@ const CategoryResults = () => {
 
       <Footer />
 
-      {/* Custom styles for fixed layout */}
+      {/* Custom styles for fixed layout with UPDATED IMAGE HEIGHTS */}
       <style jsx global>{`
         html {
           scroll-behavior: smooth;
@@ -3457,9 +3448,10 @@ const CategoryResults = () => {
 
         .search-result-card img {
           width: 100% !important;
-          height: 170px !important;
-          min-height: 170px !important;
-          max-height: 170px !important;
+          /* UPDATED: Desktop 170 → 200 */
+          height: 200px !important;
+          min-height: 200px !important;
+          max-height: 200px !important;
           object-fit: cover !important;
           object-position: center !important;
           display: block !important;
@@ -3467,9 +3459,10 @@ const CategoryResults = () => {
         
         @media (max-width: 768px) {
           .search-result-card img {
-            height: 150px !important;
-            min-height: 150px !important;
-            max-height: 150px !important;
+            /* UPDATED: Mobile 150 → 180 */
+            height: 180px !important;
+            min-height: 180px !important;
+            max-height: 180px !important;
           }
         }
         
@@ -3479,16 +3472,18 @@ const CategoryResults = () => {
         
         .search-result-card > div:first-child {
           width: 100% !important;
-          height: 170px !important;
-          min-height: 170px !important;
-          max-height: 170px !important;
+          /* UPDATED: Desktop 170 → 200 */
+          height: 200px !important;
+          min-height: 200px !important;
+          max-height: 200px !important;
         }
         
         @media (max-width: 768px) {
           .search-result-card > div:first-child {
-            height: 150px !important;
-            min-height: 150px !important;
-            max-height: 150px !important;
+            /* UPDATED: Mobile 150 → 180 */
+            height: 180px !important;
+            min-height: 180px !important;
+            max-height: 180px !important;
           }
         }
 
