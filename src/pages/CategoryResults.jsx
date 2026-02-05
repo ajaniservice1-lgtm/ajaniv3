@@ -2971,7 +2971,8 @@ const CategoryResults = () => {
   const activeCategoryName = getCategoryDisplayName(activeCategory);
 
   return (
-    <div className="min-h-screen bg-gray-50 font-manrope ">
+    <div className="min-h-screen bg-gray-50  font-manrope">
+      
       <Meta
         title={`${getPageTitle()} | Ajani Directory`}
         description={getPageDescription()}
@@ -2988,33 +2989,18 @@ const CategoryResults = () => {
         />
       )}
 
-      
-        <Header />
-      
+      <Header />
 
-      <main className="pb-8 w-full mx-auto max-w-[100vw] pt-15" style={{
-        paddingLeft: isMobile ? "0.75rem" : "1rem",
-        paddingRight: isMobile ? "0" : "1rem",
-      }}>
+      <main className="pb-8 w-full mx-auto max-w-[100vw] pt-16">
         {/* Search Section - Updated with dynamic header */}
-        <div className="z-30 py-4 md:py-6 relative w-full" style={{
-          zIndex: 50,
-          width: "100%",
-          marginLeft: "0",
-          marginRight: "0",
-          paddingLeft: "0",
-          paddingRight: "0",
-        }} id="search-section">
-          <div style={{
-            paddingLeft: isMobile ? "0" : "0",
-            paddingRight: isMobile ? "0" : "0",
-          }}>
+        <div className="z-30 py-4 md:py-6 relative w-full" id="search-section">
+          <div className="px-4 md:px-6 lg:px-8">
             <div className="flex items-center gap-3">
               <BackButton className="md:hidden" />
 
               <div className="flex-1">
                 <div className="flex justify-center w-full">
-                  <div className="w-full relative max-w-[100vw]" ref={searchContainerRef}>
+                  <div className="w-full relative max-w-6xl" ref={searchContainerRef}>
                     <form onSubmit={handleSearchSubmit}>
                       <div className="flex items-center justify-center w-full">
                         {/* DESKTOP SEARCH BAR - Similar to search results page */}
@@ -3094,7 +3080,7 @@ const CategoryResults = () => {
           </div>
 
           {/* Category Buttons with switching loader */}
-          <div className="mt-4 md:mt-6">
+          <div className="mt-4  md:mt-6 px-4 md:px-6 lg:px-8">
             <CategoryButtons
               selectedCategory={selectedCategoryButton}
               onCategoryClick={handleCategoryButtonClick}
@@ -3153,10 +3139,21 @@ const CategoryResults = () => {
         )}
 
         {/* Main Content */}
-        <div className="flex flex-col lg:flex-row gap-6 w-full">
-          {/* Desktop Filter Sidebar */}
+        <div className="flex flex-col lg:flex-row gap-6 w-full px-4 md:px-6 lg:px-8">
+          {/* Desktop Filter Sidebar - Fixed with 20% width reduction on large screens */}
           {!isMobile && filtersInitialized && (
-            <div className="lg:w-1/4">
+            <div 
+              className="lg:w-1/4"
+              style={{
+                minWidth: '250px',
+                maxWidth: '280px',
+                width: isMobile ? '100%' : 'calc(25% - 20%)', // Reduce by 20% on large screens
+                flexShrink: 0,
+                position: 'sticky',
+                top: '100px',
+                height: 'fit-content'
+              }}
+            >
               <FilterSidebar
                 onFilterChange={handleFilterChange}
                 allLocations={allLocations}
@@ -3167,8 +3164,16 @@ const CategoryResults = () => {
             </div>
           )}
 
-          {/* Results Content */}
-          <div className="lg:w-3/4 w-full" ref={resultsRef}>
+          {/* Results Content - Fixed width and padding */}
+          <div 
+            className="lg:w-3/4 w-full"
+            style={{
+              width: '100%',
+              maxWidth: '1200px',
+              margin: '0 auto'
+            }}
+            ref={resultsRef}
+          >
             {/* Page Header - Updated with dynamic header like search results page */}
             <div className="mb-6 w-full">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
@@ -3287,7 +3292,7 @@ const CategoryResults = () => {
               </div>
             </div>
 
-            {/* Results Display - Updated with mobile responsiveness like search results page */}
+            {/* Results Display - Fixed grid layout */}
             <div className="space-y-6 w-full">
               {listings.length === 0 && filtersInitialized && (
                 <div className="text-center py-12 bg-white rounded-xl border border-gray-200 w-full">
@@ -3333,14 +3338,30 @@ const CategoryResults = () => {
                       ))}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
+                    <div 
+                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-2 w-full"
+                      style={{
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))'
+                      }}
+                    >
                       {currentListings.map((listing, index) => (
-                        <SearchResultBusinessCard
+                        <div
                           key={listing._id || index}
-                          item={listing}
-                          category={activeCategory}
-                          isMobile={isMobile}
-                        />
+                          style={{
+                            width: '240px',
+                            height: '320px',
+                            minWidth: '240px',
+                            maxWidth: '240px',
+                            minHeight: '320px',
+                            maxHeight: '320px'
+                          }}
+                        >
+                          <SearchResultBusinessCard
+                            item={listing}
+                            category={activeCategory}
+                            isMobile={isMobile}
+                          />
+                        </div>
                       ))}
                     </div>
                   )}
@@ -3398,10 +3419,15 @@ const CategoryResults = () => {
 
       <Footer />
 
-      {/* Custom styles */}
+      {/* Custom styles for fixed layout */}
       <style jsx global>{`
         html {
           scroll-behavior: smooth;
+          overflow-x: hidden;
+        }
+
+        body {
+          overflow-x: hidden;
         }
 
         .search-result-card img {
@@ -3438,6 +3464,38 @@ const CategoryResults = () => {
             height: 150px !important;
             min-height: 150px !important;
             max-height: 150px !important;
+          }
+        }
+
+        /* Fixed container styles */
+        main {
+          box-sizing: border-box;
+        }
+
+        /* Prevent zoom from affecting layout */
+        @media screen and (min-width: 768px) {
+          main, 
+          .px-4, 
+          .px-6, 
+          .px-8 {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+          }
+          
+          .lg\\:w-1\\/4 {
+            width: 20% !important; /* 20% reduction from 25% */
+          }
+          
+          .lg\\:w-3\\/4 {
+            width: 80% !important;
+          }
+        }
+
+        @media screen and (min-width: 1024px) {
+          main {
+            max-width: 1400px !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
           }
         }
 

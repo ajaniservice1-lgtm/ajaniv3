@@ -28,7 +28,10 @@ import {
 // ======================= VENDOR MODAL COMPONENT =======================
 const VendorModal = ({ vendor, isOpen, onClose }) => {
   const modalRef = useRef(null);
+  const contentRef = useRef(null);
   const [bgImageError, setBgImageError] = useState(false);
+  const scrollPositionRef = useRef(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleEscape = (e) => {
@@ -36,291 +39,511 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
         onClose();
       }
     };
+    
+    const handleTabKey = (e) => {
+      if (!isOpen) return;
+      
+      const focusableElements = modalRef.current?.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (!e.shiftKey && document.activeElement === lastElement) {
+        firstElement.focus();
+        e.preventDefault();
+      }
+
+      if (e.shiftKey && document.activeElement === firstElement) {
+        lastElement.focus();
+        e.preventDefault();
+      }
+    };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
+      // Store the current scroll position
+      scrollPositionRef.current = window.pageYOffset || document.documentElement.scrollTop;
+      
+      // Lock body scroll without moving the page
       document.body.style.overflow = 'hidden';
       document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollPositionRef.current}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
       document.body.style.width = '100%';
-      document.body.style.height = '100%';
+      
+      document.addEventListener('keydown', handleEscape);
+      document.addEventListener('keydown', handleTabKey);
+      
+      setTimeout(() => {
+        const closeButton = modalRef.current?.querySelector('button[aria-label="Close modal"]');
+        closeButton?.focus();
+      }, 100);
     }
     
     return () => {
       document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
-      document.body.style.position = 'static';
-      document.body.style.width = 'auto';
-      document.body.style.height = 'auto';
+      document.removeEventListener('keydown', handleTabKey);
+      
+      if (isOpen) {
+        // Restore body styles
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.width = '';
+        
+        // Restore scroll position
+        window.scrollTo(0, scrollPositionRef.current);
+      }
     };
   }, [isOpen, onClose]);
+
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  const handleModalClick = (e) => {
+    e.stopPropagation();
+  };
 
   if (!isOpen || !vendor) return null;
 
   return (
     <>
-      <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      
-      <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[9999]"
+        style={{
+          background: 'rgba(0, 0, 0, 0.5)',
+          backdropFilter: 'blur(12px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+        }}
+        onClick={handleBackdropClick}
+      />
+
+      <div 
+        className="fixed inset-0 z-[10000] flex items-center justify-center p-2 sm:p-3 lg:p-4"
+        onClick={handleBackdropClick}
+      >
         <motion.div
           ref={modalRef}
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ duration: 0.3 }}
-          className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="
+            bg-white rounded-xl sm:rounded-2xl lg:rounded-3xl shadow-2xl
+            w-full max-w-7xl h-[95vh] lg:h-[92vh]
+            overflow-hidden
+            relative
+            border border-gray-200
+            mx-1 sm:mx-0
+          "
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-title"
+          onClick={handleModalClick}
         >
-          {/* Header with background image */}
-          <div className="relative h-48">
-            {vendor.image_url && !bgImageError ? (
-              <>
-                <img
-                  src={vendor.image_url}
-                  alt={vendor.name}
-                  className="w-full h-full object-cover"
-                  onError={() => setBgImageError(true)}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent" />
-              </>
-            ) : (
-              <div className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500" />
-            )}
-            
-            {/* Profile image */}
-            <div className="absolute -bottom-16 left-6">
-              <div className="relative">
-                <img
-                  src={vendor.image_url}
-                  alt={vendor.name}
-                  className="w-32 h-32 rounded-full border-4 border-white shadow-2xl object-cover bg-white"
-                  onError={(e) => {
-                    e.target.src = "https://via.placeholder.com/160/DDDDDD/808080?text=No+Image";
-                  }}
-                />
-                {vendor.is_verified === "TRUE" && (
-                  <div className="absolute -top-2 -right-2 bg-white rounded-full p-2 shadow-lg border border-green-200">
-                    <VscVerifiedFilled className="text-2xl text-green-500" />
-                  </div>
+          <button
+            onClick={onClose}
+            className="
+              absolute top-2 right-2 sm:top-3 sm:right-3 lg:top-4 lg:right-4
+              bg-white/90 backdrop-blur-sm
+              rounded-full p-2 sm:p-2.5 lg:p-3
+              shadow-lg hover:shadow-xl
+              hover:bg-white
+              transition-all duration-200
+              z-10
+              cursor-pointer
+              border border-gray-300/50
+              hover:border-gray-400
+              focus:outline-none
+              focus:ring-2 focus:ring-[#06EAFC] focus:ring-offset-2
+            "
+            aria-label="Close modal"
+          >
+            <IoClose className="text-xl sm:text-2xl text-gray-700" />
+          </button>
+
+          <div 
+            ref={contentRef}
+            className="overflow-y-auto h-full"
+          >
+            <div className="relative">
+              {/* Background Image with Gradient Overlay */}
+              <div className="h-40 sm:h-48 lg:h-56 relative">
+                {vendor.image_url && !bgImageError ? (
+                  <>
+                    <img
+                      src={vendor.image_url}
+                      alt={vendor.name}
+                      className="w-full h-full object-cover"
+                      onError={() => setBgImageError(true)}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent"></div>
+                  </>
+                ) : (
+                  <div className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500"></div>
                 )}
               </div>
+              
+              <div className="absolute -bottom-10 sm:-bottom-12 lg:-bottom-16 left-3 sm:left-4 lg:left-6">
+                <div className="relative">
+                  <img
+                    src={vendor.image_url}
+                    alt={vendor.name}
+                    className="
+                      w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32
+                      rounded-full
+                      border-4 border-white
+                      shadow-2xl
+                      object-cover
+                      bg-white
+                    "
+                    onError={(e) => {
+                      e.target.src = "https://via.placeholder.com/160/DDDDDD/808080?text=No+Image";
+                    }}
+                  />
+                  {vendor.is_verified === "TRUE" && (
+                    <div className="absolute -top-1 -right-1 sm:-top-1.5 sm:-right-1.5 lg:-top-2 lg:-right-2 bg-white rounded-full p-1 sm:p-1 lg:p-1.5 shadow-lg border border-green-200">
+                      <VscVerifiedFilled className="text-base sm:text-lg lg:text-2xl text-green-500" />
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-            
-            {/* Close button */}
-            <button
-              onClick={onClose}
-              className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full p-3 shadow-lg hover:bg-white transition-colors"
-            >
-              <IoClose className="text-2xl text-gray-700" />
-            </button>
-          </div>
 
-          {/* Content */}
-          <div className="p-6 pt-20 overflow-y-auto max-h-[calc(90vh-12rem)]">
-            {/* Header info */}
-            <div className="mb-8">
-              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
+            <div className="p-3 sm:p-4 lg:p-6 pt-16 sm:pt-20 lg:pt-24">
+              {/* Header Section */}
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 sm:gap-4 lg:gap-5 mb-4 sm:mb-6 lg:mb-8">
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">{vendor.name}</h2>
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
-                      {vendor.status === "approved" ? "Approved" : "Pending"}
-                    </span>
-                    <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
-                      {vendor.years_experience || vendor.yearsExperience || "0"} years experience
-                    </span>
-                    {vendor.cacRegistered && (
-                      <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-semibold">
-                        CAC Registered
+                  <div className="flex flex-col lg:flex-row lg:items-center gap-2 sm:gap-3 lg:gap-4 mb-2 sm:mb-3 lg:mb-4">
+                    <h2 id="modal-title" className="text-lg sm:text-xl lg:text-[19.5px] font-bold text-gray-900">
+                      {vendor.name}
+                    </h2>
+                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                      <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 lg:px-3 lg:py-1 bg-green-100 text-green-800 rounded-full text-xs sm:text-sm lg:text-sm font-semibold">
+                        {vendor.status === "approved" ? "Approved" : "Pending"}
                       </span>
+                      <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 lg:px-3 lg:py-1 bg-blue-100 text-blue-800 rounded-full text-xs sm:text-sm lg:text-sm font-semibold">
+                        {vendor.years_experience || vendor.yearsExperience || "0"} years experience
+                      </span>
+                      {vendor.cacRegistered && (
+                        <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 lg:px-3 lg:py-1 bg-purple-100 text-purple-800 rounded-full text-xs sm:text-sm lg:text-sm font-semibold">
+                          CAC Registered
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <p className="text-sm sm:text-base lg:text-[15px] text-gray-600 mb-2 sm:mb-3 lg:mb-4">
+                    {vendor.serviceCategory || vendor.service_type} • {vendor.category}
+                  </p>
+                  
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 lg:gap-4 mt-2 sm:mt-3 lg:mt-4">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <FontAwesomeIcon
+                        icon={faStar}
+                        className="text-black text-sm sm:text-base lg:text-lg"
+                      />
+                      <span className="font-bold text-gray-900 text-sm sm:text-base lg:text-[15px]">
+                        {vendor.rating || "4.8"}
+                      </span>
+                      <span className="text-gray-500 text-xs sm:text-sm lg:text-[14px]">
+                        ({vendor.review_count || "128"} reviews)
+                      </span>
+                    </div>
+                    <span className="text-gray-300 hidden lg:inline">•</span>
+                    {vendor.approvedAt && (
+                      <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-2 text-gray-600 text-xs sm:text-sm lg:text-[14px]">
+                        <FaCheckCircle className="text-green-500 text-sm sm:text-base" />
+                        <span>Approved on {new Date(vendor.approvedAt).toLocaleDateString()}</span>
+                      </div>
                     )}
                   </div>
                 </div>
                 
-                <div className="flex gap-3">
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 lg:gap-4 mt-3 sm:mt-0">
                   <button 
-                    onClick={() => window.open(`mailto:${vendor.email}`)}
-                    className="px-4 py-2 bg-[#06EAFC] hover:bg-[#6cf5ff] text-black font-semibold rounded-lg transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.location.href = `mailto:${vendor.email}`;
+                    }}
+                    className="
+                      px-3 py-2 sm:px-4 sm:py-2.5 lg:px-5 lg:py-3
+                      bg-[#06EAFC] hover:bg-[#6cf5ff]
+                      text-black
+                      rounded-lg sm:rounded-lg lg:rounded-xl
+                      transition-all duration-150
+                      font-semibold
+                      cursor-pointer
+                      flex items-center justify-center gap-1.5 sm:gap-2 lg:gap-3
+                      hover:shadow-lg
+                      border border-[#06EAFC]
+                      focus:outline-none
+                      focus:ring-2 focus:ring-[#06EAFC] focus:ring-offset-2
+                      text-xs sm:text-sm lg:text-[14px]
+                    "
                   >
-                    <FaEnvelope className="inline mr-2" />
-                    Contact
+                    <FaEnvelope className="text-xs sm:text-sm lg:text-[14px]" />
+                    <span className="whitespace-nowrap">Contact</span>
                   </button>
-                  <button className="px-4 py-2 bg-white text-gray-800 border border-gray-300 hover:bg-gray-50 font-semibold rounded-lg transition-colors">
-                    <FaCalendarCheck className="inline mr-2" />
-                    Book Now
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Prepare vendor data for booking
+                      const bookingData = {
+                        ...vendor,
+                        category: vendor.category || "services",
+                        bookingType: "service",
+                        vendorId: vendor.id,
+                        vendorName: vendor.name,
+                        vendorImage: vendor.image_url,
+                        vendorPhone: vendor.phone,
+                        vendorEmail: vendor.email,
+                        serviceType: vendor.service_type,
+                        priceRange: vendor.price_range,
+                        priceFrom: vendor.priceFrom,
+                        priceTo: vendor.priceTo
+                      };
+                      
+                      // Store in multiple locations for reliability
+                      localStorage.setItem('currentVendorBooking', JSON.stringify(bookingData));
+                      sessionStorage.setItem('currentVendorBooking', JSON.stringify(bookingData));
+                      
+                      // Navigate to booking route
+                      navigate('/booking');
+                    }}
+                    className="
+                      px-3 py-2 sm:px-4 sm:py-2.5 lg:px-5 lg:py-3
+                      bg-white text-gray-800
+                      rounded-lg sm:rounded-lg lg:rounded-xl
+                      hover:bg-gray-50
+                      transition-all duration-150
+                      font-semibold
+                      cursor-pointer
+                      flex items-center justify-center gap-1.5 sm:gap-2 lg:gap-3
+                      hover:shadow-lg
+                      border border-gray-300
+                      focus:outline-none
+                      focus:ring-2 focus:ring-gray-300 focus:ring-offset-2
+                      text-xs sm:text-sm lg:text-[14px]
+                    "
+                  >
+                    <FaCalendarCheck className="text-xs sm:text-sm lg:text-[14px]" />
+                    <span className="whitespace-nowrap">Book Now</span>
                   </button>
                 </div>
               </div>
-              
-              <div className="flex items-center gap-6 text-gray-600">
-                <div className="flex items-center gap-2">
-                  <FontAwesomeIcon icon={faStar} className="text-yellow-500" />
-                  <span className="font-bold text-gray-900">{vendor.rating}</span>
-                  <span className="text-gray-500">({vendor.review_count} reviews)</span>
-                </div>
-                {vendor.approvedAt && (
-                  <div className="flex items-center gap-2">
-                    <FaCheckCircle className="text-green-500" />
-                    <span>Approved on {new Date(vendor.approvedAt).toLocaleDateString()}</span>
-                  </div>
-                )}
-              </div>
-            </div>
 
-            {/* Stats grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <p className="text-sm text-gray-600 mb-1 flex items-center gap-2">
-                  <FaBriefcase className="text-[#06EAFC]" />
-                  Experience
-                </p>
-                <p className="text-2xl font-bold text-gray-900">{vendor.years_experience || "0"} years</p>
-              </div>
-              
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <p className="text-sm text-gray-600 mb-1 flex items-center gap-2">
-                  <FaMoneyBillWave className="text-[#06EAFC]" />
-                  Price Range
-                </p>
-                <p className="text-2xl font-bold text-gray-900">{vendor.price_range || "₦5,000 - ₦50,000"}</p>
-              </div>
-              
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <p className="text-sm text-gray-600 mb-1 flex items-center gap-2">
-                  <FaCertificate className="text-[#06EAFC]" />
-                  Status
-                </p>
-                <p className="text-2xl font-bold text-gray-900 capitalize">{vendor.status || "active"}</p>
-              </div>
-              
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <p className="text-sm text-gray-600 mb-1 flex items-center gap-2">
-                  <FaGlobe className="text-[#06EAFC]" />
-                  Service Area
-                </p>
-                <p className="text-2xl font-bold text-gray-900 truncate">{vendor.area || "Ibadan"}</p>
-              </div>
-            </div>
-
-            {/* Main content */}
-            <div className="grid lg:grid-cols-3 gap-6">
-              {/* Left column */}
-              <div className="lg:col-span-2 space-y-6">
-                {/* About section */}
-                <div className="bg-white rounded-xl p-5 border border-gray-200">
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">About</h3>
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                    {vendor.about || vendor.description || "No description available."}
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6 lg:mb-8">
+                <div className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 cursor-default">
+                  <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
+                    <FaBriefcase className="text-[#06EAFC]" />
+                    Experience
                   </p>
-                  
-                  {vendor.whatWeDo && (
-                    <div className="mt-4">
-                      <h4 className="font-semibold text-gray-900 mb-2">What We Do:</h4>
-                      <p className="text-gray-700">{vendor.whatWeDo}</p>
-                    </div>
-                  )}
+                  <p className="text-lg sm:text-xl lg:text-[22px] font-bold text-gray-900">
+                    {vendor.years_experience || "0"} years
+                  </p>
                 </div>
-
-                {/* Services offered */}
-                <div className="bg-white rounded-xl p-5 border border-gray-200">
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">Services Offered</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {(vendor.listOfServices || vendor.services || []).map((service, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-2 bg-gradient-to-r from-[#06EAFC]/10 to-blue-50 text-gray-700 rounded-lg font-semibold border border-[#06EAFC]/30"
-                      >
-                        {service}
-                      </span>
-                    ))}
-                  </div>
+                
+                <div className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 cursor-default">
+                  <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
+                    <FaMoneyBillWave className="text-[#06EAFC]" />
+                    Price Range
+                  </p>
+                  <p className="text-lg sm:text-xl lg:text-[22px] font-bold text-gray-900">
+                    {vendor.price_range || "₦5,000 - ₦50,000"}
+                  </p>
+                </div>
+                
+                <div className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 cursor-default">
+                  <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
+                    <FaCertificate className="text-[#06EAFC]" />
+                    Status
+                  </p>
+                  <p className="text-lg sm:text-xl lg:text-[22px] font-bold text-gray-900 capitalize">
+                    {vendor.status || "active"}
+                  </p>
+                </div>
+                
+                <div className="bg-gray-50 p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl lg:rounded-2xl border border-gray-200 cursor-default">
+                  <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600 mb-1 sm:mb-1.5 lg:mb-2 flex items-center gap-1">
+                    <FaGlobe className="text-[#06EAFC]" />
+                    Service Area
+                  </p>
+                  <p className="text-lg sm:text-xl lg:text-[22px] font-bold text-gray-900 truncate">
+                    {vendor.area || "Ibadan"}
+                  </p>
                 </div>
               </div>
 
-              {/* Right column */}
-              <div className="space-y-6">
-                {/* Contact & Location */}
-                <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">Contact & Location</h3>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-[#06EAFC]/20 rounded-lg">
-                        <FaMapMarkerAlt className="text-[#06EAFC] text-xl" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Location</p>
-                        <p className="font-semibold text-gray-900">{vendor.address}</p>
-                        <p className="text-sm text-gray-500">{vendor.area}</p>
-                      </div>
-                    </div>
+              {/* Main Content Grid */}
+              <div className="grid lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+                {/* Left Column - About & Services */}
+                <div className="lg:col-span-2 space-y-3 sm:space-y-4 lg:space-y-6">
+                  {/* About Section */}
+                  <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default">
+                    <h3 className="text-base sm:text-lg lg:text-[19.5px] font-bold text-gray-900 mb-2 sm:mb-3 lg:mb-4 flex items-center gap-1.5 sm:gap-2">
+                      <span className="w-1 h-3 sm:h-4 lg:h-6 bg-[#06EAFC] rounded-full"></span>
+                      About
+                    </h3>
+                    <p className="text-gray-700 leading-relaxed text-xs sm:text-sm lg:text-[14px] whitespace-pre-line">
+                      {vendor.about || vendor.description || "No description available."}
+                    </p>
                     
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-[#06EAFC]/20 rounded-lg">
-                        <FaClock className="text-[#06EAFC] text-xl" />
+                    {vendor.whatWeDo && (
+                      <div className="mt-3 sm:mt-4 lg:mt-5">
+                        <h4 className="font-semibold text-gray-900 mb-1.5 sm:mb-2 lg:mb-3 text-sm sm:text-base lg:text-[14px]">What We Do:</h4>
+                        <p className="text-gray-700 text-xs sm:text-sm lg:text-[14px]">
+                          {vendor.whatWeDo}
+                        </p>
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Operating Hours</p>
-                        <p className="font-semibold text-gray-900">{vendor.operatingHours || "09:00 AM - 05:00 PM"}</p>
-                      </div>
-                    </div>
+                    )}
+                  </div>
 
-                    {/* Contact Information */}
-                    <div className="pt-4 border-t border-gray-200">
-                      <h4 className="font-semibold text-gray-900 mb-3">Contact Information</h4>
-                      <div className="space-y-2">
-                        <a 
-                          href={`tel:${vendor.phone}`}
-                          className="flex items-center gap-3 hover:text-[#06EAFC] transition-colors"
+                  {/* Services Offered */}
+                  <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default">
+                    <h3 className="text-base sm:text-lg lg:text-[19.5px] font-bold text-gray-900 mb-2 sm:mb-3 lg:mb-4 flex items-center gap-1.5 sm:gap-2">
+                      <span className="w-1 h-3 sm:h-4 lg:h-6 bg-[#06EAFC] rounded-full"></span>
+                      Services Offered
+                    </h3>
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2 lg:gap-3">
+                      {(vendor.listOfServices || vendor.services || []).map((service, index) => (
+                        <span
+                          key={index}
+                          className="
+                            px-2 py-1 sm:px-3 sm:py-1.5 lg:px-4 lg:py-2
+                            bg-gradient-to-r from-[#06EAFC]/10 to-blue-50
+                            text-gray-700
+                            rounded-md sm:rounded-lg lg:rounded-xl
+                            font-semibold
+                            border border-[#06EAFC]/30
+                            cursor-default
+                            text-xs sm:text-sm lg:text-[13px]
+                          "
                         >
-                          <FaPhone className="text-gray-400" />
-                          <span className="text-gray-700 truncate">{vendor.phone}</span>
-                        </a>
-                        
-                        {vendor.whatsapp && (
-                          <a 
-                            href={`https://wa.me/${vendor.whatsapp?.replace('+', '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-3 hover:text-green-600 transition-colors"
-                          >
-                            <FaWhatsapp className="text-green-500" />
-                            <span className="text-gray-700 truncate">{vendor.whatsapp}</span>
-                          </a>
-                        )}
-                        
-                        <a 
-                          href={`mailto:${vendor.email}`}
-                          className="flex items-center gap-3 hover:text-[#06EAFC] transition-colors"
-                        >
-                          <FaEnvelope className="text-gray-400" />
-                          <span className="text-gray-700 truncate">{vendor.email}</span>
-                        </a>
-                      </div>
+                          {service}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 </div>
 
-                {/* Approval Status */}
-                <div className="bg-white rounded-xl p-5 border border-gray-200">
-                  <h4 className="font-semibold text-gray-900 mb-3">Approval Status</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-700">Status</span>
-                      <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                        vendor.status === 'approved' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {vendor.status?.toUpperCase() || 'ACTIVE'}
-                      </span>
+                {/* Right Column - Contact & Details */}
+                <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+                  <div className="bg-gradient-to-br from-gray-50 to-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 shadow-sm cursor-default">
+                    <h3 className="text-base sm:text-lg lg:text-[19.5px] font-bold text-gray-900 mb-3 sm:mb-4 lg:mb-5">
+                      Contact & Location
+                    </h3>
+
+                    <div className="space-y-3 sm:space-y-4 lg:space-y-5">
+                      {/* Location */}
+                      <div className="flex items-start gap-2.5 sm:gap-3 lg:gap-4">
+                        <div className="p-1.5 sm:p-1.5 lg:p-2 bg-[#06EAFC]/20 rounded-lg flex-shrink-0">
+                          <FaMapMarkerAlt className="text-[#06EAFC] text-sm sm:text-base lg:text-xl" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600">Location</p>
+                          <p className="font-semibold text-gray-900 text-xs sm:text-sm lg:text-[14px]">
+                            {vendor.address}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5 sm:mt-0.5 lg:mt-1">
+                            {vendor.area}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Operating Hours */}
+                      <div className="flex items-start gap-2.5 sm:gap-3 lg:gap-4">
+                        <div className="p-1.5 sm:p-1.5 lg:p-2 bg-[#06EAFC]/20 rounded-lg flex-shrink-0">
+                          <FaClock className="text-[#06EAFC] text-sm sm:text-base lg:text-xl" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm lg:text-[13px] text-gray-600">Operating Hours</p>
+                          <p className="font-semibold text-gray-900 text-xs sm:text-sm lg:text-[14px]">
+                            {vendor.operatingHours || "09:00 AM - 05:00 PM"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Contact Information */}
+                      <div className="pt-2.5 sm:pt-3 lg:pt-4 border-t border-gray-200">
+                        <h4 className="font-semibold text-gray-900 mb-1.5 sm:mb-2 lg:mb-3 text-sm sm:text-base lg:text-[14px]">Contact Information</h4>
+                        <div className="space-y-1.5 sm:space-y-2 lg:space-y-3">
+                          <a 
+                            href={`tel:${vendor.phone}`}
+                            className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 hover:text-[#06EAFC] transition-colors duration-150"
+                          >
+                            <FaPhone className="text-gray-400 text-xs sm:text-sm lg:text-[14px]" />
+                            <span className="text-gray-700 text-xs sm:text-sm lg:text-[14px] truncate">{vendor.phone}</span>
+                          </a>
+                          
+                          {vendor.whatsapp && (
+                            <a 
+                              href={`https://wa.me/${vendor.whatsapp?.replace('+', '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 hover:text-green-600 transition-colors duration-150"
+                            >
+                              <FaWhatsapp className="text-green-500 text-xs sm:text-sm lg:text-[14px]" />
+                              <span className="text-gray-700 text-xs sm:text-sm lg:text-[14px] truncate">{vendor.whatsapp}</span>
+                            </a>
+                          )}
+                          
+                          <a 
+                            href={`mailto:${vendor.email}`}
+                            className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 hover:text-[#06EAFC] transition-colors duration-150"
+                          >
+                            <FaEnvelope className="text-gray-400 text-xs sm:text-sm lg:text-[14px]" />
+                            <span className="text-gray-700 text-xs sm:text-sm lg:text-[14px] truncate">{vendor.email}</span>
+                          </a>
+                        </div>
+                      </div>
                     </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-700">Verified</span>
-                      <span className="flex items-center gap-1 text-green-600">
-                        <FaCheckCircle />
-                        {vendor.isVerified || vendor.is_verified === "TRUE" ? 'Yes' : 'No'}
-                      </span>
+                  </div>
+
+                  {/* Approval Status */}
+                  <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-5 border border-gray-200 cursor-default">
+                    <h4 className="font-semibold text-gray-900 mb-2 sm:mb-3 lg:mb-4 text-sm sm:text-base lg:text-[14px]">Approval Status</h4>
+                    <div className="space-y-1.5 sm:space-y-2 lg:space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-700 text-xs sm:text-sm lg:text-[14px]">Status</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          vendor.status === 'approved' 
+                            ? 'bg-green-100 text-green-800' 
+                            : vendor.status === 'pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {(vendor.status || 'ACTIVE')?.toUpperCase()}
+                        </span>
+                      </div>
+                      
+                      {vendor.approvedAt && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-700 text-xs sm:text-sm lg:text-[14px]">Approved On</span>
+                          <span className="text-gray-900 text-xs sm:text-sm lg:text-[14px] font-medium">
+                            {new Date(vendor.approvedAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-700 text-xs sm:text-sm lg:text-[14px]">Verified</span>
+                        <span className="flex items-center gap-1 text-green-600 text-xs sm:text-sm lg:text-[14px]">
+                          <FaCheckCircle />
+                          {vendor.isVerified || vendor.is_verified === "TRUE" ? 'Yes' : 'No'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -932,8 +1155,6 @@ const VendorCard = ({ vendor, index, onShowContact, onContact }) => {
         
         <div className="mt-auto pt-3 lg:pt-4 border-t border-gray-100">
           <div className="flex flex-col gap-2 lg:gap-3">
-        
-
             <div className="grid grid-cols-2 gap-2 lg:gap-3">
               <button
                 onClick={(e) => {
