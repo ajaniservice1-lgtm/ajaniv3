@@ -280,7 +280,6 @@ const useListings = (category = null, searchQuery = '', filters = {}) => {
         setLoading(true);
         setError(null);
         
-        console.log(`📡 CategoryResults: Fetching ${category} listings...`);
         
         // ✅ USE THE SAME METHOD AS DIRECTORY
         const data = await getListingsByCategory(category);
@@ -1302,7 +1301,7 @@ const CategoryButtons = ({ selectedCategory, onCategoryClick, isSwitchingCategor
   ];
 
   return (
-    <div className="mt-4 md:mt-6 mb-4 md:mb-6 relative">
+    <div className="mt-4  md:mt-6 mb-4 md:mb-6 relative">
       {isSwitchingCategory && (
         <div className="absolute inset-0 bg-white/80 backdrop-blur-xs z-10 rounded-xl flex items-center justify-center">
           <div className="flex flex-col items-center">
@@ -1315,7 +1314,7 @@ const CategoryButtons = ({ selectedCategory, onCategoryClick, isSwitchingCategor
       <div className="relative">
         {/* Mobile: Horizontal scroll */}
         <div className="md:hidden overflow-x-auto scrollbar-hide pb-2">
-          <div className="flex space-x-2 min-w-max px-1">
+          <div className="flex space-x-2  pl-0 pr-1">
             {buttonConfigs.map((button) => {
               const isSelected = selectedCategory === button.key;
               
@@ -2971,7 +2970,7 @@ const CategoryResults = () => {
   const activeCategoryName = getCategoryDisplayName(activeCategory);
 
   return (
-    <div className="min-h-screen bg-gray-50  font-manrope">
+    <div className="min-h-screen bg-gray-50 font-manrope fixed inset-0 overflow-y-auto">
       
       <Meta
         title={`${getPageTitle()} | Ajani Directory`}
@@ -2994,7 +2993,11 @@ const CategoryResults = () => {
       <main className="pb-8 w-full mx-auto max-w-[100vw] pt-16">
         {/* Search Section - Updated with dynamic header */}
         <div className="z-30 py-4 md:py-6 relative w-full" id="search-section">
-          <div className="px-4 md:px-6 lg:px-8">
+          <div 
+            className={`
+              ${isMobile ? 'pl-0 pr-2' : 'px-4 md:px-6 lg:px-8'}
+            `}
+          >
             <div className="flex items-center gap-3">
               <BackButton className="md:hidden" />
 
@@ -3058,7 +3061,8 @@ const CategoryResults = () => {
                               handleSearchFocus();
                               setShowMobileSearchModal(true);
                             }}
-                            className="bg-gray-200 rounded-[15px] mr-2 px-3 py-2.5 text-xs flex items-center gap-2 cursor-pointer w-full"
+                            className="bg-gray-200 rounded-[15px] mr-0 px-3 py-2.5 text-xs flex items-center gap-2 cursor-pointer w-full"
+                            style={{ marginRight: 0 }}
                           >
                             <FontAwesomeIcon icon={faSearch} className="text-gray-700 text-[15px] flex-shrink-0" />
                             <div className="flex flex-col text-left truncate w-full">
@@ -3079,8 +3083,13 @@ const CategoryResults = () => {
             </div>
           </div>
 
-          {/* Category Buttons with switching loader */}
-          <div className="mt-4  md:mt-6 px-4 md:px-6 lg:px-8">
+          {/* Category Buttons with switching loader - MADE SWIPABLE */}
+          <div 
+            className={`
+              mt-4 md:mt-6
+              ${isMobile ? 'pl-3 pr-0' : 'px-4 md:px-6 lg:px-8'}
+            `}
+          >
             <CategoryButtons
               selectedCategory={selectedCategoryButton}
               onCategoryClick={handleCategoryButtonClick}
@@ -3139,7 +3148,12 @@ const CategoryResults = () => {
         )}
 
         {/* Main Content */}
-        <div className="flex flex-col lg:flex-row gap-6 w-full px-4 md:px-6 lg:px-8">
+        <div 
+          className={`
+            flex flex-col lg:flex-row gap-6 w-full
+            ${isMobile ? 'pl-0 pr-0' : 'px-4 md:px-6 lg:px-8'}
+          `}
+        >
           {/* Desktop Filter Sidebar - Fixed with 20% width reduction on large screens */}
           {!isMobile && filtersInitialized && (
             <div 
@@ -3179,7 +3193,7 @@ const CategoryResults = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
                 <div className="flex-1 flex items-center gap-3 w-full">
                   {isMobile && filtersInitialized && (
-                    <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center justify-between w-full" style={{ paddingRight: 0 }}>
                       <div className="text-left">
                         <h1 className="text-xl font-bold text-[#00065A] mb-1">
                           {getPageTitle()}
@@ -3188,6 +3202,7 @@ const CategoryResults = () => {
                           {getAccurateCountText()}
                         </p>
                       </div>
+                      {/* REORDERED: Filter icon first, then sort by relevance */}
                       <div className="flex items-center gap-2">
                         <button
                           onClick={toggleMobileFilters}
@@ -3258,6 +3273,7 @@ const CategoryResults = () => {
                 </div>
                 {!isMobile && filtersInitialized && (
                   <div className="flex items-center gap-2">
+                   
                     {!isMobile && (
                       <div className="relative">
                         <select
@@ -3318,22 +3334,31 @@ const CategoryResults = () => {
                       }).map((_, rowIndex) => (
                         <div
                           key={rowIndex}
-                          className="flex overflow-x-auto scrollbar-hide gap-2 pb-4 w-full"
+                          className="flex overflow-x-auto scrollbar-hide pb-4 w-full"
                           style={{
                             paddingLeft: "0",
-                            paddingRight: "8px",
+                            paddingRight: "0",
+                            marginRight: "0",
+                            // Add space between cards
+                            gap: "8px"
                           }}
                         >
                           {currentListings
                             .slice(rowIndex * 5, (rowIndex + 1) * 5)
                             .map((listing, index) => (
-                              <SearchResultBusinessCard
+                              <div
                                 key={listing._id || `${rowIndex}-${index}`}
-                                item={listing}
-                                category={activeCategory}
-                                isMobile={isMobile}
-                              />
+                                className="flex-shrink-0"
+                              >
+                                <SearchResultBusinessCard
+                                  item={listing}
+                                  category={activeCategory}
+                                  isMobile={isMobile}
+                                />
+                              </div>
                             ))}
+                          {/* Add extra space at the end for better scrolling */}
+                          <div className="flex-shrink-0 w-2"></div>
                         </div>
                       ))}
                     </div>
@@ -3472,7 +3497,43 @@ const CategoryResults = () => {
           box-sizing: border-box;
         }
 
-        /* Prevent zoom from affecting layout */
+        /* Remove right padding for mobile only */
+        @media (max-width: 768px) {
+          main, 
+          .pl-3.pr-0,
+          [class*="px-"] {
+            padding-right: 0 !important;
+            padding-left: 12px !important; /* Reduced from 16px to 12px */
+          }
+          
+          .w-full {
+            padding-right: 0 !important;
+            margin-right: 0 !important;
+          }
+          
+          /* Fix for the horizontal scroll container */
+          .overflow-x-auto {
+            padding-right: 0 !important;
+            padding-left: 0 !important;
+          }
+          
+          /* Make buttons swipable with momentum scrolling */
+          .scrollbar-hide {
+            -webkit-overflow-scrolling: touch !important;
+            scroll-snap-type: x mandatory;
+          }
+          
+          /* Category buttons container should be swipable */
+          .md\\:hidden .overflow-x-auto {
+            -webkit-overflow-scrolling: touch !important;
+          }
+          
+          /* Ensure category buttons can be swiped */
+          .min-w-max {
+            padding-right: 12px; /* Reduced padding */
+          }
+        }
+
         @media screen and (min-width: 768px) {
           main, 
           .px-4, 
