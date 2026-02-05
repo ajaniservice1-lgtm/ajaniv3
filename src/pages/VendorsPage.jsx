@@ -298,21 +298,31 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Prepare vendor data for booking
+                      // Prepare complete vendor data for booking
                       const bookingData = {
                         ...vendor,
+                        // Ensure all image properties are included
+                        image_url: vendor.image_url,
+                        vendorImage: vendor.image_url,
+                        imageUrl: vendor.image_url,
+                        images: vendor.images || [],
+                        // Ensure proper category and booking type
                         category: vendor.category || "services",
                         bookingType: "service",
                         vendorId: vendor.id,
                         vendorName: vendor.name,
-                        vendorImage: vendor.image_url,
                         vendorPhone: vendor.phone,
                         vendorEmail: vendor.email,
                         serviceType: vendor.service_type,
                         priceRange: vendor.price_range,
                         priceFrom: vendor.priceFrom,
-                        priceTo: vendor.priceTo
+                        priceTo: vendor.priceTo,
+                        // Include full vendor object
+                        originalVendor: vendor
                       };
+                      
+                      console.log("📤 Stored vendor data for booking:", bookingData);
+                      console.log("📤 Image URL being passed:", bookingData.image_url);
                       
                       // Store in multiple locations for reliability
                       localStorage.setItem('currentVendorBooking', JSON.stringify(bookingData));
@@ -841,10 +851,6 @@ const VendorsPage = () => {
 
   const handleRefresh = () => {
     window.location.reload();
-  };
-
-  const handleAddVendor = () => {
-    navigate("/register/vendor");
   };
 
   return (

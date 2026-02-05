@@ -32,6 +32,7 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [bgImageError, setBgImageError] = useState(false);
   const scrollPositionRef = useRef(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const checkTouchDevice = () => {
@@ -316,7 +317,38 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                     "
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Add booking logic here
+                      // Prepare complete vendor data for booking
+                      const bookingData = {
+                        ...vendor,
+                        // Ensure all image properties are included
+                        image_url: vendor.image_url,
+                        vendorImage: vendor.image_url,
+                        imageUrl: vendor.image_url,
+                        images: vendor.images || [],
+                        // Ensure proper category and booking type
+                        category: vendor.category || "services",
+                        bookingType: "service",
+                        vendorId: vendor.id,
+                        vendorName: vendor.fullName || vendor.name,
+                        vendorPhone: vendor.phone,
+                        vendorEmail: vendor.email,
+                        serviceType: vendor.service_type,
+                        priceRange: vendor.price_range,
+                        priceFrom: vendor.priceFrom,
+                        priceTo: vendor.priceTo,
+                        // Include full vendor object
+                        originalVendor: vendor
+                      };
+                      
+                      console.log("📤 Stored vendor data for booking:", bookingData);
+                      console.log("📤 Image URL being passed:", bookingData.image_url);
+                      
+                      // Store in multiple locations for reliability
+                      localStorage.setItem('currentVendorBooking', JSON.stringify(bookingData));
+                      sessionStorage.setItem('currentVendorBooking', JSON.stringify(bookingData));
+                      
+                      // Navigate to booking route
+                      navigate('/booking');
                     }}
                   >
                     <FaCalendarCheck className="text-xs sm:text-sm lg:text-[14px]" />
@@ -476,8 +508,6 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                         )}
                       </div>
                     </div>
-                    
-                   
                   </div>
                 </div>
 
@@ -522,8 +552,6 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                           </p>
                         </div>
                       </div>
-
-                    
 
                       {/* Vendor Info */}
                       <div className="flex items-start gap-2.5 sm:gap-3 lg:gap-4">
@@ -612,8 +640,6 @@ const VendorModal = ({ vendor, isOpen, onClose }) => {
                   </div>
                 </div>
               </div>
-
-             
             </div>
           </div>
         </motion.div>
@@ -972,8 +998,6 @@ const VendorCard = ({ venue, index }) => {
               </span>
             )}
           </div>
-          
-       
         </div>
       </motion.div>
 
