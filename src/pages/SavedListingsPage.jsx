@@ -4,6 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { Heart, ArrowLeft, Search } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { ToastContainer, toast, Slide } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
+import { MdCheckCircle } from "react-icons/md";
 
 const SavedListingsPage = () => {
   const navigate = useNavigate();
@@ -16,6 +19,121 @@ const SavedListingsPage = () => {
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [userProfile, setUserProfile] = useState(null);
+
+  // ---------------- Toast Notification Function ----------------
+  const showToast = (message, businessName = "", type = "success") => {
+    const backgroundColor = "#FFFFFF";
+    const textColor = "#1C1C1E";
+    const iconColor = type === "success" ? "#34C759" : "#FF3B30";
+    const Icon = MdCheckCircle;
+    
+    return toast(
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <Icon size={28} color={iconColor} />
+        <div>
+          <span style={{
+            fontWeight: 500,
+            fontSize: '16px',
+            color: textColor,
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+          }}>
+            {message}
+          </span>
+          {businessName && (
+            <div style={{
+              fontSize: '14px',
+              color: '#8E8E93',
+              marginTop: '4px',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            }}>
+              {businessName}
+            </div>
+          )}
+        </div>
+      </div>,
+      {
+        position: "top-right",
+        autoClose: 2500,
+        hideProgressBar: true,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        transition: Slide,
+        style: {
+          background: backgroundColor,
+          color: textColor,
+          borderRadius: "12px",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+          padding: "16px 20px",
+          minWidth: "280px",
+          maxWidth: "350px"
+        }
+      }
+    );
+  };
+
+  // ---------------- Check for Pending Save on Login ----------------
+  useEffect(() => {
+    const checkPendingSave = () => {
+      const pendingSaveItem = localStorage.getItem("pendingSaveItem");
+      const isAuthenticated = localStorage.getItem("auth_token") && localStorage.getItem("userProfile");
+      
+      if (isAuthenticated && pendingSaveItem) {
+        try {
+          const item = JSON.parse(pendingSaveItem);
+          
+          // Check if already saved
+          const saved = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
+          const isAlreadySaved = saved.some(savedItem => savedItem.id === item.id);
+          
+          if (!isAlreadySaved) {
+            // Add to saved listings
+            const listingToSave = {
+              ...item,
+              savedDate: new Date().toISOString().split("T")[0],
+            };
+            
+            const updated = [...saved, listingToSave];
+            localStorage.setItem("userSavedListings", JSON.stringify(updated));
+            
+            // Show success toast
+            showToast("Added to saved listings!", item.name, "success");
+            
+            // Dispatch event for Directory to update
+            window.dispatchEvent(new CustomEvent("savedListingsUpdated", {
+              detail: { action: "added", item: listingToSave },
+            }));
+          }
+          
+          // Clear pending save
+          localStorage.removeItem("pendingSaveItem");
+          
+          // Trigger saved listings update
+          loadSavedListings();
+          
+        } catch (error) {
+          console.error("Error processing pending save:", error);
+          localStorage.removeItem("pendingSaveItem");
+        }
+      }
+    };
+
+    // Listen for login events
+    const handleLoginSuccess = () => {
+      setTimeout(checkPendingSave, 500); // Small delay to ensure auth is set
+    };
+
+    window.addEventListener("loginSuccess", handleLoginSuccess);
+    window.addEventListener("authChange", handleLoginSuccess);
+    
+    // Initial check
+    checkPendingSave();
+
+    return () => {
+      window.removeEventListener("loginSuccess", handleLoginSuccess);
+      window.removeEventListener("authChange", handleLoginSuccess);
+    };
+  }, []);
 
   // Load user profile and saved listings
   useEffect(() => {
@@ -66,7 +184,7 @@ const SavedListingsPage = () => {
   };
 
   // Remove a listing from saved with toast notification
-  const handleRemoveListing = (id, e) => {
+  const handleRemoveListing = (id, e, businessName = "") => {
     if (e) e.stopPropagation();
 
     const updatedListings = savedListings.filter(
@@ -76,7 +194,7 @@ const SavedListingsPage = () => {
     localStorage.setItem("userSavedListings", JSON.stringify(updatedListings));
 
     // Show toast notification
-    showToast("Removed from saved listings");
+    showToast("Removed from saved listings", businessName, "info");
 
     // Dispatch event for Directory to update
     window.dispatchEvent(
@@ -84,52 +202,6 @@ const SavedListingsPage = () => {
         detail: { action: "removed", itemId: id },
       })
     );
-  };
-
-  // Toast notification function
-  const showToast = (message) => {
-    // Remove existing toast
-    const existingToast = document.getElementById("toast-notification");
-    if (existingToast) {
-      existingToast.remove();
-    }
-
-    const toast = document.createElement("div");
-    toast.id = "toast-notification";
-    toast.className =
-      "fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg border bg-blue-50 border-blue-200 text-blue-800 transform transition-all duration-300";
-    toast.style.transform = "translateX(400px)";
-
-    toast.innerHTML = `
-      <div class="flex items-center gap-3">
-        <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-        </svg>
-        <span class="font-medium">${message}</span>
-        <button onclick="this.parentElement.parentElement.remove()" class="ml-4 hover:opacity-70 transition-opacity">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-          </svg>
-        </button>
-      </div>
-    `;
-
-    document.body.appendChild(toast);
-
-    // Animate in
-    setTimeout(() => {
-      toast.style.transform = "translateX(0)";
-    }, 10);
-
-    // Auto remove after 3 seconds
-    setTimeout(() => {
-      toast.style.transform = "translateX(400px)";
-      setTimeout(() => {
-        if (toast.parentElement) {
-          toast.remove();
-        }
-      }, 300);
-    }, 3000);
   };
 
   // Apply filters
@@ -246,7 +318,7 @@ const SavedListingsPage = () => {
 
           {/* Heart icon - Already saved (filled) */}
           <button
-            onClick={(e) => handleRemoveListing(listing.id, e)}
+            onClick={(e) => handleRemoveListing(listing.id, e, listing.name)}
             className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
             title="Remove from saved"
           >
@@ -355,6 +427,7 @@ const SavedListingsPage = () => {
           </div>
         </main>
         <Footer />
+        <ToastContainer />
       </div>
     );
   }
@@ -623,6 +696,7 @@ const SavedListingsPage = () => {
       </main>
 
       <Footer />
+      <ToastContainer />
     </div>
   );
 };

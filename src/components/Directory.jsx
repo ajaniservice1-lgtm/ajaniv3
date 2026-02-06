@@ -13,7 +13,6 @@ import listingService from "../lib/listingService";
 const buildQueryString = (filters = {}) => {
   const params = new URLSearchParams();
   if (filters.category) params.append('category', filters.category);
-  // REMOVED status filter to get all listings (both approved and pending)
   return params.toString();
 };
 
@@ -247,7 +246,7 @@ const showNotification = (message, businessName = "", type = "success") => {
   const backgroundColor = "#FFFFFF";
   const textColor = "#1C1C1E";
   const iconColor = type === "success" ? "#34C759" : "#FF3B30";
-  const Icon = type === "success" ? MdCheckCircle : MdCheckCircle; // Use check icon for both for consistency
+  const Icon = type === "success" ? MdCheckCircle : MdCheckCircle;
   
   return toast(
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -684,7 +683,6 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
       <section className="mb-4">
         <div className="flex justify-between items-center mb-2">
           <div>
-            {/* UPDATED: 13.5px font size for mobile */}
             <h2 className={`${isMobile ? "text-[13.5px]" : "text-xl"} font-bold text-gray-900`} style={{ color: "#000651" }}>
               {title}
             </h2>
@@ -712,7 +710,6 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
       <section className="mb-4">
         <div className="flex justify-between items-center mb-2">
           <div>
-            {/* UPDATED: 13.5px font size for mobile */}
             <h2 className={`${isMobile ? "text-[13.5px]" : "text-xl"} font-bold text-gray-900`} style={{ color: "#000651" }}>
               {title}
             </h2>
@@ -742,7 +739,6 @@ const CategorySection = ({ title, items, category, isMobile, loading, error }) =
     <section className="mb-4">
       <div className="flex justify-between items-center mb-2">
         <div>
-          {/* UPDATED: 13.5px font size for mobile, kept xl for desktop */}
           <h2 className={`${isMobile ? "text-[13.5px]" : "text-xl"} font-bold text-gray-900`} style={{ color: "#000651" }}>
             {title}
           </h2>

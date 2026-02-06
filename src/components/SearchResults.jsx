@@ -41,6 +41,8 @@ import Footer from "./Footer";
 import Meta from "./Meta";
 import { createPortal } from "react-dom";
 import axiosInstance from "../lib/axios";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 /* ---------------- HELPER FUNCTIONS FOR SEO-FRIENDLY URLS ---------------- */
 
@@ -126,7 +128,7 @@ const getCategorySlug = (category) => {
 /* ---------------- UNIFIED LOADING COMPONENT ================== */
 const UnifiedLoadingScreen = ({ isMobile = false, category = null }) => {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="fixed inset-0 bg-gray-50 flex items-center justify-center z-50">
       <div className="flex flex-col items-center max-w-sm mx-auto px-4">
         <div className="relative mb-6">
           <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-[#06EAFC]/10 rounded-full`}></div>
@@ -206,7 +208,6 @@ const useBackendListings = (searchQuery = '', filters = {}, seoCategory = null, 
 
   useEffect(() => {
     const fetchListings = async () => {
-      // Don't fetch if shouldFetch is false (when user is just typing)
       if (!shouldFetch) {
         setLoading(false);
         return;
@@ -219,7 +220,6 @@ const useBackendListings = (searchQuery = '', filters = {}, seoCategory = null, 
         let url = '/listings';
         const params = new URLSearchParams();
         
-        // Only use category for initial filtering
         if (seoCategory && seoCategory !== "All Categories") {
           const backendCategories = [seoCategory].map(cat => {
             const categoryMap = {
@@ -239,22 +239,18 @@ const useBackendListings = (searchQuery = '', filters = {}, seoCategory = null, 
           params.append('category', backendCategories[0]);
         }
         
-        // Use location filter if present
         if (filters.locations && filters.locations.length > 0) {
           const properCaseLocation = normalizeLocationForBackend(filters.locations[0]);
           params.append('location.area', properCaseLocation);
         }
-        // Otherwise use search query if it looks like a location
         else if (searchQuery && looksLikeLocation(searchQuery)) {
           const properCaseLocation = normalizeLocationForBackend(searchQuery);
           params.append('location.area', properCaseLocation);
         }
-        // Otherwise use general search
         else if (searchQuery && !looksLikeLocation(searchQuery)) {
           params.append('q', searchQuery);
         }
         
-        // Apply other filters
         if (filters.priceRange?.min) {
           params.append('minPrice', filters.priceRange.min);
         }
@@ -276,23 +272,17 @@ const useBackendListings = (searchQuery = '', filters = {}, seoCategory = null, 
           url += `?${queryString}`;
         }
         
-        console.log('📡 Backend API Request:', url);
-        
         const response = await axiosInstance.get(url);
         setApiResponse(response.data);
         
         if (response.data && response.data.status === 'success' && response.data.data?.listings) {
           let allListings = response.data.data.listings;
           
-          console.log(`📦 Received ${allListings.length} listings from backend`);
-          
-          // Extract all unique locations for suggestions
           const uniqueLocations = [...new Set(allListings.map(item => item.location?.area).filter(Boolean))];
           setAllLocations(uniqueLocations);
           
           let finalListings = allListings;
           
-          // Apply category filter if present
           if (seoCategory && seoCategory !== "All Categories") {
             const activeCategory = seoCategory.toLowerCase();
             finalListings = finalListings.filter(item => {
@@ -309,7 +299,6 @@ const useBackendListings = (searchQuery = '', filters = {}, seoCategory = null, 
             });
           }
           
-          // Apply location filter from filters (not from URL slug)
           if (filters.locations && filters.locations.length > 0) {
             const searchLocation = filters.locations[0].toLowerCase();
             finalListings = finalListings.filter(item => {
@@ -322,7 +311,6 @@ const useBackendListings = (searchQuery = '', filters = {}, seoCategory = null, 
             });
           }
           
-          // Apply text search if not a location
           if (searchQuery && !looksLikeLocation(searchQuery)) {
             finalListings = finalListings.filter(item => {
               const title = (item.title || '').toLowerCase();
@@ -351,7 +339,6 @@ const useBackendListings = (searchQuery = '', filters = {}, seoCategory = null, 
           setError(response.data?.message || 'No data received');
         }
       } catch (err) {
-        console.error('❌ Backend API Error:', err.message);
         setError(err.message);
         setListings([]);
         setFilteredCounts({});
@@ -555,16 +542,13 @@ const getCardImages = (item) => {
 // Universal price getter - works for all structures
 const getPriceFromItem = (item) => {
   try {
-    // Check for direct price field first
     if (item.price !== undefined && item.price !== null) {
       return item.price;
     }
     
-    // Check for restaurant price range
     if (item.details?.priceRangePerMeal) {
       const { priceFrom, priceTo } = item.details.priceRangePerMeal;
       
-      // Return the average price for simplicity
       if (priceFrom !== undefined && priceTo !== undefined) {
         return Math.round((priceFrom + priceTo) / 2);
       } else if (priceFrom !== undefined) {
@@ -574,21 +558,17 @@ const getPriceFromItem = (item) => {
       }
     }
     
-    // Check for details.roomTypes[0].pricePerNight (hotels)
     if (item.details?.roomTypes?.[0]?.pricePerNight !== undefined) {
       return item.details.roomTypes[0].pricePerNight;
     }
     
-    // Check for details.pricePerNight (shortlets)
     if (item.details?.pricePerNight !== undefined) {
       return item.details.pricePerNight;
     }
     
-    // Check for EVENT category price range (from your data)
     if (item.category?.toLowerCase() === 'event' && item.details?.priceRange) {
       const { priceFrom, priceTo } = item.details.priceRange;
       
-      // Return the average price for events
       if (priceFrom !== undefined && priceTo !== undefined) {
         return Math.round((priceFrom + priceTo) / 2);
       } else if (priceFrom !== undefined) {
@@ -598,11 +578,9 @@ const getPriceFromItem = (item) => {
       }
     }
     
-    // Check for services category price range
     if (item.category?.toLowerCase() === 'services' && item.details?.pricingRange) {
       const { priceFrom, priceTo } = item.details.pricingRange;
       
-      // Return the average price for services
       if (priceFrom !== undefined && priceTo !== undefined) {
         return Math.round((priceFrom + priceTo) / 2);
       } else if (priceFrom !== undefined) {
@@ -614,7 +592,6 @@ const getPriceFromItem = (item) => {
     
     return 0;
   } catch (error) {
-    console.error('Error getting price:', error);
     return 0;
   }
 };
@@ -622,29 +599,24 @@ const getPriceFromItem = (item) => {
 // Universal location getter
 const getLocationFromItem = (item) => {
   try {
-    // Check for location.area
     if (item.location?.area) {
       return item.location.area;
     }
     
-    // Check for direct area field
     if (item.area) {
       return item.area;
     }
     
-    // Check for location.address
     if (item.location?.address) {
       return item.location.address;
     }
     
-    // Check for direct address field
     if (item.address) {
       return item.address;
     }
     
     return "Ibadan";
   } catch (error) {
-    console.error('Error getting location:', error);
     return "Ibadan";
   }
 };
@@ -652,24 +624,20 @@ const getLocationFromItem = (item) => {
 // Universal business name getter
 const getBusinessName = (item) => {
   try {
-    // Try name field
     if (item.name) {
       return item.name;
     }
     
-    // Try title field
     if (item.title) {
       return item.title;
     }
     
-    // Try vendor business name
     if (item.vendorId?.vendor?.businessName) {
       return item.vendorId.vendor.businessName;
     }
     
     return "Business";
   } catch (error) {
-    console.error('Error getting business name:', error);
     return "Business";
   }
 };
@@ -904,12 +872,12 @@ const GuestSelector = ({ guests, onChange, onClose, category = 'hotel' }) => {
   );
 };
 
-/* ================== BUSINESS CARD ================== */
+/* ================== UPDATED BUSINESS CARD ================== */
 const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   const images = getCardImages(item);
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [imageHeight] = useState(isMobile ? 150 : 170);
+  const [imageHeight] = useState(isMobile ? 180 : 200);
   const cardRef = useRef(null);
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -925,40 +893,36 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   const getPriceText = () => {
     const cat = (category || "").toLowerCase();
     
-    // Special handling for restaurants with price ranges
     if (cat.includes('restaurant') && item.details?.priceRangePerMeal) {
       const { priceFrom, priceTo } = item.details.priceRangePerMeal;
       
       if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
         return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
       } else if (priceFrom !== undefined) {
-        return `From ₦${formatPrice(priceFrom)}`;
+        return `₦${formatPrice(priceFrom)}`;
       }
     }
     
-    // Special handling for EVENT category
     if (cat.includes('event') && item.details?.priceRange) {
       const { priceFrom, priceTo } = item.details.priceRange;
       
       if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
         return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
       } else if (priceFrom !== undefined) {
-        return `From ₦${formatPrice(priceFrom)}`;
+        return `₦${formatPrice(priceFrom)}`;
       }
     }
     
-    // Special handling for SERVICES/VENDOR category
     if ((cat.includes('services') || cat.includes('vendor')) && item.details?.pricingRange) {
       const { priceFrom, priceTo } = item.details.pricingRange;
       
       if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
         return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
       } else if (priceFrom !== undefined) {
-        return `From ₦${formatPrice(priceFrom)}`;
+        return `₦${formatPrice(priceFrom)}`;
       }
     }
     
-    // For other categories without price ranges
     const price = getPriceFromItem(item) || 0;
     const formattedPrice = formatPrice(price);
     return `₦${formattedPrice}`;
@@ -998,7 +962,29 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
 
   const handleFavoriteClick = (e) => {
     e.stopPropagation();
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    
+    if (!isLoggedIn) {
+      toast.info('Please login to add to favorites', {
+        position: "top-center",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return;
+    }
+    
     setIsFavorite(!isFavorite);
+    toast.success(isFavorite ? 'Removed from favorites' : 'Added to favorites', {
+      position: "top-center",
+      autoClose: 2000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
   };
 
   return (
@@ -1007,17 +993,17 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
       className={`
         bg-white rounded-xl overflow-hidden flex-shrink-0 
         font-manrope relative group flex flex-col
-        ${isMobile ? "w-[165px]" : "w-[240px]"} 
+        ${isMobile ? "w-[180px]" : "w-[240px]"}
         transition-all duration-200 cursor-pointer 
         hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
       `}
       onClick={handleCardClick}
       style={{
-        height: isMobile ? "280px" : "320px",
-        minHeight: isMobile ? "280px" : "320px",
-        maxHeight: isMobile ? "280px" : "320px",
-        minWidth: isMobile ? "165px" : "240px",
-        maxWidth: isMobile ? "165px" : "240px",
+        height: isMobile ? "310px" : "350px",
+        minHeight: isMobile ? "310px" : "350px",
+        maxHeight: isMobile ? "310px" : "350px",
+        minWidth: isMobile ? "180px" : "240px",
+        maxWidth: isMobile ? "180px" : "240px",
       }}
     >
       <div
@@ -1079,32 +1065,32 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
         </button>
       </div>
       <div 
-        className={`flex-1 ${isMobile ? "p-1.5" : "p-2.5"} flex flex-col`}
+        className={`flex-1 ${isMobile ? "p-2.5" : "p-2.5"} flex flex-col`}
         style={{
           minHeight: isMobile ? "130px" : "150px",
         }}
       >
-        <h3 className="font-semibold text-gray-900 leading-tight line-clamp-2 text-xs md:text-sm mb-1 flex-shrink-0">
+        <h3 className="font-semibold text-gray-900 leading-tight line-clamp-2 text-sm mb-1 flex-shrink-0">
           {businessName}
         </h3>
         <div className="flex-1 flex flex-col justify-between">
           <div>
-            <p className="text-gray-600 text-[9px] md:text-xs line-clamp-1 mb-2">
+            <p className="text-gray-600 text-xs line-clamp-1 mb-2">
               {locationText}
             </p>
             <div className="flex items-center justify-between mb-2">
               <div className="flex flex-col">
-                <span className="text-xs md:text-xs font-manrope text-gray-900">
+                <span className="text-[12px] font-manrope text-gray-900">
                   {priceText}
                 </span>
                 {priceUnit && (
-                  <span className="text-[9px] md:text-xs text-gray-600 mt-0.5">
+                  <span className="text-[10px] text-gray-600 mt-0.5">
                     {priceUnit}
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-1">
-                <div className="flex items-center gap-1 text-gray-800 text-[9px] md:text-xs">
+                <div className="flex items-center gap-1 text-gray-800 text-xs">
                   <FontAwesomeIcon icon={faStar} className="text-black" />
                   <span className="font-semibold text-black">{rating}</span>
                 </div>
@@ -1141,7 +1127,6 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   );
 };
 
-/* ================== CATEGORY BUTTONS ================== */
 const CategoryButtons = ({ selectedCategories, onCategoryClick, isSwitchingCategory = false }) => {
   const buttonConfigs = [
     { 
@@ -1194,28 +1179,34 @@ const CategoryButtons = ({ selectedCategories, onCategoryClick, isSwitchingCateg
       )}
       
       <div className="relative">
-        <div className="md:hidden overflow-x-auto scrollbar-hide pb-2">
-          <div className="flex space-x-2 min-w-max px-1">
+        {/* MOBILE BUTTONS - PERFECTLY FITTED, NO EXCESS PADDING */}
+        <div className="md:hidden overflow-x-auto scrollbar-hide pb-2 px-4">
+          <div className="flex space-x-2 min-w-max">
             {buttonConfigs.map((button) => {
               const isSelected = selectedCategories.some(
                 cat => cat.toLowerCase() === button.key.toLowerCase()
               );
+              
               return (
                 <button
                   key={button.key}
                   onClick={() => onCategoryClick(button.key)}
                   disabled={isSwitchingCategory}
                   className={`
-                    flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-full
+                    flex items-center justify-center gap-1.5 rounded-full
                     whitespace-nowrap transition-all duration-200 font-medium
                     ${isSelected 
                       ? 'bg-[#06f49f] text-white shadow-sm'
                       : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
                     }
                     ${isSwitchingCategory ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}
-                    text-xs
+                    text-xs font-manrope
                   `}
-                  style={{ minWidth: 'auto' }}
+                  style={{ 
+                    minWidth: 'auto',
+                    padding: '8px 14px', // Symmetrical: 14px both sides (fitted)
+                    marginRight: '6px'
+                  }}
                 >
                   {button.icon === FaUserCircle ? (
                     <button.icon className={`${isSelected ? 'text-white' : 'text-gray-500'} text-xs`} />
@@ -1225,12 +1216,14 @@ const CategoryButtons = ({ selectedCategories, onCategoryClick, isSwitchingCateg
                       className={`${isSelected ? 'text-white' : 'text-gray-500'} text-xs`}
                     />
                   )}
-                  <span>{button.displayName}</span>
+                  <span className="font-medium">{button.displayName}</span>
                 </button>
               );
             })}
           </div>
         </div>
+
+        {/* DESKTOP BUTTONS - Keep original styling */}
         <div className="hidden md:block">
           <div className="flex gap-2 justify-center">
             {buttonConfigs.map((button) => {
@@ -1312,7 +1305,6 @@ const FilterSidebar = ({
   const [locationSearch, setLocationSearch] = useState("");
   const locationSearchRef = useRef(null);
 
-  // Use ALL Ibadan locations
   const allIbadanLocations = React.useMemo(() => {
     const locations = [
       'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly',  'Agodi',
@@ -1529,27 +1521,6 @@ const FilterSidebar = ({
   const handleCancelFilters = () => {
     setLocalFilters(currentFilters);
     onClose();
-  };
-
-  const clearAllFilters = () => {
-    const resetFilters = {
-      locations: [],
-      priceRange: { min: "", max: "" },
-      ratings: [],
-      sortBy: "relevance",
-    };
-    setLocalFilters(resetFilters);
-    onFilterChange(resetFilters);
-    
-    if (onClearSearchQuery) {
-      onClearSearchQuery();
-    }
-    
-    if (onClearLocationFilters) {
-      onClearLocationFilters();
-    }
-    
-    updateUrlWithFilters(resetFilters);
   };
 
   const sidebarContent = (
@@ -1919,12 +1890,6 @@ const FilterSidebar = ({
       {(isMobileModal || isDesktopModal) && (
         <div className="flex gap-2 pt-4">
           <button
-            onClick={clearAllFilters}
-            className="flex-1 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-          >
-            Clear All
-          </button>
-          <button
             onClick={handleApplyFilters}
             className="flex-1 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
           >
@@ -2048,7 +2013,18 @@ const FilterSidebar = ({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit">
+    <div 
+      className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit"
+      style={{
+        minWidth: '250px',
+        maxWidth: '280px',
+        width: 'calc(25% - 20%)',
+        flexShrink: 0,
+        position: 'sticky',
+        top: '100px',
+        height: 'fit-content'
+      }}
+    >
       {sidebarContent}
     </div>
   );
@@ -2681,8 +2657,7 @@ const AgodaStyleSearchModal = ({
     'Iwo Road', 'Gate', 'New Garage', 'Old Ife Road'
   ]);
 
-  // State for date editing
-  const [editingDate, setEditingDate] = useState(null); // 'checkin' or 'checkout'
+  const [editingDate, setEditingDate] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const handleLocationSearch = (value) => {
@@ -2771,7 +2746,6 @@ const AgodaStyleSearchModal = ({
 
   if (!isVisible) return null;
 
-  // Format date for display - e.g., "31th", "Sat", "Jan"
   const formatDateDisplay = (date) => {
     const day = date.getDate();
     const daySuffix = day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th';
@@ -2788,7 +2762,6 @@ const AgodaStyleSearchModal = ({
   const checkInDisplay = formatDateDisplay(localCheckIn);
   const checkOutDisplay = formatDateDisplay(localCheckOut);
 
-  // Simple inline date picker component
   const DatePickerComponent = ({ onSelect, selectedDate, onClose }) => {
     const [currentMonth, setCurrentMonth] = useState(selectedDate || new Date());
     const [selectedDay, setSelectedDay] = useState(selectedDate ? selectedDate.getDate() : new Date().getDate());
@@ -2823,12 +2796,10 @@ const AgodaStyleSearchModal = ({
     const firstDay = getFirstDayOfMonth(currentMonth);
     const days = [];
 
-    // Empty cells for days before first day of month
     for (let i = 0; i < firstDay; i++) {
       days.push(<div key={`empty-${i}`} className="h-8 w-8"></div>);
     }
 
-    // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const isSelected = day === selectedDay;
       days.push(
@@ -2905,7 +2876,6 @@ const AgodaStyleSearchModal = ({
 
   return (
     <div className="fixed inset-0 bg-white z-[99991] flex flex-col overflow-hidden">
-      {/* Header - Fixed */}
       <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between z-10 flex-shrink-0">
         <button
           onClick={onClose}
@@ -2914,14 +2884,12 @@ const AgodaStyleSearchModal = ({
           <FontAwesomeIcon icon={faChevronLeft} size="lg" />
         </button>
         <h2 className="text-xl font-bold text-gray-900" style={{ fontSize: '12.5px' }}>Edit Search</h2>
-        <div className="w-10"></div> {/* Spacer for alignment */}
+        <div className="w-10"></div>
       </div>
 
-      {/* Content - Scrollable */}
       <div className="flex-1 overflow-y-auto overscroll-contain">
         <div className="p-6">
           <div className="space-y-8">
-            {/* Location Field */}
             <div>
               <label className="block font-semibold text-gray-900 mb-4" style={{ fontSize: '12.5px' }}>
                 Where are you going?
@@ -2951,7 +2919,6 @@ const AgodaStyleSearchModal = ({
                   </button>
                 )}
                 
-                {/* Suggestions dropdown */}
                 {showSuggestions && suggestions.length > 0 && (
                   <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
                     {suggestions.map((location, index) => (
@@ -2974,12 +2941,10 @@ const AgodaStyleSearchModal = ({
               </div>
             </div>
 
-            {/* Dates Section - FLEX WITH SPACE BETWEEN */}
             <div>
               <h3 className="font-semibold text-gray-900 mb-4" style={{ fontSize: '12.5px' }}>Select Dates</h3>
               
               <div className="flex justify-between items-start">
-                {/* Check-in Date */}
                 <div 
                   onClick={() => handleDateClick('checkin')}
                   className="flex flex-col items-start p-0 hover:opacity-80 active:opacity-60 cursor-pointer"
@@ -2994,12 +2959,10 @@ const AgodaStyleSearchModal = ({
                   </div>
                 </div>
                 
-                {/* Arrow in middle */}
                 <div className="pt-8">
                   <div className="text-gray-400" style={{ fontSize: '12.5px' }}>→</div>
                 </div>
                 
-                {/* Check-out Date */}
                 <div 
                   onClick={() => handleDateClick('checkout')}
                   className="flex flex-col items-start p-0 hover:opacity-80 active:opacity-60 cursor-pointer"
@@ -3016,7 +2979,6 @@ const AgodaStyleSearchModal = ({
               </div>
             </div>
 
-            {/* Guests/Rooms Section */}
             <div>
               <h3 className="font-semibold text-gray-900 mb-4" style={{ fontSize: '12.5px' }}>
                 {category.includes('restaurant') ? 'Number of People' : 'Guests & Rooms'}
@@ -3052,7 +3014,6 @@ const AgodaStyleSearchModal = ({
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {/* Rooms */}
                   <div className="flex justify-between items-center p-5 border border-gray-300 rounded-2xl bg-white">
                     <div>
                       <div className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>Rooms</div>
@@ -3079,7 +3040,6 @@ const AgodaStyleSearchModal = ({
                     </div>
                   </div>
 
-                  {/* Adults */}
                   <div className="flex justify-between items-center p-5 border border-gray-300 rounded-2xl bg-white">
                     <div>
                       <div className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>Adults</div>
@@ -3106,7 +3066,6 @@ const AgodaStyleSearchModal = ({
                     </div>
                   </div>
 
-                  {/* Children */}
                   <div className="flex justify-between items-center p-5 border border-gray-300 rounded-2xl bg-white">
                     <div>
                       <div className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>Children</div>
@@ -3139,7 +3098,6 @@ const AgodaStyleSearchModal = ({
         </div>
       </div>
 
-      {/* Fixed Apply Button - Stays at bottom */}
       <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 flex-shrink-0">
         <button
           onClick={handleSave}
@@ -3150,7 +3108,6 @@ const AgodaStyleSearchModal = ({
         </button>
       </div>
 
-      {/* Date Picker Overlay */}
       {showDatePicker && editingDate && (
         <DatePickerComponent
           onSelect={handleDateSelect}
@@ -3164,6 +3121,7 @@ const AgodaStyleSearchModal = ({
     </div>
   );
 };
+
 /* ================== BACK BUTTON ================== */
 const BackButton = ({ className = "", onClick }) => {
   const navigate = useNavigate();
@@ -3279,7 +3237,6 @@ const SearchResults = () => {
     shouldFetchData
   );
 
-  // Initialize filters - Parse URL parameters
   useEffect(() => {
     const initialFilters = {
       locations: [],
@@ -3290,7 +3247,6 @@ const SearchResults = () => {
       amenities: [],
     };
 
-    // Parse category from URL
     if (finalCategory && finalCategory !== "All Categories") {
       const displayName = getCategoryDisplayName(finalCategory);
       if (displayName !== "All Categories" && displayName !== "All") {
@@ -3301,7 +3257,6 @@ const SearchResults = () => {
       }
     }
 
-    // Parse location from URL parameter
     const urlLocationParam = searchParams.get("location");
     if (urlLocationParam) {
       const displayName = getLocationDisplayName(urlLocationParam);
@@ -3309,7 +3264,6 @@ const SearchResults = () => {
         initialFilters.locations = [displayName];
       }
     }
-    // Otherwise check SEO slug
     else if (urlLocation && (!localSearchQuery || localSearchQuery.trim() === '')) {
       const displayName = getLocationDisplayName(urlLocation);
       if (displayName !== "All Locations" && displayName !== "All") {
@@ -3317,7 +3271,6 @@ const SearchResults = () => {
       }
     }
 
-    // Parse price filters from URL
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
     if (minPrice) {
@@ -3327,13 +3280,11 @@ const SearchResults = () => {
       initialFilters.priceRange.max = maxPrice;
     }
 
-    // Parse rating filter from URL
     const minRating = searchParams.get("minRating");
     if (minRating) {
       initialFilters.ratings = [parseInt(minRating)];
     }
 
-    // Parse sort from URL
     const sortParam = searchParams.get("sort");
     if (sortParam && ["relevance", "price_low", "price_high", "rating", "name"].includes(sortParam)) {
       initialFilters.sortBy = sortParam;
@@ -3342,7 +3293,6 @@ const SearchResults = () => {
     setActiveFilters(initialFilters);
     setFiltersInitialized(true);
     
-    // Reset initial state flags when URL changes
     setIsUsingInitialState({
       location: !!urlLocation || !!urlLocationParam,
       category: !!finalCategory && finalCategory !== "All Categories",
@@ -3359,53 +3309,9 @@ const SearchResults = () => {
     return "hotel";
   };
 
-  // Function to reset all filters
-  const resetAllFilters = () => {
-    const resetFilters = {
-      locations: [],
-      categories: finalCategory && finalCategory !== "All Categories" ? [finalCategory] : [],
-      priceRange: { min: "", max: "" },
-      ratings: [],
-      sortBy: "relevance",
-      amenities: [],
-    };
-    
-    setActiveFilters(resetFilters);
-    setLocalSearchQuery("");
-    
-    // Reset initial state flags
-    setIsUsingInitialState({
-      location: false,
-      category: !!finalCategory && finalCategory !== "All Categories",
-      search: false
-    });
-    
-    // Update URL to remove location/search query
-    const categorySlug = getCategorySlug(finalCategory);
-    const queryParams = new URLSearchParams();
-    
-    queryParams.append("checkInDate", checkInDate.toISOString());
-    queryParams.append("checkOutDate", checkOutDate.toISOString());
-    
-    if (guests) {
-      queryParams.append("guests", JSON.stringify(guests));
-    }
-    
-    queryParams.append("cat", finalCategory);
-    
-    const seoPath = categorySlug ? `/${categorySlug}` : '/search';
-    const finalUrl = queryParams.toString() 
-      ? `${seoPath}?${queryParams.toString()}`
-      : seoPath;
-    
-    navigate(finalUrl);
-  };
-
-  // Handle location selection from suggestions
   const handleLocationSelected = (locationText) => {
     setLocalSearchQuery(locationText);
     
-    // Clear location filters when pasting location to search
     if (activeFilters.locations.length > 0) {
       const updatedFilters = {
         ...activeFilters,
@@ -3414,28 +3320,22 @@ const SearchResults = () => {
       setActiveFilters(updatedFilters);
     }
     
-    // Focus the search input
     if (searchInputRef.current) {
       searchInputRef.current.focus();
     }
   };
 
-  // Updated handleFilterChange to sync with URL
   const handleFilterChange = (newFilters) => {
-    // If user selects a location filter, clear the search query
     if (newFilters.locations.length > 0 && localSearchQuery) {
       setLocalSearchQuery("");
       
-      // Mark that we're no longer using initial search
       setIsUsingInitialState(prev => ({
         ...prev,
         search: false
       }));
     }
     
-    // If user clears location filter, we should allow fresh location search
     if (newFilters.locations.length === 0 && activeFilters.locations.length > 0) {
-      // Mark that location is no longer from initial state
       setIsUsingInitialState(prev => ({
         ...prev,
         location: false
@@ -3444,34 +3344,26 @@ const SearchResults = () => {
     
     setActiveFilters(newFilters);
     
-    // Update URL with new filters
     const params = new URLSearchParams();
     
-    // Add category
     params.set("cat", finalCategory);
     
-    // Add dates
     params.set("checkInDate", checkInDate.toISOString());
     params.set("checkOutDate", checkOutDate.toISOString());
     
-    // Add guests
     if (guests) {
       params.set("guests", JSON.stringify(guests));
     }
     
-    // Add search query if present and no location filter
     if (newFilters.locations.length === 0 && localSearchQuery) {
       params.set("q", localSearchQuery);
     }
     
-    // Add location filter
     if (newFilters.locations.length > 0) {
       params.set("location", newFilters.locations[0]);
-      // Remove search query when using location filter
       params.delete("q");
     }
     
-    // Add price filters
     if (newFilters.priceRange?.min) {
       params.set("minPrice", newFilters.priceRange.min);
     }
@@ -3479,25 +3371,20 @@ const SearchResults = () => {
       params.set("maxPrice", newFilters.priceRange.max);
     }
     
-    // Add rating filter
     if (newFilters.ratings && newFilters.ratings.length > 0) {
       params.set("minRating", Math.min(...newFilters.ratings));
     }
     
-    // Add sort
     if (newFilters.sortBy && newFilters.sortBy !== 'relevance') {
       params.set("sort", newFilters.sortBy);
     }
     
-    // Determine the URL path
     const categorySlug = getCategorySlug(finalCategory);
     let locationSlug = null;
     
-    // If we have a location filter, use it for the slug
     if (newFilters.locations && newFilters.locations.length > 0) {
       locationSlug = createSlug(newFilters.locations[0]);
     }
-    // Otherwise, if we have a search query that looks like a location, use it
     else if (localSearchQuery && looksLikeLocation(localSearchQuery)) {
       locationSlug = createSlug(localSearchQuery);
     }
@@ -3523,19 +3410,16 @@ const SearchResults = () => {
   const handleSearchSubmit = (searchValue = null) => {
     const queryToUse = searchValue || localSearchQuery.trim();
     
-    // Enable data fetching when user clicks search
     setShouldFetchData(true);
     
     if (queryToUse || finalCategory) {
-      // Clear all location filters when searching
       const resetFilters = {
         ...activeFilters,
-        locations: [], // Clear location filters
+        locations: [],
         categories: activeFilters.categories.length > 0 ? activeFilters.categories : [finalCategory],
       };
       setActiveFilters(resetFilters);
       
-      // Mark that we're no longer using initial location
       setIsUsingInitialState(prev => ({
         ...prev,
         location: false,
@@ -3566,14 +3450,12 @@ const SearchResults = () => {
         queryParams.append("guests", JSON.stringify(guests));
       }
       
-      // Don't pass location as filter when searching
       if (queryToUse) {
         queryParams.append("q", queryToUse.trim());
       }
       
       queryParams.append("cat", finalCategory);
       
-      // Remove any location-related parameters
       queryParams.delete("location");
       queryParams.delete("location.area");
       
@@ -3647,11 +3529,10 @@ const SearchResults = () => {
     const updatedFilters = {
       ...activeFilters,
       categories: [displayName],
-      locations: [], // Clear location filters when switching category
+      locations: [],
     };
     setActiveFilters(updatedFilters);
     
-    // Reset initial state for location and search
     setIsUsingInitialState({
       location: false,
       category: true,
@@ -3665,7 +3546,6 @@ const SearchResults = () => {
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
-      // Only search on Enter if suggestions aren't shown
       if (!showSuggestions || listings.length === 0) {
         handleSearchSubmit();
       }
@@ -3680,22 +3560,18 @@ const SearchResults = () => {
     setShowDesktopFilters(!showDesktopFilters);
   };
 
-  // Clear location filters when typing in search input
   const handleSearchChange = (value) => {
     setLocalSearchQuery(value);
     
-    // Disable data fetching while typing
     setShouldFetchData(false);
     
-    // Clear location filters when user starts typing in search
     if (value.trim() && activeFilters.locations.length > 0) {
       const updatedFilters = {
         ...activeFilters,
-        locations: [], // Clear location filters
+        locations: [],
       };
       setActiveFilters(updatedFilters);
       
-      // Mark that we're no longer using initial location
       setIsUsingInitialState(prev => ({
         ...prev,
         location: false
@@ -3708,22 +3584,19 @@ const SearchResults = () => {
       setShowSuggestions(false);
     }
     
-    // Clear any auto-search debounce
     if (searchDebounceRef.current) {
       clearTimeout(searchDebounceRef.current);
     }
   };
 
   const handleSearchFocus = () => {
-    // Clear location filters when clicking search input
     if (activeFilters.locations.length > 0) {
       const updatedFilters = {
         ...activeFilters,
-        locations: [], // Clear location filters
+        locations: [],
       };
       setActiveFilters(updatedFilters);
       
-      // Mark that we're no longer using initial location
       setIsUsingInitialState(prev => ({
         ...prev,
         location: false
@@ -3739,12 +3612,10 @@ const SearchResults = () => {
     setLocalSearchQuery("");
     setShowSuggestions(false);
     
-    // Re-enable data fetching when clearing search
     setShouldFetchData(true);
     
-    // Clear ALL filters when clearing search (not just location)
     const updatedFilters = {
-      locations: [], // Clear location filters
+      locations: [],
       categories: activeFilters.categories.length > 0 ? activeFilters.categories : [finalCategory],
       priceRange: { min: "", max: "" },
       ratings: [],
@@ -3753,14 +3624,12 @@ const SearchResults = () => {
     };
     setActiveFilters(updatedFilters);
     
-    // Reset initial state flags
     setIsUsingInitialState({
       location: false,
       category: true,
       search: false
     });
     
-    // Also navigate to category-only page
     const categorySlug = getCategorySlug(finalCategory);
     const queryParams = new URLSearchParams();
     
@@ -3781,16 +3650,14 @@ const SearchResults = () => {
     navigate(finalUrl);
   };
 
-  // Function to clear location filters (used by FilterSidebar)
   const handleClearLocationFilters = () => {
     if (activeFilters.locations.length > 0) {
       const updatedFilters = {
         ...activeFilters,
-        locations: [], // Clear location filters
+        locations: [],
       };
       setActiveFilters(updatedFilters);
       
-      // Mark that we're no longer using initial location
       setIsUsingInitialState(prev => ({
         ...prev,
         location: false
@@ -3800,7 +3667,6 @@ const SearchResults = () => {
 
   const handleSuggestionClick = useCallback(
     (url) => {
-      // Re-enable data fetching when clicking suggestion
       setShouldFetchData(true);
       navigate(url);
       setShowSuggestions(false);
@@ -3838,23 +3704,7 @@ const SearchResults = () => {
     return "Browse all places in Ibadan.";
   };
 
-  const getAccurateCountText = () => {
-    if (listings.length === 0) {
-      return "No places found";
-    }
-    
-    const total = listings.length;
-    const categoryText = finalCategory !== "All Categories" ? `${finalCategory}s` : "places";
-    
-    if (activeFilters.locations.length > 0) {
-      return `${total} ${categoryText} in ${activeFilters.locations[0]} • ${total} ${total === 1 ? 'place' : 'places'} found`;
-    } else if (localSearchQuery) {
-      return `${total} ${categoryText} in ${localSearchQuery} • ${total} ${total === 1 ? 'place' : 'places'} found`;
-    }
-    
-    return `${total} ${categoryText} in Ibadan • ${total} ${total === 1 ? 'place' : 'places'} found`;
-  };
-
+  
   const getSearchPlaceholder = () => {
     if (finalCategory.includes('Vendor')) return "What service do you need?";
     if (finalCategory.includes('Restaurant')) return "Search by restaurant name, cuisine, or area...";
@@ -3901,39 +3751,132 @@ const SearchResults = () => {
     };
   }, [isMobile, showSuggestions]);
 
-const renderCategorySpecificFields = () => {
-  const activeCategory = finalCategory.toLowerCase();
-  const totalGuests = guests ? (guests.adults + guests.children) : 0;
-  
-  if (activeCategory.includes('hotel') || activeCategory.includes('shortlet')) {
-    return (
-      <>
-        <div className="flex items-center gap-2">
+  const renderCategorySpecificFields = () => {
+    const activeCategory = finalCategory.toLowerCase();
+    const totalGuests = guests ? (guests.adults + guests.children) : 0;
+    
+    if (activeCategory.includes('hotel') || activeCategory.includes('shortlet')) {
+      return (
+        <>
+          <div className="flex items-center gap-2">
+            <div
+              onClick={() => setShowAgodaModal(true)}
+              className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+            >
+              <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+              <div>
+                <div className="text-xs text-gray-600 mb-1">Check-in</div>
+                <div className="font-medium text-gray-900 text-sm">
+                  {checkInDate ? formatShortDate(checkInDate) : "Select date"}
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-gray-400">→</div>
+            
+            <div
+              onClick={() => setShowAgodaModal(true)}
+              className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+            >
+              <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+              <div>
+                <div className="text-xs text-gray-600 mb-1">Check-out</div>
+                <div className="font-medium text-gray-900 text-sm">
+                  {checkOutDate ? formatShortDate(checkOutDate) : "Select date"}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div
+            onClick={() => setShowAgodaModal(true)}
+            className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+          >
+            <FontAwesomeIcon icon={faUser} className="text-gray-400" />
+            <div>
+              <div className="text-xs text-gray-600 mb-1">Guests & Rooms</div>
+              <div className="font-medium text-gray-900 text-sm">
+                {guests ? `${totalGuests} guest${totalGuests !== 1 ? 's' : ''} • ${guests.rooms} room${guests.rooms !== 1 ? 's' : ''}` : "Select"}
+              </div>
+            </div>
+          </div>
+        </>
+      );
+    }
+    
+    else if (activeCategory.includes('restaurant')) {
+      return (
+        <>
           <div
             onClick={() => setShowAgodaModal(true)}
             className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
           >
             <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
             <div>
-              <div className="text-xs text-gray-600 mb-1">Check-in</div>
+              <div className="text-xs text-gray-600 mb-1">When are you visiting?</div>
               <div className="font-medium text-gray-900 text-sm">
                 {checkInDate ? formatShortDate(checkInDate) : "Select date"}
               </div>
             </div>
           </div>
           
-          <div className="text-gray-400">→</div>
-          
           <div
             onClick={() => setShowAgodaModal(true)}
             className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
           >
-            <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+            <FontAwesomeIcon icon={faUser} className="text-gray-400" />
             <div>
-              <div className="text-xs text-gray-600 mb-1">Check-out</div>
+              <div className="text-xs text-gray-600 mb-1">Number of People</div>
               <div className="font-medium text-gray-900 text-sm">
-                {checkOutDate ? formatShortDate(checkOutDate) : "Select date"}
+                {guests ? `${totalGuests} ${totalGuests === 1 ? 'person' : 'people'}` : "Select"}
               </div>
+            </div>
+          </div>
+        </>
+      );
+    }
+    
+    else if (activeCategory.includes('vendor') || activeCategory.includes('services')) {
+      return (
+        <div
+          onClick={() => setShowAgodaModal(true)}
+          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+        >
+          <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+          <div>
+            <div className="text-xs text-gray-600 mb-1">Preferred service date</div>
+            <div className="font-medium text-gray-900 text-sm">
+              {checkInDate ? formatShortDate(checkInDate) : "Select date"}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    return (
+      <>
+        <div
+          onClick={() => setShowAgodaModal(true)}
+          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+        >
+          <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+          <div>
+            <div className="text-xs text-gray-600 mb-1">Check-in</div>
+            <div className="font-medium text-gray-900 text-sm">
+              {checkInDate ? formatShortDate(checkInDate) : "Select date"}
+            </div>
+          </div>
+        </div>
+        
+        <div
+          onClick={() => setShowAgodaModal(true)}
+          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+        >
+          <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+          <div>
+            <div className="text-xs text-gray-600 mb-1">Check-out</div>
+            <div className="font-medium text-gray-900 text-sm">
+              {checkOutDate ? formatShortDate(checkOutDate) : "Select date"}
             </div>
           </div>
         </div>
@@ -3952,100 +3895,7 @@ const renderCategorySpecificFields = () => {
         </div>
       </>
     );
-  }
-  
-  else if (activeCategory.includes('restaurant')) {
-    return (
-      <>
-        <div
-          onClick={() => setShowAgodaModal(true)}
-          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
-        >
-          <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
-          <div>
-            <div className="text-xs text-gray-600 mb-1">When are you visiting?</div>
-            <div className="font-medium text-gray-900 text-sm">
-              {checkInDate ? formatShortDate(checkInDate) : "Select date"}
-            </div>
-          </div>
-        </div>
-        
-        <div
-          onClick={() => setShowAgodaModal(true)}
-          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
-        >
-          <FontAwesomeIcon icon={faUser} className="text-gray-400" />
-          <div>
-            <div className="text-xs text-gray-600 mb-1">Number of People</div>
-            <div className="font-medium text-gray-900 text-sm">
-              {guests ? `${totalGuests} ${totalGuests === 1 ? 'person' : 'people'}` : "Select"}
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
-  
-  else if (activeCategory.includes('vendor') || activeCategory.includes('services')) {
-    return (
-      <div
-        onClick={() => setShowAgodaModal(true)}
-        className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
-      >
-        <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
-        <div>
-          <div className="text-xs text-gray-600 mb-1">Preferred service date</div>
-          <div className="font-medium text-gray-900 text-sm">
-            {checkInDate ? formatShortDate(checkInDate) : "Select date"}
-          </div>
-        </div>
-      </div>
-    );
-  }
-  
-  return (
-    <>
-      <div
-        onClick={() => setShowAgodaModal(true)}
-        className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
-      >
-        <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
-        <div>
-          <div className="text-xs text-gray-600 mb-1">Check-in</div>
-          <div className="font-medium text-gray-900 text-sm">
-            {checkInDate ? formatShortDate(checkInDate) : "Select date"}
-          </div>
-        </div>
-      </div>
-      
-      <div
-        onClick={() => setShowAgodaModal(true)}
-        className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
-      >
-        <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
-        <div>
-          <div className="text-xs text-gray-600 mb-1">Check-out</div>
-          <div className="font-medium text-gray-900 text-sm">
-            {checkOutDate ? formatShortDate(checkOutDate) : "Select date"}
-          </div>
-        </div>
-      </div>
-      
-      <div
-        onClick={() => setShowAgodaModal(true)}
-        className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
-      >
-        <FontAwesomeIcon icon={faUser} className="text-gray-400" />
-        <div>
-          <div className="text-xs text-gray-600 mb-1">Guests & Rooms</div>
-          <div className="font-medium text-gray-900 text-sm">
-            {guests ? `${totalGuests} guest${totalGuests !== 1 ? 's' : ''} • ${guests.rooms} room${guests.rooms !== 1 ? 's' : ''}` : "Select"}
-          </div>
-        </div>
-      </div>
-    </>
-  );
-};
+  };
 
   const getSearchButtonText = () => {
     const activeCategory = finalCategory.toLowerCase();
@@ -4087,13 +3937,10 @@ const renderCategorySpecificFields = () => {
     setShowAgodaModal(false);
   };
 
-  // ================== UPDATED ERROR HANDLING ==================
-  // Loading state for all screen sizes
   if (loading && shouldFetchData && !isSwitchingCategory) {
     return <UnifiedLoadingScreen isMobile={isMobile} category={finalCategory} />;
   }
 
-  // Error state - same UI as category page
   if (error) {
     const isNetworkError = error?.includes?.('timeout') || 
                            error?.includes?.('Network Error') || 
@@ -4106,7 +3953,6 @@ const renderCategorySpecificFields = () => {
       <div className="min-h-screen">
         <Header />
         <div className="flex flex-col mt-16 items-center justify-center min-h-[60vh] px-4">
-          {/* Error Icon/Graphic */}
           <div className="mb-6 p-4 rounded-full bg-red-50 border border-red-100">
             <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
               <svg 
@@ -4125,12 +3971,10 @@ const renderCategorySpecificFields = () => {
             </div>
           </div>
           
-          {/* Error Title */}
           <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 font-manrope">
             {isNetworkError ? "Resource Loading Error" : "Search Results Error"}
           </h1>
           
-          {/* Error Description */}
           <p className="text-gray-600 text-center mb-6 max-w-md font-manrope">
             {errorMessage}
             {isNetworkError && (
@@ -4140,9 +3984,7 @@ const renderCategorySpecificFields = () => {
             )}
           </p>
           
-          {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3">
-            {/* Refresh Button */}
             <button 
               onClick={() => window.location.reload()}
               className="px-6 py-3 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors cursor-pointer font-medium flex items-center gap-2"
@@ -4162,7 +4004,6 @@ const renderCategorySpecificFields = () => {
               </svg>
               Refresh Page
             </button>
-          
           </div>
         </div>
         <Footer />
@@ -4179,7 +4020,7 @@ const renderCategorySpecificFields = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 font-manrope w-full overflow-x-hidden">
+    <div className="min-h-screen  font-manrope w-full overflow-x-hidden">
       <Meta
         title={`${getPageTitle()} | Ajani Directory`}
         description={getPageDescription()}
@@ -4187,6 +4028,8 @@ const renderCategorySpecificFields = () => {
         image="https://ajani.ai/images/search-og.jpg"
       />
 
+      <ToastContainer />
+      
       {isSwitchingCategory && (
         <CategorySwitchLoader 
           isMobile={isMobile}
@@ -4198,10 +4041,10 @@ const renderCategorySpecificFields = () => {
       <Header />
 
       <main
-        className="pb-8 w-full mx-auto max-w-[100vw] pt-15"
+        className="pb-8 w-full mx-auto max-w-[100vw] pt-15 px-2 md:px-4"
         style={{
-          paddingLeft: isMobile ? "0.75rem" : "1rem",
-          paddingRight: isMobile ? "0" : "1rem",
+          paddingLeft: isMobile ? "0.5rem" : "1rem",
+          paddingRight: isMobile ? "0.5rem" : "1rem",
         }}
       >
         <div
@@ -4223,91 +4066,91 @@ const renderCategorySpecificFields = () => {
                     ref={searchContainerRef}
                   >
                     <form onSubmit={(e) => { e.preventDefault(); handleSearchSubmit(); }}>
-  <div className="flex items-center justify-center w-full">
-    {!isMobile ? (
-      <div className="hidden lg:block w-full max-w-6xl mx-auto">
-        <div className="relative w-full">
-          <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4">
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                    <FontAwesomeIcon icon={faSearch} />
-                  </div>
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    value={localSearchQuery}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      handleSearchChange(value);
-                      if (searchDebounceRef.current) {
-                        clearTimeout(searchDebounceRef.current);
-                      }
-                      if (!isMobile && value.trim().length > 0) {
-                        setShowSuggestions(true);
-                      } else {
-                        setShowSuggestions(false);
-                      }
-                    }}
-                    onFocus={handleSearchFocus}
-                    onKeyPress={handleKeyPress}
-                    placeholder={getSearchPlaceholder()}
-                    className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 cursor-text"
-                  />
-                  {(localSearchQuery || isUsingInitialState.search) && (
-                    <button
-                      onClick={() => {
-                        handleClearSearch();
-                        setIsUsingInitialState(prev => ({
-                          ...prev,
-                          search: false
-                        }));
-                      }}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                      title="Clear search and start fresh"
-                    >
-                      <FontAwesomeIcon icon={faTimesCircle} />
-                    </button>
-                  )}
-                </div>
-              </div>
-              
-              {renderCategorySpecificFields()}
-              
-              <button
-                onClick={handleSearchSubmit}
-                type="button"
-                className="px-6 py-3 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold rounded-lg hover:from-[#00c97b] hover:to-teal-600 transition-all duration-300 cursor-pointer"
-              >
-                <FontAwesomeIcon icon={faSearch} className="mr-2" />
-                {getSearchButtonText()}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    ) : (
-      <div 
-        onClick={() => setShowAgodaModal(true)}
-        className="bg-gray-200 rounded-[15px] mr-2 px-3 py-2.5 text-xs flex items-center gap-2  cursor-pointer w-full"
-      >
-        <FontAwesomeIcon icon={faSearch} className="text-gray-700 text-[15px] flex-shrink-0" />
-        <div className="flex flex-col text-left truncate w-full">
-          <span className="text-gray-900 font-medium text-[13px] truncate">
-            {getLocationDisplayName(activeFilters.locations[0] || localSearchQuery) || "Where to?"}
-          </span>
-          <span className="text-gray-600 text-[12px] truncate">
-            {checkInDate && checkOutDate ? 
-              `${formatShortDate(checkInDate)} - ${formatShortDate(checkOutDate)}${guests ? ` • ${guests.adults + guests.children} guest${(guests.adults + guests.children) !== 1 ? 's' : ''}` : ''}` : 
-              "Select dates"
-            }
-          </span>
-        </div>
-      </div>
-    )}
-  </div>
-</form>
+                      <div className="flex items-center justify-center w-full">
+                        {!isMobile ? (
+                          <div className="hidden lg:block w-full max-w-6xl mx-auto">
+                            <div className="relative w-full">
+                              <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4">
+                                <div className="flex items-center gap-4">
+                                  <div className="flex-1">
+                                    <div className="relative">
+                                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                        <FontAwesomeIcon icon={faSearch} />
+                                      </div>
+                                      <input
+                                        ref={searchInputRef}
+                                        type="text"
+                                        value={localSearchQuery}
+                                        onChange={(e) => {
+                                          const value = e.target.value;
+                                          handleSearchChange(value);
+                                          if (searchDebounceRef.current) {
+                                            clearTimeout(searchDebounceRef.current);
+                                          }
+                                          if (!isMobile && value.trim().length > 0) {
+                                            setShowSuggestions(true);
+                                          } else {
+                                            setShowSuggestions(false);
+                                          }
+                                        }}
+                                        onFocus={handleSearchFocus}
+                                        onKeyPress={handleKeyPress}
+                                        placeholder={getSearchPlaceholder()}
+                                        className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 cursor-text"
+                                      />
+                                      {(localSearchQuery || isUsingInitialState.search) && (
+                                        <button
+                                          onClick={() => {
+                                            handleClearSearch();
+                                            setIsUsingInitialState(prev => ({
+                                              ...prev,
+                                              search: false
+                                            }));
+                                          }}
+                                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                                          title="Clear search and start fresh"
+                                        >
+                                          <FontAwesomeIcon icon={faTimesCircle} />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  {renderCategorySpecificFields()}
+                                  
+                                  <button
+                                    onClick={handleSearchSubmit}
+                                    type="button"
+                                    className="px-6 py-3 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold rounded-lg hover:from-[#00c97b] hover:to-teal-600 transition-all duration-300 cursor-pointer"
+                                  >
+                                    <FontAwesomeIcon icon={faSearch} className="mr-2" />
+                                    {getSearchButtonText()}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div 
+                            onClick={() => setShowAgodaModal(true)}
+                            className="bg-gray-200 rounded-[15px]  px-3 py-2.5 text-xs flex items-center gap-2 cursor-pointer w-full ml-0"
+                          >
+                            <FontAwesomeIcon icon={faSearch} className="text-gray-700 text-[15px] flex-shrink-0" />
+                            <div className="flex flex-col text-left truncate w-full">
+                              <span className="text-gray-900 font-medium text-[13px] truncate">
+                                {getLocationDisplayName(activeFilters.locations[0] || localSearchQuery) || "Where to?"}
+                              </span>
+                              <span className="text-gray-600 text-[12px] truncate">
+                                {checkInDate && checkOutDate ? 
+                                  `${formatShortDate(checkInDate)} - ${formatShortDate(checkOutDate)}${guests ? ` • ${guests.adults + guests.children} guest${(guests.adults + guests.children) !== 1 ? 's' : ''}` : ''}` : 
+                                  "Select dates"
+                                }
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </form>
                   </div>
                 </div>
               </div>
@@ -4323,7 +4166,6 @@ const renderCategorySpecificFields = () => {
           </div>
         </div>
 
-        {/* Desktop Search Suggestions */}
         {!isMobile && (
           <DesktopSearchSuggestions
             searchQuery={localSearchQuery}
@@ -4380,7 +4222,6 @@ const renderCategorySpecificFields = () => {
           />
         )}
 
-        {/* Agoda-style Search Modal */}
         <AgodaStyleSearchModal
           isVisible={showAgodaModal}
           onClose={() => setShowAgodaModal(false)}
@@ -4428,7 +4269,6 @@ const renderCategorySpecificFields = () => {
           />
         )}
 
-        {/* Mobile Search Modal */}
         {isMobile && showMobileSearchModal && (
           <MobileSearchModalResults
             searchQuery={localSearchQuery}
@@ -4449,7 +4289,18 @@ const renderCategorySpecificFields = () => {
           className="flex flex-col lg:flex-row gap-6 w-full"
         >
           {!isMobile && filtersInitialized && (
-            <div className="lg:w-1/4">
+            <div 
+              className="lg:w-1/4"
+              style={{
+                minWidth: '250px',
+                maxWidth: '280px',
+                width: isMobile ? '100%' : 'calc(25% - 20%)',
+                flexShrink: 0,
+                position: 'sticky',
+                top: '100px',
+                height: 'fit-content'
+              }}
+            >
               <FilterSidebar
                 onFilterChange={handleFilterChange}
                 allLocations={allLocations}
@@ -4471,6 +4322,11 @@ const renderCategorySpecificFields = () => {
           <div
             className="lg:w-3/4 w-full"
             ref={resultsRef}
+            style={{
+              width: '100%',
+              maxWidth: '1200px',
+              margin: '0 auto'
+            }}
           >
             <div className="mb-6 w-full">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
@@ -4481,80 +4337,64 @@ const renderCategorySpecificFields = () => {
                         <h1 className="text-[16px] lg:text-xl font-bold text-[#00065A] mb-1">
                           {getPageTitle()}
                         </h1>
-                        <p className="text-sm text-gray-600">
-                          {getAccurateCountText()}
-                        </p>
+                       
                       </div>
                       <div className="flex items-center gap-2">
-                        {/* Add Reset Filters button
-                        {(activeFilters.locations.length > 0 || 
-                          activeFilters.priceRange.min || 
-                          activeFilters.priceRange.max || 
-                          activeFilters.ratings.length > 0) && (
-                          <button
-                            onClick={resetAllFilters}
-                            className="px-3 py-2 text-xs text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer"
-                          >
-                            Reset Filters
-                          </button>
-                        )} */}
-                        
                         <div className="flex flex-col">
- <button
-                          onClick={toggleMobileFilters}
-                          className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm cursor-pointer ml-[100px]"
-                          aria-label="Open filters"
-                          ref={filterButtonRef}
-                        >
-                          <div className="relative">
-                            <PiSliders className="text-gray-600 text-lg" />
-                            {Object.keys(activeFilters).some((key) => {
-                              if (key === "priceRange") {
-                                return (
-                                  activeFilters.priceRange.min ||
-                                  activeFilters.priceRange.max
-                                );
-                              }
-                              return Array.isArray(activeFilters[key])
-                                ? activeFilters[key].length > 0
-                                : activeFilters[key] !== "relevance";
-                            }) && (
-                              <span className="absolute -top-1 -right-1 bg-[#06EAFC] text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
-                                {Object.values(activeFilters).reduce((acc, val) => {
-                                  if (Array.isArray(val)) return acc + val.length;
-                                  if (typeof val === "object" && val !== null) {
-                                    return acc + (val.min || val.max ? 1 : 0);
-                                  }
-                                  return acc + (val && val !== "relevance" ? 1 : 0);
-                                }, 0)}
-                              </span>
-                            )}
-                          </div>
-                        </button>
-                        <div className="relative">
-                          <select
-                            value={activeFilters.sortBy}
-                            onChange={(e) => {
-                              const updatedFilters = {
-                                ...activeFilters,
-                                sortBy: e.target.value,
-                              };
-                              handleFilterChange(updatedFilters);
-                            }}
-                            className="appearance-none px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-12"
+                          <button
+                            onClick={toggleMobileFilters}
+                            className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm cursor-pointer ml-2"
+                            aria-label="Open filters"
+                            ref={filterButtonRef}
                           >
-                            <option value="relevance">Sort by: Relevance</option>
-                            <option value="price_low">Price: Low to High</option>
-                            <option value="price_high">Price: High to Low</option>
-                            <option value="rating">Highest Rated</option>
-                            <option value="name">Name: A to Z</option>
-                          </select>
-                          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                            <FontAwesomeIcon icon={faChevronDown} className="text-gray-500 text-xs" />
+                            <div className="relative">
+                              <PiSliders className="text-gray-600 text-lg" />
+                              {Object.keys(activeFilters).some((key) => {
+                                if (key === "priceRange") {
+                                  return (
+                                    activeFilters.priceRange.min ||
+                                    activeFilters.priceRange.max
+                                  );
+                                }
+                                return Array.isArray(activeFilters[key])
+                                  ? activeFilters[key].length > 0
+                                  : activeFilters[key] !== "relevance";
+                              }) && (
+                                <span className="absolute -top-1 -right-1 bg-[#06EAFC] text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                                  {Object.values(activeFilters).reduce((acc, val) => {
+                                    if (Array.isArray(val)) return acc + val.length;
+                                    if (typeof val === "object" && val !== null) {
+                                      return acc + (val.min || val.max ? 1 : 0);
+                                    }
+                                    return acc + (val && val !== "relevance" ? 1 : 0);
+                                  }, 0)}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                          <div className="relative">
+                            <select
+                              value={activeFilters.sortBy}
+                              onChange={(e) => {
+                                const updatedFilters = {
+                                  ...activeFilters,
+                                  sortBy: e.target.value,
+                                };
+                                handleFilterChange(updatedFilters);
+                              }}
+                              className="appearance-none px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-12"
+                            >
+                              <option value="relevance">Sort by: Relevance</option>
+                              <option value="price_low">Price: Low to High</option>
+                              <option value="price_high">Price: High to Low</option>
+                              <option value="rating">Highest Rated</option>
+                              <option value="name">Name: A to Z</option>
+                            </select>
+                            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                              <FontAwesomeIcon icon={faChevronDown} className="text-gray-500 text-xs" />
+                            </div>
                           </div>
                         </div>
-                        </div>
-                       
                       </div>
                     </div>
                   )}
@@ -4564,22 +4404,8 @@ const renderCategorySpecificFields = () => {
                         <h1 className="text-xl font-bold text-[#00065A] mb-1">
                           {getPageTitle()}
                         </h1>
-                        <p className="text-sm text-gray-600">
-                          {getAccurateCountText()}
-                        </p>
+                       
                       </div>
-                      {/* Add Reset Filters button for desktop */}
-                      {(activeFilters.locations.length > 0 || 
-                        activeFilters.priceRange.min || 
-                        activeFilters.priceRange.max || 
-                        activeFilters.ratings.length > 0) && (
-                        <button
-                          onClick={resetAllFilters}
-                          className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer"
-                        >
-                          Reset All Filters
-                        </button>
-                      )}
                     </div>
                   )}
                 </div>
@@ -4648,36 +4474,57 @@ const renderCategorySpecificFields = () => {
                       }).map((_, rowIndex) => (
                         <div
                           key={rowIndex}
-                          className="flex overflow-x-auto scrollbar-hide gap-2 pb-4 w-full"
+                          className="flex overflow-x-auto scrollbar-hide pb-4 w-full"
                           style={{
                             paddingLeft: "0",
-                            paddingRight: "8px",
+                            paddingRight: "0",
+                            marginRight: "0",
+                            gap: "4px"
                           }}
                         >
                           {currentListings
                             .slice(rowIndex * 5, (rowIndex + 1) * 5)
                             .map((listing, index) => (
-                              <SearchResultBusinessCard
+                              <div
                                 key={listing._id || `${rowIndex}-${index}`}
-                                item={listing}
-                                category={listing.category || "general"}
-                                isMobile={isMobile}
-                              />
+                                className="flex-shrink-0"
+                              >
+                                <SearchResultBusinessCard
+                                  item={listing}
+                                  category={listing.category || "general"}
+                                  isMobile={isMobile}
+                                />
+                              </div>
                             ))}
+                          <div className="flex-shrink-0 w-2"></div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div
-                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full"
+                    <div 
+                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-2 w-full"
+                      style={{
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))'
+                      }}
                     >
                       {currentListings.map((listing, index) => (
-                        <SearchResultBusinessCard
+                        <div
                           key={listing._id || index}
-                          item={listing}
-                          category={listing.category || "general"}
-                          isMobile={isMobile}
-                        />
+                          style={{
+                            width: '240px',
+                            height: '350px',
+                            minWidth: '240px',
+                            maxWidth: '240px',
+                            minHeight: '350px',
+                            maxHeight: '350px'
+                          }}
+                        >
+                          <SearchResultBusinessCard
+                            item={listing}
+                            category={listing.category || "general"}
+                            isMobile={isMobile}
+                          />
+                        </div>
                       ))}
                     </div>
                   )}
@@ -4782,6 +4629,162 @@ const renderCategorySpecificFields = () => {
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+        }
+
+        .search-result-card img {
+          width: 100% !important;
+          height: 200px !important;
+          min-height: 200px !important;
+          max-height: 200px !important;
+          object-fit: cover !important;
+          object-position: center !important;
+          display: block !important;
+        }
+        
+        @media (max-width: 768px) {
+          .search-result-card img {
+            height: 180px !important;
+            min-height: 180px !important;
+            max-height: 180px !important;
+          }
+        }
+        
+        .search-result-card {
+          contain: layout style paint;
+        }
+        
+        .search-result-card > div:first-child {
+          width: 100% !important;
+          height: 200px !important;
+          min-height: 200px !important;
+          max-height: 200px !important;
+        }
+        
+        @media (max-width: 768px) {
+          .search-result-card > div:first-child {
+            height: 180px !important;
+            min-height: 180px !important;
+            max-height: 180px !important;
+          }
+        }
+
+        @media (max-width: 768px) {
+          main, 
+          .pl-3.pr-0,
+          [class*="px-"] {
+            padding-right: 0 !important;
+            padding-left: 4px !important;
+          }
+          
+          .w-full {
+            padding-right: 0 !important;
+            margin-right: 0 !important;
+          }
+          
+          .overflow-x-auto {
+            padding-right: 0 !important;
+            padding-left: 0 !important;
+          }
+          
+          .scrollbar-hide {
+            -webkit-overflow-scrolling: touch !important;
+            scroll-snap-type: x mandatory;
+          }
+          
+          .md\\:hidden .overflow-x-auto {
+            -webkit-overflow-scrolling: touch !important;
+          }
+          
+          .min-w-max {
+            padding-right: 8px;
+          }
+        }
+
+        @media screen and (min-width: 768px) {
+          main, 
+          .px-4, 
+          .px-6, 
+          .px-8 {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+          }
+          
+          .lg\\:w-1\\/4 {
+            width: 20% !important;
+          }
+          
+          .lg\\:w-3\\/4 {
+            width: 80% !important;
+          }
+        }
+
+        @media screen and (min-width: 1024px) {
+          main {
+            max-width: 1400px !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+          }
+        }
+
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+
+        @keyframes slideOutRight {
+          from {
+            transform: translateX(0);
+            opacity: 1;
+          }
+          to {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+        }
+
+        @keyframes slideInUp {
+          from {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+
+        @keyframes scaleIn {
+          from {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        .animate-slideInUp {
+          animation: slideInUp 0.3s ease-out;
+        }
+
+        .animate-scaleIn {
+          animation: scaleIn 0.2s ease-out;
+        }
+        
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        
+        .animate-bounce {
+          animation: bounce 0.6s ease-in-out infinite;
         }
       `}</style>
     </div>

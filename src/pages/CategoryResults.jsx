@@ -979,7 +979,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
       ref={cardRef}
       className="bg-white rounded-[13px] overflow-hidden flex-shrink-0 font-manrope relative group flex flex-col cursor-pointer hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] transition-all duration-200"
       style={{
-        width: isMobile ? "180px" : "220px",
+        width: isMobile ? "180px" : "240px",
         height: isMobile ? "310px" : "350px",
         minWidth: isMobile ? "165px" : "100px",
         maxWidth: isMobile ? "250px" : "450px",
@@ -2667,22 +2667,7 @@ const CategoryResults = () => {
     }
   };
 
-  const getAccurateCountText = () => {
-    const total = listings.length;
-    const categoryTitle = getCategoryDisplayName(activeCategory);
-    
-    if (searchQuery && looksLikeLocation(searchQuery)) {
-      return `${categoryTitle} in ${getLocationDisplayName(searchQuery)} • ${total} ${total === 1 ? 'place' : 'places'} found`;
-    } else if (activeFilters.locations.length > 0) {
-      return `${categoryTitle} in ${activeFilters.locations[0]} • ${total} ${total === 1 ? 'place' : 'places'} found`;
-    } else if (urlLocation) {
-      return `${categoryTitle} in ${getLocationDisplayName(urlLocation)} • ${total} ${total === 1 ? 'place' : 'places'} found`;
-    } else if (searchQuery) {
-      return `${categoryTitle} matching "${searchQuery}" • ${total} ${total === 1 ? 'place' : 'places'} found`;
-    }
-    
-    return `${total} ${total === 1 ? 'place' : 'places'} found`;
-  };
+ 
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -3058,9 +3043,7 @@ const CategoryResults = () => {
           
           {/* Second row: Count text + Sort dropdown */}
           <div className="flex items-center justify-between w-full">
-            <p className="text-sm text-gray-600">
-              {getAccurateCountText()}
-            </p>
+           
             
             {/* Sort dropdown - Same line as count */}
             <div className="relative mr-3">
@@ -3093,9 +3076,7 @@ const CategoryResults = () => {
           <h1 className="text-xl font-bold text-[#00065A] mb-1">
             {getPageTitle()}
           </h1>
-          <p className="text-sm text-gray-600">
-            {getAccurateCountText()}
-          </p>
+       
         </div>
       )}
     </div>
@@ -3327,7 +3308,7 @@ const CategoryResults = () => {
           .pl-3.pr-0,
           [class*="px-"] {
             padding-right: 0 !important;
-            padding-left: 12px !important;
+            padding-left: 6px !important;
           }
           
           .w-full {
