@@ -1554,7 +1554,7 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                 
                 {userInfo.isVendor ? (
                   <button
-                    onClick={() => navigate("/vendor/profile")}
+                    onClick={() => navigate("/vendor/profile", { state: { activeTab: "personal-bookings" } })}
                     className="flex items-center justify-center gap-2 px-4 py-3 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-all font-medium text-sm"
                   >
                     <Building className="w-4 h-4" />
@@ -1562,7 +1562,7 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                   </button>
                 ) : userInfo.isLoggedIn ? (
                   <button
-                    onClick={() => navigate("/buyer/profile")}
+                    onClick={() => navigate("/buyer/profile", { state: { activeTab: "bookings" } })}
                     className="flex items-center justify-center gap-2 px-4 py-3 border border-[#6cff] text-[#6cff] rounded-lg hover:bg-blue-50 transition-all font-medium text-sm"
                   >
                     <User className="w-4 h-4" />
@@ -1585,7 +1585,7 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                 <button
                   onClick={() => {
                     if (userInfo.isVendor) {
-                      navigate("/vendor/profile", { state: { activeTab: "bookings" } });
+                      navigate("/vendor/profile", { state: { activeTab: "personal-bookings" } });
                     } else if (userInfo.isLoggedIn) {
                       navigate("/buyer/profile", { state: { activeTab: "bookings" } });
                     } else {

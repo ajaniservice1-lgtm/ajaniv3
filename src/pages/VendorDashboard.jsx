@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Home,
@@ -6,105 +6,46 @@ import {
   Users,
   CalendarCheck,
   Star,
-  Settings,
   Plus,
-  CheckCircle,
-  MoreHorizontal,
   Search,
-  Filter,
-  Download,
-  Menu,
   Eye,
   Trash2,
-  Mail,
-  MessageSquare,
-  ToggleLeft,
-  ToggleRight,
-  User,
-  ImageIcon,
-  Bell,
-  Globe,
   Edit3,
-  ArrowLeft,
-  ArrowRight,
   X,
   Save,
-  Upload,
-  DollarSign,
   Building,
   MapPin,
-  Phone,
   Type,
   FileText,
-  Heart,
   Package,
   Briefcase,
   TrendingUp,
-  CreditCard,
-  Shield,
   Camera,
+  DollarSign,
+  BarChart3,
+  Activity,
+  Mail,
+  Phone,
+  CreditCard,
+  CheckCircle,
+  AlertCircle,
+  Download,
+  Filter,
+  MoreVertical,
+  User,
+  Settings,
+  LogOut,
+  ChevronRight,
+  PieChart,
+  TrendingDown,
+  Bell,
+  MessageSquare,
   ChevronDown,
-  ChevronUp,
-  Check,
-  Moon,
-  Sun,
-  Lock,
-  Unlock,
-  Share2,
-  Gift,
-  Award,
-  Zap,
-  Compass,
-  Target,
-  BookOpen,
-  GraduationCap,
-  ClipboardList,
   Clock,
-  Calendar,
-  Layers,
-  Grid,
-  ThumbsUp,
-  ThumbsDown,
-  Smile,
-  Frown,
-  AlertTriangle,
-  Info,
+  Award,
   HelpCircle,
-  ArrowUp,
-  ArrowDown,
-  ExternalLink,
-  Link,
-  Copy,
-  RefreshCw,
-  RotateCcw,
-  RotateCw,
-  Trash,
-  Edit,
-  PlusCircle,
-  MinusCircle,
-  EyeOff,
-  BellRing,
-  BellOff,
-  Volume2,
-  VolumeX,
-  Headphones,
-  Mic,
-  Video,
-  VideoOff,
-  PhoneCall,
-  PhoneOff,
-  Send,
-  Inbox,
-  Archive,
-  UserPlus,
-  UserMinus,
-  UserCheck,
-  UserX,
-  HeartCrack,
-  LockKeyhole,
-  LockKeyholeOpen,
-  Utensils, // Added for restaurant icon
-  Bed // Added for hotel/shortlet icon
+  ShoppingBag,
+  Receipt
 } from "lucide-react";
 import Logo from "../assets/Logos/logo5.png";
 import { motion, AnimatePresence } from "framer-motion";
@@ -115,119 +56,508 @@ const VendorDashboard = () => {
   const [userData, setUserData] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+  // Business Data States
   const [listings, setListings] = useState([]);
   const [customers, setCustomers] = useState([]);
-  const [profileImage, setProfileImage] = useState("");
+  const [businessBookings, setBusinessBookings] = useState([]); // Bookings TO vendor's business
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    activeListings: 0,
+    totalBookings: 0,
+    averageRating: 0,
+    monthlyGrowth: 0,
+    pendingBookings: 0
+  });
+  
+  // Modal States
   const [showAddListingModal, setShowAddListingModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [selectedListing, setSelectedListing] = useState(null);
+  
+  // Form States
   const [newListing, setNewListing] = useState({
     name: "",
-    category: "Hotel",
+    category: "",
     price: "",
-    priceType: "per night",
+    priceType: "",
     description: "",
     location: "",
     amenities: [],
     images: []
   });
   const [currentAmenity, setCurrentAmenity] = useState("");
+  
+  // Filter States
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateRange, setDateRange] = useState({ start: "", end: "" });
 
-  // Settings state
-  const [profileData, setProfileData] = useState({
-    name: "",
-    username: "",
-    email: "",
-    city: "",
-    bio: ""
-  });
-  const [notificationSettings, setNotificationSettings] = useState({
-    email: false,
-    whatsapp: true,
-    promotionalEmail: false,
-    promotionalWhatsapp: true
-  });
+  // Notification States
+  const [notifications, setNotifications] = useState([
+    {
+      id: 1,
+      type: 'booking',
+      title: 'New Booking',
+      message: 'John Doe booked your "Luxury Villa" for 3 nights',
+      time: '5 min ago',
+      read: false,
+      icon: CalendarCheck
+    },
+    {
+      id: 2,
+      type: 'review',
+      title: 'New Review',
+      message: 'Sarah Johnson gave you 5-star rating',
+      time: '1 hour ago',
+      read: false,
+      icon: Star
+    },
+    {
+      id: 3,
+      type: 'message',
+      title: 'New Message',
+      message: 'Mike requested more information about your restaurant',
+      time: '2 hours ago',
+      read: true,
+      icon: MessageSquare
+    },
+    {
+      id: 4,
+      type: 'system',
+      title: 'System Update',
+      message: 'New dashboard features are now available',
+      time: '1 day ago',
+      read: true,
+      icon: Settings
+    }
+  ]);
+  
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [blurContent, setBlurContent] = useState(false);
+  
+  const notificationRef = useRef(null);
+  const profileMenuRef = useRef(null);
 
-  // Tab configuration
+  // Business-Focused Tabs Only
   const tabs = [
     { id: "overview", label: "Overview", icon: Home },
-    { id: "listings", label: "Listing", icon: List },
-    { id: "customers", label: "Customer", icon: Users },
-    { id: "bookings", label: "Booking", icon: CalendarCheck },
-    { id: "notifications", label: "Notifications", icon: Bell },
-    { id: "settings", label: "Settings", icon: Settings }
+    { id: "listings", label: "Listings", icon: List },
+    { id: "customers", label: "Customers", icon: Users },
+    { id: "bookings", label: "Business Bookings", icon: CalendarCheck },
+    { id: "analytics", label: "Analytics", icon: BarChart3 },
+    { id: "performance", label: "Performance", icon: Activity }
   ];
 
-  // Helper function to get price label based on category
-  const getPriceLabel = (category) => {
-    const hotelCategories = ["Hotel", "Shortlet"];
-    const restaurantCategories = ["Restaurant"];
-    
-    if (hotelCategories.includes(category)) {
-      return "Price per Night";
-    } else if (restaurantCategories.includes(category)) {
-      return "Price";
-    } else {
-      return "Price";
-    }
-  };
+  // Calculate unread notifications
+  useEffect(() => {
+    const unread = notifications.filter(n => !n.read).length;
+    setUnreadCount(unread);
+  }, [notifications]);
 
-  // Helper function to get price type options based on category
-  const getPriceTypeOptions = (category) => {
-    if (category === "Restaurant") {
-      return ["per table", "per plate"];
-    } else if (category === "Hotel" || category === "Shortlet") {
-      return ["per night"];
-    } else {
-      return [""];
-    }
-  };
-
-  // Helper function to format price with appropriate suffix
-  const formatPrice = (price, category, priceType = "") => {
-    const numericPrice = parseFloat(price);
-    if (isNaN(numericPrice)) return price;
-    
-    const formatted = `₦${numericPrice.toLocaleString()}`;
-    
-    if (category === "Hotel" || category === "Shortlet") {
-      return `${formatted}/night`;
-    } else if (category === "Restaurant") {
-      if (priceType === "per table") {
-        return `${formatted}/table`;
-      } else if (priceType === "per plate") {
-        return `${formatted}/plate`;
-      } else {
-        return formatted;
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
       }
-    } else {
-      return formatted;
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Update blur content state
+  useEffect(() => {
+    setBlurContent(showNotifications || showProfileMenu || showAddListingModal || showExportModal);
+  }, [showNotifications, showProfileMenu, showAddListingModal, showExportModal]);
+
+  // --- FUNCTION DEFINITIONS START HERE ---
+
+  const loadBusinessData = async () => {
+    try {
+      setLoading(true);
+      
+      // Load user data
+      const userProfile = localStorage.getItem("userProfile");
+      if (!userProfile) {
+        navigate("/login");
+        return;
+      }
+      
+      const parsedProfile = JSON.parse(userProfile);
+      if (parsedProfile.role !== "vendor") {
+        navigate("/");
+        return;
+      }
+      
+      setUserData(parsedProfile);
+      
+      // Load business listings
+      const savedListings = localStorage.getItem("businessListings") || "[]";
+      const parsedListings = JSON.parse(savedListings);
+      
+      // Filter listings to show only this vendor's listings
+      const vendorListings = parsedListings.filter(listing => 
+        listing.vendorId === parsedProfile.id || listing.vendorId === parsedProfile.vendorId
+      );
+      
+      setListings(vendorListings);
+      
+      // Load customers from bookings
+      const allBookings = JSON.parse(localStorage.getItem("allBookings") || "[]");
+      
+      // Filter business bookings (bookings TO this vendor's listings)
+      const vendorBusinessBookings = allBookings.filter(booking => {
+        // Check if booking is made TO this vendor's business
+        const isBusinessBooking = (
+          booking.bookedBy?.isVendor === false && // Made by customer (not vendor)
+          booking.vendor?.id === parsedProfile.vendorId // To this vendor's business
+        );
+        
+        // OR if it's an older format booking
+        const isOldFormatBusinessBooking = (
+          booking.vendorId === parsedProfile.vendorId ||
+          booking.businessId === parsedProfile.vendorId
+        );
+        
+        return isBusinessBooking || isOldFormatBusinessBooking;
+      });
+      
+      setBusinessBookings(vendorBusinessBookings);
+      
+      // Extract unique customers from business bookings
+      const uniqueCustomers = [];
+      const customerMap = new Map();
+      
+      vendorBusinessBookings.forEach(booking => {
+        const customerEmail = booking.bookedBy?.userEmail || booking.customerEmail;
+        const customerName = booking.bookedBy?.userName || booking.customerName;
+        
+        if (customerEmail && !customerMap.has(customerEmail)) {
+          customerMap.set(customerEmail, true);
+          uniqueCustomers.push({
+            id: customerEmail,
+            name: customerName || "Customer",
+            email: customerEmail,
+            totalBookings: vendorBusinessBookings.filter(b => 
+              (b.bookedBy?.userEmail === customerEmail) || (b.customerEmail === customerEmail)
+            ).length,
+            totalSpent: vendorBusinessBookings
+              .filter(b => (b.bookedBy?.userEmail === customerEmail) || (b.customerEmail === customerEmail))
+              .reduce((sum, b) => sum + (parseFloat(b.totalAmount) || 0), 0),
+            lastBooking: vendorBusinessBookings
+              .filter(b => (b.bookedBy?.userEmail === customerEmail) || (b.customerEmail === customerEmail))
+              .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]?.createdAt
+          });
+        }
+      });
+      
+      setCustomers(uniqueCustomers);
+      
+      // Calculate business stats
+      const totalRevenue = vendorBusinessBookings.reduce((sum, booking) => 
+        sum + (parseFloat(booking.totalAmount) || 0), 0
+      );
+      
+      const activeBookings = vendorBusinessBookings.filter(b => 
+        b.status === 'confirmed' || b.status === 'active'
+      ).length;
+      
+      const pendingBookings = vendorBusinessBookings.filter(b => 
+        b.status === 'pending'
+      ).length;
+      
+      const totalBookings = vendorBusinessBookings.length;
+      
+      setStats({
+        totalRevenue,
+        activeListings: vendorListings.length,
+        totalBookings,
+        averageRating: 4.5, // This would come from reviews
+        monthlyGrowth: 12.5, // This would be calculated
+        pendingBookings
+      });
+      
+      // Update localStorage with filtered data for this vendor
+      localStorage.setItem(`vendor_${parsedProfile.id}_bookings`, JSON.stringify(vendorBusinessBookings));
+      localStorage.setItem(`vendor_${parsedProfile.id}_customers`, JSON.stringify(uniqueCustomers));
+      
+    } catch (error) {
+      console.error("Error loading business data:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Parse existing price to display in edit modal
-  const parseExistingPrice = (priceString) => {
-    if (!priceString) return "";
-    // Remove ₦ and any suffix
-    return priceString.replace('₦', '').replace('/night', '').replace('/table', '').replace('/plate', '').replace(/,/g, '');
+  const handleAddAmenity = () => {
+    if (currentAmenity.trim()) {
+      setNewListing({
+        ...newListing,
+        amenities: [...newListing.amenities, currentAmenity.trim()]
+      });
+      setCurrentAmenity("");
+    }
   };
 
-  // Parse existing price type from price string
-  const parseExistingPriceType = (priceString, category) => {
-    if (!priceString) return category === "Hotel" || category === "Shortlet" ? "per night" : "";
+  const handleRemoveAmenity = (index) => {
+    const updatedAmenities = [...newListing.amenities];
+    updatedAmenities.splice(index, 1);
+    setNewListing({
+      ...newListing,
+      amenities: updatedAmenities
+    });
+  };
+
+  const resetListingForm = () => {
+    setNewListing({
+      name: "",
+      category: "",
+      price: "",
+      priceType: "",
+      description: "",
+      location: "",
+      amenities: [],
+      images: []
+    });
+    setCurrentAmenity("");
+  };
+
+  const handleOpenAddListingModal = () => {
+    resetListingForm();
+    setShowAddListingModal(true);
+  };
+
+  const handleCloseAddListingModal = () => {
+    setShowAddListingModal(false);
+    resetListingForm();
+  };
+
+  const handleAddListing = async () => {
+    if (!newListing.name || !newListing.price || !newListing.location) {
+      alert("Please fill in all required fields");
+      return;
+    }
     
-    if (priceString.includes('/night')) {
-      return "per night";
-    } else if (priceString.includes('/table')) {
-      return "per table";
-    } else if (priceString.includes('/plate')) {
-      return "per plate";
-    } else {
-      return category === "Hotel" || category === "Shortlet" ? "per night" : "";
+    try {
+      const listing = {
+        id: Date.now().toString(),
+        ...newListing,
+        vendorId: userData?.id,
+        businessId: userData?.vendorId,
+        status: "active",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      const updatedListings = [...listings, listing];
+      setListings(updatedListings);
+      
+      // Save to business listings
+      localStorage.setItem("businessListings", JSON.stringify(updatedListings));
+      
+      // Update stats
+      setStats(prev => ({
+        ...prev,
+        activeListings: prev.activeListings + 1
+      }));
+      
+      handleCloseAddListingModal();
+      alert("Listing added successfully!");
+      
+    } catch (error) {
+      console.error("Error adding listing:", error);
+      alert("Failed to add listing. Please try again.");
     }
   };
+
+  const handleUpdateListing = async (id, updates) => {
+    try {
+      const updatedListings = listings.map(listing => 
+        listing.id === id ? { ...listing, ...updates, updatedAt: new Date().toISOString() } : listing
+      );
+      
+      setListings(updatedListings);
+      localStorage.setItem("businessListings", JSON.stringify(updatedListings));
+      
+      alert("Listing updated successfully!");
+      
+    } catch (error) {
+      console.error("Error updating listing:", error);
+      alert("Failed to update listing.");
+    }
+  };
+
+  const handleDeleteListing = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this listing?")) return;
+    
+    try {
+      const updatedListings = listings.filter(listing => listing.id !== id);
+      setListings(updatedListings);
+      localStorage.setItem("businessListings", JSON.stringify(updatedListings));
+      
+      // Update stats
+      setStats(prev => ({
+        ...prev,
+        activeListings: Math.max(0, prev.activeListings - 1)
+      }));
+      
+      alert("Listing deleted successfully!");
+      
+    } catch (error) {
+      console.error("Error deleting listing:", error);
+      alert("Failed to delete listing.");
+    }
+  };
+
+  const handleUpdateBookingStatus = async (bookingId, status) => {
+    try {
+      // Update in business bookings
+      const updatedBusinessBookings = businessBookings.map(booking =>
+        booking.id === bookingId ? { ...booking, status, updatedAt: new Date().toISOString() } : booking
+      );
+      
+      setBusinessBookings(updatedBusinessBookings);
+      
+      // Also update in all bookings storage
+      const allBookings = JSON.parse(localStorage.getItem("allBookings") || "[]");
+      const updatedAllBookings = allBookings.map(booking =>
+        booking.id === bookingId ? { ...booking, status, updatedAt: new Date().toISOString() } : booking
+      );
+      
+      localStorage.setItem("allBookings", JSON.stringify(updatedAllBookings));
+      
+      // Update vendor-specific storage
+      if (userData?.id) {
+        localStorage.setItem(`vendor_${userData.id}_bookings`, JSON.stringify(updatedBusinessBookings));
+      }
+      
+      alert(`Booking ${status} successfully!`);
+      
+    } catch (error) {
+      console.error("Error updating booking:", error);
+      alert("Failed to update booking status.");
+    }
+  };
+
+  const exportData = (type) => {
+    try {
+      let data, filename;
+      
+      switch(type) {
+        case 'bookings':
+          data = businessBookings;
+          filename = `business_bookings_export_${new Date().toISOString().split('T')[0]}.json`;
+          break;
+        case 'listings':
+          data = listings;
+          filename = `business_listings_export_${new Date().toISOString().split('T')[0]}.json`;
+          break;
+        case 'customers':
+          data = customers;
+          filename = `business_customers_export_${new Date().toISOString().split('T')[0]}.json`;
+          break;
+        default:
+          return;
+      }
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      setShowExportModal(false);
+      alert(`${type.charAt(0).toUpperCase() + type.slice(1)} exported successfully!`);
+      
+    } catch (error) {
+      console.error("Error exporting data:", error);
+      alert("Failed to export data.");
+    }
+  };
+
+  const markAllAsRead = () => {
+    const updatedNotifications = notifications.map(notification => ({
+      ...notification,
+      read: true
+    }));
+    setNotifications(updatedNotifications);
+  };
+
+  const markAsRead = (id) => {
+    const updatedNotifications = notifications.map(notification =>
+      notification.id === id ? { ...notification, read: true } : notification
+    );
+    setNotifications(updatedNotifications);
+  };
+
+  const toggleNotifications = () => {
+    setShowNotifications(!showNotifications);
+    if (!showNotifications) {
+      setShowProfileMenu(false);
+    }
+  };
+
+  const toggleProfileMenu = () => {
+    setShowProfileMenu(!showProfileMenu);
+    if (!showProfileMenu) {
+      setShowNotifications(false);
+    }
+  };
+
+  const filteredListings = listings.filter(listing => {
+    const matchesSearch = !searchQuery || 
+      listing.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      listing.location?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesStatus = statusFilter === "all" || listing.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  const filteredBookings = businessBookings.filter(booking => {
+    const matchesSearch = !searchQuery || 
+      booking.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.bookedBy?.userName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.vendor?.name?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
+    
+    const bookingDate = new Date(booking.createdAt);
+    const startDate = dateRange.start ? new Date(dateRange.start) : null;
+    const endDate = dateRange.end ? new Date(dateRange.end) : null;
+    
+    const matchesDate = (!startDate || bookingDate >= startDate) && 
+                       (!endDate || bookingDate <= endDate);
+    
+    return matchesSearch && matchesStatus && matchesDate;
+  });
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("userProfile");
+    navigate("/login");
+  };
+
+  // --- USE EFFECT HOOKS ---
 
   useEffect(() => {
-    fetchUserData();
-    // Close sidebar by default on mobile
+    loadBusinessData();
     const handleResize = () => {
       if (window.innerWidth < 768) {
         setIsSidebarOpen(false);
@@ -240,434 +570,15 @@ const VendorDashboard = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const fetchUserData = () => {
-    try {
-      const userProfile = localStorage.getItem("userProfile");
-      if (!userProfile) {
-        navigate("/login");
-        return;
-      }
-      const parsedProfile = JSON.parse(userProfile);
-      if (parsedProfile.role !== "vendor") {
-        if (parsedProfile.vendor) {
-          parsedProfile.role = "vendor";
-          localStorage.setItem("userProfile", JSON.stringify(parsedProfile));
-        } else {
-          navigate("/");
-          return;
-        }
-      }
-      if (!parsedProfile.vendor) {
-        parsedProfile.vendor = {
-          category: parsedProfile.category || "",
-          businessName: parsedProfile.businessName || "",
-          businessAddress: parsedProfile.businessAddress || "",
-          approvalStatus: "pending",
-          profileCompleted: false
-        };
-        localStorage.setItem("userProfile", JSON.stringify(parsedProfile));
-      }
-      setUserData(parsedProfile);
-      // Initialize profile data for settings
-      const fullName = parsedProfile.firstName && parsedProfile.lastName
-        ? `${parsedProfile.firstName} ${parsedProfile.lastName}`
-        : parsedProfile.username || "";
-      setProfileData({
-        name: fullName,
-        username: parsedProfile.username || parsedProfile.email || "",
-        email: parsedProfile.email || "",
-        city: parsedProfile.city || "",
-        bio: parsedProfile.bio || "We specialize in luxury coastal properties and mountain retreats. Our properties are carefully selected to provide the best experience for our guests."
-      });
-      // Set profile image from localStorage or default
-      setProfileImage(parsedProfile.profileImage ||
-        "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80");
-      
-      // Initialize listings from localStorage or use default
-      const savedListings = localStorage.getItem("vendorListings");
-      if (savedListings) {
-        setListings(JSON.parse(savedListings));
-      } else {
-        const defaultListings = [
-          {
-            id: 1,
-            name: "Jagz Hotel and Suite",
-            category: "Hotel",
-            price: "₦28,000/night",
-            rating: "4.8(10)",
-            status: "Active",
-            image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
-            location: "Mokola, RD 8 Ibadan",
-            amenities: ["WiFi", "Parking", "Pool", "AC"]
-          },
-          {
-            id: 2,
-            name: "Luxury Shortlet Apartment",
-            category: "Shortlet",
-            price: "₦45,000/night",
-            rating: "4.9(15)",
-            status: "Active",
-            image: "https://images.unsplash.com/photo-1584132967336-9b942d726e7c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
-            location: "Lekki Phase 1, Lagos",
-            amenities: ["WiFi", "Breakfast", "Gym", "Spa", "Kitchen"]
-          },
-          {
-            id: 3,
-            name: "Delicious Bites Restaurant",
-            category: "Restaurant",
-            price: "₦25,000/table",
-            rating: "4.5(25)",
-            status: "Active",
-            image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-            location: "Ikeja, Lagos",
-            amenities: ["Parking", "WiFi", "Outdoor Seating", "Bar"]
-          },
-          {
-            id: 4,
-            name: "Grand Event Center",
-            category: "Event Center",
-            price: "₦500,000",
-            rating: "4.9(15)",
-            status: "Active",
-            image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-            location: "Victoria Island, Lagos",
-            amenities: ["Parking", "AC", "Stage", "Sound System", "Catering"]
-          },
-          {
-            id: 5,
-            name: "Professional Photography Service",
-            category: "Service",
-            price: "₦150,000",
-            rating: "4.7(8)",
-            status: "Active",
-            image: "https://images.unsplash.com/photo-1554048612-b6a482bc67e5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-            location: "Across Lagos",
-            amenities: ["Equipment", "Editing", "Delivery", "Multiple Photographers"]
-          }
-        ];
-        setListings(defaultListings);
-        localStorage.setItem("vendorListings", JSON.stringify(defaultListings));
-      }
-      
-      // Initialize customers with real images
-      const defaultCustomers = [
-        {
-          id: 1,
-          name: "Samuel Rotimi",
-          email: "samuel@example.com",
-          bookings: 1,
-          totalSpent: "₦300k+",
-          image: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
-        },
-        {
-          id: 2,
-          name: "Sandra Adeoye",
-          email: "sandra@example.com",
-          bookings: 1,
-          totalSpent: "₦300k+",
-          image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
-        },
-        {
-          id: 3,
-          name: "Bankole Cole",
-          email: "bankole@example.com",
-          bookings: 1,
-          totalSpent: "₦300k+",
-          image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
-        }
-      ];
-      setCustomers(defaultCustomers);
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Reset all data figures to zero as requested
-  const mockStats = {
-    totalRevenue: 0.00,
-    activeListings: 0,
-    totalBookings: 0,
-    averageRating: 0.0
-  };
-
-  const mockRecentBookings = [
-    {
-      id: 1,
-      customer: "Sola Fadipe Jr.",
-      service: "Iron man street",
-      details: "Hotel Booking",
-      product: "Product",
-      status: "Completed",
-      date: "Today, 10:30 am",
-      image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
-      orderId: "#290888880"
-    },
-    {
-      id: 2,
-      customer: "Bankole Johansson",
-      service: "Bodija",
-      details: "Event booking",
-      product: "Event Centre",
-      status: "Completed",
-      date: "Today, 10:30 am",
-      image: "https://images.unsplash.com/photo-1584132967336-9b942d726e7c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
-      orderId: "#290888880"
-    }
-  ];
-
-  // Mock notifications data
-  const mockNotifications = [
-    {
-      id: 1,
-      title: "New Booking Received",
-      message: "Samuel Rotimi just booked your property for 3 nights",
-      time: "2 minutes ago",
-      read: false
-    },
-    {
-      id: 2,
-      title: "Payment Successful",
-      message: "Payment of ₦84,000 has been received for booking #290888880",
-      time: "1 hour ago",
-      read: false
-    },
-    {
-      id: 3,
-      title: "Review Added",
-      message: "Sandra Adeoye left a 5-star review for Jagz Hotel and Suite",
-      time: "3 hours ago",
-      read: true
-    },
-    {
-      id: 4,
-      title: "Profile Update Required",
-      message: "Please complete your business profile to increase visibility",
-      time: "1 day ago",
-      read: true
-    }
-  ];
-
-  const getStatusBadge = (status) => {
-    switch(status) {
-      case "Completed":
-      case "Active":
-        return <span className="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full">{status}</span>;
-      case "Pending":
-        return <span className="px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded-full">{status}</span>;
-      default:
-        return <span className="px-3 py-1 text-sm bg-gray-100 text-gray-800 rounded-full">{status}</span>;
-    }
-  };
-
-  // Handle name/email click - show toast message
-  const handleNameClick = () => {
-    alert("Contact support to change your name or email");
-  };
-
-  const handleEmailClick = () => {
-    alert("Contact support to change your name or email");
-  };
-
-  // Handle Add Listing Modal
-  const handleOpenAddListingModal = () => {
-    setNewListing({
-      name: "",
-      category: "Hotel",
-      price: "",
-      priceType: "per night",
-      description: "",
-      location: "",
-      amenities: [],
-      images: []
-    });
-    setShowAddListingModal(true);
-  };
-
-  const handleCloseAddListingModal = () => {
-    setShowAddListingModal(false);
-  };
-
-  const handleAddAmenity = () => {
-    if (currentAmenity.trim() && !newListing.amenities.includes(currentAmenity.trim())) {
-      setNewListing({
-        ...newListing,
-        amenities: [...newListing.amenities, currentAmenity.trim()]
-      });
-      setCurrentAmenity("");
-    }
-  };
-
-  const handleRemoveAmenity = (amenity) => {
-    setNewListing({
-      ...newListing,
-      amenities: newListing.amenities.filter(a => a !== amenity)
-    });
-  };
-
-  const handleSubmitListing = () => {
-    if (!newListing.name || !newListing.price || !newListing.location) {
-      alert("Please fill in all required fields");
-      return;
-    }
-    
-    const listing = {
-      id: Date.now(),
-      name: newListing.name,
-      category: newListing.category,
-      price: formatPrice(newListing.price, newListing.category, newListing.priceType),
-      rating: "0.0(0)",
-      status: "Active",
-      image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
-      location: newListing.location,
-      description: newListing.description,
-      amenities: newListing.amenities,
-      priceType: newListing.priceType // Store price type for editing
-    };
-    
-    const updatedListings = [...listings, listing];
-    setListings(updatedListings);
-    localStorage.setItem("vendorListings", JSON.stringify(updatedListings));
-    setShowAddListingModal(false);
-    alert("Listing added successfully!");
-  };
-
-  // Handle listing actions
-  const handleDeleteListing = (id) => {
-    if (window.confirm("Are you sure you want to delete this listing?")) {
-      const updatedListings = listings.filter(listing => listing.id !== id);
-      setListings(updatedListings);
-      localStorage.setItem("vendorListings", JSON.stringify(updatedListings));
-    }
-  };
-
-  const handleEditListing = (id) => {
-    const listing = listings.find(l => l.id === id);
-    if (listing) {
-      setNewListing({
-        name: listing.name,
-        category: listing.category,
-        price: parseExistingPrice(listing.price),
-        priceType: parseExistingPriceType(listing.price, listing.category),
-        description: listing.description || "",
-        location: listing.location || "",
-        amenities: listing.amenities || [],
-        images: []
-      });
-      setShowAddListingModal(true);
-    }
-  };
-
-  const handleViewListing = (id) => {
-    navigate(`/listing/${id}`);
-  };
-
-  // Mobile responsive sidebar toggle
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
-
-  // Handle profile updates
-  const handleProfileChange = (field, value) => {
-    setProfileData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  // Handle notification toggle
-  const handleNotificationToggle = (type) => {
-    setNotificationSettings(prev => ({
-      ...prev,
-      [type]: !prev[type]
-    }));
-  };
-
-  // Handle save profile
-  const handleSaveProfile = () => {
-    try {
-      const updatedUserData = {
-        ...userData,
-        firstName: profileData.name.split(' ')[0] || userData.firstName,
-        lastName: profileData.name.split(' ').slice(1).join(' ') || userData.lastName,
-        username: profileData.username || userData.username,
-        email: profileData.email || userData.email,
-        city: profileData.city || userData.city,
-        bio: profileData.bio || userData.bio,
-        profileImage: profileImage
-      };
-      localStorage.setItem("userProfile", JSON.stringify(updatedUserData));
-      setUserData(updatedUserData);
-      alert("Profile updated successfully!");
-    } catch (error) {
-      console.error("Error saving profile:", error);
-      alert("Error saving profile. Please try again.");
-    }
-  };
-
-  // Handle profile image upload
-  const handleProfileImageUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert("Image size should be less than 5MB");
-        return;
-      }
-      if (!file.type.match('image.*')) {
-        alert("Please select an image file");
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileImage(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Handle logo click to navigate to homepage
-  const handleLogoClick = () => {
-    navigate("/");
-  };
-
-  // Mark notification as read
-  const markNotificationAsRead = (id) => {
-    // In a real app, you would update this in your backend
-    console.log(`Marked notification ${id} as read`);
-  };
-
-  // Mark all notifications as read
-  const markAllNotificationsAsRead = () => {
-    // In a real app, you would update this in your backend
-    console.log("Marked all notifications as read");
-  };
-
-  // Handle category change
-  const handleCategoryChange = (category) => {
-    let priceType = "per night";
-    if (category === "Restaurant") {
-      priceType = "per table";
-    } else if (category === "Hotel" || category === "Shortlet") {
-      priceType = "per night";
-    } else {
-      priceType = "";
-    }
-    
-    setNewListing({
-      ...newListing,
-      category: category,
-      priceType: priceType
-    });
-  };
+  // --- RENDER LOGIC ---
 
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex flex-col">
         <div className="flex-grow flex items-center justify-center bg-gray-50">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00d37f] mx-auto"></div>
-            <p className="mt-4 text-gray-600 font-manrope">Loading dashboard...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading business dashboard...</p>
           </div>
         </div>
       </div>
@@ -676,857 +587,827 @@ const VendorDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-manrope relative">
-      {/* Mobile Sidebar Overlay with Blur Effect */}
-      {isSidebarOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-      
-      {/* New Top Navigation Bar - Single Logo Only */}
-      <div className="bg-white border-b border-blue-500 shadow-sm px-4 py-3 flex items-center justify-between sticky top-0 z-30">
-        {/* Left side: Menu Button (Mobile only) and Logo */}
+      {/* Blur overlay */}
+      <AnimatePresence>
+        {blurContent && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+            onClick={() => {
+              setShowNotifications(false);
+              setShowProfileMenu(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Top Navigation */}
+      <nav className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center space-x-4">
-          {/* Mobile Menu Button - Hidden on large screens */}
           <button
             onClick={toggleSidebar}
-            className="md:hidden p-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors"
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100"
           >
             {isSidebarOpen ? (
-              <X size={20} strokeWidth={2.5} className="text-blue-600" />
+              <X size={20} className="text-gray-600" />
             ) : (
-              <Menu size={20} strokeWidth={2.5} className="text-blue-600" />
+              <div className="space-y-1">
+                <div className="w-6 h-0.5 bg-gray-600"></div>
+                <div className="w-6 h-0.5 bg-gray-600"></div>
+                <div className="w-6 h-0.5 bg-gray-600"></div>
+              </div>
             )}
           </button>
           
-          {/* Single Logo - Only on Top Nav Bar */}
           <img 
             src={Logo} 
-            alt="Ajani" 
-            className="h-8 w-auto cursor-pointer hover:scale-105 transition-transform"
-            onClick={handleLogoClick}
+            alt="Logo" 
+            className="h-8 w-auto cursor-pointer"
+            onClick={() => navigate("/")}
           />
         </div>
 
-        {/* Right side: Search, Settings, Notifications, Profile */}
         <div className="flex items-center space-x-4">
-          {/* Search Box - Hidden on mobile to save space */}
           <div className="relative hidden md:block">
-            <Search 
-              size={16} 
-              strokeWidth={2.5} 
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" 
-            />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
             <input
               type="text"
-              placeholder="Search for something"
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
+              placeholder="Search dashboard..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               style={{ width: '250px' }}
             />
           </div>
 
-          {/* Settings Icon */}
-          <button 
-            onClick={() => setActiveTab("settings")}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            title="Settings"
-          >
-            <Settings size={20} strokeWidth={2.5} className="text-gray-600" />
-          </button>
+          {/* Notifications Button */}
+          <div className="relative" ref={notificationRef}>
+            <button
+              onClick={toggleNotifications}
+              className="relative p-2 rounded-lg hover:bg-gray-100"
+            >
+              <Bell size={20} className="text-gray-600" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
 
-          {/* Notifications Icon */}
-          <button 
-            onClick={() => {
-              setActiveTab("notifications");
-              if (window.innerWidth < 768) setIsSidebarOpen(false);
-            }}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative"
-            title="Notifications"
-          >
-            <Bell size={20} strokeWidth={2.5} className="text-gray-600" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
-
-          {/* Profile Avatar */}
-          <div className="w-10 h-10 rounded-full overflow-hidden cursor-pointer border-2 border-blue-500">
-            <img
-              src={profileImage}
-              alt="Profile"
-              className="w-full h-full object-cover"
-            />
-          </div>
-        </div>
-      </div>
-
-      <main className="flex-grow pt-0">
-        <div className="flex h-[calc(100vh-65px)]">
-          {/* Sidebar - No Logo, No Menu Button on Large Screens */}
-          <motion.aside
-            initial={false}
-            animate={{ 
-              x: isSidebarOpen ? 0 : '-100%',
-              width: isSidebarOpen ? '256px' : '0px'
-            }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="fixed md:relative top-0 left-0 h-full z-50 md:translate-x-0 md:w-64 bg-white border-r border-gray-200 overflow-hidden"
-          >
-            {/* Sidebar Header - Menu Button only on mobile */}
-            <div className="p-4 flex items-center md:hidden justify-between border-b border-gray-200">
-              {/* Logo fixed to left edge for mobile */}
-              <div className="ml-0">
-                <img 
-                  src={Logo} 
-                  alt="Ajani" 
-                  className="h-8 w-auto cursor-pointer hover:scale-105 transition-transform"
-                  onClick={handleLogoClick}
-                />
-              </div>
-              
-              {/* Menu Button only visible on mobile */}
-              <button
-                onClick={toggleSidebar}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <X size={16} strokeWidth={2.5} className="text-gray-600" />
-              </button>
-            </div>
-            
-            {/* Navigation Menu */}
-            <nav className="mt-4 md:mt-8 px-4">
-              <div className="space-y-3 md:space-y-2">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => {
-                        setActiveTab(tab.id);
-                        if (window.innerWidth < 768) setIsSidebarOpen(false);
-                      }}
-                      className={`flex items-center w-full px-3 md:px-4 py-3 md:py-3 rounded-lg transition-all duration-200 ${
-                        activeTab === tab.id
-                          ? "bg-blue-50 text-blue-600 border-l-4 border-blue-500 shadow-sm"
-                          : "text-gray-700 hover:bg-gray-50 hover:border-l-4 hover:border-gray-200"
-                      }`}
-                    >
-                      <Icon size={16} strokeWidth={2.5} className="mr-3 flex-shrink-0" />
-                      <span className="text-sm md:text-base font-manrope">{tab.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </nav>
-            
-            {/* User Info at Bottom */}
-            {isSidebarOpen && (
-              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center">
-                    <img
-                      src={profileImage}
-                      alt="Profile"
-                      className="w-full h-full object-cover sidebar-avatar"
-                    />
-                  </div>
-                  <div className="overflow-hidden">
-                    <p 
-                      onClick={handleNameClick}
-                      className="font-medium text-gray-900 text-sm truncate font-manrope cursor-pointer hover:text-blue-600 transition-colors"
-                    >
-                      {userData?.firstName} {userData?.lastName}
-                    </p>
-                    <p 
-                      onClick={handleEmailClick}
-                      className="text-xs text-gray-500 truncate font-manrope cursor-pointer hover:text-blue-600 transition-colors"
-                    >
-                      {userData?.email}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </motion.aside>
-
-          {/* Main Content */}
-          <div className="flex-grow overflow-y-auto w-full">
-            {/* Mobile Search - Hidden when sidebar is open */}
-            {!isSidebarOpen && (
-              <div className="md:hidden p-4 border-b border-gray-200">
-                <div className="relative">
-                  <Search 
-                    size={16} 
-                    strokeWidth={2.5} 
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" 
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search for something"
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                  />
-                </div>
-              </div>
-            )}
-            
-            {/* Dashboard Content */}
-            <div className="max-w-7xl mx-auto px-3 md:px-4 md:px-6 py-4 md:py-8">
-              {/* Tab Content with Smooth Animation */}
-              <AnimatePresence mode="wait">
+            {/* Notifications Dropdown */}
+            <AnimatePresence>
+              {showNotifications && (
                 <motion.div
-                  key={activeTab}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-xl border border-gray-200 z-50"
                 >
-                  {/* Overview Tab */}
-                  {activeTab === "overview" && (
-                    <div className="space-y-6">
-                      {/* My Cards Section */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                        {/* Total Revenue Card */}
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.1 }}
-                          className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex justify-between items-start mb-3 md:mb-4">
-                            <h3 className="text-gray-500 font-medium text-sm md:text-base font-manrope">Total Revenue</h3>
-                            <span className="text-blue-500 text-xs md:text-sm font-semibold font-manrope">+0% from last month</span>
-                          </div>
-                          <div className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2 font-manrope">₦{mockStats.totalRevenue.toFixed(2)}</div>
-                        </motion.div>
-                        
-                        {/* Active Listing Card */}
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.15 }}
-                          className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex justify-between items-start mb-3 md:mb-4">
-                            <h3 className="text-gray-500 font-medium text-sm md:text-base font-manrope">Active Listing</h3>
-                            <span className="text-gray-400 text-xs md:text-sm font-manrope">0</span>
-                          </div>
-                          <div className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2 font-manrope">{mockStats.activeListings}</div>
-                        </motion.div>
-                        
-                        {/* Total Booking Card */}
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.2 }}
-                          className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex justify-between items-start mb-3 md:mb-4">
-                            <h3 className="text-gray-500 font-medium text-sm md:text-base font-manrope">Total Booking</h3>
-                            <span className="text-blue-500 text-xs md:text-sm font-semibold font-manrope">+0 from last month</span>
-                          </div>
-                          <div className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2 font-manrope">{mockStats.totalBookings}</div>
-                        </motion.div>
-                        
-                        {/* Average Rating Card */}
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.25 }}
-                          className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex justify-between items-start mb-3 md:mb-4">
-                            <h3 className="text-gray-500 font-medium text-sm md:text-base font-manrope">Average Rating</h3>
-                            <span className="text-blue-500 text-xs md:text-sm font-semibold font-manrope">+0.0 from last month</span>
-                          </div>
-                          <div className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2 font-manrope">{mockStats.averageRating.toFixed(1)}</div>
-                        </motion.div>
-                      </div>
-                      
-                      {/* Recent Bookings Table */}
-                      <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                        className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm"
-                      >
-                        <div className="p-4 md:p-6 border-b border-gray-200">
-                          <h2 className="text-lg md:text-xl font-bold text-gray-900 font-manrope">Recent Bookings</h2>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <div className="min-w-[600px] md:min-w-0">
-                            <table className="w-full">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Customer</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Service</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope hidden md:table-cell">Details</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Status</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Date</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-200">
-                                {mockRecentBookings.map((booking, index) => (
-                                  <motion.tr 
-                                    key={booking.id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.1 * index }}
-                                    className="hover:bg-gray-50"
-                                  >
-                                    <td className="p-3 md:p-4">
-                                      <div className="flex items-center gap-2 md:gap-3">
-                                        <img src={booking.image} alt={booking.customer} className="w-8 h-8 md:w-10 md:h-10 rounded-md" />
-                                        <div>
-                                          <div className="font-medium text-gray-900 text-sm md:text-base font-manrope">{booking.customer}</div>
-                                          <div className="text-xs text-gray-500 md:hidden font-manrope">{booking.service}</div>
-                                        </div>
-                                      </div>
-                                    </td>
-                                    <td className="p-3 md:p-4 text-gray-900 hidden md:table-cell font-manrope">{booking.service}</td>
-                                    <td className="p-3 md:p-4 text-gray-900 hidden md:table-cell font-manrope">{booking.details}</td>
-                                    <td className="p-3 md:p-4">
-                                      <span className="px-2 py-1 md:px-3 md:py-1 bg-green-100 text-green-800 rounded-full text-xs md:text-sm font-manrope">
-                                        {booking.status}
-                                      </span>
-                                    </td>
-                                    <td className="p-3 md:p-4 text-gray-500 text-sm font-manrope">{booking.date}</td>
-                                  </motion.tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </motion.div>
-                    </div>
-                  )}
-
-                  {/* My Listings Tab */}
-                  {activeTab === "listings" && (
-                    <div className="space-y-6">
-                      {/* Header */}
-                      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                          <div>
-                            <h2 className="text-lg md:text-xl font-bold text-gray-900 font-manrope">My Listings</h2>
-                            <p className="text-gray-600 text-sm font-manrope">Manage your properties and services</p>
-                          </div>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={handleOpenAddListingModal}
-                            className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center justify-center gap-2 font-manrope transition-colors"
+                  <div className="p-4 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-gray-900">Notifications</h3>
+                      <div className="flex items-center space-x-2">
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={markAllAsRead}
+                            className="text-sm text-blue-600 hover:text-blue-800"
                           >
-                            <Plus size={16} strokeWidth={2.5} /> <span>Add Listing</span>
-                          </motion.button>
-                        </div>
-                        <div className="relative max-w-md">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} strokeWidth={2.5} />
-                          <input
-                            type="text"
-                            placeholder="Search Listings"
-                            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                          />
-                        </div>
-                      </div>
-                      
-                      {/* Listings Table */}
-                      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                        <div className="overflow-x-auto">
-                          <div className="min-w-[600px] md:min-w-0">
-                            <table className="w-full">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Listing</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope hidden md:table-cell">Category</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Price</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope hidden md:table-cell">Rating</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Status</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Actions</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-200">
-                                {listings.map((listing, index) => (
-                                  <motion.tr 
-                                    key={listing.id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.1 * index }}
-                                    className="hover:bg-gray-50"
-                                  >
-                                    <td className="p-3 md:p-4">
-                                      <div className="flex items-center gap-2 md:gap-3">
-                                        <img src={listing.image} alt={listing.name} className="w-10 h-10 md:w-12 md:h-12 rounded-md" />
-                                        <div className="min-w-0">
-                                          <div className="font-medium text-gray-900 text-sm md:text-base font-manrope truncate">{listing.name}</div>
-                                          <div className="text-xs text-gray-500 font-manrope truncate">{listing.location}</div>
-                                        </div>
-                                      </div>
-                                    </td>
-                                    <td className="p-3 md:p-4 text-gray-600 hidden md:table-cell font-manrope">{listing.category}</td>
-                                    <td className="p-3 md:p-4 text-gray-900 font-medium font-manrope">{listing.price}</td>
-                                    <td className="p-3 md:p-4 hidden md:flex items-center gap-1">
-                                      <Star fill="#FFD700" stroke="#FFD700" size={16} strokeWidth={2.5} />
-                                      <span className="text-gray-900 font-manrope">{listing.rating}</span>
-                                    </td>
-                                    <td className="p-3 md:p-4">
-                                      {getStatusBadge(listing.status)}
-                                    </td>
-                                    <td className="p-3 md:p-4">
-                                      <div className="flex items-center gap-2">
-                                        <motion.button
-                                          whileHover={{ scale: 1.1 }}
-                                          whileTap={{ scale: 0.9 }}
-                                          onClick={() => handleViewListing(listing.id)}
-                                          className="text-gray-400 hover:text-gray-600 p-1 transition-colors"
-                                          title="View"
-                                        >
-                                          <Eye size={16} strokeWidth={2.5} />
-                                        </motion.button>
-                                        <motion.button
-                                          whileHover={{ scale: 1.1 }}
-                                          whileTap={{ scale: 0.9 }}
-                                          onClick={() => handleEditListing(listing.id)}
-                                          className="text-gray-400 hover:text-blue-600 p-1 transition-colors"
-                                          title="Edit"
-                                        >
-                                          <Edit3 size={16} strokeWidth={2.5} />
-                                        </motion.button>
-                                        <motion.button
-                                          whileHover={{ scale: 1.1 }}
-                                          whileTap={{ scale: 0.9 }}
-                                          onClick={() => handleDeleteListing(listing.id)}
-                                          className="text-gray-400 hover:text-red-600 p-1 transition-colors"
-                                          title="Delete"
-                                        >
-                                          <Trash2 size={16} strokeWidth={2.5} />
-                                        </motion.button>
-                                      </div>
-                                    </td>
-                                  </motion.tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
+                            Mark all as read
+                          </button>
+                        )}
+                        <ChevronDown size={16} className="text-gray-400" />
                       </div>
                     </div>
-                  )}
-
-                  {/* Customers Tab */}
-                  {activeTab === "customers" && (
-                    <div className="space-y-6">
-                      {/* Header */}
-                      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm">
-                        <div className="flex justify-between items-center mb-4">
-                          <div>
-                            <h2 className="text-lg md:text-xl font-bold text-gray-900 font-manrope">Customers</h2>
-                            <p className="text-gray-600 text-sm font-manrope">View and manage your customer relationships</p>
-                          </div>
-                        </div>
-                        <div className="relative max-w-md">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} strokeWidth={2.5} />
-                          <input
-                            type="text"
-                            placeholder="Search name"
-                            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                          />
-                        </div>
+                  </div>
+                  
+                  <div className="max-h-96 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-8 text-center">
+                        <Bell size={32} className="mx-auto text-gray-300 mb-3" />
+                        <p className="text-gray-600">No notifications yet</p>
                       </div>
-                      
-                      {/* Customers Grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                        {customers.map((customer, index) => (
-                          <motion.div 
-                            key={customer.id}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.1 * index }}
-                            className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
+                    ) : (
+                      notifications.map((notification) => {
+                        const Icon = notification.icon;
+                        return (
+                          <div
+                            key={notification.id}
+                            className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
+                              !notification.read ? 'bg-blue-50' : ''
+                            }`}
+                            onClick={() => markAsRead(notification.id)}
                           >
-                            <div className="flex items-center gap-3 md:gap-4 mb-4">
-                              <img src={customer.image} alt={customer.name} className="w-10 h-10 md:w-12 md:h-12 rounded-full" />
-                              <div className="min-w-0">
-                                <div className="font-medium text-gray-900 text-sm md:text-base font-manrope truncate">{customer.name}</div>
-                                <div className="text-xs text-gray-500 font-manrope truncate">{customer.email}</div>
+                            <div className="flex items-start space-x-3">
+                              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                <Icon size={18} className="text-blue-600" />
                               </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3 md:gap-4 pt-4 border-t border-gray-200">
-                              <div>
-                                <div className="text-xs md:text-sm text-gray-600 font-manrope">Bookings</div>
-                                <div className="text-lg md:text-xl font-medium text-gray-900 font-manrope">{customer.bookings}</div>
-                              </div>
-                              <div>
-                                <div className="text-xs md:text-sm text-gray-600 font-manrope">Total Spent</div>
-                                <div className="text-lg md:text-xl font-medium text-gray-900 font-manrope">{customer.totalSpent}</div>
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Bookings Tab */}
-                  {activeTab === "bookings" && (
-                    <div className="space-y-6">
-                      {/* Header */}
-                      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div>
-                            <h2 className="text-lg md:text-xl font-bold text-gray-900 font-manrope">Bookings</h2>
-                            <p className="text-gray-600 text-sm font-manrope">Manage your booking requests and reservations</p>
-                          </div>
-                          <motion.button 
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center justify-center gap-2 font-manrope transition-colors"
-                          >
-                            <Plus size={16} strokeWidth={2.5} /> <span className="hidden md:inline">New Booking</span>
-                          </motion.button>
-                        </div>
-                      </div>
-                      
-                      {/* Recent Bookings */}
-                      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm">
-                        <h3 className="text-base md:text-lg font-bold text-gray-900 font-manrope mb-4">Recent Bookings</h3>
-                        <div className="border border-gray-200 rounded-lg p-4 md:p-6">
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div className="flex items-center gap-3 md:gap-4">
-                              <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80" alt="Jagz Hotel" className="w-10 h-10 md:w-12 md:h-12 rounded-md" />
-                              <div className="min-w-0">
-                                <div className="font-medium text-gray-900 text-sm md:text-base font-manrope truncate">Jagz Hotel and Suite</div>
-                                <div className="text-xs md:text-sm text-gray-600 font-manrope truncate">Mokola, RD 8 Ibadan</div>
-                                <div className="mt-2 flex items-center gap-2 md:gap-4">
-                                  <span className="px-2 py-1 md:px-3 md:py-1 bg-gray-100 text-gray-800 rounded-full text-xs md:text-sm font-manrope">
-                                    Hotel
-                                  </span>
-                                  <span className="px-2 py-1 md:px-3 md:py-1 bg-blue-100 text-blue-800 rounded-full text-xs md:text-sm font-manrope">
-                                    Admin
-                                  </span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between mb-1">
+                                  <h4 className="font-medium text-gray-900">{notification.title}</h4>
+                                  <span className="text-xs text-gray-500">{notification.time}</span>
                                 </div>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-lg md:text-2xl font-bold text-gray-900 font-manrope">₦28,000/night</div>
-                              <motion.button 
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="mt-2 md:mt-3 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-xs md:text-sm font-manrope transition-colors"
-                              >
-                                View Details
-                              </motion.button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Notifications Tab */}
-                  {activeTab === "notifications" && (
-                    <div className="space-y-6">
-                      {/* Header */}
-                      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div>
-                            <h2 className="text-lg md:text-xl font-bold text-gray-900 font-manrope">Notifications</h2>
-                            <p className="text-gray-600 text-sm font-manrope">Manage your notifications and alerts</p>
-                          </div>
-                          <motion.button 
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={markAllNotificationsAsRead}
-                            className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium font-manrope transition-colors"
-                          >
-                            Mark All as Read
-                          </motion.button>
-                        </div>
-                      </div>
-                      
-                      {/* Notifications List */}
-                      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                        <div className="divide-y divide-gray-200">
-                          {mockNotifications.map((notification, index) => (
-                            <motion.div 
-                              key={notification.id}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.1 * index }}
-                              className={`p-4 md:p-6 hover:bg-gray-50 transition-colors ${!notification.read ? 'bg-blue-50' : ''}`}
-                              onClick={() => markNotificationAsRead(notification.id)}
-                            >
-                              <div className="flex items-start gap-3 md:gap-4">
-                                <div className={`p-2 rounded-full ${!notification.read ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'}`}>
-                                  <Bell size={20} strokeWidth={2.5} />
-                                </div>
-                                <div className="flex-grow min-w-0">
-                                  <div className="flex justify-between items-start mb-1">
-                                    <h3 className="font-medium text-gray-900 text-sm md:text-base font-manrope">{notification.title}</h3>
-                                    <span className="text-xs text-gray-500 font-manrope whitespace-nowrap">{notification.time}</span>
+                                <p className="text-sm text-gray-600 truncate">{notification.message}</p>
+                                {!notification.read && (
+                                  <div className="inline-flex items-center mt-2">
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                                    <span className="text-xs text-blue-600">Unread</span>
                                   </div>
-                                  <p className="text-gray-600 text-sm font-manrope mb-2">{notification.message}</p>
-                                  {!notification.read && (
-                                    <span className="inline-block w-2 h-2 bg-blue-600 rounded-full"></span>
-                                  )}
-                                </div>
+                                )}
                               </div>
-                            </motion.div>
-                          ))}
-                        </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                  
+                  <div className="p-4 border-t border-gray-200">
+                    <button
+                      onClick={() => navigate("/vendor/notifications")}
+                      className="w-full text-center text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    >
+                      View all notifications
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Profile Menu */}
+          <div className="relative" ref={profileMenuRef}>
+            <button
+              onClick={toggleProfileMenu}
+              className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100"
+            >
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <User size={16} className="text-blue-600" />
+              </div>
+              <span className="hidden md:inline text-sm font-medium">{userData?.firstName}</span>
+              <ChevronDown size={16} className="text-gray-400" />
+            </button>
+
+            {/* Profile Dropdown Menu */}
+            <AnimatePresence>
+              {showProfileMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-50"
+                >
+                  <div className="p-4 border-b border-gray-200">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                        <User size={20} className="text-blue-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-gray-900">
+                          {userData?.firstName} {userData?.lastName}
+                        </h4>
+                        <p className="text-sm text-gray-600">{userData?.email}</p>
+                        <span className="inline-block mt-1 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full">
+                          Vendor
+                        </span>
                       </div>
                     </div>
-                  )}
-
-                  {/* Settings Tab */}
-                  {activeTab === "settings" && (
-                    <div className="space-y-6">
-                      {/* Profile Section */}
-                      <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm"
-                      >
-                        <div className="border-b border-gray-200 pb-4 mb-6">
-                          <h2 className="text-lg font-bold text-gray-900 font-manrope">Edit Profile</h2>
-                          <p className="text-sm text-gray-600 mt-1 font-manrope">Manage your account and preferences</p>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="flex items-center gap-4">
-                            <div className="relative group">
-                              <img 
-                                src={profileImage} 
-                                alt="Profile" 
-                                className="w-20 h-20 rounded-full object-cover cursor-pointer group-hover:scale-105 transition-transform"
-                              />
-                              <label className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 cursor-pointer group-hover:scale-110 transition-transform shadow-lg">
-                                <Camera size={16} strokeWidth={2.5} />
-                                <input 
-                                  type="file" 
-                                  accept="image/*" 
-                                  onChange={handleProfileImageUpload}
-                                  className="hidden"
-                                />
-                              </label>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-600 font-manrope">Click the camera icon to upload a new profile picture</p>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">Your Name</label>
-                                <input 
-                                  type="text" 
-                                  value={profileData.name}
-                                  readOnly
-                                  onClick={handleNameClick}
-                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">User Name</label>
-                                <input 
-                                  type="text" 
-                                  value={profileData.username}
-                                  onChange={(e) => handleProfileChange('username', e.target.value)}
-                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                                />
-                              </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">Email</label>
-                                <input 
-                                  type="email" 
-                                  value={profileData.email}
-                                  readOnly
-                                  onClick={handleEmailClick}
-                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">City</label>
-                                <input 
-                                  type="text" 
-                                  value={profileData.city}
-                                  onChange={(e) => handleProfileChange('city', e.target.value)}
-                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                                />
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">Bio</label>
-                              <textarea 
-                                rows={4}
-                                value={profileData.bio}
-                                onChange={(e) => handleProfileChange('bio', e.target.value)}
-                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope resize-none"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-6 flex justify-end">
-                          <motion.button 
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={handleSaveProfile}
-                            className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2 font-manrope transition-colors"
-                          >
-                            <Save size={16} strokeWidth={2.5} /> Save Changes
-                          </motion.button>
-                        </div>
-                      </motion.div>
-                      
-                      {/* Notifications Section */}
-                      <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm"
-                      >
-                        <h2 className="text-lg font-bold text-gray-900 font-manrope mb-4">Notification Preferences</h2>
-                        <p className="text-gray-600 mb-4 font-manrope">How do you want to receive messages from Clients?</p>
-                        
-                        <div className="space-y-4">
-                          <div className="border border-gray-200 rounded-lg p-4">
-                            <h3 className="text-md font-medium text-gray-900 mb-3 font-manrope">Email</h3>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Mail size={16} strokeWidth={2.5} className="text-gray-500" />
-                                <span className="text-gray-900 font-manrope">Email</span>
-                              </div>
-                              <div className="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
-                                <input 
-                                  type="checkbox" 
-                                  id="email-toggle" 
-                                  checked={notificationSettings.email}
-                                  onChange={() => handleNotificationToggle('email')}
-                                  className="sr-only"
-                                />
-                                <label 
-                                  htmlFor="email-toggle"
-                                  className={`block overflow-hidden h-6 rounded-full cursor-pointer ${
-                                    notificationSettings.email ? 'bg-blue-600' : 'bg-gray-300'
-                                  }`}
-                                >
-                                  <span 
-                                    className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
-                                      notificationSettings.email ? 'translate-x-6' : 'translate-x-0'
-                                    }`}
-                                  ></span>
-                                </label>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="border border-gray-200 rounded-lg p-4">
-                            <h3 className="text-md font-medium text-gray-900 mb-3 font-manrope">WhatsApp</h3>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <MessageSquare size={16} strokeWidth={2.5} className="text-gray-500" />
-                                <span className="text-gray-900 font-manrope">WhatsApp</span>
-                              </div>
-                              <div className="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
-                                <input 
-                                  type="checkbox" 
-                                  id="whatsapp-toggle" 
-                                  checked={notificationSettings.whatsapp}
-                                  onChange={() => handleNotificationToggle('whatsapp')}
-                                  className="sr-only"
-                                />
-                                <label 
-                                  htmlFor="whatsapp-toggle"
-                                  className={`block overflow-hidden h-6 rounded-full cursor-pointer ${
-                                    notificationSettings.whatsapp ? 'bg-blue-600' : 'bg-gray-300'
-                                  }`}
-                                >
-                                  <span 
-                                    className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
-                                      notificationSettings.whatsapp ? 'translate-x-6' : 'translate-x-0'
-                                    }`}
-                                  ></span>
-                                </label>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="border border-gray-200 rounded-lg p-4">
-                            <h3 className="text-md font-medium text-gray-900 mb-3 font-manrope">Promotional messages</h3>
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <Mail size={16} strokeWidth={2.5} className="text-gray-500" />
-                                  <span className="text-gray-900 font-manrope">Email</span>
-                                </div>
-                                <div className="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
-                                  <input 
-                                    type="checkbox" 
-                                    id="promo-email-toggle" 
-                                    checked={notificationSettings.promotionalEmail}
-                                    onChange={() => handleNotificationToggle('promotionalEmail')}
-                                    className="sr-only"
-                                  />
-                                  <label 
-                                    htmlFor="promo-email-toggle"
-                                    className={`block overflow-hidden h-6 rounded-full cursor-pointer ${
-                                      notificationSettings.promotionalEmail ? 'bg-blue-600' : 'bg-gray-300'
-                                    }`}
-                                  >
-                                    <span 
-                                      className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
-                                        notificationSettings.promotionalEmail ? 'translate-x-6' : 'translate-x-0'
-                                      }`}
-                                    ></span>
-                                  </label>
-                                </div>
-                              </div>
-                              
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <MessageSquare size={16} strokeWidth={2.5} className="text-gray-500" />
-                                  <span className="text-gray-900 font-manrope">WhatsApp</span>
-                                </div>
-                                <div className="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
-                                  <input 
-                                    type="checkbox" 
-                                    id="promo-whatsapp-toggle" 
-                                    checked={notificationSettings.promotionalWhatsapp}
-                                    onChange={() => handleNotificationToggle('promotionalWhatsapp')}
-                                    className="sr-only"
-                                  />
-                                  <label 
-                                    htmlFor="promo-whatsapp-toggle"
-                                    className={`block overflow-hidden h-6 rounded-full cursor-pointer ${
-                                      notificationSettings.promotionalWhatsapp ? 'bg-blue-600' : 'bg-gray-300'
-                                    }`}
-                                  >
-                                    <span 
-                                      className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
-                                        notificationSettings.promotionalWhatsapp ? 'translate-x-6' : 'translate-x-0'
-                                      }`}
-                                    ></span>
-                                  </label>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    </div>
-                  )}
+                  </div>
+                  
+                  <div className="p-2">
+                    <button
+                      onClick={() => {
+                        navigate("/vendor/profile");
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 text-left"
+                    >
+                      <User size={16} className="text-gray-600" />
+                      <span className="text-sm font-medium">Profile</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        navigate("/vendor/settings");
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 text-left"
+                    >
+                      <Settings size={16} className="text-gray-600" />
+                      <span className="text-sm font-medium">Settings</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        navigate("/help");
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 text-left"
+                    >
+                      <HelpCircle size={16} className="text-gray-600" />
+                      <span className="text-sm font-medium">Help & Support</span>
+                    </button>
+                    
+                    <div className="my-2 border-t border-gray-200"></div>
+                    
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-red-50 text-red-600 text-left"
+                    >
+                      <LogOut size={16} />
+                      <span className="text-sm font-medium">Logout</span>
+                    </button>
+                  </div>
                 </motion.div>
-              </AnimatePresence>
-            </div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
-      </main>
+      </nav>
+
+      <div className="flex flex-1">
+        {/* Sidebar */}
+        <aside className={`${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-0'} md:translate-x-0 md:w-64 bg-white border-r border-gray-200 transition-all duration-300 fixed md:relative h-[calc(100vh-65px)] z-30 overflow-y-auto`}>
+          <div className="p-4">
+            <div className="mb-8">
+              <h2 className="text-lg font-bold text-gray-900 mb-2">Business Dashboard</h2>
+              <p className="text-sm text-gray-600">{userData?.businessName || userData?.vendor?.businessName || "Your Business"}</p>
+              <span className="inline-block mt-1 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full">
+                Vendor Account
+              </span>
+            </div>
+            
+            <nav className="space-y-1">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      if (window.innerWidth < 768) setIsSidebarOpen(false);
+                    }}
+                    className={`flex items-center w-full px-3 py-3 rounded-lg transition-all ${
+                      activeTab === tab.id
+                        ? "bg-blue-50 text-blue-600 border-l-4 border-blue-500"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    <Icon size={18} className="mr-3" />
+                    <span className="text-sm font-medium">{tab.label}</span>
+                    {tab.id === "bookings" && businessBookings.length > 0 && (
+                      <span className="ml-auto bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {businessBookings.length}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+            
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Quick Actions</h3>
+              <div className="space-y-2">
+                <button
+                  onClick={handleOpenAddListingModal}
+                  className="flex items-center w-full px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg"
+                >
+                  <Plus size={16} className="mr-2" />
+                  Add Listing
+                </button>
+                <button
+                  onClick={() => setShowExportModal(true)}
+                  className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+                >
+                  <Download size={16} className="mr-2" />
+                  Export Data
+                </button>
+                <button
+                  onClick={() => navigate("/vendor/notifications")}
+                  className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg relative"
+                >
+                  <Bell size={16} className="mr-2" />
+                  Notifications
+                  {unreadCount > 0 && (
+                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => navigate("/vendor/personal-bookings")}
+                  className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+                >
+                  <ShoppingBag size={16} className="mr-2" />
+                  My Personal Bookings
+                </button>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className={`flex-1 overflow-y-auto p-4 md:p-6 transition-all duration-200 ${
+          blurContent ? 'blur-sm pointer-events-none' : ''
+        }`}>
+          {/* Tab Content */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-6"
+            >
+              {/* Overview Tab Content */}
+              {activeTab === "overview" && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white rounded-xl border border-gray-200 p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-gray-500 text-sm font-medium">Total Revenue</h3>
+                        <DollarSign size={20} className="text-green-500" />
+                      </div>
+                      <div className="text-2xl font-bold text-gray-900">₦{stats.totalRevenue.toLocaleString()}</div>
+                      <div className="mt-2 text-sm flex items-center">
+                        <TrendingUp size={14} className="text-green-500 mr-1" />
+                        <span className="text-green-600">{stats.monthlyGrowth}% this month</span>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-xl border border-gray-200 p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-gray-500 text-sm font-medium">Active Listings</h3>
+                        <List size={20} className="text-blue-500" />
+                      </div>
+                      <div className="text-2xl font-bold text-gray-900">{stats.activeListings}</div>
+                      <div className="mt-2 text-sm text-gray-600">Available for booking</div>
+                    </div>
+                    
+                    <div className="bg-white rounded-xl border border-gray-200 p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-gray-500 text-sm font-medium">Business Bookings</h3>
+                        <CalendarCheck size={20} className="text-purple-500" />
+                      </div>
+                      <div className="text-2xl font-bold text-gray-900">{stats.totalBookings}</div>
+                      <div className="mt-2 text-sm">
+                        <span className="text-yellow-600">{stats.pendingBookings} pending</span>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-xl border border-gray-200 p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-gray-500 text-sm font-medium">Avg. Rating</h3>
+                        <Star size={20} className="text-yellow-500" />
+                      </div>
+                      <div className="text-2xl font-bold text-gray-900">{stats.averageRating.toFixed(1)}</div>
+                      <div className="mt-2 text-sm text-gray-600">Based on customer reviews</div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white rounded-xl border border-gray-200 p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-lg font-bold text-gray-900">Recent Business Bookings</h2>
+                      <button 
+                        onClick={() => setActiveTab("bookings")}
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        View All
+                      </button>
+                    </div>
+                    <div className="space-y-4">
+                      {businessBookings.slice(0, 5).map(booking => (
+                        <div key={booking.id} className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-lg border border-gray-100">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                              <CalendarCheck size={20} className="text-blue-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {booking.bookedBy?.userName || booking.customerName || "Customer"}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Booked {booking.vendor?.name || "your service"}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium text-gray-900">₦{(booking.totalAmount || 0).toLocaleString()}</p>
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                              booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {booking.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Listings Tab Content */}
+              {activeTab === "listings" && (
+                <>
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h1 className="text-2xl font-bold text-gray-900">Business Listings</h1>
+                      <p className="text-gray-600">Manage your properties and services</p>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                        <input
+                          type="text"
+                          placeholder="Search listings..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="pending">Pending</option>
+                      </select>
+                      <button
+                        onClick={handleOpenAddListingModal}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                      >
+                        <Plus size={16} className="mr-2" />
+                        Add Listing
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {filteredListings.length === 0 ? (
+                    <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+                      <List size={48} className="mx-auto text-gray-300 mb-4" />
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">No Listings Found</h3>
+                      <p className="text-gray-600 mb-6">Get started by adding your first listing</p>
+                      <button
+                        onClick={handleOpenAddListingModal}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      >
+                        Add Your First Listing
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {filteredListings.map(listing => (
+                        <div key={listing.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+                          <div className="p-6">
+                            <div className="flex items-start justify-between mb-4">
+                              <div>
+                                <h3 className="font-bold text-gray-900 text-lg">{listing.name}</h3>
+                                <div className="flex items-center mt-1 text-sm text-gray-600">
+                                  <MapPin size={14} className="mr-1" />
+                                  {listing.location}
+                                </div>
+                              </div>
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                listing.status === 'active' ? 'bg-green-100 text-green-800' :
+                                listing.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
+                                'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {listing.status}
+                              </span>
+                            </div>
+                            
+                            <p className="text-gray-600 text-sm mb-4 line-clamp-2">{listing.description}</p>
+                            
+                            <div className="flex items-center justify-between mb-4">
+                              <div>
+                                <div className="text-2xl font-bold text-gray-900">{listing.price}</div>
+                                <div className="text-sm text-gray-600">Per night</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="flex items-center text-yellow-500">
+                                  <Star size={16} className="fill-current" />
+                                  <span className="ml-1 font-medium">4.8</span>
+                                </div>
+                                <div className="text-sm text-gray-600">(24 reviews)</div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => navigate(`/listing/${listing.id}`)}
+                                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                                >
+                                  View
+                                </button>
+                                <button
+                                  onClick={() => setSelectedListing(listing)}
+                                  className="px-3 py-1.5 text-sm border border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50"
+                                >
+                                  Edit
+                                </button>
+                              </div>
+                              <button
+                                onClick={() => handleDeleteListing(listing.id)}
+                                className="px-3 py-1.5 text-sm border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Customers Tab Content */}
+              {activeTab === "customers" && (
+                <>
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h1 className="text-2xl font-bold text-gray-900">Customers</h1>
+                      <p className="text-gray-600">Customers who booked your services</p>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                        <input
+                          type="text"
+                          placeholder="Search customers..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bookings</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Spent</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Booking</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {customers.map(customer => (
+                            <tr key={customer.id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4">
+                                <div className="flex items-center">
+                                  <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                                    <User size={20} className="text-gray-400" />
+                                  </div>
+                                  <div className="ml-4">
+                                    <div className="font-medium text-gray-900">{customer.name}</div>
+                                    <div className="text-sm text-gray-600">{customer.email}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="text-gray-900">{customer.totalBookings || 0}</div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="font-medium text-gray-900">₦{(customer.totalSpent || 0).toLocaleString()}</div>
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-600">
+                                {customer.lastBooking ? new Date(customer.lastBooking).toLocaleDateString() : 'Never'}
+                              </td>
+                              <td className="px-6 py-4">
+                                <button
+                                  onClick={() => navigate(`/vendor/customers/${customer.id}`)}
+                                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                >
+                                  View Details
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Business Bookings Tab */}
+              {activeTab === "bookings" && (
+                <>
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h1 className="text-2xl font-bold text-gray-900">Business Bookings</h1>
+                      <p className="text-gray-600">Bookings made to your business listings</p>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="flex space-x-2">
+                        <input
+                          type="date"
+                          value={dateRange.start}
+                          onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                          className="px-3 py-2 border border-gray-300 rounded-lg"
+                        />
+                        <input
+                          type="date"
+                          value={dateRange.end}
+                          onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                          className="px-3 py-2 border border-gray-300 rounded-lg"
+                        />
+                      </div>
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="px-4 py-2 border border-gray-300 rounded-lg"
+                      >
+                        <option value="all">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="completed">Completed</option>
+                      </select>
+                      <button
+                        onClick={() => navigate("/vendor/personal-bookings")}
+                        className="px-4 py-2 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50"
+                      >
+                        View My Personal Bookings
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {filteredBookings.length === 0 ? (
+                    <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+                      <CalendarCheck size={48} className="mx-auto text-gray-300 mb-4" />
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">No Business Bookings</h3>
+                      <p className="text-gray-600 mb-4">You don't have any bookings for your business yet</p>
+                      <div className="space-y-3">
+                        <button
+                          onClick={() => navigate("/vendor/personal-bookings")}
+                          className="block w-full max-w-xs mx-auto px-6 py-3 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50"
+                        >
+                          View My Personal Bookings
+                        </button>
+                        <p className="text-sm text-gray-500">
+                          Personal bookings are bookings you made to other vendors' services
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking ID</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service/Listing</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {filteredBookings.map(booking => (
+                              <tr key={booking.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4">
+                                  <div className="text-sm font-medium text-gray-900">{booking.id.substring(0, 8)}...</div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="font-medium text-gray-900">
+                                    {booking.bookedBy?.userName || booking.customerName || "Customer"}
+                                  </div>
+                                  <div className="text-sm text-gray-600">
+                                    {booking.bookedBy?.userEmail || booking.customerEmail || "No email"}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="text-gray-900">{booking.vendor?.name || "Your Service"}</div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="text-sm text-gray-900">
+                                    {booking.details?.checkIn ? 
+                                      `${new Date(booking.details.checkIn).toLocaleDateString()} - ${new Date(booking.details.checkOut).toLocaleDateString()}` :
+                                      booking.date ? new Date(booking.date).toLocaleDateString() : 'N/A'
+                                    }
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="font-medium text-gray-900">₦{(booking.totalAmount || 0).toLocaleString()}</div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                    booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                                    booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                    booking.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {booking.status}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex space-x-2">
+                                    <button
+                                      onClick={() => navigate(`/vendor/bookings/${booking.id}`)}
+                                      className="text-blue-600 hover:text-blue-800 text-sm"
+                                    >
+                                      View
+                                    </button>
+                                    {booking.status === 'pending' && (
+                                      <>
+                                        <button
+                                          onClick={() => handleUpdateBookingStatus(booking.id, 'confirmed')}
+                                          className="text-green-600 hover:text-green-800 text-sm"
+                                        >
+                                          Confirm
+                                        </button>
+                                        <button
+                                          onClick={() => handleUpdateBookingStatus(booking.id, 'cancelled')}
+                                          className="text-red-600 hover:text-red-800 text-sm"
+                                        >
+                                          Cancel
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Analytics Tab */}
+              {activeTab === "analytics" && (
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Business Analytics</h2>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="p-4 border border-gray-200 rounded-lg">
+                      <h3 className="font-bold text-gray-900 mb-4">Revenue Trend</h3>
+                      <div className="h-64 flex items-center justify-center border border-dashed border-gray-300 rounded">
+                        <p className="text-gray-500">Revenue chart will appear here</p>
+                      </div>
+                    </div>
+                    <div className="p-4 border border-gray-200 rounded-lg">
+                      <h3 className="font-bold text-gray-900 mb-4">Booking Trends</h3>
+                      <div className="h-64 flex items-center justify-center border border-dashed border-gray-300 rounded">
+                        <p className="text-gray-500">Booking chart will appear here</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Performance Tab */}
+              {activeTab === "performance" && (
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Business Performance</h2>
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-4 border border-gray-200 rounded-lg">
+                        <h3 className="text-sm text-gray-500 mb-2">Conversion Rate</h3>
+                        <div className="text-2xl font-bold text-gray-900">24.5%</div>
+                        <div className="mt-2 text-sm text-green-600 flex items-center">
+                          <TrendingUp size={14} className="mr-1" />
+                          +2.3% from last month
+                        </div>
+                      </div>
+                      <div className="p-4 border border-gray-200 rounded-lg">
+                        <h3 className="text-sm text-gray-500 mb-2">Avg. Occupancy</h3>
+                        <div className="text-2xl font-bold text-gray-900">78%</div>
+                        <div className="mt-2 text-sm text-green-600 flex items-center">
+                          <TrendingUp size={14} className="mr-1" />
+                          +5% from last month
+                        </div>
+                      </div>
+                      <div className="p-4 border border-gray-200 rounded-lg">
+                        <h3 className="text-sm text-gray-500 mb-2">Customer Satisfaction</h3>
+                        <div className="text-2xl font-bold text-gray-900">4.8/5</div>
+                        <div className="mt-2 text-sm text-gray-600">Based on 128 reviews</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+      </div>
 
       {/* Add Listing Modal */}
       <AnimatePresence>
@@ -1541,185 +1422,202 @@ const VendorDashboard = () => {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.2 }}
-              className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+              className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
             >
-              <div className="p-4 md:p-6 border-b border-gray-200 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900 font-manrope">Add New Listing</h2>
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+              <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Add New Listing</h2>
+                <button
                   onClick={handleCloseAddListingModal}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-gray-100 rounded-lg"
                 >
-                  <X size={20} strokeWidth={2.5} />
-                </motion.button>
+                  <X size={20} />
+                </button>
               </div>
-              <div className="p-4 md:p-6 space-y-4">
+              
+              <div className="p-6 space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 font-manrope">
-                    <Type size={16} strokeWidth={2.5} /> Listing Name *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Listing Name *</label>
                   <input
                     type="text"
                     value={newListing.name}
                     onChange={(e) => setNewListing({...newListing, name: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter listing name"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 font-manrope">
-                    <Briefcase size={16} strokeWidth={2.5} /> Category *
-                  </label>
-                  <select
-                    value={newListing.category}
-                    onChange={(e) => handleCategoryChange(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                  >
-                    <option value="Hotel">Hotel</option>
-                    <option value="Shortlet">Shortlet</option>
-                    <option value="Restaurant">Restaurant</option>
-                    <option value="Event Center">Event Center</option>
-                    <option value="Service">Service</option>
-                  </select>
-                </div>
-                <div>
-                  {/* Price Label with Naira Symbol */}
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 font-manrope">
-                    <span className="text-lg font-bold">₦</span> {getPriceLabel(newListing.category)} *
-                  </label>
-                  <div className="flex items-center">
-                    <span className="bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg px-3 py-2.5 text-gray-700 font-manrope font-bold">
-                      ₦
-                    </span>
-                    <input
-                      type="number"
-                      value={newListing.price}
-                      onChange={(e) => setNewListing({...newListing, price: e.target.value})}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                      placeholder="Enter price"
-                    />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+                    <select
+                      value={newListing.category}
+                      onChange={(e) => setNewListing({...newListing, category: e.target.value})}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Select category</option>
+                      <option value="hotel">Hotel</option>
+                      <option value="shortlet">Shortlet</option>
+                      <option value="restaurant">Restaurant</option>
+                      <option value="event">Event Center</option>
+                      <option value="service">Service</option>
+                    </select>
                   </div>
                   
-                  {/* Price Type Selector for Restaurant */}
-                  {(newListing.category === "Restaurant" || newListing.category === "Hotel" || newListing.category === "Shortlet") && (
-                    <div className="mt-3">
-                      <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">
-                        Pricing Type
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {getPriceTypeOptions(newListing.category).map((option) => (
-                          <button
-                            key={option}
-                            type="button"
-                            onClick={() => setNewListing({...newListing, priceType: option})}
-                            className={`px-4 py-2 rounded-lg text-sm font-manrope transition-colors ${
-                              newListing.priceType === option
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                          >
-                            {option === "per night" && "Per Night"}
-                            {option === "per table" && "Per Table"}
-                            {option === "per plate" && "Per Plate"}
-                            {option === "" && "One-time"}
-                          </button>
-                        ))}
-                      </div>
-                      <p className="text-xs text-gray-500 mt-2 font-manrope">
-                        {newListing.category === "Restaurant" 
-                          ? "Select whether pricing is per table or per plate"
-                          : newListing.category === "Hotel" || newListing.category === "Shortlet"
-                          ? "Pricing is per night"
-                          : "One-time pricing for this service"}
-                      </p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Price *</label>
+                    <div className="flex">
+                      <span className="bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg px-3 py-3 flex items-center">
+                        ₦
+                      </span>
+                      <input
+                        type="number"
+                        value={newListing.price}
+                        onChange={(e) => setNewListing({...newListing, price: e.target.value})}
+                        className="flex-1 px-4 py-3 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter price"
+                      />
                     </div>
-                  )}
+                  </div>
                 </div>
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 font-manrope">
-                    <MapPin size={16} strokeWidth={2.5} /> Location *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Location *</label>
                   <input
                     type="text"
                     value={newListing.location}
                     onChange={(e) => setNewListing({...newListing, location: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                    placeholder="Enter location"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter full address"
                   />
                 </div>
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 font-manrope">
-                    <FileText size={16} strokeWidth={2.5} /> Description
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                   <textarea
                     value={newListing.description}
                     onChange={(e) => setNewListing({...newListing, description: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope resize-none"
-                    rows={4}
-                    placeholder="Enter description"
+                    rows="4"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Describe your listing..."
                   />
                 </div>
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2 font-manrope">
-                    <Package size={16} strokeWidth={2.5} /> Amenities
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Amenities</label>
                   <div className="flex gap-2 mb-3">
                     <input
                       type="text"
                       value={currentAmenity}
                       onChange={(e) => setCurrentAmenity(e.target.value)}
-                      className="flex-grow px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                      placeholder="Add amenity"
                       onKeyPress={(e) => e.key === 'Enter' && handleAddAmenity()}
+                      className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Add amenity and press Enter"
                     />
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+                    <button
                       onClick={handleAddAmenity}
-                      className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-manrope transition-colors"
+                      className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                     >
                       Add
-                    </motion.button>
+                    </button>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {newListing.amenities.map((amenity, index) => (
-                      <motion.span 
+                      <span
                         key={index}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="px-3 py-1.5 bg-gray-100 text-gray-800 rounded-full text-sm flex items-center gap-1 font-manrope"
+                        className="px-3 py-1.5 bg-gray-100 text-gray-800 rounded-full text-sm flex items-center gap-1"
                       >
                         {amenity}
                         <button
-                          onClick={() => handleRemoveAmenity(amenity)}
-                          className="text-gray-500 hover:text-gray-700 transition-colors"
+                          onClick={() => handleRemoveAmenity(index)}
+                          className="text-gray-500 hover:text-gray-700"
                         >
-                          <X size={12} strokeWidth={2.5} />
+                          <X size={12} />
                         </button>
-                      </motion.span>
+                      </span>
                     ))}
                   </div>
                 </div>
               </div>
-              <div className="p-4 md:p-6 border-t border-gray-200 flex justify-end gap-3">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+              
+              <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+                <button
                   onClick={handleCloseAddListingModal}
-                  className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium font-manrope transition-colors"
+                  className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
                   Cancel
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleSubmitListing}
-                  className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2 font-manrope transition-colors"
+                </button>
+                <button
+                  onClick={handleAddListing}
+                  className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
                 >
-                  <Save size={16} strokeWidth={2.5} /> Save Listing
-                </motion.button>
+                  <Save size={16} /> Save Listing
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Export Modal */}
+      <AnimatePresence>
+        {showExportModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-xl max-w-md w-full p-6"
+            >
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Export Data</h2>
+              <p className="text-gray-600 mb-6">Select the data you want to export:</p>
+              
+              <div className="space-y-3">
+                <button
+                  onClick={() => exportData('bookings')}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-left flex items-center justify-between"
+                >
+                  <div>
+                    <div className="font-medium text-gray-900">Business Bookings</div>
+                    <div className="text-sm text-gray-600">Export bookings made to your business</div>
+                  </div>
+                  <Download size={20} className="text-gray-400" />
+                </button>
+                
+                <button
+                  onClick={() => exportData('listings')}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-left flex items-center justify-between"
+                >
+                  <div>
+                    <div className="font-medium text-gray-900">Listings</div>
+                    <div className="text-sm text-gray-600">Export all listing data</div>
+                  </div>
+                  <Download size={20} className="text-gray-400" />
+                </button>
+                
+                <button
+                  onClick={() => exportData('customers')}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-left flex items-center justify-between"
+                >
+                  <div>
+                    <div className="font-medium text-gray-900">Customers</div>
+                    <div className="text-sm text-gray-600">Export customer information</div>
+                  </div>
+                  <Download size={20} className="text-gray-400" />
+                </button>
+              </div>
+              
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setShowExportModal(false)}
+                  className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
               </div>
             </motion.div>
           </motion.div>
