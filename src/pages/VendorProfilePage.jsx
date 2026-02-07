@@ -1,43 +1,96 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  Building, 
-  Mail, 
-  Phone, 
-  Calendar, 
-  MapPin, 
-  Edit, 
-  ArrowLeft, 
-  CheckCircle, 
-  ChartLine, 
-  Briefcase, 
-  Star, 
-  Users,
-  Clock,
+import {
+  Home,
+  CalendarCheck,
+  Settings,
+  Search,
+  Menu,
+  Eye,
+  X,
+  Save,
+  Camera,
+  Bell,
+  Edit3,
+  Trash2,
+  Mail,
+  MessageSquare,
+  Award as AwardIcon,
+  Heart as HeartIcon,
+  MapPin as MapPinIcon,
+  Building,
+  Utensils,
+  Briefcase,
+  Home as HomeIcon,
+  CalendarDays,
+  User,
+  Package,
+  ChartLine,
   CreditCard,
   Shield,
-  Download,
-  Printer,
-  Package,
-  Bell,
-  Settings,
   LogOut,
   FileText,
-  Home,
-  Utensils,
   ChevronRight,
+  Star,
+  Users,
+  Clock,
+  Download,
+  Printer,
   AlertCircle,
   Check,
-  Heart,
-  User,
-  Eye
+  Phone
 } from "lucide-react";
+import Logo from "../assets/Logos/logo5.png";
+import { motion, AnimatePresence } from "framer-motion";
+
+// Helper function to format location
+const formatLocation = (location) => {
+  if (!location) return "Location available";
+  
+  if (typeof location === 'string') {
+    return location;
+  }
+  
+  if (typeof location === 'object') {
+    const parts = [];
+    if (location.address) parts.push(location.address);
+    if (location.area) parts.push(location.area);
+    if (location.city) parts.push(location.city);
+    if (location.state) parts.push(location.state);
+    if (location.country) parts.push(location.country);
+    
+    if (parts.length > 0) {
+      return parts.join(', ');
+    }
+    
+    try {
+      return Object.values(location)
+        .filter(value => typeof value === 'string' && value.trim().length > 0)
+        .join(', ');
+    } catch {
+      return "Location available";
+    }
+  }
+  
+  return String(location);
+};
+
+// Default profile avatar component
+const DefaultProfileAvatar = ({ size = "w-10 h-10", className = "" }) => {
+  return (
+    <div className={`${size} rounded-full bg-blue-100 flex items-center justify-center ${className}`}>
+      <Building size={size === "w-10 h-10" ? 24 : 32} className="text-blue-600" />
+    </div>
+  );
+};
 
 const VendorProfilePage = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState(null);
   const [vendorData, setVendorData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     businessName: "",
@@ -47,59 +100,122 @@ const VendorProfilePage = () => {
     phone: "",
     email: "",
   });
-  const [activeTab, setActiveTab] = useState("overview");
+
+  // Settings state
+  const [profileData, setProfileData] = useState({
+    name: "",
+    username: "",
+    email: "",
+    city: "",
+    bio: ""
+  });
+  const [notificationSettings, setNotificationSettings] = useState({
+    email: true,
+    whatsapp: true,
+    promotionalEmail: false,
+    promotionalWhatsapp: false
+  });
+  const [profileImage, setProfileImage] = useState(null);
   const [myBookings, setMyBookings] = useState([]);
   const [bookingsCount, setBookingsCount] = useState(0);
-  const [upcomingBookings, setUpcomingBookings] = useState([]);
   const [savedCount, setSavedCount] = useState(0);
 
+  // Tab configuration for vendor profile
+  const tabs = [
+    { id: "overview", label: "Business Overview", icon: Building },
+    { id: "bookings", label: "My Bookings", icon: Package },
+    { id: "listings", label: "My Listings", icon: HomeIcon },
+    { id: "analytics", label: "Analytics", icon: ChartLine },
+    { id: "settings", label: "Settings", icon: Settings }
+  ];
+
+  // Vendor categories with icons
+  const vendorCategories = [
+    { id: "hotel", label: "Hotels", icon: Building, color: "blue" },
+    { id: "restaurant", label: "Restaurants", icon: Utensils, color: "green" },
+    { id: "shortlet", label: "Shortlets", icon: HomeIcon, color: "purple" },
+    { id: "event", label: "Event Centers", icon: CalendarDays, color: "orange" },
+    { id: "service", label: "Services", icon: Briefcase, color: "indigo" }
+  ];
+
   useEffect(() => {
-    const checkAuth = () => {
+    fetchUserData();
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
+      }
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const fetchUserData = () => {
+    try {
       const token = localStorage.getItem("auth_token");
       const storedProfile = localStorage.getItem("userProfile");
 
-      if (!token || !storedProfile) {
+      if (!token) {
         navigate("/login");
         return;
       }
 
-      try {
-        const profile = JSON.parse(storedProfile);
-        
-        // Check if user is a vendor
-        if (profile.role !== "vendor") {
-          navigate("/");
-          return;
-        }
-
-        setUserProfile(profile);
-        setVendorData(profile.vendor || {});
-        
-        setFormData({
-          businessName: profile.vendor?.businessName || profile.businessName || "",
-          businessAddress: profile.vendor?.businessAddress || profile.businessAddress || "",
-          category: profile.vendor?.category || profile.category || "",
-          description: profile.vendor?.description || profile.description || "",
-          phone: profile.phone || "",
-          email: profile.email || "",
-        });
-
-        // Load vendor's own bookings (as a customer)
-        loadMyBookings(profile);
-        
-        // Load saved listings count
-        const saved = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
-        setSavedCount(saved.length);
-      } catch (error) {
-        console.error("Error parsing profile:", error);
+      let profile;
+      if (storedProfile) {
+        profile = JSON.parse(storedProfile);
+      } else {
         navigate("/login");
-      } finally {
-        setIsLoading(false);
+        return;
       }
-    };
 
-    checkAuth();
-  }, [navigate]);
+      // Check if user is a vendor
+      if (profile.role !== "vendor") {
+        navigate("/");
+        return;
+      }
+
+      setUserProfile(profile);
+      setVendorData(profile.vendor || {});
+      
+      setFormData({
+        businessName: profile.vendor?.businessName || profile.businessName || "",
+        businessAddress: profile.vendor?.businessAddress || profile.businessAddress || "",
+        category: profile.vendor?.category || profile.category || "",
+        description: profile.vendor?.description || profile.description || "",
+        phone: profile.phone || "",
+        email: profile.email || "",
+      });
+
+      const fullName = profile.firstName && profile.lastName
+        ? `${profile.firstName} ${profile.lastName}`
+        : profile.username || profile.email || "";
+      setProfileData({
+        name: fullName,
+        username: profile.username || profile.email || "",
+        email: profile.email || "",
+        city: profile.city || "",
+        bio: profile.bio || "Business owner and service provider on Ajani platform."
+      });
+
+      // Set profile image - use default avatar if no image is set
+      setProfileImage(profile.profileImage || null);
+
+      // Load vendor's personal bookings (as a customer)
+      loadMyBookings(profile);
+      
+      // Load saved listings count
+      const saved = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
+      setSavedCount(saved.length);
+
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      navigate("/login");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadMyBookings = (profile) => {
     // Load bookings from vendor's profile (they made as a customer)
@@ -123,23 +239,6 @@ const VendorProfilePage = () => {
     
     setMyBookings(uniqueBookings.sort((a, b) => new Date(b.date) - new Date(a.date)));
     setBookingsCount(uniqueBookings.length);
-    
-    // Get upcoming bookings (next 30 days)
-    const now = new Date();
-    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    
-    const upcoming = uniqueBookings.filter(booking => {
-      if (booking.status === 'cancelled') return false;
-      
-      const checkInDate = booking.details?.checkIn;
-      if (checkInDate) {
-        const checkIn = new Date(checkInDate);
-        return checkIn >= now && checkIn <= thirtyDaysFromNow;
-      }
-      return false;
-    }).slice(0, 3); // Show only 3 upcoming bookings
-    
-    setUpcomingBookings(upcoming);
   };
 
   const handleInputChange = (e) => {
@@ -147,6 +246,13 @@ const VendorProfilePage = () => {
     setFormData(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+
+  const handleProfileChange = (field, value) => {
+    setProfileData(prev => ({
+      ...prev,
+      [field]: value
     }));
   };
 
@@ -184,6 +290,91 @@ const VendorProfilePage = () => {
     }
   };
 
+  const getBookingIcon = (type) => {
+    switch(type?.toLowerCase()) {
+      case 'hotel':
+        return <Building className="text-blue-500 w-4 h-4" />;
+      case 'shortlet':
+        return <HomeIcon className="text-purple-500 w-4 h-4" />;
+      case 'restaurant':
+        return <Utensils className="text-green-500 w-4 h-4" />;
+      case 'event':
+      case 'event center':
+        return <CalendarDays className="text-orange-500 w-4 h-4" />;
+      case 'service':
+        return <Briefcase className="text-indigo-500 w-4 h-4" />;
+      default:
+        return <CalendarCheck className="text-gray-500 w-4 h-4" />;
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch(status?.toLowerCase()) {
+      case 'confirmed':
+        return 'bg-green-100 text-green-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'completed':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "N/A";
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch {
+      return "N/A";
+    }
+  };
+
+  const formatPrice = (price) => {
+    if (!price && price !== 0) return "₦ --";
+    try {
+      const num = typeof price === 'number' ? price : parseInt(price.toString().replace(/[^\d]/g, ""));
+      if (isNaN(num)) return "₦ --";
+      return `₦${num.toLocaleString()}`;
+    } catch {
+      return "₦ --";
+    }
+  };
+
+  const handleNotificationToggle = (type) => {
+    setNotificationSettings(prev => ({
+      ...prev,
+      [type]: !prev[type]
+    }));
+  };
+
+  const handleProfileImageUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Image size should be less than 5MB");
+        return;
+      }
+      if (!file.type.match('image.*')) {
+        alert("Please select an image file");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_email");
@@ -195,66 +386,40 @@ const VendorProfilePage = () => {
     window.location.reload();
   };
 
-  const formatPrice = (price) => {
-    if (!price && price !== 0) return "₦ --";
-    const num = typeof price === 'number' ? price : parseInt(price.toString().replace(/[^\d]/g, ""));
-    if (isNaN(num)) return "₦ --";
-    return `₦${num.toLocaleString()}`;
+  const handleLogoClick = () => {
+    navigate("/");
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "Not specified";
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
   };
 
-  const getBookingIcon = (type) => {
-    switch(type) {
-      case 'hotel': return Building;
-      case 'restaurant': return Utensils;
-      case 'shortlet': return Home;
-      case 'event': return Calendar;
-      case 'service': return Briefcase;
-      default: return Package;
-    }
+  const handleNameClick = () => {
+    alert("Contact support to change your name or email");
   };
 
-  const getBookingStatusColor = (status) => {
-    switch(status) {
-      case 'confirmed': return 'text-green-600 bg-green-50';
-      case 'pending': return 'text-yellow-600 bg-yellow-50';
-      case 'cancelled': return 'text-red-600 bg-red-50';
-      default: return 'text-gray-600 bg-gray-50';
-    }
+  const handleEmailClick = () => {
+    alert("Contact support to change your name or email");
   };
 
   const getCategoryIcon = (category) => {
-    switch(category) {
-      case "hotel": return Building;
-      case "restaurant": return Utensils;
-      case "shortlet": return Home;
-      case "event": return Calendar;
-      case "service": return Briefcase;
-      default: return Building;
+    const cat = vendorCategories.find(c => c.id === category);
+    if (cat) {
+      const Icon = cat.icon;
+      return <Icon className={`text-${cat.color}-500`} />;
     }
+    return <Building className="text-gray-500" />;
   };
 
-  const vendorCategories = [
-    { value: "hotel", label: "Hotel", icon: Building },
-    { value: "restaurant", label: "Restaurant", icon: Utensils },
-    { value: "shortlet", label: "Shortlet/Apartment", icon: Home },
-    { value: "event", label: "Event Center", icon: Calendar },
-    { value: "service", label: "Service Provider", icon: Briefcase }
-  ];
-
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00d1ff]"></div>
+      <div className="min-h-screen bg-white flex flex-col">
+        <div className="flex-grow flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00d37f] mx-auto"></div>
+            <p className="mt-4 text-gray-600 font-manrope">Loading vendor profile...</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -263,752 +428,1014 @@ const VendorProfilePage = () => {
     return null;
   }
 
-  const memberSince = userProfile.registrationDate 
+  // Calculate stats
+  const memberSince = userProfile?.registrationDate 
     ? new Date(userProfile.registrationDate).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long'
       })
     : "Recently";
 
+  const bookings = myBookings || [];
+  const recentBookings = [...bookings].slice(0, 5);
+  const savedListings = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
+
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
+    <div className="min-h-screen bg-gray-50 flex flex-col font-manrope relative">
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+      
+      {/* Top Navigation Bar */}
+      <div className="bg-white border-b border-blue-500 shadow-sm px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+        <div className="flex items-center space-x-4">
           <button
-            onClick={() => navigate("/vendor/dashboard")}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+            onClick={toggleSidebar}
+            className="md:hidden p-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors"
           >
-            <ArrowLeft size={20} />
-            <span>Back to Dashboard</span>
+            {isSidebarOpen ? (
+              <X size={20} strokeWidth={2.5} className="text-blue-600" />
+            ) : (
+              <Menu size={20} strokeWidth={2.5} className="text-blue-600" />
+            )}
           </button>
           
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Vendor Profile</h1>
-              <p className="text-gray-600 mt-2">Manage your business profile and personal bookings</p>
-            </div>
-            
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => navigate("/vendor/dashboard")}
-                className="px-4 py-2 border border-[#00d1ff] text-[#00d1ff] rounded-lg hover:bg-[#00d1ff] hover:text-white transition-colors text-sm font-medium"
-              >
-                Dashboard
-              </button>
-              
-              <button
-                onClick={() => navigate("/my-bookings")}
-                className="px-4 py-2 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors text-sm font-medium"
-              >
-                <div className="flex items-center gap-2">
-                  <Package size={16} />
-                  View My Bookings
-                </div>
-              </button>
-              
-              {!isEditing ? (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#00d1ff] text-white rounded-lg hover:bg-[#00b8e6] transition-colors text-sm font-medium"
-                >
-                  <Edit size={16} />
-                  Edit Profile
-                </button>
-              ) : (
-                <button
-                  onClick={handleSaveProfile}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium"
-                >
-                  <Check size={16} />
-                  Save Changes
-                </button>
-              )}
-            </div>
-          </div>
+          <img 
+            src={Logo} 
+            alt="Ajani" 
+            className="h-8 w-auto cursor-pointer hover:scale-105 transition-transform"
+            onClick={handleLogoClick}
+          />
         </div>
 
-        {/* Tabs */}
-        <div className="mb-6 border-b border-gray-200">
-          <div className="flex flex-wrap gap-4">
-            <button
-              onClick={() => setActiveTab("overview")}
-              className={`py-3 px-1 font-medium text-sm border-b-2 transition-colors ${
-                activeTab === "overview"
-                  ? "border-[#00d1ff] text-[#00d1ff]"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Building className="w-4 h-4" />
-                Business Overview
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab("bookings")}
-              className={`py-3 px-1 font-medium text-sm border-b-2 transition-colors ${
-                activeTab === "bookings"
-                  ? "border-[#00d1ff] text-[#00d1ff]"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Package className="w-4 h-4" />
-                My Bookings
-                {upcomingBookings.length > 0 && (
-                  <span className="bg-[#00d1ff] text-white text-xs px-1.5 py-0.5 rounded-full">
-                    {upcomingBookings.length}
-                  </span>
-                )}
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab("settings")}
-              className={`py-3 px-1 font-medium text-sm border-b-2 transition-colors ${
-                activeTab === "settings"
-                  ? "border-[#00d1ff] text-[#00d1ff]"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Settings className="w-4 h-4" />
-                Settings
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left Column - Business Overview */}
-          <div className="lg:col-span-1">
-            {/* Profile Card */}
-            <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-              {/* Profile Avatar */}
-              <div className="flex flex-col items-center mb-6">
-                <div className="w-32 h-32 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-4xl mb-4">
-                  {(() => {
-                    const CategoryIcon = getCategoryIcon(formData.category);
-                    return <CategoryIcon size={48} />;
-                  })()}
-                </div>
-                <h2 className="text-xl font-bold text-gray-900 text-center">
-                  {formData.businessName || "Your Business"}
-                </h2>
-                <div className="flex items-center gap-1 mt-1">
-                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                  <span className="text-sm text-green-600">
-                    {userProfile.isVerified ? "Verified Vendor" : "Pending Verification"}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-600 mt-2 capitalize">
-                  {vendorCategories.find(cat => cat.value === formData.category)?.label || "Category not set"}
-                </p>
-              </div>
-
-              {/* Business Info */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 text-gray-600">
-                  <Mail size={16} />
-                  <span className="text-sm truncate">{userProfile.email}</span>
-                </div>
-                
-                <div className="flex items-center gap-3 text-gray-600">
-                  <Calendar size={16} />
-                  <span className="text-sm">Vendor since {memberSince}</span>
-                </div>
-
-                {/* Quick Stats */}
-                <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">{bookingsCount}</div>
-                    <div className="text-sm text-gray-600">My Bookings</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">{savedCount}</div>
-                    <div className="text-sm text-gray-600">Saved</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">0</div>
-                    <div className="text-sm text-gray-600">Reviews</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">4.8</div>
-                    <div className="text-sm text-gray-600">Rating</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <button
-                  onClick={() => navigate("/vendor/dashboard")}
-                  className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 flex items-center gap-3"
-                >
-                  <ChartLine size={16} />
-                  Dashboard
-                </button>
-                <button
-                  onClick={() => navigate("/my-bookings")}
-                  className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 flex items-center gap-3"
-                >
-                  <Package size={16} />
-                  My Bookings
-                </button>
-                <button
-                  onClick={() => navigate("/saved")}
-                  className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 flex items-center gap-3"
-                >
-                  <Heart size={16} />
-                  Saved Listings
-                </button>
-                <button
-                  onClick={() => navigate("/add-business")}
-                  className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 flex items-center gap-3"
-                >
-                  <Building size={16} />
-                  Add Listing
-                </button>
-                <button
-                  onClick={() => navigate("/chat")}
-                  className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 flex items-center gap-3"
-                >
-                  <Bell size={16} />
-                  Support Chat
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left px-4 py-3 rounded-lg hover:bg-red-50 transition-colors text-red-600 flex items-center gap-3"
-                >
-                  <LogOut size={16} />
-                  Sign Out
-                </button>
-              </div>
-            </div>
+        <div className="flex items-center space-x-4">
+          <div className="relative hidden md:block">
+            <Search 
+              size={16} 
+              strokeWidth={2.5} 
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" 
+            />
+            <input
+              type="text"
+              placeholder="Search for something"
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
+              style={{ width: '250px' }}
+            />
           </div>
 
-          {/* Right Column - Main Content */}
-          <div className="lg:col-span-3">
-            {activeTab === "overview" && (
-              <div className="space-y-8">
-                {/* Personal Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">My Bookings</p>
-                        <p className="text-3xl font-bold text-gray-900">{bookingsCount}</p>
-                      </div>
-                      <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <Package className="w-6 h-6 text-purple-600" />
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => navigate("/my-bookings")}
-                      className="inline-block mt-4 text-sm text-purple-600 hover:text-purple-800 font-medium"
-                    >
-                      View all →
-                    </button>
-                  </div>
+          <button 
+            onClick={() => setActiveTab("settings")}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            title="Settings"
+          >
+            <Settings size={20} strokeWidth={2.5} className="text-gray-600" />
+          </button>
 
-                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">Saved Listings</p>
-                        <p className="text-3xl font-bold text-gray-900">{savedCount}</p>
-                      </div>
-                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <Heart className="w-6 h-6 text-blue-600" />
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => navigate("/saved")}
-                      className="inline-block mt-4 text-sm text-blue-600 hover:text-blue-800 font-medium"
-                    >
-                      View all →
-                    </button>
-                  </div>
+          <button 
+            onClick={() => {
+              setActiveTab("notifications");
+              if (window.innerWidth < 768) setIsSidebarOpen(false);
+            }}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative"
+            title="Notifications"
+          >
+            <Bell size={20} strokeWidth={2.5} className="text-gray-600" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+          </button>
 
-                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">Account Status</p>
-                        <p className="text-3xl font-bold text-green-600">Active</p>
-                      </div>
-                      <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
-                        <CheckCircle className="w-6 h-6 text-emerald-600" />
-                      </div>
-                    </div>
-                    <p className="mt-4 text-sm text-gray-500">
-                      Vendor since {memberSince}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Business Details Form */}
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-6">Business Information</h3>
-                  
-                  <div className="space-y-8">
-                    {/* Business Details */}
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-4">Business Details</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Business Name *
-                          </label>
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              name="businessName"
-                              value={formData.businessName}
-                              onChange={handleInputChange}
-                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d1ff] focus:border-transparent"
-                              placeholder="Enter business name"
-                            />
-                          ) : (
-                            <div className="px-4 py-3 bg-gray-50 rounded-lg">
-                              {formData.businessName || "Not set"}
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Category *
-                          </label>
-                          {isEditing ? (
-                            <select
-                              name="category"
-                              value={formData.category}
-                              onChange={handleInputChange}
-                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d1ff] focus:border-transparent"
-                            >
-                              <option value="">Select category</option>
-                              {vendorCategories.map((cat) => (
-                                <option key={cat.value} value={cat.value}>
-                                  {cat.label}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <div className="px-4 py-3 bg-gray-50 rounded-lg capitalize">
-                              {formData.category || "Not set"}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Business Description
-                        </label>
-                        {isEditing ? (
-                          <textarea
-                            name="description"
-                            value={formData.description}
-                            onChange={handleInputChange}
-                            rows="4"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d1ff] focus:border-transparent"
-                            placeholder="Describe your business..."
-                          />
-                        ) : (
-                          <div className="px-4 py-3 bg-gray-50 rounded-lg min-h-[100px]">
-                            {formData.description || "No description provided"}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Contact Information */}
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-4">Contact Information</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Email Address
-                          </label>
-                          <div className="px-4 py-3 bg-gray-50 rounded-lg flex items-center gap-2">
-                            <Mail className="text-gray-400" size={16} />
-                            {userProfile.email}
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Phone Number
-                          </label>
-                          {isEditing ? (
-                            <input
-                              type="tel"
-                              name="phone"
-                              value={formData.phone}
-                              onChange={handleInputChange}
-                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d1ff] focus:border-transparent"
-                              placeholder="Enter phone number"
-                            />
-                          ) : (
-                            <div className="px-4 py-3 bg-gray-50 rounded-lg flex items-center gap-2">
-                              <Phone className="text-gray-400" size={16} />
-                              {formData.phone || "Not provided"}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="md:col-span-2">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Business Address
-                          </label>
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              name="businessAddress"
-                              value={formData.businessAddress}
-                              onChange={handleInputChange}
-                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d1ff] focus:border-transparent"
-                              placeholder="Enter business address"
-                            />
-                          ) : (
-                            <div className="px-4 py-3 bg-gray-50 rounded-lg flex items-center gap-2">
-                              <MapPin className="text-gray-400" size={16} />
-                              {formData.businessAddress || "Not provided"}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quick Actions */}
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-6">Quick Actions</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button
-                      onClick={() => navigate("/my-bookings")}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                          <Package className="w-5 h-5 text-purple-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">My Bookings</h4>
-                          <p className="text-sm text-gray-500">View all your reservations</p>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
-                    </button>
-                    
-                    <button
-                      onClick={() => navigate("/saved")}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <Heart className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">Saved Listings</h4>
-                          <p className="text-sm text-gray-500">View saved businesses</p>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
-                    </button>
-                    
-                    <button
-                      onClick={() => navigate("/add-business")}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                          <Building className="w-5 h-5 text-green-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">Add Listing</h4>
-                          <p className="text-sm text-gray-500">List your business</p>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
-                    </button>
-                    
-                    <button
-                      onClick={() => navigate("/")}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                          <Eye className="w-5 h-5 text-yellow-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">Explore</h4>
-                          <p className="text-sm text-gray-500">Discover businesses</p>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
-                    </button>
-                  </div>
-                </div>
-              </div>
+          <div className="w-10 h-10 rounded-full overflow-hidden cursor-pointer border-2 border-blue-500">
+            {profileImage ? (
+              <img
+                src={profileImage}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <DefaultProfileAvatar />
             )}
-
-            {activeTab === "bookings" && (
-              <div className="space-y-6">
-                {/* Upcoming Bookings */}
-                {upcomingBookings.length === 0 ? (
-                  <div className="bg-white rounded-xl p-8 text-center border border-gray-200">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                      <Package className="w-8 h-8 text-gray-400" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      No Upcoming Bookings
-                    </h3>
-                    <p className="text-gray-600 mb-6">
-                      You don't have any upcoming bookings. Start exploring businesses to book!
-                    </p>
-                    <button
-                      onClick={() => navigate("/")}
-                      className="px-6 py-2.5 bg-[#00d1ff] text-white rounded-lg hover:bg-[#00b8e6] transition font-medium"
-                    >
-                      Explore Now
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        Upcoming Bookings
-                      </h3>
-                      <button
-                        onClick={() => navigate("/my-bookings")}
-                        className="text-[#00d1ff] hover:text-[#00b8e6] font-medium text-sm"
-                      >
-                        View All Bookings →
-                      </button>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {upcomingBookings.map((booking) => {
-                        const BookingIcon = getBookingIcon(booking.type);
-                        return (
-                          <div key={booking.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                            <div className="p-6">
-                              <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                                    <BookingIcon className="w-5 h-5 text-blue-600" />
-                                  </div>
-                                  <div>
-                                    <h4 className="font-semibold text-gray-900">
-                                      {booking.vendor?.name || "Property"}
-                                    </h4>
-                                    <p className="text-xs text-gray-500 capitalize">{booking.type}</p>
-                                  </div>
-                                </div>
-                                <span className={`text-xs px-2 py-1 rounded-full ${getBookingStatusColor(booking.status)}`}>
-                                  {booking.status}
-                                </span>
-                              </div>
-                              
-                              <div className="space-y-3 text-sm">
-                                {booking.details?.checkIn && (
-                                  <div className="flex items-center gap-2">
-                                    <Calendar className="w-4 h-4 text-gray-400" />
-                                    <span className="text-gray-600">
-                                      Check-in: {formatDate(booking.details.checkIn)}
-                                    </span>
-                                  </div>
-                                )}
-                                
-                                {booking.details?.guests && (
-                                  <div className="flex items-center gap-2">
-                                    <User className="w-4 h-4 text-gray-400" />
-                                    <span className="text-gray-600">
-                                      {booking.details.guests.adults || 1} guests
-                                    </span>
-                                  </div>
-                                )}
-                                
-                                {booking.details?.totalAmount && (
-                                  <div className="flex items-center gap-2">
-                                    <CreditCard className="w-4 h-4 text-gray-400" />
-                                    <span className="font-medium">
-                                      {formatPrice(booking.details.totalAmount)}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                              
-                              <div className="mt-6 pt-4 border-t border-gray-100">
-                                <p className="text-xs text-gray-500 mb-1">Booking Reference</p>
-                                <p className="font-mono text-sm font-medium">{booking.reference}</p>
-                              </div>
-                            </div>
-                            
-                            <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
-                              <button
-                                onClick={() => navigate(`/booking-details/${booking.reference}`)}
-                                className="w-full text-center text-sm text-[#00d1ff] hover:text-[#00b8e6] font-medium"
-                              >
-                                View Details
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-                
-                {/* Booking Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="bg-blue-50 rounded-xl p-6">
-                    <div className="text-2xl font-bold text-blue-600">{bookingsCount}</div>
-                    <div className="text-sm text-blue-800 mt-1">Total Bookings</div>
-                  </div>
-                  
-                  <div className="bg-green-50 rounded-xl p-6">
-                    <div className="text-2xl font-bold text-green-600">
-                      {myBookings.filter(b => b.status === 'confirmed').length}
-                    </div>
-                    <div className="text-sm text-green-800 mt-1">Confirmed</div>
-                  </div>
-                  
-                  <div className="bg-yellow-50 rounded-xl p-6">
-                    <div className="text-2xl font-bold text-yellow-600">
-                      {myBookings.filter(b => b.status === 'pending').length}
-                    </div>
-                    <div className="text-sm text-yellow-800 mt-1">Pending</div>
-                  </div>
-                  
-                  <div className="bg-purple-50 rounded-xl p-6">
-                    <div className="text-2xl font-bold text-purple-600">
-                      {formatPrice(myBookings.reduce((sum, booking) => sum + (parseInt(booking.details?.totalAmount) || 0), 0))}
-                    </div>
-                    <div className="text-sm text-purple-800 mt-1">Total Spent</div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "settings" && (
-              <div className="space-y-6">
-                {/* Security Settings */}
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                    <Shield size={20} />
-                    Security Settings
-                  </h3>
-                  
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div>
-                        <h4 className="font-medium text-gray-900">Two-Factor Authentication</h4>
-                        <p className="text-sm text-gray-600 mt-1">Add an extra layer of security</p>
-                      </div>
-                      <button className="px-4 py-2 bg-[#00d1ff] text-white rounded-lg hover:bg-[#00b8e6] text-sm font-medium">
-                        Enable
-                      </button>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div>
-                        <h4 className="font-medium text-gray-900">Change Password</h4>
-                        <p className="text-sm text-gray-600 mt-1">Update your password regularly</p>
-                      </div>
-                      <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
-                        Change
-                      </button>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div>
-                        <h4 className="font-medium text-gray-900">Login Activity</h4>
-                        <p className="text-sm text-gray-600 mt-1">Review recent account activity</p>
-                      </div>
-                      <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
-                        View
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Account Actions */}
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-6">Account Actions</h3>
-                  
-                  <div className="space-y-3">
-                    <button
-                      onClick={() => alert("Export data feature coming soon!")}
-                      className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 flex items-center gap-3"
-                    >
-                      <Download size={16} />
-                      Export Booking Data
-                    </button>
-                    
-                    <button
-                      onClick={() => alert("Print statements feature coming soon!")}
-                      className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 flex items-center gap-3"
-                    >
-                      <Printer size={16} />
-                      Print Booking History
-                    </button>
-                    
-                    <button
-                      onClick={() => {
-                        if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
-                          alert("Account deletion feature coming soon!");
-                        }
-                      }}
-                      className="w-full text-left px-4 py-3 rounded-lg hover:bg-red-50 transition-colors text-red-600 flex items-center gap-3"
-                    >
-                      <AlertCircle size={16} />
-                      Delete Account
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Account Information */}
-        <div className="mt-8 bg-white rounded-xl p-6">
-          <h4 className="text-sm font-medium text-gray-700 mb-4">
-            Account Information
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-            <div>
-              <p className="text-gray-600">Vendor ID</p>
-              <p className="font-medium text-gray-900">
-                {vendorData?.id || userProfile.id || "N/A"}
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-600">Registration Date</p>
-              <p className="font-medium text-gray-900">
-                {userProfile.registrationDate
-                  ? new Date(userProfile.registrationDate).toLocaleDateString()
-                  : "N/A"}
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-600">Business Type</p>
-              <p className="font-medium text-gray-900 capitalize">
-                {formData.category || "Not set"}
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-600">Last Active</p>
-              <p className="font-medium text-gray-900">Just now</p>
-            </div>
           </div>
         </div>
       </div>
+
+      <main className="flex-grow pt-0">
+        <div className="flex h-[calc(100vh-65px)]">
+          {/* Sidebar */}
+          <motion.aside
+            initial={false}
+            animate={{ 
+              x: isSidebarOpen ? 0 : '-100%',
+              width: isSidebarOpen ? '256px' : '0px'
+            }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="fixed md:relative top-0 left-0 h-full z-50 md:translate-x-0 md:w-64 bg-white border-r border-gray-200 overflow-hidden"
+          >
+            <div className="p-4 flex items-center md:hidden justify-between border-b border-gray-200">
+              <div className="ml-0">
+                <img 
+                  src={Logo} 
+                  alt="Ajani" 
+                  className="h-8 w-auto cursor-pointer hover:scale-105 transition-transform"
+                  onClick={handleLogoClick}
+                />
+              </div>
+              
+              <button
+                onClick={toggleSidebar}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <X size={16} strokeWidth={2.5} className="text-gray-600" />
+              </button>
+            </div>
+            
+            <nav className="mt-4 md:mt-8 px-4">
+              <div className="space-y-3 md:space-y-2">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        if (window.innerWidth < 768) setIsSidebarOpen(false);
+                      }}
+                      className={`flex items-center w-full px-3 md:px-4 py-3 md:py-3 rounded-lg transition-all duration-200 ${
+                        activeTab === tab.id
+                          ? "bg-blue-50 text-blue-600 border-l-4 border-blue-500 shadow-sm"
+                          : "text-gray-700 hover:bg-gray-50 hover:border-l-4 hover:border-gray-200"
+                      }`}
+                    >
+                      <Icon size={16} strokeWidth={2.5} className="mr-3 flex-shrink-0" />
+                      <span className="text-sm md:text-base font-manrope">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
+            
+            <div className="mt-6 px-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-3 font-manrope">Quick Links</h3>
+              <div className="space-y-2">
+                <button
+                  onClick={() => navigate("/vendor/dashboard")}
+                  className="w-full text-left px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 text-sm font-manrope flex items-center gap-2"
+                >
+                  <ChartLine size={16} strokeWidth={2.5} className="text-blue-500" />
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => navigate("/vendor/listings")}
+                  className="w-full text-left px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 text-sm font-manrope flex items-center gap-2"
+                >
+                  <HomeIcon size={16} strokeWidth={2.5} className="text-green-500" />
+                  My Listings
+                </button>
+                <button
+                  onClick={() => navigate("/vendor/add-listing")}
+                  className="w-full text-left px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 text-sm font-manrope flex items-center gap-2"
+                >
+                  <Building size={16} strokeWidth={2.5} className="text-purple-500" />
+                  Add Listing
+                </button>
+                <button
+                  onClick={() => navigate("/vendor/bookings")}
+                  className="w-full text-left px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 text-sm font-manrope flex items-center gap-2"
+                >
+                  <Package size={16} strokeWidth={2.5} className="text-orange-500" />
+                  Customer Bookings
+                </button>
+              </div>
+            </div>
+            
+            {isSidebarOpen && (
+              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center">
+                    {profileImage ? (
+                      <img
+                        src={profileImage}
+                        alt="Profile"
+                        className="w-full h-full object-cover sidebar-avatar"
+                      />
+                    ) : (
+                      <DefaultProfileAvatar />
+                    )}
+                  </div>
+                  <div className="overflow-hidden">
+                    <p 
+                      onClick={handleNameClick}
+                      className="font-medium text-gray-900 text-sm truncate font-manrope cursor-pointer hover:text-blue-600 transition-colors"
+                    >
+                      {formData.businessName || "Business Name"}
+                    </p>
+                    <p 
+                      onClick={handleEmailClick}
+                      className="text-xs text-gray-500 truncate font-manrope cursor-pointer hover:text-blue-600 transition-colors"
+                    >
+                      {userProfile?.email}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.aside>
+
+          {/* Main Content */}
+          <div className="flex-grow overflow-y-auto w-full">
+            {!isSidebarOpen && (
+              <div className="md:hidden p-4 border-b border-gray-200">
+                <div className="relative">
+                  <Search 
+                    size={16} 
+                    strokeWidth={2.5} 
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" 
+                  />
+                  <input
+                    type="text"
+                    placeholder="Search for something"
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
+                  />
+                </div>
+              </div>
+            )}
+            
+            <div className="max-w-7xl mx-auto px-3 md:px-4 md:px-6 py-4 md:py-8">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {/* Overview Tab */}
+                  {activeTab === "overview" && (
+                    <div className="space-y-6">
+                      {/* Welcome Header */}
+                      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h1 className="text-2xl md:text-3xl font-bold mb-2 font-manrope">
+                              Welcome back, {formData.businessName || "Business"}!
+                            </h1>
+                            <p className="text-white/90 font-manrope">Your vendor dashboard and profile</p>
+                          </div>
+                          <button
+                            onClick={() => setIsEditing(true)}
+                            className="hidden md:flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors font-manrope"
+                          >
+                            <Edit3 size={16} strokeWidth={2.5} />
+                            Edit Profile
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Stats Cards */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                        {/* Personal Bookings Card */}
+                        <motion.div 
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.1 }}
+                          className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-center gap-3 mb-3 md:mb-4">
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                              <Package size={20} strokeWidth={2.5} className="text-blue-600" />
+                            </div>
+                            <h3 className="text-gray-500 font-medium text-sm md:text-base font-manrope">My Bookings</h3>
+                          </div>
+                          <div className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2 font-manrope">{bookingsCount}</div>
+                          <button
+                            onClick={() => setActiveTab("bookings")}
+                            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            View all →
+                          </button>
+                        </motion.div>
+                        
+                        {/* Business Type Card */}
+                        <motion.div 
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.15 }}
+                          className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-center gap-3 mb-3 md:mb-4">
+                            <div className="p-2 bg-green-100 rounded-lg">
+                              <Building size={20} strokeWidth={2.5} className="text-green-600" />
+                            </div>
+                            <h3 className="text-gray-500 font-medium text-sm md:text-base font-manrope">Business Type</h3>
+                          </div>
+                          <div className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2 font-manrope capitalize">
+                            {formData.category || "Not set"}
+                          </div>
+                        </motion.div>
+                        
+                        {/* Member Since Card */}
+                        <motion.div 
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.2 }}
+                          className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-center gap-3 mb-3 md:mb-4">
+                            <div className="p-2 bg-purple-100 rounded-lg">
+                              <AwardIcon size={20} strokeWidth={2.5} className="text-purple-600" />
+                            </div>
+                            <h3 className="text-gray-500 font-medium text-sm md:text-base font-manrope">Vendor Since</h3>
+                          </div>
+                          <div className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2 font-manrope">{memberSince}</div>
+                        </motion.div>
+                        
+                        {/* Saved Listings Card */}
+                        <motion.div 
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.25 }}
+                          className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-center gap-3 mb-3 md:mb-4">
+                            <div className="p-2 bg-yellow-100 rounded-lg">
+                              <HeartIcon size={20} strokeWidth={2.5} className="text-yellow-600" />
+                            </div>
+                            <h3 className="text-gray-500 font-medium text-sm md:text-base font-manrope">Saved</h3>
+                          </div>
+                          <div className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2 font-manrope">{savedCount}</div>
+                        </motion.div>
+                      </div>
+
+                      {/* Business Information Section */}
+                      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                        <div className="p-4 md:p-6 border-b border-gray-200">
+                          <h2 className="text-lg md:text-xl font-bold text-gray-900 font-manrope">Business Information</h2>
+                        </div>
+                        <div className="p-4 md:p-6">
+                          {isEditing ? (
+                            <div className="space-y-6">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">
+                                    Business Name *
+                                  </label>
+                                  <input
+                                    type="text"
+                                    name="businessName"
+                                    value={formData.businessName}
+                                    onChange={handleInputChange}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-manrope"
+                                    placeholder="Enter business name"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">
+                                    Category *
+                                  </label>
+                                  <select
+                                    name="category"
+                                    value={formData.category}
+                                    onChange={handleInputChange}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-manrope"
+                                  >
+                                    <option value="">Select category</option>
+                                    {vendorCategories.map((cat) => (
+                                      <option key={cat.id} value={cat.id}>
+                                        {cat.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">
+                                  Business Description
+                                </label>
+                                <textarea
+                                  name="description"
+                                  value={formData.description}
+                                  onChange={handleInputChange}
+                                  rows="4"
+                                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-manrope"
+                                  placeholder="Describe your business..."
+                                />
+                              </div>
+                              
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">
+                                  Business Address
+                                </label>
+                                <input
+                                  type="text"
+                                  name="businessAddress"
+                                  value={formData.businessAddress}
+                                  onChange={handleInputChange}
+                                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-manrope"
+                                  placeholder="Enter business address"
+                                />
+                              </div>
+                              
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">
+                                  Phone Number
+                                </label>
+                                <input
+                                  type="tel"
+                                  name="phone"
+                                  value={formData.phone}
+                                  onChange={handleInputChange}
+                                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-manrope"
+                                  placeholder="Enter phone number"
+                                />
+                              </div>
+                              
+                              <div className="flex justify-end gap-3">
+                                <button
+                                  onClick={() => setIsEditing(false)}
+                                  className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium font-manrope transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={handleSaveProfile}
+                                  className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2 font-manrope transition-colors"
+                                >
+                                  <Save size={16} strokeWidth={2.5} /> Save Changes
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-6">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                  <p className="text-sm text-gray-500 font-manrope">Business Name</p>
+                                  <p className="text-lg font-medium text-gray-900 font-manrope mt-1">
+                                    {formData.businessName || "Not set"}
+                                  </p>
+                                </div>
+                                
+                                <div>
+                                  <p className="text-sm text-gray-500 font-manrope">Category</p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    {getCategoryIcon(formData.category)}
+                                    <span className="text-lg font-medium text-gray-900 font-manrope capitalize">
+                                      {formData.category || "Not set"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <p className="text-sm text-gray-500 font-manrope">Description</p>
+                                <p className="text-gray-900 mt-1 font-manrope">
+                                  {formData.description || "No description provided"}
+                                </p>
+                              </div>
+                              
+                              <div>
+                                <p className="text-sm text-gray-500 font-manrope">Business Address</p>
+                                <p className="text-gray-900 mt-1 font-manrope flex items-center gap-2">
+                                  <MapPinIcon size={16} className="text-gray-400" />
+                                  {formData.businessAddress || "Not provided"}
+                                </p>
+                              </div>
+                              
+                              <div>
+                                <p className="text-sm text-gray-500 font-manrope">Contact Information</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                                  <div className="flex items-center gap-2">
+                                    <Mail size={16} className="text-gray-400" />
+                                    <span className="text-gray-900 font-manrope">{userProfile.email}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Phone size={16} className="text-gray-400" />
+                                    <span className="text-gray-900 font-manrope">{formData.phone || "Not provided"}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <button
+                                onClick={() => setIsEditing(true)}
+                                className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-800 font-medium"
+                              >
+                                <Edit3 size={16} strokeWidth={2.5} />
+                                Edit Business Information
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Recent Bookings Section */}
+                      {recentBookings.length > 0 && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.3 }}
+                          className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm"
+                        >
+                          <div className="p-4 md:p-6 border-b border-gray-200">
+                            <div className="flex justify-between items-center">
+                              <h2 className="text-lg md:text-xl font-bold text-gray-900 font-manrope">Recent Bookings</h2>
+                              <button
+                                onClick={() => setActiveTab("bookings")}
+                                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                              >
+                                View All →
+                              </button>
+                            </div>
+                          </div>
+                          <div className="overflow-x-auto">
+                            <div className="min-w-[600px] md:min-w-0">
+                              <table className="w-full">
+                                <thead className="bg-gray-50">
+                                  <tr>
+                                    <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Vendor</th>
+                                    <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Type</th>
+                                    <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope hidden md:table-cell">Date</th>
+                                    <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Status</th>
+                                    <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Amount</th>
+                                    <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                  {recentBookings.map((booking, index) => (
+                                    <motion.tr 
+                                      key={booking.id}
+                                      initial={{ opacity: 0, y: 10 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      transition={{ delay: 0.1 * index }}
+                                      className="hover:bg-gray-50"
+                                    >
+                                      <td className="p-3 md:p-4">
+                                        <div className="flex items-center gap-2 md:gap-3">
+                                          <img 
+                                            src={booking.vendor?.image || "https://images.unsplash.com/photo-1552566626-52f8b828add9"} 
+                                            alt={booking.vendor?.name} 
+                                            className="w-8 h-8 md:w-10 md:h-10 rounded-md object-cover" 
+                                          />
+                                          <div>
+                                            <div className="font-medium text-gray-900 text-sm md:text-base font-manrope truncate max-w-[150px]">
+                                              {booking.vendor?.name || "Unknown Vendor"}
+                                            </div>
+                                            <div className="text-xs text-gray-500 md:hidden font-manrope">
+                                              {formatDate(booking.date)}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td className="p-3 md:p-4">
+                                        <div className="flex items-center gap-1">
+                                          {getBookingIcon(booking.type)}
+                                          <span className="text-gray-900 text-sm font-manrope capitalize">
+                                            {booking.type || "N/A"}
+                                          </span>
+                                        </div>
+                                      </td>
+                                      <td className="p-3 md:p-4 text-gray-900 hidden md:table-cell font-manrope">
+                                        {formatDate(booking.details?.checkIn || booking.date)}
+                                      </td>
+                                      <td className="p-3 md:p-4">
+                                        <span className={`px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm font-manrope ${getStatusColor(booking.status)}`}>
+                                          {booking.status || "N/A"}
+                                        </span>
+                                      </td>
+                                      <td className="p-3 md:p-4 text-gray-900 font-medium font-manrope">
+                                        {formatPrice(booking.details?.totalAmount)}
+                                      </td>
+                                      <td className="p-3 md:p-4">
+                                        <div className="flex items-center gap-2">
+                                          <motion.button
+                                            whileHover={{ scale: 1.1 }}
+                                            whileTap={{ scale: 0.9 }}
+                                            onClick={() => navigate(`/booking/confirmation/${booking.type}?ref=${booking.id}`)}
+                                            className="text-blue-400 hover:text-blue-600 p-1 transition-colors"
+                                            title="View Details"
+                                          >
+                                            <Eye size={16} strokeWidth={2.5} />
+                                          </motion.button>
+                                        </div>
+                                      </td>
+                                    </motion.tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {/* Quick Actions */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => navigate("/vendor/dashboard")}
+                          className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all text-left"
+                        >
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                              <ChartLine size={24} strokeWidth={2.5} className="text-blue-600" />
+                            </div>
+                            <h3 className="font-bold text-gray-900 font-manrope">Dashboard</h3>
+                          </div>
+                          <p className="text-gray-600 text-sm font-manrope">
+                            View your business analytics and performance metrics
+                          </p>
+                        </motion.button>
+                        
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => navigate("/vendor/listings")}
+                          className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all text-left"
+                        >
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-green-100 rounded-lg">
+                              <HomeIcon size={24} strokeWidth={2.5} className="text-green-600" />
+                            </div>
+                            <h3 className="font-bold text-gray-900 font-manrope">My Listings</h3>
+                          </div>
+                          <p className="text-gray-600 text-sm font-manrope">
+                            Manage your business listings and availability
+                          </p>
+                        </motion.button>
+                        
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => navigate("/vendor/add-listing")}
+                          className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all text-left"
+                        >
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-purple-100 rounded-lg">
+                              <Building size={24} strokeWidth={2.5} className="text-purple-600" />
+                            </div>
+                            <h3 className="font-bold text-gray-900 font-manrope">Add Listing</h3>
+                          </div>
+                          <p className="text-gray-600 text-sm font-manrope">
+                            Create new listings for your business offerings
+                          </p>
+                        </motion.button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bookings Tab */}
+                  {activeTab === "bookings" && (
+                    <div className="space-y-6">
+                      {/* Header */}
+                      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div>
+                            <h2 className="text-lg md:text-xl font-bold text-gray-900 font-manrope">My Bookings</h2>
+                            <p className="text-gray-600 text-sm font-manrope">Your personal bookings as a customer</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <motion.button 
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => navigate("/")}
+                              className="px-4 py-2.5 bg-[#6cff] text-white rounded-lg hover:opacity-90 text-sm font-medium font-manrope transition-colors"
+                            >
+                              Book Now
+                            </motion.button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* All Bookings Table */}
+                      {bookings.length > 0 ? (
+                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                          <div className="p-4 md:p-6 border-b border-gray-200">
+                            <h3 className="text-lg font-bold text-gray-900 font-manrope">All Bookings ({bookings.length})</h3>
+                          </div>
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Vendor</th>
+                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Type</th>
+                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope hidden md:table-cell">Date</th>
+                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Status</th>
+                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Amount</th>
+                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-200">
+                                {bookings.map((booking, index) => (
+                                  <tr key={booking.id} className="hover:bg-gray-50">
+                                    <td className="p-3 md:p-4">
+                                      <div className="flex items-center gap-3">
+                                        <img 
+                                          src={booking.vendor?.image || "https://images.unsplash.com/photo-1552566626-52f8b828add9"} 
+                                          alt={booking.vendor?.name}
+                                          className="w-10 h-10 rounded-md object-cover"
+                                        />
+                                        <div className="min-w-0">
+                                          <p className="font-medium text-gray-900 text-sm truncate font-manrope">
+                                            {booking.vendor?.name || "Unknown Vendor"}
+                                          </p>
+                                          <p className="text-xs text-gray-500 font-manrope truncate">
+                                            {formatLocation(booking.vendor?.location)}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="p-3 md:p-4">
+                                      <div className="flex items-center gap-1">
+                                        {getBookingIcon(booking.type)}
+                                        <span className="text-gray-900 text-sm font-manrope capitalize">
+                                          {booking.type || "N/A"}
+                                        </span>
+                                      </div>
+                                    </td>
+                                    <td className="p-3 md:p-4 text-gray-900 hidden md:table-cell font-manrope">
+                                      {formatDate(booking.details?.checkIn || booking.date)}
+                                    </td>
+                                    <td className="p-3 md:p-4">
+                                      <span className={`px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm font-manrope ${getStatusColor(booking.status)}`}>
+                                        {booking.status || "N/A"}
+                                      </span>
+                                    </td>
+                                    <td className="p-3 md:p-4 text-gray-900 font-medium font-manrope">
+                                      {formatPrice(booking.details?.totalAmount)}
+                                    </td>
+                                    <td className="p-3 md:p-4">
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={() => navigate(`/booking/confirmation/${booking.type}?ref=${booking.id}`)}
+                                          className="text-blue-400 hover:text-blue-600 p-1 transition-colors"
+                                          title="View Details"
+                                        >
+                                          <Eye size={16} strokeWidth={2.5} />
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                          <Package size={48} strokeWidth={1.5} className="mx-auto text-gray-300 mb-4" />
+                          <h3 className="text-lg font-bold text-gray-900 mb-2 font-manrope">No Bookings Yet</h3>
+                          <p className="text-gray-600 mb-6 font-manrope">You haven't made any bookings yet as a customer.</p>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => navigate("/")}
+                            className="px-6 py-3 bg-[#6cff] text-white rounded-lg hover:opacity-90 font-medium font-manrope transition-colors"
+                          >
+                            Explore Businesses
+                          </motion.button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Settings Tab */}
+                  {activeTab === "settings" && (
+                    <div className="space-y-6">
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm"
+                      >
+                        <div className="border-b border-gray-200 pb-4 mb-6">
+                          <h2 className="text-lg font-bold text-gray-900 font-manrope">Profile Settings</h2>
+                          <p className="text-sm text-gray-600 mt-1 font-manrope">Manage your account and preferences</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="flex items-center gap-4">
+                            <div className="relative group">
+                              {profileImage ? (
+                                <img 
+                                  src={profileImage} 
+                                  alt="Profile" 
+                                  className="w-20 h-20 rounded-full object-cover cursor-pointer group-hover:scale-105 transition-transform"
+                                />
+                              ) : (
+                                <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center cursor-pointer group-hover:scale-105 transition-transform">
+                                  <Building size={40} className="text-blue-600" />
+                                </div>
+                              )}
+                              <label className="absolute bottom-0 right-0 bg-[#6cff] text-white rounded-full p-2 cursor-pointer group-hover:scale-110 transition-transform shadow-lg">
+                                <Camera size={16} strokeWidth={2.5} />
+                                <input 
+                                  type="file" 
+                                  accept="image/*" 
+                                  onChange={handleProfileImageUpload}
+                                  className="hidden"
+                                />
+                              </label>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-600 font-manrope">Click the camera icon to upload a new profile picture</p>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">Business Name</label>
+                                <input 
+                                  type="text" 
+                                  name="businessName"
+                                  value={formData.businessName}
+                                  onChange={handleInputChange}
+                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">Phone</label>
+                                <input 
+                                  type="tel" 
+                                  name="phone"
+                                  value={formData.phone}
+                                  onChange={handleInputChange}
+                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">Email</label>
+                                <input 
+                                  type="email" 
+                                  value={profileData.email}
+                                  readOnly
+                                  onClick={handleEmailClick}
+                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">Business Category</label>
+                                <select
+                                  name="category"
+                                  value={formData.category}
+                                  onChange={handleInputChange}
+                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
+                                >
+                                  <option value="">Select category</option>
+                                  {vendorCategories.map((cat) => (
+                                    <option key={cat.id} value={cat.id}>
+                                      {cat.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">Business Address</label>
+                              <input 
+                                type="text" 
+                                name="businessAddress"
+                                value={formData.businessAddress}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
+                                placeholder="Enter your business address"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-6 flex justify-end gap-3">
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setIsEditing(false)}
+                            className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium font-manrope transition-colors"
+                          >
+                            Cancel
+                          </motion.button>
+                          <motion.button 
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={handleSaveProfile}
+                            className="px-6 py-2.5 bg-[#6cff] text-white rounded-lg hover:opacity-90 text-sm font-medium flex items-center gap-2 font-manrope transition-colors"
+                          >
+                            <Save size={16} strokeWidth={2.5} /> Save Changes
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                      
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm"
+                      >
+                        <h2 className="text-lg font-bold text-gray-900 font-manrope mb-4">Notification Preferences</h2>
+                        <p className="text-gray-600 mb-4 font-manrope">Choose how you want to receive notifications</p>
+                        
+                        <div className="space-y-4">
+                          <div className="border border-gray-200 rounded-lg p-4">
+                            <h3 className="text-md font-medium text-gray-900 mb-3 font-manrope">Email</h3>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Mail size={16} strokeWidth={2.5} className="text-gray-500" />
+                                <span className="text-gray-900 font-manrope">Email Notifications</span>
+                              </div>
+                              <div className="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
+                                <input 
+                                  type="checkbox" 
+                                  id="email-toggle" 
+                                  checked={notificationSettings.email}
+                                  onChange={() => handleNotificationToggle('email')}
+                                  className="sr-only"
+                                />
+                                <label 
+                                  htmlFor="email-toggle"
+                                  className={`block overflow-hidden h-6 rounded-full cursor-pointer ${
+                                    notificationSettings.email ? 'bg-[#6cff]' : 'bg-gray-300'
+                                  }`}
+                                >
+                                  <span 
+                                    className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
+                                      notificationSettings.email ? 'translate-x-6' : 'translate-x-0'
+                                    }`}
+                                  ></span>
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="border border-gray-200 rounded-lg p-4">
+                            <h3 className="text-md font-medium text-gray-900 mb-3 font-manrope">WhatsApp</h3>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <MessageSquare size={16} strokeWidth={2.5} className="text-gray-500" />
+                                <span className="text-gray-900 font-manrope">WhatsApp Notifications</span>
+                              </div>
+                              <div className="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
+                                <input 
+                                  type="checkbox" 
+                                  id="whatsapp-toggle" 
+                                  checked={notificationSettings.whatsapp}
+                                  onChange={() => handleNotificationToggle('whatsapp')}
+                                  className="sr-only"
+                                />
+                                <label 
+                                  htmlFor="whatsapp-toggle"
+                                  className={`block overflow-hidden h-6 rounded-full cursor-pointer ${
+                                    notificationSettings.whatsapp ? 'bg-[#6cff]' : 'bg-gray-300'
+                                  }`}
+                                >
+                                  <span 
+                                    className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
+                                      notificationSettings.whatsapp ? 'translate-x-6' : 'translate-x-0'
+                                    }`}
+                                  ></span>
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm"
+                      >
+                        <h2 className="text-lg font-bold text-gray-900 font-manrope mb-4">Account Actions</h2>
+                        <div className="space-y-3">
+                          <button
+                            onClick={() => alert("Password reset email sent!")}
+                            className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 border border-gray-200 font-manrope"
+                          >
+                            Reset Password
+                          </button>
+                          
+                          <button
+                            onClick={handleLogout}
+                            className="w-full text-left px-4 py-3 rounded-lg hover:bg-red-50 transition-colors text-red-600 border border-red-200 font-manrope"
+                          >
+                            Sign Out
+                          </button>
+                        </div>
+                      </motion.div>
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 };

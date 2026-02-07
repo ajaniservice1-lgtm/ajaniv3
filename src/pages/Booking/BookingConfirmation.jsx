@@ -15,7 +15,13 @@ import {
   Printer,
   Shield,
   DollarSign,
-  User
+  User,
+  Building,
+  Package,
+  CreditCard,
+  Eye,
+  Copy,
+  AlertCircle
 } from "lucide-react";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
@@ -82,58 +88,42 @@ const generateBookingId = () => {
   return `booking_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
-// Helper function to merge bookings ensuring uniqueness
-const mergeBookings = (existingBookings, newBookings) => {
-  const bookingMap = new Map();
-  
-  // Add existing bookings to map
-  existingBookings.forEach(booking => {
-    if (booking.id) {
-      bookingMap.set(booking.id, booking);
-    }
-  });
-  
-  // Add new bookings to map, ensuring unique IDs
-  newBookings.forEach(booking => {
-    if (!booking.id) {
-      booking.id = generateBookingId();
-    }
-    bookingMap.set(booking.id, booking);
-  });
-  
-  return Array.from(bookingMap.values());
-};
-
-// Helper to save booking to user profile
-const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, totalAmount) => {
+// Helper function to determine user role and profile
+const getUserRoleAndProfile = () => {
   try {
-    // Check if user is logged in
-    const isLoggedIn = localStorage.getItem("ajani_dummy_login") === "true" || 
-                      localStorage.getItem("auth_token") ||
-                      localStorage.getItem("user_email");
-    
-    // Get user profile or create one
-    let userProfile = null;
+    const token = localStorage.getItem("auth_token");
     const userProfileStr = localStorage.getItem("userProfile");
     
-    if (userProfileStr) {
-      userProfile = JSON.parse(userProfileStr);
-    } else if (isLoggedIn) {
-      // Create a basic user profile if logged in but no profile exists
-      userProfile = {
-        firstName: localStorage.getItem("user_firstName") || "User",
-        lastName: localStorage.getItem("user_lastName") || "",
-        email: localStorage.getItem("user_email") || "",
-        phone: localStorage.getItem("user_phone") || "",
-        role: "user",
-        registrationDate: new Date().toISOString(),
-        bookings: [],
-        savedListings: []
-      };
-      localStorage.setItem("userProfile", JSON.stringify(userProfile));
+    if (!token || !userProfileStr) {
+      return { isLoggedIn: false, isVendor: false, profile: null };
     }
     
-    // Create booking record
+    const profile = JSON.parse(userProfileStr);
+    const isVendor = profile.role === "vendor";
+    
+    return {
+      isLoggedIn: true,
+      isVendor: isVendor,
+      profile: profile,
+      userId: profile.id || profile._id,
+      userEmail: profile.email,
+      userName: profile.firstName && profile.lastName 
+        ? `${profile.firstName} ${profile.lastName}` 
+        : profile.username || profile.email,
+      businessName: isVendor ? (profile.vendor?.businessName || profile.businessName) : null
+    };
+  } catch (error) {
+    console.error("Error getting user role:", error);
+    return { isLoggedIn: false, isVendor: false, profile: null };
+  }
+};
+
+// Helper to save booking to appropriate profile (buyer or vendor)
+const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, totalAmount) => {
+  try {
+    const userInfo = getUserRoleAndProfile();
+    
+    // Create booking record with user role info
     const bookingRecord = {
       id: generateBookingId(),
       type: type,
@@ -156,43 +146,70 @@ const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, t
         address: bookingData?.bookingData?.address
       },
       reference: bookingReference,
+      bookedBy: {
+        role: userInfo.isVendor ? "vendor" : "user",
+        isVendor: userInfo.isVendor,
+        userId: userInfo.userId,
+        userEmail: userInfo.userEmail,
+        userName: userInfo.userName,
+        businessName: userInfo.businessName,
+        vendorId: userInfo.isVendor ? (userInfo.profile?.vendor?.id || userInfo.profile?.vendorId) : null
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
     
-    if (isLoggedIn && userProfile) {
+    if (userInfo.isLoggedIn) {
       // Save to logged-in user's profile
-      if (!userProfile.bookings) {
-        userProfile.bookings = [];
+      if (!userInfo.profile.bookings) {
+        userInfo.profile.bookings = [];
       }
       
-      // Merge and deduplicate bookings
-      const mergedBookings = mergeBookings(userProfile.bookings, [bookingRecord]);
-      userProfile.bookings = mergedBookings;
+      // Add booking to profile
+      userInfo.profile.bookings.push(bookingRecord);
       
       // Limit bookings to last 50
-      if (userProfile.bookings.length > 50) {
-        userProfile.bookings = userProfile.bookings.slice(0, 50);
+      if (userInfo.profile.bookings.length > 50) {
+        userInfo.profile.bookings = userInfo.profile.bookings.slice(0, 50);
       }
       
-      localStorage.setItem("userProfile", JSON.stringify(userProfile));
+      // Update localStorage
+      localStorage.setItem("userProfile", JSON.stringify(userInfo.profile));
       
       // Also save to separate bookings storage for easy access
       const allBookings = JSON.parse(localStorage.getItem("userBookings") || "[]");
-      const mergedAllBookings = mergeBookings(allBookings, [bookingRecord]);
+      allBookings.push(bookingRecord);
+      localStorage.setItem("userBookings", JSON.stringify(allBookings));
       
-      localStorage.setItem("userBookings", JSON.stringify(mergedAllBookings));
+      // If vendor made a booking, also save to vendor-specific storage
+      if (userInfo.isVendor) {
+        const vendorBookings = JSON.parse(localStorage.getItem("vendorBookings") || "[]");
+        vendorBookings.push(bookingRecord);
+        localStorage.setItem("vendorBookings", JSON.stringify(vendorBookings));
+      }
       
-      // Trigger storage event to update profile page
+      // Trigger storage event to update profile pages
       window.dispatchEvent(new Event("storage"));
       
-      return { success: true, isLoggedIn: true, bookingId: bookingRecord.id };
+      return { 
+        success: true, 
+        isLoggedIn: true, 
+        isVendor: userInfo.isVendor,
+        bookingId: bookingRecord.id 
+      };
     } else {
       // Save as guest booking
       const guestBookings = JSON.parse(localStorage.getItem("guestBookings") || "[]");
-      const mergedGuestBookings = mergeBookings(guestBookings, [bookingRecord]);
+      guestBookings.push({
+        ...bookingRecord,
+        bookedBy: {
+          role: "guest",
+          isVendor: false,
+          guestSessionId: localStorage.getItem("guestSessionId") || `guest_${Date.now()}`
+        }
+      });
       
-      localStorage.setItem("guestBookings", JSON.stringify(mergedGuestBookings));
+      localStorage.setItem("guestBookings", JSON.stringify(guestBookings));
       
       // Also save to persistent storage for this session
       const persistentKey = getPersistentBookingKey(type);
@@ -203,7 +220,12 @@ const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, t
         bookingId: bookingRecord.id
       }));
       
-      return { success: true, isLoggedIn: false, bookingId: bookingRecord.id };
+      return { 
+        success: true, 
+        isLoggedIn: false, 
+        isVendor: false,
+        bookingId: bookingRecord.id 
+      };
     }
   } catch (error) {
     console.error("Error saving booking to profile:", error);
@@ -221,6 +243,7 @@ const BookingConfirmation = () => {
   const [isGuestBooking, setIsGuestBooking] = useState(false);
   const [bookingSaved, setBookingSaved] = useState(false);
   const [bookingId, setBookingId] = useState("");
+  const [userInfo, setUserInfo] = useState({ isLoggedIn: false, isVendor: false, profile: null });
 
   const isServiceBooking = type === 'service';
   const isRestaurantBooking = type === 'restaurant';
@@ -259,6 +282,10 @@ const BookingConfirmation = () => {
     window.scrollTo(0, 0);
     
     updateSessionActivity();
+    
+    // Get user info
+    const userData = getUserRoleAndProfile();
+    setUserInfo(userData);
     
     const generateReference = () => {
       const prefix = type === 'restaurant' ? 'REST-' : 
@@ -400,11 +427,18 @@ const BookingConfirmation = () => {
           setBookingSaved(true);
           setIsGuestBooking(!saveResult.isLoggedIn);
           
+          let successMessage = "✅ Booking confirmed";
           if (saveResult.isLoggedIn) {
-            showToast("✅ Booking confirmed and saved to your profile!", "success");
+            if (saveResult.isVendor) {
+              successMessage += " and saved to your vendor profile!";
+            } else {
+              successMessage += " and saved to your profile!";
+            }
           } else {
-            showToast("✅ Guest booking complete! Save your reference for future access.", "info");
+            successMessage += "! Save your reference for future access.";
           }
+          
+          showToast(successMessage, "success");
         } else {
           showToast("⚠️ Booking confirmed but could not save to profile. Please take a screenshot.", "warning");
         }
@@ -531,6 +565,8 @@ const BookingConfirmation = () => {
                         type === 'shortlet' ? 'Shortlet' :
                         type === 'service' ? 'Service' : 'Booking';
     
+    const userRole = userInfo.isVendor ? "Vendor" : (userInfo.isLoggedIn ? "Customer" : "Guest");
+    
     let confirmationText = `
 AJANI.AI BOOKING CONFIRMATION
 ================================
@@ -538,6 +574,7 @@ AJANI.AI BOOKING CONFIRMATION
 Booking Reference: ${bookingReference}
 Booking ID: ${bookingId}
 Booking Type: ${categoryName.toUpperCase()} ${type === 'service' ? 'SERVICE' : 'BOOKING'}
+Booked By: ${userRole}
 Status: Confirmed
 Date: ${new Date().toLocaleDateString()}
 Confirmation Time: ${new Date().toLocaleTimeString()}
@@ -548,11 +585,12 @@ Name: ${getVendorName()}
 Location: ${getVendorLocation()}
 Rating: ${getVendorRating()}/5
 
-GUEST INFORMATION:
-------------------
-Name: ${bookingData?.firstName || bookingData?.bookingData?.contactPerson?.firstName || bookingData?.bookingData?.firstName || "Guest"} ${bookingData?.lastName || bookingData?.bookingData?.contactPerson?.lastName || bookingData?.bookingData?.lastName || ""}
-Email: ${bookingData?.email || bookingData?.bookingData?.contactPerson?.email || bookingData?.bookingData?.email || bookingData?.guestEmail || "Not provided"}
-Phone: ${bookingData?.phone || bookingData?.bookingData?.contactPerson?.phone || bookingData?.bookingData?.phone || "Not provided"}
+BOOKED BY INFORMATION:
+----------------------
+${userInfo.isVendor ? 'Business Name: ' + (userInfo.profile?.vendor?.businessName || userInfo.profile?.businessName || 'N/A') : 'Name: ' + (userInfo.userName || "Guest")}
+Email: ${userInfo.userEmail || bookingData?.email || bookingData?.bookingData?.contactPerson?.email || bookingData?.guestEmail || "Not provided"}
+Phone: ${userInfo.profile?.phone || bookingData?.phone || bookingData?.bookingData?.contactPerson?.phone || "Not provided"}
+Role: ${userRole}
     `;
 
     if (type === 'hotel') {
@@ -631,8 +669,9 @@ IMPORTANT NOTES:
 • Keep this booking reference for reference: ${bookingReference}
 • Booking ID: ${bookingId}
 • Present this confirmation at the ${type === 'service' ? 'service location' : 'property'}
+• Booking was made by: ${userRole}
 • Contact support for any changes
-• Booking is stored ${isGuestBooking ? 'as a guest booking' : 'in your account profile'}
+• Booking is stored ${isGuestBooking ? 'as a guest booking' : `in your ${userInfo.isVendor ? 'vendor' : ''} account profile`}
 
 Thank you for booking with Ajani.ai!
 For assistance, contact support@ajani.com or call +234 8022662256
@@ -709,7 +748,9 @@ This confirmation was generated on: ${new Date().toLocaleString()}
     switch(type) {
       case 'hotel':
         return {
-          title: "Thank you for booking on Ajani.ai, Hotel Booking Confirmed!",
+          title: userInfo.isVendor 
+            ? "Thank you for your hotel booking on Ajani.ai!" 
+            : "Thank you for booking on Ajani.ai, Hotel Booking Confirmed!",
           subtitle: "Your hotel reservation has been received",
           message: "Your hotel booking has been confirmed successfully. You'll receive a confirmation email with all the details shortly.",
           nextSteps: [
@@ -723,7 +764,9 @@ This confirmation was generated on: ${new Date().toLocaleString()}
       
       case 'restaurant':
         return {
-          title: "Thank you for booking on Ajani.ai, Restaurant Booking Confirmed!",
+          title: userInfo.isVendor 
+            ? "Thank you for your restaurant booking on Ajani.ai!" 
+            : "Thank you for booking on Ajani.ai, Restaurant Booking Confirmed!",
           subtitle: "Your restaurant reservation has been received",
           message: "Your restaurant booking has been confirmed successfully. You'll receive a confirmation email with all the details shortly.",
           nextSteps: [
@@ -737,7 +780,9 @@ This confirmation was generated on: ${new Date().toLocaleString()}
       
       case 'shortlet':
         return {
-          title: "Thank you for booking on Ajani.ai, Shortlet Booking Confirmed!",
+          title: userInfo.isVendor 
+            ? "Thank you for your shortlet booking on Ajani.ai!" 
+            : "Thank you for booking on Ajani.ai, Shortlet Booking Confirmed!",
           subtitle: "Your shortlet reservation has been received",
           message: "Your shortlet booking has been confirmed successfully. You'll receive a confirmation email with all the details shortly.",
           nextSteps: [
@@ -751,7 +796,9 @@ This confirmation was generated on: ${new Date().toLocaleString()}
       
       case 'service':
         return {
-          title: "Thank you for booking on Ajani.ai, Service Booking Confirmed!",
+          title: userInfo.isVendor 
+            ? "Thank you for your service booking on Ajani.ai!" 
+            : "Thank you for booking on Ajani.ai, Service Booking Confirmed!",
           subtitle: "Your service appointment has been scheduled",
           message: "Your service booking has been confirmed successfully. The service provider will contact you to confirm the appointment time.",
           nextSteps: [
@@ -765,7 +812,9 @@ This confirmation was generated on: ${new Date().toLocaleString()}
       
       default:
         return {
-          title: "Thank you for booking on Ajani.ai, Booking Confirmed!",
+          title: userInfo.isVendor 
+            ? "Thank you for your booking on Ajani.ai!" 
+            : "Thank you for booking on Ajani.ai, Booking Confirmed!",
           subtitle: "Your booking has been received",
           message: "Your booking has been confirmed successfully. You'll receive a confirmation email with all the details shortly.",
           nextSteps: [
@@ -895,6 +944,20 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                       {bookingSaved 
                         ? "Your booking as a guest has been successfully submitted. Please save your booking reference for future reference."
                         : "Your booking has been saved to your profile. You can view it anytime in 'My Bookings'."}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {userInfo.isVendor && (
+                <div className="mb-4 sm:mb-6 bg-purple-50 border border-purple-200 rounded-lg p-3 sm:p-4 flex items-center gap-3">
+                  <Building className="w-5 h-5 text-purple-600" />
+                  <div className="flex-1">
+                    <p className="font-medium text-purple-800 text-sm">
+                      Vendor Booking Confirmed
+                    </p>
+                    <p className="text-xs text-purple-700">
+                      This booking has been saved to your vendor profile. You can view it in your vendor dashboard.
                     </p>
                   </div>
                 </div>
@@ -1175,9 +1238,9 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                       </div>
                       
                       <div className="space-y-0.5">
-                        <p className="text-xs text-gray-500">Payment Method</p>
+                        <p className="text-xs text-gray-500">Booked By</p>
                         <p className="font-medium text-sm">
-                          {getPaymentMethodText()}
+                          {userInfo.isVendor ? "Vendor Account" : userInfo.isLoggedIn ? "Registered User" : "Guest"}
                         </p>
                       </div>
                     </div>
@@ -1221,7 +1284,7 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                       }}
                       className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
                     >
-                      <Share2 className="w-4 h-4" />
+                      <Copy className="w-4 h-4" />
                       Copy Reference
                     </button>
                     
@@ -1279,6 +1342,12 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                           <span className="text-xs text-gray-600">Payment</span>
                           <span className="font-medium text-xs">
                             {getPaymentMethodText()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-gray-600">Booked By</span>
+                          <span className="font-medium text-xs">
+                            {userInfo.isVendor ? "Vendor" : userInfo.isLoggedIn ? "User" : "Guest"}
                           </span>
                         </div>
                       </div>
@@ -1483,12 +1552,30 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                   Return to Home
                 </button>
                 
-                <button
-                  onClick={() => navigate(`/category/${type || 'hotel'}`)}
-                  className="flex items-center justify-center gap-2 px-4 py-3 border border-[#6cff] text-[#6cff] rounded-lg hover:bg-blue-50 transition-all font-medium text-sm"
-                >
-                  Browse More {type ? type.charAt(0).toUpperCase() + type.slice(1) + (type === 'service' ? 's' : 's') : 'Hotels'}
-                </button>
+                {userInfo.isVendor ? (
+                  <button
+                    onClick={() => navigate("/vendor/profile")}
+                    className="flex items-center justify-center gap-2 px-4 py-3 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-all font-medium text-sm"
+                  >
+                    <Building className="w-4 h-4" />
+                    Go to Vendor Profile
+                  </button>
+                ) : userInfo.isLoggedIn ? (
+                  <button
+                    onClick={() => navigate("/buyer/profile")}
+                    className="flex items-center justify-center gap-2 px-4 py-3 border border-[#6cff] text-[#6cff] rounded-lg hover:bg-blue-50 transition-all font-medium text-sm"
+                  >
+                    <User className="w-4 h-4" />
+                    Go to My Profile
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => navigate(`/category/${type || 'hotel'}`)}
+                    className="flex items-center justify-center gap-2 px-4 py-3 border border-[#6cff] text-[#6cff] rounded-lg hover:bg-blue-50 transition-all font-medium text-sm"
+                  >
+                    Browse More {type ? type.charAt(0).toUpperCase() + type.slice(1) + (type === 'service' ? 's' : 's') : 'Hotels'}
+                  </button>
+                )}
               </div>
 
               <div className="mt-8 pt-6 border-t border-gray-200 text-center">
@@ -1497,17 +1584,18 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                 </p>
                 <button
                   onClick={() => {
-                    const isLoggedIn = localStorage.getItem("ajani_dummy_login") === "true" || localStorage.getItem("auth_token");
-                    if (isLoggedIn) {
-                      navigate("/buyer/profile");
+                    if (userInfo.isVendor) {
+                      navigate("/vendor/profile", { state: { activeTab: "bookings" } });
+                    } else if (userInfo.isLoggedIn) {
+                      navigate("/buyer/profile", { state: { activeTab: "bookings" } });
                     } else {
                       navigate("/login", { state: { from: "/my-bookings" } });
                     }
                   }}
                   className="inline-flex items-center gap-2 text-[#6cff] font-medium hover:text-blue-700"
                 >
-                  <User className="w-4 h-4" />
-                  Go to My Profile
+                  <Eye className="w-4 h-4" />
+                  {userInfo.isVendor ? "View in Vendor Profile" : "Go to My Bookings"}
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
