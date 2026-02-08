@@ -108,6 +108,35 @@ const formatPrice = (price) => {
   return `₦${num.toLocaleString()}`;
 };
 
+// Helper function to sync saved listings between different storage keys
+const syncSavedListings = () => {
+  try {
+    const userSavedListings = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
+    const savedListings = JSON.parse(localStorage.getItem("savedListings") || "[]");
+    
+    // Merge both lists, avoiding duplicates by ID
+    const allSaved = [...savedListings];
+    userSavedListings.forEach(item => {
+      const existingIndex = allSaved.findIndex(saved => saved.id === item.id || saved._id === item.id);
+      if (existingIndex === -1) {
+        allSaved.push(item);
+      } else {
+        // Update existing item with newer data
+        allSaved[existingIndex] = { ...allSaved[existingIndex], ...item };
+      }
+    });
+    
+    // Save to both locations for compatibility
+    localStorage.setItem("userSavedListings", JSON.stringify(allSaved));
+    localStorage.setItem("savedListings", JSON.stringify(allSaved));
+    
+    return allSaved;
+  } catch (error) {
+    console.error("Error syncing saved listings:", error);
+    return [];
+  }
+};
+
 // Booking categories with icons
 const bookingCategories = [
   { id: "hotel", label: "Hotels", icon: Bed, color: "blue" },
@@ -271,9 +300,21 @@ const VendorProfilePage = () => {
         setIsSidebarOpen(true);
       }
     };
+    
     handleResize();
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    
+    // Listen for saved listings updates from other components
+    const handleSavedListingsUpdate = () => {
+      loadSavedListings();
+    };
+    
+    window.addEventListener("savedListingsUpdated", handleSavedListingsUpdate);
+    
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("savedListingsUpdated", handleSavedListingsUpdate);
+    };
   }, []);
 
   const loadProfileData = async () => {
@@ -332,8 +373,7 @@ const VendorProfilePage = () => {
       }
       
       // Load saved listings
-      const savedListingsData = localStorage.getItem("savedListings") || "[]";
-      setSavedListings(JSON.parse(savedListingsData));
+      loadSavedListings();
       
       // Load settings
       const savedNotifications = localStorage.getItem("notificationSettings");
@@ -348,6 +388,34 @@ const VendorProfilePage = () => {
       console.error("Error loading profile data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSavedListings = () => {
+    try {
+      // First sync listings from different storage locations
+      const allSavedListings = syncSavedListings();
+      
+      // Format saved listings to match expected structure
+      const formattedSavedListings = allSavedListings.map(item => ({
+        id: item.id || item._id || `saved-${Date.now()}-${Math.random()}`,
+        name: item.name || item.businessName || item.title || "Unknown Listing",
+        description: item.description || item.businessDescription || "",
+        price: item.price || "₦ --",
+        location: item.location || item.area || item.address || "Location not specified",
+        category: item.category || "General",
+        rating: item.rating || 4.9,
+        savedDate: item.savedDate || new Date().toISOString().split('T')[0],
+        image: item.image || item.images?.[0] || item.originalData?.images?.[0] || 
+               "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=600&q=80",
+        tag: item.tag || "Guest Favorite",
+        businessName: item.businessName || item.name
+      }));
+      
+      setSavedListings(formattedSavedListings);
+    } catch (error) {
+      console.error("Error loading saved listings:", error);
+      setSavedListings([]);
     }
   };
 
@@ -436,6 +504,7 @@ const VendorProfilePage = () => {
       localStorage.removeItem("userProfile");
       localStorage.removeItem("auth_token");
       localStorage.removeItem("vendorPersonalBookings");
+      localStorage.removeItem("userSavedListings");
       navigate("/");
       alert("Account deleted successfully");
     }
@@ -552,6 +621,48 @@ const VendorProfilePage = () => {
       } catch (error) {
         console.error("Error cancelling booking:", error);
         alert("Failed to cancel booking");
+      }
+    }
+  };
+
+  const removeSavedListing = (itemId, itemName) => {
+    if (window.confirm(`Are you sure you want to remove "${itemName}" from saved items?`)) {
+      try {
+        // Get current saved listings
+        const currentSaved = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
+        
+        // Remove the item
+        const updatedSaved = currentSaved.filter(item => 
+          item.id !== itemId && item._id !== itemId
+        );
+        
+        // Update localStorage
+        localStorage.setItem("userSavedListings", JSON.stringify(updatedSaved));
+        localStorage.setItem("savedListings", JSON.stringify(updatedSaved));
+        
+        // Update state
+        setSavedListings(updatedSaved.map(item => ({
+          id: item.id || item._id,
+          name: item.name || item.businessName || item.title || "Unknown",
+          description: item.description || "",
+          price: item.price || "₦ --",
+          location: item.location || item.area || "",
+          category: item.category || "General",
+          rating: item.rating || 4.9,
+          savedDate: item.savedDate || new Date().toISOString().split('T')[0],
+          image: item.image || item.images?.[0] || 
+                 "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=600&q=80"
+        })));
+        
+        // Dispatch event to update other components
+        window.dispatchEvent(new CustomEvent("savedListingsUpdated", {
+          detail: { action: "removed", itemId: itemId },
+        }));
+        
+        alert(`"${itemName}" removed from saved items!`);
+      } catch (error) {
+        console.error("Error removing saved item:", error);
+        alert("Failed to remove item. Please try again.");
       }
     }
   };
@@ -852,6 +963,11 @@ const VendorProfilePage = () => {
                   >
                     <Icon size={18} className="mr-3" />
                     <span className="text-sm font-medium">{tab.label}</span>
+                    {tab.id === "saved" && savedListings.length > 0 && (
+                      <span className="ml-auto bg-purple-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {savedListings.length}
+                      </span>
+                    )}
                     {tab.id === "personal-bookings" && personalBookings.length > 0 && (
                       <span className="ml-auto bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                         {personalBookings.length}
@@ -905,14 +1021,14 @@ const VendorProfilePage = () => {
                   Export Data
                 </button>
                 <button
-                  onClick={() => navigate("/vendor/notifications")}
+                  onClick={() => navigate("/saved")}
                   className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg relative"
                 >
-                  <Bell size={16} className="mr-2" />
-                  Notifications
-                  {unreadCount > 0 && (
-                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {unreadCount}
+                  <Heart size={16} className="mr-2" />
+                  Saved Listings
+                  {savedListings.length > 0 && (
+                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-purple-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {savedListings.length}
                     </span>
                   )}
                 </button>
@@ -1002,6 +1118,12 @@ const VendorProfilePage = () => {
                         <h3 className="text-gray-500 font-medium">Saved Items</h3>
                       </div>
                       <div className="text-xl font-bold text-gray-900 mb-2">{savedListings.length}</div>
+                      <button
+                        onClick={() => setActiveTab("saved")}
+                        className="text-sm text-purple-600 hover:text-purple-800 hover:underline"
+                      >
+                        View saved items →
+                      </button>
                     </div>
                   </div>
 
@@ -1342,6 +1464,182 @@ const VendorProfilePage = () => {
                 </div>
               )}
 
+              {/* Saved Tab */}
+              {activeTab === "saved" && (
+                <div className="space-y-6">
+                  {/* Header */}
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-900">Saved Items</h2>
+                        <p className="text-gray-600">Your saved listings and services</p>
+                      </div>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => navigate("/saved")}
+                          className="px-4 py-2 border border-[#6cff] text-[#6cff] rounded-lg hover:bg-[#6cff]/10"
+                        >
+                          View Full Page
+                        </button>
+                        <button
+                          onClick={() => navigate("/")}
+                          className="px-4 py-2 bg-[#6cff] text-white rounded-lg hover:opacity-90"
+                        >
+                          Browse More
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stats Summary */}
+                  {savedListings.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl p-4 text-white">
+                        <div className="text-2xl font-bold">{savedListings.length}</div>
+                        <p className="text-sm opacity-90">Total Saved</p>
+                      </div>
+                      <div className="bg-white rounded-xl border border-gray-200 p-4">
+                        <div className="text-2xl font-bold text-gray-900">
+                          {new Set(savedListings.map(item => item.category)).size}
+                        </div>
+                        <p className="text-sm text-gray-600">Categories</p>
+                      </div>
+                      <div className="bg-white rounded-xl border border-gray-200 p-4">
+                        <div className="text-2xl font-bold text-gray-900">
+                          {new Set(savedListings.map(item => item.location)).size}
+                        </div>
+                        <p className="text-sm text-gray-600">Locations</p>
+                      </div>
+                      <div className="bg-white rounded-xl border border-gray-200 p-4">
+                        <div className="text-2xl font-bold text-gray-900">
+                          {Math.round(savedListings.reduce((sum, item) => {
+                            const price = parseInt(item.price?.replace(/[^0-9]/g, '') || '0');
+                            return sum + price;
+                          }, 0) / (savedListings.length || 1) / 1000)}K
+                        </div>
+                        <p className="text-sm text-gray-600">Avg Price</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Saved Listings Grid */}
+                  {savedListings.length === 0 ? (
+                    <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                      <Heart size={48} className="mx-auto text-gray-300 mb-4" />
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">No Saved Items</h3>
+                      <p className="text-gray-600 mb-6">Save listings you're interested in for quick access later</p>
+                      <button
+                        onClick={() => navigate("/")}
+                        className="px-6 py-3 bg-[#6cff] text-white rounded-lg hover:opacity-90"
+                      >
+                        Browse Services
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                      {savedListings.map(item => (
+                        <div key={item.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow group">
+                          {/* Image */}
+                          <div className="h-48 overflow-hidden relative">
+                            <img 
+                              src={item.image} 
+                              alt={item.name} 
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              onError={(e) => {
+                                e.target.src = "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=600&q=80";
+                              }}
+                            />
+                            <div className="absolute top-2 left-2 bg-white px-2 py-1 rounded-md shadow-sm">
+                              <span className="text-xs font-semibold text-gray-900">{item.tag || "Guest Favorite"}</span>
+                            </div>
+                            <button
+                              onClick={() => removeSavedListing(item.id, item.name)}
+                              className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg hover:bg-white hover:scale-110 transition-all"
+                              title="Remove from saved"
+                            >
+                              <Heart size={16} className="text-red-500 fill-red-500" />
+                            </button>
+                          </div>
+                          
+                          {/* Content */}
+                          <div className="p-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex-1">
+                                <h3 className="font-bold text-gray-900 line-clamp-1">{item.name}</h3>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <MapPin size={14} className="text-gray-400" />
+                                  <p className="text-sm text-gray-600 line-clamp-1">{item.location}</p>
+                                </div>
+                              </div>
+                              {item.rating && (
+                                <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
+                                  <Star size={12} className="text-yellow-500 fill-yellow-500" />
+                                  <span className="text-xs font-semibold">{item.rating}</span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center justify-between mt-3">
+                              <div>
+                                <div className="font-bold text-gray-900">{item.price}</div>
+                                {item.category && (
+                                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                                    {item.category}
+                                  </span>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => navigate(`/vendor-detail/${item.id}`)}
+                                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                              >
+                                View Details →
+                              </button>
+                            </div>
+                            
+                            {item.savedDate && (
+                              <div className="mt-3 pt-3 border-t border-gray-100">
+                                <p className="text-xs text-gray-500">
+                                  Saved on {formatDate(item.savedDate)}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Categories Filter */}
+                  {savedListings.length > 0 && (
+                    <div className="bg-white rounded-xl border border-gray-200 p-6">
+                      <h3 className="font-bold text-gray-900 mb-4">Saved by Category</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {Array.from(new Set(savedListings.map(item => item.category))).map(category => {
+                          const count = savedListings.filter(item => item.category === category).length;
+                          return (
+                            <button
+                              key={category}
+                              className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm flex items-center gap-2"
+                              onClick={() => {
+                                // Filter by category
+                                const filtered = savedListings.filter(item => item.category === category);
+                                // You could implement category filtering here
+                                alert(`Showing ${count} items in ${category}`);
+                              }}
+                            >
+                              <span>{category}</span>
+                              <span className="bg-gray-300 text-gray-700 text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                {count}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Settings Tab */}
               {activeTab === "settings" && (
                 <div className="space-y-6">
@@ -1665,52 +1963,7 @@ const VendorProfilePage = () => {
                 </div>
               )}
 
-              {/* Other tabs remain similar... */}
-              {activeTab === "saved" && (
-                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                  <h2 className="text-xl font-bold text-gray-900 mb-2">Saved Items</h2>
-                  <p className="text-gray-600 mb-6">Your saved listings and services</p>
-                  
-                  {savedListings.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Heart size={48} className="mx-auto text-gray-300 mb-4" />
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">No Saved Items</h3>
-                      <p className="text-gray-600 mb-6">Save listings you're interested in for quick access later</p>
-                      <button
-                        onClick={() => navigate("/")}
-                        className="px-6 py-3 bg-[#6cff] text-white rounded-lg hover:opacity-90"
-                      >
-                        Browse Services
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {savedListings.map(item => (
-                        <div key={item.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-                          <div className="p-4">
-                            <h3 className="font-bold text-gray-900 mb-2">{item.name}</h3>
-                            <p className="text-sm text-gray-600 mb-3">{item.description}</p>
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium text-gray-900">{formatPrice(item.price)}</span>
-                              <button
-                                onClick={() => {
-                                  const updated = savedListings.filter(i => i.id !== item.id);
-                                  setSavedListings(updated);
-                                  localStorage.setItem("savedListings", JSON.stringify(updated));
-                                }}
-                                className="text-red-600 hover:text-red-800"
-                              >
-                                Remove
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
+              {/* Reviews Tab */}
               {activeTab === "reviews" && (
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <h2 className="text-xl font-bold text-gray-900 mb-2">Reviews</h2>
@@ -1723,15 +1976,55 @@ const VendorProfilePage = () => {
                 </div>
               )}
 
+              {/* Activity Tab */}
               {activeTab === "activity" && (
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <h2 className="text-xl font-bold text-gray-900 mb-2">Activity Log</h2>
                   <p className="text-gray-600 mb-6">Your recent activities</p>
-                  <div className="text-center py-12">
-                    <Clock size={48} className="mx-auto text-gray-300 mb-4" />
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">No Recent Activity</h3>
-                    <p className="text-gray-600 mb-6">Your activity log will appear here.</p>
+                  <div className="space-y-4">
+                    {personalBookings.slice(0, 5).map((booking, index) => (
+                      <div key={index} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                          <CalendarCheck size={20} className="text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">
+                            Booked {booking.type} from {booking.vendor?.name || "Vendor"}
+                          </p>
+                          <p className="text-sm text-gray-600">{formatDate(booking.date)}</p>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
+                          {booking.status || "Pending"}
+                        </span>
+                      </div>
+                    ))}
+                    {savedListings.slice(0, 5).map((item, index) => (
+                      <div key={`saved-${index}`} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg">
+                        <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                          <Heart size={20} className="text-purple-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">Saved "{item.name}"</p>
+                          <p className="text-sm text-gray-600">
+                            {item.savedDate ? formatDate(item.savedDate) : "Recently"}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => removeSavedListing(item.id, item.name)}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
                   </div>
+                  {personalBookings.length === 0 && savedListings.length === 0 && (
+                    <div className="text-center py-12">
+                      <Clock size={48} className="mx-auto text-gray-300 mb-4" />
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">No Recent Activity</h3>
+                      <p className="text-gray-600 mb-6">Your activity log will appear here.</p>
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>
