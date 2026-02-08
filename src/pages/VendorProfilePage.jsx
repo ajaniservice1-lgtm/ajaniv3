@@ -47,16 +47,81 @@ import {
   Wrench,
   CalendarCheck,
   List,
-  Users as UsersIcon
+  Bed,
+  Home as HomeIcon,
+  Briefcase as BriefcaseIcon
 } from "lucide-react";
 import Logo from "../assets/Logos/logo5.png";
 import { motion, AnimatePresence } from "framer-motion";
+
+// Helper function to format location
+const formatLocation = (location) => {
+  if (!location) return "Location available";
+  
+  if (typeof location === 'string') {
+    return location;
+  }
+  
+  if (typeof location === 'object') {
+    const parts = [];
+    if (location.address) parts.push(location.address);
+    if (location.area) parts.push(location.area);
+    if (location.city) parts.push(location.city);
+    if (location.state) parts.push(location.state);
+    if (location.country) parts.push(location.country);
+    
+    if (parts.length > 0) {
+      return parts.join(', ');
+    }
+    
+    try {
+      return Object.values(location)
+        .filter(value => typeof value === 'string' && value.trim().length > 0)
+        .join(', ');
+    } catch {
+      return "Location available";
+    }
+  }
+  
+  return String(location);
+};
+
+// Helper function to format date
+const formatDate = (dateString) => {
+  if (!dateString) return "N/A";
+  try {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch {
+    return "N/A";
+  }
+};
+
+// Helper function to format price
+const formatPrice = (price) => {
+  if (!price && price !== 0) return "₦ --";
+  const num = typeof price === 'number' ? price : parseInt(price.toString().replace(/[^\d]/g, ""));
+  if (isNaN(num)) return "₦ --";
+  return `₦${num.toLocaleString()}`;
+};
+
+// Booking categories with icons
+const bookingCategories = [
+  { id: "hotel", label: "Hotels", icon: Bed, color: "blue" },
+  { id: "shortlet", label: "Shortlets", icon: HomeIcon, color: "purple" },
+  { id: "restaurant", label: "Restaurants", icon: Utensils, color: "green" },
+  { id: "event", label: "Events", icon: CalendarDays, color: "orange" },
+  { id: "service", label: "Services", icon: BriefcaseIcon, color: "indigo" }
+];
 
 const VendorProfilePage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState(null);
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState("overview");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
@@ -160,7 +225,7 @@ const VendorProfilePage = () => {
 
   // Profile-Focused Tabs
   const tabs = [
-    { id: "profile", label: "Profile", icon: User },
+    { id: "overview", label: "Overview", icon: Home },
     { id: "personal-bookings", label: "My Personal Bookings", icon: ShoppingBag },
     { id: "business-bookings", label: "Business Bookings", icon: CalendarCheck },
     { id: "saved", label: "Saved", icon: Heart },
@@ -249,15 +314,22 @@ const VendorProfilePage = () => {
       });
       
       // Load personal bookings (bookings made BY this vendor)
-      const allBookings = JSON.parse(localStorage.getItem("allBookings") || "[]");
+      const vendorPersonalBookingsData = localStorage.getItem("vendorPersonalBookings");
       
-      // Filter personal bookings (bookings made BY this vendor to other vendors)
-      const vendorPersonalBookings = allBookings.filter(booking => {
-        return booking.bookedBy?.isVendor === true && 
-               booking.bookedBy?.userId === parsedProfile.id;
-      });
-      
-      setPersonalBookings(vendorPersonalBookings);
+      if (vendorPersonalBookingsData) {
+        const parsedPersonalBookings = JSON.parse(vendorPersonalBookingsData);
+        setPersonalBookings(parsedPersonalBookings);
+      } else {
+        const allBookings = JSON.parse(localStorage.getItem("allBookings") || "[]");
+        
+        const vendorPersonalBookings = allBookings.filter(booking => {
+          return booking.bookedBy?.isVendor === true && 
+                 booking.bookedBy?.userId === parsedProfile.id;
+        });
+        
+        setPersonalBookings(vendorPersonalBookings);
+        localStorage.setItem("vendorPersonalBookings", JSON.stringify(vendorPersonalBookings));
+      }
       
       // Load saved listings
       const savedListingsData = localStorage.getItem("savedListings") || "[]";
@@ -363,6 +435,7 @@ const VendorProfilePage = () => {
     if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
       localStorage.removeItem("userProfile");
       localStorage.removeItem("auth_token");
+      localStorage.removeItem("vendorPersonalBookings");
       navigate("/");
       alert("Account deleted successfully");
     }
@@ -387,7 +460,7 @@ const VendorProfilePage = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `profile_export_${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `vendor_profile_export_${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -413,32 +486,74 @@ const VendorProfilePage = () => {
 
   const getBookingIcon = (type) => {
     switch(type) {
-      case 'hotel': return Hotel;
+      case 'hotel': return Bed;
       case 'restaurant': return Utensils;
       case 'service': return Wrench;
-      case 'shortlet': return Home;
+      case 'shortlet': return HomeIcon;
       default: return Calendar;
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-    } catch {
-      return "N/A";
+  const getStatusColor = (status) => {
+    switch(status?.toLowerCase()) {
+      case 'confirmed':
+        return 'bg-green-100 text-green-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const formatPrice = (price) => {
-    if (!price && price !== 0) return "₦ --";
-    const num = typeof price === 'number' ? price : parseInt(price.toString().replace(/[^\d]/g, ""));
-    if (isNaN(num)) return "₦ --";
-    return `₦${num.toLocaleString()}`;
+  const viewBookingDetails = (bookingId) => {
+    navigate(`/booking/confirmation/${bookingId}`);
+  };
+
+  const cancelPersonalBooking = (bookingId) => {
+    if (window.confirm("Are you sure you want to cancel this booking?")) {
+      try {
+        const updatedBookings = personalBookings.map(booking => 
+          booking.id === bookingId 
+            ? { 
+                ...booking, 
+                status: "cancelled", 
+                cancelledDate: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              }
+            : booking
+        );
+        
+        setPersonalBookings(updatedBookings);
+        localStorage.setItem("vendorPersonalBookings", JSON.stringify(updatedBookings));
+        
+        const userProfile = localStorage.getItem("userProfile");
+        if (userProfile) {
+          const parsedProfile = JSON.parse(userProfile);
+          if (parsedProfile.bookings) {
+            const updatedProfileBookings = parsedProfile.bookings.map(booking =>
+              booking.id === bookingId 
+                ? { 
+                    ...booking, 
+                    status: "cancelled", 
+                    cancelledDate: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                  }
+                : booking
+            );
+            
+            parsedProfile.bookings = updatedProfileBookings;
+            localStorage.setItem("userProfile", JSON.stringify(parsedProfile));
+          }
+        }
+        
+        alert("Booking cancelled successfully!");
+      } catch (error) {
+        console.error("Error cancelling booking:", error);
+        alert("Failed to cancel booking");
+      }
+    }
   };
 
   if (loading) {
@@ -446,7 +561,7 @@ const VendorProfilePage = () => {
       <div className="min-h-screen bg-white flex flex-col">
         <div className="flex-grow flex items-center justify-center bg-gray-50">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6cff] mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading profile...</p>
           </div>
         </div>
@@ -582,7 +697,7 @@ const VendorProfilePage = () => {
                   
                   <div className="p-4 border-t border-gray-200">
                     <button
-                      onClick={() => navigate("/vendor/notifications")}
+                      onClick={() => setActiveTab("activity")}
                       className="w-full text-center text-blue-600 hover:text-blue-800 text-sm font-medium"
                     >
                       View all notifications
@@ -599,8 +714,8 @@ const VendorProfilePage = () => {
               onClick={toggleProfileMenu}
               className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100"
             >
-              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                <User size={16} className="text-blue-600" />
+              <div className="w-8 h-8 rounded-full bg-[#6cff] flex items-center justify-center">
+                <User size={16} className="text-white" />
               </div>
               <span className="hidden md:inline text-sm font-medium">{userData?.firstName}</span>
               <ChevronDown size={16} className="text-gray-400" />
@@ -617,8 +732,8 @@ const VendorProfilePage = () => {
                 >
                   <div className="p-4 border-b border-gray-200">
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                        <User size={20} className="text-blue-600" />
+                      <div className="w-10 h-10 rounded-full bg-[#6cff] flex items-center justify-center">
+                        <User size={20} className="text-white" />
                       </div>
                       <div>
                         <h4 className="font-bold text-gray-900">
@@ -646,7 +761,18 @@ const VendorProfilePage = () => {
                     
                     <button
                       onClick={() => {
-                        navigate("/vendor/settings");
+                        setActiveTab("profile");
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 text-left"
+                    >
+                      <User size={16} className="text-gray-600" />
+                      <span className="text-sm font-medium">Profile</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        setActiveTab("settings");
                         setShowProfileMenu(false);
                       }}
                       className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 text-left"
@@ -689,11 +815,11 @@ const VendorProfilePage = () => {
           <div className="p-4">
             {/* Profile Summary */}
             <div className="flex items-center space-x-3 mb-6 p-3 bg-gray-50 rounded-lg">
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full bg-[#6cff] flex items-center justify-center">
                 {userData?.avatar ? (
                   <img src={userData.avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
                 ) : (
-                  <User size={24} className="text-blue-600" />
+                  <User size={24} className="text-white" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
@@ -736,30 +862,47 @@ const VendorProfilePage = () => {
               })}
             </nav>
             
+            {/* Quick Book Section */}
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Quick Book</h3>
+              <div className="space-y-2">
+                {bookingCategories.map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() => navigate(`/${category.id}`)}
+                    className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+                  >
+                    <category.icon size={16} className={`mr-2 text-${category.color}-500`} />
+                    {category.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Quick Links */}
             <div className="mt-8 pt-6 border-t border-gray-200">
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Quick Links</h3>
               <div className="space-y-2">
+                <button
+                  onClick={() => navigate("/")}
+                  className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+                >
+                  <Home size={16} className="mr-2" />
+                  Home
+                </button>
+                <button
+                  onClick={() => navigate("/explore")}
+                  className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+                >
+                  <Search size={16} className="mr-2" />
+                  Explore
+                </button>
                 <button
                   onClick={handleExportData}
                   className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
                 >
                   <Download size={16} className="mr-2" />
                   Export Data
-                </button>
-                <button
-                  onClick={handleChangePassword}
-                  className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
-                >
-                  <Shield size={16} className="mr-2" />
-                  Change Password
-                </button>
-                <button
-                  onClick={() => navigate("/help")}
-                  className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
-                >
-                  <FileText size={16} className="mr-2" />
-                  Help & Support
                 </button>
                 <button
                   onClick={() => navigate("/vendor/notifications")}
@@ -791,32 +934,421 @@ const VendorProfilePage = () => {
               transition={{ duration: 0.2 }}
               className="space-y-6"
             >
-              {/* Profile Tab */}
-              {activeTab === "profile" && (
-                <div className="max-w-4xl mx-auto">
+              {/* Overview Tab */}
+              {activeTab === "overview" && (
+                <div className="space-y-6">
+                  {/* Welcome Header */}
+                  <div className="bg-[#6cff] rounded-xl p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h1 className="text-2xl md:text-3xl font-bold mb-2">
+                          Welcome back, {profileForm.firstName}!
+                        </h1>
+                        <p className="text-white/90">Your vendor dashboard</p>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab("settings")}
+                        className="hidden md:flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
+                      >
+                        <Edit3 size={16} />
+                        Edit Profile
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Stats Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {/* Total Bookings Card */}
+                    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <CalendarCheck size={20} className="text-blue-600" />
+                        </div>
+                        <h3 className="text-gray-500 font-medium">Personal Bookings</h3>
+                      </div>
+                      <div className="text-xl font-bold text-gray-900 mb-2">{personalBookings.length}</div>
+                    </div>
+                    
+                    {/* Business Status Card */}
+                    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                          <Building size={20} className="text-green-600" />
+                        </div>
+                        <h3 className="text-gray-500 font-medium">Business Status</h3>
+                      </div>
+                      <div className="text-xl font-bold text-gray-900 mb-2">Active</div>
+                    </div>
+                    
+                    {/* Member Since Card */}
+                    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-yellow-100 rounded-lg">
+                          <Award size={20} className="text-yellow-600" />
+                        </div>
+                        <h3 className="text-gray-500 font-medium">Member Since</h3>
+                      </div>
+                      <div className="text-xl font-bold text-gray-900 mb-2">
+                        {userData?.createdAt ? formatDate(userData.createdAt) : "N/A"}
+                      </div>
+                    </div>
+
+                    {/* Saved Items Card */}
+                    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-purple-100 rounded-lg">
+                          <Heart size={20} className="text-purple-600" />
+                        </div>
+                        <h3 className="text-gray-500 font-medium">Saved Items</h3>
+                      </div>
+                      <div className="text-xl font-bold text-gray-900 mb-2">{savedListings.length}</div>
+                    </div>
+                  </div>
+
+                  {/* Recent Personal Bookings */}
+                  {personalBookings.length > 0 && (
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                      <div className="p-6 border-b border-gray-200">
+                        <h2 className="text-xl font-bold text-gray-900">Recent Personal Bookings</h2>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Booking</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Vendor</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Date</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Status</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Amount</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {personalBookings.slice(0, 5).map((booking) => {
+                              const Icon = getBookingIcon(booking.type);
+                              return (
+                                <tr key={booking.id} className="hover:bg-gray-50">
+                                  <td className="p-4">
+                                    <div className="flex items-center">
+                                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                        <Icon size={18} className="text-blue-600" />
+                                      </div>
+                                      <div>
+                                        <div className="font-medium text-gray-900">
+                                          {booking.type?.charAt(0).toUpperCase() + booking.type?.slice(1)} Booking
+                                        </div>
+                                        <div className="text-xs text-gray-600">
+                                          Ref: {booking.reference || booking.id.substring(0, 8)}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="p-4">
+                                    <div className="font-medium text-gray-900">{booking.vendor?.name || "Vendor"}</div>
+                                    <div className="text-sm text-gray-600">
+                                      {formatLocation(booking.vendor?.location) || "Location"}
+                                    </div>
+                                  </td>
+                                  <td className="p-4">
+                                    <div className="text-sm text-gray-900">{formatDate(booking.date)}</div>
+                                  </td>
+                                  <td className="p-4">
+                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
+                                      {booking.status || "Pending"}
+                                    </span>
+                                  </td>
+                                  <td className="p-4">
+                                    <div className="font-medium text-gray-900">{formatPrice(booking.details?.totalAmount)}</div>
+                                  </td>
+                                  <td className="p-4">
+                                    <div className="flex space-x-2">
+                                      <button
+                                        onClick={() => viewBookingDetails(booking.id)}
+                                        className="text-blue-600 hover:text-blue-800 text-sm px-3 py-1 border border-blue-200 rounded-lg hover:bg-blue-50"
+                                      >
+                                        View
+                                      </button>
+                                      {booking.status === 'confirmed' && (
+                                        <button
+                                          onClick={() => cancelPersonalBooking(booking.id)}
+                                          className="text-red-600 hover:text-red-800 text-sm px-3 py-1 border border-red-200 rounded-lg hover:bg-red-50"
+                                        >
+                                          Cancel
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                      {personalBookings.length > 5 && (
+                        <div className="p-4 border-t border-gray-200">
+                          <button
+                            onClick={() => setActiveTab("personal-bookings")}
+                            className="w-full text-center text-blue-600 hover:text-blue-800 text-sm"
+                          >
+                            View All {personalBookings.length} Bookings →
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Quick Booking Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {bookingCategories.map((category) => (
+                      <button
+                        key={category.id}
+                        onClick={() => navigate(`/${category.id}`)}
+                        className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all text-left"
+                      >
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className={`p-2 bg-${category.color}-100 rounded-lg`}>
+                            <category.icon size={24} className={`text-${category.color}-600`} />
+                          </div>
+                          <h3 className="font-bold text-gray-900">{category.label}</h3>
+                        </div>
+                        <p className="text-gray-600 text-sm">
+                          {category.id === 'hotel' && "Find and book the perfect hotel for your stay"}
+                          {category.id === 'shortlet' && "Discover amazing short-term rental properties"}
+                          {category.id === 'restaurant' && "Reserve tables at top restaurants"}
+                          {category.id === 'event' && "Book venues and plan your events"}
+                          {category.id === 'service' && "Find professional services for your needs"}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Personal Bookings Tab */}
+              {activeTab === "personal-bookings" && (
+                <div className="space-y-6">
+                  {/* Header */}
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-900">My Personal Bookings</h2>
+                        <p className="text-gray-600">Bookings you made to other vendors' services</p>
+                      </div>
+                      <button
+                        onClick={() => navigate("/vendor/dashboard?tab=bookings")}
+                        className="px-4 py-2 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50"
+                      >
+                        View Business Bookings
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Bookings by Category */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {bookingCategories.map((category) => {
+                      const categoryBookings = personalBookings.filter(b => 
+                        b.type?.toLowerCase() === category.id || 
+                        (category.id === 'event' && b.type?.toLowerCase() === 'event center')
+                      );
+                      
+                      return (
+                        <div 
+                          key={category.id}
+                          className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`p-2 bg-${category.color}-100 rounded-lg`}>
+                                <category.icon size={20} className={`text-${category.color}-600`} />
+                              </div>
+                              <h3 className="font-bold text-gray-900">{category.label}</h3>
+                            </div>
+                            <span className="text-xl font-bold text-gray-900">{categoryBookings.length}</span>
+                          </div>
+                          {categoryBookings.length > 0 ? (
+                            <div className="space-y-3">
+                              {categoryBookings.slice(0, 3).map((booking) => (
+                                <div key={booking.id} className="p-3 border border-gray-200 rounded-lg">
+                                  <div className="flex items-center justify-between">
+                                    <div className="min-w-0">
+                                      <p className="font-medium text-gray-900 text-sm truncate">
+                                        {booking.vendor?.name || "Unknown Vendor"}
+                                      </p>
+                                      <p className="text-xs text-gray-500">
+                                        {formatDate(booking.date)}
+                                      </p>
+                                    </div>
+                                    <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(booking.status)}`}>
+                                      {booking.status}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                              {categoryBookings.length > 3 && (
+                                <button 
+                                  onClick={() => setActiveTab("personal-bookings")}
+                                  className="w-full text-center text-blue-600 hover:text-blue-800 text-sm"
+                                >
+                                  View {categoryBookings.length - 3} more →
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-center py-4">
+                              <p className="text-gray-500 text-sm">No {category.label.toLowerCase()} bookings yet</p>
+                              <button
+                                onClick={() => navigate(`/${category.id}`)}
+                                className="mt-2 text-blue-600 hover:text-blue-800 text-sm"
+                              >
+                                Book {category.label} →
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* All Personal Bookings Table */}
+                  {personalBookings.length > 0 && (
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                      <div className="p-6 border-b border-gray-200">
+                        <h3 className="text-lg font-bold text-gray-900">All Personal Bookings ({personalBookings.length})</h3>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Booking</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Vendor</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Date</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Status</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Amount</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {personalBookings.map((booking) => {
+                              const Icon = getBookingIcon(booking.type);
+                              return (
+                                <tr key={booking.id} className="hover:bg-gray-50">
+                                  <td className="p-4">
+                                    <div className="flex items-center">
+                                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                        <Icon size={18} className="text-blue-600" />
+                                      </div>
+                                      <div>
+                                        <div className="font-medium text-gray-900">
+                                          {booking.type?.charAt(0).toUpperCase() + booking.type?.slice(1)} Booking
+                                        </div>
+                                        <div className="text-xs text-gray-600">
+                                          Ref: {booking.reference || booking.id.substring(0, 8)}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="p-4">
+                                    <div className="font-medium text-gray-900">{booking.vendor?.name || "Vendor"}</div>
+                                    <div className="text-sm text-gray-600">
+                                      {formatLocation(booking.vendor?.location) || "Location"}
+                                    </div>
+                                  </td>
+                                  <td className="p-4">
+                                    <div className="text-sm text-gray-900">{formatDate(booking.date)}</div>
+                                  </td>
+                                  <td className="p-4">
+                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
+                                      {booking.status || "Pending"}
+                                    </span>
+                                  </td>
+                                  <td className="p-4">
+                                    <div className="font-medium text-gray-900">{formatPrice(booking.details?.totalAmount)}</div>
+                                  </td>
+                                  <td className="p-4">
+                                    <div className="flex space-x-2">
+                                      <button
+                                        onClick={() => viewBookingDetails(booking.id)}
+                                        className="text-blue-600 hover:text-blue-800 text-sm px-3 py-1 border border-blue-200 rounded-lg hover:bg-blue-50"
+                                      >
+                                        View Details
+                                      </button>
+                                      {booking.status === 'confirmed' && (
+                                        <button
+                                          onClick={() => cancelPersonalBooking(booking.id)}
+                                          className="text-red-600 hover:text-red-800 text-sm px-3 py-1 border border-red-200 rounded-lg hover:bg-red-50"
+                                        >
+                                          Cancel
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-8 pt-6 border-t border-gray-200">
+                    <div className="bg-blue-50 rounded-lg p-4">
+                      <h3 className="font-medium text-gray-900 mb-2">Note about Bookings</h3>
+                      <p className="text-sm text-gray-600">
+                        • <strong>Personal Bookings</strong>: Bookings you made to other vendors' services
+                        <br />
+                        • <strong>Business Bookings</strong>: Bookings made by customers to your services
+                        <br />
+                        <span className="text-xs text-gray-500 mt-2 block">
+                          View your business bookings in the Vendor Dashboard
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Business Bookings Tab */}
+              {activeTab === "business-bookings" && (
+                <div className="max-w-6xl mx-auto">
                   <div className="bg-white rounded-xl border border-gray-200 p-6">
                     <div className="flex items-center justify-between mb-6">
                       <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Personal Profile</h1>
-                        <p className="text-gray-600">Manage your personal information</p>
+                        <h1 className="text-2xl font-bold text-gray-900">Business Bookings</h1>
+                        <p className="text-gray-600">Bookings made by customers to your business</p>
                       </div>
-                      <div className="flex items-center space-x-3">
-                        {!isEditing && (
-                          <button
-                            onClick={() => setIsEditing(true)}
-                            className="px-4 py-2 border border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50 flex items-center"
-                          >
-                            <Edit3 size={16} className="mr-2" />
-                            Edit Profile
-                          </button>
-                        )}
-                        <button
-                          onClick={() => navigate("/vendor/dashboard")}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                        >
-                          Go to Dashboard
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => navigate("/vendor/dashboard?tab=bookings")}
+                        className="px-4 py-2 bg-[#6cff] text-white rounded-lg hover:opacity-90"
+                      >
+                        Go to Business Dashboard
+                      </button>
+                    </div>
+                    
+                    <div className="text-center py-12">
+                      <CalendarCheck size={48} className="mx-auto text-gray-300 mb-4" />
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">Business Bookings in Dashboard</h3>
+                      <p className="text-gray-600 mb-6">
+                        Your business bookings are managed in the Vendor Dashboard for better business analytics
+                      </p>
+                      <button
+                        onClick={() => navigate("/vendor/dashboard?tab=bookings")}
+                        className="px-6 py-3 bg-[#6cff] text-white rounded-lg hover:opacity-90"
+                      >
+                        Go to Business Dashboard
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Settings Tab */}
+              {activeTab === "settings" && (
+                <div className="space-y-6">
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <div className="border-b border-gray-200 pb-4 mb-6">
+                      <h2 className="text-lg font-bold text-gray-900">Edit Profile</h2>
+                      <p className="text-sm text-gray-600 mt-1">Manage your account and preferences</p>
                     </div>
                     
                     {isEditing ? (
@@ -831,7 +1363,7 @@ const VendorProfilePage = () => {
                                 <User size={40} className="text-gray-400" />
                               )}
                             </div>
-                            <label className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 cursor-pointer hover:bg-blue-700">
+                            <label className="absolute bottom-0 right-0 bg-[#6cff] text-white rounded-full p-2 cursor-pointer hover:opacity-90">
                               <Camera size={16} />
                               <input type="file" accept="image/*" className="hidden" />
                             </label>
@@ -967,9 +1499,9 @@ const VendorProfilePage = () => {
                           </button>
                           <button
                             onClick={handleSaveProfile}
-                            className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                            className="px-6 py-2.5 bg-[#6cff] text-white rounded-lg hover:opacity-90 flex items-center gap-2"
                           >
-                            <Save size={16} className="mr-2" />
+                            <Save size={16} />
                             Save Changes
                           </button>
                         </div>
@@ -1049,215 +1581,22 @@ const VendorProfilePage = () => {
                             </div>
                           </div>
                         </div>
+                        
+                        <div className="pt-6 border-t border-gray-200">
+                          <button
+                            onClick={() => setIsEditing(true)}
+                            className="px-4 py-2.5 bg-[#6cff] text-white rounded-lg hover:opacity-90 flex items-center gap-2"
+                          >
+                            <Edit3 size={16} />
+                            Edit Profile
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
-                </div>
-              )}
-
-              {/* Personal Bookings Tab */}
-              {activeTab === "personal-bookings" && (
-                <div className="max-w-6xl mx-auto">
-                  <div className="bg-white rounded-xl border border-gray-200 p-6">
-                    <div className="flex items-center justify-between mb-6">
-                      <div>
-                        <h1 className="text-2xl font-bold text-gray-900">My Personal Bookings</h1>
-                        <p className="text-gray-600">Bookings you made to other vendors' services</p>
-                      </div>
-                      <button
-                        onClick={() => navigate("/vendor/dashboard?tab=bookings")}
-                        className="px-4 py-2 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50"
-                      >
-                        View Business Bookings
-                      </button>
-                    </div>
-                    
-                    {personalBookings.length === 0 ? (
-                      <div className="text-center py-12">
-                        <ShoppingBag size={48} className="mx-auto text-gray-300 mb-4" />
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">No Personal Bookings</h3>
-                        <p className="text-gray-600 mb-4">You haven't made any bookings to other vendors yet</p>
-                        <button
-                          onClick={() => navigate("/")}
-                          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                        >
-                          Explore Services
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking</th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-200">
-                            {personalBookings.map(booking => {
-                              const Icon = getBookingIcon(booking.type);
-                              return (
-                                <tr key={booking.id} className="hover:bg-gray-50">
-                                  <td className="px-6 py-4">
-                                    <div className="flex items-center">
-                                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                                        <Icon size={18} className="text-blue-600" />
-                                      </div>
-                                      <div>
-                                        <div className="font-medium text-gray-900">
-                                          {booking.type?.charAt(0).toUpperCase() + booking.type?.slice(1)} Booking
-                                        </div>
-                                        <div className="text-xs text-gray-600">
-                                          Ref: {booking.reference || booking.id.substring(0, 8)}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4">
-                                    <div className="font-medium text-gray-900">{booking.vendor?.name || "Vendor"}</div>
-                                    <div className="text-sm text-gray-600">{booking.vendor?.location || "Location"}</div>
-                                  </td>
-                                  <td className="px-6 py-4">
-                                    <div className="text-sm text-gray-900">{formatDate(booking.date)}</div>
-                                  </td>
-                                  <td className="px-6 py-4">
-                                    <div className="font-medium text-gray-900">{formatPrice(booking.totalAmount)}</div>
-                                  </td>
-                                  <td className="px-6 py-4">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                      booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                                      booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                      booking.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                      'bg-gray-100 text-gray-800'
-                                    }`}>
-                                      {booking.status}
-                                    </span>
-                                  </td>
-                                  <td className="px-6 py-4">
-                                    <button
-                                      onClick={() => navigate(`/booking/${booking.id}`)}
-                                      className="text-blue-600 hover:text-blue-800 text-sm"
-                                    >
-                                      View Details
-                                    </button>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                    
-                    <div className="mt-8 pt-6 border-t border-gray-200">
-                      <div className="bg-blue-50 rounded-lg p-4">
-                        <h3 className="font-medium text-gray-900 mb-2">Note about Bookings</h3>
-                        <p className="text-sm text-gray-600">
-                          • <strong>Personal Bookings</strong>: Bookings you made to other vendors' services
-                          <br />
-                          • <strong>Business Bookings</strong>: Bookings made by customers to your services
-                          <br />
-                          <span className="text-xs text-gray-500 mt-2 block">
-                            View your business bookings in the Vendor Dashboard
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Business Bookings Tab */}
-              {activeTab === "business-bookings" && (
-                <div className="max-w-6xl mx-auto">
-                  <div className="bg-white rounded-xl border border-gray-200 p-6">
-                    <div className="flex items-center justify-between mb-6">
-                      <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Business Bookings</h1>
-                        <p className="text-gray-600">Bookings made by customers to your business</p>
-                      </div>
-                      <button
-                        onClick={() => navigate("/vendor/dashboard?tab=bookings")}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                      >
-                        Go to Business Dashboard
-                      </button>
-                    </div>
-                    
-                    <div className="text-center py-12">
-                      <CalendarCheck size={48} className="mx-auto text-gray-300 mb-4" />
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">Business Bookings in Dashboard</h3>
-                      <p className="text-gray-600 mb-6">
-                        Your business bookings are managed in the Vendor Dashboard for better business analytics
-                      </p>
-                      <button
-                        onClick={() => navigate("/vendor/dashboard?tab=bookings")}
-                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                      >
-                        Go to Business Dashboard
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Saved Tab */}
-              {activeTab === "saved" && (
-                <div className="max-w-6xl mx-auto">
-                  <div className="bg-white rounded-xl border border-gray-200 p-6">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">Saved Items</h1>
-                    <p className="text-gray-600 mb-6">Your saved listings and services</p>
-                    
-                    {savedListings.length === 0 ? (
-                      <div className="text-center py-12">
-                        <Heart size={48} className="mx-auto text-gray-300 mb-4" />
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">No Saved Items</h3>
-                        <p className="text-gray-600 mb-6">Save listings you're interested in for quick access later</p>
-                        <button
-                          onClick={() => navigate("/")}
-                          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                        >
-                          Browse Services
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {savedListings.map(item => (
-                          <div key={item.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-                            <div className="p-4">
-                              <h3 className="font-bold text-gray-900 mb-2">{item.name}</h3>
-                              <p className="text-sm text-gray-600 mb-3">{item.description}</p>
-                              <div className="flex items-center justify-between">
-                                <span className="font-medium text-gray-900">{item.price}</span>
-                                <button
-                                  onClick={() => {
-                                    const updated = savedListings.filter(i => i.id !== item.id);
-                                    setSavedListings(updated);
-                                    localStorage.setItem("savedListings", JSON.stringify(updated));
-                                  }}
-                                  className="text-red-600 hover:text-red-800"
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Settings Tab */}
-              {activeTab === "settings" && (
-                <div className="max-w-4xl mx-auto space-y-6">
+                  
                   {/* Notifications */}
-                  <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                     <h2 className="text-xl font-bold text-gray-900 mb-4">Notification Settings</h2>
                     <div className="space-y-4">
                       {Object.entries(notificationSettings).map(([key, value]) => (
@@ -1280,7 +1619,7 @@ const VendorProfilePage = () => {
                               [key]: !value
                             })}
                             className={`w-12 h-6 rounded-full transition-colors ${
-                              value ? 'bg-blue-600' : 'bg-gray-300'
+                              value ? 'bg-[#6cff]' : 'bg-gray-300'
                             }`}
                           >
                             <div className={`w-6 h-6 rounded-full bg-white transform transition-transform ${
@@ -1293,127 +1632,20 @@ const VendorProfilePage = () => {
                     <div className="mt-6">
                       <button
                         onClick={() => handleSaveSettings('notifications')}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        className="px-4 py-2 bg-[#6cff] text-white rounded-lg hover:opacity-90"
                       >
                         Save Notification Settings
                       </button>
                     </div>
                   </div>
                   
-                  {/* Privacy */}
-                  <div className="bg-white rounded-xl border border-gray-200 p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">Privacy Settings</h2>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Profile Visibility</label>
-                        <select
-                          value={privacySettings.profileVisibility}
-                          onChange={(e) => setPrivacySettings({
-                            ...privacySettings,
-                            profileVisibility: e.target.value
-                          })}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                        >
-                          <option value="public">Public</option>
-                          <option value="private">Private</option>
-                          <option value="business">Business Only</option>
-                        </select>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        {Object.entries(privacySettings).slice(1).map(([key, value]) => (
-                          <div key={key} className="flex items-center justify-between">
-                            <span className="text-gray-900">
-                              {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                            </span>
-                            <button
-                              onClick={() => setPrivacySettings({
-                                ...privacySettings,
-                                [key]: !value
-                              })}
-                              className={`w-12 h-6 rounded-full transition-colors ${
-                                value ? 'bg-blue-600' : 'bg-gray-300'
-                              }`}
-                            >
-                              <div className={`w-6 h-6 rounded-full bg-white transform transition-transform ${
-                                value ? 'translate-x-6' : 'translate-x-0'
-                              }`} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="mt-6">
-                      <button
-                        onClick={() => handleSaveSettings('privacy')}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                      >
-                        Save Privacy Settings
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {/* Security */}
-                  <div className="bg-white rounded-xl border border-gray-200 p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">Security</h2>
-                    <div className="space-y-6">
-                      <div className="space-y-4">
-                        {Object.entries(securitySettings).map(([key, value]) => (
-                          <div key={key} className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium text-gray-900">
-                                {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                              </div>
-                              <div className="text-sm text-gray-600">
-                                {key === 'twoFactorEnabled' && 'Add an extra layer of security'}
-                                {key === 'loginAlerts' && 'Get alerts for new logins'}
-                                {key === 'deviceManagement' && 'Manage your logged-in devices'}
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => setSecuritySettings({
-                                ...securitySettings,
-                                [key]: !value
-                              })}
-                              className={`w-12 h-6 rounded-full transition-colors ${
-                                value ? 'bg-blue-600' : 'bg-gray-300'
-                              }`}
-                            >
-                              <div className={`w-6 h-6 rounded-full bg-white transform transition-transform ${
-                                value ? 'translate-x-6' : 'translate-x-0'
-                              }`} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      <div className="pt-4 border-t border-gray-200">
-                        <button
-                          onClick={handleChangePassword}
-                          className="px-4 py-2 border border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50"
-                        >
-                          Change Password
-                        </button>
-                      </div>
-                      
-                      <div className="pt-4 border-t border-gray-200">
-                        <button
-                          onClick={() => handleSaveSettings('security')}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                        >
-                          Save Security Settings
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  
                   {/* Account Actions */}
-                  <div className="bg-white rounded-xl border border-gray-200 p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">Account Actions</h2>
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <h2 className="text-lg font-bold text-gray-900 mb-4">Account Actions</h2>
                     <div className="space-y-3">
                       <button
                         onClick={handleExportData}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-left flex items-center justify-between"
+                        className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 border border-gray-200 flex items-center justify-between"
                       >
                         <div>
                           <div className="font-medium text-gray-900">Export Data</div>
@@ -1424,11 +1656,81 @@ const VendorProfilePage = () => {
                       
                       <button
                         onClick={handleDeleteAccount}
-                        className="w-full px-4 py-3 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 text-left"
+                        className="w-full text-left px-4 py-3 rounded-lg hover:bg-red-50 transition-colors text-red-600 border border-red-200"
                       >
                         Delete Account
                       </button>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Other tabs remain similar... */}
+              {activeTab === "saved" && (
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Saved Items</h2>
+                  <p className="text-gray-600 mb-6">Your saved listings and services</p>
+                  
+                  {savedListings.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Heart size={48} className="mx-auto text-gray-300 mb-4" />
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">No Saved Items</h3>
+                      <p className="text-gray-600 mb-6">Save listings you're interested in for quick access later</p>
+                      <button
+                        onClick={() => navigate("/")}
+                        className="px-6 py-3 bg-[#6cff] text-white rounded-lg hover:opacity-90"
+                      >
+                        Browse Services
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {savedListings.map(item => (
+                        <div key={item.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+                          <div className="p-4">
+                            <h3 className="font-bold text-gray-900 mb-2">{item.name}</h3>
+                            <p className="text-sm text-gray-600 mb-3">{item.description}</p>
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-gray-900">{formatPrice(item.price)}</span>
+                              <button
+                                onClick={() => {
+                                  const updated = savedListings.filter(i => i.id !== item.id);
+                                  setSavedListings(updated);
+                                  localStorage.setItem("savedListings", JSON.stringify(updated));
+                                }}
+                                className="text-red-600 hover:text-red-800"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === "reviews" && (
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Reviews</h2>
+                  <p className="text-gray-600 mb-6">Your reviews and ratings</p>
+                  <div className="text-center py-12">
+                    <Star size={48} className="mx-auto text-gray-300 mb-4" />
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">No Reviews Yet</h3>
+                    <p className="text-gray-600 mb-6">You haven't received any reviews yet.</p>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "activity" && (
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Activity Log</h2>
+                  <p className="text-gray-600 mb-6">Your recent activities</p>
+                  <div className="text-center py-12">
+                    <Clock size={48} className="mx-auto text-gray-300 mb-4" />
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">No Recent Activity</h3>
+                    <p className="text-gray-600 mb-6">Your activity log will appear here.</p>
                   </div>
                 </div>
               )}

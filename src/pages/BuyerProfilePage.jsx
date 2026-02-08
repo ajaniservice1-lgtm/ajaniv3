@@ -23,7 +23,31 @@ import {
   Briefcase,
   Home as HomeIcon,
   CalendarDays,
-  User
+  User,
+  Building,
+  Star,
+  Download,
+  Printer,
+  Shield,
+  DollarSign,
+  Package,
+  CreditCard,
+  Copy,
+  AlertCircle,
+  Plus,
+  Filter,
+  ChevronRight,
+  ChevronDown,
+  HelpCircle,
+  ShoppingBag,
+  Receipt,
+  List,
+  Users as UsersIcon,
+  BarChart3,
+  PieChart,
+  Clock,
+  FileText,
+  LogOut
 } from "lucide-react";
 import Logo from "../assets/Logos/logo5.png";
 import { motion, AnimatePresence } from "framer-motion";
@@ -63,8 +87,8 @@ const formatLocation = (location) => {
 // Default profile avatar component
 const DefaultProfileAvatar = ({ size = "w-10 h-10", className = "" }) => {
   return (
-    <div className={`${size} rounded-full bg-blue-100 flex items-center justify-center ${className}`}>
-      <User size={size === "w-10 h-10" ? 24 : 32} className="text-blue-600" />
+    <div className={`${size} rounded-full bg-[#6cff] flex items-center justify-center ${className}`}>
+      <User size={size === "w-10 h-10" ? 24 : 32} className="text-white" />
     </div>
   );
 };
@@ -99,12 +123,52 @@ const BuyerProfilePage = () => {
   });
   const [profileImage, setProfileImage] = useState(null);
 
+  // Notification States
+  const [notifications, setNotifications] = useState([
+    {
+      id: 1,
+      type: 'booking',
+      title: 'New Booking',
+      message: 'Your hotel booking has been confirmed',
+      time: '5 min ago',
+      read: false,
+      icon: CalendarCheck
+    },
+    {
+      id: 2,
+      type: 'review',
+      title: 'New Review',
+      message: 'You received a 5-star rating',
+      time: '1 hour ago',
+      read: false,
+      icon: Star
+    },
+    {
+      id: 3,
+      type: 'system',
+      title: 'System Update',
+      message: 'New features are now available',
+      time: '1 day ago',
+      read: true,
+      icon: Settings
+    }
+  ]);
+  
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [blurContent, setBlurContent] = useState(false);
+  
+  const notificationRef = React.useRef(null);
+  const profileMenuRef = React.useRef(null);
+
   // Tab configuration for buyer profile
   const tabs = [
     { id: "overview", label: "Overview", icon: Home },
     { id: "bookings", label: "My Bookings", icon: CalendarCheck },
     { id: "saved", label: "Saved", icon: HeartIcon },
-    { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "reviews", label: "Reviews", icon: Star },
+    { id: "activity", label: "Activity", icon: Clock },
     { id: "settings", label: "Settings", icon: Settings }
   ];
 
@@ -117,55 +181,33 @@ const BuyerProfilePage = () => {
     { id: "service", label: "Services", icon: Briefcase, color: "indigo" }
   ];
 
-  // Helper function to generate unique booking ID
-  const generateBookingId = () => {
-    return `booking_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  };
+  // Calculate unread notifications
+  useEffect(() => {
+    const unread = notifications.filter(n => !n.read).length;
+    setUnreadCount(unread);
+  }, [notifications]);
 
-  // Helper function to merge bookings ensuring uniqueness
-  const mergeBookings = (existingBookings, newBookings) => {
-    const bookingMap = new Map();
-    
-    // Add existing bookings to map
-    existingBookings.forEach(booking => {
-      if (booking.id) {
-        bookingMap.set(booking.id, booking);
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
       }
-    });
-    
-    // Add new bookings to map, ensuring unique IDs
-    newBookings.forEach(booking => {
-      if (!booking.id) {
-        booking.id = generateBookingId();
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
       }
-      bookingMap.set(booking.id, booking);
-    });
-    
-    return Array.from(bookingMap.values());
-  };
+    };
 
-  // Helper function to save bookings to localStorage
-  const saveBookingsToStorage = (bookings) => {
-    try {
-      // Save to user profile
-      const updatedProfile = { ...userProfile, bookings };
-      localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
-      
-      // Also save to separate bookings storage for redundancy
-      localStorage.setItem("userBookings", JSON.stringify(bookings));
-      
-      // Update state
-      setUserProfile(updatedProfile);
-      
-      // Trigger storage event for other components
-      window.dispatchEvent(new Event("storage"));
-      
-      return bookings;
-    } catch (error) {
-      console.error("Error saving bookings:", error);
-      return bookings;
-    }
-  };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Update blur content state
+  useEffect(() => {
+    setBlurContent(showNotifications || showProfileMenu);
+  }, [showNotifications, showProfileMenu]);
 
   useEffect(() => {
     fetchUserData();
@@ -209,25 +251,6 @@ const BuyerProfilePage = () => {
           isVerified: false
         };
         localStorage.setItem("userProfile", JSON.stringify(profile));
-      }
-      
-      // Process guest bookings if any
-      if (dummyLogin === "true" || token) {
-        const guestBookings = JSON.parse(localStorage.getItem("guestBookings") || "[]");
-        const existingBookings = profile.bookings || [];
-        
-        if (guestBookings.length > 0) {
-          // Merge and deduplicate bookings
-          const mergedBookings = mergeBookings(existingBookings, guestBookings);
-          
-          // Update profile with merged bookings
-          profile.bookings = mergedBookings;
-          localStorage.setItem("userProfile", JSON.stringify(profile));
-          localStorage.setItem("userBookings", JSON.stringify(mergedBookings));
-          
-          // Clear guest bookings
-          localStorage.removeItem("guestBookings");
-        }
       }
 
       setUserProfile(profile);
@@ -397,7 +420,10 @@ const BuyerProfilePage = () => {
         );
         
         // Save updated bookings
-        saveBookingsToStorage(updatedBookings);
+        const updatedProfile = { ...userProfile, bookings: updatedBookings };
+        localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
+        localStorage.setItem("userBookings", JSON.stringify(updatedBookings));
+        setUserProfile(updatedProfile);
         
         alert("Booking cancelled successfully!");
       } catch (error) {
@@ -453,12 +479,33 @@ const BuyerProfilePage = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  const handleNameClick = () => {
-    alert("Contact support to change your name or email");
+  const toggleNotifications = () => {
+    setShowNotifications(!showNotifications);
+    if (!showNotifications) {
+      setShowProfileMenu(false);
+    }
   };
 
-  const handleEmailClick = () => {
-    alert("Contact support to change your name or email");
+  const toggleProfileMenu = () => {
+    setShowProfileMenu(!showProfileMenu);
+    if (!showProfileMenu) {
+      setShowNotifications(false);
+    }
+  };
+
+  const markAllAsRead = () => {
+    const updatedNotifications = notifications.map(notification => ({
+      ...notification,
+      read: true
+    }));
+    setNotifications(updatedNotifications);
+  };
+
+  const markAsRead = (id) => {
+    const updatedNotifications = notifications.map(notification =>
+      notification.id === id ? { ...notification, read: true } : notification
+    );
+    setNotifications(updatedNotifications);
   };
 
   if (loading) {
@@ -466,7 +513,7 @@ const BuyerProfilePage = () => {
       <div className="min-h-screen bg-white flex flex-col">
         <div className="flex-grow flex items-center justify-center bg-gray-50">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00d37f] mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6cff] mx-auto"></div>
             <p className="mt-4 text-gray-600 font-manrope">Loading profile...</p>
           </div>
         </div>
@@ -480,981 +527,1016 @@ const BuyerProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-manrope relative">
-      {/* Mobile Sidebar Overlay */}
-      {isSidebarOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-      
-      {/* Top Navigation Bar */}
-      <div className="bg-white border-b border-blue-500 shadow-sm px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+      {/* Blur overlay */}
+      <AnimatePresence>
+        {blurContent && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+            onClick={() => {
+              setShowNotifications(false);
+              setShowProfileMenu(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Top Navigation */}
+      <nav className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center space-x-4">
           <button
             onClick={toggleSidebar}
-            className="md:hidden p-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors"
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100"
           >
             {isSidebarOpen ? (
-              <X size={20} strokeWidth={2.5} className="text-blue-600" />
+              <X size={20} className="text-gray-600" />
             ) : (
-              <Menu size={20} strokeWidth={2.5} className="text-blue-600" />
+              <div className="space-y-1">
+                <div className="w-6 h-0.5 bg-gray-600"></div>
+                <div className="w-6 h-0.5 bg-gray-600"></div>
+                <div className="w-6 h-0.5 bg-gray-600"></div>
+              </div>
             )}
           </button>
           
           <img 
             src={Logo} 
-            alt="Ajani" 
-            className="h-8 w-auto cursor-pointer hover:scale-105 transition-transform"
+            alt="Logo" 
+            className="h-8 w-auto cursor-pointer"
             onClick={handleLogoClick}
           />
         </div>
 
         <div className="flex items-center space-x-4">
-          <div className="relative hidden md:block">
-            <Search 
-              size={16} 
-              strokeWidth={2.5} 
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" 
-            />
-            <input
-              type="text"
-              placeholder="Search for something"
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-              style={{ width: '250px' }}
-            />
+          {/* Notifications Button */}
+          <div className="relative" ref={notificationRef}>
+            <button
+              onClick={toggleNotifications}
+              className="relative p-2 rounded-lg hover:bg-gray-100"
+            >
+              <Bell size={20} className="text-gray-600" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Notifications Dropdown */}
+            <AnimatePresence>
+              {showNotifications && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-xl border border-gray-200 z-50"
+                >
+                  <div className="p-4 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-gray-900">Notifications</h3>
+                      <div className="flex items-center space-x-2">
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={markAllAsRead}
+                            className="text-sm text-blue-600 hover:text-blue-800"
+                          >
+                            Mark all as read
+                          </button>
+                        )}
+                        <ChevronDown size={16} className="text-gray-400" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="max-h-96 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-8 text-center">
+                        <Bell size={32} className="mx-auto text-gray-300 mb-3" />
+                        <p className="text-gray-600">No notifications yet</p>
+                      </div>
+                    ) : (
+                      notifications.map((notification) => {
+                        const Icon = notification.icon;
+                        return (
+                          <div
+                            key={notification.id}
+                            className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
+                              !notification.read ? 'bg-blue-50' : ''
+                            }`}
+                            onClick={() => markAsRead(notification.id)}
+                          >
+                            <div className="flex items-start space-x-3">
+                              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                <Icon size={18} className="text-blue-600" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between mb-1">
+                                  <h4 className="font-medium text-gray-900">{notification.title}</h4>
+                                  <span className="text-xs text-gray-500">{notification.time}</span>
+                                </div>
+                                <p className="text-sm text-gray-600 truncate">{notification.message}</p>
+                                {!notification.read && (
+                                  <div className="inline-flex items-center mt-2">
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                                    <span className="text-xs text-blue-600">Unread</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                  
+                  <div className="p-4 border-t border-gray-200">
+                    <button
+                      onClick={() => setActiveTab("activity")}
+                      className="w-full text-center text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    >
+                      View all notifications
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          <button 
-            onClick={() => setActiveTab("settings")}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            title="Settings"
-          >
-            <Settings size={20} strokeWidth={2.5} className="text-gray-600" />
-          </button>
+          {/* Profile Menu */}
+          <div className="relative" ref={profileMenuRef}>
+            <button
+              onClick={toggleProfileMenu}
+              className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100"
+            >
+              <div className="w-8 h-8 rounded-full bg-[#6cff] flex items-center justify-center">
+                <User size={16} className="text-white" />
+              </div>
+              <span className="hidden md:inline text-sm font-medium">{userProfile?.firstName}</span>
+              <ChevronDown size={16} className="text-gray-400" />
+            </button>
 
-          <button 
-            onClick={() => {
-              setActiveTab("notifications");
-              if (window.innerWidth < 768) setIsSidebarOpen(false);
-            }}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative"
-            title="Notifications"
-          >
-            <Bell size={20} strokeWidth={2.5} className="text-gray-600" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
-
-          <div className="w-10 h-10 rounded-full overflow-hidden cursor-pointer border-2 border-blue-500">
-            {profileImage ? (
-              <img
-                src={profileImage}
-                alt="Profile"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <DefaultProfileAvatar />
-            )}
+            {/* Profile Dropdown Menu */}
+            <AnimatePresence>
+              {showProfileMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-50"
+                >
+                  <div className="p-4 border-b border-gray-200">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-full bg-[#6cff] flex items-center justify-center">
+                        <User size={20} className="text-white" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-gray-900">
+                          {userProfile?.firstName} {userProfile?.lastName}
+                        </h4>
+                        <p className="text-sm text-gray-600">{userProfile?.email}</p>
+                        <span className="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
+                          Customer
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-2">
+                    <button
+                      onClick={() => {
+                        setActiveTab("profile");
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 text-left"
+                    >
+                      <User size={16} className="text-gray-600" />
+                      <span className="text-sm font-medium">Profile</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        setActiveTab("settings");
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 text-left"
+                    >
+                      <Settings size={16} className="text-gray-600" />
+                      <span className="text-sm font-medium">Settings</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        navigate("/help");
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 text-left"
+                    >
+                      <HelpCircle size={16} className="text-gray-600" />
+                      <span className="text-sm font-medium">Help & Support</span>
+                    </button>
+                    
+                    <div className="my-2 border-t border-gray-200"></div>
+                    
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-red-50 text-red-600 text-left"
+                    >
+                      <LogOut size={16} />
+                      <span className="text-sm font-medium">Logout</span>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
-      </div>
+      </nav>
 
-      <main className="flex-grow pt-0">
-        <div className="flex h-[calc(100vh-65px)]">
-          {/* Sidebar */}
-          <motion.aside
-            initial={false}
-            animate={{ 
-              x: isSidebarOpen ? 0 : '-100%',
-              width: isSidebarOpen ? '256px' : '0px'
-            }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="fixed md:relative top-0 left-0 h-full z-50 md:translate-x-0 md:w-64 bg-white border-r border-gray-200 overflow-hidden"
-          >
-            <div className="p-4 flex items-center md:hidden justify-between border-b border-gray-200">
-              <div className="ml-0">
-                <img 
-                  src={Logo} 
-                  alt="Ajani" 
-                  className="h-8 w-auto cursor-pointer hover:scale-105 transition-transform"
-                  onClick={handleLogoClick}
-                />
+      <div className="flex flex-1">
+        {/* Sidebar */}
+        <aside className={`${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-0'} md:translate-x-0 md:w-64 bg-white border-r border-gray-200 transition-all duration-300 fixed md:relative h-[calc(100vh-65px)] z-30 overflow-y-auto`}>
+          <div className="p-4">
+            {/* Profile Summary */}
+            <div className="flex items-center space-x-3 mb-6 p-3 bg-gray-50 rounded-lg">
+              <div className="w-12 h-12 rounded-full bg-[#6cff] flex items-center justify-center">
+                {profileImage ? (
+                  <img src={profileImage} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                ) : (
+                  <User size={24} className="text-white" />
+                )}
               </div>
-              
-              <button
-                onClick={toggleSidebar}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <X size={16} strokeWidth={2.5} className="text-gray-600" />
-              </button>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-gray-900 truncate">
+                  {formData.firstName} {formData.lastName}
+                </h3>
+                <p className="text-sm text-gray-600 truncate">{userProfile?.email}</p>
+                <span className="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
+                  Customer
+                </span>
+              </div>
             </div>
             
-            <nav className="mt-4 md:mt-8 px-4">
-              <div className="space-y-3 md:space-y-2">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => {
-                        setActiveTab(tab.id);
-                        if (window.innerWidth < 768) setIsSidebarOpen(false);
-                      }}
-                      className={`flex items-center w-full px-3 md:px-4 py-3 md:py-3 rounded-lg transition-all duration-200 ${
-                        activeTab === tab.id
-                          ? "bg-blue-50 text-blue-600 border-l-4 border-blue-500 shadow-sm"
-                          : "text-gray-700 hover:bg-gray-50 hover:border-l-4 hover:border-gray-200"
-                      }`}
-                    >
-                      <Icon size={16} strokeWidth={2.5} className="mr-3 flex-shrink-0" />
-                      <span className="text-sm md:text-base font-manrope">{tab.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+            {/* Navigation */}
+            <nav className="space-y-1">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      if (window.innerWidth < 768) setIsSidebarOpen(false);
+                    }}
+                    className={`flex items-center w-full px-3 py-3 rounded-lg transition-all ${
+                      activeTab === tab.id
+                        ? "bg-blue-50 text-blue-600 border-l-4 border-blue-500"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    <Icon size={18} className="mr-3" />
+                    <span className="text-sm font-medium">{tab.label}</span>
+                    {tab.id === "bookings" && bookings.length > 0 && (
+                      <span className="ml-auto bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {bookings.length}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </nav>
             
-            <div className="mt-6 px-4">
-              <h3 className="text-sm font-medium text-gray-700 mb-3 font-manrope">Quick Book</h3>
+            {/* Quick Book Section */}
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Quick Book</h3>
               <div className="space-y-2">
                 {bookingCategories.map((category) => (
                   <button
                     key={category.id}
                     onClick={() => navigate(`/${category.id}`)}
-                    className={`w-full text-left px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 text-sm font-manrope flex items-center gap-2`}
+                    className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
                   >
-                    <category.icon size={16} strokeWidth={2.5} className={`text-${category.color}-500`} />
+                    <category.icon size={16} className={`mr-2 text-${category.color}-500`} />
                     {category.label}
                   </button>
                 ))}
               </div>
             </div>
-            
-            {isSidebarOpen && (
-              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center">
-                    {profileImage ? (
-                      <img
-                        src={profileImage}
-                        alt="Profile"
-                        className="w-full h-full object-cover sidebar-avatar"
-                      />
-                    ) : (
-                      <DefaultProfileAvatar />
-                    )}
-                  </div>
-                  <div className="overflow-hidden">
-                    <p 
-                      onClick={handleNameClick}
-                      className="font-medium text-gray-900 text-sm truncate font-manrope cursor-pointer hover:text-blue-600 transition-colors"
-                    >
-                      {userProfile?.firstName} {userProfile?.lastName}
-                    </p>
-                    <p 
-                      onClick={handleEmailClick}
-                      className="text-xs text-gray-500 truncate font-manrope cursor-pointer hover:text-blue-600 transition-colors"
-                    >
-                      {userProfile?.email}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </motion.aside>
 
-          {/* Main Content */}
-          <div className="flex-grow overflow-y-auto w-full">
-            {!isSidebarOpen && (
-              <div className="md:hidden p-4 border-b border-gray-200">
-                <div className="relative">
-                  <Search 
-                    size={16} 
-                    strokeWidth={2.5} 
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" 
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search for something"
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                  />
-                </div>
-              </div>
-            )}
-            
-            <div className="max-w-7xl mx-auto px-3 md:px-4 md:px-6 py-4 md:py-8">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
+            {/* Quick Links */}
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Quick Links</h3>
+              <div className="space-y-2">
+                <button
+                  onClick={() => navigate("/")}
+                  className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
                 >
-                  {/* Overview Tab */}
-                  {activeTab === "overview" && (
-                    <div className="space-y-6">
-                      {/* Welcome Header */}
-                      <div className="bg-[#6cff] rounded-xl p-6 text-white">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h1 className="text-2xl md:text-3xl font-bold mb-2 font-manrope">
-                              Welcome back, {userProfile.firstName}!
-                            </h1>
-                            <p className="text-white/90 font-manrope">Your personalized booking dashboard</p>
-                          </div>
+                  <Home size={16} className="mr-2" />
+                  Home
+                </button>
+                <button
+                  onClick={() => navigate("/explore")}
+                  className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+                >
+                  <Search size={16} className="mr-2" />
+                  Explore
+                </button>
+                <button
+                  onClick={() => setActiveTab("saved")}
+                  className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+                >
+                  <HeartIcon size={16} className="mr-2" />
+                  Saved Items
+                </button>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className={`flex-1 overflow-y-auto p-4 md:p-6 transition-all duration-200 ${
+          blurContent ? 'blur-sm pointer-events-none' : ''
+        }`}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-6"
+            >
+              {/* Overview Tab */}
+              {activeTab === "overview" && (
+                <div className="space-y-6">
+                  {/* Welcome Header */}
+                  <div className="bg-[#6cff] rounded-xl p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h1 className="text-2xl md:text-3xl font-bold mb-2">
+                          Welcome back, {userProfile.firstName}!
+                        </h1>
+                        <p className="text-white/90">Your personalized booking dashboard</p>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab("settings")}
+                        className="hidden md:flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
+                      >
+                        <Edit3 size={16} />
+                        Edit Profile
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Stats Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {/* Total Bookings Card */}
+                    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <CalendarCheck size={20} className="text-blue-600" />
+                        </div>
+                        <h3 className="text-gray-500 font-medium">Total Bookings</h3>
+                      </div>
+                      <div className="text-3xl font-bold text-gray-900 mb-2">{bookings.length}</div>
+                    </div>
+                    
+                    {/* Hotel Bookings Card */}
+                    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                          <Bed size={20} className="text-green-600" />
+                        </div>
+                        <h3 className="text-gray-500 font-medium">Hotel Stays</h3>
+                      </div>
+                      <div className="text-3xl font-bold text-gray-900 mb-2">{hotelBookings.length}</div>
+                    </div>
+                    
+                    {/* Shortlet Bookings Card */}
+                    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-purple-100 rounded-lg">
+                          <HomeIcon size={20} className="text-purple-600" />
+                        </div>
+                        <h3 className="text-gray-500 font-medium">Shortlet Stays</h3>
+                      </div>
+                      <div className="text-3xl font-bold text-gray-900 mb-2">{shortletBookings.length}</div>
+                    </div>
+                    
+                    {/* Member Since Card */}
+                    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-yellow-100 rounded-lg">
+                          <AwardIcon size={20} className="text-yellow-600" />
+                        </div>
+                        <h3 className="text-gray-500 font-medium">Member Since</h3>
+                      </div>
+                      <div className="text-xl font-bold text-gray-900 mb-2">{memberSince}</div>
+                    </div>
+                  </div>
+
+                  {/* Recent Bookings Section */}
+                  {recentBookings.length > 0 && (
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                      <div className="p-6 border-b border-gray-200">
+                        <h2 className="text-xl font-bold text-gray-900">Recent Bookings</h2>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Booking</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Type</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Date</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Status</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Amount</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {recentBookings.map((booking) => (
+                              <tr key={booking.id} className="hover:bg-gray-50">
+                                <td className="p-4">
+                                  <div className="flex items-center gap-3">
+                                    <img 
+                                      src={booking.vendor?.image || "https://images.unsplash.com/photo-1552566626-52f8b828add9"} 
+                                      alt={booking.vendor?.name} 
+                                      className="w-10 h-10 rounded-md object-cover" 
+                                    />
+                                    <div>
+                                      <div className="font-medium text-gray-900 truncate max-w-[150px]">
+                                        {booking.vendor?.name || "Unknown Vendor"}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="p-4">
+                                  <div className="flex items-center gap-1">
+                                    {getBookingIcon(booking.type)}
+                                    <span className="text-gray-900 capitalize">
+                                      {booking.type || "N/A"}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="p-4 text-gray-900">
+                                  {formatDate(booking.details?.checkIn || booking.date)}
+                                </td>
+                                <td className="p-4">
+                                  <span className={`px-3 py-1 rounded-full text-sm ${getStatusColor(booking.status)}`}>
+                                    {booking.status || "N/A"}
+                                  </span>
+                                </td>
+                                <td className="p-4 text-gray-900 font-medium">
+                                  {formatPrice(booking.details?.totalAmount)}
+                                </td>
+                                <td className="p-4">
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => navigate(`/booking/confirmation/${booking.type}?ref=${booking.id}`)}
+                                      className="text-blue-400 hover:text-blue-600 p-1 transition-colors"
+                                      title="View Details"
+                                    >
+                                      <Eye size={16} />
+                                    </button>
+                                    {booking.status === 'confirmed' && (
+                                      <button
+                                        onClick={() => handleCancelBooking(booking.id)}
+                                        className="text-red-400 hover:text-red-600 p-1 transition-colors"
+                                        title="Cancel Booking"
+                                      >
+                                        <X size={16} />
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {bookings.length > 5 && (
+                        <div className="p-4 border-t border-gray-200">
                           <button
-                            onClick={() => setActiveTab("settings")}
-                            className="hidden md:flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors font-manrope"
+                            onClick={() => setActiveTab("bookings")}
+                            className="w-full text-center text-blue-600 hover:text-blue-800 text-sm"
                           >
-                            <Edit3 size={16} strokeWidth={2.5} />
-                            Edit Profile
+                            View All {bookings.length} Bookings →
                           </button>
                         </div>
-                      </div>
+                      )}
+                    </div>
+                  )}
 
-                      {/* Stats Cards */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                        {/* Total Bookings Card */}
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.1 }}
-                          className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex items-center gap-3 mb-3 md:mb-4">
-                            <div className="p-2 bg-blue-100 rounded-lg">
-                              <CalendarCheck size={20} strokeWidth={2.5} className="text-blue-600" />
-                            </div>
-                            <h3 className="text-gray-500 font-medium text-sm md:text-base font-manrope">Total Bookings</h3>
+                  {/* Quick Booking Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {bookingCategories.map((category) => (
+                      <button
+                        key={category.id}
+                        onClick={() => navigate(`/${category.id}`)}
+                        className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all text-left"
+                      >
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className={`p-2 bg-${category.color}-100 rounded-lg`}>
+                            <category.icon size={24} className={`text-${category.color}-600`} />
                           </div>
-                          <div className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2 font-manrope">{bookings.length}</div>
-                        </motion.div>
-                        
-                        {/* Hotel Bookings Card */}
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.15 }}
-                          className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex items-center gap-3 mb-3 md:mb-4">
-                            <div className="p-2 bg-green-100 rounded-lg">
-                              <Bed size={20} strokeWidth={2.5} className="text-green-600" />
-                            </div>
-                            <h3 className="text-gray-500 font-medium text-sm md:text-base font-manrope">Hotel Stays</h3>
-                          </div>
-                          <div className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2 font-manrope">{hotelBookings.length}</div>
-                        </motion.div>
-                        
-                        {/* Shortlet Bookings Card */}
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.2 }}
-                          className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex items-center gap-3 mb-3 md:mb-4">
-                            <div className="p-2 bg-purple-100 rounded-lg">
-                              <HomeIcon size={20} strokeWidth={2.5} className="text-purple-600" />
-                            </div>
-                            <h3 className="text-gray-500 font-medium text-sm md:text-base font-manrope">Shortlet Stays</h3>
-                          </div>
-                          <div className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2 font-manrope">{shortletBookings.length}</div>
-                        </motion.div>
-                        
-                        {/* Member Since Card */}
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.25 }}
-                          className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex items-center gap-3 mb-3 md:mb-4">
-                            <div className="p-2 bg-yellow-100 rounded-lg">
-                              <AwardIcon size={20} strokeWidth={2.5} className="text-yellow-600" />
-                            </div>
-                            <h3 className="text-gray-500 font-medium text-sm md:text-base font-manrope">Member Since</h3>
-                          </div>
-                          <div className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2 font-manrope">{memberSince}</div>
-                        </motion.div>
-                      </div>
+                          <h3 className="font-bold text-gray-900">{category.label}</h3>
+                        </div>
+                        <p className="text-gray-600 text-sm">
+                          {category.id === 'hotel' && "Find and book the perfect hotel for your stay"}
+                          {category.id === 'shortlet' && "Discover amazing short-term rental properties"}
+                          {category.id === 'restaurant' && "Reserve tables at top restaurants"}
+                          {category.id === 'event' && "Book venues and plan your events"}
+                          {category.id === 'service' && "Find professional services for your needs"}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-                      {/* Recent Bookings Section */}
-                      {recentBookings.length > 0 && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.3 }}
-                          className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm"
+              {/* Bookings Tab */}
+              {activeTab === "bookings" && (
+                <div className="space-y-6">
+                  {/* Header */}
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-900">My Bookings</h2>
+                        <p className="text-gray-600">Manage and track all your bookings</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => navigate("/")}
+                          className="px-4 py-2.5 bg-[#6cff] text-white rounded-lg hover:opacity-90 text-sm font-medium transition-colors"
                         >
-                          <div className="p-4 md:p-6 border-b border-gray-200">
-                            <h2 className="text-lg md:text-xl font-bold text-gray-900 font-manrope">Recent Bookings</h2>
-                          </div>
-                          <div className="overflow-x-auto">
-                            <div className="min-w-[600px] md:min-w-0">
-                              <table className="w-full">
-                                <thead className="bg-gray-50">
-                                  <tr>
-                                    <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Booking</th>
-                                    <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Type</th>
-                                    <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope hidden md:table-cell">Date</th>
-                                    <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Status</th>
-                                    <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Amount</th>
-                                    <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Actions</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200">
-                                  {recentBookings.map((booking, index) => (
-                                    <motion.tr 
-                                      key={booking.id}
-                                      initial={{ opacity: 0, y: 10 }}
-                                      animate={{ opacity: 1, y: 0 }}
-                                      transition={{ delay: 0.1 * index }}
-                                      className="hover:bg-gray-50"
-                                    >
-                                      <td className="p-3 md:p-4">
-                                        <div className="flex items-center gap-2 md:gap-3">
-                                          <img 
-                                            src={booking.vendor?.image || "https://images.unsplash.com/photo-1552566626-52f8b828add9"} 
-                                            alt={booking.vendor?.name} 
-                                            className="w-8 h-8 md:w-10 md:h-10 rounded-md object-cover" 
-                                          />
-                                          <div>
-                                            <div className="font-medium text-gray-900 text-sm md:text-base font-manrope truncate max-w-[150px]">
-                                              {booking.vendor?.name || "Unknown Vendor"}
-                                            </div>
-                                            <div className="text-xs text-gray-500 md:hidden font-manrope">
-                                              {formatDate(booking.date)}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </td>
-                                      <td className="p-3 md:p-4">
-                                        <div className="flex items-center gap-1">
-                                          {getBookingIcon(booking.type)}
-                                          <span className="text-gray-900 text-sm font-manrope capitalize">
-                                            {booking.type || "N/A"}
-                                          </span>
-                                        </div>
-                                      </td>
-                                      <td className="p-3 md:p-4 text-gray-900 hidden md:table-cell font-manrope">
-                                        {formatDate(booking.details?.checkIn || booking.date)}
-                                      </td>
-                                      <td className="p-3 md:p-4">
-                                        <span className={`px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm font-manrope ${getStatusColor(booking.status)}`}>
-                                          {booking.status || "N/A"}
-                                        </span>
-                                      </td>
-                                      <td className="p-3 md:p-4 text-gray-900 font-medium font-manrope">
-                                        {formatPrice(booking.details?.totalAmount)}
-                                      </td>
-                                      <td className="p-3 md:p-4">
-                                        <div className="flex items-center gap-2">
-                                          <motion.button
-                                            whileHover={{ scale: 1.1 }}
-                                            whileTap={{ scale: 0.9 }}
-                                            onClick={() => navigate(`/booking/confirmation/${booking.type}?ref=${booking.id}`)}
-                                            className="text-blue-400 hover:text-blue-600 p-1 transition-colors"
-                                            title="View Details"
-                                          >
-                                            <Eye size={16} strokeWidth={2.5} />
-                                          </motion.button>
-                                          {booking.status === 'confirmed' && (
-                                            <motion.button
-                                              whileHover={{ scale: 1.1 }}
-                                              whileTap={{ scale: 0.9 }}
-                                              onClick={() => handleCancelBooking(booking.id)}
-                                              className="text-red-400 hover:text-red-600 p-1 transition-colors"
-                                              title="Cancel Booking"
-                                            >
-                                              <X size={16} strokeWidth={2.5} />
-                                            </motion.button>
-                                          )}
-                                        </div>
-                                      </td>
-                                    </motion.tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                          Book Now
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bookings by Category */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {bookingCategories.map((category) => {
+                      const categoryBookings = bookings.filter(b => 
+                        b.type?.toLowerCase() === category.id || 
+                        (category.id === 'event' && b.type?.toLowerCase() === 'event center')
+                      );
+                      
+                      return (
+                        <div 
+                          key={category.id}
+                          className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`p-2 bg-${category.color}-100 rounded-lg`}>
+                                <category.icon size={20} className={`text-${category.color}-600`} />
+                              </div>
+                              <h3 className="font-bold text-gray-900">{category.label}</h3>
                             </div>
+                            <span className="text-xl font-bold text-gray-900">{categoryBookings.length}</span>
                           </div>
-                          {bookings.length > 5 && (
-                            <div className="p-4 border-t border-gray-200">
+                          {categoryBookings.length > 0 ? (
+                            <div className="space-y-3">
+                              {categoryBookings.slice(0, 3).map((booking) => (
+                                <div key={booking.id} className="p-3 border border-gray-200 rounded-lg">
+                                  <div className="flex items-center justify-between">
+                                    <div className="min-w-0">
+                                      <p className="font-medium text-gray-900 text-sm truncate">
+                                        {booking.vendor?.name || "Unknown Vendor"}
+                                      </p>
+                                      <p className="text-xs text-gray-500">
+                                        {formatDate(booking.date)}
+                                      </p>
+                                    </div>
+                                    <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(booking.status)}`}>
+                                      {booking.status}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                              {categoryBookings.length > 3 && (
+                                <button 
+                                  onClick={() => setActiveTab("bookings")}
+                                  className="w-full text-center text-blue-600 hover:text-blue-800 text-sm"
+                                >
+                                  View {categoryBookings.length - 3} more →
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-center py-4">
+                              <p className="text-gray-500 text-sm">No {category.label.toLowerCase()} bookings yet</p>
                               <button
-                                onClick={() => setActiveTab("bookings")}
-                                className="w-full text-center text-blue-600 hover:text-blue-800 text-sm font-manrope"
+                                onClick={() => navigate(`/${category.id}`)}
+                                className="mt-2 text-blue-600 hover:text-blue-800 text-sm"
                               >
-                                View All {bookings.length} Bookings →
+                                Book {category.label} →
                               </button>
                             </div>
                           )}
-                        </motion.div>
-                      )}
-
-                      {/* Quick Booking Cards */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                        {bookingCategories.map((category, index) => (
-                          <motion.button
-                            key={category.id}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => navigate(`/${category.id}`)}
-                            className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all text-left"
-                          >
-                            <div className="flex items-center gap-3 mb-4">
-                              <div className={`p-2 bg-${category.color}-100 rounded-lg`}>
-                                <category.icon size={24} strokeWidth={2.5} className={`text-${category.color}-600`} />
-                              </div>
-                              <h3 className="font-bold text-gray-900 font-manrope">{category.label}</h3>
-                            </div>
-                            <p className="text-gray-600 text-sm font-manrope">
-                              {category.id === 'hotel' && "Find and book the perfect hotel for your stay"}
-                              {category.id === 'shortlet' && "Discover amazing short-term rental properties"}
-                              {category.id === 'restaurant' && "Reserve tables at top restaurants"}
-                              {category.id === 'event' && "Book venues and plan your events"}
-                              {category.id === 'service' && "Find professional services for your needs"}
-                            </p>
-                          </motion.button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Bookings Tab */}
-                  {activeTab === "bookings" && (
-                    <div className="space-y-6">
-                      {/* Header */}
-                      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div>
-                            <h2 className="text-lg md:text-xl font-bold text-gray-900 font-manrope">My Bookings</h2>
-                            <p className="text-gray-600 text-sm font-manrope">Manage and track all your bookings</p>
-                          </div>
-                          <div className="flex gap-2">
-                            <motion.button 
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => navigate("/")}
-                              className="px-4 py-2.5 bg-[#6cff] text-white rounded-lg hover:opacity-90 text-sm font-medium font-manrope transition-colors"
-                            >
-                              Book Now
-                            </motion.button>
-                          </div>
                         </div>
-                      </div>
+                      );
+                    })}
+                  </div>
 
-                      {/* Bookings by Category */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                        {bookingCategories.map((category) => {
-                          const categoryBookings = bookings.filter(b => 
-                            b.type?.toLowerCase() === category.id || 
-                            (category.id === 'event' && b.type?.toLowerCase() === 'event center')
-                          );
-                          
-                          return (
-                            <motion.div 
-                              key={category.id}
-                              initial={{ opacity: 0, scale: 0.95 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow"
-                            >
-                              <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                  <div className={`p-2 bg-${category.color}-100 rounded-lg`}>
-                                    <category.icon size={20} strokeWidth={2.5} className={`text-${category.color}-600`} />
-                                  </div>
-                                  <h3 className="font-bold text-gray-900 font-manrope">{category.label}</h3>
-                                </div>
-                                <span className="text-xl font-bold text-gray-900 font-manrope">{categoryBookings.length}</span>
-                              </div>
-                              {categoryBookings.length > 0 ? (
-                                <div className="space-y-3">
-                                  {categoryBookings.slice(0, 3).map((booking) => (
-                                    <div key={booking.id} className="p-3 border border-gray-200 rounded-lg">
-                                      <div className="flex items-center justify-between">
-                                        <div className="min-w-0">
-                                          <p className="font-medium text-gray-900 text-sm truncate font-manrope">
-                                            {booking.vendor?.name || "Unknown Vendor"}
-                                          </p>
-                                          <p className="text-xs text-gray-500 font-manrope">
-                                            {formatDate(booking.date)}
-                                          </p>
-                                        </div>
-                                        <span className={`px-2 py-1 rounded-full text-xs font-manrope ${getStatusColor(booking.status)}`}>
-                                          {booking.status}
-                                        </span>
-                                      </div>
+                  {/* All Bookings Table */}
+                  {bookings.length > 0 && (
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                      <div className="p-6 border-b border-gray-200">
+                        <h3 className="text-lg font-bold text-gray-900">All Bookings ({bookings.length})</h3>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Vendor</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Type</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Date</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Status</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Amount</th>
+                              <th className="text-left p-4 text-sm font-semibold text-gray-600">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {bookings.map((booking) => (
+                              <tr key={booking.id} className="hover:bg-gray-50">
+                                <td className="p-4">
+                                  <div className="flex items-center gap-3">
+                                    <img 
+                                      src={booking.vendor?.image || "https://images.unsplash.com/photo-1552566626-52f8b828add9"} 
+                                      alt={booking.vendor?.name}
+                                      className="w-10 h-10 rounded-md object-cover"
+                                    />
+                                    <div className="min-w-0">
+                                      <p className="font-medium text-gray-900 text-sm truncate">
+                                        {booking.vendor?.name || "Unknown Vendor"}
+                                      </p>
+                                      <p className="text-xs text-gray-500 truncate">
+                                        {formatLocation(booking.vendor?.location)}
+                                      </p>
                                     </div>
-                                  ))}
-                                  {categoryBookings.length > 3 && (
-                                    <button className="w-full text-center text-blue-600 hover:text-blue-800 text-sm font-manrope">
-                                      View {categoryBookings.length - 3} more →
+                                  </div>
+                                </td>
+                                <td className="p-4">
+                                  <div className="flex items-center gap-1">
+                                    {getBookingIcon(booking.type)}
+                                    <span className="text-gray-900 text-sm capitalize">
+                                      {booking.type || "N/A"}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="p-4 text-gray-900">
+                                  {formatDate(booking.details?.checkIn || booking.date)}
+                                </td>
+                                <td className="p-4">
+                                  <span className={`px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm ${getStatusColor(booking.status)}`}>
+                                    {booking.status || "N/A"}
+                                  </span>
+                                </td>
+                                <td className="p-4 text-gray-900 font-medium">
+                                  {formatPrice(booking.details?.totalAmount)}
+                                </td>
+                                <td className="p-4">
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => navigate(`/booking/confirmation/${booking.type}?ref=${booking.id}`)}
+                                      className="text-blue-400 hover:text-blue-600 p-1 transition-colors"
+                                      title="View Details"
+                                    >
+                                      <Eye size={16} />
                                     </button>
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="text-center py-4">
-                                  <p className="text-gray-500 text-sm font-manrope">No {category.label.toLowerCase()} bookings yet</p>
-                                  <button
-                                    onClick={() => navigate(`/${category.id}`)}
-                                    className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-manrope"
-                                  >
-                                    Book {category.label} →
-                                  </button>
-                                </div>
-                              )}
-                            </motion.div>
-                          );
-                        })}
-                      </div>
-
-                      {/* All Bookings Table */}
-                      {bookings.length > 0 && (
-                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                          <div className="p-4 md:p-6 border-b border-gray-200">
-                            <h3 className="text-lg font-bold text-gray-900 font-manrope">All Bookings ({bookings.length})</h3>
-                          </div>
-                          <div className="overflow-x-auto">
-                            <table className="w-full">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Vendor</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Type</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope hidden md:table-cell">Date</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Status</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Amount</th>
-                                  <th className="text-left p-3 md:p-4 text-xs md:text-sm font-semibold text-gray-600 font-manrope">Actions</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-200">
-                                {bookings.map((booking, index) => (
-                                  <tr key={booking.id} className="hover:bg-gray-50">
-                                    <td className="p-3 md:p-4">
-                                      <div className="flex items-center gap-3">
-                                        <img 
-                                          src={booking.vendor?.image || "https://images.unsplash.com/photo-1552566626-52f8b828add9"} 
-                                          alt={booking.vendor?.name}
-                                          className="w-10 h-10 rounded-md object-cover"
-                                        />
-                                        <div className="min-w-0">
-                                          <p className="font-medium text-gray-900 text-sm truncate font-manrope">
-                                            {booking.vendor?.name || "Unknown Vendor"}
-                                          </p>
-                                          <p className="text-xs text-gray-500 font-manrope truncate">
-                                            {formatLocation(booking.vendor?.location)}
-                                          </p>
-                                        </div>
-                                      </div>
-                                    </td>
-                                    <td className="p-3 md:p-4">
-                                      <div className="flex items-center gap-1">
-                                        {getBookingIcon(booking.type)}
-                                        <span className="text-gray-900 text-sm font-manrope capitalize">
-                                          {booking.type || "N/A"}
-                                        </span>
-                                      </div>
-                                    </td>
-                                    <td className="p-3 md:p-4 text-gray-900 hidden md:table-cell font-manrope">
-                                      {formatDate(booking.details?.checkIn || booking.date)}
-                                    </td>
-                                    <td className="p-3 md:p-4">
-                                      <span className={`px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm font-manrope ${getStatusColor(booking.status)}`}>
-                                        {booking.status || "N/A"}
-                                      </span>
-                                    </td>
-                                    <td className="p-3 md:p-4 text-gray-900 font-medium font-manrope">
-                                      {formatPrice(booking.details?.totalAmount)}
-                                    </td>
-                                    <td className="p-3 md:p-4">
-                                      <div className="flex items-center gap-2">
-                                        <button
-                                          onClick={() => navigate(`/booking/confirmation/${booking.type}?ref=${booking.id}`)}
-                                          className="text-blue-400 hover:text-blue-600 p-1 transition-colors"
-                                          title="View Details"
-                                        >
-                                          <Eye size={16} strokeWidth={2.5} />
-                                        </button>
-                                        {booking.status === 'confirmed' && (
-                                          <button
-                                            onClick={() => handleCancelBooking(booking.id)}
-                                            className="text-red-400 hover:text-red-600 p-1 transition-colors"
-                                            title="Cancel Booking"
-                                          >
-                                            <X size={16} strokeWidth={2.5} />
-                                          </button>
-                                        )}
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Saved Tab */}
-                  {activeTab === "saved" && (
-                    <div className="space-y-6">
-                      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div>
-                            <h2 className="text-lg md:text-xl font-bold text-gray-900 font-manrope">Saved Listings</h2>
-                            <p className="text-gray-600 text-sm font-manrope">Your favorite hotels, restaurants, and services</p>
-                          </div>
-                          <motion.button 
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => navigate("/")}
-                            className="px-4 py-2.5 bg-[#6cff] text-white rounded-lg hover:opacity-90 text-sm font-medium font-manrope transition-colors"
-                          >
-                            Explore More
-                          </motion.button>
-                        </div>
-                      </div>
-
-                      {savedListings.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                          {savedListings.map((listing, index) => (
-                            <motion.div 
-                              key={index}
-                              initial={{ opacity: 0, scale: 0.95 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: 0.1 * index }}
-                              className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow group"
-                            >
-                              <div className="relative h-48 overflow-hidden">
-                                <img 
-                                  src={listing.image || "https://images.unsplash.com/photo-1552566626-52f8b828add9"} 
-                                  alt={listing.name}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                />
-                                <button className="absolute top-3 right-3 p-2 bg-white/90 rounded-full hover:bg-white transition-colors">
-                                  <HeartIcon size={20} strokeWidth={2.5} className="text-red-500" fill="#EF4444" />
-                                </button>
-                              </div>
-                              <div className="p-4">
-                                <div className="flex items-start justify-between mb-2">
-                                  <div>
-                                    <h4 className="font-bold text-gray-900 font-manrope truncate">{listing.name}</h4>
-                                    <p className="text-sm text-gray-600 font-manrope capitalize">{listing.type}</p>
+                                    {booking.status === 'confirmed' && (
+                                      <button
+                                        onClick={() => handleCancelBooking(booking.id)}
+                                        className="text-red-400 hover:text-red-600 p-1 transition-colors"
+                                        title="Cancel Booking"
+                                      >
+                                        <X size={16} />
+                                      </button>
+                                    )}
                                   </div>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm text-gray-600 mb-3 font-manrope">
-                                  <MapPinIcon size={14} strokeWidth={2.5} />
-                                  <span className="truncate">{listing.location || "Location not specified"}</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <div className="font-bold text-gray-900 font-manrope">
-                                    {formatPrice(listing.price)}
-                                  </div>
-                                  <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => navigate(`/listing/${listing.id}`)}
-                                    className="px-3 py-1.5 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors font-manrope"
-                                  >
-                                    View Details
-                                  </motion.button>
-                                </div>
-                              </div>
-                            </motion.div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                          <HeartIcon size={48} strokeWidth={1.5} className="mx-auto text-gray-300 mb-4" />
-                          <h3 className="text-lg font-bold text-gray-900 mb-2 font-manrope">No Saved Listings</h3>
-                          <p className="text-gray-600 mb-6 font-manrope">You haven't saved any listings yet.</p>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => navigate("/")}
-                            className="px-6 py-3 bg-[#6cff] text-white rounded-lg hover:opacity-90 font-medium font-manrope transition-colors"
-                          >
-                            Explore Listings
-                          </motion.button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Notifications Tab */}
-                  {activeTab === "notifications" && (
-                    <div className="space-y-6">
-                      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div>
-                            <h2 className="text-lg md:text-xl font-bold text-gray-900 font-manrope">Notifications</h2>
-                            <p className="text-gray-600 text-sm font-manrope">Manage your notifications and alerts</p>
-                          </div>
-                          <div className="flex gap-2">
-                            <motion.button 
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              className="px-4 py-2.5 bg-[#6cff] text-white rounded-lg hover:opacity-90 text-sm font-medium font-manrope transition-colors"
-                            >
-                              Mark All as Read
-                            </motion.button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                        <div className="divide-y divide-gray-200">
-                          <div className="p-4 md:p-6 hover:bg-gray-50 transition-colors">
-                            <div className="flex items-start gap-3 md:gap-4">
-                              <div className="p-2 rounded-full bg-blue-100 text-blue-600">
-                                <Bell size={20} strokeWidth={2.5} />
-                              </div>
-                              <div className="flex-grow min-w-0">
-                                <div className="flex justify-between items-start mb-1">
-                                  <h3 className="font-medium text-gray-900 text-sm md:text-base font-manrope">Welcome to Ajani!</h3>
-                                  <span className="text-xs text-gray-500 font-manrope whitespace-nowrap">Just now</span>
-                                </div>
-                                <p className="text-gray-600 text-sm font-manrope mb-2">
-                                  We're glad to have you on board. Start exploring amazing listings and book your next experience.
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   )}
+                </div>
+              )}
 
-                  {/* Settings Tab */}
-                  {activeTab === "settings" && (
-                    <div className="space-y-6">
-                      <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm"
+              {/* Saved Tab */}
+              {activeTab === "saved" && (
+                <div className="space-y-6">
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-900">Saved Listings</h2>
+                        <p className="text-gray-600">Your favorite hotels, restaurants, and services</p>
+                      </div>
+                      <button 
+                        onClick={() => navigate("/")}
+                        className="px-4 py-2.5 bg-[#6cff] text-white rounded-lg hover:opacity-90 text-sm font-medium transition-colors"
                       >
-                        <div className="border-b border-gray-200 pb-4 mb-6">
-                          <h2 className="text-lg font-bold text-gray-900 font-manrope">Edit Profile</h2>
-                          <p className="text-sm text-gray-600 mt-1 font-manrope">Manage your account and preferences</p>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="flex items-center gap-4">
-                            <div className="relative group">
-                              {profileImage ? (
-                                <img 
-                                  src={profileImage} 
-                                  alt="Profile" 
-                                  className="w-20 h-20 rounded-full object-cover cursor-pointer group-hover:scale-105 transition-transform"
-                                />
-                              ) : (
-                                <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center cursor-pointer group-hover:scale-105 transition-transform">
-                                  <User size={40} className="text-blue-600" />
-                                </div>
-                              )}
-                              <label className="absolute bottom-0 right-0 bg-[#6cff] text-white rounded-full p-2 cursor-pointer group-hover:scale-110 transition-transform shadow-lg">
-                                <Camera size={16} strokeWidth={2.5} />
-                                <input 
-                                  type="file" 
-                                  accept="image/*" 
-                                  onChange={handleProfileImageUpload}
-                                  className="hidden"
-                                />
-                              </label>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-600 font-manrope">Click the camera icon to upload a new profile picture</p>
-                            </div>
+                        Explore More
+                      </button>
+                    </div>
+                  </div>
+
+                  {savedListings.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {savedListings.map((listing, index) => (
+                        <div 
+                          key={index}
+                          className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow group"
+                        >
+                          <div className="relative h-48 overflow-hidden">
+                            <img 
+                              src={listing.image || "https://images.unsplash.com/photo-1552566626-52f8b828add9"} 
+                              alt={listing.name}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            <button className="absolute top-3 right-3 p-2 bg-white/90 rounded-full hover:bg-white transition-colors">
+                              <HeartIcon size={20} className="text-red-500" fill="#EF4444" />
+                            </button>
                           </div>
-                          
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="p-4">
+                            <div className="flex items-start justify-between mb-2">
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">First Name</label>
-                                <input 
-                                  type="text" 
-                                  name="firstName"
-                                  value={formData.firstName}
-                                  onChange={handleInputChange}
-                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">Last Name</label>
-                                <input 
-                                  type="text" 
-                                  name="lastName"
-                                  value={formData.lastName}
-                                  onChange={handleInputChange}
-                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                                />
+                                <h4 className="font-bold text-gray-900 truncate">{listing.name}</h4>
+                                <p className="text-sm text-gray-600 capitalize">{listing.type}</p>
                               </div>
                             </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">Email</label>
-                                <input 
-                                  type="email" 
-                                  value={profileData.email}
-                                  readOnly
-                                  onClick={handleEmailClick}
-                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">Phone</label>
-                                <input 
-                                  type="tel" 
-                                  name="phone"
-                                  value={formData.phone}
-                                  onChange={handleInputChange}
-                                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                                />
-                              </div>
+                            <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                              <MapPinIcon size={14} />
+                              <span className="truncate">{listing.location || "Location not specified"}</span>
                             </div>
-                            
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2 font-manrope">Address</label>
-                              <input 
-                                type="text" 
-                                name="address"
-                                value={formData.address}
-                                onChange={handleInputChange}
-                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-manrope"
-                                placeholder="Enter your address"
-                              />
+                            <div className="flex items-center justify-between">
+                              <div className="font-bold text-gray-900">
+                                {formatPrice(listing.price)}
+                              </div>
+                              <button
+                                onClick={() => navigate(`/listing/${listing.id}`)}
+                                className="px-3 py-1.5 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                              >
+                                View Details
+                              </button>
                             </div>
                           </div>
                         </div>
-                        
-                        <div className="mt-6 flex justify-end gap-3">
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setIsEditing(false)}
-                            className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium font-manrope transition-colors"
-                          >
-                            Cancel
-                          </motion.button>
-                          <motion.button 
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={handleSaveProfile}
-                            className="px-6 py-2.5 bg-[#6cff] text-white rounded-lg hover:opacity-90 text-sm font-medium flex items-center gap-2 font-manrope transition-colors"
-                          >
-                            <Save size={16} strokeWidth={2.5} /> Save Changes
-                          </motion.button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                      <HeartIcon size={48} className="mx-auto text-gray-300 mb-4" />
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">No Saved Listings</h3>
+                      <p className="text-gray-600 mb-6">You haven't saved any listings yet.</p>
+                      <button
+                        onClick={() => navigate("/")}
+                        className="px-6 py-3 bg-[#6cff] text-white rounded-lg hover:opacity-90 font-medium transition-colors"
+                      >
+                        Explore Listings
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Settings Tab */}
+              {activeTab === "settings" && (
+                <div className="space-y-6">
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <div className="border-b border-gray-200 pb-4 mb-6">
+                      <h2 className="text-lg font-bold text-gray-900">Edit Profile</h2>
+                      <p className="text-sm text-gray-600 mt-1">Manage your account and preferences</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="flex items-center gap-4">
+                        <div className="relative group">
+                          {profileImage ? (
+                            <img 
+                              src={profileImage} 
+                              alt="Profile" 
+                              className="w-20 h-20 rounded-full object-cover cursor-pointer group-hover:scale-105 transition-transform"
+                            />
+                          ) : (
+                            <div className="w-20 h-20 rounded-full bg-[#6cff] flex items-center justify-center cursor-pointer group-hover:scale-105 transition-transform">
+                              <User size={40} className="text-white" />
+                            </div>
+                          )}
+                          <label className="absolute bottom-0 right-0 bg-[#6cff] text-white rounded-full p-2 cursor-pointer group-hover:scale-110 transition-transform shadow-lg">
+                            <Camera size={16} />
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              onChange={handleProfileImageUpload}
+                              className="hidden"
+                            />
+                          </label>
                         </div>
-                      </motion.div>
+                        <div>
+                          <p className="text-sm text-gray-600">Click the camera icon to upload a new profile picture</p>
+                        </div>
+                      </div>
                       
-                      <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm"
-                      >
-                        <h2 className="text-lg font-bold text-gray-900 font-manrope mb-4">Notification Preferences</h2>
-                        <p className="text-gray-600 mb-4 font-manrope">Choose how you want to receive notifications</p>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                            <input 
+                              type="text" 
+                              name="firstName"
+                              value={formData.firstName}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                            <input 
+                              type="text" 
+                              name="lastName"
+                              value={formData.lastName}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                        </div>
                         
-                        <div className="space-y-4">
-                          <div className="border border-gray-200 rounded-lg p-4">
-                            <h3 className="text-md font-medium text-gray-900 mb-3 font-manrope">Email</h3>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Mail size={16} strokeWidth={2.5} className="text-gray-500" />
-                                <span className="text-gray-900 font-manrope">Email Notifications</span>
-                              </div>
-                              <div className="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
-                                <input 
-                                  type="checkbox" 
-                                  id="email-toggle" 
-                                  checked={notificationSettings.email}
-                                  onChange={() => handleNotificationToggle('email')}
-                                  className="sr-only"
-                                />
-                                <label 
-                                  htmlFor="email-toggle"
-                                  className={`block overflow-hidden h-6 rounded-full cursor-pointer ${
-                                    notificationSettings.email ? 'bg-[#6cff]' : 'bg-gray-300'
-                                  }`}
-                                >
-                                  <span 
-                                    className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
-                                      notificationSettings.email ? 'translate-x-6' : 'translate-x-0'
-                                    }`}
-                                  ></span>
-                                </label>
-                              </div>
-                            </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                            <input 
+                              type="email" 
+                              value={profileData.email}
+                              readOnly
+                              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                            />
                           </div>
-                          
-                          <div className="border border-gray-200 rounded-lg p-4">
-                            <h3 className="text-md font-medium text-gray-900 mb-3 font-manrope">WhatsApp</h3>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <MessageSquare size={16} strokeWidth={2.5} className="text-gray-500" />
-                                <span className="text-gray-900 font-manrope">WhatsApp Notifications</span>
-                              </div>
-                              <div className="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
-                                <input 
-                                  type="checkbox" 
-                                  id="whatsapp-toggle" 
-                                  checked={notificationSettings.whatsapp}
-                                  onChange={() => handleNotificationToggle('whatsapp')}
-                                  className="sr-only"
-                                />
-                                <label 
-                                  htmlFor="whatsapp-toggle"
-                                  className={`block overflow-hidden h-6 rounded-full cursor-pointer ${
-                                    notificationSettings.whatsapp ? 'bg-[#6cff]' : 'bg-gray-300'
-                                  }`}
-                                >
-                                  <span 
-                                    className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
-                                      notificationSettings.whatsapp ? 'translate-x-6' : 'translate-x-0'
-                                    }`}
-                                  ></span>
-                                </label>
-                              </div>
-                            </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                            <input 
+                              type="tel" 
+                              name="phone"
+                              value={formData.phone}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
                           </div>
                         </div>
-                      </motion.div>
-
-                      <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm"
-                      >
-                        <h2 className="text-lg font-bold text-gray-900 font-manrope mb-4">Account Actions</h2>
-                        <div className="space-y-3">
-                          <button
-                            onClick={() => alert("Password reset email sent!")}
-                            className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 border border-gray-200 font-manrope"
-                          >
-                            Reset Password
-                          </button>
-                          <button
-                            onClick={handleLogout}
-                            className="w-full text-left px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors text-blue-600 border border-blue-200 font-manrope"
-                          >
-                            Sign Out
-                          </button>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                          <input 
+                            type="text" 
+                            name="address"
+                            value={formData.address}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter your address"
+                          />
                         </div>
-                      </motion.div>
+                      </div>
                     </div>
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          </div>
-        </div>
-      </main>
+                    
+                    <div className="mt-6 flex justify-end gap-3">
+                      <button
+                        onClick={() => setIsEditing(false)}
+                        className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        onClick={handleSaveProfile}
+                        className="px-6 py-2.5 bg-[#6cff] text-white rounded-lg hover:opacity-90 text-sm font-medium flex items-center gap-2 transition-colors"
+                      >
+                        <Save size={16} /> Save Changes
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <h2 className="text-lg font-bold text-gray-900 mb-4">Notification Preferences</h2>
+                    <p className="text-gray-600 mb-4">Choose how you want to receive notifications</p>
+                    
+                    <div className="space-y-4">
+                      <div className="border border-gray-200 rounded-lg p-4">
+                        <h3 className="text-md font-medium text-gray-900 mb-3">Email</h3>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Mail size={16} className="text-gray-500" />
+                            <span className="text-gray-900">Email Notifications</span>
+                          </div>
+                          <div className="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
+                            <input 
+                              type="checkbox" 
+                              id="email-toggle" 
+                              checked={notificationSettings.email}
+                              onChange={() => handleNotificationToggle('email')}
+                              className="sr-only"
+                            />
+                            <label 
+                              htmlFor="email-toggle"
+                              className={`block overflow-hidden h-6 rounded-full cursor-pointer ${
+                                notificationSettings.email ? 'bg-[#6cff]' : 'bg-gray-300'
+                              }`}
+                            >
+                              <span 
+                                className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
+                                  notificationSettings.email ? 'translate-x-6' : 'translate-x-0'
+                                }`}
+                              ></span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="border border-gray-200 rounded-lg p-4">
+                        <h3 className="text-md font-medium text-gray-900 mb-3">WhatsApp</h3>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <MessageSquare size={16} className="text-gray-500" />
+                            <span className="text-gray-900">WhatsApp Notifications</span>
+                          </div>
+                          <div className="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
+                            <input 
+                              type="checkbox" 
+                              id="whatsapp-toggle" 
+                              checked={notificationSettings.whatsapp}
+                              onChange={() => handleNotificationToggle('whatsapp')}
+                              className="sr-only"
+                            />
+                            <label 
+                              htmlFor="whatsapp-toggle"
+                              className={`block overflow-hidden h-6 rounded-full cursor-pointer ${
+                                notificationSettings.whatsapp ? 'bg-[#6cff]' : 'bg-gray-300'
+                              }`}
+                            >
+                              <span 
+                                className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
+                                  notificationSettings.whatsapp ? 'translate-x-6' : 'translate-x-0'
+                                }`}
+                              ></span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <h2 className="text-lg font-bold text-gray-900 mb-4">Account Actions</h2>
+                    <div className="space-y-3">
+                      <button
+                        onClick={() => alert("Password reset email sent!")}
+                        className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 border border-gray-200"
+                      >
+                        Reset Password
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors text-blue-600 border border-blue-200"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Reviews Tab */}
+              {activeTab === "reviews" && (
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Reviews</h2>
+                  <p className="text-gray-600 mb-6">Your reviews and ratings</p>
+                  <div className="text-center py-12">
+                    <Star size={48} className="mx-auto text-gray-300 mb-4" />
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">No Reviews Yet</h3>
+                    <p className="text-gray-600 mb-6">You haven't written any reviews yet.</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Activity Tab */}
+              {activeTab === "activity" && (
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Activity Log</h2>
+                  <p className="text-gray-600 mb-6">Your recent activities</p>
+                  <div className="text-center py-12">
+                    <Clock size={48} className="mx-auto text-gray-300 mb-4" />
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">No Recent Activity</h3>
+                    <p className="text-gray-600 mb-6">Your activity log will appear here.</p>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+      </div>
     </div>
   );
 };

@@ -113,12 +113,11 @@ const getUserRoleAndProfile = () => {
       businessName: isVendor ? (profile.vendor?.businessName || profile.businessName) : null
     };
   } catch (error) {
-    console.error("Error getting user role:", error);
     return { isLoggedIn: false, isVendor: false, profile: null };
   }
 };
 
-// Helper to save booking to appropriate profile (buyer or vendor)
+// Helper to save booking to appropriate profile
 const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, totalAmount) => {
   try {
     const userInfo = getUserRoleAndProfile();
@@ -155,37 +154,43 @@ const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, t
         businessName: userInfo.businessName,
         vendorId: userInfo.isVendor ? (userInfo.profile?.vendor?.id || userInfo.profile?.vendorId) : null
       },
+      bookingCategory: userInfo.isVendor ? "personal" : "customer", // Important: Distinguish vendor personal bookings
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
     
     if (userInfo.isLoggedIn) {
       // Save to logged-in user's profile
-      if (!userInfo.profile.bookings) {
-        userInfo.profile.bookings = [];
+      const updatedProfile = { ...userInfo.profile };
+      
+      if (!updatedProfile.bookings) {
+        updatedProfile.bookings = [];
       }
       
       // Add booking to profile
-      userInfo.profile.bookings.push(bookingRecord);
+      updatedProfile.bookings.push(bookingRecord);
       
       // Limit bookings to last 50
-      if (userInfo.profile.bookings.length > 50) {
-        userInfo.profile.bookings = userInfo.profile.bookings.slice(0, 50);
+      if (updatedProfile.bookings.length > 50) {
+        updatedProfile.bookings = updatedProfile.bookings.slice(-50);
       }
       
       // Update localStorage
-      localStorage.setItem("userProfile", JSON.stringify(userInfo.profile));
+      localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
       
       // Also save to separate bookings storage for easy access
       const allBookings = JSON.parse(localStorage.getItem("userBookings") || "[]");
       allBookings.push(bookingRecord);
       localStorage.setItem("userBookings", JSON.stringify(allBookings));
       
-      // If vendor made a booking, also save to vendor-specific storage
+      // If vendor made a booking, save to vendor's personal bookings storage
       if (userInfo.isVendor) {
-        const vendorBookings = JSON.parse(localStorage.getItem("vendorBookings") || "[]");
-        vendorBookings.push(bookingRecord);
-        localStorage.setItem("vendorBookings", JSON.stringify(vendorBookings));
+        const vendorPersonalBookings = JSON.parse(localStorage.getItem("vendorPersonalBookings") || "[]");
+        vendorPersonalBookings.push(bookingRecord);
+        localStorage.setItem("vendorPersonalBookings", JSON.stringify(vendorPersonalBookings));
+        
+        // Note: Business bookings (customers booking vendor's services) should be stored separately
+        // This would come from vendor dashboard, not from making bookings
       }
       
       // Trigger storage event to update profile pages
@@ -195,7 +200,8 @@ const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, t
         success: true, 
         isLoggedIn: true, 
         isVendor: userInfo.isVendor,
-        bookingId: bookingRecord.id 
+        bookingId: bookingRecord.id,
+        bookingCategory: userInfo.isVendor ? "personal" : "customer"
       };
     } else {
       // Save as guest booking
@@ -206,7 +212,8 @@ const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, t
           role: "guest",
           isVendor: false,
           guestSessionId: localStorage.getItem("guestSessionId") || `guest_${Date.now()}`
-        }
+        },
+        bookingCategory: "guest"
       });
       
       localStorage.setItem("guestBookings", JSON.stringify(guestBookings));
@@ -224,11 +231,11 @@ const saveBookingToProfile = (bookingData, type, bookingReference, vendorInfo, t
         success: true, 
         isLoggedIn: false, 
         isVendor: false,
-        bookingId: bookingRecord.id 
+        bookingId: bookingRecord.id,
+        bookingCategory: "guest"
       };
     }
   } catch (error) {
-    console.error("Error saving booking to profile:", error);
     return { success: false, error: error.message };
   }
 };
@@ -344,7 +351,7 @@ const BookingConfirmation = () => {
             }));
           }
         } catch (error) {
-          console.error("Error parsing booking data:", error);
+          // Silent error handling
         }
       }
       
@@ -356,7 +363,7 @@ const BookingConfirmation = () => {
           try {
             data = JSON.parse(persistentData);
           } catch (error) {
-            console.error("Error parsing persistent data:", error);
+            // Silent error handling
           }
         }
       }
@@ -384,7 +391,7 @@ const BookingConfirmation = () => {
               }));
               break;
             } catch (error) {
-              console.error(`Error parsing data from ${key}:`, error);
+              // Silent error handling
             }
           }
         }
@@ -427,10 +434,10 @@ const BookingConfirmation = () => {
           setBookingSaved(true);
           setIsGuestBooking(!saveResult.isLoggedIn);
           
-          let successMessage = "✅ Booking confirmed";
+          let successMessage = " Booking confirmed";
           if (saveResult.isLoggedIn) {
             if (saveResult.isVendor) {
-              successMessage += " and saved to your vendor profile!";
+              successMessage += " and saved to your vendor personal bookings!";
             } else {
               successMessage += " and saved to your profile!";
             }
@@ -671,7 +678,7 @@ IMPORTANT NOTES:
 • Present this confirmation at the ${type === 'service' ? 'service location' : 'property'}
 • Booking was made by: ${userRole}
 • Contact support for any changes
-• Booking is stored ${isGuestBooking ? 'as a guest booking' : `in your ${userInfo.isVendor ? 'vendor' : ''} account profile`}
+• Booking is stored ${isGuestBooking ? 'as a guest booking' : `in your ${userInfo.isVendor ? 'vendor personal bookings' : 'account profile'}`}
 
 Thank you for booking with Ajani.ai!
 For assistance, contact support@ajani.com or call +234 8022662256
@@ -691,7 +698,6 @@ This confirmation was generated on: ${new Date().toLocaleString()}
       showToast('✅ Confirmation downloaded successfully!', 'success');
     } catch (error) {
       showToast('❌ Failed to download confirmation', 'error');
-      console.error('Download error:', error);
     }
   };
 
@@ -852,7 +858,7 @@ This confirmation was generated on: ${new Date().toLocaleString()}
           localStorage.removeItem('lastBookingType');
         }
       } catch (error) {
-        console.error("Error clearing old data:", error);
+        // Silent error handling
       }
     }
   };
@@ -954,10 +960,10 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                   <Building className="w-5 h-5 text-purple-600" />
                   <div className="flex-1">
                     <p className="font-medium text-purple-800 text-sm">
-                      Vendor Booking Confirmed
+                      Vendor Personal Booking Confirmed
                     </p>
                     <p className="text-xs text-purple-700">
-                      This booking has been saved to your vendor profile. You can view it in your vendor dashboard.
+                      This booking has been saved to your vendor personal bookings. You can view it in your vendor profile under "My Personal Bookings".
                     </p>
                   </div>
                 </div>
@@ -1347,7 +1353,7 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                         <div className="flex justify-between items-center">
                           <span className="text-xs text-gray-600">Booked By</span>
                           <span className="font-medium text-xs">
-                            {userInfo.isVendor ? "Vendor" : userInfo.isLoggedIn ? "User" : "Guest"}
+                            {userInfo.isVendor ? "Vendor (Personal Booking)" : userInfo.isLoggedIn ? "User" : "Guest"}
                           </span>
                         </div>
                       </div>
@@ -1558,7 +1564,7 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                     className="flex items-center justify-center gap-2 px-4 py-3 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-all font-medium text-sm"
                   >
                     <Building className="w-4 h-4" />
-                    Go to Vendor Profile
+                    Go to Vendor Personal Bookings
                   </button>
                 ) : userInfo.isLoggedIn ? (
                   <button
@@ -1595,7 +1601,7 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                   className="inline-flex items-center gap-2 text-[#6cff] font-medium hover:text-blue-700"
                 >
                   <Eye className="w-4 h-4" />
-                  {userInfo.isVendor ? "View in Vendor Profile" : "Go to My Bookings"}
+                  {userInfo.isVendor ? "View in Vendor Personal Bookings" : "Go to My Bookings"}
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
