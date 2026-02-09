@@ -1,37 +1,53 @@
-// src/components/Directory.jsx
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-import { Link, useNavigate } from "react-router-dom";
-import { MdFavoriteBorder } from "react-icons/md";
-import { FaGreaterThan, FaLessThan } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { MdFavoriteBorder, MdCheckCircle } from "react-icons/md";
+import { ToastContainer, toast, Slide } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
+import listingService from "../lib/listingService";
+
+// ---------------- API Service Functions ----------------
+const buildQueryString = (filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.category) params.append('category', filters.category);
+  return params.toString();
+};
+
+const getListingsByCategory = async (category) => {
+  try {
+    const result = await listingService.getByCategory(category);
+    return result;
+  } catch (error) {
+    return {
+      status: 'error',
+      message: error.message,
+      results: 0,
+      data: { listings: [] }
+    };
+  }
+};
 
 // ---------------- Skeleton Loading Components ----------------
 const SkeletonCard = ({ isMobile }) => (
   <div
-    className={`
-      bg-white rounded-xl overflow-hidden flex-shrink-0 
-      font-manrope animate-pulse
-      ${isMobile ? "w-[160px]" : "w-[220px]"} 
-    `}
+    className={`bg-white rounded-xl overflow-hidden flex-shrink-0 font-manrope animate-pulse ${
+      isMobile ? "w-[165px]" : "w-full"
+    } snap-start`}
   >
-    {/* Image Skeleton */}
     <div
-      className={`
-        relative overflow-hidden rounded-xl bg-gray-200
-        ${isMobile ? "w-full h-[140px]" : "w-full h-[160px]"}
-      `}
+      className={`relative overflow-hidden rounded-xl bg-gray-200 ${
+        isMobile ? "h-[150px]" : "h-[150px]"
+      }`}
     ></div>
-
-    {/* Text Skeleton */}
-    <div className={`${isMobile ? "p-1.5" : "p-2.5"} flex flex-col gap-2`}>
-      <div className="h-3 bg-gray-200 rounded w-3/4"></div>
-      <div className="h-2 bg-gray-200 rounded w-1/2"></div>
+    <div className={`${isMobile ? "p-1.5" : "p-2"} flex flex-col gap-1.5`}>
+      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
       <div className="flex items-center gap-1 mt-1">
-        <div className="h-2 bg-gray-200 rounded w-1/3"></div>
-        <div className="h-2 bg-gray-200 rounded w-1/4"></div>
+        <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+        <div className="h-3 bg-gray-200 rounded w-1/4"></div>
       </div>
     </div>
   </div>
@@ -40,14 +56,20 @@ const SkeletonCard = ({ isMobile }) => (
 const SkeletonCategorySection = ({ isMobile }) => (
   <section className="mb-4">
     <div className="flex justify-between items-center mb-2">
-      <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-      <div className="flex gap-1">
-        <div className="w-6 h-6 rounded-full bg-gray-200"></div>
-        <div className="w-6 h-6 rounded-full bg-gray-200"></div>
-      </div>
+      <div
+        className={`${isMobile ? "h-5" : "h-7"} bg-gray-200 rounded w-1/3`}
+      ></div>
+      <div
+        className={`${isMobile ? "h-4" : "h-6"} bg-gray-200 rounded w-24`}
+      ></div>
     </div>
-
-    <div className="flex overflow-x-auto scrollbar-hide gap-2">
+    <div
+      className={`${
+        isMobile
+          ? "flex overflow-x-auto gap-[8px] pb-4 -mx-[16px] pl-[16px] snap-x snap-mandatory"
+          : "grid grid-cols-2 md:grid-cols-5 lg:grid-cols-3 xl:grid-cols-6 gap-3"
+      }`}
+    >
       {[...Array(6)].map((_, index) => (
         <SkeletonCard key={index} isMobile={isMobile} />
       ))}
@@ -56,28 +78,23 @@ const SkeletonCategorySection = ({ isMobile }) => (
 );
 
 const SkeletonDirectory = ({ isMobile }) => (
-  <section id="directory" className="bg-white py-4 font-manrope">
-    <div className="max-w-8xl mx-auto px-2 sm:px-4 lg:px-6">
-      {/* Header Skeleton */}
-      <div className="mb-4">
-        <div className="text-center mb-4">
-          <div className="h-5 bg-gray-200 rounded w-1/4 mx-auto mb-2"></div>
-          <div className="h-3 bg-gray-200 rounded w-1/3 mx-auto"></div>
-        </div>
-
-        {/* Filters Skeleton */}
-        <div className="flex flex-col sm:flex-row gap-2 items-center justify-between mb-3">
-          <div className="flex w-full sm:w-auto justify-between items-center gap-1">
-            <div className="h-8 bg-gray-200 rounded-lg flex-1"></div>
-            <div className="h-8 bg-gray-200 rounded-lg flex-1"></div>
-            <div className="h-8 bg-gray-200 rounded-lg w-8"></div>
-          </div>
+  <section
+    id="directory"
+    className={`bg-white font-manrope ${isMobile ? "py-6" : "py-8"}`}
+  >
+    <div className="max-w-[1800px] mx-auto px-4 sm:px-6">
+      <div className={isMobile ? "mb-3" : "mb-4"}>
+        <div className="text-center">
+          <div
+            className={`${isMobile ? "h-6" : "h-8"} bg-gray-200 rounded w-1/4 mx-auto mb-2`}
+          ></div>
+          <div
+            className={`${isMobile ? "h-4" : "h-5"} bg-gray-200 rounded w-1/3 mx-auto`}
+          ></div>
         </div>
       </div>
-
-      {/* Category Sections Skeleton */}
-      <div className="space-y-4">
-        {[...Array(4)].map((_, index) => (
+      <div className={isMobile ? "space-y-4" : "space-y-6"}>
+        {[...Array(3)].map((_, index) => (
           <SkeletonCategorySection key={index} isMobile={isMobile} />
         ))}
       </div>
@@ -85,335 +102,198 @@ const SkeletonDirectory = ({ isMobile }) => (
   </section>
 );
 
-// ---------------- FilterDropdown Component ----------------
-const FilterDropdown = ({ isOpen, onClose, onFilterChange }) => {
-  const dropdownRef = useRef(null);
-  const [filters, setFilters] = useState({
-    categories: [],
-    priceRange: { min: "", max: "" },
-    reviews: [],
-    badges: [],
-  });
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen, onClose]);
-
-  const handleCategoryChange = (category) => {
-    setFilters((prev) => ({
-      ...prev,
-      categories: prev.categories.includes(category)
-        ? prev.categories.filter((c) => c !== category)
-        : [...prev.categories, category],
-    }));
-  };
-
-  const handleReviewChange = (stars) => {
-    setFilters((prev) => ({
-      ...prev,
-      reviews: prev.reviews.includes(stars)
-        ? prev.reviews.filter((s) => s !== stars)
-        : [...prev.reviews, stars],
-    }));
-  };
-
-  const handleBadgeChange = (badge) => {
-    setFilters((prev) => ({
-      ...prev,
-      badges: prev.badges.includes(badge)
-        ? prev.badges.filter((b) => b !== badge)
-        : [...prev.badges, badge],
-    }));
-  };
-
-  const handlePriceChange = (field, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      priceRange: {
-        ...prev.priceRange,
-        [field]: value,
-      },
-    }));
-  };
-
-  const handleReset = () => {
-    setFilters({
-      categories: [],
-      priceRange: { min: "", max: "" },
-      reviews: [],
-      badges: [],
-    });
-  };
-
-  const handleApply = () => {
-    onFilterChange(filters);
-    onClose();
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <motion.div
-      ref={dropdownRef}
-      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 p-6"
-    >
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center border-b pb-3">
-          <h3 className="text-lg font-bold text-gray-900">Filter Options</h3>
-          <button
-            onClick={onClose}
-            className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors"
-          >
-            ×
-          </button>
-        </div>
-
-        {/* Category Section */}
-        <div>
-          <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
-            Category
-          </h4>
-          <div className="space-y-2">
-            {["Hotel", "Shortlet", "Restaurant", "Tourist Center"].map(
-              (category) => (
-                <label
-                  key={category}
-                  className="flex items-center space-x-3 cursor-pointer group"
-                >
-                  <input
-                    type="checkbox"
-                    checked={filters.categories.includes(category)}
-                    onChange={() => handleCategoryChange(category)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
-                  />
-                  <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors">
-                    {category}
-                  </span>
-                </label>
-              )
-            )}
-          </div>
-        </div>
-
-        {/* Price Range */}
-        <div>
-          <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
-            Price
-          </h4>
-          <div className="flex items-center space-x-3">
-            <div className="flex-1">
-              <input
-                type="number"
-                placeholder="2,500"
-                value={filters.priceRange.min}
-                onChange={(e) => handlePriceChange("min", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
-            </div>
-            <span className="text-gray-500 font-medium">-</span>
-            <div className="flex-1">
-              <input
-                type="number"
-                placeholder="5,000"
-                value={filters.priceRange.max}
-                onChange={(e) => handlePriceChange("max", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Review Section */}
-        <div>
-          <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
-            Review
-          </h4>
-          <div className="space-y-2">
-            {[5, 4, 3, 2, 1].map((stars) => (
-              <label
-                key={stars}
-                className="flex items-center space-x-3 cursor-pointer group"
-              >
-                <input
-                  type="checkbox"
-                  checked={filters.reviews.includes(stars)}
-                  onChange={() => handleReviewChange(stars)}
-                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
-                />
-                <div className="flex items-center space-x-2">
-                  {[...Array(stars)].map((_, i) => (
-                    <FontAwesomeIcon
-                      key={i}
-                      icon={faStar}
-                      className="text-yellow-400 text-sm"
-                    />
-                  ))}
-                  <span className="text-gray-700 group-hover:text-[#06EAFC] transition-colors text-sm">
-                    {stars} Star{stars !== 1 ? "s" : ""}
-                  </span>
-                </div>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex space-x-3 pt-4 border-t">
-          <button
-            onClick={handleReset}
-            className="flex-1 px-4 py-3 text-sm font-medium border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
-          >
-            Reset
-          </button>
-          <button
-            onClick={handleApply}
-            className="flex-1 px-4 py-3 text-sm font-medium bg-blue-600 text-white rounded-xl hover:bg-blue-700 transform hover:scale-105 transition-all duration-200"
-          >
-            Apply Filters
-          </button>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
 // ---------------- Helpers ----------------
 const capitalizeFirst = (str) =>
   str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
 
 const FALLBACK_IMAGES = {
-  hotel:
-    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
-  restaurant:
-    "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80",
-  cafe: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&q=80",
-  bar: "https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=600&q=80",
-  hostel:
-    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
-  shortlet:
-    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80",
-  services:
-    "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=600&q=80",
-  event:
-    "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
-  weekend:
-    "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
-  hall: "https://images.unsplash.com-1511795409834-ef04bbd61622?w=600&q=80",
-  attraction:
-    "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=80",
-  garden:
-    "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=80",
-  tower:
-    "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=80",
-  amala:
-    "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80",
-  default:
-    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
+  hotel: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop&q=80",
+  restaurant: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop&q=80",
+  shortlet: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&h=400&fit=crop&q=80",
+  services: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop&q=80",
+  event: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop&q=80",
+  default: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop&q=80",
 };
 
+// Universal image getter - works for all structures
 const getCardImages = (item) => {
-  const raw = item["image url"] || "";
-  const urls = raw
-    .split(",")
-    .map((u) => u.trim())
-    .filter((u) => u && u.startsWith("http"));
-
-  if (urls.length > 0) return urls;
-
-  const cat = (item.category || "").toLowerCase();
-  if (cat.includes("hotel")) return [FALLBACK_IMAGES.hotel];
-  if (cat.includes("restaurant")) return [FALLBACK_IMAGES.restaurant];
-  if (cat.includes("cafe")) return [FALLBACK_IMAGES.cafe];
-  if (cat.includes("bar")) return [FALLBACK_IMAGES.bar];
-  if (cat.includes("hostel")) return [FALLBACK_IMAGES.hostel];
-  if (cat.includes("shortlet")) return [FALLBACK_IMAGES.shortlet];
-  if (cat.includes("services")) return [FALLBACK_IMAGES.services];
-  if (cat.includes("event") || cat.includes("weekend") || cat.includes("hall"))
-    return [FALLBACK_IMAGES.event];
-  if (
-    cat.includes("attraction") ||
-    cat.includes("garden") ||
-    cat.includes("tower")
-  )
-    return [FALLBACK_IMAGES.attraction];
-  if (cat.includes("amala")) return [FALLBACK_IMAGES.amala];
-  return [FALLBACK_IMAGES.default];
-};
-
-// ---------------- Custom Hook ----------------
-const useGoogleSheet = (sheetId, apiKey) => {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (!sheetId || !apiKey) {
-      setError("⚠️ Missing SHEET_ID or API_KEY");
-      setLoading(false);
-      return;
-    }
-
-    const fetchData = async () => {
-      try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A1:Z1000?key=${apiKey}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        let result = [];
-        if (
-          json.values &&
-          Array.isArray(json.values) &&
-          json.values.length > 1
-        ) {
-          const headers = json.values[0];
-          const rows = json.values.slice(1);
-          result = rows
-            .filter((row) => Array.isArray(row) && row.length > 0)
-            .map((row) => {
-              const obj = {};
-              headers.forEach((h, i) => {
-                obj[h?.toString().trim() || `col_${i}`] = (row[i] || "")
-                  .toString()
-                  .trim();
-              });
-              return obj;
-            });
-        }
-        setData(result);
-      } catch (err) {
-        console.error("Google Sheets fetch error:", err);
-        setError("⚠️ Failed to load directory. Try again later.");
-        setData([]);
-      } finally {
-        setLoading(false);
+  try {
+    // Check for images array first
+    if (item.images && item.images.length > 0) {
+      const images = item.images;
+      if (typeof images[0] === 'string') {
+        return [images[0]];
       }
-    };
-
-    fetchData();
-  }, [sheetId, apiKey]);
-
-  return { data: Array.isArray(data) ? data : [], loading, error };
+      if (images[0]?.url) {
+        return [images[0].url];
+      }
+    }
+    
+    // Check for details.roomTypes structure (for hotels)
+    if (item.details?.roomTypes?.[0]?.images?.length > 0) {
+      const images = item.details.roomTypes[0].images;
+      if (images[0]?.url) {
+        return [images[0].url];
+      }
+    }
+    
+    // Use fallback based on category
+    const cat = (item.category || "").toLowerCase();
+    if (cat.includes("hotel")) return [FALLBACK_IMAGES.hotel];
+    if (cat.includes("restaurant")) return [FALLBACK_IMAGES.restaurant];
+    if (cat.includes("shortlet")) return [FALLBACK_IMAGES.shortlet];
+    if (cat.includes("services")) return [FALLBACK_IMAGES.services];
+    if (cat.includes("event")) return [FALLBACK_IMAGES.event];
+    return [FALLBACK_IMAGES.default];
+  } catch (error) {
+    return [FALLBACK_IMAGES.default];
+  }
 };
 
-// Custom hook for tracking favorite status
+// Universal price getter
+const getPriceFromItem = (item) => {
+  try {
+    // Check for direct price field first
+    if (item.price !== undefined && item.price !== null) {
+      return item.price;
+    }
+    
+    // Check for restaurant price range
+    if (item.details?.priceRangePerMeal) {
+      const { priceFrom, priceTo } = item.details.priceRangePerMeal;
+      
+      // Return the average price for simplicity
+      if (priceFrom !== undefined && priceTo !== undefined) {
+        return Math.round((priceFrom + priceTo) / 2);
+      } else if (priceFrom !== undefined) {
+        return priceFrom;
+      } else if (priceTo !== undefined) {
+        return priceTo;
+      }
+    }
+    
+    // Check for details.roomTypes[0].pricePerNight (hotels)
+    if (item.details?.roomTypes?.[0]?.pricePerNight !== undefined) {
+      return item.details.roomTypes[0].pricePerNight;
+    }
+    
+    // Check for details.pricePerNight (shortlets)
+    if (item.details?.pricePerNight !== undefined) {
+      return item.details.pricePerNight;
+    }
+    
+    return 0;
+  } catch (error) {
+    return 0;
+  }
+};
+
+// Universal location getter
+const getLocationFromItem = (item) => {
+  try {
+    // Check for location.area
+    if (item.location?.area) {
+      return item.location.area;
+    }
+    
+    // Check for direct area field
+    if (item.area) {
+      return item.area;
+    }
+    
+    // Check for location.address
+    if (item.location?.address) {
+      return item.location.address;
+    }
+    
+    // Check for direct address field
+    if (item.address) {
+      return item.address;
+    }
+    
+    return "Ibadan";
+  } catch (error) {
+    return "Ibadan";
+  }
+};
+
+// Universal business name getter
+const getBusinessName = (item) => {
+  try {
+    // Try name field
+    if (item.name) {
+      return item.name;
+    }
+    
+    // Try title field
+    if (item.title) {
+      return item.title;
+    }
+    
+    // Try vendor business name
+    if (item.vendorId?.vendor?.businessName) {
+      return item.vendorId.vendor.businessName;
+    }
+    
+    return "Business";
+  } catch (error) {
+    return "Business";
+  }
+};
+
+// ---------------- Notification Function ----------------
+const showNotification = (message, businessName = "", type = "success") => {
+  const backgroundColor = "#FFFFFF";
+  const textColor = "#1C1C1E";
+  const iconColor = type === "success" ? "#34C759" : "#FF3B30";
+  const Icon = type === "success" ? MdCheckCircle : MdCheckCircle;
+  
+  return toast(
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <Icon size={28} color={iconColor} />
+      <div>
+        <span style={{
+          fontWeight: 500,
+          fontSize: '16px',
+          color: textColor,
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        }}>
+          {message}
+        </span>
+        {businessName && (
+          <div style={{
+            fontSize: '14px',
+            color: '#8E8E93',
+            marginTop: '4px',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+          }}>
+            {businessName}
+          </div>
+        )}
+      </div>
+    </div>,
+    {
+      position: "top-right",
+      autoClose: 2500,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      transition: Slide,
+      style: {
+        background: backgroundColor,
+        color: textColor,
+        borderRadius: "12px",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+        padding: "16px 20px",
+        minWidth: "280px",
+        maxWidth: "350px"
+      }
+    }
+  );
+};
+
+// ---------------- Custom Hooks ----------------
 const useIsFavorite = (itemId) => {
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -430,33 +310,25 @@ const useIsFavorite = (itemId) => {
   }, [itemId]);
 
   useEffect(() => {
-    // Initial check
     checkFavoriteStatus();
 
-    // Create a custom event listener
     const handleSavedListingsChange = () => {
       checkFavoriteStatus();
     };
 
-    // Listen for storage events
     const handleStorageChange = (e) => {
       if (e.key === "userSavedListings") {
         checkFavoriteStatus();
       }
     };
 
-    // Add event listeners
     window.addEventListener("savedListingsUpdated", handleSavedListingsChange);
     window.addEventListener("storage", handleStorageChange);
 
-    // Poll for changes (fallback)
     const pollInterval = setInterval(checkFavoriteStatus, 1000);
 
     return () => {
-      window.removeEventListener(
-        "savedListingsUpdated",
-        handleSavedListingsChange
-      );
+      window.removeEventListener("savedListingsUpdated", handleSavedListingsChange);
       window.removeEventListener("storage", handleStorageChange);
       clearInterval(pollInterval);
     };
@@ -465,7 +337,6 @@ const useIsFavorite = (itemId) => {
   return isFavorite;
 };
 
-// Check if user is authenticated
 const useAuthStatus = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -478,10 +349,8 @@ const useAuthStatus = () => {
   }, []);
 
   useEffect(() => {
-    // Initial check
     checkAuth();
 
-    // Listen for auth changes
     const handleAuthChange = () => {
       checkAuth();
     };
@@ -502,14 +371,49 @@ const useAuthStatus = () => {
   return isAuthenticated;
 };
 
+const useListings = (category) => {
+  const [listings, setListings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchListings = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const data = await getListingsByCategory(category);
+        
+        if (data && data.status === 'success' && data.data && data.data.listings) {
+          const fetchedListings = data.data.listings;
+          setListings(fetchedListings);
+        } else if (data && data.status === 'error') {
+          setError(data.message || 'API Error');
+          setListings([]);
+        } else {
+          setListings([]);
+        }
+      } catch (err) {
+        setError(err.message);
+        setListings([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchListings();
+  }, [category]);
+
+  return { listings, loading, error };
+};
+
 // ---------------- BusinessCard Component ----------------
 const BusinessCard = ({ item, category, isMobile }) => {
   const images = getCardImages(item);
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Use custom hooks
-  const isFavorite = useIsFavorite(item.id);
+  const isFavorite = useIsFavorite(item._id || item.id);
   const isAuthenticated = useAuthStatus();
 
   const formatPrice = (n) => {
@@ -522,311 +426,153 @@ const BusinessCard = ({ item, category, isMobile }) => {
   };
 
   const getPriceText = () => {
-    const priceFrom = item.price_from || item.price || "0";
-    const formattedPrice = formatPrice(priceFrom);
+    // Special handling for restaurants with price ranges
+    if (category === 'restaurant' && item.details?.priceRangePerMeal) {
+      const { priceFrom, priceTo } = item.details.priceRangePerMeal;
+      
+      if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+        return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
+      } else if (priceFrom !== undefined) {
+        return `From ₦${formatPrice(priceFrom)}`;
+      }
+    }
+    
+    // For other categories or restaurants without price range
+    const price = getPriceFromItem(item) || 0;
+    const formattedPrice = formatPrice(price);
     return `₦${formattedPrice}`;
   };
 
-  const getPerText = () => {
-    const nightlyCategories = [
-      "hotel",
-      "hostel",
-      "shortlet",
-      "apartment",
-      "cabin",
-      "condo",
-      "resort",
-      "inn",
-      "motel",
-    ];
-
-    if (nightlyCategories.some((cat) => category.toLowerCase().includes(cat))) {
-      return "for 2 nights";
-    }
-
-    if (
-      category.toLowerCase().includes("restaurant") ||
-      category.toLowerCase().includes("food") ||
-      category.toLowerCase().includes("cafe")
-    ) {
-      return "per meal";
-    }
-
-    return "per guest";
+  const getTag = () => {
+    const cat = (item.category || "").toLowerCase();
+    if (cat.includes("hotel")) return "Hotel";
+    if (cat.includes("shortlet")) return "Shortlet";
+    if (cat.includes("restaurant")) return "Restaurant";
+    if (cat.includes("services")) return "Service";
+    if (cat.includes("event")) return "Event";
+    return "Co";
   };
 
+  const getPriceUnit = () => {
+    if (category === 'hotel' || category === 'shortlet') return 'per night';
+    if (category === 'restaurant') return 'per meal';
+    return '';
+  };
+
+  const tag = getTag();
   const priceText = getPriceText();
-  const perText = getPerText();
-  const locationText = item.area || item.location || "Ibadan";
-  const rating = item.rating || "4.9";
-  const businessName = item.name || "Business Name";
+  const priceUnit = getPriceUnit();
+  const locationText = getLocationFromItem(item) || "Ibadan";
+  const rating = "4.9";
+  const businessName = getBusinessName(item) || "Business Name";
+  const isPending = item.status === 'pending';
 
   const handleCardClick = () => {
-    if (item.id) {
-      navigate(`/vendor-detail/${item.id}`);
-    } else {
-      navigate(`/category/${category}`);
+    const listingId = item._id || item.id;
+    if (listingId) {
+      navigate(`/vendor-detail/${listingId}`);
     }
   };
 
-  // Toast Notification Function
-  const showToast = useCallback(
-    (message, type = "success") => {
-      // Remove any existing toast
-      const existingToast = document.getElementById("toast-notification");
-      if (existingToast) {
-        existingToast.remove();
+  const handleFavoriteClick = useCallback(async (e) => {
+    e.stopPropagation();
+    if (isProcessing) return;
+    setIsProcessing(true);
+
+    try {
+      if (!isAuthenticated) {
+        showNotification("Please login to save listings", businessName, "info");
+        localStorage.setItem("redirectAfterLogin", window.location.pathname);
+
+        const itemToSaveAfterLogin = {
+          id: item._id || item.id,
+          name: businessName,
+          price: priceText,
+          rating: parseFloat(rating),
+          tag: "Guest Favorite",
+          image: images[0] || FALLBACK_IMAGES.default,
+          category: capitalizeFirst(category) || "Business",
+          location: locationText,
+          originalData: item,
+        };
+
+        localStorage.setItem("pendingSaveItem", JSON.stringify(itemToSaveAfterLogin));
+
+        setTimeout(() => {
+          navigate("/login");
+          setIsProcessing(false);
+        }, 800);
+        return;
       }
 
-      // Create toast element
-      const toast = document.createElement("div");
-      toast.id = "toast-notification";
-      toast.className = `fixed z-[9999] px-4 py-3 rounded-lg shadow-lg border ${
-        type === "success"
-          ? "bg-green-50 border-green-200 text-green-800"
-          : "bg-blue-50 border-blue-200 text-blue-800"
-      }`;
+      const saved = JSON.parse(localStorage.getItem("userSavedListings") || "[]");
+      const itemId = item._id || item.id;
+      const isAlreadySaved = saved.some(savedItem => savedItem.id === itemId);
 
-      // Position toast
-      toast.style.top = isMobile ? "15px" : "15px";
-      toast.style.right = "15px";
-      toast.style.maxWidth = "320px";
-      toast.style.animation = "slideInRight 0.3s ease-out forwards";
-
-      // Toast content
-      toast.innerHTML = `
-      <div class="flex items-start gap-3">
-        <div class="${
-          type === "success" ? "text-green-600" : "text-blue-600"
-        } mt-0.5">
-          ${
-            type === "success"
-              ? '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>'
-              : '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>'
-          }
-        </div>
-        <div class="flex-1">
-          <p class="font-medium">${message}</p>
-          <p class="text-sm opacity-80 mt-1">${businessName}</p>
-        </div>
-        <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70 transition-opacity">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-          </svg>
-        </button>
-      </div>
-    `;
-
-      // Add to DOM
-      document.body.appendChild(toast);
-
-      // Auto remove after 3 seconds
-      setTimeout(() => {
-        if (toast.parentElement) {
-          toast.style.animation = "slideOutRight 0.3s ease-in forwards";
-          setTimeout(() => {
-            if (toast.parentElement) {
-              toast.remove();
-            }
-          }, 300);
-        }
-      }, 3000);
-    },
-    [isMobile, businessName]
-  );
-
-  // Handle favorite click - optimized with immediate feedback
-  const handleFavoriteClick = useCallback(
-    async (e) => {
-      e.stopPropagation();
-
-      // Prevent multiple clicks while processing
-      if (isProcessing) return;
-
-      // Immediately show loading state
-      setIsProcessing(true);
-
-      try {
-        // Check if user is signed in using the proper auth check
-        if (!isAuthenticated) {
-          showToast("Please login to save listings", "info");
-
-          // Store the current URL to redirect back after login
-          localStorage.setItem("redirectAfterLogin", window.location.pathname);
-
-          // Store the item details to save after login
-          const itemToSaveAfterLogin = {
-            id: item.id,
-            name: businessName,
-            price: priceText,
-            perText: perText,
-            rating: parseFloat(rating),
-            tag: "Guest Favorite",
-            image: images[0] || FALLBACK_IMAGES.default,
-            category: capitalizeFirst(category) || "Business",
-            location: locationText,
-            originalData: {
-              price_from: item.price_from,
-              area: item.area,
-              rating: item.rating,
-              description: item.description,
-              amenities: item.amenities,
-              contact: item.contact,
-            },
-          };
-
-          localStorage.setItem(
-            "pendingSaveItem",
-            JSON.stringify(itemToSaveAfterLogin)
-          );
-
-          // Redirect to login page after a short delay
-          setTimeout(() => {
-            navigate("/login");
-            setIsProcessing(false);
-          }, 800);
-
-          return;
-        }
-
-        // User is logged in, proceed with bookmarking
-        // Get existing saved listings from localStorage
-        const saved = JSON.parse(
-          localStorage.getItem("userSavedListings") || "[]"
-        );
-
-        // Check if this item is already saved
-        const isAlreadySaved = saved.some(
-          (savedItem) => savedItem.id === item.id
-        );
-
-        if (isAlreadySaved) {
-          // REMOVE FROM SAVED
-          const updated = saved.filter((savedItem) => savedItem.id !== item.id);
-          localStorage.setItem("userSavedListings", JSON.stringify(updated));
-
-          // Show toast notification
-          showToast("Removed from saved listings", "info");
-
-          // Dispatch event for other components
-          window.dispatchEvent(
-            new CustomEvent("savedListingsUpdated", {
-              detail: { action: "removed", itemId: item.id },
-            })
-          );
-        } else {
-          // ADD TO SAVED
-          const listingToSave = {
-            id: item.id || `listing_${Date.now()}`,
-            name: businessName,
-            price: priceText,
-            perText: perText,
-            rating: parseFloat(rating),
-            tag: "Guest Favorite",
-            image: images[0] || FALLBACK_IMAGES.default,
-            category: capitalizeFirst(category) || "Business",
-            location: locationText,
-            savedDate: new Date().toISOString().split("T")[0],
-            originalData: {
-              price_from: item.price_from,
-              area: item.area,
-              rating: item.rating,
-              description: item.description,
-              amenities: item.amenities,
-              contact: item.contact,
-            },
-          };
-
-          const updated = [...saved, listingToSave];
-          localStorage.setItem("userSavedListings", JSON.stringify(updated));
-
-          // Show toast notification
-          showToast("Added to saved listings!", "success");
-
-          // Dispatch event for other components
-          window.dispatchEvent(
-            new CustomEvent("savedListingsUpdated", {
-              detail: { action: "added", item: listingToSave },
-            })
-          );
-        }
-      } catch (error) {
-        showToast("Something went wrong. Please try again.", "info");
-      } finally {
-        setIsProcessing(false);
-      }
-    },
-    [
-      isProcessing,
-      item,
-      businessName,
-      priceText,
-      perText,
-      rating,
-      images,
-      category,
-      locationText,
-      showToast,
-      navigate,
-      isAuthenticated,
-    ]
-  );
-
-  // Check for pending saves after login
-  useEffect(() => {
-    const pendingSaveItem = JSON.parse(
-      localStorage.getItem("pendingSaveItem") || "null"
-    );
-
-    if (pendingSaveItem && pendingSaveItem.id === item.id) {
-      // Clear the pending save
-      localStorage.removeItem("pendingSaveItem");
-
-      // Get existing saved listings
-      const saved = JSON.parse(
-        localStorage.getItem("userSavedListings") || "[]"
-      );
-
-      // Check if already saved (to avoid duplicates)
-      const isAlreadySaved = saved.some(
-        (savedItem) => savedItem.id === item.id
-      );
-
-      if (!isAlreadySaved) {
-        // Add to saved listings
-        const updated = [...saved, pendingSaveItem];
+      if (isAlreadySaved) {
+        const updated = saved.filter(savedItem => savedItem.id !== itemId);
         localStorage.setItem("userSavedListings", JSON.stringify(updated));
+        showNotification("Removed from saved listings", businessName, "info");
 
-        // Show success message
-        showToast("Added to saved listings!", "success");
+        window.dispatchEvent(new CustomEvent("savedListingsUpdated", {
+          detail: { action: "removed", itemId: itemId },
+        }));
+      } else {
+        const listingToSave = {
+          id: itemId || `listing_${Date.now()}`,
+          name: businessName,
+          price: priceText,
+          rating: parseFloat(rating),
+          tag: "Guest Favorite",
+          image: images[0] || FALLBACK_IMAGES.default,
+          category: capitalizeFirst(category) || "Business",
+          location: locationText,
+          savedDate: new Date().toISOString().split("T")[0],
+          originalData: item,
+        };
 
-        // Dispatch event
-        window.dispatchEvent(
-          new CustomEvent("savedListingsUpdated", {
-            detail: { action: "added", item: pendingSaveItem },
-          })
-        );
+        const updated = [...saved, listingToSave];
+        localStorage.setItem("userSavedListings", JSON.stringify(updated));
+        showNotification("Added to saved listings!", businessName, "success");
+
+        window.dispatchEvent(new CustomEvent("savedListingsUpdated", {
+          detail: { action: "added", item: listingToSave },
+        }));
       }
+    } catch (error) {
+      showNotification("Something went wrong. Please try again.", businessName, "info");
+    } finally {
+      setIsProcessing(false);
     }
-  }, [item.id, showToast]);
+  }, [isProcessing, item, businessName, priceText, rating, images, category, locationText, navigate, isAuthenticated]);
 
   return (
     <div
       className={`
         bg-white rounded-xl overflow-hidden flex-shrink-0 
-        font-manrope relative group
-        ${isMobile ? "w-[165px]" : "w-[210px]"} 
+        font-manrope relative group flex flex-col h-full w-full
         transition-all duration-200 cursor-pointer 
         hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
+        ${isPending ? 'border border-yellow-300' : ''}
       `}
       onClick={handleCardClick}
+      style={{
+        cursor: "pointer"
+      }}
     >
-      {/* Image */}
+      {isPending && (
+        <div className="absolute top-1.5 left-1.5 bg-yellow-500 text-white px-2 py-0.5 rounded-md shadow-sm z-10">
+          <span className="text-[8px] font-semibold">PENDING</span>
+        </div>
+      )}
+
       <div
-        className={`
-          relative overflow-hidden rounded-xl 
-          ${isMobile ? "w-full h-[150px]" : "w-full h-[170px]"}
-        `}
+        className="relative overflow-hidden rounded-xl flex-shrink-0"
+        style={{
+          height: "150px",
+          minHeight: "150px",
+          maxHeight: "150px",
+        }}
       >
         <img
           src={images[0]}
@@ -839,653 +585,312 @@ const BusinessCard = ({ item, category, isMobile }) => {
           loading="lazy"
         />
 
-        {/* Guest favorite badge */}
-        <div className="absolute top-2 left-2 bg-white px-1.5 py-1 rounded-md shadow-sm flex items-center gap-1">
-          <span className="text-[9px] font-semibold text-gray-900">
-            Guest favorite
-          </span>
-        </div>
+        {!isPending && (
+          <div className="absolute top-1.5 right-12 bg-white px-1 py-0.5 rounded-md shadow-sm flex items-center gap-0.5">
+            <span className="text-[8px] font-semibold text-gray-900">
+              Guest favorite
+            </span>
+          </div>
+        )}
 
-        {/* Heart icon - Optimized with immediate visual feedback */}
         <button
           onClick={handleFavoriteClick}
           disabled={isProcessing}
-          className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 ${
+          className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110 active:scale-95 ${
             isFavorite
               ? "bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
               : "bg-white/90 hover:bg-white backdrop-blur-sm"
-          } ${isProcessing ? "opacity-70 cursor-not-allowed" : ""}`}
+          } ${isProcessing ? "opacity-70 cursor-not-allowed" : "cursor-pointer"}`}
           title={isFavorite ? "Remove from saved" : "Add to saved"}
           aria-label={isFavorite ? "Remove from saved" : "Save this listing"}
           aria-pressed={isFavorite}
+          style={{ cursor: isProcessing ? "not-allowed" : "pointer" }}
         >
           {isProcessing ? (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           ) : isFavorite ? (
-            <svg
-              className="w-4 h-4 text-white"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
-                clipRule="evenodd"
-              />
+            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"/>
             </svg>
           ) : (
-            <MdFavoriteBorder className="text-[#00d1ff] w-4 h-4" />
+            <MdFavoriteBorder className="text-[#00d1ff] w-3 h-3" />
           )}
         </button>
       </div>
 
-      {/* Text Content */}
-      <div className={`${isMobile ? "p-1.5" : "p-2"} flex flex-col gap-0.5`}>
-        <h3
-          className={`
-            font-semibold text-gray-900 
-            leading-tight line-clamp-2 
-            ${isMobile ? "text-xs" : "text-sm"}
-          `}
-        >
+      <div className={`flex-1 p-2 flex flex-col`}>
+        <h3 className="font-semibold text-gray-900 leading-tight line-clamp-2 text-[13.5px] mb-1 flex-shrink-0">
           {businessName}
         </h3>
 
-        <div className=" text-gray-600">
-          <p className={`${isMobile ? "text-[9px]" : "text-xs"} line-clamp-1`}>
-            {locationText}
-          </p>
-        </div>
-
-        {/* Combined Price, Per Text, and Ratings on same line */}
-        <div
-          className={`flex items-center justify-between ${
-            isMobile ? "mt-[10px]" : "mt-[15px]"
-          }`}
-        >
-          <div className="flex items-center gap-1 flex-wrap">
-            {/* Price and Per Text */}
-            <div className="flex items-baseline gap-1">
-              <span
-                className={`${
-                  isMobile ? "text-xs" : "text-xs"
-                } font-manrope text-gray-900`}
-              >
-                {priceText}
-              </span>
-              <span
-                className={`${
-                  isMobile ? "text-[9px]" : "text-xs"
-                } text-gray-600`}
-              >
-                {perText}
-              </span>
-            </div>
-          </div>
-
-          {/* Ratings on the right */}
-          <div className="flex items-center gap-1">
-            <div
-              className={`
-                flex items-center gap-1 text-gray-800 
-                ${isMobile ? "text-[9px]" : "text-xs"}
-              `}
-            >
-              <FontAwesomeIcon
-                icon={faStar}
-                className={`${isMobile ? "text-[9px]" : "text-xs"} text-black`}
-              />
-              <span className="font-semibold text-black">{rating}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom row: Category tag and Saved indicator */}
-        <div
-          className={`flex items-center justify-between ${
-            isMobile ? "mt-[10px]" : "mt-[15px]"
-          }`}
-        >
-          {/* Category tag */}
+        <div className="flex-1 flex flex-col justify-between">
           <div>
-            <span className="inline-block text-[10px] text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
-              {capitalizeFirst(category)}
-            </span>
+            <p className="text-gray-600 text-[12.5px] line-clamp-1 mb-1">
+              {locationText}
+            </p>
+
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex flex-col">
+                <span className="text-[12px] font-manrope text-gray-900">
+                  {priceText}
+                </span>
+                {priceUnit && (
+                  <span className="text-[10px] text-gray-500 mt-0.5">
+                    {priceUnit}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-0.5">
+                <div className="flex items-center gap-0.5 text-gray-800 text-[12px]">
+                  <FontAwesomeIcon icon={faStar} className="text-black w-2 h-2" />
+                  <span className="font-semibold text-black">{rating}</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Saved indicator badge - Only show when actually saved */}
-          {isFavorite && !isProcessing && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
-              <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Saved
-            </span>
-          )}
+          <div className="flex items-center justify-between mt-auto pt-1">
+            <div>
+              <span className="inline-block text-[11px] text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
+                {tag}
+              </span>
+            </div>
+
+            {isFavorite && !isProcessing && (
+              <span className="inline-flex items-center gap-0.5 text-[9px] text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">
+                <svg className="w-1.5 h-1.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                </svg>
+                Saved
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Hover overlay effect */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none"></div>
     </div>
   );
 };
 
-// Add CSS styles for toast animations and utilities
-const styles = `
-/* Toast animation */
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes slideOutRight {
-  from {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-}
-
-/* Line clamp utility */
-.line-clamp-1 {
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Smooth transitions */
-.transition-all {
-  transition-property: all;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-
-/* Custom scrollbar hiding for directory */
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-
-/* Toast positioning */
-#toast-notification {
-  position: fixed;
-  z-index: 9999;
-  max-width: 320px;
-  animation: slideInRight 0.3s ease-out forwards;
-}
-
-#toast-notification.slide-out {
-  animation: slideOutRight 0.3s ease-in forwards;
-}
-`;
-
-// Inject styles into the document head
-if (typeof document !== "undefined") {
-  const styleSheet = document.createElement("style");
-  styleSheet.textContent = styles;
-  document.head.appendChild(styleSheet);
-}
-
 // ---------------- CategorySection Component ----------------
-const CategorySection = ({ title, items, sectionId, isMobile }) => {
+const CategorySection = ({ title, items, category, isMobile, loading, error }) => {
   const navigate = useNavigate();
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
-  const containerRef = useRef(null);
 
-  if (items.length === 0) return null;
+  if (loading) {
+    return (
+      <section className="mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <div>
+            <h2 className={`${isMobile ? "text-[13.5px]" : "text-xl"} font-bold text-gray-900`} style={{ color: "#000651" }}>
+              {title}
+            </h2>
+          </div>
+          <button 
+            className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" 
+            style={{ color: "#000651" }} 
+            onClick={() => navigate(`/${category}`)}
+          >
+            <span className="text-[13.5px]">View all</span>
+            <svg className="transition-transform group-hover:translate-x-1 w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+              <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+            </svg>
+          </button>
+        </div>
+        <div className={`${isMobile ? "flex overflow-x-auto gap-[8px] pb-4 -mx-[16px] pl-[16px] snap-x snap-mandatory" : "grid grid-cols-2 md:grid-cols-5 lg:grid-cols-3 xl:grid-cols-6 gap-3"}`}>
+          {[...Array(6)].map((_, index) => <SkeletonCard key={index} isMobile={isMobile} />)}
+        </div>
+      </section>
+    );
+  }
 
-  const getCategoryFromTitle = (title) => {
-    const words = title.toLowerCase().split(" ");
-    if (words.includes("hotel")) return "hotel";
-    if (words.includes("shortlet")) return "shortlet";
-    if (words.includes("restaurant")) return "restaurant";
-    if (words.includes("tourist")) return "tourist-center";
-    return words[1] || "all";
-  };
+  if (error) {
+    return (
+      <section className="mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <div>
+            <h2 className={`${isMobile ? "text-[13.5px]" : "text-xl"} font-bold text-gray-900`} style={{ color: "#000651" }}>
+              {title}
+            </h2>
+          </div>
+          <button 
+            className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" 
+            style={{ color: "#000651" }} 
+            onClick={() => navigate(`/${category}`)}
+          >
+            <span className="text-[13.5px]">View all</span>
+            <svg className="transition-transform group-hover:translate-x-1 w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+              <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+            </svg>
+          </button>
+        </div>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-700 font-medium text-sm">API Error: {error}</p>
+          <p className="text-red-600 text-xs mt-1">Could not fetch listings reload and try again</p>
+        </div>
+      </section>
+    );
+  }
 
-  const category = getCategoryFromTitle(title);
-
-  // Check scroll position to update arrow states
-  const updateArrows = () => {
-    if (!containerRef.current) return;
-
-    const container = containerRef.current;
-    const { scrollLeft, scrollWidth, clientWidth } = container;
-
-    // Check if we can scroll left (not at start)
-    const hasScrollLeft = scrollLeft > 0;
-    setCanScrollLeft(hasScrollLeft);
-
-    // Check if we can scroll right (not at end)
-    const hasScrollRight =
-      Math.ceil(scrollLeft + clientWidth) < Math.floor(scrollWidth) - 5;
-    setCanScrollRight(hasScrollRight);
-  };
-
-  // Initialize and add scroll listener
-  useEffect(() => {
-    const container = containerRef.current;
-    if (container) {
-      // Initial check
-      setTimeout(updateArrows, 100);
-
-      // Add scroll event listener
-      container.addEventListener("scroll", updateArrows);
-
-      // Also check on resize
-      const handleResize = () => setTimeout(updateArrows, 100);
-      window.addEventListener("resize", handleResize);
-
-      return () => {
-        container.removeEventListener("scroll", updateArrows);
-        window.removeEventListener("resize", handleResize);
-      };
-    }
-  }, [items.length, isMobile, sectionId]);
-
-  const scrollSection = (direction) => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const scrollAmount = isMobile ? 180 : 220;
-
-    const newPosition =
-      direction === "next"
-        ? container.scrollLeft + scrollAmount
-        : container.scrollLeft - scrollAmount;
-
-    container.scrollTo({
-      left: newPosition,
-      behavior: "smooth",
-    });
-
-    // Check position after animation
-    setTimeout(updateArrows, 400);
-  };
-
-  const handleCategoryClick = () => {
-    navigate(`/category/${category}`);
-  };
-
-  // Handle View All button click
-  const handleViewAllClick = () => {
-    navigate(`/category/${category}`);
-  };
+  const displayItems = items.slice(0, 6);
 
   return (
     <section className="mb-4">
       <div className="flex justify-between items-center mb-2">
         <div>
-          <button
-            onClick={handleCategoryClick}
-            className={`
-              text-[#00065A] hover:text-[#06EAFC] transition-colors text-left
-              ${isMobile ? "text-sm" : "text-[19px]"} 
-              font-bold cursor-pointer flex items-center gap-1
-            `}
-          >
+          <h2 className={`${isMobile ? "text-[13.5px]" : "text-xl"} font-bold text-gray-900`} style={{ color: "#000651" }}>
             {title}
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </button>
+          </h2>
         </div>
-        <div className="flex gap-1">
-          {/* Left arrow - gray when active, light gray when disabled */}
-          <button
-            onClick={() => scrollSection("prev")}
-            className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors shadow-sm ${
-              canScrollLeft
-                ? "bg-gray-100 hover:bg-gray-300 cursor-pointer"
-                : "bg-gray-50 cursor-not-allowed"
-            }`}
-            disabled={!canScrollLeft}
-            aria-label="Scroll left"
-          >
-            <FaLessThan
-              className={`text-[10px] ${
-                canScrollLeft ? "text-gray-700" : "text-gray-400"
-              }`}
-            />
-          </button>
-
-          {/* Right arrow - gray when active, light gray when disabled */}
-          <button
-            onClick={() => scrollSection("next")}
-            className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors shadow-sm ${
-              canScrollRight
-                ? "bg-gray-100 hover:bg-gray-300 cursor-pointer"
-                : "bg-gray-50 cursor-not-allowed"
-            }`}
-            disabled={!canScrollRight}
-            aria-label="Scroll right"
-          >
-            <FaGreaterThan
-              className={`text-[10px] ${
-                canScrollRight ? "text-gray-700" : "text-gray-400"
-              }`}
-            />
-          </button>
-        </div>
-      </div>
-
-      <div className="relative">
-        <div
-          ref={containerRef}
-          id={sectionId}
-          className={`flex overflow-x-auto scrollbar-hide scroll-smooth ${
-            isMobile ? "gap-1" : "gap-2"
-          }`}
-          style={{
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
-            paddingRight: "16px",
-          }}
-          onScroll={updateArrows}
+        <button 
+          onClick={() => navigate(`/${category}`)}
+          className="text-gray-900 hover:text-[#06EAFC] transition-colors font-medium cursor-pointer flex items-center gap-2 group" 
+          style={{ color: "#000651" }}
         >
-          {items.map((item, index) => (
-            <BusinessCard
-              key={item.id || index}
-              item={item}
-              category={sectionId.replace("-section", "")}
-              isMobile={isMobile}
-            />
-          ))}
-          {/* Spacer for last card visibility */}
-          <div className="flex-shrink-0" style={{ width: "16px" }}></div>
-        </div>
-      </div>
-
-      {/* View All Button at the bottom - Centered */}
-      <div className="flex justify-center mt-1 font-manrope">
-        <button
-          onClick={handleViewAllClick}
-          className="text-black bg-[#6cff] py-2.5 px-6 rounded-[10px] text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer"
-        >
-          View All
+          <span className="text-[13.5px]">View all</span>
+          <svg className="transition-transform group-hover:translate-x-1 w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+            <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+          </svg>
         </button>
       </div>
+
+      {items.length === 0 ? (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-blue-700 font-medium text-sm">No {category} listings found</p>
+          <p className="text-blue-600 text-xs mt-1">Try checking other categories</p>
+        </div>
+      ) : (
+        <>
+          {!isMobile ? (
+            <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+              {displayItems.map((item, index) => (
+                <BusinessCard key={item._id || index} item={item} category={category} isMobile={isMobile} />
+              ))}
+            </div>
+          ) : (
+            <div className="relative">
+              <div className="flex overflow-x-auto scrollbar-hide gap-2 pb-4" style={{ scrollbarWidth: "none", msOverflowStyle: "none", paddingRight: "8px" }}>
+                {displayItems.map((item, index) => (
+                  <div key={item._id || index} className="flex-shrink-0" style={{ width: "165px" }}>
+                    <BusinessCard item={item} category={category} isMobile={isMobile} />
+                  </div>
+                ))}
+                <div className="flex-shrink-0" style={{ width: "8px" }}></div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </section>
   );
 };
 
 // ---------------- Main Directory Component ----------------
 const Directory = () => {
-  const [headerRef, headerInView] = useInView({
-    threshold: 0.1,
-    triggerOnce: false,
-  });
-
-  const [search] = useState("");
-  const [mainCategory, setMainCategory] = useState("");
-  const [area] = useState("");
+  const [headerRef, headerInView] = useInView({ threshold: 0.1, triggerOnce: false });
   const [isMobile, setIsMobile] = useState(false);
-  const [activeFilters] = useState({});
+  
+  const categories = [
+    { key: 'hotel', name: 'Hotels' },
+    { key: 'shortlet', name: 'Shortlets' },
+    { key: 'restaurant', name: 'Restaurants' }
+  ];
+  
+  const hotelListings = useListings('hotel');
+  const shortletListings = useListings('shortlet');
+  const restaurantListings = useListings('restaurant');
 
-  const navigate = useNavigate();
-
-  const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
-  const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
-
-  const {
-    data: listings = [],
-    loading,
-    error,
-  } = useGoogleSheet(SHEET_ID, API_KEY);
-
-  // Check for mobile view
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Show skeleton loading while data is being fetched
-  if (loading) {
-    return <SkeletonDirectory isMobile={isMobile} />;
-  }
-
-  // Define the specific categories we want to display
-  const getPopularCategories = () => {
-    return ["hotel", "shortlet", "restaurant", "tourist center"];
+  const categoryData = {
+    hotel: hotelListings,
+    shortlet: shortletListings,
+    restaurant: restaurantListings,
   };
 
-  // Apply advanced filters function
-  const applyAdvancedFilters = (item, filters) => {
-    if (!filters || Object.keys(filters).length === 0) return true;
-
-    // Category filter
-    if (filters.categories && filters.categories.length > 0) {
-      const itemCategory = item.category || "";
-      if (
-        !filters.categories.some((cat) =>
-          itemCategory.toLowerCase().includes(cat.toLowerCase())
-        )
-      ) {
-        return false;
-      }
-    }
-
-    // Price filter
-    if (
-      filters.priceRange &&
-      (filters.priceRange.min || filters.priceRange.max)
-    ) {
-      const itemPrice = Number(item.price_from) || 0;
-      const minPrice = Number(filters.priceRange.min) || 0;
-      const maxPrice = Number(filters.priceRange.max) || Infinity;
-
-      if (itemPrice < minPrice || itemPrice > maxPrice) {
-        return false;
-      }
-    }
-
-    // Review filter
-    if (filters.reviews && filters.reviews.length > 0) {
-      const itemRating = Number(item.rating) || 0;
-      if (!filters.reviews.some((stars) => itemRating >= stars)) {
-        return false;
-      }
-    }
-
-    return true;
-  };
-
-  // Filter listings based on search and filters
-  const filteredListings = listings.filter((item) => {
-    const matchesSearch =
-      !search.trim() ||
-      item.name?.toLowerCase().includes(search.toLowerCase()) ||
-      item.category?.toLowerCase().includes(search.toLowerCase());
-
-    const matchesCategory =
-      !mainCategory ||
-      item.category?.toLowerCase().includes(mainCategory.toLowerCase());
-
-    const matchesArea = !area || item.area === area;
-
-    // Apply additional filters from filter dropdown
-    const matchesFilters = applyAdvancedFilters(item, activeFilters);
-
-    return matchesSearch && matchesCategory && matchesArea && matchesFilters;
-  });
-
-  // Group listings by the specific categories we want
-  const categorizedListings = {};
-  getPopularCategories().forEach((category) => {
-    categorizedListings[category] = filteredListings.filter((item) => {
-      const itemCategory = (item.category || "").toLowerCase();
-      return itemCategory.includes(category);
-    });
-  });
-
-  // Handle category button click
-  const handleCategoryButtonClick = (category) => {
-    navigate(`/category/${category}`);
-  };
-
-  if (error)
-    return (
-      <section id="directory" className="bg-white py-6 font-manrope">
-        <div className="max-w-8xl mx-auto px-2 sm:px-4 lg:px-6">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-            <p className="text-red-700 font-medium text-sm">{error}</p>
-          </div>
-        </div>
-      </section>
-    );
+  const initialLoading = categories.some(cat => categoryData[cat.key].loading);
+  
+  if (initialLoading) return <SkeletonDirectory isMobile={isMobile} />;
 
   return (
-    <section id="directory" className="bg-white py-3 font-manrope">
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
-        {/* Header - More compact with better mobile spacing */}
-        <div className="mb-4">
-          <motion.div
-            ref={headerRef}
-            initial={{ opacity: 0, y: 20 }}
-            animate={headerInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            className="text-center mb-4"
-          >
-            <h1 className="text-base lg:text-lg text-gray-900 mb-1 font-bold">
-              Explore Categories
-            </h1>
-            <p className="text-gray-600 text-xs">
-              Find the best place and services in Ibadan
-            </p>
-          </motion.div>
+    <>
+      <section id="directory" className="bg-white font-manrope lg:max-w-7xl md:px-4 lg:mx-auto ml-3">
+        <div className={`${isMobile ? "py-0" : "py-8"}`}>
+          {isMobile ? (
+            <div className="w-full" style={{ paddingLeft: "0", paddingRight: "0" }}>
+              <motion.div ref={headerRef} initial={{ opacity: 0, y: 20 }} animate={headerInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, ease: "easeOut" }} className="mb-4">
+                <h1 className="text-lg font-bold md:mb-2 text-[#00065A]">Explore Categories</h1>
+                <p className="text-xs text-gray-600 ">Find the best places and services in Ibadan</p>
+              </motion.div>
 
-          {/* Filters - Better mobile layout */}
-          <div className="flex flex-col sm:flex-row gap-2 items-center justify-between mb-3">
-            {/* Mobile View - Compact filter row */}
-            <div className="flex w-full sm:w-auto justify-between items-center gap-1">
-              <button className="md:px-2 md:py-1.5 p-2 bg-[#06EAFC] font-medium rounded-lg text-[12px] lg:text-[12px] hover:bg-[#08d7e6] transition-colors whitespace-nowrap flex-1 text-center">
-                Popular destination
-              </button>
-
-              <select
-                value={mainCategory}
-                onChange={(e) => {
-                  setMainCategory(e.target.value);
-                  if (e.target.value) {
-                    handleCategoryButtonClick(e.target.value);
-                  }
-                }}
-                className="md:px-2 md:py-1.5 p-2.5 border border-gray-300 rounded-lg font-medium text-[12px] lg:text-[12px] bg-gray-300 focus:ring-1 focus:ring-[#06EAFC] focus:border-[#06EAFC] flex-1"
-              >
-                <option value="">Categories</option>
-                {getPopularCategories().map((category) => (
-                  <option key={category} value={category}>
-                    {capitalizeFirst(category)}
-                  </option>
-                ))}
-              </select>
+              <div className="space-y-6">
+                {categories.map(({ key, name }) => {
+                  const { listings, loading, error } = categoryData[key];
+                  const title = `Popular ${name} in Ibadan`;
+                  return (
+                    <CategorySection 
+                      key={key} 
+                      title={title} 
+                      items={listings} 
+                      category={key} 
+                      isMobile={isMobile} 
+                      loading={loading} 
+                      error={error} 
+                    />
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </div>
+          ) : (
+            <div className="max-w-[1800px] mx-auto" style={{ paddingLeft: "0", paddingRight: "0" }}>
+              <motion.div ref={headerRef} initial={{ opacity: 0, y: 20 }} animate={headerInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, ease: "easeOut" }} className="mb-6">
+                <h1 className="text-xl font-semibold text-gray-900 md:text-start">Explore Categories</h1>
+                <p className="text-gray-600 md:text-[15px] md:text-start text-[13.5px]">Find the best places and services in Ibadan</p>
+              </motion.div>
 
-        {/* Category Sections - Tighter spacing */}
-        <div className="space-y-4">
-          {getPopularCategories().map((category) => {
-            const items = categorizedListings[category] || [];
-            if (items.length === 0) return null;
-
-            const title = `Popular ${capitalizeFirst(category)} in Ibadan`;
-            const sectionId = `${category}-section`;
-
-            return (
-              <CategorySection
-                key={category}
-                title={title}
-                items={items}
-                sectionId={sectionId}
-                isMobile={isMobile}
-              />
-            );
-          })}
-        </div>
-
-        {/* Empty State - Compact */}
-        {filteredListings.length === 0 && !loading && (
-          <div className="text-center py-6">
-            <div className="bg-gray-50 rounded-xl p-4 max-w-md mx-auto">
-              <i className="fas fa-search text-2xl text-gray-300 mb-2 block"></i>
-              <h3 className="text-sm text-gray-800 mb-1">
-                No businesses found
-              </h3>
-              <p className="text-gray-600 text-xs">
-                Try adjusting your search or filters
-              </p>
+              <div className="space-y-6">
+                {categories.map(({ key, name }) => {
+                  const { listings, loading, error } = categoryData[key];
+                  const title = `Popular ${name} in Ibadan`;
+                  return (
+                    <CategorySection 
+                      key={key} 
+                      title={title} 
+                      items={listings} 
+                      category={key} 
+                      isMobile={isMobile} 
+                      loading={loading} 
+                      error={error} 
+                    />
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* Custom scrollbar hiding */}
-      <style jsx>{`
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .line-clamp-1 {
-          display: -webkit-box;
-          -webkit-line-clamp: 1;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-        .line-clamp-2 {
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-      `}</style>
-    </section>
+          )}
+        </div>
+      </section>
+      <ToastContainer />
+    </>
   );
 };
+
+const styles = `
+.line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+`;
+
+if (typeof document !== "undefined") {
+  const styleSheet = document.createElement("style");
+  styleSheet.textContent = styles;
+  document.head.appendChild(styleSheet);
+}
 
 export default Directory;

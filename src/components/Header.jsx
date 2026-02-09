@@ -1,30 +1,28 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "../assets/Logos/logo5.png";
-import { MdOutlineChat } from "react-icons/md";
-import { RiNotification2Fill } from "react-icons/ri";
-import { FiUser, FiHeart, FiSettings, FiLogOut } from "react-icons/fi";
+import * as LucideIcons from "lucide-react";
 
-// Main Header Component
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [userProfile, setUserProfile] = useState(null);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const navigate = useNavigate();
   const profileDropdownRef = useRef(null);
-  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const categoriesDropdownRef = useRef(null);
+  const mobileCategoriesRef = useRef(null);
 
   // Enhanced auth check function
   const checkLoginStatus = () => {
-    // Check multiple possible token storage locations
     const token =
       localStorage.getItem("auth_token") ||
       JSON.parse(localStorage.getItem("auth-storage") || "{}")?.state?.token;
     const userEmail = localStorage.getItem("user_email");
     const profile = localStorage.getItem("userProfile");
-
-    console.log("Header auth check:", { token, userEmail, profile });
 
     if (token && userEmail) {
       setIsLoggedIn(true);
@@ -34,11 +32,6 @@ const Header = () => {
         try {
           const parsedProfile = JSON.parse(profile);
           setUserProfile(parsedProfile);
-
-          // Also ensure isVerified is true for logged in users
-          if (!parsedProfile.isVerified) {
-            console.warn("User profile found but not verified");
-          }
         } catch (error) {
           console.error("Error parsing user profile:", error);
         }
@@ -50,91 +43,88 @@ const Header = () => {
     }
   };
 
-  // Check login status on mount and when window gains focus
+  // Handle scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      const position = window.pageYOffset;
+      if (position > 10) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // Enhanced glass effect
+  const getGlassEffect = () => {
+    return {
+      backgroundColor: isScrolled ? 'rgba(255, 255, 255, 0.85)' : 'rgba(255, 255, 255, 0.95)',
+      backdropFilter: isScrolled ? 'blur(12px) saturate(180%)' : 'blur(8px) saturate(180%)',
+      WebkitBackdropFilter: isScrolled ? 'blur(12px) saturate(180%)' : 'blur(8px) saturate(180%)',
+      borderBottom: isScrolled ? '1px solid rgba(0, 209, 255, 0.2)' : '1px solid rgba(0, 209, 255, 0.3)',
+      boxShadow: isScrolled 
+        ? '0 4px 20px 0 rgba(31, 38, 135, 0.1)' 
+        : '0 2px 10px 0 rgba(31, 38, 135, 0.05)',
+      transition: 'all 0.3s ease-in-out',
+    };
+  };
+
+  // Check login status
   useEffect(() => {
     checkLoginStatus();
 
-    // Listen for storage changes (from OTP verification)
     const handleStorageChange = () => {
-      console.log("Storage changed, checking auth status");
       checkLoginStatus();
     };
 
     window.addEventListener("storage", handleStorageChange);
-
-    // Listen for custom auth events (from OTP verification)
     window.addEventListener("authChange", handleStorageChange);
     window.addEventListener("loginSuccess", handleStorageChange);
 
-    // Check when window gains focus (in case auth happened in another tab)
     const handleFocus = () => {
       checkLoginStatus();
     };
 
     window.addEventListener("focus", handleFocus);
 
-    // Set up polling to check auth status more reliably
-    const authCheckInterval = setInterval(() => {
-      const token = localStorage.getItem("auth_token");
-      if (token && !isLoggedIn) {
-        console.log("Token found via polling, updating login state");
-        checkLoginStatus();
-      }
-    }, 1000); // Check every second
-
     return () => {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("authChange", handleStorageChange);
       window.removeEventListener("loginSuccess", handleStorageChange);
       window.removeEventListener("focus", handleFocus);
-      clearInterval(authCheckInterval);
     };
-  }, [isLoggedIn]);
+  }, []);
 
   // Prevent body scrolling when mobile menu is open
   useEffect(() => {
     if (isMenuOpen) {
       document.body.style.overflow = "hidden";
-      document.body.style.height = "100vh";
     } else {
       document.body.style.overflow = "";
-      document.body.style.height = "";
     }
 
     return () => {
       document.body.style.overflow = "";
-      document.body.style.height = "";
     };
   }, [isMenuOpen]);
 
-  const scrollToSection = (id) => {
-    const element = document.getElementById(id);
-    if (element) {
-      window.scrollTo({ top: element.offsetTop - 80, behavior: "smooth" });
-    }
-  };
-
-  // Handle external blog link
-  const handleBlogClick = () => {
-    window.open("https://blog.ajani.ai", "_blank", "noopener,noreferrer");
-  };
-
   // Enhanced sign out function
   const handleSignOut = () => {
-    console.log("Signing out...");
-
-    // Clear all authentication tokens
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_email");
     localStorage.removeItem("userProfile");
     localStorage.removeItem("auth-storage");
     localStorage.removeItem("redirectAfterLogin");
 
-    // Clear session storage too
     sessionStorage.removeItem("auth_token");
     sessionStorage.removeItem("user_email");
 
-    // Dispatch events to update other components
     window.dispatchEvent(new Event("storage"));
     window.dispatchEvent(new CustomEvent("logout"));
 
@@ -144,9 +134,7 @@ const Header = () => {
     setIsProfileDropdownOpen(false);
     setIsMenuOpen(false);
 
-    // Force reload to ensure clean state
     navigate("/");
-    window.location.reload(); // Force reload to clear any cached state
   };
 
   // Handle click outside profile dropdown
@@ -158,6 +146,23 @@ const Header = () => {
       ) {
         setIsProfileDropdownOpen(false);
       }
+      
+      // Handle click outside categories dropdown (desktop)
+      if (
+        categoriesDropdownRef.current &&
+        !categoriesDropdownRef.current.contains(event.target)
+      ) {
+        setIsCategoriesOpen(false);
+      }
+      
+      // Handle click outside categories dropdown (mobile)
+      if (
+        mobileCategoriesRef.current &&
+        !mobileCategoriesRef.current.contains(event.target) &&
+        event.target.closest('button')?.textContent !== 'Categories'
+      ) {
+        // Only close if clicking outside AND not on the categories button
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -166,26 +171,38 @@ const Header = () => {
     };
   }, []);
 
-  // Base navigation items - always visible
-  const baseNavItems = [
-    { label: "Home", id: "Home", action: () => scrollToSection("Home") },
-    {
-      label: "Categories",
-      id: "Categories",
-      action: () => scrollToSection("Categories"),
+  // Categories items - UPDATED: All categories as separate items
+  const categoriesItems = [
+    { 
+      label: "Hotel", 
+      id: "hotel", 
+      action: () => navigate("/hotel")
     },
-    { label: "Blog", id: "Blog", action: handleBlogClick },
-    {
-      label: "Hello",
-      id: "Hello",
-      action: () => navigate("/greeting"),
+    { 
+      label: "Restaurant", 
+      id: "restaurant", 
+      action: () => navigate("/restaurant")
+    },
+    { 
+      label: "Shortlet", 
+      id: "shortlet", 
+      action: () => navigate("/shortlet")
+    },
+    { 
+      label: "Services", 
+      id: "vendors", 
+      action: () => navigate("/vendor")
+    },
+    { 
+      label: "Events", 
+      id: "events", 
+      action: () => navigate("/event")
     },
   ];
 
   // Additional navigation items for logged in users
   const loggedInNavItems = [
     { label: "Chat with Assistant", onClick: () => navigate("/chat") },
-    { label: "List Your Business", onClick: () => navigate("/add-business") },
   ];
 
   // Handle mobile navigate
@@ -194,7 +211,7 @@ const Header = () => {
     setIsMenuOpen(false);
   };
 
-  // Get user initials for avatar
+  // Get user initials for avatar - STANDARD APPLE-STYLE AVATAR
   const getUserInitials = () => {
     if (userProfile?.firstName && userProfile?.lastName) {
       return `${userProfile.firstName.charAt(0)}${userProfile.lastName.charAt(
@@ -207,6 +224,17 @@ const Header = () => {
     return "U";
   };
 
+  // Get verification status text
+  const getVerificationStatusText = () => {
+    if (!userProfile?.isVerified) return "Not Verified";
+    
+    if (userProfile?.role === "vendor") {
+      return "Verified Vendor";
+    } else {
+      return "Verified Buyer";
+    }
+  };
+
   // Get saved listings count
   const [savedCount, setSavedCount] = useState(0);
 
@@ -217,7 +245,6 @@ const Header = () => {
       );
       setSavedCount(saved.length);
 
-      // Listen for updates to saved listings
       const handleSavedListingsUpdate = () => {
         const updated = JSON.parse(
           localStorage.getItem("userSavedListings") || "[]"
@@ -241,81 +268,118 @@ const Header = () => {
     }
   }, [isLoggedIn]);
 
-  // Debug: Log current auth state
-  useEffect(() => {
-    console.log("Current Header State:", {
-      isLoggedIn,
-      userEmail,
-      userProfile,
-      authToken: localStorage.getItem("auth_token"),
-      userProfileStorage: localStorage.getItem("userProfile"),
-    });
-  }, [isLoggedIn, userEmail, userProfile]);
+  // Handle profile navigation based on user role
+  const handleProfileNavigation = () => {
+    if (userProfile?.role === "vendor") {
+      navigate("/vendor/profile");
+    } else {
+      navigate("/buyer/profile");
+    }
+    setIsProfileDropdownOpen(false);
+  };
+
+  // Handle mobile profile navigation
+  const handleMobileProfileNavigation = () => {
+    if (userProfile?.role === "vendor") {
+      handleMobileNavigate("/vendor/profile");
+    } else {
+      handleMobileNavigate("/buyer/profile");
+    }
+  };
+
+  // Toggle categories dropdown for desktop
+  const toggleCategoriesDropdown = () => {
+    setIsCategoriesOpen(!isCategoriesOpen);
+  };
+
+  // Toggle categories dropdown for mobile
+  const [isMobileCategoriesOpen, setIsMobileCategoriesOpen] = useState(false);
+
+  const toggleMobileCategories = () => {
+    setIsMobileCategoriesOpen(!isMobileCategoriesOpen);
+  };
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-[1000] bg-[#F7F7FA] border-b-2 font-manrope border-[#00d1ff] h-16 cursor-default">
-        <div className="max-w-7xl mx-auto px-4 h-full">
+      <header 
+        className="fixed top-0 left-0 right-0 z-[1000] h-16 cursor-default transition-all duration-300 ease-in-out"
+        style={getGlassEffect()}
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/70 to-white/60 -z-10" />
+        
+        <div className="w-full px-4 h-full max-w-7xl mx-auto">
           <nav className="flex items-center justify-between h-full">
-            <div className="flex items-center gap-3">
+            {/* Left: Logo */}
+            <div className="flex items-center gap-3 flex-shrink-0">
               <button
-                onClick={() => {
-                  navigate("/");
-                  setTimeout(() => window.scrollTo({ top: 0 }), 150);
-                }}
+                onClick={() => navigate("/")}
                 className="flex items-center gap-2 cursor-pointer"
               >
                 <img
                   src={Logo}
                   alt="Ajani Logo"
-                  className="h-7 w-20 object-contain cursor-pointer"
+                  className="h-7 w-20 object-contain cursor-pointer transition-transform duration-300 hover:scale-105"
                 />
               </button>
             </div>
 
-            {/* Desktop Navigation */}
-            <div className="hidden lg:flex flex-1 justify-center items-center gap-10 text-sm lg:ml-20 h-full">
-              {baseNavItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={item.action}
-                  className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer"
-                >
-                  {item.label}
-                </button>
-              ))}
-
-              {isLoggedIn &&
-                loggedInNavItems.map((item, index) => (
+            {/* Center: Navigation Items - UPDATED: All categories directly on navbar for LG */}
+            <div className="hidden lg:flex items-center justify-center flex-1 text-sm h-full">
+              <div className="flex items-center justify-center gap-6 h-full">
+                {/* Categories as individual items - FIXED: All categories shown directly */}
+                {categoriesItems.map((item) => (
                   <button
-                    key={index}
-                    onClick={item.onClick}
-                    className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer"
+                    key={item.id}
+                    onClick={() => {
+                      item.action();
+                      setIsCategoriesOpen(false);
+                    }}
+                    className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-2.5 py-1 rounded-md hover:bg-white/30 backdrop-blur-sm"
                   >
                     {item.label}
                   </button>
                 ))}
+
+                {/* Additional items for logged in users */}
+                {isLoggedIn &&
+                  loggedInNavItems.map((item, index) => (
+                    <button
+                      key={index}
+                      onClick={item.onClick}
+                      className="hover:text-[#00d1ff] transition-all whitespace-nowrap text-sm font-normal cursor-pointer px-2.5 py-1 rounded-md hover:bg-white/30 backdrop-blur-sm"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+              </div>
             </div>
 
-            {/* Right section */}
-            <div className="flex items-center gap-2 lg:gap-6 h-full">
+            {/* Right: Auth/Profile Section */}
+            <div className="flex items-center gap-2 h-full flex-shrink-0">
               {isLoggedIn ? (
                 <>
-                  {/* Debug indicator (remove in production) */}
-                  <div className="hidden lg:flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span>Logged in as {userEmail?.split("@")[0]}</span>
-                  </div>
-
                   {/* Saved Listings button */}
                   <button
                     onClick={() => navigate("/saved")}
-                    className="relative text-2xl hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer"
+                    className="relative hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/30 rounded-lg backdrop-blur-sm group"
                     title="Saved Listings"
                   >
-                    <FiHeart />
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      width="20" 
+                      height="20" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="1.5" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                      className="group-hover:scale-110 transition-transform duration-200"
+                    >
+                      <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
+                    </svg>
                     {savedCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      <span className="absolute -top-1 -right-1 bg-gray-800 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium shadow-sm border border-white/20">
                         {savedCount > 9 ? "9+" : savedCount}
                       </span>
                     )}
@@ -324,22 +388,40 @@ const Header = () => {
                   {/* Chat button */}
                   <button
                     onClick={() => navigate("/chat")}
-                    className="text-2xl hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer"
+                    className="hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/30 rounded-lg backdrop-blur-sm group"
                     title="Chat"
                   >
-                    <MdOutlineChat />
+                    <LucideIcons.MessageSquareText 
+                      size={20} 
+                      strokeWidth={1.5} 
+                      className="group-hover:scale-110 transition-transform duration-200"
+                    />
                   </button>
 
                   {/* Notifications button */}
                   <button
                     onClick={() => navigate("/notifications")}
-                    className="text-2xl hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer"
+                    className="hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/30 rounded-lg backdrop-blur-sm group"
                     title="Notifications"
                   >
-                    <RiNotification2Fill />
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      width="20" 
+                      height="20" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="1.5" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                      className="group-hover:scale-110 transition-transform duration-200"
+                    >
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
                   </button>
 
-                  {/* Profile dropdown */}
+                  {/* Profile dropdown - MODERNIZED */}
                   <div
                     className="relative cursor-pointer"
                     ref={profileDropdownRef}
@@ -348,147 +430,276 @@ const Header = () => {
                       onClick={() =>
                         setIsProfileDropdownOpen(!isProfileDropdownOpen)
                       }
-                      className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-blue-50 transition-colors cursor-pointer"
+                      className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-all duration-300 cursor-pointer hover:scale-105 group relative"
                       title="Profile"
                     >
+                      {/* Green dot for online status */}
+                      {isLoggedIn && (
+                        <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white z-10 animate-pulse"></div>
+                      )}
+                      
                       {userProfile?.profilePicture ? (
                         <img
                           src={userProfile.profilePicture}
                           alt="Profile"
-                          className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                          className="w-9 h-9 rounded-full object-cover border-2 border-gray-300 shadow-sm group-hover:ring-2 group-hover:ring-gray-300 transition-all"
                           onError={(e) => {
                             e.target.onerror = null;
                             e.target.style.display = "none";
                             e.target.parentElement.innerHTML = `
-                              <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                              <div class="w-9 h-9 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-sm group-hover:ring-2 group-hover:ring-gray-300 transition-all border-2 border-white">
                                 ${getUserInitials()}
                               </div>
                             `;
                           }}
                         />
                       ) : (
-                        <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                        // STANDARD APPLE-STYLE AVATAR with green dot
+                        <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-sm group-hover:ring-2 group-hover:ring-gray-300 transition-all border-2 border-white">
                           {getUserInitials()}
                         </div>
                       )}
                     </button>
 
                     {isProfileDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-1001 border border-gray-200 cursor-default">
-                        {/* User info */}
-                        <div className="px-4 py-3 border-b border-gray-100 cursor-default">
-                          <p className="text-sm font-medium text-gray-900 cursor-default">
-                            {userProfile?.firstName
-                              ? `${userProfile.firstName} ${userProfile.lastName}`
-                              : userEmail}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1 cursor-default">
-                            {userEmail}
-                          </p>
-                          <div className="flex items-center gap-1 mt-1">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <span className="text-xs text-green-600">
-                              Verified
-                            </span>
+                      <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl py-3 z-[1002] border border-gray-200 cursor-default transition-all duration-300 animate-in fade-in-50 slide-in-from-top-1">
+                        {/* User info section - MODERNIZED */}
+                        <div className="px-4 py-4 border-b border-gray-100 cursor-default bg-gradient-to-r from-gray-50 to-white rounded-t-xl">
+                          <div className="flex items-start gap-3">
+                            <div className="relative">
+                              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-base shadow-sm border-2 border-white">
+                                {getUserInitials()}
+                              </div>
+                              <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white z-10 animate-pulse"></div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm font-semibold text-gray-900 cursor-default truncate">
+                                  {userProfile?.firstName && userProfile?.lastName
+                                    ? `${userProfile.firstName} ${userProfile.lastName}`
+                                    : userEmail?.split('@')[0]}
+                                </p>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${userProfile?.isVerified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                  {getVerificationStatusText()}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1 truncate cursor-default">
+                                {userEmail}
+                              </p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <div className="flex items-center gap-1">
+                                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                  <span className="text-xs text-gray-600 cursor-default">Online</span>
+                                </div>
+                                <span className="text-xs text-gray-400">•</span>
+                                <span className="text-xs text-gray-500 cursor-default">
+                                  {userProfile?.role === "vendor" ? "Vendor" : "Buyer"}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         </div>
 
-                        {/* Profile link */}
-                        <button
-                          onClick={() => {
-                            navigate("/profile");
-                            setIsProfileDropdownOpen(false);
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
-                        >
-                          <FiUser className="w-4 h-4" />
-                          <span className="cursor-pointer">My Profile</span>
-                        </button>
-
-                        {/* Saved listings link */}
-                        <button
-                          onClick={() => {
-                            navigate("/saved");
-                            setIsProfileDropdownOpen(false);
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
-                        >
-                          <FiHeart className="w-4 h-4" />
-                          <span className="cursor-pointer">
-                            Saved Listings {savedCount > 0 && `(${savedCount})`}
-                          </span>
-                        </button>
-
-                        {/* Chat link */}
-                        <button
-                          onClick={() => {
-                            navigate("/chat");
-                            setIsProfileDropdownOpen(false);
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
-                        >
-                          <MdOutlineChat className="w-4 h-4" />
-                          <span className="cursor-pointer">Chat Assistant</span>
-                        </button>
-
-                        {/* Notifications link */}
-                        <button
-                          onClick={() => {
-                            navigate("/notifications");
-                            setIsProfileDropdownOpen(false);
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
-                        >
-                          <RiNotification2Fill className="w-4 h-4" />
-                          <span className="cursor-pointer">Notifications</span>
-                        </button>
-
-                        {/* List business link */}
-                        <button
-                          onClick={() => {
-                            navigate("/add-business");
-                            setIsProfileDropdownOpen(false);
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                        {/* Navigation Section */}
+                        <div className="py-2">
+                          <div className="px-2">
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider px-2 py-1.5 cursor-default">Account</p>
+                          </div>
+                          
+                          <button
+                            onClick={handleProfileNavigation}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item rounded-lg mx-2"
                           >
-                            <path
-                              strokeLinecap="round"
+                            <div className="w-8 h-8 flex items-center justify-center bg-blue-50 rounded-lg group-hover/item:bg-blue-100 transition-colors">
+                              <svg 
+                                xmlns="http://www.w3.org/2000/svg" 
+                                width="16" 
+                                height="16" 
+                                viewBox="0 0 24 24" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                strokeWidth="1.5" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round"
+                              >
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                              </svg>
+                            </div>
+                            <div className="flex-1 text-left">
+                              <span className="font-medium">My Profile</span>
+                              <p className="text-xs text-gray-500">View and edit your profile</p>
+                            </div>
+                          </button>
+
+                          {/* Dashboard link for vendors ONLY */}
+                          {userProfile?.role === "vendor" && (
+                            <button
+                              onClick={() => {
+                                navigate("/vendor/dashboard");
+                                setIsProfileDropdownOpen(false);
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item rounded-lg mx-2"
+                            >
+                              <div className="w-8 h-8 flex items-center justify-center bg-purple-50 rounded-lg group-hover/item:bg-purple-100 transition-colors">
+                                <svg 
+                                  xmlns="http://www.w3.org/2000/svg" 
+                                  width="16" 
+                                  height="16" 
+                                  viewBox="0 0 24 24" 
+                                  fill="none" 
+                                  stroke="currentColor" 
+                                  strokeWidth="1.5" 
+                                  strokeLinecap="round" 
+                                  strokeLinejoin="round"
+                                >
+                                  <rect x="3" y="3" width="7" height="7"/>
+                                  <rect x="14" y="3" width="7" height="7"/>
+                                  <rect x="3" y="14" width="7" height="7"/>
+                                  <rect x="14" y="14" width="7" height="7"/>
+                                </svg>
+                              </div>
+                              <div className="flex-1 text-left">
+                                <span className="font-medium">Vendor Dashboard</span>
+                                <p className="text-xs text-gray-500">Manage your business</p>
+                              </div>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Categories Section */}
+                        <div className="py-2 border-t border-gray-100">
+                          <div className="px-2">
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider px-2 py-1.5 cursor-default">Categories</p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1 px-2">
+                            {categoriesItems.slice(0, 4).map((item) => (
+                              <button
+                                key={item.id}
+                                onClick={() => {
+                                  item.action();
+                                  setIsProfileDropdownOpen(false);
+                                }}
+                                className="flex flex-col items-center p-3 text-xs text-gray-700 hover:bg-gray-100 hover:text-blue-700 rounded-lg transition-all duration-200 cursor-pointer group/category"
+                              >
+                                <div className="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full group-hover/category:bg-blue-50 mb-1.5">
+                                  <span className="font-medium text-gray-600 group-hover/category:text-blue-600">{item.label.charAt(0)}</span>
+                                </div>
+                                <span className="font-medium truncate w-full text-center">{item.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Quick Actions Section */}
+                        <div className="py-2 border-t border-gray-100">
+                          <button
+                            onClick={() => {
+                              navigate("/saved");
+                              setIsProfileDropdownOpen(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item rounded-lg mx-2"
+                          >
+                            <div className="w-8 h-8 flex items-center justify-center bg-red-50 rounded-lg group-hover/item:bg-red-100 transition-colors relative">
+                              <svg 
+                                xmlns="http://www.w3.org/2000/svg" 
+                                width="16" 
+                                height="16" 
+                                viewBox="0 0 24 24" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                strokeWidth="1.5" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round"
+                              >
+                                <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
+                              </svg>
+                              {savedCount > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium text-[10px] border border-white">
+                                  {savedCount > 9 ? "9+" : savedCount}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex-1 text-left">
+                              <span className="font-medium">Saved Listings</span>
+                              <p className="text-xs text-gray-500">Your favorite places</p>
+                            </div>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              navigate("/chat");
+                              setIsProfileDropdownOpen(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item rounded-lg mx-2"
+                          >
+                            <div className="w-8 h-8 flex items-center justify-center bg-green-50 rounded-lg group-hover/item:bg-green-100 transition-colors">
+                              <LucideIcons.MessageSquareText size={16} strokeWidth={1.5} />
+                            </div>
+                            <div className="flex-1 text-left">
+                              <span className="font-medium">Chat Assistant</span>
+                              <p className="text-xs text-gray-500">Get help instantly</p>
+                            </div>
+                          </button>
+
+                          {/* List Your Business for vendors */}
+                          {userProfile?.role === "vendor" && (
+                            <button
+                              onClick={() => {
+                                navigate("/add-business");
+                                setIsProfileDropdownOpen(false);
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item rounded-lg mx-2"
+                            >
+                              <div className="w-8 h-8 flex items-center justify-center bg-amber-50 rounded-lg group-hover/item:bg-amber-100 transition-colors">
+                                <svg 
+                                  xmlns="http://www.w3.org/2000/svg" 
+                                  width="16" 
+                                  height="16" 
+                                  viewBox="0 0 24 24" 
+                                  fill="none" 
+                                  stroke="currentColor" 
+                                  strokeWidth="1.5" 
+                                  strokeLinecap="round" 
+                                  strokeLinejoin="round"
+                                >
+                                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                                </svg>
+                              </div>
+                              <div className="flex-1 text-left">
+                                <span className="font-medium">List Your Business</span>
+                                <p className="text-xs text-gray-500">Add new listing</p>
+                              </div>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Sign out section */}
+                        <div className="pt-2 border-t border-gray-100 px-2">
+                          <button
+                            onClick={handleSignOut}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all duration-200 cursor-pointer group/item rounded-lg"
+                          >
+                            <svg 
+                              xmlns="http://www.w3.org/2000/svg" 
+                              width="16" 
+                              height="16" 
+                              viewBox="0 0 24 24" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              strokeWidth="1.5" 
+                              strokeLinecap="round" 
                               strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M12 4v16m8-8H4"
-                            />
-                          </svg>
-                          <span className="cursor-pointer">List Business</span>
-                        </button>
-
-                        {/* Settings link */}
-                        <button
-                          onClick={() => {
-                            alert("Settings feature coming soon!");
-                            setIsProfileDropdownOpen(false);
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
-                        >
-                          <FiSettings className="w-4 h-4" />
-                          <span className="cursor-pointer">Settings</span>
-                        </button>
-
-                        <div className="h-px bg-gray-100 my-1"></div>
-
-                        {/* Sign out */}
-                        <button
-                          onClick={handleSignOut}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer"
-                        >
-                          <FiLogOut className="w-4 h-4" />
-                          <span className="cursor-pointer">Sign Out</span>
-                        </button>
+                            >
+                              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                              <polyline points="16 17 21 12 16 7"/>
+                              <line x1="21" y1="12" x2="9" y2="12"/>
+                            </svg>
+                            <span className="font-medium">Sign Out</span>
+                          </button>
+                          <p className="text-xs text-gray-400 text-center mt-2 cursor-default">© {new Date().getFullYear()} Ajani</p>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -498,18 +709,18 @@ const Header = () => {
                 <div className="hidden lg:flex items-center gap-1.5">
                   <button
                     onClick={() => navigate("/login")}
-                    className="py-2.5 px-5 text-sm font-normal bg-[#06EAFC] hover:bg-[#6cf5ff] duration-300 rounded-full transition-colors shadow-sm cursor-pointer"
+                    className="py-2 px-4 text-sm font-normal bg-[#06EAFC]/90 hover:bg-[#6cf5ff] duration-300 rounded-full transition-all shadow-sm cursor-pointer hover:scale-105 backdrop-blur-sm group"
                   >
-                    Log in
+                    <span className="group-hover:tracking-wide transition-all">Log in</span>
                   </button>
 
-                  <div className="w-px h-5 bg-gray-400 font-bold"></div>
+                  <div className="w-px h-4 bg-gray-400/50 font-bold backdrop-blur-sm"></div>
 
                   <button
                     onClick={() => navigate("/register")}
-                    className="py-2.5 px-4 text-sm font-normal border-3 border-[#06EAFC] rounded-full transition-colors shadow-sm cursor-pointer"
+                    className="py-2 px-4 text-sm font-normal border-2 border-[#06EAFC] rounded-full transition-all shadow-sm cursor-pointer hover:scale-105 hover:bg-white/30 backdrop-blur-sm group"
                   >
-                    Register
+                    <span className="group-hover:tracking-wide transition-all">Get Started</span>
                   </button>
                 </div>
               )}
@@ -517,37 +728,40 @@ const Header = () => {
               {/* Mobile menu button */}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="lg:hidden text-gray-900 text-2xl p-1 ml-2 cursor-pointer hover:text-[#00d1ff] transition-colors"
+                className="lg:hidden text-gray-900 p-1 ml-1 cursor-pointer hover:text-[#00d1ff] transition-all duration-300 hover:bg-white/30 rounded-lg group"
               >
                 {isMenuOpen ? (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="24" 
+                    height="24" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="1.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                    className="group-hover:rotate-90 transition-transform duration-300"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
                   </svg>
                 ) : (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="24" 
+                    height="24" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="1.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                    className="group-hover:scale-110 transition-transform duration-300"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
                   </svg>
                 )}
               </button>
@@ -556,7 +770,7 @@ const Header = () => {
         </div>
       </header>
 
-      {/* MOBILE MENU */}
+      {/* MOBILE MENU - MODERNIZED */}
       <div
         className={`fixed inset-0 z-[100000] md:hidden ${
           isMenuOpen ? "" : "pointer-events-none"
@@ -572,289 +786,334 @@ const Header = () => {
         />
 
         <div
-          className={`fixed left-0 top-0 w-full h-screen bg-[#e6f2ff] flex flex-col z-[100001] transform transition-all duration-500 ease-out ${
+          className={`fixed left-0 top-0 w-full h-screen bg-white flex flex-col z-[100001] transform transition-all duration-500 ease-out ${
             isMenuOpen
               ? "translate-x-0 opacity-100"
               : "-translate-x-full opacity-0"
           }`}
         >
-          <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-[#f2f9ff] rounded-lg shadow-sm mt-1 mx-2 cursor-default transition-all duration-300 delay-100">
+          {/* Mobile Header */}
+          <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm sticky top-0 z-10">
             <div className="flex items-center gap-2 cursor-pointer">
               <img
                 src={Logo}
                 alt="Ajani Logo"
-                className="h-7 w-20 object-contain cursor-pointer transition-transform duration-300"
+                className="h-7 w-20 object-contain cursor-pointer transition-transform duration-300 hover:scale-105"
+                onClick={() => navigate("/")}
               />
-              <div className="w-px h-4 bg-gray-300 mx-1 transition-all duration-300"></div>
-              <span className="text-xs text-slate-600 hover:text-gray-900 whitespace-nowrap cursor-pointer transition-colors duration-300">
-                The Ibadan Smart Guide
-              </span>
             </div>
             <button
               onClick={() => setIsMenuOpen(false)}
-              className="text-gray-900 hover:text-gray-600 text-xl cursor-pointer transition-colors duration-300"
+              className="text-gray-900 hover:text-gray-600 cursor-pointer transition-colors duration-300 hover:bg-gray-100 rounded-lg p-2 group"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 transition-transform duration-300 hover:rotate-90"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="24" 
+                height="24" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="1.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+                className="transition-transform duration-300 group-hover:rotate-90"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
               </svg>
             </button>
           </div>
 
-          <nav className="flex-1 p-4 space-y-2 text-sm overflow-y-auto">
-            {/* Base navigation items */}
-            {baseNavItems.map((item, index) => (
-              <button
-                key={item.id}
-                className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
-                onClick={() => {
-                  item.action();
-                  if (item.id !== "Blog") {
-                    setTimeout(() => setIsMenuOpen(false), 400);
-                  }
-                }}
-                style={{
-                  transitionDelay: isMenuOpen ? `${index * 50}ms` : "0ms",
-                  opacity: isMenuOpen ? 1 : 0,
-                  transform: isMenuOpen ? "translateX(0)" : "translateX(-20px)",
-                }}
-              >
-                {item.label}
-              </button>
-            ))}
-
-            {/* Additional items for logged-in users */}
-            {isLoggedIn &&
-              loggedInNavItems.map((item, index) => (
-                <button
-                  key={`logged-in-${index}`}
-                  onClick={() => {
-                    item.onClick();
-                    setIsMenuOpen(false);
-                  }}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${(baseNavItems.length + index) * 50}ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
-
-            {/* Divider - Only show if user is logged in */}
+          {/* Mobile Navigation Content - MODERNIZED */}
+          <nav className="flex-1 p-4 space-y-1 overflow-y-auto bg-white" ref={mobileCategoriesRef}>
+            {/* User info for logged in users - MODERN */}
             {isLoggedIn && (
-              <div
-                className="h-px bg-gray-200 my-2 transition-all duration-300"
-                style={{
-                  transitionDelay: isMenuOpen
-                    ? `${
-                        (baseNavItems.length + loggedInNavItems.length + 2) * 50
-                      }ms`
-                    : "0ms",
-                  opacity: isMenuOpen ? 1 : 0,
-                }}
-              ></div>
-            )}
-
-            {/* Authentication buttons - Show based on login status */}
-            {isLoggedIn ? (
-              <>
-                {/* Mobile user info */}
-                <div
-                  className="px-4 py-3 bg-white rounded-lg mb-4 cursor-default transition-all duration-300"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 3) *
-                          50
-                        }ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
-                >
-                  <p className="text-sm font-medium text-gray-900 cursor-default">
-                    {userProfile?.firstName
-                      ? `${userProfile.firstName} ${userProfile.lastName}`
-                      : userEmail}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1 cursor-default">
-                    {userEmail}
-                  </p>
-                  <div className="flex items-center gap-1 mt-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-xs text-green-600">Verified</span>
+              <div className="mb-4 p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-200">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-lg shadow-sm border-3 border-white">
+                      {getUserInitials()}
+                    </div>
+                    <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white z-10 animate-pulse"></div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="text-base font-semibold text-gray-900 truncate">
+                        {userProfile?.firstName && userProfile?.lastName
+                          ? `${userProfile.firstName} ${userProfile.lastName}`
+                          : userEmail?.split('@')[0]}
+                      </p>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${userProfile?.isVerified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                        {getVerificationStatusText()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-0.5 truncate">
+                      {userEmail}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span className="text-xs text-gray-600">Online</span>
+                      </div>
+                      <span className="text-xs text-gray-400">•</span>
+                      <span className="text-xs text-gray-600">
+                        {userProfile?.role === "vendor" ? "Vendor Account" : "Buyer Account"}
+                      </span>
+                    </div>
                   </div>
                 </div>
+              </div>
+            )}
 
-                {/* Mobile navigation for logged-in users */}
-                <button
-                  onClick={() => handleMobileNavigate("/profile")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 4) *
-                          50
-                        }ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <FiUser className="w-4 h-4" />
-                    <span>My Profile</span>
-                  </div>
-                </button>
+            {/* Categories Section */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2 px-2">
+                <p className="text-sm font-semibold text-gray-900">Categories</p>
+                <span className="text-xs text-gray-500">{categoriesItems.length} options</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {categoriesItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => handleMobileNavigate(item.action)}
+                    className="flex flex-col items-center p-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-all duration-200 cursor-pointer group/category border border-gray-100"
+                  >
+                    <div className="w-12 h-12 flex items-center justify-center bg-gray-50 rounded-full group-hover/category:bg-blue-100 mb-2 transition-colors">
+                      <span className="font-semibold text-gray-700 group-hover/category:text-blue-700">
+                        {item.label.charAt(0)}
+                      </span>
+                    </div>
+                    <span className="font-medium">{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                <button
-                  onClick={() => handleMobileNavigate("/saved")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 5) *
-                          50
-                        }ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <FiHeart className="w-4 h-4" />
-                    <span>
-                      Saved Listings {savedCount > 0 && `(${savedCount})`}
-                    </span>
-                  </div>
-                </button>
+            {/* Quick Actions Section */}
+            <div className="space-y-2 mb-4">
+              <p className="text-sm font-semibold text-gray-900 px-2 mb-2">Quick Actions</p>
+              
+              {isLoggedIn ? (
+                <>
+                  <button
+                    onClick={handleMobileProfileNavigation}
+                    className="w-full flex items-center gap-3 p-3 text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 cursor-pointer group/item"
+                  >
+                    <div className="w-10 h-10 flex items-center justify-center bg-blue-50 rounded-lg group-hover/item:bg-blue-100 transition-colors">
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        width="18" 
+                        height="18" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="1.5" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                      >
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                      </svg>
+                    </div>
+                    <div className="flex-1 text-left">
+                      <span className="font-medium block">My Profile</span>
+                      <span className="text-xs text-gray-500">Edit profile & settings</span>
+                    </div>
+                  </button>
 
-                <button
-                  onClick={() => handleMobileNavigate("/chat")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 6) *
-                          50
-                        }ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
-                >
-                  Chat Assistant
-                </button>
-                <button
-                  onClick={() => handleMobileNavigate("/notifications")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 7) *
-                          50
-                        }ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
-                >
-                  Notifications
-                </button>
+                  <button
+                    onClick={() => handleMobileNavigate("/saved")}
+                    className="w-full flex items-center gap-3 p-3 text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 cursor-pointer group/item"
+                  >
+                    <div className="w-10 h-10 flex items-center justify-center bg-red-50 rounded-lg group-hover/item:bg-red-100 transition-colors relative">
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        width="18" 
+                        height="18" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="1.5" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                      >
+                        <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
+                      </svg>
+                      {savedCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium border border-white">
+                          {savedCount > 9 ? "9+" : savedCount}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <span className="font-medium block">Saved Listings</span>
+                      <span className="text-xs text-gray-500">Your favorite places</span>
+                    </div>
+                  </button>
 
-                {/* Sign Out button */}
+                  <button
+                    onClick={() => handleMobileNavigate("/chat")}
+                    className="w-full flex items-center gap-3 p-3 text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 cursor-pointer group/item"
+                  >
+                    <div className="w-10 h-10 flex items-center justify-center bg-green-50 rounded-lg group-hover/item:bg-green-100 transition-colors">
+                      <LucideIcons.MessageSquareText size={18} strokeWidth={1.5} />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <span className="font-medium block">Chat Assistant</span>
+                      <span className="text-xs text-gray-500">Get instant help</span>
+                    </div>
+                  </button>
+
+                  {/* Vendor specific options */}
+                  {userProfile?.role === "vendor" && (
+                    <>
+                      <button
+                        onClick={() => handleMobileNavigate("/vendor/dashboard")}
+                        className="w-full flex items-center gap-3 p-3 text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 cursor-pointer group/item"
+                      >
+                        <div className="w-10 h-10 flex items-center justify-center bg-purple-50 rounded-lg group-hover/item:bg-purple-100 transition-colors">
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            width="18" 
+                            height="18" 
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            strokeWidth="1.5" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round"
+                          >
+                            <rect x="3" y="3" width="7" height="7"/>
+                            <rect x="14" y="3" width="7" height="7"/>
+                            <rect x="3" y="14" width="7" height="7"/>
+                            <rect x="14" y="14" width="7" height="7"/>
+                          </svg>
+                        </div>
+                        <div className="flex-1 text-left">
+                          <span className="font-medium block">Vendor Dashboard</span>
+                          <span className="text-xs text-gray-500">Manage your business</span>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => handleMobileNavigate("/add-business")}
+                        className="w-full flex items-center gap-3 p-3 text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 cursor-pointer group/item"
+                      >
+                        <div className="w-10 h-10 flex items-center justify-center bg-amber-50 rounded-lg group-hover/item:bg-amber-100 transition-colors">
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            width="18" 
+                            height="18" 
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            strokeWidth="1.5" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round"
+                          >
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                          </svg>
+                        </div>
+                        <div className="flex-1 text-left">
+                          <span className="font-medium block">List Your Business</span>
+                          <span className="text-xs text-gray-500">Add new listing</span>
+                        </div>
+                      </button>
+                    </>
+                  )}
+                </>
+              ) : (
+                /* Authentication options for non-logged in */
+                <>
+                  <button
+                    onClick={() => handleMobileNavigate("/login")}
+                    className="w-full flex items-center gap-3 p-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-all duration-200 cursor-pointer group/item"
+                  >
+                    <div className="w-10 h-10 flex items-center justify-center bg-blue-50 rounded-lg group-hover/item:bg-blue-100 transition-colors">
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        width="18" 
+                        height="18" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="1.5" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                      >
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                        <polyline points="10 17 15 12 10 7"/>
+                        <line x1="15" y1="12" x2="3" y2="12"/>
+                      </svg>
+                    </div>
+                    <div className="flex-1 text-left">
+                      <span className="font-medium block">Log In</span>
+                      <span className="text-xs text-gray-500">Access your account</span>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => handleMobileNavigate("/register")}
+                    className="w-full flex items-center gap-3 p-3 text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-lg transition-all duration-200 cursor-pointer group/item"
+                  >
+                    <div className="w-10 h-10 flex items-center justify-center bg-green-50 rounded-lg group-hover/item:bg-green-100 transition-colors">
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        width="18" 
+                        height="18" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="1.5" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                      >
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M19 8v6"/>
+                        <path d="M22 11h-6"/>
+                      </svg>
+                    </div>
+                    <div className="flex-1 text-left">
+                      <span className="font-medium block">Get Started</span>
+                      <span className="text-xs text-gray-500">Create new account</span>
+                    </div>
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Sign Out Button for logged in users */}
+            {isLoggedIn && (
+              <div className="pt-4 border-t border-gray-200 mt-4">
                 <button
                   onClick={() => {
                     handleSignOut();
                   }}
-                  className="block w-full text-left py-3 px-4 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${
-                          (baseNavItems.length + loggedInNavItems.length + 8) *
-                          50
-                        }ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
+                  className="w-full flex items-center justify-center gap-2 p-3 text-gray-700 hover:bg-red-50 hover:text-red-700 rounded-lg transition-all duration-200 cursor-pointer group/item"
                 >
-                  Sign Out
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="18" 
+                    height="18" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="1.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                  </svg>
+                  <span className="font-medium">Sign Out</span>
                 </button>
-              </>
-            ) : (
-              <>
-                <div
-                  className="h-px bg-gray-200 my-2 transition-all duration-300"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${(baseNavItems.length + 1) * 50}ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                  }}
-                ></div>
-
-                <button
-                  onClick={() => handleMobileNavigate("/login")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-[#06EAFC] hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal whitespace-nowrap text-sm cursor-pointer transform hover:translate-x-1"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${(baseNavItems.length + 2) * 50}ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
-                >
-                  Log In
-                </button>
-
-                <button
-                  onClick={() => handleMobileNavigate("/register")}
-                  className="block w-full text-left py-3 px-4 hover:bg-blue-50 text-black rounded-lg font-normal whitespace-nowrap text-sm cursor-pointer transition-all duration-300 transform hover:translate-x-1"
-                  style={{
-                    transitionDelay: isMenuOpen
-                      ? `${(baseNavItems.length + 3) * 50}ms`
-                      : "0ms",
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen
-                      ? "translateX(0)"
-                      : "translateX(-20px)",
-                  }}
-                >
-                  Register
-                </button>
-              </>
+                <p className="text-xs text-gray-400 text-center mt-3">
+                  © {new Date().getFullYear()} Ajani. All rights reserved.
+                </p>
+              </div>
             )}
           </nav>
         </div>

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaArrowRight, FaEye, FaEyeSlash, FaTimes } from "react-icons/fa";
+import { FaArrowRight, FaEye, FaEyeSlash, FaTimes, FaArrowLeft } from "react-icons/fa";
 import Logo from "../../../assets/Logos/logo5.png";
 import * as yup from "yup";
 import { useForm } from "react-hook-form";
@@ -319,6 +319,14 @@ const UserRegistration = () => {
     }
   };
 
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  const handleLogoClick = () => {
+    navigate("/");
+  };
+
   const handleRegistration = async (data) => {
     try {
       setIsSubmitting(true);
@@ -340,24 +348,32 @@ const UserRegistration = () => {
         // ✅ CHECK USER VERIFICATION STATUS
         const isVerified = userData?.isVerified || false;
 
+        // ✅ Create complete user profile object
+        const completeUserProfile = {
+          id: userData._id,
+          email: userData.email || data.email,
+          firstName: userData.firstName || data.firstName,
+          lastName: userData.lastName || data.lastName,
+          phone: userData.phone || data.phone,
+          role: userData.role || data.role,
+          isVerified: isVerified,
+          profilePicture: userData.profilePicture || "",
+          created_at: userData.createdAt || new Date().toISOString(),
+          // Store registration date for member since display
+          registrationDate: new Date().toISOString()
+        };
+
         // ✅ SCENARIO 1: User is verified and has token (Auto-login - rare case)
         if (isVerified && token && userData) {
           // ✅ Store authentication data
           localStorage.setItem("auth_token", token);
-          localStorage.setItem("user_email", userData.email);
-          localStorage.setItem(
-            "userProfile",
-            JSON.stringify({
-              id: userData._id,
-              email: userData.email,
-              firstName: userData.firstName,
-              lastName: userData.lastName,
-              phone: userData.phone,
-              role: userData.role,
-              isVerified: userData.isVerified,
-              profilePicture: userData.profilePicture,
-            })
-          );
+          localStorage.setItem("user_email", userData.email || data.email);
+          localStorage.setItem("userProfile", JSON.stringify(completeUserProfile));
+
+          // ✅ Initialize saved listings if not exists
+          if (!localStorage.getItem("userSavedListings")) {
+            localStorage.setItem("userSavedListings", JSON.stringify([]));
+          }
 
           // ✅ Notify Header immediately
           window.dispatchEvent(new Event("storage"));
@@ -380,16 +396,21 @@ const UserRegistration = () => {
           // Store email for OTP verification
           localStorage.setItem("pendingVerificationEmail", data.email);
 
-          // Store user data temporarily for verification
+          // Store COMPLETE user data temporarily for verification
           localStorage.setItem(
             "pendingUserData",
             JSON.stringify({
-              email: data.email,
-              firstName: data.firstName,
-              lastName: data.lastName,
-              phone: data.phone,
+              ...completeUserProfile,
+              rawData: data,
+              token: token
             })
           );
+
+          // Also store a temporary user profile
+          localStorage.setItem("userProfile", JSON.stringify(completeUserProfile));
+
+          // Initialize saved listings
+          localStorage.setItem("userSavedListings", JSON.stringify([]));
 
           // Show registration success toast
           setShowRegistrationToast(true);
@@ -404,6 +425,7 @@ const UserRegistration = () => {
               state: {
                 email: data.email,
                 fromRegistration: true,
+                userData: completeUserProfile
               },
             });
           }, 1500);
@@ -450,7 +472,22 @@ const UserRegistration = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-white flex items-center justify-center p-4 sm:p-6 md:p-8 font-manrope">
+    <div className="min-h-screen w-full bg-white flex items-center justify-center p-4 sm:p-6 md:p-8 font-manrope relative">
+      {/* Header Section with Back Button (Desktop) */}
+      <div className="hidden lg:block absolute left-0 top-0 p-6">
+        <button
+          onClick={handleBack}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-lg transition-colors group"
+          aria-label="Go back"
+        >
+          <FaArrowLeft 
+            size={20} 
+            className="group-hover:-translate-x-0.5 transition-transform" 
+          />
+          <span className="font-medium">Back</span>
+        </button>
+      </div>
+
       {/* Auto-Login Success Toast Notification (rare case) */}
       {showSuccessToast && (
         <ToastNotification
@@ -496,14 +533,20 @@ const UserRegistration = () => {
           <FaTimes size={20} />
         </button>
 
-        {/* Logo */}
+        {/* Logo - Clickable with Zoom Effect */}
         <div className="flex justify-center mb-4">
-          <img src={Logo} alt="Ajani Logo" className="h-auto w-30" />
+          <button
+            onClick={handleLogoClick}
+            className="cursor-pointer hover:opacity-80 transition-all duration-300"
+            aria-label="Go to homepage"
+          >
+            <img src={Logo} alt="Ajani Logo" className="h-auto w-30 cursor-pointer transition-transform duration-300 hover:scale-105" />
+          </button>
         </div>
 
         {/* Heading */}
         <h2 className="text-xl sm:text-2xl font-bold text-center text-gray-900">
-          Create User Account
+          Create Buyer Account
         </h2>
 
         <p className="text-center text-gray-600 mt-2 text-sm sm:text-base leading-tight">

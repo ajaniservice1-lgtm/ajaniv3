@@ -1,4 +1,3 @@
-// src/components/DiscoverIbadan.jsx
 import React, {
   useEffect,
   useRef,
@@ -6,137 +5,227 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import listingService from "../lib/listingService";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faSearch,
   faTimes,
-  faMapMarkerAlt,
-  faFilter,
+  faCalendarAlt,
   faChevronRight,
   faChevronLeft,
-  faBuilding,
-  faUtensils,
-  faLandmark,
-  faHome,
-  faTools,
-  faCalendar,
+  faMapMarkerAlt,
   faUser,
+  faBuilding,
+  faHome,
+  faUtensils,
+  faBed,
+  faToolbox,
+  faWrench,
+  faHandSparkles,
+  faPaintRoller,
+  faBolt,
 } from "@fortawesome/free-solid-svg-icons";
-import { createPortal } from "react-dom";
+import { FaUserCircle } from "react-icons/fa";
 
-/* ---------------- IMAGES ---------------- */
-import hotelImg from "../assets/Logos/hotel.jpg";
-import tourismImg from "../assets/Logos/tourism.jpg";
-import eventsImg from "../assets/Logos/events.jpg";
-import restuarantImg from "../assets/Logos/restuarant.jpg";
+/* ---------------- GLASSMORPHISM CSS STYLES ---------------- */
+const glassStyles = `
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
 
-/* ---------------- FALLBACKS ---------------- */
-const FALLBACK_IMAGES = {
-  Hotel: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400",
-  Restaurant:
-    "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400",
-  Shortlet:
-    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400",
-  Tourism: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400",
-  Services:
-    "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=400",
-};
+  .glass-dark {
+    background: rgba(217, 217, 217, 0.2);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
 
-/* ---------------- HELPER FUNCTIONS ---------------- */
+  .glass-light {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+  }
 
-// Google Sheet Hook
-const useGoogleSheet = (sheetId, apiKey) => {
-  const [data, setData] = useState([]);
+  .glass-pronounced {
+    background: linear-gradient(
+      135deg,
+      rgba(217, 217, 217, 0.25) 0%,
+      rgba(217, 217, 217, 0.1) 100%
+    );
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 
+      0 10px 30px rgba(0, 0, 0, 0.1),
+      0 1px 8px rgba(0, 0, 0, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  .glass-background {
+    background: linear-gradient(
+      135deg,
+      rgba(217, 217, 217, 0.1) 0%,
+      rgba(217, 217, 217, 0.05) 100%
+    );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .glass-dark:hover, .glass-light:hover, .glass-pronounced:hover {
+    background: rgba(217, 217, 217, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+  }
+
+  @supports not (backdrop-filter: blur(10px)) {
+    .glass-effect,
+    .glass-dark,
+    .glass-light,
+    .glass-pronounced {
+      background: rgba(245, 245, 245, 0.95);
+      border: 1px solid rgba(229, 231, 235, 0.8);
+    }
+    .glass-background {
+      background: #F7F7FA;
+    }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+  }
+
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(0, 227, 140, 0.3); }
+    50% { box-shadow: 0 0 30px rgba(0, 227, 140, 0.5); }
+  }
+
+  .floating {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .glowing {
+    animation: glow 3s ease-in-out infinite;
+  }
+`;
+
+/* ---------------- CUSTOM HOOK FOR BACKEND SERVICES ---------------- */
+const useBackendServices = () => {
+  const [serviceTypes, setServiceTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!sheetId || !apiKey) {
-      setError("⚠️ Missing SHEET_ID or API_KEY");
-      setLoading(false);
-      return;
-    }
-
-    const fetchData = async () => {
+    const fetchServiceTypes = async () => {
       try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A1:Z1000?key=${apiKey}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        let result = [];
-        if (
-          json.values &&
-          Array.isArray(json.values) &&
-          json.values.length > 1
-        ) {
-          const headers = json.values[0];
-          const rows = json.values.slice(1);
-          result = rows
-            .filter((row) => Array.isArray(row) && row.length > 0)
-            .map((row, index) => {
-              const obj = {};
-              headers.forEach((h, i) => {
-                obj[h?.toString().trim() || `col_${i}`] = (row[i] || "")
-                  .toString()
-                  .trim();
-              });
-              obj.id = obj.id || `item-${index}`;
-              return obj;
-            });
+        setLoading(true);
+        // Fetch service types from your backend
+        // This could be from your listingService or a separate serviceTypes service
+        const result = await listingService.getServiceTypes();
+        
+        if (result?.status === "success" && result.data?.serviceTypes) {
+          setServiceTypes(result.data.serviceTypes);
+        } else if (result?.data?.services) {
+          // Alternative: if the data is in services array
+          setServiceTypes(result.data.services);
+        } else {
+          // Fallback to default service types if backend doesn't return
+          setServiceTypes([
+            'Plumbing',
+            'Electrical',
+            'Cleaning',
+            'Painting',
+            'Carpentry',
+            'AC Repair',
+            'Pest Control',
+            'Tiling',
+            'Mechanic',
+            'Tailoring',
+            'Hair Styling',
+            'Makeup Artist',
+            'Photography',
+            'Catering',
+            'Delivery'
+          ]);
         }
-        setData(result);
       } catch (err) {
-        console.error("Google Sheets fetch error:", err);
-        setError("⚠️ Failed to load directory. Try again later.");
-        setData([]);
+        setError(err.message);
+        // Fallback to default service types
+        setServiceTypes([
+          'Plumbing',
+          'Electrical',
+          'Cleaning',
+          'Painting',
+          'Carpentry',
+          'AC Repair',
+          'Pest Control',
+          'Tiling',
+          'Mechanic',
+          'Tailoring',
+          'Hair Styling',
+          'Makeup Artist',
+          'Photography',
+          'Catering',
+          'Delivery'
+        ]);
       } finally {
         setLoading(false);
       }
     };
+    
+    fetchServiceTypes();
+  }, []);
 
-    fetchData();
-  }, [sheetId, apiKey]);
-
-  return { data: Array.isArray(data) ? data : [], loading, error };
+  return { serviceTypes, loading, error };
 };
 
-// Get category image
-const getCategoryImage = (category, fallback) => {
-  try {
-    switch (category) {
-      case "Hotel":
-        return hotelImg;
-      case "Tourism":
-        return tourismImg;
-      case "Shortlet":
-        return eventsImg;
-      case "Restaurant":
-        return restuarantImg;
-      case "Services":
-        return FALLBACK_IMAGES.Services;
-      default:
-        return fallback;
-    }
-  } catch (error) {
-    console.log(`Error loading ${category} image:`, error);
-    return fallback;
-  }
+/* ---------------- CUSTOM HOOK FOR BACKEND LISTINGS ---------------- */
+const useBackendListings = () => {
+  const [listings, setListings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchListings = async () => {
+      try {
+        setLoading(true);
+        const result = await listingService.getAll();
+        
+        if (result?.status === "success" && result.data?.listings) {
+          setListings(result.data.listings);
+        } else {
+          setListings([]);
+          setError(result?.message || "No data received");
+        }
+      } catch (err) {
+        setError(err.message);
+        setListings([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchListings();
+  }, []);
+
+  return { listings, loading, error };
 };
 
-// Get category icon
-const getCategoryIcon = (category) => {
-  const cat = category.toLowerCase();
-  if (cat.includes("hotel")) return faBuilding;
-  if (cat.includes("restaurant") || cat.includes("food")) return faUtensils;
-  if (cat.includes("shortlet") || cat.includes("apartment")) return faHome;
-  if (cat.includes("tourism") || cat.includes("tourist")) return faLandmark;
-  if (cat.includes("services")) return faTools;
-  return faFilter;
-};
-
-// Format date
+/* ---------------- HELPER FUNCTIONS ---------------- */
 const formatDateLabel = (date) =>
   date.toLocaleDateString("en-US", {
     weekday: "short",
@@ -144,212 +233,160 @@ const formatDateLabel = (date) =>
     day: "numeric",
   });
 
-// Get category display name
+const formatDateForURL = (date) => {
+  if (!date) return "";
+  return date.toISOString();
+};
+
 const getCategoryDisplayName = (category) => {
   if (!category || category === "All Categories") return "All Categories";
-
-  const parts = category.split(".");
-  if (parts.length > 1) {
-    const afterDot = parts.slice(1).join(".").trim();
-    return afterDot
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  }
-
   return category
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 };
 
-// Get location display name
+const getServiceIcon = (serviceName) => {
+  const serviceLower = serviceName.toLowerCase();
+  
+  if (serviceLower.includes('plumb')) return faToolbox;
+  if (serviceLower.includes('electric') || serviceLower.includes('ac') || serviceLower.includes('bolt')) return faBolt;
+  if (serviceLower.includes('clean')) return faHandSparkles;
+  if (serviceLower.includes('paint')) return faPaintRoller;
+  if (serviceLower.includes('carpent') || serviceLower.includes('wood')) return faWrench;
+  if (serviceLower.includes('mechanic') || serviceLower.includes('car')) return faWrench;
+  if (serviceLower.includes('hair') || serviceLower.includes('makeup') || serviceLower.includes('tailor')) return faUser;
+  if (serviceLower.includes('photo') || serviceLower.includes('cater') || serviceLower.includes('delivery')) return faToolbox;
+  
+  return faToolbox; // default icon
+};
+
 const getLocationDisplayName = (location) => {
-  if (!location) return "All Locations";
-
-  const parts = location.split(".");
-  if (parts.length > 1) {
-    const afterDot = parts.slice(1).join(".").trim();
-    return afterDot
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
+  if (!location || location === "All Locations") return "All Locations";
+  
+  const locationMap = {
+    'akobo': 'Akobo',
+    'ringroad': 'Ringroad',
+    'bodija': 'Bodija',
+    'dugbe': 'Dugbe',
+    'mokola': 'Mokola',
+    'sango': 'Sango',
+    'ui': 'UI',
+    'poly': 'Poly',
+    'agodi': 'Agodi',
+    'jericho': 'Jericho',
+    'gbagi': 'Gbagi',
+    'apata': 'Apata',
+    'secretariat': 'Secretariat',
+    'moniya': 'Moniya',
+    'challenge': 'Challenge',
+    'molete': 'Molete',
+    'agbowo': 'Agbowo',
+    'sabo': 'Sabo',
+    'bashorun': 'Bashorun'
+  };
+  
+  const locLower = location.toLowerCase();
+  if (locationMap[locLower]) {
+    return locationMap[locLower];
   }
-
+  
   return location
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 };
 
-// Get category breakdown
-const getCategoryBreakdown = (listings) => {
-  const categoryCounts = {};
-
-  listings.forEach((item) => {
-    if (item.category) {
-      const category = getCategoryDisplayName(item.category);
-      categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-    }
-  });
-
-  return Object.entries(categoryCounts)
-    .map(([category, count]) => ({
-      category,
-      count,
-      icon: getCategoryIcon(category),
-    }))
-    .sort((a, b) => b.count - a.count);
+const normalizeLocationForBackend = (location) => {
+  if (!location) return '';
+  return location
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 };
 
-// Get location breakdown
-const getLocationBreakdown = (listings) => {
-  const locationCounts = {};
-
-  listings.forEach((item) => {
-    if (item.area) {
-      const location = getLocationDisplayName(item.area);
-      locationCounts[location] = (locationCounts[location] || 0) + 1;
-    }
-  });
-
-  return Object.entries(locationCounts)
-    .map(([location, count]) => ({ location, count }))
-    .sort((a, b) => b.count - a.count);
+const createSlug = (text) => {
+  if (!text) return '';
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim();
 };
 
-// Generate search suggestions
-const generateSearchSuggestions = (query, listings) => {
-  if (!query.trim() || !listings.length) return [];
+const getCategorySlug = (category) => {
+  const categoryMap = {
+    'Hotel': 'hotel',
+    'Shortlet': 'shortlet', 
+    'Restaurant': 'restaurant',
+    'Services': 'services',
+    'All Categories': ''
+  };
+  
+  return categoryMap[category] || createSlug(category);
+};
 
+const normalizeLocation = (location) => {
+  if (!location) return '';
+  return location
+    .toLowerCase()
+    .trim()
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
+    .replace(/\s+/g, ' ');
+};
+
+const normalizeServiceName = (service) => {
+  if (!service) return '';
+  return service
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, ' ')
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+const looksLikeLocation = (query) => {
+  if (!query || query.trim() === '') return false;
+  
   const queryLower = query.toLowerCase().trim();
-  const suggestions = [];
-
-  // Get unique categories and locations
-  const uniqueCategories = [
-    ...new Set(
-      listings
-        .map((item) => item.category)
-        .filter((cat) => cat && cat.trim() !== "")
-        .map((cat) => cat.trim())
-    ),
+  
+  const ibadanAreas = [
+    'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly',  'agodi', 
+    'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
+    'molete', 'agbowo', 'sabo', 'bashorun', 'ife road',
+    'akinyele', 'mokola hill', 'sango roundabout'
   ];
-
-  const uniqueLocations = [
-    ...new Set(
-      listings
-        .map((item) => item.area)
-        .filter((loc) => loc && loc.trim() !== "")
-        .map((loc) => loc.trim())
-    ),
+  
+  const locationSuffixes = [
+    'road', 'street', 'avenue', 'drive', 'lane', 'close', 'way', 'estate',
+    'area', 'zone', 'district', 'quarters', 'extension', 'phase', 'junction',
+    'bypass', 'expressway', 'highway', 'roundabout', 'market', 'station'
   ];
-
-  // Category suggestions
-  const categoryMatches = uniqueCategories
-    .filter((category) => {
-      const displayName = getCategoryDisplayName(category).toLowerCase();
-      return displayName.includes(queryLower);
-    })
-    .map((category) => {
-      const categoryListings = listings.filter(
-        (item) =>
-          item.category &&
-          item.category.toLowerCase() === category.toLowerCase()
-      );
-
-      const locationBreakdown = getLocationBreakdown(categoryListings);
-      const totalPlaces = categoryListings.length;
-
-      const topLocations = locationBreakdown.slice(0, 3);
-
-      return {
-        type: "category",
-        title: getCategoryDisplayName(category),
-        count: totalPlaces,
-        description: `${totalPlaces} ${
-          totalPlaces === 1 ? "place" : "places"
-        } found`,
-        breakdownText:
-          topLocations.length > 0
-            ? `Top locations: ${topLocations
-                .map((loc) => `${loc.location} (${loc.count})`)
-                .join(", ")}`
-            : `Available in multiple areas`,
-        breakdown: topLocations,
-        action: () => {
-          const params = new URLSearchParams();
-          params.append("category", category);
-          return `/search-results?${params.toString()}`;
-        },
-      };
-    })
-    .sort((a, b) => b.count - a.count);
-
-  // Location suggestions
-  const locationMatches = uniqueLocations
-    .filter((location) => {
-      const displayName = getLocationDisplayName(location).toLowerCase();
-      return displayName.includes(queryLower);
-    })
-    .map((location) => {
-      const locationListings = listings.filter(
-        (item) =>
-          item.area && item.area.toLowerCase() === location.toLowerCase()
-      );
-
-      const categoryBreakdown = getCategoryBreakdown(locationListings);
-      const totalPlaces = locationListings.length;
-
-      const topCategories = categoryBreakdown.slice(0, 4);
-
-      return {
-        type: "location",
-        title: getLocationDisplayName(location),
-        count: totalPlaces,
-        description: `${totalPlaces} ${
-          totalPlaces === 1 ? "place" : "places"
-        } found`,
-        breakdownText: `Places include: ${topCategories
-          .map((cat) => `${cat.category} (${cat.count})`)
-          .join(", ")}${
-          categoryBreakdown.length > 4
-            ? `, +${categoryBreakdown.length - 4} more`
-            : ""
-        }`,
-        breakdown: topCategories,
-        action: () => {
-          const params = new URLSearchParams();
-          params.append("location", location);
-          return `/search-results?${params.toString()}`;
-        },
-      };
-    })
-    .sort((a, b) => b.count - a.count);
-
-  // Combine and sort by relevance
-  return [...categoryMatches, ...locationMatches]
-    .sort((a, b) => {
-      // Exact matches first
-      const aExact = a.title.toLowerCase() === queryLower;
-      const bExact = b.title.toLowerCase() === queryLower;
-      if (aExact && !bExact) return -1;
-      if (!aExact && bExact) return 1;
-
-      // Starts with query
-      const aStartsWith = a.title.toLowerCase().startsWith(queryLower);
-      const bStartsWith = b.title.toLowerCase().startsWith(queryLower);
-      if (aStartsWith && !bStartsWith) return -1;
-      if (!aStartsWith && bStartsWith) return 1;
-
-      // Then by count
-      return b.count - a.count;
-    })
-    .slice(0, 8);
+  
+  const isIbadanArea = ibadanAreas.some(area => queryLower.includes(area));
+  const hasLocationSuffix = locationSuffixes.some(suffix => queryLower.includes(suffix));
+  const isShortQuery = queryLower.split(/\s+/).length <= 3 && queryLower.length <= 15;
+  
+  return isIbadanArea || hasLocationSuffix || isShortQuery;
 };
 
-/* ---------------- COMPONENTS ---------------- */
+const looksLikeService = (query, serviceTypes) => {
+  if (!query || query.trim() === '' || !serviceTypes || serviceTypes.length === 0) return false;
+  
+  const queryLower = query.toLowerCase().trim();
+  
+  // Check if query matches any service type
+  return serviceTypes.some(service => 
+    service.toLowerCase().includes(queryLower) || 
+    queryLower.includes(service.toLowerCase())
+  );
+};
 
-// Mobile Search Modal Component
+/* ---------------- MOBILE SEARCH MODAL COMPONENT ---------------- */
 const MobileSearchModal = ({
   searchQuery,
   listings,
@@ -357,340 +394,354 @@ const MobileSearchModal = ({
   onClose,
   onTyping,
   isVisible,
+  activeCategory,
+  serviceTypes = [],
 }) => {
   const [inputValue, setInputValue] = useState(searchQuery);
   const modalRef = useRef(null);
   const inputRef = useRef(null);
+  
+  // Use service types for Services category, locations for others
+  const suggestionsData = useMemo(() => {
+    if (activeCategory === "Services") {
+      // Return service types from backend
+      return serviceTypes || [];
+    } else {
+      // Return Ibadan locations for other categories
+      const locationsFromListings = listingService.getLocationsFromListings(listings);
+      const allLocations = [
+        'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly',  'Agodi',
+        'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
+        'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
+        'Akinyele',  'Mokola Hill', 'Sango Roundabout',
+        'Iwo Road', 'Gate', 'New Garage', 'Old Ife Road',
+        ...locationsFromListings
+      ];
+      
+      return [...new Set(allLocations)].sort();
+    }
+  }, [listings, activeCategory, serviceTypes]);
 
-  // Generate suggestions
   const suggestions = useMemo(() => {
-    return generateSearchSuggestions(inputValue, listings);
-  }, [inputValue, listings]);
+    if (!inputValue.trim()) return [];
+    
+    const queryLower = inputValue.toLowerCase().trim();
+    
+    if (activeCategory === "Services") {
+      // Filter service types based on search
+      const serviceMatches = suggestionsData
+        .filter((service) => {
+          const serviceName = service.toLowerCase();
+          return serviceName.includes(queryLower) || 
+                 normalizeServiceName(service).toLowerCase().includes(queryLower);
+        })
+        .map((service) => ({
+          type: "service",
+          title: service,
+          description: `${service} service providers in Ibadan`,
+          icon: getServiceIcon(service),
+        }));
 
-  // Handle input change
+      // Add a general search option if no exact service matches
+      if (serviceMatches.length === 0 && inputValue.trim()) {
+        return [{
+          type: "search",
+          title: `Search for "${inputValue}"`,
+          description: `Find service providers matching "${inputValue}" in Ibadan`,
+          icon: faSearch,
+        }];
+      }
+
+      return serviceMatches.slice(0, 8);
+    } else {
+      // For other categories: filter locations based on search
+      const locationMatches = suggestionsData
+        .filter((location) => {
+          const displayName = location.toLowerCase();
+          return displayName.includes(queryLower) || 
+                 normalizeLocation(location).includes(normalizeLocation(queryLower));
+        })
+        .map((location) => ({
+          type: "location",
+          title: getLocationDisplayName(location),
+          location: location,
+          description: `${activeCategory}s in ${getLocationDisplayName(location)}, Ibadan`,
+          icon: faMapMarkerAlt,
+        }));
+
+      // Add a general search option if no exact location matches
+      if (locationMatches.length === 0 && inputValue.trim()) {
+        return [{
+          type: "search",
+          title: `Search for "${inputValue}"`,
+          description: `Find ${activeCategory.toLowerCase()}s matching "${inputValue}" in Ibadan`,
+          icon: faSearch,
+        }];
+      }
+
+      return locationMatches.slice(0, 8);
+    }
+  }, [inputValue, activeCategory, suggestionsData]);
+
   const handleInputChange = (e) => {
     const value = e.target.value;
     setInputValue(value);
     onTyping(value);
   };
 
-  // Handle clear input
   const handleClearInput = () => {
     setInputValue("");
     onTyping("");
     inputRef.current?.focus();
   };
 
-  // Handle suggestion click
-  const handleSuggestionClick = (action) => {
-    onSuggestionClick(action);
-    onClose();
-  };
-
-  // Handle key press
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && inputValue.trim()) {
-      const params = new URLSearchParams();
-      params.append("q", inputValue.trim());
-      onSuggestionClick(`/search-results?${params.toString()}`);
+  const handleSuggestionClick = (suggestion) => {
+    if (suggestion.type === "service" || suggestion.type === "location") {
+      // Set the search input value and close modal
+      const title = suggestion.title || suggestion;
+      setInputValue(title);
+      onTyping(title); // Update parent's search query
+      onClose(); // Close the modal
+    } else {
+      // General search
+      const searchValue = inputValue.trim();
+      setInputValue(searchValue);
+      onTyping(searchValue);
       onClose();
     }
   };
 
-  // Focus input when modal opens
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && inputValue.trim()) {
+      onTyping(inputValue.trim());
+    }
+  };
+
   useEffect(() => {
     if (isVisible && inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isVisible]);
 
-  // Prevent body scroll when modal is open
   useEffect(() => {
-    if (isVisible) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-
-    return () => {
-      document.body.style.overflow = "";
-    };
+    if (isVisible) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
+    return () => (document.body.style.overflow = "");
   }, [isVisible]);
 
-  // Sync inputValue with searchQuery prop
   useEffect(() => {
     setInputValue(searchQuery);
   }, [searchQuery]);
 
-  // Don't render if not visible
+  const getModalTitle = () => {
+    if (activeCategory === "Services") {
+      return "What service do you need?";
+    } else {
+      return `Search ${activeCategory.toLowerCase()} locations in Ibadan...`;
+    }
+  };
+
+  const getPopularSuggestions = () => {
+    if (activeCategory === "Services") {
+      return ["Plumbing", "Electrical", "Cleaning", "AC Repair", "Carpentry", "Painting", "Mechanic", "Tailoring"];
+    } else {
+      return ["Akobo", "Bodija", "Sango", "UI", "Mokola", "Dugbe", "Ringroad", "Challenge", "Iwo Road", "Agodi"];
+    }
+  };
+
   if (!isVisible) return null;
 
-  return createPortal(
+  return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9990] animate-fadeIn"
-        onClick={onClose}
-      />
-
-      {/* Modal Content */}
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9990]" onClick={onClose} />
       <div
         ref={modalRef}
-        className="fixed inset-0 bg-white z-[9991] animate-slideInUp flex flex-col"
+        className="fixed inset-0 bg-white z-[9991] flex flex-col"
+        style={{ boxShadow: "0 -25px 50px -12px rgba(0, 0, 0, 0.1)" }}
       >
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4">
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="text-gray-600 hover:text-gray-900 p-2 rounded-full hover:bg-gray-100"
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 cursor-pointer"
             >
-              <FontAwesomeIcon icon={faChevronLeft} className="w-5 h-5" />
+              <FontAwesomeIcon icon={faChevronLeft} size="lg" />
             </button>
             <div className="flex-1 relative">
               <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                <FontAwesomeIcon icon={faSearch} className="w-4 h-4" />
+                <FontAwesomeIcon icon={faSearch} size="sm" />
               </div>
               <input
                 ref={inputRef}
                 type="text"
-                className="w-full pl-10 pr-10 py-3 bg-gray-100 rounded-full border-0 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-900"
+                className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none text-gray-900 placeholder:text-gray-500 cursor-text"
                 value={inputValue}
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
-                placeholder="Search by area, category, or name..."
+                placeholder={getModalTitle()}
                 autoFocus
               />
               {inputValue && (
                 <button
                   onClick={handleClearInput}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                 >
-                  <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
+                  <FontAwesomeIcon icon={faTimes} size="sm" />
                 </button>
               )}
             </div>
+            {/* Search button in modal header - JUST CLOSES MODAL, DOESN'T SEARCH */}
+            <button
+              onClick={() => {
+                onClose(); // Just close the modal
+              }}
+              className="px-4 py-2 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold rounded-lg hover:from-[#00c97b] hover:to-teal-600 transition-all duration-300 cursor-pointer text-sm"
+            >
+              Done
+            </button>
           </div>
         </div>
-
-        {/* Body */}
         <div className="flex-1 overflow-y-auto">
           {inputValue.trim() ? (
-            <>
-              {/* Suggestions Section */}
-              {suggestions.length > 0 ? (
-                <div className="p-4">
-                  <div className="mb-4">
-                    <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
-                      Top Suggestions ({suggestions.length})
-                    </h3>
-
-                    {/* Suggestions List */}
-                    <div className="space-y-3">
-                      {suggestions.map((suggestion, index) => (
-                        <button
-                          key={index}
-                          onClick={() =>
-                            handleSuggestionClick(suggestion.action())
-                          }
-                          className="w-full text-left p-4 bg-white hover:bg-blue-50 rounded-xl border border-gray-100 transition-all duration-200 hover:shadow-md"
-                        >
-                          <div className="flex items-start gap-3 mb-3">
-                            <div
-                              className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                                suggestion.type === "category"
-                                  ? "bg-blue-100 text-blue-600"
-                                  : "bg-green-100 text-green-600"
-                              }`}
-                            >
-                              <FontAwesomeIcon
-                                icon={
-                                  suggestion.type === "category"
-                                    ? faFilter
-                                    : faMapMarkerAlt
-                                }
-                                className="w-5 h-5"
-                              />
+            suggestions.length > 0 ? (
+              <div className="p-5">
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+                    {activeCategory === "Services" ? "Services Available" : "Locations in Ibadan"} ({suggestions.length})
+                  </h3>
+                </div>
+                <div className="space-y-3">
+                  {suggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className="w-full text-left p-4 bg-white rounded-xl border border-gray-200 hover:bg-gray-50 cursor-pointer transition-all duration-200"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-gray-100">
+                          <FontAwesomeIcon 
+                            icon={suggestion.icon} 
+                            className="text-gray-700 text-lg"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <h4 className="font-medium text-gray-900 text-base">{suggestion.title}</h4>
+                              <p className="text-sm text-gray-600 mt-1">{suggestion.description}</p>
                             </div>
-                            <div className="flex-1">
-                              <div className="flex items-start justify-between mb-1">
-                                <h4 className="font-semibold text-gray-900 text-lg">
-                                  {suggestion.title}
-                                </h4>
-                                <span
-                                  className={`text-sm font-semibold px-3 py-1 rounded-full ${
-                                    suggestion.type === "category"
-                                      ? "bg-blue-100 text-blue-700"
-                                      : "bg-green-100 text-green-700"
-                                  }`}
-                                >
-                                  {suggestion.count}{" "}
-                                  {suggestion.count === 1 ? "place" : "places"}
-                                </span>
-                              </div>
-                              <p className="text-sm text-gray-600 mb-2">
-                                {suggestion.description}
-                              </p>
-
-                              {/* Dynamic Breakdown */}
-                              <div className="mt-3 pt-3 border-t border-gray-100">
-                                <p className="text-xs text-gray-500 mb-2">
-                                  {suggestion.breakdownText}
-                                </p>
-
-                                {/* Breakdown Tags */}
-                                <div className="flex flex-wrap gap-1.5 mt-2">
-                                  {suggestion.breakdown.map((item, idx) => (
-                                    <div
-                                      key={idx}
-                                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${
-                                        suggestion.type === "category"
-                                          ? "bg-blue-50 text-blue-700"
-                                          : "bg-green-50 text-green-700"
-                                      }`}
-                                    >
-                                      {suggestion.type === "location" && (
-                                        <FontAwesomeIcon
-                                          icon={item.icon}
-                                          className="w-3 h-3"
-                                        />
-                                      )}
-                                      <span className="text-xs font-medium">
-                                        {item.category || item.location} (
-                                        {item.count})
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* View All Button */}
-                          <div className="flex items-center justify-end mt-2">
-                            <span className="text-sm text-blue-600 font-medium">
-                              View all {suggestion.count}{" "}
-                              {suggestion.count === 1 ? "place" : "places"}
+                            <span className={`text-xs font-medium px-2 py-1 rounded ${
+                              suggestion.type === "search" 
+                                ? "text-purple-600 bg-purple-50" 
+                                : suggestion.type === "service"
+                                ? "text-green-600 bg-green-50"
+                                : "text-blue-600 bg-blue-50"
+                            }`}>
+                              {suggestion.type === "search" ? "Search" : 
+                               suggestion.type === "service" ? "Service" : "Location"}
                             </span>
-                            <FontAwesomeIcon
-                              icon={faChevronRight}
-                              className="ml-1 text-blue-600 w-3 h-3"
-                            />
                           </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Show All Results Button */}
-                  <button
-                    onClick={() => {
-                      const params = new URLSearchParams();
-                      params.append("q", inputValue.trim());
-                      onSuggestionClick(`/search-results?${params.toString()}`);
-                      onClose();
-                    }}
-                    className="w-full p-4 bg-gradient-to-r from-blue-500 to-teal-400 hover:from-blue-600 hover:to-teal-500 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="text-left">
-                        <p className="font-bold text-lg">
-                          Show all results for "{inputValue}"
-                        </p>
-                        <p className="text-sm opacity-90 mt-1">
-                          Search across all categories and locations
-                        </p>
+                        </div>
                       </div>
-                      <FontAwesomeIcon
-                        icon={faChevronRight}
-                        className="w-5 h-5"
-                      />
+                      <div className="flex items-center justify-end mt-4 pt-3 border-t border-gray-100">
+                        <span className="text-sm text-blue-600 font-medium">Tap to select</span>
+                        <FontAwesomeIcon icon={faChevronRight} className="ml-1 text-blue-600" size="sm" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                {/* This button just closes the modal now */}
+                <button
+                  onClick={() => {
+                    onClose();
+                  }}
+                  className="w-full mt-6 p-4 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold rounded-xl cursor-pointer transition-all duration-300 hover:from-[#00c97b] hover:to-teal-600"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-left">
+                      <p className="text-base font-medium">Close and enter search manually</p>
+                      <p className="text-sm text-gray-100 mt-1">Click "Find {activeCategory}" button to search</p>
                     </div>
-                  </button>
-                </div>
-              ) : (
-                /* No Results Message */
-                <div className="flex flex-col items-center justify-center h-full py-16 px-4">
-                  <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                    <FontAwesomeIcon
-                      icon={faSearch}
-                      className="w-10 h-10 text-gray-400"
-                    />
+                    <FontAwesomeIcon icon={faChevronRight} size="sm" />
                   </div>
-                  <p className="text-xl font-semibold text-gray-800 mb-3">
-                    No matches found for "{inputValue}"
-                  </p>
-                  <p className="text-sm text-gray-600 text-center max-w-xs mb-8">
-                    Try searching with different keywords or browse categories
-                  </p>
-                  <button
-                    onClick={() => {
-                      const params = new URLSearchParams();
-                      params.append("q", inputValue.trim());
-                      onSuggestionClick(`/search-results?${params.toString()}`);
-                      onClose();
-                    }}
-                    className="px-6 py-3 bg-blue-500 text-white font-medium rounded-full hover:bg-blue-600 transition-colors"
-                  >
-                    Search anyway
-                  </button>
-                </div>
-              )}
-            </>
-          ) : (
-            /* Empty State */
-            <div className="flex flex-col items-center justify-center h-full py-16 px-4">
-              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                <FontAwesomeIcon
-                  icon={faSearch}
-                  className="w-10 h-10 text-gray-400"
-                />
+                </button>
               </div>
-              <p className="text-xl font-semibold text-gray-800 mb-3">
-                Start typing to search
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full py-16 px-4">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                  <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-2xl" />
+                </div>
+                <h3 className="text-xl font-medium text-gray-900 mb-3">
+                  {activeCategory === "Services" ? "No matching services" : "No matching locations"}
+                </h3>
+                <p className="text-gray-600 text-center max-w-sm mb-8">
+                  {activeCategory === "Services" 
+                    ? "Try a different service name or search term" 
+                    : "Try a different location name or search term"}
+                </p>
+                <button
+                  onClick={() => {
+                    onClose();
+                  }}
+                  className="px-6 py-3 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold rounded-lg hover:from-[#00c97b] hover:to-teal-600 cursor-pointer transition-all duration-300"
+                >
+                  Close and search manually
+                </button>
+              </div>
+            )
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full py-16 px-4">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                {activeCategory === "Services" ? (
+                  <FontAwesomeIcon icon={faToolbox} className="text-gray-400 text-2xl" />
+                ) : (
+                  <FontAwesomeIcon icon={faMapMarkerAlt} className="text-gray-400 text-2xl" />
+                )}
+              </div>
+              <h3 className="text-xl font-medium text-gray-900 mb-3">
+                {activeCategory === "Services" ? "Find local services" : "Search Ibadan locations"}
+              </h3>
+              <p className="text-gray-600 text-center max-w-sm mb-10">
+                {activeCategory === "Services" 
+                  ? "Connect with skilled professionals for all your needs"
+                  : `Find ${activeCategory.toLowerCase()}s in any area of Ibadan`}
               </p>
-              <p className="text-sm text-gray-600 text-center max-w-xs">
-                Search for categories, locations, or places in Ibadan
-              </p>
-
-              {/* Popular Search Tips */}
-              <div className="mt-8 w-full max-w-md px-4">
-                <p className="text-sm font-medium text-gray-500 mb-3">
-                  Try searching for:
+              <div className="w-full max-w-md px-4">
+                <p className="text-sm font-medium text-gray-500 mb-4 text-center">
+                  {activeCategory === "Services" ? "Popular services" : "Popular locations in Ibadan"}
                 </p>
                 <div className="flex flex-wrap gap-2 justify-center">
-                  {[
-                    "Hotels",
-                    "Restaurants",
-                    "Ibadan",
-                    "Shortlets",
-                    "Tourism",
-                  ].map((term) => (
+                  {getPopularSuggestions().map((term) => (
                     <button
                       key={term}
                       onClick={() => {
                         setInputValue(term);
                         onTyping(term);
+                        inputRef.current?.focus();
                       }}
-                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-sm transition-colors"
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg cursor-pointer transition-all duration-200"
                     >
                       {term}
                     </button>
                   ))}
+                </div>
+                <div className="mt-6 text-center">
+                  <p className="text-xs text-gray-500">
+                    {activeCategory === "Services" 
+                      ? `Select a service, then click "Find Services" button to search`
+                      : `Select a location, then click "Find ${activeCategory}" button to search`}
+                  </p>
                 </div>
               </div>
             </div>
           )}
         </div>
       </div>
-    </>,
-    document.body
+    </>
   );
 };
 
-// Desktop Search Suggestions Component
+/* ---------------- DESKTOP SEARCH SUGGESTIONS ---------------- */
 const DesktopSearchSuggestions = ({
   searchQuery,
   listings,
@@ -698,206 +749,499 @@ const DesktopSearchSuggestions = ({
   onClose,
   isVisible,
   searchBarPosition,
+  activeCategory,
+  serviceTypes = [],
 }) => {
   const suggestionsRef = useRef(null);
+  
+  // Use service types for Services category, locations for others
+  const suggestionsData = useMemo(() => {
+    if (activeCategory === "Services") {
+      return serviceTypes || [];
+    } else {
+      const locationsFromListings = listingService.getLocationsFromListings(listings);
+      const allLocations = [
+        'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly',  'Agodi',
+        'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
+        'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
+        'Akinyele',  'Mokola Hill', 'Sango Roundabout',
+        'Iwo Road', 'Gate', 'New Garage', 'Old Ife Road',
+        ...locationsFromListings
+      ];
+      
+      return [...new Set(allLocations)].sort();
+    }
+  }, [listings, activeCategory, serviceTypes]);
 
-  // Generate suggestions
   const suggestions = useMemo(() => {
-    return generateSearchSuggestions(searchQuery, listings);
-  }, [searchQuery, listings]);
+    if (!searchQuery.trim()) return [];
+    
+    const queryLower = searchQuery.toLowerCase().trim();
+    
+    if (activeCategory === "Services") {
+      // Filter service types based on search
+      const serviceMatches = suggestionsData
+        .filter((service) => {
+          const serviceName = service.toLowerCase();
+          return serviceName.includes(queryLower) || 
+                 normalizeServiceName(service).toLowerCase().includes(queryLower);
+        })
+        .map((service) => ({
+          type: "service",
+          title: service,
+          description: `${service} service providers in Ibadan`,
+          icon: getServiceIcon(service),
+        }));
 
-  // Handle click outside
+      // Add a "Search for 'query'" option
+      if (serviceMatches.length === 0 && searchQuery.trim()) {
+        return [{
+          type: "search",
+          title: `Search for "${searchQuery}"`,
+          description: `Find service providers matching "${searchQuery}" in Ibadan`,
+          icon: faSearch,
+        }];
+      }
+
+      return serviceMatches
+        .sort((a, b) => {
+          const aExact = a.title.toLowerCase() === queryLower;
+          const bExact = b.title.toLowerCase() === queryLower;
+          if (aExact && !bExact) return -1;
+          if (!aExact && bExact) return 1;
+          return 0;
+        })
+        .slice(0, 8);
+    } else {
+      // For other categories: filter locations
+      const locationMatches = suggestionsData
+        .filter((location) => {
+          const displayName = location.toLowerCase();
+          return displayName.includes(queryLower) || 
+                 normalizeLocation(location).includes(normalizeLocation(queryLower));
+        })
+        .map((location) => ({
+          type: "location",
+          title: getLocationDisplayName(location),
+          description: `${activeCategory}s in ${getLocationDisplayName(location)}, Ibadan`,
+          icon: faMapMarkerAlt,
+        }));
+
+      // Add a "Search for 'query'" option
+      if (locationMatches.length === 0 && searchQuery.trim()) {
+        return [{
+          type: "search",
+          title: `Search for "${searchQuery}"`,
+          description: `Find ${activeCategory.toLowerCase()}s matching "${searchQuery}" in Ibadan`,
+          icon: faSearch,
+        }];
+      }
+
+      return locationMatches
+        .sort((a, b) => {
+          const aExact = a.title.toLowerCase() === queryLower;
+          const bExact = b.title.toLowerCase() === queryLower;
+          if (aExact && !bExact) return -1;
+          if (!aExact && bExact) return 1;
+          return 0;
+        })
+        .slice(0, 8);
+    }
+  }, [searchQuery, activeCategory, suggestionsData]);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        suggestionsRef.current &&
-        !suggestionsRef.current.contains(event.target)
-      ) {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target)) {
         onClose();
       }
     };
-
-    if (isVisible) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    if (isVisible) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isVisible, onClose]);
 
-  if (!isVisible || !searchQuery.trim() || suggestions.length === 0)
-    return null;
+  if (!isVisible || !searchQuery.trim()) return null;
 
-  const containerWidth = searchBarPosition?.width || 0;
-
-  return createPortal(
+  return (
     <>
-      {/* Semi-transparent backdrop */}
-      <div
-        className="fixed inset-0 bg-black/5 z-[9980] animate-fadeIn"
-        onClick={onClose}
-      />
-
+      <div className="fixed inset-0 bg-transparent z-[9980]" onClick={onClose} />
       <div
         ref={suggestionsRef}
-        className="absolute bg-white rounded-xl shadow-xl border border-gray-200 z-[9981] animate-scaleIn overflow-hidden"
+        className="absolute bg-white rounded-xl shadow-2xl border border-gray-200 z-[9981] overflow-hidden"
         style={{
           left: `${searchBarPosition?.left || 0}px`,
-          top: `${(searchBarPosition?.bottom || 0) + 8}px`,
-          width: `${containerWidth}px`,
+          top: `${(searchBarPosition?.top || 0) + 50}px`,
+          width: `${searchBarPosition?.width || 0}px`,
           maxHeight: "70vh",
+          boxShadow: "0 10px 40px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)",
         }}
       >
-        {/* Suggestions Header */}
-        <div className="p-3 border-b border-gray-100 bg-gray-50/80 backdrop-blur-sm">
+        <div className="p-4 border-b border-gray-200">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <FontAwesomeIcon
-                icon={faSearch}
-                className="w-4 h-4 text-gray-500"
-              />
+              <FontAwesomeIcon icon={faSearch} className="text-gray-500 text-sm" />
               <span className="text-sm font-medium text-gray-700">
-                Results for "{searchQuery}"
+                {activeCategory === "Services" ? "Search services" : "Search locations in Ibadan"}
               </span>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-200 transition-colors"
+              className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded cursor-pointer"
               aria-label="Close suggestions"
             >
-              <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
+              <FontAwesomeIcon icon={faTimes} className="text-sm" />
             </button>
           </div>
         </div>
-
-        {/* Suggestions List */}
-        <div
-          className="overflow-y-auto"
-          style={{ maxHeight: "calc(70vh - 48px)" }}
-        >
-          <div className="p-4">
-            {suggestions.map((suggestion, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  onSuggestionClick(suggestion.action());
-                  onClose();
-                }}
-                className="w-full text-left p-4 bg-white hover:bg-blue-50 rounded-lg border border-gray-100 transition-all duration-200 hover:shadow-sm mb-2 last:mb-0 group"
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      suggestion.type === "category"
-                        ? "bg-blue-100 text-blue-600"
-                        : "bg-green-100 text-green-600"
-                    }`}
-                  >
-                    <FontAwesomeIcon
-                      icon={
-                        suggestion.type === "category"
-                          ? faFilter
-                          : faMapMarkerAlt
-                      }
-                      className="w-5 h-5"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-1">
-                      <h4 className="font-semibold text-gray-900 text-sm truncate">
-                        {suggestion.title}
-                      </h4>
-                      <span
-                        className={`text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap ml-2 ${
-                          suggestion.type === "category"
-                            ? "bg-blue-50 text-blue-700"
-                            : "bg-green-50 text-green-700"
-                        }`}
-                      >
-                        {suggestion.count}{" "}
-                        {suggestion.count === 1 ? "place" : "places"}
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                      {suggestion.description}
-                    </p>
-
-                    {/* Dynamic Breakdown */}
-                    <div className="mt-2">
-                      <p className="text-xs text-gray-500 mb-1">
-                        {suggestion.breakdownText}
-                      </p>
-
-                      {/* Breakdown Tags */}
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {suggestion.breakdown.slice(0, 3).map((item, idx) => (
-                          <div
-                            key={idx}
-                            className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs ${
-                              suggestion.type === "category"
-                                ? "bg-blue-50 text-blue-700"
-                                : "bg-green-50 text-green-700"
-                            }`}
-                          >
-                            {suggestion.type === "location" && (
-                              <FontAwesomeIcon
-                                icon={item.icon}
-                                className="w-3 h-3"
-                              />
-                            )}
-                            <span className="font-medium">
-                              {item.category || item.location} ({item.count})
-                            </span>
-                          </div>
-                        ))}
-                        {suggestion.breakdown.length > 3 && (
-                          <span className="text-xs text-gray-500 px-2 py-1">
-                            +{suggestion.breakdown.length - 3} more
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <FontAwesomeIcon
-                      icon={faChevronRight}
-                      className="w-3 h-3 text-blue-600"
-                    />
-                  </div>
-                </div>
-              </button>
-            ))}
-
-            {/* Show All Results Button */}
-            <button
-              onClick={() => {
-                const params = new URLSearchParams();
-                params.append("q", searchQuery.trim());
-                onSuggestionClick(`/search-results?${params.toString()}`);
-                onClose();
-              }}
-              className="w-full mt-4 p-4 bg-gradient-to-r from-blue-500 to-teal-400 hover:from-blue-600 hover:to-teal-500 text-white font-semibold rounded-lg shadow-sm hover:shadow transition-all duration-200 group"
-            >
-              <div className="flex items-center justify-between">
-                <div className="text-left">
-                  <p className="text-sm font-bold">Show all results</p>
-                  <p className="text-xs opacity-90 mt-1">
-                    Search across all categories and locations
+        <div className="overflow-y-auto" style={{ maxHeight: "calc(70vh - 56px)" }}>
+          <div className="p-2">
+            {suggestions.length > 0 ? (
+              <>
+                <div className="px-3 py-2">
+                  <p className="text-xs text-gray-500 mb-2">
+                    {activeCategory === "Services" 
+                      ? `Showing ${suggestions.length} service${suggestions.length !== 1 ? 's' : ''}`
+                      : `Showing ${suggestions.length} location${suggestions.length !== 1 ? 's' : ''} in Ibadan`}
                   </p>
                 </div>
-                <div className="transform group-hover:translate-x-1 transition-transform">
-                  <FontAwesomeIcon icon={faChevronRight} className="w-4 h-4" />
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      // Just set the search query and close suggestions
+                      onSuggestionClick(suggestion);
+                      onClose();
+                    }}
+                    className="w-full text-left p-3 bg-white hover:bg-gray-50 rounded-lg mb-1 last:mb-0 cursor-pointer group transition-all duration-200"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100 flex-shrink-0">
+                        <FontAwesomeIcon 
+                          icon={suggestion.icon} 
+                          className="text-gray-700 text-sm"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-1">
+                          <h4 className="font-medium text-gray-900 text-sm truncate">{suggestion.title}</h4>
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            suggestion.type === "search" 
+                              ? "text-purple-600 bg-purple-50" 
+                              : suggestion.type === "service"
+                              ? "text-green-600 bg-green-50"
+                              : "text-blue-600 bg-blue-50"
+                          }`}>
+                            {suggestion.type === "search" ? "Search" : 
+                             suggestion.type === "service" ? "Service" : "Location"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-600 mb-2 line-clamp-2">{suggestion.description}</p>
+                      </div>
+                      <div className="flex-shrink-0 ml-2">
+                        <FontAwesomeIcon icon={faChevronRight} className="text-gray-400 text-sm group-hover:text-blue-600 transition-colors" />
+                      </div>
+                    </div>
+                  </button>
+                ))}
+                <div className="px-3 py-3 mt-2 border-t border-gray-200">
+                  <p className="text-xs text-gray-500 text-center">
+                    {activeCategory === "Services"
+                      ? `Select a service to add to search, then click "Find Services" button to search`
+                      : `Select a location to add to search, then click "Find ${activeCategory}" button to search`}
+                  </p>
                 </div>
+              </>
+            ) : (
+              <div className="p-4 text-center">
+                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <FontAwesomeIcon icon={faSearch} className="text-gray-400" />
+                </div>
+                <p className="text-sm text-gray-600 mb-2">No matches found for "{searchQuery}"</p>
+                <p className="text-xs text-gray-500">Try a different search term</p>
               </div>
-            </button>
+            )}
           </div>
         </div>
       </div>
-    </>,
-    document.body
+    </>
+  );
+};
+
+/* ---------------- CALENDAR COMPONENT ---------------- */
+const SimpleCalendar = ({ onSelect, onClose, selectedDate: propSelectedDate, isCheckOut = false }) => {
+  const modalRef = useRef(null);
+  const [currentDate, setCurrentDate] = useState(propSelectedDate || new Date());
+  const [selectedDate, setSelectedDate] = useState(propSelectedDate || new Date());
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
+
+  const getDaysInMonth = (year, month) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const getMonthName = (date) => {
+    return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  };
+
+  const handleDateClick = (day) => {
+    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    setSelectedDate(newDate);
+    onSelect(newDate);
+    onClose();
+  };
+
+  const nextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  const prevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+
+  const renderCalendar = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const daysInMonth = getDaysInMonth(year, month);
+    const firstDay = new Date(year, month, 1).getDay();
+    const days = [];
+    for (let i = 0; i < firstDay; i++) {
+      days.push(<div key={`empty-${i}`} className="h-8 w-8"></div>);
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      const isToday = date.toDateString() === new Date().toDateString();
+      const isSelected = date.toDateString() === selectedDate.toDateString();
+      days.push(
+        <button
+          key={day}
+          onClick={() => handleDateClick(day)}
+          className={`h-8 w-8 rounded-full flex items-center justify-center text-sm cursor-pointer
+            ${isToday ? "border border-blue-500" : ""}
+            ${isSelected ? "bg-blue-500 text-white" : "hover:bg-gray-100"}
+          `}
+        >
+          {day}
+        </button>
+      );
+    }
+    return days;
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[10000]" onClick={onClose} />
+      <div
+        ref={modalRef}
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl z-[10001] w-80 p-4"
+      >
+        <div className="flex justify-between items-center mb-4">
+          <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded cursor-pointer">
+            ←
+          </button>
+          <h3 className="font-semibold text-gray-800">{getMonthName(currentDate)}</h3>
+          <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded cursor-pointer">
+            →
+          </button>
+        </div>
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+            <div key={day} className="text-center text-xs text-gray-500 font-medium">
+              {day}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">{renderCalendar()}</div>
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <button
+            onClick={() => {
+              const today = new Date();
+              setSelectedDate(today);
+              onSelect(today);
+              onClose();
+            }}
+            className="w-full py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 cursor-pointer"
+          >
+            Select Today
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+/* ---------------- GUEST SELECTOR COMPONENT ---------------- */
+const GuestSelector = ({ guests, onChange, onClose, category = 'hotel' }) => {
+  const modalRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
+
+  const handleGuestChange = (type, value) => {
+    const newGuests = { ...guests };
+    newGuests[type] = Math.max(0, newGuests[type] + value);
+    onChange(newGuests);
+  };
+
+  const totalGuests = guests.adults + guests.children;
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[10000]" onClick={onClose} />
+      <div
+        ref={modalRef}
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl z-[10001] w-80 p-6"
+      >
+        <h3 className="font-semibold text-gray-800 mb-6 text-center">
+          {category.includes('restaurant') ? 'Number of People' : 'Guests & Rooms'}
+        </h3>
+        
+        {!category.includes('restaurant') && (
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <div className="font-medium text-gray-800">Rooms</div>
+              <div className="text-sm text-gray-500">Number of rooms</div>
+            </div>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => handleGuestChange("rooms", -1)}
+                disabled={guests.rooms <= 1}
+                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 cursor-pointer"
+              >
+                <FontAwesomeIcon icon={faChevronLeft} size="sm" />
+              </button>
+              <span className="w-8 text-center font-medium">{guests.rooms}</span>
+              <button
+                onClick={() => handleGuestChange("rooms", 1)}
+                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 cursor-pointer"
+              >
+                <FontAwesomeIcon icon={faChevronRight} size="sm" />
+              </button>
+            </div>
+          </div>
+        )}
+        
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <div className="font-medium text-gray-800">Adults</div>
+            <div className="text-sm text-gray-500">Age 18+</div>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => handleGuestChange("adults", -1)}
+              disabled={guests.adults <= 1}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 cursor-pointer"
+            >
+              <FontAwesomeIcon icon={faChevronLeft} size="sm" />
+            </button>
+            <span className="w-8 text-center font-medium">{guests.adults}</span>
+            <button
+              onClick={() => handleGuestChange("adults", 1)}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 cursor-pointer"
+            >
+              <FontAwesomeIcon icon={faChevronRight} size="sm" />
+            </button>
+          </div>
+        </div>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <div className="font-medium text-gray-800">Children</div>
+            <div className="text-sm text-gray-500">Age 0-17</div>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => handleGuestChange("children", -1)}
+              disabled={guests.children <= 0}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 cursor-pointer"
+            >
+              <FontAwesomeIcon icon={faChevronLeft} size="sm" />
+            </button>
+            <span className="w-8 text-center font-medium">{guests.children}</span>
+            <button
+              onClick={() => handleGuestChange("children", 1)}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 cursor-pointer"
+            >
+              <FontAwesomeIcon icon={faChevronRight} size="sm" />
+            </button>
+          </div>
+        </div>
+        
+        <div className="pt-4 border-t border-gray-200">
+          <div className="text-center mb-4">
+            <div className="text-sm text-gray-600">Total {category.includes('restaurant') ? 'People' : 'Guests'}</div>
+            <div className="text-xl font-bold text-blue-600">{totalGuests}</div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-full py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium cursor-pointer"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+/* ---------------- EMPTY SEARCH MODAL COMPONENT ---------------- */
+const EmptySearchModal = ({ onClose, onConfirm }) => {
+  const modalRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10000]" onClick={onClose} />
+      <div
+        ref={modalRef}
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl z-[10001] w-80 p-6"
+      >
+        <div className="text-center mb-6">
+          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FontAwesomeIcon icon={faSearch} className="text-yellow-600 text-2xl" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">Search Required</h3>
+          <p className="text-gray-600 text-sm">
+            Please enter a location, area, or business name to search.
+          </p>
+        </div>
+        <div className="space-y-3">
+          <button
+            onClick={onConfirm}
+            className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+          >
+            Enter Search Term
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </>
   );
 };
 
@@ -910,25 +1254,30 @@ const DiscoverIbadan = () => {
   const [showMobileModal, setShowMobileModal] = useState(false);
   const [searchBarPosition, setSearchBarPosition] = useState({
     left: 0,
-    bottom: 0,
+    top: 0,
     width: 0,
   });
+  const [showCheckInCalendar, setShowCheckInCalendar] = useState(false);
+  const [showGuestSelector, setShowGuestSelector] = useState(false);
+  const [checkInDate, setCheckInDate] = useState(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  });
+  const [checkOutDate, setCheckOutDate] = useState(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  });
+  const [guests, setGuests] = useState({ adults: 2, children: 0, rooms: 1 });
+  const [showEmptySearchModal, setShowEmptySearchModal] = useState(false);
 
   const searchInputRef = useRef(null);
   const searchContainerRef = useRef(null);
+  const searchButtonRef = useRef(null);
+  const { listings = [], loading } = useBackendListings();
+  const { serviceTypes, loading: servicesLoading } = useBackendServices();
 
-  /* ---- Dates (real-time) ---- */
-  const today = new Date();
-  const tomorrow = new Date(Date.now() + 86400000);
+  const [activeTab, setActiveTab] = useState("Hotel");
 
-  const [checkIn] = useState(today);
-  const [checkOut] = useState(tomorrow);
-
-  const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
-  const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
-  const { data: listings = [], loading } = useGoogleSheet(SHEET_ID, API_KEY);
-
-  /* ---------------- MOBILE CHECK ---------------- */
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
@@ -936,56 +1285,112 @@ const DiscoverIbadan = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  /* ---------------- SEARCH BAR POSITION TRACKING ---------------- */
   useEffect(() => {
     if (!searchContainerRef.current || isMobile) return;
-
-    const container = searchContainerRef.current;
-
-    const updateSearchBarPosition = () => {
-      const rect = container.getBoundingClientRect();
-      const scrollY = window.scrollY;
-      const scrollX = window.scrollX;
-
+    const updatePosition = () => {
+      const rect = searchContainerRef.current.getBoundingClientRect();
       setSearchBarPosition({
-        left: rect.left + scrollX,
-        bottom: rect.bottom + scrollY,
+        left: rect.left + window.scrollX,
+        top: rect.top + window.scrollY,
         width: rect.width,
       });
     };
-
-    // Initial update
-    updateSearchBarPosition();
-
-    // Update on scroll and resize
-    const handleScroll = () => {
-      updateSearchBarPosition();
-    };
-
-    const handleResize = () => {
-      updateSearchBarPosition();
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", handleResize);
-
-    // Cleanup
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, { passive: true });
+    window.addEventListener("resize", updatePosition);
     return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("scroll", updatePosition);
+      window.removeEventListener("resize", updatePosition);
     };
-  }, [isMobile, showSuggestions]);
+  }, [isMobile]);
 
-  /* ---------------- SEARCH HANDLERS ---------------- */
-  const handleSearchSubmit = useCallback(() => {
-    if (searchQuery.trim()) {
-      const params = new URLSearchParams();
-      params.append("q", searchQuery.trim());
-      navigate(`/search-results?${params.toString()}`);
+  // Handle suggestion click: ONLY sets query and closes modal, NO navigation
+  const handleSuggestionClick = useCallback((suggestion) => {
+    if (suggestion && suggestion.title) {
+      const searchValue = suggestion.title;
+      setSearchQuery(searchValue);
       setShowSuggestions(false);
       setShowMobileModal(false);
+      
+      // Focus on the search input after setting value
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
     }
-  }, [searchQuery, navigate]);
+  }, []);
+
+  const handleSearchSubmit = useCallback(() => {
+    if (!searchQuery.trim()) {
+      setShowEmptySearchModal(true);
+      return;
+    }
+    
+    // Normalize the location for SEO-friendly URL
+    const locationToUse = searchQuery.trim();
+    const normalizedLocation = looksLikeLocation(locationToUse) 
+      ? normalizeLocationForBackend(locationToUse)
+      : null;
+    
+    // Check if search is a service type
+    const isServiceSearch = activeTab === "Services" && looksLikeService(locationToUse, serviceTypes);
+    
+    const categorySlug = getCategorySlug(activeTab);
+    const locationSlug = normalizedLocation ? createSlug(locationToUse) : null;
+    
+    let seoPath = '';
+    
+    // Create SEO-friendly URL
+    if (categorySlug && locationSlug && looksLikeLocation(locationToUse)) {
+      seoPath = `/${categorySlug}-in-${locationSlug}`;
+    } else if (categorySlug && isServiceSearch) {
+      // For services, use service name in URL
+      const serviceSlug = createSlug(locationToUse);
+      seoPath = `/${categorySlug}/${serviceSlug}`;
+    } else if (categorySlug) {
+      seoPath = `/${categorySlug}`;
+    } else if (locationSlug) {
+      seoPath = `/places-in-${locationSlug}`;
+    } else {
+      seoPath = '/search';
+    }
+    
+    const queryParams = new URLSearchParams();
+    
+    const checkInToUse = checkInDate || new Date();
+    const checkOutToUse = checkOutDate || new Date(new Date().setDate(new Date().getDate() + 1));
+    
+    queryParams.append("checkInDate", checkInToUse.toISOString());
+    queryParams.append("checkOutDate", checkOutToUse.toISOString());
+    
+    if (guests) {
+      queryParams.append("guests", JSON.stringify(guests));
+    }
+    
+    // Add search query parameter
+    queryParams.append("q", searchQuery.trim());
+    queryParams.append("cat", activeTab);
+    
+    // ADD THIS: If it looks like a location, also add it as location filter
+    if (looksLikeLocation(searchQuery.trim())) {
+      const properCaseLocation = normalizeLocationForBackend(searchQuery.trim());
+      queryParams.append("location", properCaseLocation);
+    }
+    
+    // ADD THIS: If it looks like a service, also add it as service filter
+    if (activeTab === "Services" && isServiceSearch) {
+      const properCaseService = normalizeServiceName(searchQuery.trim());
+      queryParams.append("service", properCaseService);
+    }
+    
+    const finalUrl = queryParams.toString() 
+      ? `${seoPath}?${queryParams.toString()}`
+      : seoPath;
+    
+    navigate(finalUrl);
+    
+    setShowSuggestions(false);
+    setShowMobileModal(false);
+  }, [activeTab, searchQuery, navigate, checkInDate, checkOutDate, guests, serviceTypes]);
 
   const handleKeyPress = useCallback(
     (e) => {
@@ -996,26 +1401,14 @@ const DiscoverIbadan = () => {
     [handleSearchSubmit]
   );
 
-  const handleSuggestionClick = useCallback(
-    (url) => {
-      navigate(url);
+  const handleSearchChange = useCallback((value) => {
+    setSearchQuery(value);
+    if (!isMobile && value.trim().length > 0) {
+      setShowSuggestions(true);
+    } else {
       setShowSuggestions(false);
-      setShowMobileModal(false);
-    },
-    [navigate]
-  );
-
-  const handleSearchChange = useCallback(
-    (value) => {
-      setSearchQuery(value);
-      if (!isMobile && value.trim().length > 0) {
-        setShowSuggestions(true);
-      } else {
-        setShowSuggestions(false);
-      }
-    },
-    [isMobile]
-  );
+    }
+  }, [isMobile]);
 
   const handleClearSearch = useCallback(() => {
     setSearchQuery("");
@@ -1024,66 +1417,72 @@ const DiscoverIbadan = () => {
   }, []);
 
   const handleMobileSearchClick = useCallback(() => {
-    if (isMobile) {
-      setShowMobileModal(true);
-    }
+    if (isMobile) setShowMobileModal(true);
   }, [isMobile]);
 
   const handleSearchFocus = useCallback(() => {
-    if (isMobile) {
-      handleMobileSearchClick();
-    } else if (searchQuery.trim().length > 0) {
-      setShowSuggestions(true);
-    }
+    if (isMobile) handleMobileSearchClick();
+    else if (searchQuery.trim().length > 0) setShowSuggestions(true);
   }, [isMobile, searchQuery, handleMobileSearchClick]);
 
-  /* ---------------- CATEGORY HANDLERS ---------------- */
-  const scrollToAiTopPicks = useCallback(() => {
-    const aiTopPicksSection = document.getElementById("toppicks");
-    if (aiTopPicksSection) {
-      const offset = 80;
-      const elementPosition = aiTopPicksSection.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - offset;
+  const handleCheckInClick = () => setShowCheckInCalendar(true);
+  
+  const handleCheckOutClick = () => {
+    const nextDay = new Date(checkInDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setCheckOutDate(nextDay);
+    setShowCheckInCalendar(true);
+  };
 
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: "smooth",
-      });
-    }
-  }, []);
+  const handleGuestClick = () => setShowGuestSelector(true);
 
-  const handleCategoryClick = (category) => {
-    const categoryMap = {
-      Hotel: "hotel",
-      Restaurant: "restaurant",
-      Shortlet: "shortlet",
-      Tourism: "tourist-center",
-      Services: "services",
-    };
-    const categorySlug = categoryMap[category];
+  const handleCheckInSelect = (date) => {
+    setCheckInDate(date);
+    const nextDay = new Date(date);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setCheckOutDate(nextDay);
+  };
 
-    if (categorySlug) {
-      if (category === "Services") {
-        scrollToAiTopPicks();
-      } else {
-        navigate(`/category/${categorySlug}`);
-      }
-    }
+  const handleGuestsChange = (newGuests) => {
+    setGuests(newGuests);
+  };
+
+  const handleTabClick = (category) => {
+    setActiveTab(category);
+    setSearchQuery("");
+    setShowSuggestions(false);
+  };
+
+  const getSearchPlaceholder = () => {
+    if (activeTab === "Services") return "What service do you need? (e.g., Plumbing, Electrical)";
+    if (activeTab === "Restaurant") return "Search by restaurant name, cuisine, or area...";
+    if (activeTab === "Shortlet") return "Search by shortlet name, area, or location...";
+    return "Search by hotel name, area, or location...";
+  };
+
+  const getSearchButtonText = () => {
+    if (activeTab === "Hotel") return "Find Hotel";
+    if (activeTab === "Shortlet") return "Find Shortlet";
+    if (activeTab === "Restaurant") return "Find Restaurant";
+    if (activeTab === "Services") return "Find Services";
+    return "Search";
+  };
+
+  const totalPeople = guests.adults + guests.children;
+
+  const handleSearchButtonClick = () => {
+    handleSearchSubmit();
   };
 
   return (
-    <div className="min-h-[50%] bg-[#F7F7FA] font-manrope">
-      <section className="pt-14 lg:pt-12 text-center bg-[#F7F7FA] overflow-hidden relative">
-        {/* Background Pattern */}
-        <div
-          className={`absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20`}
-        ></div>
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-4 lg:py-4">
+    <div className="min-h-[50%] bg-[#F7F7FA] font-manrope pt-15 md:pt-16">
+      <style>{glassStyles}</style>
+      
+      <section className="pt-14 lg:pt-12 text-center glass-background overflow-hidden relative">
+        <div className="relative max-w-7xl mx-auto w-full py-4 lg:py-4 lg:mt-[-70px] mt-[-60px]">
           <div className="flex flex-col items-center text-center space-y-4 md:space-y-5 lg:space-y-4">
-            {/* Hero Title - INCREASED HEADING SIZES */}
+            {/* Hero Title */}
             <div className="space-y-1 md:space-y-2 max-w-xl md:max-w-2xl w-full mt-1 md:mt-2 lg:mt-1">
-              {/* INCREASED heading text size for lg and mobile */}
               <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-3xl md:mt-4 leading-tight font-bold text-gray-900">
                 Discover{" "}
                 <span className="bg-gradient-to-r from-blue-600 to-teal-400 bg-clip-text text-transparent">
@@ -1091,176 +1490,217 @@ const DiscoverIbadan = () => {
                 </span>{" "}
                 through AI & Local Stories
               </h1>
-              {/* INCREASED paragraph text size */}
-              <p className="text-[14.5px] sm:text-lg md:text-xl lg:text-[16px] md:mt-3 text-gray-600 font-medium max-w-xl mx-auto px-2">
-                Your all-in-one local guide for hotels, food, events, vendors,
-                and market prices.
+              <p className="text-[13.5px] sm:text-lg md:text-xl lg:text-[16px] md:mt-3 text-gray-600 font-medium max-w-xl mx-auto px-2">
+                Your all-in-one local guide for hotels, food, events, services, and market prices.
               </p>
             </div>
 
-            {/* UPDATED SEARCH BAR - MOBILE OPTIMIZED DESIGN */}
+            {/* TABS */}
+            <div className="w-full max-w-sm sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
+              <div className="flex justify-between items-center gap-2 p-2.5 bg-white rounded-lg border border-[#f7f7fa] shadow-sm">
+                {["Hotel", "Shortlet", "Restaurant", "Services"].map((category) => (
+                  <button
+                    key={category}
+                    onClick={() => handleTabClick(category)}
+                    className={`flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all cursor-pointer ${
+                      activeTab === category
+                        ? "bg-[#06f49f] text-gray-600"
+                        : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    <span className="flex-shrink-0">
+                      {category === "Hotel" && (
+                        <FontAwesomeIcon icon={faBuilding} className="w-3.5 h-3.5" />
+                      )}
+                      {category === "Shortlet" && (
+                        <FontAwesomeIcon icon={faHome} className="w-3.5 h-3.5" />
+                      )}
+                      {category === "Restaurant" && (
+                        <FontAwesomeIcon icon={faUtensils} className="w-3.5 h-3.5" />
+                      )}
+                      {category === "Services" && (
+                        <FontAwesomeIcon icon={faToolbox} className="w-3.5 h-3.5" />
+                      )}
+                    </span>
+                    <span className="text-[12.5px] font-medium">{category}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* SEARCH BAR WITH GLASS EFFECT */}
             <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
-              <div ref={searchContainerRef} className="relative w-full">
-                {/* Main Search Card - COMPACT PADDING */}
-                <div className="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg border border-blue-100 p-3 sm:p-3 md:p-4">
-                  {/* Search Input Row - MOBILE FIRST DESIGN */}
-                  <div className="w-full">
-                    {/* Search Input - TOP POSITION */}
-                    <div className="mb-2 sm:mb-3 cursor-pointer">
+              <div ref={searchContainerRef} className="relative w-full floating">
+                <div className="glass-pronounced rounded-xl sm:rounded-2xl border border-white/40 p-3 sm:p-3 md:p-4 shadow-2xl">
+                  {/* Search Input */}
+                  <div className="mb-2 sm:mb-3">
+                    <div className="glass-dark rounded-lg px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-gray-200/30 cursor-pointer transition-all duration-300">
+                      <FontAwesomeIcon icon={faSearch} className="text-gray-500 flex-shrink-0" />
+                      <input
+                        ref={searchInputRef}
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => handleSearchChange(e.target.value)}
+                        onFocus={handleSearchFocus}
+                        onKeyPress={handleKeyPress}
+                        placeholder={getSearchPlaceholder()}
+                        className="bg-transparent outline-none w-full text-gray-900 placeholder-gray-500 text-xs min-w-0 cursor-text"
+                      />
+                      {searchQuery && (
+                        <button
+                          onClick={handleClearSearch}
+                          className="text-gray-900 hover:text-gray-600 flex-shrink-0 ml-1 cursor-pointer"
+                        >
+                          <FontAwesomeIcon icon={faTimes} className="text-sm" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Dynamic Fields Based on Tab */}
+                  {activeTab === "Hotel" || activeTab === "Shortlet" ? (
+                    <div className="grid grid-cols-2 gap-2 mb-2">
                       <div
-                        className="bg-gray-100 rounded-lg px-3 sm:px-3 py-1.5
-                       sm:py-2 text-xs sm:text-xs flex items-center gap-2 hover:bg-gray-200 transition-colors duration-200"
+                        onClick={handleCheckInClick}
+                        className="glass-dark rounded-lg p-2 text-center hover:bg-gray-200/30 cursor-pointer transition-all duration-300"
                       >
-                        <FontAwesomeIcon
-                          icon={faSearch}
-                          className="text-gray-500 w-3 h-3 sm:w-3 sm:h-3"
-                        />
-                        <input
-                          ref={searchInputRef}
-                          type="text"
-                          value={searchQuery}
-                          onChange={(e) => handleSearchChange(e.target.value)}
-                          onFocus={handleSearchFocus}
-                          onKeyPress={handleKeyPress}
-                          placeholder="Search by area, category, or name ..."
-                          className="bg-transparent outline-none w-full text-gray-700 placeholder-gray-500 text-xs sm:text-xs md:text-sm cursor-pointer"
-                        />
-                        {searchQuery && (
-                          <button
-                            onClick={handleClearSearch}
-                            className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-                            aria-label="Clear search"
-                          >
-                            <FontAwesomeIcon
-                              icon={faTimes}
-                              className="w-3 h-3 sm:w-3 sm:h-3"
-                            />
-                          </button>
+                        <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
+                          <FontAwesomeIcon icon={faCalendarAlt} className="text-sm" /> Check-in
+                        </div>
+                        <div className="text-xs font-medium text-blue-600">{formatDateLabel(checkInDate)}</div>
+                      </div>
+                      <div
+                        onClick={handleCheckOutClick}
+                        className="glass-dark rounded-lg p-2 text-center hover:bg-gray-200/30 cursor-pointer transition-all duration-300"
+                      >
+                        <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
+                          <FontAwesomeIcon icon={faCalendarAlt} className="text-sm" /> Check-out
+                        </div>
+                        <div className="text-xs font-medium text-blue-600">
+                          {formatDateLabel(checkOutDate)}
+                        </div>
+                      </div>
+                    </div>
+                  ) : activeTab === "Restaurant" ? (
+                    <div className="space-y-2 mb-2">
+                      <div
+                        onClick={handleCheckInClick}
+                        className="glass-dark rounded-lg p-2 text-center hover:bg-gray-200/30 cursor-pointer transition-all duration-300"
+                      >
+                        <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
+                          <FontAwesomeIcon icon={faCalendarAlt} className="text-sm" /> When are you visiting?
+                        </div>
+                        <div className="text-xs font-medium text-blue-600">{formatDateLabel(checkInDate)}</div>
+                      </div>
+                      <div
+                        onClick={handleGuestClick}
+                        className="glass-dark rounded-lg p-2 text-center hover:bg-gray-200/30 cursor-pointer transition-all duration-300"
+                      >
+                        <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
+                          <FontAwesomeIcon icon={faUser} className="text-sm" /> Number of People (optional)
+                        </div>
+                        <div className="text-xs font-medium text-blue-600">
+                          {totalPeople} {totalPeople === 1 ? "person" : "people"}
+                        </div>
+                      </div>
+                    </div>
+                  ) : activeTab === "Services" ? (
+                    <div className="space-y-2 mb-2">
+                      <div
+                        onClick={handleCheckInClick}
+                        className="glass-dark rounded-lg p-2 text-center hover:bg-gray-200/30 cursor-pointer transition-all duration-300"
+                      >
+                        <div className="text-xs text-gray-900 flex items-center justify-center gap-1 mb-0.5">
+                          <FontAwesomeIcon icon={faCalendarAlt} className="text-sm" /> Preferred service date (optional)
+                        </div>
+                        <div className="text-xs font-medium text-blue-600">{formatDateLabel(checkInDate)}</div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* Guest Selector */}
+                  {(activeTab === "Hotel" || activeTab === "Shortlet" || activeTab === "Restaurant") && (
+                    <div className="mb-2 w-full">
+                      <div
+                        onClick={handleGuestClick}
+                        className="glass-dark inline-flex w-full items-center justify-center rounded-[10px] px-4 py-2 text-[12.5px] font-medium text-gray-900 hover:bg-gray-200/30 cursor-pointer transition-all duration-300"
+                      >
+                        {activeTab !== "Restaurant" && (
+                          <>
+                            <FontAwesomeIcon icon={faBed} className="mr-1 text-sm" />
+                            <span>{guests.rooms} {guests.rooms === 1 ? "Room" : "Rooms"}</span>
+                            <span className="mx-1">•</span>
+                          </>
+                        )}
+                        {activeTab === "Restaurant" ? (
+                          <>
+                            <FontAwesomeIcon icon={faUser} className="mr-1 text-sm" />
+                            <span>{totalPeople} {totalPeople === 1 ? "person" : "people"}</span>
+                          </>
+                        ) : (
+                          <>
+                            <FontAwesomeIcon icon={faUser} className="mr-1 text-sm" />
+                            <span>{guests.adults} {guests.adults === 1 ? "Adult" : "Adults"}</span>
+                            {guests.children > 0 && (
+                              <>
+                                <span className="mx-1">•</span>
+                                <span>{guests.children} {guests.children === 1 ? "Child" : "Children"}</span>
+                              </>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
+                  )}
 
-                    {/* Check-in & Check-out - SIDE BY SIDE */}
-                    <div className="grid grid-cols-2 gap-2 sm:gap-2 mb-2 sm:mb-3">
-                      {/* Check-in */}
-                      <div className="bg-gray-100 rounded-lg p-2 sm:p-2 text-left hover:bg-gray-200 transition-colors duration-200 cursor-pointer">
-                        <div className="text-xs text-gray-500 flex items-center gap-1 mb-0.5">
-                          <FontAwesomeIcon
-                            icon={faCalendar}
-                            className="w-3 h-3"
-                          />
-                          Check-in
-                        </div>
-                        <div className="text-xs sm:text-xs font-medium text-blue-600">
-                          {formatDateLabel(checkIn)}
-                        </div>
-                      </div>
-
-                      {/* Check-out */}
-                      <div className="bg-gray-100 rounded-lg p-2 sm:p-2 text-left hover:bg-gray-200 transition-colors duration-200 cursor-pointer">
-                        <div className="text-xs text-gray-500 flex items-center gap-1 mb-0.5">
-                          <FontAwesomeIcon
-                            icon={faCalendar}
-                            className="w-3 h-3"
-                          />
-                          Check-out
-                        </div>
-                        <div className="text-xs sm:text-xs font-medium text-blue-600">
-                          {formatDateLabel(checkOut)}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Room & Guest Info with Profile Icon - SAME WIDTH AS OTHER ELEMENTS */}
-                    <div className="mb-2 sm:mb-3 w-full cursor-pointer">
-                      <div className="inline-flex w-full  items-center justify-start rounded-[10px] bg-gray-100 px-4 py-2 text-[12.5px] font-medium text-gray-500 hover:bg-gray-200 transition-colors duration-200">
-                        {/* Profile Icon at the start */}
-                        <FontAwesomeIcon
-                          icon={faUser}
-                          className="w-4 h-4 mr-2 text-gray-500"
-                        />
-                        <span>1 Room</span>
-                        <span className="mx-1 text-gray-500">•</span>
-                        <span>2 Adults</span>
-                        <span className="mx-1 text-gray-500">•</span>
-                        <span>0 Children</span>
-                      </div>
-                    </div>
-
-                    {/* Search Button - SAME WIDTH AS OTHER ELEMENTS */}
-                    <div className="w-full cursor-pointer">
-                      <button
-                        onClick={handleSearchSubmit}
-                        className="w-full bg-gradient-to-r from-[#00E38C] to-teal-500 hover:from-[#00c97b] hover:to-teal-600 text-white font-semibold py-2 sm:py-2 px-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
-                      >
-                        <FontAwesomeIcon
-                          icon={faSearch}
-                          className="w-3 h-3 sm:w-3 sm:h-3"
-                        />
-                        <span className="text-xs sm:text-xs md:text-sm">
-                          Search
-                        </span>
-                      </button>
-                    </div>
+                  {/* Search Button - THIS IS THE "FIND X" BUTTON THAT TRIGGERS NAVIGATION */}
+                  <div className="w-full">
+                    <button
+                      ref={searchButtonRef}
+                      onClick={handleSearchButtonClick}
+                      className={`w-full bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 glowing hover:from-[#00c97b] hover:to-teal-600`}
+                    >
+                      <FontAwesomeIcon icon={faSearch} className="text-sm" />
+                      <span className="text-xs">
+                        {getSearchButtonText()}
+                      </span>
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
-
-            {/* Category Icons - MINIMAL GAP AND MARGINS */}
-            <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto mt-1 sm:mt-2 lg:mt-1">
-              <div className="flex justify-between items-center gap-2 sm:gap-3 lg:gap-3">
-                {["Hotel", "Tourism", "Shortlet", "Restaurant", "Services"].map(
-                  (category) => (
-                    <motion.div
-                      key={category}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="group cursor-pointer flex flex-col items-center"
-                      onClick={() => handleCategoryClick(category)}
-                    >
-                      {/* Square Container - COMPACT SIZE */}
-                      <div className="relative w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-12 lg:h-12">
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-teal-50 rounded-md sm:rounded-lg transform group-hover:scale-105 transition-transform duration-300"></div>
-                        <div className="relative w-full h-full p-0.5">
-                          <div className="w-full h-full overflow-hidden rounded-sm sm:rounded-md shadow-xs group-hover:shadow-xs transition-all duration-300">
-                            <img
-                              src={getCategoryImage(
-                                category,
-                                FALLBACK_IMAGES[category]
-                              )}
-                              alt={category}
-                              className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
-                              onError={(e) => {
-                                e.target.src = FALLBACK_IMAGES[category];
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      {/* Minimal text size and margin */}
-                      <p className="mt-0.5 text-[9px] xs:text-[10px] font-medium text-gray-700 group-hover:text-blue-600 transition-colors duration-200 text-center whitespace-nowrap">
-                        {category}
-                      </p>
-                    </motion.div>
-                  )
-                )}
-              </div>
-            </div>
           </div>
         </div>
-
-        {/* REMOVED bottom gradient - separator will be right at the bottom */}
+        <div className="relative">
+          <div className="absolute left-0 right-0 h-[1px] bg-gradient-to-r from-green-400 via-green-500 to-green-400 opacity-70"></div>
+        </div>
       </section>
 
-      {/* Green Separator Line - AT THE EXACT BOTTOM OF HERO SECTION */}
-      <div className="relative">
-        <div className="absolute left-0 right-0 h-[1px] sm:h-[1px] bg-gradient-to-r from-green-400 via-green-500 to-green-400 opacity-70"></div>
-      </div>
+      {showCheckInCalendar && (
+        <SimpleCalendar
+          onSelect={handleCheckInSelect}
+          onClose={() => setShowCheckInCalendar(false)}
+          selectedDate={checkInDate}
+        />
+      )}
+      {showGuestSelector && (
+        <GuestSelector
+          guests={guests}
+          onChange={handleGuestsChange}
+          onClose={() => setShowGuestSelector(false)}
+          category={activeTab.toLowerCase()}
+        />
+      )}
+      {showEmptySearchModal && (
+        <EmptySearchModal
+          onClose={() => setShowEmptySearchModal(false)}
+          onConfirm={() => {
+            setShowEmptySearchModal(false);
+            searchInputRef.current?.focus();
+          }}
+        />
+      )}
 
-      {/* REMOVED additional content section to keep hero ending at separator */}
-
-      {/* Desktop Search Suggestions */}
       {!isMobile && (
         <DesktopSearchSuggestions
           searchQuery={searchQuery}
@@ -1269,10 +1709,10 @@ const DiscoverIbadan = () => {
           onClose={() => setShowSuggestions(false)}
           isVisible={showSuggestions && !loading}
           searchBarPosition={searchBarPosition}
+          activeCategory={activeTab}
+          serviceTypes={serviceTypes}
         />
       )}
-
-      {/* Mobile Fullscreen Search Modal */}
       {isMobile && (
         <MobileSearchModal
           searchQuery={searchQuery}
@@ -1281,8 +1721,43 @@ const DiscoverIbadan = () => {
           onClose={() => setShowMobileModal(false)}
           onTyping={handleSearchChange}
           isVisible={showMobileModal}
+          activeCategory={activeTab}
+          serviceTypes={serviceTypes}
         />
       )}
+
+      <style>{`
+        @keyframes slideInUp {
+          from { transform: translateY(100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .animate-slideInUp { animation: slideInUp 0.3s ease-out; }
+        .animate-fadeIn { animation: fadeIn 0.2s ease-out; }
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        
+        .glass-background::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.1) 0%,
+            rgba(255, 255, 255, 0.05) 100%
+          );
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          z-index: -1;
+        }
+      `}</style>
     </div>
   );
 };

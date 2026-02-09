@@ -4,17 +4,20 @@ import {
   FaEye,
   FaEyeSlash,
   FaTimes,
-  FaSync,
   FaCheck,
+  FaUserAlt,
   FaExclamationTriangle,
+  FaSpinner
 } from "react-icons/fa";
+import { MdCheckCircle } from "react-icons/md";
+import { ToastContainer, toast, Slide } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 import Logo from "../../assets/Logos/logo5.png";
 import * as yup from "yup";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import axiosInstance from "../../lib/axios";
 
-// Validation schema
 const loginSchema = yup.object().shape({
   email: yup
     .string()
@@ -23,72 +26,99 @@ const loginSchema = yup.object().shape({
   password: yup.string().required("Password is required"),
 });
 
-// Toast Notification Component for Login
-const LoginToastNotification = ({ message, onClose, type = "success" }) => {
-  const [isVisible, setIsVisible] = useState(true);
+// Helper functions for session management
+const SESSION_KEYS = {
+  GUEST_SESSION: "guestSession",
+  BOOKING_SESSION: "bookingSession",
+  PENDING_BOOKING: (type) => `pending${type.charAt(0).toUpperCase() + type.slice(1)}Booking`,
+  ACTIVE_BOOKING: (type) => `active${type.charAt(0).toUpperCase() + type.slice(1)}Booking`
+};
 
-  const handleClose = () => {
-    setIsVisible(false);
-    setTimeout(() => {
-      onClose();
-    }, 300);
+// Create a booking-specific guest session (LASTS UNTIL BOOKING IS COMPLETED)
+const createBookingGuestSession = (bookingType, email = null) => {
+  const sessionId = `booking_guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  return {
+    isGuest: true,
+    sessionId: sessionId,
+    createdAt: new Date().toISOString(),
+    // Extended expiry for booking sessions (24 hours or until booking completion)
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    email: email || `guest_${Date.now()}@temp.com`,
+    bookingType: bookingType,
+    isBookingSession: true,
+    lastActive: new Date().toISOString(),
+    // Store booking intent
+    bookingIntent: bookingType
   };
+};
 
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      handleClose();
-    }, 4000);
+// Check if session is still valid
+const isSessionValid = (session) => {
+  if (!session) return false;
+  
+  const now = new Date();
+  const expiresAt = new Date(session.expiresAt);
+  
+  // For booking sessions, also check if it's been inactive for too long (1 hour)
+  if (session.isBookingSession) {
+    const lastActive = new Date(session.lastActive);
+    const inactiveTime = now - lastActive;
+    
+    // Session expires if: 1) past expiry time OR 2) inactive for 1 hour
+    return expiresAt > now && inactiveTime < (60 * 60 * 1000);
+  }
+  
+  // Regular sessions only check expiry
+  return expiresAt > now;
+};
 
-    return () => clearTimeout(timer);
-  }, []);
+// Update session activity
+const updateSessionActivity = (session) => {
+  if (!session) return session;
+  
+  return {
+    ...session,
+    lastActive: new Date().toISOString()
+  };
+};
 
-  const bgColor = type === "success" ? "bg-green-50" : "bg-red-50";
-  const borderColor =
-    type === "success" ? "border-green-200" : "border-red-200";
-  const textColor = type === "success" ? "text-green-800" : "text-red-800";
-  const progressColor = type === "success" ? "bg-green-500" : "bg-red-500";
-  const iconColor = type === "success" ? "text-green-600" : "text-red-600";
-
-  return (
-    <div
-      className={`fixed top-4 right-4 z-50 transition-all duration-300 ${
-        isVisible ? "animate-slideInRight" : "animate-slideOutRight"
-      }`}
-    >
-      <div
-        className={`${bgColor} border ${borderColor} rounded-lg shadow-lg p-4 max-w-sm`}
-      >
-        <div className="flex items-start gap-3">
-          <div className={`${iconColor} mt-0.5`}>
-            {type === "success" ? (
-              <FaCheck size={16} />
-            ) : (
-              <FaExclamationTriangle size={16} />
-            )}
-          </div>
-          <div className="flex-1">
-            <p className={`font-medium ${textColor}`}>{message}</p>
-          </div>
-          <button
-            onClick={handleClose}
-            className={`${iconColor} hover:${
-              type === "success" ? "text-green-600" : "text-red-600"
-            } transition-colors ml-2`}
-            aria-label="Close notification"
-          >
-            <FaTimes size={16} />
-          </button>
-        </div>
-        <div
-          className={`mt-2 w-full ${progressColor} bg-opacity-30 h-1 rounded-full overflow-hidden`}
-        >
-          <div
-            className={`h-full ${progressColor} animate-progressBar`}
-            style={{ animationDuration: "4s" }}
-          ></div>
-        </div>
-      </div>
-    </div>
+// Notification function using react-toastify with Apple-style design
+const showNotification = (message, type = "success") => {
+  const backgroundColor = "#FFFFFF";
+  const textColor = "#1C1C1E";
+  const iconColor = type === "success" ? "#34C759" : "#FF3B30";
+  const Icon = type === "success" ? MdCheckCircle : FaTimes;
+  
+  return toast(
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <Icon size={28} color={iconColor} />
+      <span style={{
+        fontWeight: 500,
+        fontSize: '16px',
+        color: textColor,
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      }}>
+        {message}
+      </span>
+    </div>,
+    {
+      position: "top-right",
+      autoClose: 2500,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      transition: Slide,
+      style: {
+        background: backgroundColor,
+        color: textColor,
+        borderRadius: "12px",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+        padding: "12px 20px",
+        minWidth: "240px"
+      }
+    }
   );
 };
 
@@ -97,15 +127,35 @@ const LoginPage = () => {
   const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [error, setError] = useState("");
-  const [pendingSaveConfirm, setPendingSaveConfirm] = useState(null);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastType, setToastType] = useState("success");
-  const [retryCount, setRetryCount] = useState(0);
-  const [showTroubleshoot, setShowTroubleshoot] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [isFromBooking, setIsFromBooking] = useState(false);
+  const [bookingType, setBookingType] = useState(null);
+  const [showGuestOption, setShowGuestOption] = useState(true);
+  const [hasPendingBooking, setHasPendingBooking] = useState(false);
+
+  // Scroll to top when component mounts or location changes
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "instant"
+    });
+    
+    const handleRouteChange = () => {
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: "instant"
+      });
+    };
+
+    window.addEventListener('popstate', handleRouteChange);
+    
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange);
+    };
+  }, [location.pathname]);
 
   const {
     register,
@@ -119,95 +169,319 @@ const LoginPage = () => {
 
   const email = watch("email");
 
-  // Check for email verification success message and pre-fill email
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const verified = searchParams.get("verified");
-
-    if (verified === "true") {
-      setSuccessMessage("🎉 Email verified successfully! You can now login.");
-      setToastMessage("🎉 Email verified successfully! You can now login.");
-      setToastType("success");
-      setShowToast(true);
-
-      setTimeout(() => {
-        navigate("/login", { replace: true });
-        setSuccessMessage("");
-        setShowToast(false);
-      }, 5000);
-    }
-
-    const fromOTP = location.state?.fromOTP;
-    const verifiedEmail = location.state?.verifiedEmail;
-
-    if (fromOTP && verifiedEmail) {
-      setSuccessMessage("✅ OTP verification successful! Please login.");
-      setToastMessage("✅ OTP verification successful! Please login.");
-      setToastType("success");
-      setShowToast(true);
-
-      setValue("email", verifiedEmail);
-
-      setTimeout(() => {
-        document.getElementById("password")?.focus();
-      }, 100);
-
-      setTimeout(() => {
-        setSuccessMessage("");
-        setShowToast(false);
-      }, 4000);
-    }
-
-    const registeredEmail = localStorage.getItem("pendingVerificationEmail");
-    if (registeredEmail && !location.search.includes("verified=true")) {
-      setSuccessMessage(
-        `📧 Registration successful! Please check ${registeredEmail} for verification.`
-      );
-      setValue("email", registeredEmail);
-      localStorage.removeItem("pendingVerificationEmail");
-
-      setTimeout(() => {
-        setSuccessMessage("");
-      }, 8000);
-    }
-
-    const resetSuccess = location.state?.resetSuccess;
-    if (resetSuccess) {
-      setSuccessMessage(
-        "✅ Password reset successful! You can now login with your new password."
-      );
-      setToastMessage("✅ Password reset successful!");
-      setToastType("success");
-      setShowToast(true);
-
-      setTimeout(() => {
-        setSuccessMessage("");
-        setShowToast(false);
-      }, 4000);
-    }
-  }, [location, navigate, setValue]);
-
-  const onSubmit = async (data) => {
+  // Check for existing valid booking session
+  const checkExistingBookingSession = () => {
     try {
-      setError("");
-      setSuccessMessage("");
-      setIsLoading(true);
-      setIsRedirecting(false);
-      setShowTroubleshoot(false);
+      const guestSession = localStorage.getItem(SESSION_KEYS.GUEST_SESSION);
+      
+      if (guestSession) {
+        const sessionData = JSON.parse(guestSession);
+        
+        // Check if it's a booking session and still valid
+        if (sessionData.isBookingSession && isSessionValid(sessionData)) {
+          console.log("✅ Valid booking guest session found");
+          
+          // Update last activity
+          const updatedSession = updateSessionActivity(sessionData);
+          localStorage.setItem(SESSION_KEYS.GUEST_SESSION, JSON.stringify(updatedSession));
+          
+          // Check for pending booking
+          const bookingType = sessionData.bookingType || "hotel";
+          const pendingBookingKey = SESSION_KEYS.PENDING_BOOKING(bookingType);
+          const pendingBooking = localStorage.getItem(pendingBookingKey);
+          
+          if (pendingBooking) {
+            console.log("✅ Pending booking found, redirecting to payment");
+            navigate(`/booking/payment`, {
+              state: {
+                bookingType: bookingType,
+                isGuestBooking: true,
+                sessionId: sessionData.sessionId
+              }
+            });
+            return true;
+          }
+        } else {
+          // Clear invalid or expired session
+          localStorage.removeItem(SESSION_KEYS.GUEST_SESSION);
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.error("Error checking booking session:", error);
+      localStorage.removeItem(SESSION_KEYS.GUEST_SESSION);
+      return false;
+    }
+  };
 
-      // Clear any existing auth data before attempting new login
+  // Check for existing session
+  const checkExistingSession = async () => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      
+      // First, check if there's a valid booking guest session
+      const hasValidBookingSession = checkExistingBookingSession();
+      if (hasValidBookingSession) {
+        setIsCheckingSession(false);
+        return;
+      }
+      
+      if (!token) {
+        setIsCheckingSession(false);
+        return;
+      }
+
+      // Validate the token with backend
+      console.log("🔍 Checking existing session...");
+      const response = await axiosInstance.get("/auth/validate-session", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (response.data && response.data.valid) {
+        console.log("✅ Valid session found, redirecting...");
+        
+        // Update user profile
+        if (response.data.user) {
+          localStorage.setItem("userProfile", JSON.stringify(response.data.user));
+          localStorage.setItem("user_email", response.data.user.email);
+          
+          // Dispatch events
+          window.dispatchEvent(new Event("storage"));
+          window.dispatchEvent(new Event("authChange"));
+        }
+        
+        // Check for pending booking
+        if (location.state?.fromBooking) {
+          const bookingType = location.state?.intent?.replace('_booking', '') || "hotel";
+          
+          // Check for pending booking
+          let pendingBooking = null;
+          if (bookingType === "hotel") {
+            const pendingHotelBooking = localStorage.getItem("pendingHotelBooking");
+            if (pendingHotelBooking) pendingBooking = JSON.parse(pendingHotelBooking);
+          } else if (bookingType === "restaurant") {
+            const pendingRestaurantBooking = localStorage.getItem("pendingRestaurantBooking");
+            if (pendingRestaurantBooking) pendingBooking = JSON.parse(pendingRestaurantBooking);
+          } else if (bookingType === "shortlet") {
+            const pendingShortletBooking = localStorage.getItem("pendingShortletBooking");
+            if (pendingShortletBooking) pendingBooking = JSON.parse(pendingShortletBooking);
+          }
+          
+          if (pendingBooking) {
+            // Create complete booking for logged in user
+            const completeBooking = {
+              ...pendingBooking.bookingData,
+              paymentMethod: pendingBooking.selectedPayment || (bookingType === "hotel" ? "hotel" : "restaurant"),
+              bookingType: bookingType,
+              bookingDate: new Date().toISOString(),
+              bookingId: pendingBooking.bookingId || `USER-${Date.now()}`,
+              status: "pending",
+              totalAmount: pendingBooking.totalAmount || 0,
+              timestamp: Date.now(),
+              userId: response.data.user._id,
+              userEmail: response.data.user.email,
+              userName: `${response.data.user.firstName} ${response.data.user.lastName}`
+            };
+            
+            // Add type-specific data
+            if (bookingType === "hotel") {
+              completeBooking.roomData = pendingBooking.roomData;
+              completeBooking.hotelData = pendingBooking.hotelData;
+              completeBooking.guests = pendingBooking.guests;
+              completeBooking.checkInDate = pendingBooking.checkInDate;
+              completeBooking.checkOutDate = pendingBooking.checkOutDate;
+            } else if (bookingType === "restaurant" || bookingType === "shortlet") {
+              completeBooking.vendorData = pendingBooking.vendorData;
+            }
+            
+            // Save the completed booking
+            localStorage.setItem(`pendingLoggedIn${bookingType.charAt(0).toUpperCase() + bookingType.slice(1)}Booking`, JSON.stringify(completeBooking));
+            
+            // Clear pending data
+            localStorage.removeItem(`pending${bookingType.charAt(0).toUpperCase() + bookingType.slice(1)}Booking`);
+            
+            navigate(`/booking/payment`, {
+              state: {
+                bookingData: completeBooking,
+                bookingType: bookingType
+              }
+            });
+          } else {
+            navigate(`/booking/payment`);
+          }
+        } else {
+          // Regular redirect to previous page or home
+          const returnTo = location.state?.returnTo || location.state?.from || "/";
+          navigate(returnTo);
+        }
+      } else {
+        // Invalid session, clear tokens
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user_email");
+        localStorage.removeItem("userProfile");
+        localStorage.removeItem("auth-storage");
+        setIsCheckingSession(false);
+      }
+    } catch (error) {
+      console.error("Session validation failed:", error);
+      // Clear invalid tokens
       localStorage.removeItem("auth_token");
       localStorage.removeItem("user_email");
       localStorage.removeItem("userProfile");
       localStorage.removeItem("auth-storage");
+      setIsCheckingSession(false);
+    }
+  };
 
-      // Make API call to login
+  useEffect(() => {
+    // Check for existing session on component mount
+    checkExistingSession();
+
+    // Check if user came from booking
+    const fromBooking = location.state?.fromBooking;
+    const intent = location.state?.intent;
+    const returnTo = location.state?.returnTo;
+
+    if (fromBooking && intent) {
+      setIsFromBooking(true);
+      const type = intent.replace('_booking', '');
+      setBookingType(type);
+      
+      // Check for pending booking
+      const pendingBookingKey = SESSION_KEYS.PENDING_BOOKING(type);
+      const pendingBooking = localStorage.getItem(pendingBookingKey);
+      
+      if (pendingBooking) {
+        setHasPendingBooking(true);
+        console.log("Pending booking found:", type);
+        
+        // Show notification
+        showNotification("Continue with your booking", "info");
+      }
+      
+      // Pre-fill email if available from pending booking
+      if (pendingBooking) {
+        try {
+          const bookingData = JSON.parse(pendingBooking);
+          if (bookingData.bookingData?.email) {
+            setValue("email", bookingData.bookingData.email);
+          } else if (bookingData.bookingData?.contactInfo?.email) {
+            setValue("email", bookingData.bookingData.contactInfo.email);
+          }
+        } catch (error) {
+          console.error("Error parsing pending booking:", error);
+        }
+      }
+    } else {
+      // User clicked login from header
+      setIsFromBooking(false);
+      setBookingType(null);
+    }
+
+    // Show guest option only if user came from booking or is on homepage
+    setShowGuestOption(fromBooking || location.pathname === "/");
+  }, [location.state, setValue, location.pathname]);
+
+  // Function to handle "Continue as Guest" - BOOKING SPECIFIC
+  const handleContinueAsGuest = () => {
+    console.log("Continuing as guest for booking session...");
+    
+    // Determine booking type
+    const bookingType = location.state?.intent?.replace('_booking', '') || "hotel";
+    console.log("Booking type:", bookingType);
+    
+    // Check for pending booking
+    const pendingBookingKey = SESSION_KEYS.PENDING_BOOKING(bookingType);
+    const pendingBooking = localStorage.getItem(pendingBookingKey);
+    
+    if (pendingBooking && hasPendingBooking) {
+      console.log(`Found pending ${bookingType} booking, creating booking guest session...`);
+      
+      try {
+        const bookingData = JSON.parse(pendingBooking);
+        
+        // Create booking-specific guest session (LASTS UNTIL BOOKING COMPLETION)
+        const sessionData = createBookingGuestSession(bookingType, email || bookingData.bookingData?.email);
+        
+        // Save guest session
+        localStorage.setItem(SESSION_KEYS.GUEST_SESSION, JSON.stringify(sessionData));
+        
+        // Update the booking data with session info
+        const updatedBooking = {
+          ...bookingData,
+          isGuestBooking: true,
+          guestSessionId: sessionData.sessionId,
+          guestEmail: sessionData.email,
+          sessionCreatedAt: sessionData.createdAt
+        };
+        
+        localStorage.setItem(pendingBookingKey, JSON.stringify(updatedBooking));
+        
+        // Show success notification
+        showNotification("Guest session created! You can close and return anytime.", "success");
+        
+        // Navigate to PAYMENT PAGE
+        setTimeout(() => {
+          navigate(`/booking/payment`, {
+            state: {
+              bookingData: updatedBooking,
+              bookingType: bookingType,
+              isGuestBooking: true,
+              guestSessionId: sessionData.sessionId
+            }
+          });
+        }, 1000);
+        
+      } catch (error) {
+        console.error("Error processing guest booking:", error);
+        showNotification("Error processing booking. Please try again.", "error");
+      }
+      
+    } else {
+      // No pending booking found
+      console.log("No pending booking found");
+      
+      // Create basic guest session for browsing
+      const sessionData = {
+        isGuest: true,
+        sessionId: `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour for browsing
+        email: email || `guest_${Date.now()}@temp.com`,
+        isBrowsingOnly: true,
+        lastActive: new Date().toISOString()
+      };
+      
+      localStorage.setItem(SESSION_KEYS.GUEST_SESSION, JSON.stringify(sessionData));
+      
+      showNotification("Continuing as guest - Enjoy browsing!", "success");
+      
+      setTimeout(() => {
+        if (window.history.length > 1) {
+          navigate(-1);
+        } else {
+          navigate("/");
+        }
+      }, 1000);
+    }
+  };
+
+  const onSubmit = async (data) => {
+    try {
+      setError("");
+      setIsLoading(true);
+
+      // Clear any guest session when logging in properly
+      localStorage.removeItem("guestSession");
+
       const response = await axiosInstance.post("/auth/login", {
         email: data.email,
         password: data.password,
       });
 
-      // Handle different response formats
       let loginData;
       if (
         response.data &&
@@ -225,60 +499,43 @@ const LoginPage = () => {
 
       // Check if user is verified
       if (!userData.isVerified) {
+        showNotification("Please verify your email before logging in.", "error");
+        
         setError(
-          `⚠️ Please verify your email before logging in. 
-            
-            Check your inbox (${userData.email}) for the verification link. 
-            
-            If you didn't receive it, check your spam folder or request a new verification link.`
+          `Please verify your email before logging in. Check your inbox (${userData.email}) for the verification link.`
         );
         setIsLoading(false);
-        setRetryCount(0);
         return;
       }
 
       // Store authentication data
       localStorage.setItem("auth_token", token);
       localStorage.setItem("user_email", userData.email);
-      localStorage.setItem(
-        "userProfile",
-        JSON.stringify({
-          id: userData._id,
-          email: userData.email,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          phone: userData.phone,
-          role: userData.role,
-          isVerified: userData.isVerified,
-          isActive: userData.isActive,
-          profilePicture: userData.profilePicture,
-          createdAt: userData.createdAt,
-          updatedAt: userData.updatedAt,
-        })
-      );
+      
+      // Create complete user profile
+      const completeUserProfile = {
+        id: userData._id,
+        email: userData.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        phone: userData.phone,
+        role: userData.role,
+        isVerified: userData.isVerified,
+        isActive: userData.isActive,
+        profilePicture: userData.profilePicture,
+        createdAt: userData.createdAt,
+        updatedAt: userData.updatedAt,
+        vendor: userData.vendor || null
+      };
+      
+      localStorage.setItem("userProfile", JSON.stringify(completeUserProfile));
 
       // Also store in auth-storage for compatibility
       const authStorage = {
-        state: { token: token },
+        state: { token: token, user: completeUserProfile },
         version: 0,
       };
       localStorage.setItem("auth-storage", JSON.stringify(authStorage));
-
-      // Check for pending save item
-      const pendingSave = localStorage.getItem("pendingSaveItem");
-      if (pendingSave) {
-        try {
-          const pendingItem = JSON.parse(pendingSave);
-          setPendingSaveConfirm({
-            item: pendingItem,
-            redirectUrl: "/",
-          });
-          setIsLoading(false);
-          return;
-        } catch (err) {
-          localStorage.removeItem("pendingSaveItem");
-        }
-      }
 
       // Dispatch login event for header component
       window.dispatchEvent(new Event("storage"));
@@ -293,131 +550,133 @@ const LoginPage = () => {
         })
       );
 
-      // Get redirect URL or default to home
-      const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
-      localStorage.removeItem("redirectAfterLogin");
+      // Check if user came from booking
+      if (isFromBooking) {
+        console.log("User logged in from booking, restoring booking...");
+        
+        // Check for pending booking based on type
+        const bookingType = location.state?.intent?.replace('_booking', '') || "hotel";
+        let pendingBooking = null;
+        
+        if (bookingType === "hotel") {
+          const pendingHotelBooking = localStorage.getItem("pendingHotelBooking");
+          if (pendingHotelBooking) pendingBooking = JSON.parse(pendingHotelBooking);
+        } else if (bookingType === "restaurant") {
+          const pendingRestaurantBooking = localStorage.getItem("pendingRestaurantBooking");
+          if (pendingRestaurantBooking) pendingBooking = JSON.parse(pendingRestaurantBooking);
+        } else if (bookingType === "shortlet") {
+          const pendingShortletBooking = localStorage.getItem("pendingShortletBooking");
+          if (pendingShortletBooking) pendingBooking = JSON.parse(pendingShortletBooking);
+        }
+        
+        if (pendingBooking) {
+          console.log("Found pending booking, completing as logged in user...");
+          
+          // Create the complete booking from pending data
+          const completeBooking = {
+            ...pendingBooking.bookingData,
+            paymentMethod: pendingBooking.selectedPayment || (bookingType === "hotel" ? "hotel" : "restaurant"),
+            bookingType: bookingType,
+            bookingDate: new Date().toISOString(),
+            bookingId: pendingBooking.bookingId || `USER-${Date.now()}`,
+            status: "pending", // Set to pending initially
+            totalAmount: pendingBooking.totalAmount || 0,
+            timestamp: Date.now(),
+            userId: userData._id,
+            userEmail: userData.email,
+            userName: `${userData.firstName} ${userData.lastName}`
+          };
+          
+          // Add type-specific data
+          if (bookingType === "hotel") {
+            completeBooking.roomData = pendingBooking.roomData;
+            completeBooking.hotelData = pendingBooking.hotelData;
+            completeBooking.guests = pendingBooking.guests;
+            completeBooking.checkInDate = pendingBooking.checkInDate;
+            completeBooking.checkOutDate = pendingBooking.checkOutDate;
+          } else if (bookingType === "restaurant" || bookingType === "shortlet") {
+            completeBooking.vendorData = pendingBooking.vendorData;
+          }
+          
+          // Save the completed booking TEMPORARILY
+          localStorage.setItem(`pendingLoggedIn${bookingType.charAt(0).toUpperCase() + bookingType.slice(1)}Booking`, JSON.stringify(completeBooking));
+          
+          // Clear pending data
+          localStorage.removeItem(`pending${bookingType.charAt(0).toUpperCase() + bookingType.slice(1)}Booking`);
+          localStorage.removeItem("pendingBooking");
+          
+          showNotification("Login successful! Redirecting to payment...", "success");
+          
+          // Navigate to PAYMENT PAGE, not confirmation
+          setTimeout(() => {
+            navigate(`/booking/payment`, {
+              state: {
+                bookingData: completeBooking,
+                bookingType: bookingType
+              }
+            });
+          }, 1000);
+          return;
+        }
+      }
 
+      // Regular login (not from booking)
       setIsLoading(false);
-      setRetryCount(0);
-      setIsRedirecting(true);
-
-      // Show success toast
-      setToastMessage("✅ Login successful! Redirecting...");
-      setToastType("success");
-      setShowToast(true);
+      showNotification("Login successful! Redirecting...", "success");
 
       setTimeout(() => {
-        try {
-          navigate(redirectUrl, {
-            replace: true,
-            state: { fromLogin: true },
-          });
-        } catch (navError) {
-          console.error("Navigation failed:", navError);
-        }
-
-        // Fallback to window.location after delay
-        setTimeout(() => {
-          if (window.location.pathname === "/login") {
-            window.location.href = redirectUrl;
-          }
-        }, 500);
+        navigate(location.state?.from || "/");
       }, 1000);
+
     } catch (error) {
       setIsLoading(false);
-      setIsRedirecting(false);
-      setRetryCount((prev) => prev + 1);
 
-      let errorMessage = "Login failed. Please try again.";
-      let showTroubleshootBtn = false;
-      let showErrorToast = false;
-      let toastErrorType = "error";
+      let errorMessage = "";
+      let showErrorNotification = false;
 
       if (error.response) {
-        if (error.response.status === 401) {
-          errorMessage =
-            "❌ Invalid email or password. Please check your credentials.";
-          showErrorToast = true;
-          toastErrorType = "error";
+        if (error.response.status === 401 || error.response.status === 400) {
+          errorMessage = "Incorrect email or password. Please check and try again.";
+          showErrorNotification = true;
         } else if (error.response.status === 403) {
-          errorMessage =
-            "🔒 Please verify your email before logging in. Check your inbox for the verification link.";
-        } else if (error.response.status === 400) {
-          errorMessage = "⚠️ Invalid request. Please check your input.";
-          showErrorToast = true;
-          toastErrorType = "error";
+          errorMessage = "Please verify your email before logging in.";
+          showErrorNotification = true;
         } else if (error.response.status === 500) {
-          const serverError =
-            error.response.data?.message || "Internal server error";
-          errorMessage = `🚨 Server Error: ${serverError}
-          
-          This often happens after OTP verification. Try these steps:
-          
-          1. Wait 2-3 minutes for the server to update
-          2. Try logging in again
-          3. If it persists, try resetting your password`;
-          showTroubleshootBtn = true;
+          errorMessage = "Incorrect email or password. Please check and try again.";
+          showErrorNotification = true;
         } else if (error.response.data?.message) {
-          errorMessage = `⚠️ ${error.response.data.message}`;
-          showErrorToast = true;
-          toastErrorType = "error";
+          errorMessage = "Incorrect email or password. Please check and try again.";
+          showErrorNotification = true;
         }
       } else if (error.request) {
-        errorMessage =
-          "🌐 Network error. Please check your internet connection.";
+        errorMessage = "Incorrect email or password. Please check and try again.";
+        showErrorNotification = true;
       } else if (error.message === "Invalid login response format") {
-        errorMessage = "⚠️ Unexpected response from server. Please try again.";
-        showErrorToast = true;
-        toastErrorType = "error";
+        errorMessage = "Incorrect email or password. Please check and try again.";
+        showErrorNotification = true;
+      } else {
+        errorMessage = "Incorrect email or password. Please check and try again.";
+        showErrorNotification = true;
       }
 
-      setError(errorMessage);
-      setShowTroubleshoot(showTroubleshootBtn);
-
-      // Show toast for specific errors
-      if (showErrorToast) {
-        setToastMessage(errorMessage);
-        setToastType(toastErrorType);
-        setShowToast(true);
+      if (showErrorNotification) {
+        showNotification(errorMessage, "error");
       }
 
-      // Clear auth data on login failure
+      if (errorMessage.includes("verify your email")) {
+        setError(errorMessage);
+      } else {
+        setError("");
+      }
+
       localStorage.removeItem("auth_token");
       localStorage.removeItem("user_email");
       localStorage.removeItem("userProfile");
       localStorage.removeItem("auth-storage");
-
-      // If multiple retries, suggest password reset
-      if (retryCount >= 2) {
-        setError(
-          (prev) =>
-            prev +
-            "\n\n🔧 Multiple login attempts failed. Consider resetting your password."
-        );
-        setShowTroubleshoot(true);
-      }
     }
   };
 
-  // Manual redirect function
-  const handleManualRedirect = () => {
-    const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
-
-    // Clear any pending save
-    localStorage.removeItem("pendingSaveItem");
-
-    navigate(redirectUrl, { replace: true });
-
-    setTimeout(() => {
-      if (window.location.pathname === "/login") {
-        window.location.href = redirectUrl;
-      }
-    }, 100);
-  };
-
   const handleCancel = () => {
-    localStorage.removeItem("pendingSaveItem");
-
     const hasPreviousPage = window.history.length > 1;
     if (hasPreviousPage) {
       navigate(-1);
@@ -428,9 +687,7 @@ const LoginPage = () => {
 
   const handleResetPassword = () => {
     const email = document.getElementById("email")?.value;
-
-    localStorage.removeItem("pendingSaveItem");
-
+    
     if (email) {
       navigate("/reset-password", {
         state: { email },
@@ -440,125 +697,51 @@ const LoginPage = () => {
     }
   };
 
-  const handleResendVerification = async () => {
-    const email = document.getElementById("email")?.value;
-    if (email) {
-      try {
-        const response = await axiosInstance.post("/auth/resend-verification", {
-          email,
-        });
-
-        if (response.data.success || response.data.message?.includes("sent")) {
-          setSuccessMessage(
-            `📧 Verification email resent to ${email}. Please check your inbox.`
-          );
-          setToastMessage(`📧 Verification email sent to ${email}`);
-          setToastType("success");
-          setShowToast(true);
-        } else {
-          setError("Failed to resend verification email. Please try again.");
+  // Add cleanup for browsing-only sessions on unmount
+  useEffect(() => {
+    return () => {
+      // Only clear browsing sessions, not booking sessions
+      const guestSession = localStorage.getItem(SESSION_KEYS.GUEST_SESSION);
+      if (guestSession) {
+        try {
+          const sessionData = JSON.parse(guestSession);
+          if (sessionData.isBrowsingOnly && !sessionData.isBookingSession) {
+            // Optionally clear browsing sessions when login page unmounts
+            // Or keep them for 1 hour as set above
+          }
+        } catch (error) {
+          console.error("Error parsing session on unmount:", error);
         }
-      } catch (error) {
-        setError("Failed to resend verification email. Please try again.");
       }
-    } else {
-      setError("Please enter your email address first.");
-    }
-  };
+    };
+  }, []);
 
-  const handleSkipSave = () => {
-    localStorage.removeItem("pendingSaveItem");
-    setPendingSaveConfirm(null);
-
-    const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
-    localStorage.removeItem("redirectAfterLogin");
-    navigate(redirectUrl, { replace: true });
-  };
-
-  const handleConfirmSave = () => {
-    if (pendingSaveConfirm?.item) {
-      const saved = JSON.parse(
-        localStorage.getItem("userSavedListings") || "[]"
-      );
-      const isAlreadySaved = saved.some(
-        (item) => item.id === pendingSaveConfirm.item.id
-      );
-
-      if (!isAlreadySaved) {
-        const updatedSaved = [
-          ...saved,
-          {
-            ...pendingSaveConfirm.item,
-            savedDate: new Date().toISOString().split("T")[0],
-          },
-        ];
-        localStorage.setItem("userSavedListings", JSON.stringify(updatedSaved));
-
-        window.dispatchEvent(
-          new CustomEvent("savedListingsUpdated", {
-            detail: { action: "added", item: pendingSaveConfirm.item },
-          })
-        );
-      }
-    }
-
-    localStorage.removeItem("pendingSaveItem");
-    setPendingSaveConfirm(null);
-
-    const redirectUrl = localStorage.getItem("redirectAfterLogin") || "/";
-    localStorage.removeItem("redirectAfterLogin");
-    navigate(redirectUrl, { replace: true });
-  };
-
-  // Retry login function
-  const handleRetryLogin = () => {
-    const email = document.getElementById("email")?.value;
-    const password = document.getElementById("password")?.value;
-
-    if (email && password) {
-      onSubmit({ email, password });
-    } else {
-      setError("Please enter both email and password first.");
-    }
-  };
-
-  // Clear cache and retry
-  const handleClearCacheAndRetry = () => {
-    localStorage.clear();
-    sessionStorage.clear();
-
-    document.cookie.split(";").forEach((c) => {
-      document.cookie = c
-        .replace(/^ +/, "")
-        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-    });
-
-    setError("Cache cleared. Please try logging in again.");
-    setRetryCount(0);
-    setShowTroubleshoot(false);
-
-    setValue("password", "");
-    document.getElementById("password")?.focus();
-  };
-
-  // Show troubleshooting options
-  const toggleTroubleshoot = () => {
-    setShowTroubleshoot(!showTroubleshoot);
-  };
+  // Show loading state while checking session
+  if (isCheckingSession) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-2xl shadow-lg text-center">
+          <div className="flex justify-center mb-4">
+            <img src={Logo} alt="Ajani Logo" className="h-auto w-30" />
+          </div>
+          <div className="flex flex-col items-center justify-center py-8">
+            <FaSpinner className="animate-spin text-[#6cff] text-3xl mb-4" />
+            <p className="text-gray-600">Checking your session...</p>
+            {hasPendingBooking && (
+              <p className="text-sm text-green-600 mt-2">
+                We found your pending booking. Redirecting...
+              </p>
+            )}
+          </div>
+        </div>
+        <ToastContainer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      {/* Toast Notification */}
-      {showToast && (
-        <LoginToastNotification
-          message={toastMessage}
-          type={toastType}
-          onClose={() => setShowToast(false)}
-        />
-      )}
-
       <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-2xl shadow-lg relative">
-        {/* Cancel/Close Button - Top Right */}
         <button
           onClick={handleCancel}
           className="absolute -top-2 -right-2 sm:top-2 sm:right-2 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors z-10"
@@ -567,7 +750,6 @@ const LoginPage = () => {
           <FaTimes size={20} />
         </button>
 
-        {/* Logo */}
         <div className="text-center">
           <div className="flex justify-center mb-4">
             <img src={Logo} alt="Ajani Logo" className="h-auto w-30" />
@@ -575,111 +757,20 @@ const LoginPage = () => {
 
           <h2 className="text-xl font-bold text-gray-900">Log in to Ajani</h2>
           <p className="text-gray-600 mt-2 text-sm">
-            Enter your credentials to access your account
+            {isFromBooking 
+              ? "Complete your booking or continue as guest" 
+              : "Enter your credentials to access your account"
+            }
           </p>
+
+          {location.state?.message && !isFromBooking && (
+            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-700">{location.state.message}</p>
+            </div>
+          )}
         </div>
 
-        {/* Success Message */}
-        {successMessage && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
-            {successMessage}
-          </div>
-        )}
-
-        {/* Redirecting indicator */}
-        {isRedirecting && (
-          <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-            Redirecting to home page...
-          </div>
-        )}
-
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm whitespace-pre-line">
-            {error}
-
-            {/* Manual redirect button */}
-            {!error.includes("Invalid") && !error.includes("verify") && (
-              <div className="mt-3">
-                <button
-                  onClick={handleManualRedirect}
-                  className="w-full py-2 px-4 bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 transition-colors text-sm font-medium"
-                >
-                  Click here if not redirected automatically
-                </button>
-              </div>
-            )}
-
-            {/* Retry button */}
-            {error.includes("Server Error") && (
-              <div className="mt-3 space-y-2">
-                <button
-                  onClick={handleRetryLogin}
-                  disabled={isLoading}
-                  className="w-full py-2 px-4 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                >
-                  <FaSync className={isLoading ? "animate-spin" : ""} />
-                  {isLoading ? "Retrying..." : "Retry Login"}
-                </button>
-
-                {/* Troubleshoot button */}
-                <button
-                  onClick={toggleTroubleshoot}
-                  className="w-full py-2 px-4 text-sm text-gray-600 hover:text-gray-800"
-                >
-                  {showTroubleshoot ? "Hide Options" : "Show More Options"}
-                </button>
-              </div>
-            )}
-
-            {/* Troubleshoot options */}
-            {showTroubleshoot && (
-              <div className="mt-3 space-y-2 border-t border-red-100 pt-3">
-                <p className="text-xs font-medium text-gray-700 mb-2">
-                  Troubleshooting Options:
-                </p>
-
-                <button
-                  onClick={handleResetPassword}
-                  className="w-full py-2 px-4 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-lg hover:bg-yellow-100 transition-colors text-sm font-medium"
-                >
-                  Reset Password
-                </button>
-
-                <button
-                  onClick={handleResendVerification}
-                  className="w-full py-2 px-4 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors text-sm font-medium"
-                >
-                  Resend Verification Email
-                </button>
-
-                <button
-                  onClick={handleClearCacheAndRetry}
-                  className="w-full py-2 px-4 bg-gray-50 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium"
-                >
-                  Clear Cache & Retry
-                </button>
-              </div>
-            )}
-
-            {/* Add resend verification button if user is not verified */}
-            {error.includes("verify your email") &&
-              !error.includes("Server Error") && (
-                <div className="mt-3">
-                  <button
-                    onClick={handleResendVerification}
-                    className="text-blue-600 hover:text-blue-800 underline text-sm font-medium"
-                  >
-                    Resend verification email
-                  </button>
-                </div>
-              )}
-          </div>
-        )}
-
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Email Input */}
           <div>
             <label
               htmlFor="email"
@@ -704,7 +795,6 @@ const LoginPage = () => {
             )}
           </div>
 
-          {/* Password Input */}
           <div>
             <label
               htmlFor="password"
@@ -738,10 +828,9 @@ const LoginPage = () => {
             )}
           </div>
 
-          {/* Login Button */}
           <button
             type="submit"
-            disabled={isLoading || isRedirecting}
+            disabled={isLoading}
             className="w-full hover:bg-[#06EAFC] bg-[#6cff] text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isLoading ? (
@@ -749,16 +838,53 @@ const LoginPage = () => {
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 Logging in...
               </>
-            ) : isRedirecting ? (
-              "Redirecting..."
             ) : (
               "Log In"
             )}
           </button>
         </form>
 
-        <div className="text-center text-sm text-gray-600 pt-4">
-          <div className="mb-3 space-y-2">
+        {/* Continue as Guest Section */}
+        {showGuestOption && (
+          <div className="space-y-4 pt-4 border-t border-gray-200">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or continue as</span>
+              </div>
+            </div>
+            
+            {hasPendingBooking && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
+                <p className="text-sm text-blue-700 text-center">
+                  <FaExclamationTriangle className="inline mr-1" />
+                  Your booking will be saved. You can close this page and return anytime.
+                </p>
+              </div>
+            )}
+            
+            <button
+              type="button"
+              onClick={handleContinueAsGuest}
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-gray-50 to-gray-100 border-2 border-gray-300 text-gray-700 font-medium py-3 px-4 rounded-lg transition-all hover:from-gray-100 hover:to-gray-200 hover:border-gray-400 hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <FaUserAlt className="text-gray-500" />
+              <span>Continue as Guest {hasPendingBooking ? "(Booking Session)" : ""}</span>
+            </button>
+            
+            {hasPendingBooking && (
+              <p className="text-xs text-gray-500 text-center">
+                Your session will be saved until booking completion
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="text-center text-sm text-gray-600 pt-2">
+          <div className="mb-3">
             <p>
               Forgot your password?{" "}
               <button
@@ -768,167 +894,27 @@ const LoginPage = () => {
                 Reset here
               </button>
             </p>
-
-            {/* Help text for unverified users */}
-            <p className="text-xs text-gray-500">
-              Need help with email verification?{" "}
-              <button
-                onClick={() => {
-                  const email = document.getElementById("email")?.value;
-                  if (email) {
-                    setError(
-                      `Check ${email} for verification link. Didn't receive it? Check spam folder.`
-                    );
-                  } else {
-                    setError("Please enter your email above and try again.");
-                  }
-                }}
-                className="text-gray-600 hover:text-gray-800 underline"
-              >
-                Click here
-              </button>
-            </p>
           </div>
 
-          {/* Don't have an account? Register here */}
-          <div className="pt-3 border-t border-gray-200">
+          <div className="pt-1 border-t border-gray-200">
             <p>
               Don't have an account?{" "}
               <button
-                onClick={() => navigate("/register")}
+                onClick={() => navigate("/register", {
+                  state: {
+                    ...location.state,
+                    fromBooking: isFromBooking
+                  }
+                })}
                 className="text-[#6cff] hover:text-[#06EAFC] font-medium"
               >
-                Register here
+                Get Started
               </button>
             </p>
           </div>
         </div>
       </div>
-
-      {/* Pending Save Confirmation Modal */}
-      {pendingSaveConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full animate-fadeIn">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
-              Save this listing?
-            </h3>
-            <div className="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
-              <img
-                src={pendingSaveConfirm.item.image}
-                alt={pendingSaveConfirm.item.name}
-                className="w-12 h-12 rounded-lg object-cover"
-                onError={(e) => {
-                  e.currentTarget.src =
-                    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80";
-                  e.currentTarget.onerror = null;
-                }}
-              />
-              <div className="flex-1">
-                <p className="font-medium text-gray-900">
-                  {pendingSaveConfirm.item.name}
-                </p>
-                <p className="text-sm text-gray-600">
-                  {pendingSaveConfirm.item.location}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {pendingSaveConfirm.item.price}{" "}
-                  {pendingSaveConfirm.item.perText}
-                </p>
-              </div>
-            </div>
-            <p className="text-gray-600 mb-6">
-              Would you like to save this listing to your favorites?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={handleSkipSave}
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-              >
-                Skip
-              </button>
-              <button
-                onClick={handleConfirmSave}
-                className="flex-1 px-4 py-3 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors font-medium"
-              >
-                Save Listing
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        @keyframes slideInRight {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-
-        @keyframes slideOutRight {
-          from {
-            transform: translateX(0);
-            opacity: 1;
-          }
-          to {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-        }
-
-        @keyframes progressBar {
-          from {
-            width: 100%;
-          }
-          to {
-            width: 0%;
-          }
-        }
-
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-
-        .animate-spin {
-          animation: spin 1s linear infinite;
-        }
-
-        .animate-slideInRight {
-          animation: slideInRight 0.3s ease-out forwards;
-        }
-
-        .animate-slideOutRight {
-          animation: slideOutRight 0.3s ease-in forwards;
-        }
-
-        .animate-progressBar {
-          animation: progressBar linear forwards;
-        }
-      `}</style>
+      <ToastContainer />
     </div>
   );
 };

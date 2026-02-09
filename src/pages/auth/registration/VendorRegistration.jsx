@@ -1,95 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaArrowRight, FaEye, FaEyeSlash, FaTimes } from "react-icons/fa";
+import { FaArrowRight, FaEye, FaEyeSlash, FaTimes, FaCheckCircle, FaExclamationTriangle, FaInfoCircle, FaArrowLeft } from "react-icons/fa";
 import Logo from "../../../assets/Logos/logo5.png";
 import * as yup from "yup";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import axiosInstance from "../../../lib/axios";
 
-const schema = yup.object().shape({
-  firstName: yup.string().required("First name is required"),
-  lastName: yup.string().required("Last name is required"),
-  email: yup
-    .string()
-    .email("Enter a valid email")
-    .required("Email is required"),
-  phone: yup.string().required("Phone number is required"),
-  password: yup
-    .string()
-    .required("Password is required")
-    .min(8, "Password must be at least 8 characters")
-    .matches(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      "Password must contain at least one uppercase letter, one lowercase letter, and one number"
-    ),
-  confirmPassword: yup
-    .string()
-    .required("Confirm password is required")
-    .oneOf([yup.ref("password")], "Passwords must match"),
-  role: yup.string().default("vendor"), // Set default role to "vendor"
-});
-
-// Toast Notification Component
-const ToastNotification = ({ message, onClose, subMessage = null }) => {
-  const [isVisible, setIsVisible] = useState(true);
-
-  const handleClose = () => {
-    setIsVisible(false);
-    setTimeout(() => {
-      onClose();
-    }, 300);
-  };
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      handleClose();
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  return (
-    <div
-      className={`fixed top-4 right-4 z-50 transition-all duration-300 ${
-        isVisible ? "animate-slideInRight" : "animate-slideOutRight"
-      }`}
-    >
-      <div className="bg-green-50 border border-green-200 rounded-lg shadow-lg p-4 max-w-sm">
-        <div className="flex items-start gap-3">
-          <div className="text-green-600 mt-0.5">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <p className="font-medium text-green-800">{message}</p>
-            {subMessage && (
-              <p className="text-sm text-green-600 mt-1">{subMessage}</p>
-            )}
-          </div>
-          <button
-            onClick={handleClose}
-            className="text-green-400 hover:text-green-600 transition-colors ml-2"
-            aria-label="Close notification"
-          >
-            <FaTimes size={16} />
-          </button>
-        </div>
-        <div className="mt-2 w-full bg-green-200 h-1 rounded-full overflow-hidden">
-          <div className="h-full bg-green-500 animate-progressBar"></div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Error Toast Notification Component
-const ErrorToastNotification = ({ message, onClose }) => {
+const ToastNotification = ({ message, onClose, subMessage = null, type = "success" }) => {
   const [isVisible, setIsVisible] = useState(true);
 
   const handleClose = () => {
@@ -107,61 +25,22 @@ const ErrorToastNotification = ({ message, onClose }) => {
     return () => clearTimeout(timer);
   }, []);
 
-  return (
-    <div
-      className={`fixed top-4 right-4 z-50 transition-all duration-300 ${
-        isVisible ? "animate-slideInRight" : "animate-slideOutRight"
-      }`}
-    >
-      <div className="bg-red-50 border border-red-200 rounded-lg shadow-lg p-4 max-w-sm">
-        <div className="flex items-start gap-3">
-          <div className="text-red-600 mt-0.5">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <p className="font-medium text-red-800">{message}</p>
-            <p className="text-sm text-red-600 mt-1">Please try again</p>
-          </div>
-          <button
-            onClick={handleClose}
-            className="text-red-400 hover:text-red-600 transition-colors ml-2"
-            aria-label="Close notification"
-          >
-            <FaTimes size={16} />
-          </button>
-        </div>
-        <div className="mt-2 w-full bg-red-200 h-1 rounded-full overflow-hidden">
-          <div className="h-full bg-red-500 animate-progressBar"></div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Server Error Toast Notification Component
-const ServerErrorToastNotification = ({ message, onClose }) => {
-  const [isVisible, setIsVisible] = useState(true);
-
-  const handleClose = () => {
-    setIsVisible(false);
-    setTimeout(() => {
-      onClose();
-    }, 300);
-  };
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      handleClose();
-    }, 7000); // Longer duration for server errors
-
-    return () => clearTimeout(timer);
-  }, []);
+  const bgColor = type === "success" ? "bg-green-50" : 
+                  type === "error" ? "bg-red-50" : 
+                  type === "warning" ? "bg-yellow-50" : 
+                  "bg-blue-50";
+  const borderColor = type === "success" ? "border-green-200" : 
+                     type === "error" ? "border-red-200" : 
+                     type === "warning" ? "border-yellow-200" : 
+                     "border-blue-200";
+  const textColor = type === "success" ? "text-green-800" : 
+                   type === "error" ? "text-red-800" : 
+                   type === "warning" ? "text-yellow-800" : 
+                   "text-blue-800";
+  const iconColor = type === "success" ? "text-green-600" : 
+                   type === "error" ? "text-red-600" : 
+                   type === "warning" ? "text-yellow-600" : 
+                   "text-blue-600";
 
   return (
     <div
@@ -169,182 +48,29 @@ const ServerErrorToastNotification = ({ message, onClose }) => {
         isVisible ? "animate-slideInRight" : "animate-slideOutRight"
       }`}
     >
-      <div className="bg-orange-50 border border-orange-200 rounded-lg shadow-lg p-4 max-w-sm">
+      <div className={`${bgColor} border ${borderColor} rounded-lg shadow-lg p-4 max-w-sm`}>
         <div className="flex items-start gap-3">
-          <div className="text-orange-600 mt-0.5">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                clipRule="evenodd"
-              />
-            </svg>
+          <div className={`${iconColor} mt-0.5`}>
+            {type === "success" ? <FaCheckCircle size={20} /> : 
+             type === "error" ? <FaExclamationTriangle size={20} /> : 
+             <FaInfoCircle size={20} />}
           </div>
           <div className="flex-1">
-            <p className="font-medium text-orange-800">{message}</p>
-            <p className="text-sm text-orange-600 mt-1">
-              Our servers are currently experiencing issues
-            </p>
-            <p className="text-xs text-orange-500 mt-2">
-              Please try again in a few minutes or contact support
-            </p>
+            <p className={`font-medium ${textColor}`}>{message}</p>
+            {subMessage && (
+              <p className={`text-sm ${textColor} opacity-90 mt-1`}>{subMessage}</p>
+            )}
           </div>
           <button
             onClick={handleClose}
-            className="text-orange-400 hover:text-orange-600 transition-colors ml-2"
+            className={`${iconColor} hover:opacity-70 transition-opacity ml-2`}
             aria-label="Close notification"
           >
             <FaTimes size={16} />
           </button>
         </div>
-        <div className="mt-2 w-full bg-orange-200 h-1 rounded-full overflow-hidden">
-          <div className="h-full bg-orange-500 animate-progressBar"></div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Registration Success Toast (for OTP verification)
-const RegistrationSuccessToast = ({ email, onClose }) => {
-  const [isVisible, setIsVisible] = useState(true);
-
-  const handleClose = () => {
-    setIsVisible(false);
-    setTimeout(() => {
-      onClose();
-    }, 300);
-  };
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      handleClose();
-    }, 4000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  return (
-    <div
-      className={`fixed top-4 right-4 z-50 transition-all duration-300 ${
-        isVisible ? "animate-slideInRight" : "animate-slideOutRight"
-      }`}
-    >
-      <div className="bg-blue-50 border border-blue-200 rounded-lg shadow-lg p-4 max-w-sm">
-        <div className="flex items-start gap-3">
-          <div className="text-blue-600 mt-0.5">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <p className="font-medium text-blue-800">
-              Vendor Registration Successful!
-            </p>
-            <p className="text-sm text-blue-600 mt-1">
-              OTP sent to <span className="font-medium">{email}</span>
-            </p>
-            <p className="text-xs text-blue-500 mt-2">
-              Redirecting to OTP verification...
-            </p>
-          </div>
-          <button
-            onClick={handleClose}
-            className="text-blue-400 hover:text-blue-600 transition-colors ml-2"
-            aria-label="Close notification"
-          >
-            <FaTimes size={16} />
-          </button>
-        </div>
-        <div className="mt-2 w-full bg-blue-200 h-1 rounded-full overflow-hidden">
-          <div className="h-full bg-blue-500 animate-progressBar"></div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Duplicate Email Error Toast Component
-const DuplicateEmailToast = ({ email, onClose }) => {
-  const [isVisible, setIsVisible] = useState(true);
-
-  const handleClose = () => {
-    setIsVisible(false);
-    setTimeout(() => {
-      onClose();
-    }, 300);
-  };
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      handleClose();
-    }, 6000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleLoginRedirect = () => {
-    onClose();
-    window.location.href = "/login";
-  };
-
-  return (
-    <div
-      className={`fixed top-4 right-4 z-50 transition-all duration-300 ${
-        isVisible ? "animate-slideInRight" : "animate-slideOutRight"
-      }`}
-    >
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg shadow-lg p-4 max-w-sm">
-        <div className="flex items-start gap-3">
-          <div className="text-yellow-600 mt-0.5">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <p className="font-medium text-yellow-800">
-              Email Already Registered
-            </p>
-            <p className="text-sm text-yellow-700 mt-1">
-              <span className="font-medium">{email}</span> is already in use.
-            </p>
-            <p className="text-xs text-yellow-600 mt-2">
-              Please use a different email address or login to your existing
-              account.
-            </p>
-            <div className="flex gap-2 mt-3">
-              <button
-                onClick={handleLoginRedirect}
-                className="text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-medium py-1.5 px-3 rounded transition-colors"
-              >
-                Go to Login
-              </button>
-              <button
-                onClick={handleClose}
-                className="text-xs border border-yellow-300 hover:bg-yellow-50 text-yellow-700 font-medium py-1.5 px-3 rounded transition-colors"
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
-          <button
-            onClick={handleClose}
-            className="text-yellow-400 hover:text-yellow-600 transition-colors ml-2"
-            aria-label="Close notification"
-          >
-            <FaTimes size={16} />
-          </button>
-        </div>
-        <div className="mt-2 w-full bg-yellow-200 h-1 rounded-full overflow-hidden">
-          <div className="h-full bg-yellow-500 animate-progressBar"></div>
+        <div className={`mt-2 w-full ${borderColor} bg-opacity-50 h-1 rounded-full overflow-hidden`}>
+          <div className={`h-full ${iconColor} animate-progressBar`}></div>
         </div>
       </div>
     </div>
@@ -353,29 +79,62 @@ const DuplicateEmailToast = ({ email, onClose }) => {
 
 const VendorRegistration = () => {
   const navigate = useNavigate();
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [showRegistrationToast, setShowRegistrationToast] = useState(false);
-  const [showErrorToast, setShowErrorToast] = useState(false);
-  const [showServerErrorToast, setShowServerErrorToast] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [serverErrorMessage, setServerErrorMessage] = useState("");
+  const [showToast, setShowToast] = useState(false);
+  const [toastConfig, setToastConfig] = useState({
+    message: "",
+    subMessage: "",
+    type: "success"
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState("");
+  const [vendorCategory, setVendorCategory] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [businessAddress, setBusinessAddress] = useState("");
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  const schema = yup.object().shape({
+    firstName: yup.string()
+      .required("First name is required")
+      .min(2, "First name must be at least 2 characters")
+      .max(50, "First name must be less than 50 characters"),
+    lastName: yup.string()
+      .required("Last name is required")
+      .min(2, "Last name must be at least 2 characters")
+      .max(50, "Last name must be less than 50 characters"),
+    email: yup.string()
+      .email("Enter a valid email address")
+      .required("Email is required")
+      .matches(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Invalid email format"),
+    phone: yup.string()
+      .required("Phone number is required")
+      .matches(/^\+?[\d\s\-\(\)]{10,}$/, "Enter a valid phone number"),
+    password: yup.string()
+      .required("Password is required")
+      .min(8, "Password must be at least 8 characters")
+      .matches(/[a-z]/, "Password must contain at least one lowercase letter")
+      .matches(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .matches(/\d/, "Password must contain at least one number"),
+    confirmPassword: yup.string()
+      .required("Confirm password is required")
+      .oneOf([yup.ref("password")], "Passwords must match"),
+  });
 
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
+    watch
   } = useForm({
     resolver: yupResolver(schema),
-    defaultValues: {
-      role: "vendor",
-    },
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const passwordValue = watch("password", "");
 
   const handleCancel = () => {
     const hasPreviousPage = window.history.length > 1;
@@ -386,275 +145,192 @@ const VendorRegistration = () => {
     }
   };
 
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  const handleLogoClick = () => {
+    navigate("/");
+  };
+
+  const showNotification = (message, subMessage = "", type = "success") => {
+    setToastConfig({ message, subMessage, type });
+    setShowToast(true);
+  };
+
   const handleRegistration = async (data) => {
     try {
       setIsSubmitting(true);
-      setErrorMessage("");
-      setServerErrorMessage("");
-      setRegisteredEmail("");
 
-      // Remove confirmPassword before sending to API
-      const { confirmPassword, ...registrationData } = data;
+      if (!vendorCategory) {
+        showNotification(
+          "Category Required",
+          "Please select a vendor category",
+          "error"
+        );
+        setIsSubmitting(false);
+        return;
+      }
 
-      console.log("Vendor registration data being sent:", registrationData);
-      console.log("Sending to URL:", "/auth/register");
+      const payload = {
+        firstName: data.firstName.trim(),
+        lastName: data.lastName.trim(),
+        email: data.email.toLowerCase().trim(),
+        phone: data.phone.trim(),
+        password: data.password,
+        role: "vendor",
+        vendor: {
+          category: vendorCategory,
+          ...(businessName && { businessName: businessName.trim() }),
+          ...(businessAddress && { businessAddress: businessAddress.trim() })
+        }
+      };
 
-      // Send registration request
-      const res = await axiosInstance.post("/auth/register", registrationData);
-
-      console.log("Vendor registration response:", {
-        status: res.status,
-        statusText: res.statusText,
-        data: res.data,
-      });
-
-      if (res.data && res.data.message) {
-        const { token, data: userData, message } = res.data;
+      const response = await axiosInstance.post("/auth/register", payload);
+      
+      if (response.data && response.data.message) {
         setRegisteredEmail(data.email);
 
-        // ✅ CHECK USER VERIFICATION STATUS
-        const isVerified = userData?.isVerified || false;
+        // Store email for OTP verification
+        localStorage.setItem("pendingVerificationEmail", data.email);
+        localStorage.setItem("pendingVerificationRole", "vendor");
+        
+        // Store complete user data for verification
+        const completeUserProfile = {
+          id: response.data.data._id,
+          email: data.email,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          phone: data.phone,
+          role: "vendor",
+          isVerified: false,
+          vendor: payload.vendor,
+          registrationDate: new Date().toISOString()
+        };
+        
+        localStorage.setItem("pendingVendorData", JSON.stringify(completeUserProfile));
 
-        // ✅ SCENARIO 1: Vendor is verified and has token (Auto-login - rare case)
-        if (isVerified && token && userData) {
-          // ✅ Store authentication data EXACTLY LIKE LOGIN
-          localStorage.setItem("auth_token", token);
-          localStorage.setItem("user_email", userData.email);
-          localStorage.setItem(
-            "userProfile",
-            JSON.stringify({
-              id: userData._id,
-              email: userData.email,
-              firstName: userData.firstName,
-              lastName: userData.lastName,
-              phone: userData.phone,
-              role: userData.role,
-              isVerified: userData.isVerified,
-              profilePicture: userData.profilePicture,
-              vendor: userData.vendor, // Include vendor data if available
-            })
-          );
+        showNotification(
+          "Registration Successful!",
+          "Please check your email for the verification OTP",
+          "success"
+        );
 
-          // ✅ Notify Header immediately
-          window.dispatchEvent(new Event("storage"));
-          window.dispatchEvent(new Event("authChange"));
+        // Clear form
+        reset();
+        setVendorCategory("");
+        setBusinessName("");
+        setBusinessAddress("");
 
-          // ✅ Show success toast
-          setShowSuccessToast(true);
-
-          // ✅ Clear form
-          reset();
-
-          // ✅ Redirect to vendor dashboard or home after toast
-          setTimeout(() => {
-            setShowSuccessToast(false);
-            // Navigate to vendor dashboard or home
-            navigate("/vendor/dashboard");
-          }, 2500);
-        }
-        // ✅ SCENARIO 2: Registration successful - needs OTP verification (COMMON CASE)
-        else {
-          // Store email for OTP verification
-          localStorage.setItem("pendingVerificationEmail", data.email);
-
-          // Store user data temporarily for verification
-          localStorage.setItem(
-            "pendingVendorData",
-            JSON.stringify({
+        // Redirect to OTP verification page
+        setTimeout(() => {
+          navigate("/verify-otp", {
+            state: {
               email: data.email,
-              firstName: data.firstName,
-              lastName: data.lastName,
-              phone: data.phone,
-              role: "vendor",
-            })
-          );
+              fromRegistration: true,
+              userType: "vendor",
+            },
+          });
+        }, 2000);
 
-          // Show registration success toast
-          setShowRegistrationToast(true);
-
-          // Clear form
-          reset();
-
-          // Redirect to OTP verification page after short delay
-          setTimeout(() => {
-            setShowRegistrationToast(false);
-            navigate("/verify-otp", {
-              state: {
-                email: data.email,
-                fromRegistration: true,
-                userType: "vendor",
-              },
-            });
-          }, 1500);
-        }
       } else {
-        // Handle unexpected response format
-        const errorMsg =
-          res.data?.message ||
-          "Registration completed but received unexpected response.";
-        setErrorMessage(errorMsg);
-        setShowErrorToast(true);
+        showNotification(
+          "Registration Failed",
+          "Unexpected response from server",
+          "error"
+        );
       }
-    } catch (error) {
-      console.error("Vendor registration error details:", {
-        name: error.name,
-        message: error.message,
-        code: error.code,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          data: error.config?.data,
-        },
-      });
 
-      let errorMessage = "Vendor registration failed. Please try again.";
-      let isServerError = false;
+    } catch (error) {
+      console.error("Registration error:", error);
+
+      let errorMessage = "Registration failed. Please try again.";
+      let errorDetails = "";
 
       if (error.response) {
-        // Server responded with error status
-        if (error.response.status === 500) {
-          isServerError = true;
-          errorMessage =
-            "Server Error (500): Our servers are experiencing issues.";
-
-          // Log additional details for debugging
-          console.error("Server 500 Error Details:", {
-            data: error.response.data,
-            headers: error.response.headers,
-          });
-
-          // Check if there's a specific error message from server
-          if (error.response.data) {
-            if (typeof error.response.data === "string") {
-              errorMessage = `Server Error: ${error.response.data.substring(
-                0,
-                100
-              )}`;
-            } else if (error.response.data.message) {
-              errorMessage = `Server Error: ${error.response.data.message}`;
-            } else if (error.response.data.error) {
-              errorMessage = `Server Error: ${error.response.data.error}`;
+        const { status, data } = error.response;
+        
+        switch (status) {
+          case 400:
+            if (data.message === "Category is required for vendor accounts") {
+              errorMessage = "Vendor category is required";
+            } else if (data.message) {
+              errorMessage = data.message;
+            } else if (data.errors) {
+              errorMessage = data.errors.map(err => err.msg || err.message).join(', ');
+            } else {
+              errorMessage = "Invalid registration data";
             }
-          }
-        } else if (error.response.status === 409) {
-          // Specific toast for duplicate email
-          errorMessage =
-            "This email is already registered. Please use a different email or login.";
-          setRegisteredEmail(data.email);
-          setErrorMessage(errorMessage);
-          setShowErrorToast(true);
-          setIsSubmitting(false);
-          return;
-        } else if (error.response.status === 400) {
-          errorMessage =
-            "Invalid registration data. Please check your information.";
-        } else if (error.response.status === 422) {
-          errorMessage = "Validation error. Please check all required fields.";
-        } else if (error.response.status === 401) {
-          errorMessage = "Authentication failed. Please try again.";
-        } else if (error.response.status === 403) {
-          errorMessage =
-            "Vendor registration not allowed. Please contact support.";
-        } else if (error.response.status === 404) {
-          errorMessage =
-            "Registration endpoint not found. Please contact support.";
-        } else if (error.response.data?.message) {
-          errorMessage = error.response.data.message;
-        } else if (error.response.data?.errors) {
-          // Handle validation errors from backend
-          const errors = error.response.data.errors;
-          errorMessage = errors
-            .map((err) => err.msg || err.message || err)
-            .join(", ");
-        } else if (error.response.data) {
-          // Try to stringify whatever data we got
-          try {
-            const dataStr = JSON.stringify(error.response.data);
-            errorMessage = `Server returned: ${dataStr.substring(0, 100)}${
-              dataStr.length > 100 ? "..." : ""
-            }`;
-          } catch (e) {
-            errorMessage = `Error ${error.response.status}: ${error.response.statusText}`;
-          }
-        } else {
-          errorMessage = `Error ${error.response.status}: ${error.response.statusText}`;
+            break;
+          
+          case 409:
+            errorMessage = "Email already registered";
+            errorDetails = "Please use a different email or login to your existing account";
+            break;
+          
+          case 422:
+            errorMessage = "Validation error";
+            errorDetails = "Please check all required fields";
+            break;
+          
+          case 500:
+            errorMessage = "Server error";
+            errorDetails = "Our servers are experiencing issues. Please try again later.";
+            break;
+          
+          default:
+            errorMessage = `Server error: ${status}`;
+            errorDetails = data?.message || "Please try again";
         }
+        
       } else if (error.request) {
-        // Request was made but no response received
-        console.error("No response received:", error.request);
-        isServerError = true;
-        errorMessage =
-          "Network error. Please check your internet connection and try again.";
+        errorMessage = "Network error";
+        errorDetails = "Please check your internet connection and try again";
       } else {
-        // Something else happened
-        errorMessage = `Error: ${
-          error.message || "An unexpected error occurred"
-        }`;
+        errorMessage = "Request error";
+        errorDetails = error.message;
       }
 
-      // Show appropriate toast
-      if (isServerError) {
-        setServerErrorMessage(errorMessage);
-        setShowServerErrorToast(true);
-      } else if (!errorMessage.includes("already registered")) {
-        setErrorMessage(errorMessage);
-        setShowErrorToast(true);
-      }
+      showNotification(errorMessage, errorDetails, "error");
+
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const vendorCategories = [
+    { value: "hotel", label: "Hotel" },
+    { value: "restaurant", label: "Restaurant" },
+    { value: "shortlet", label: "Shortlet/Apartment" },
+    { value: "Vendor", label: "Vendor" },
+  ];
+
   return (
-    <div className="min-h-screen w-full bg-white flex items-center justify-center p-4 sm:p-6 md:p-8 font-manrope">
-      {/* Auto-Login Success Toast Notification (rare case) */}
-      {showSuccessToast && (
-        <ToastNotification
-          message="Vendor Registration Successful!"
-          subMessage="You have been automatically logged in"
-          onClose={() => setShowSuccessToast(false)}
-        />
-      )}
-
-      {/* Registration Success Toast (OTP verification) */}
-      {showRegistrationToast && registeredEmail && (
-        <RegistrationSuccessToast
-          email={registeredEmail}
-          onClose={() => setShowRegistrationToast(false)}
-        />
-      )}
-
-      {/* Server Error Toast Notification */}
-      {showServerErrorToast && (
-        <ServerErrorToastNotification
-          message={serverErrorMessage}
-          onClose={() => setShowServerErrorToast(false)}
-        />
-      )}
-
-      {/* Generic Error Toast Notification */}
-      {showErrorToast && !errorMessage.includes("already registered") && (
-        <ErrorToastNotification
-          message={errorMessage}
-          onClose={() => setShowErrorToast(false)}
-        />
-      )}
-
-      {/* Duplicate Email Toast Notification */}
-      {showErrorToast &&
-        errorMessage.includes("already registered") &&
-        registeredEmail && (
-          <DuplicateEmailToast
-            email={registeredEmail}
-            onClose={() => setShowErrorToast(false)}
+    <div className="min-h-screen w-full bg-white flex items-center justify-center p-4 sm:p-6 md:p-8 font-manrope relative">
+      <div className="hidden lg:block absolute left-0 top-0 p-6">
+        <button
+          onClick={handleBack}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-lg transition-colors group"
+          aria-label="Go back"
+        >
+          <FaArrowLeft 
+            size={20} 
+            className="group-hover:-translate-x-0.5 transition-transform" 
           />
-        )}
+          <span className="font-medium">Back</span>
+        </button>
+      </div>
+
+      {showToast && (
+        <ToastNotification
+          message={toastConfig.message}
+          subMessage={toastConfig.subMessage}
+          type={toastConfig.type}
+          onClose={() => setShowToast(false)}
+        />
+      )}
 
       <div className="w-full max-w-md sm:max-w-lg p-6 sm:p-8 rounded-xl shadow-lg bg-white relative">
-        {/* Cancel/Close Button - Top Right */}
         <button
           onClick={handleCancel}
           className="absolute -top-2 -right-2 sm:top-2 sm:right-2 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors z-10"
@@ -663,12 +339,16 @@ const VendorRegistration = () => {
           <FaTimes size={20} />
         </button>
 
-        {/* Logo */}
         <div className="flex justify-center mb-4">
-          <img src={Logo} alt="Ajani Logo" className="h-auto w-30" />
+          <button
+            onClick={handleLogoClick}
+            className="cursor-pointer hover:opacity-80 transition-all duration-300"
+            aria-label="Go to homepage"
+          >
+            <img src={Logo} alt="Ajani Logo" className="h-auto w-30 cursor-pointer transition-transform duration-300 hover:scale-105" />
+          </button>
         </div>
 
-        {/* Heading */}
         <h2 className="text-xl sm:text-2xl font-bold text-center text-gray-900">
           Create Vendor Account
         </h2>
@@ -677,15 +357,9 @@ const VendorRegistration = () => {
           Join our platform as a verified vendor and grow your business
         </p>
 
-        {/* Divider */}
         <div className="w-full border-t border-[#00d1ff] mt-4 mb-6"></div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit(handleRegistration)} className="space-y-4">
-          {/* Hidden role field */}
-          <input type="hidden" {...register("role")} />
-
-          {/* First & Last Name */}
+        <form onSubmit={handleSubmit(handleRegistration)} className="space-y-4" noValidate>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-gray-700">
@@ -696,12 +370,13 @@ const VendorRegistration = () => {
                 {...register("firstName")}
                 id="firstName"
                 placeholder="Enter first name"
-                className={`w-full mt-1 px-3 py-2.5 border ${
-                  errors.firstName ? "border-red-500" : "border-gray-300"
-                } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm`}
+                className={`w-full mt-1 px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm transition-colors ${
+                  errors.firstName ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "border-gray-300 focus:border-[#00d1ff]"
+                }`}
               />
               {errors.firstName && (
-                <p className="text-red-500 text-xs mt-1">
+                <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                  <FaExclamationTriangle size={10} />
                   {errors.firstName.message}
                 </p>
               )}
@@ -716,38 +391,38 @@ const VendorRegistration = () => {
                 {...register("lastName")}
                 id="lastName"
                 placeholder="Enter last name"
-                className={`w-full mt-1 px-3 py-2.5 border ${
-                  errors.lastName ? "border-red-500" : "border-gray-300"
-                } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm`}
+                className={`w-full mt-1 px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm transition-colors ${
+                  errors.lastName ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "border-gray-300 focus:border-[#00d1ff]"
+                }`}
               />
               {errors.lastName && (
-                <p className="text-red-500 text-xs mt-1">
+                <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                  <FaExclamationTriangle size={10} />
                   {errors.lastName.message}
                 </p>
               )}
             </div>
           </div>
 
-          {/* Email */}
           <div>
             <label className="text-sm font-medium text-gray-700">Email *</label>
             <input
               type="email"
               {...register("email")}
               id="email"
-              placeholder="Email Address"
-              className={`w-full mt-1 px-3 py-2.5 border ${
-                errors.email ? "border-red-500" : "border-gray-300"
-              } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm`}
+              placeholder="example@domain.com"
+              className={`w-full mt-1 px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm transition-colors ${
+                errors.email ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "border-gray-300 focus:border-[#00d1ff]"
+              }`}
             />
             {errors.email && (
-              <p className="text-red-500 text-xs mt-1">
+              <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                <FaExclamationTriangle size={10} />
                 {errors.email.message}
               </p>
             )}
           </div>
 
-          {/* Phone */}
           <div>
             <label className="text-sm font-medium text-gray-700">
               Phone Number *
@@ -756,19 +431,79 @@ const VendorRegistration = () => {
               type="tel"
               {...register("phone")}
               id="phone"
-              placeholder="Phone Number"
-              className={`w-full mt-1 px-3 py-2.5 border ${
-                errors.phone ? "border-red-500" : "border-gray-300"
-              } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm`}
+              placeholder="+234 801 234 5678"
+              className={`w-full mt-1 px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm transition-colors ${
+                errors.phone ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "border-gray-300 focus:border-[#00d1ff]"
+              }`}
             />
             {errors.phone && (
-              <p className="text-red-500 text-xs mt-1">
+              <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                <FaExclamationTriangle size={10} />
                 {errors.phone.message}
               </p>
             )}
           </div>
 
-          {/* Password */}
+          <div>
+            <label className="text-sm font-medium text-gray-700">
+              Vendor Category *
+              <span className="text-red-500 ml-1">*</span>
+            </label>
+            <select
+              value={vendorCategory}
+              onChange={(e) => setVendorCategory(e.target.value)}
+              className={`w-full mt-1 px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm transition-colors ${
+                !vendorCategory ? "border-yellow-500 focus:border-yellow-500 focus:ring-yellow-200" : "border-gray-300 focus:border-[#00d1ff]"
+              }`}
+              required
+            >
+              <option value="">Select a category</option>
+              {vendorCategories.map((category) => (
+                <option key={category.value} value={category.value}>
+                  {category.label}
+                </option>
+              ))}
+            </select>
+            {!vendorCategory && (
+              <p className="text-yellow-600 text-xs mt-1 flex items-center gap-1">
+                <FaInfoCircle size={10} />
+                Please select a vendor category
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700">
+              Business Name (Optional)
+            </label>
+            <input
+              type="text"
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              placeholder="Enter your business name"
+              className="w-full mt-1 px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] focus:border-[#00d1ff] text-sm transition-colors"
+            />
+            <p className="text-gray-500 text-xs mt-1">
+              Leave blank if you don't have a business name
+            </p>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700">
+              Business Address (Optional)
+            </label>
+            <input
+              type="text"
+              value={businessAddress}
+              onChange={(e) => setBusinessAddress(e.target.value)}
+              placeholder="Enter your business address"
+              className="w-full mt-1 px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] focus:border-[#00d1ff] text-sm transition-colors"
+            />
+            <p className="text-gray-500 text-xs mt-1">
+              Provide address for customers to find you
+            </p>
+          </div>
+
           <div>
             <label className="text-sm font-medium text-gray-700">
               Password *
@@ -778,30 +513,50 @@ const VendorRegistration = () => {
                 type={showPassword ? "text" : "password"}
                 {...register("password")}
                 id="password"
-                placeholder="********"
-                className={`w-full mt-1 px-3 py-2.5 border ${
-                  errors.password ? "border-red-500" : "border-gray-300"
-                } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm pr-10`}
+                placeholder="Create a strong password"
+                className={`w-full mt-1 px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm transition-colors pr-10 ${
+                  errors.password ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "border-gray-300 focus:border-[#00d1ff]"
+                }`}
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
               </button>
             </div>
             {errors.password && (
-              <p className="text-red-500 text-xs mt-1">
+              <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                <FaExclamationTriangle size={10} />
                 {errors.password.message}
               </p>
             )}
-            <p className="text-xs text-gray-500 mt-1">
-              Must be at least 8 characters with uppercase, lowercase and number
-            </p>
+            
+            {passwordValue && (
+              <div className="mt-2 space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className={`h-1 flex-1 rounded-full ${
+                    passwordValue.length >= 8 ? 'bg-green-500' : 'bg-gray-200'
+                  }`}></div>
+                  <div className={`h-1 flex-1 rounded-full ${
+                    /[a-z]/.test(passwordValue) ? 'bg-green-500' : 'bg-gray-200'
+                  }`}></div>
+                  <div className={`h-1 flex-1 rounded-full ${
+                    /[A-Z]/.test(passwordValue) ? 'bg-green-500' : 'bg-gray-200'
+                  }`}></div>
+                  <div className={`h-1 flex-1 rounded-full ${
+                    /\d/.test(passwordValue) ? 'bg-green-500' : 'bg-gray-200'
+                  }`}></div>
+                </div>
+                <p className="text-gray-500 text-xs">
+                  Must contain: 8+ characters, uppercase, lowercase, number
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* Confirm Password */}
           <div>
             <label className="text-sm font-medium text-gray-700">
               Confirm Password *
@@ -811,68 +566,71 @@ const VendorRegistration = () => {
                 type={showConfirmPassword ? "text" : "password"}
                 {...register("confirmPassword")}
                 id="confirmPassword"
-                placeholder="********"
-                className={`w-full mt-1 px-3 py-2.5 border ${
-                  errors.confirmPassword ? "border-red-500" : "border-gray-300"
-                } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm pr-10`}
+                placeholder="Re-enter your password"
+                className={`w-full mt-1 px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d1ff] text-sm transition-colors pr-10 ${
+                  errors.confirmPassword ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "border-gray-300 focus:border-[#00d1ff]"
+                }`}
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                aria-label={showConfirmPassword ? "Hide password" : "Show password"}
               >
-                {showConfirmPassword ? (
-                  <FaEyeSlash size={18} />
-                ) : (
-                  <FaEye size={18} />
-                )}
+                {showConfirmPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
               </button>
             </div>
             {errors.confirmPassword && (
-              <p className="text-red-500 text-xs mt-1">
+              <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                <FaExclamationTriangle size={10} />
                 {errors.confirmPassword.message}
               </p>
             )}
           </div>
 
-          {/* Terms and Conditions */}
-          <div className="flex items-start gap-2 mt-4">
+          <div className="flex items-start gap-2 mt-6">
             <input
               type="checkbox"
               id="terms"
               required
-              className="mt-1 rounded border-gray-300 text-[#00d37f] focus:ring-[#00d37f]"
+              className="mt-1 rounded border-gray-300 text-[#00d37f] focus:ring-[#00d37f] focus:ring-2"
             />
-            <label htmlFor="terms" className="text-xs text-gray-600">
+            <label htmlFor="terms" className="text-xs text-gray-600 leading-relaxed">
               I agree to the{" "}
               <button
                 type="button"
-                onClick={() => navigate("/privacypage")}
-                className="text-black font-medium underline hover:text-[#00d1ff]"
+                onClick={() => navigate("/termspage")}
+                className="text-black font-medium underline hover:text-[#00d1ff] transition-colors"
               >
-                Terms and Conditions and Privacy Policy
+                Terms and Conditions
+              </button>{" "}
+              and{" "}
+              <button
+                type="button"
+                onClick={() => navigate("/privacypage")}
+                className="text-black font-medium underline hover:text-[#00d1ff] transition-colors"
+              >
+                Privacy Policy
               </button>
             </label>
           </div>
 
-          {/* Sign In */}
           <p className="text-center text-sm text-gray-600 mt-3">
             Already have an account?{" "}
             <button
               type="button"
               onClick={() => navigate("/login")}
-              className="text-black font-medium underline hover:text-[#00d1ff]"
+              className="text-black font-medium underline hover:text-[#00d1ff] transition-colors"
             >
               Sign In Here
             </button>
           </p>
 
-          {/* Registration Button */}
           <div className="flex justify-end mt-3">
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="bg-[#00d37f] text-white flex items-center gap-2 px-5 py-2.5 rounded-lg shadow-md hover:bg-[#02be72] transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isSubmitting || !vendorCategory}
+              className="bg-[#00d37f] text-white flex items-center gap-2 px-5 py-2.5 rounded-lg shadow-md hover:bg-[#02be72] transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#00d37f]"
             >
               {isSubmitting ? (
                 <>

@@ -1,4 +1,3 @@
-// src/components/SearchResults.jsx
 import React, {
   useState,
   useEffect,
@@ -6,7 +5,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation, useParams } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faStar,
@@ -29,153 +28,475 @@ import {
   faUtensils,
   faLandmark,
   faTools,
+  faUser,
+  faCalendarAlt,
+  faPencilAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import { motion } from "framer-motion";
 import { PiSliders } from "react-icons/pi";
 import { MdFavoriteBorder } from "react-icons/md";
-import { FaLessThan, FaGreaterThan } from "react-icons/fa";
+import { FaUserCircle } from "react-icons/fa";
 import Header from "./Header";
 import Footer from "./Footer";
 import Meta from "./Meta";
 import { createPortal } from "react-dom";
+import axiosInstance from "../lib/axios";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-// BackButton Component
-const BackButton = ({ className = "", onClick }) => {
-  const navigate = useNavigate();
+/* ---------------- HELPER FUNCTIONS FOR SEO-FRIENDLY URLS ---------------- */
 
-  const handleBack = () => {
-    if (onClick) {
-      onClick();
-    } else {
-      if (window.history.length > 1) {
-        navigate(-1);
-      } else {
-        navigate("/");
-      }
-    }
+// Helper to parse SEO-friendly slug from URL
+const parseSeoSlug = (slug) => {
+  if (!slug) return { category: null, location: null };
+  
+  const cleanSlug = slug.replace(/^\/|\/$/g, '');
+  
+  const inPattern = /^([a-z-]+)-in-([a-z-]+)$/;
+  const match = cleanSlug.match(inPattern);
+  
+  if (match) {
+    const [, categoryPart, locationPart] = match;
+    return {
+      category: categoryPart.replace(/-/g, ' '),
+      location: locationPart.replace(/-/g, ' ')
+    };
+  }
+  
+  const categoryPattern = /^[a-z-]+$/;
+  if (categoryPattern.test(cleanSlug)) {
+    return {
+      category: cleanSlug.replace(/-/g, ' '),
+      location: null
+    };
+  }
+  
+  const placesPattern = /^places-in-(.+)$/;
+  const placesMatch = cleanSlug.match(placesPattern);
+  if (placesMatch) {
+    return {
+      category: 'places',
+      location: placesMatch[1].replace(/-/g, ' ')
+    };
+  }
+  
+  return { category: null, location: null };
+};
+
+// Helper to map URL category slugs to display names
+const mapCategorySlugToDisplay = (slug) => {
+  const categoryMap = {
+    'hotel': 'Hotel',
+    'hotels': 'Hotel',
+    'shortlet': 'Shortlet',
+    'shortlets': 'Shortlet',
+    'restaurant': 'Restaurant',
+    'restaurants': 'Restaurant',
+    'services': 'Vendor',
+    'vendor': 'Vendor',
+    'vendors': 'Vendor',
+    'places': 'All Categories'
   };
+  
+  return categoryMap[slug] || slug.charAt(0).toUpperCase() + slug.slice(1);
+};
 
+// Helper to create SEO-friendly slug
+const createSlug = (text) => {
+  if (!text) return '';
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim();
+};
+
+// Helper to get category slug for URL
+const getCategorySlug = (category) => {
+  const categoryMap = {
+    'Hotel': 'hotel',
+    'Shortlet': 'shortlet', 
+    'Restaurant': 'restaurant',
+    'Vendor': 'services',
+    'All Categories': ''
+  };
+  
+  return categoryMap[category] || createSlug(category);
+};
+
+/* ---------------- UNIFIED LOADING COMPONENT ================== */
+const UnifiedLoadingScreen = ({ isMobile = false, category = null }) => {
   return (
-    <button
-      onClick={handleBack}
-      className={`flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors active:scale-95 ${className}`}
-      aria-label="Go back"
-    >
-      <FontAwesomeIcon icon={faArrowLeft} className="text-gray-700 text-lg" />
-    </button>
+    <div className="fixed inset-0 bg-gray-50 flex items-center justify-center z-50">
+      <div className="flex flex-col items-center max-w-sm mx-auto px-4">
+        <div className="relative mb-6">
+          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-[#06EAFC]/10 rounded-full`}></div>
+          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-transparent border-t-[#06EAFC] rounded-full absolute top-0 left-0 animate-spin`}></div>
+        </div>
+        
+        <div className="text-center">
+          <h3 className={`font-bold text-gray-900 ${isMobile ? 'text-lg' : 'text-xl'} mb-2`}>
+            {category ? `Loading ${category}...` : "Loading Results"}
+          </h3>
+          <p className={`text-gray-600 ${isMobile ? 'text-sm' : 'text-base'} mb-4`}>
+            {isMobile 
+              ? "Loading results please wait..." 
+              : "Please wait while we fetch the best listings for you"
+            }
+          </p>
+        </div>
+        
+        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-4">
+          <div className="bg-gradient-to-r from-[#06EAFC] to-[#00E38C] h-1.5 rounded-full animate-pulse" style={{ width: '70%' }}></div>
+        </div>
+      </div>
+    </div>
   );
 };
 
-// Add capitalizeFirst function at the top
-const capitalizeFirst = (str) => {
-  if (!str) return "";
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+/* ---------------- CATEGORY SWITCH LOADER ================== */
+const CategorySwitchLoader = ({ isMobile = false, previousCategory = '', newCategory = '' }) => {
+  return (
+    <div 
+      className={`fixed inset-0 z-[99999] flex items-center justify-center transition-all duration-300 ${
+        isMobile ? 'bg-white/95' : 'bg-white/90 backdrop-blur-sm'
+      }`}
+      style={{
+        pointerEvents: 'all',
+        animation: 'fadeIn 0.3s ease-out'
+      }}
+    >
+      <div className={`flex flex-col items-center justify-center ${isMobile ? 'p-4' : 'p-6'}`}>
+        <div className="relative mb-6">
+          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-[#06EAFC]/10 rounded-full`}></div>
+          <div className={`${isMobile ? 'w-14 h-14' : 'w-20 h-20'} border-4 border-transparent border-t-[#06EAFC] rounded-full absolute top-0 left-0 animate-spin`}></div>
+        </div>
+        
+        <div className="text-center max-w-sm">
+          <p className={`font-bold text-gray-900 ${isMobile ? 'text-base' : 'text-xl'} mb-2`}>
+            Switching Categories
+          </p>
+          <div className={`flex items-center justify-center gap-2 ${isMobile ? 'text-sm' : 'text-base'} text-gray-600 mb-4`}>
+            {previousCategory && (
+              <>
+                <span className="px-3 py-1 bg-gray-100 rounded-lg">{previousCategory}</span>
+                <FontAwesomeIcon icon={faChevronRight} className="text-[#06EAFC]" />
+              </>
+            )}
+            {newCategory && (
+              <span className="px-3 py-1 bg-[#06EAFC]/10 text-[#06EAFC] font-medium rounded-lg">{newCategory}</span>
+            )}
+          </div>
+          <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+            Loading new listings...
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 };
 
-// Helper function to get subcategory (word after the dot)
-const getSubcategory = (category) => {
-  if (!category) return "";
-
-  const parts = category.split(".");
-  if (parts.length > 1) {
-    return parts.slice(1).join(".").trim();
-  }
-
-  return category.trim();
-};
-
-// Google Sheets hook
-const useGoogleSheet = (sheetId, apiKey) => {
-  const [data, setData] = useState([]);
+/* ---------------- UPDATED BACKEND HOOK - NO AUTO-SEARCH ON TYPING ---------------- */
+const useBackendListings = (searchQuery = '', filters = {}, seoCategory = null, seoLocation = null, shouldFetch = true) => {
+  const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [apiResponse, setApiResponse] = useState(null);
+  const [filteredCounts, setFilteredCounts] = useState({});
+  const [allLocations, setAllLocations] = useState([]);
 
   useEffect(() => {
-    if (!sheetId || !apiKey) {
-      setError("⚠️ Missing SHEET_ID or API_KEY");
-      setLoading(false);
-      return;
-    }
+    const fetchListings = async () => {
+      if (!shouldFetch) {
+        setLoading(false);
+        return;
+      }
 
-    const fetchData = async () => {
       try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A1:Z1000?key=${apiKey}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        let result = [];
-        if (
-          json.values &&
-          Array.isArray(json.values) &&
-          json.values.length > 1
-        ) {
-          const headers = json.values[0];
-          const rows = json.values.slice(1);
-          result = rows
-            .filter((row) => Array.isArray(row) && row.length > 0)
-            .map((row, index) => {
-              const obj = {};
-              headers.forEach((h, i) => {
-                obj[h?.toString().trim() || `col_${i}`] = (row[i] || "")
-                  .toString()
-                  .trim();
-              });
-              obj.id = obj.id || `item-${index}`;
-              return obj;
-            });
+        setLoading(true);
+        setError(null);
+        
+        let url = '/listings';
+        const params = new URLSearchParams();
+        
+        if (seoCategory && seoCategory !== "All Categories") {
+          const backendCategories = [seoCategory].map(cat => {
+            const categoryMap = {
+              'hotel': 'hotel',
+              'restaurant': 'restaurant', 
+              'shortlet': 'shortlet',
+              'vendor': 'services',
+              'services': 'services',
+              'Hotel': 'hotel',
+              'Restaurant': 'restaurant',
+              'Shortlet': 'shortlet',
+              'Vendor': 'services'
+            };
+            const catLower = cat.toLowerCase();
+            return categoryMap[catLower] || catLower;
+          });
+          params.append('category', backendCategories[0]);
         }
-        setData(result);
+        
+        if (filters.locations && filters.locations.length > 0) {
+          const properCaseLocation = normalizeLocationForBackend(filters.locations[0]);
+          params.append('location.area', properCaseLocation);
+        }
+        else if (searchQuery && looksLikeLocation(searchQuery)) {
+          const properCaseLocation = normalizeLocationForBackend(searchQuery);
+          params.append('location.area', properCaseLocation);
+        }
+        else if (searchQuery && !looksLikeLocation(searchQuery)) {
+          params.append('q', searchQuery);
+        }
+        
+        if (filters.priceRange?.min) {
+          params.append('minPrice', filters.priceRange.min);
+        }
+        
+        if (filters.priceRange?.max) {
+          params.append('maxPrice', filters.priceRange.max);
+        }
+        
+        if (filters.ratings && filters.ratings.length > 0) {
+          params.append('minRating', Math.min(...filters.ratings));
+        }
+        
+        if (filters.sortBy && filters.sortBy !== 'relevance') {
+          params.append('sort', filters.sortBy);
+        }
+        
+        const queryString = params.toString();
+        if (queryString) {
+          url += `?${queryString}`;
+        }
+        
+        const response = await axiosInstance.get(url);
+        setApiResponse(response.data);
+        
+        if (response.data && response.data.status === 'success' && response.data.data?.listings) {
+          let allListings = response.data.data.listings;
+          
+          const uniqueLocations = [...new Set(allListings.map(item => item.location?.area).filter(Boolean))];
+          setAllLocations(uniqueLocations);
+          
+          let finalListings = allListings;
+          
+          if (seoCategory && seoCategory !== "All Categories") {
+            const activeCategory = seoCategory.toLowerCase();
+            finalListings = finalListings.filter(item => {
+              const itemCategory = (item.category || '').toLowerCase();
+              const matchesCategory = itemCategory.includes(activeCategory) || 
+                     activeCategory.includes(itemCategory) ||
+                     (activeCategory === 'services' && itemCategory === 'vendor') ||
+                     (activeCategory === 'vendor' && itemCategory === 'services') ||
+                     (activeCategory === 'hotel' && itemCategory === 'hotel') ||
+                     (activeCategory === 'restaurant' && itemCategory === 'restaurant') ||
+                     (activeCategory === 'shortlet' && itemCategory === 'shortlet');
+              
+              return matchesCategory;
+            });
+          }
+          
+          if (filters.locations && filters.locations.length > 0) {
+            const searchLocation = filters.locations[0].toLowerCase();
+            finalListings = finalListings.filter(item => {
+              const itemLocation = (item.location?.area || '').toLowerCase();
+              const matchesLocation = itemLocation.includes(searchLocation) || 
+                                      searchLocation.includes(itemLocation) ||
+                                      normalizeLocation(itemLocation) === normalizeLocation(searchLocation);
+              
+              return matchesLocation;
+            });
+          }
+          
+          if (searchQuery && !looksLikeLocation(searchQuery)) {
+            finalListings = finalListings.filter(item => {
+              const title = (item.title || '').toLowerCase();
+              const description = (item.description || '').toLowerCase();
+              const category = (item.category || '').toLowerCase();
+              
+              return title.includes(searchQuery.toLowerCase()) ||
+                     description.includes(searchQuery.toLowerCase()) ||
+                     category.includes(searchQuery.toLowerCase());
+            });
+          }
+          
+          const counts = {};
+          finalListings.forEach(item => {
+            const category = item.category || 'Other';
+            const pluralCategory = getPluralCategoryName(category);
+            counts[pluralCategory] = (counts[pluralCategory] || 0) + 1;
+          });
+          setFilteredCounts(counts);
+          
+          setListings(finalListings);
+        } else {
+          setListings([]);
+          setFilteredCounts({});
+          setAllLocations([]);
+          setError(response.data?.message || 'No data received');
+        }
       } catch (err) {
-        console.error("Google Sheets fetch error:", err);
-        setError("⚠️ Failed to load directory. Try again later.");
-        setData([]);
+        setError(err.message);
+        setListings([]);
+        setFilteredCounts({});
+        setAllLocations([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, [sheetId, apiKey]);
+    fetchListings();
+  }, [searchQuery, JSON.stringify(filters), seoCategory, shouldFetch]);
 
-  return { data: Array.isArray(data) ? data : [], loading, error };
+  return { 
+    listings, 
+    loading, 
+    error, 
+    apiResponse,
+    filteredCounts,
+    allLocations
+  };
 };
 
-// FALLBACK IMAGES
-const FALLBACK_IMAGES = {
-  hotel:
-    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
-  restaurant:
-    "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80",
-  shortlet:
-    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80",
-  tourist:
-    "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=80",
-  cafe: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&q=80",
-  bar: "https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=600&q=80",
-  services:
-    "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=600&q=80",
-  event:
-    "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
-  hall: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
-  weekend:
-    "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
-  default:
-    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
+/* ---------------- ADDITIONAL HELPER FUNCTIONS ---------------- */
+const normalizeLocationForBackend = (location) => {
+  if (!location) return '';
+  return location
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 };
 
-// Helper function to get category display name
+const looksLikeLocation = (query) => {
+  if (!query || query.trim() === '') return false;
+  
+  const queryLower = query.toLowerCase().trim();
+  
+  const ibadanAreas = [
+    'akobo', 'bodija', 'dugbe', 'mokola', 'sango', 'ui', 'poly',  'agodi', 
+    'jericho', 'gbagi', 'apata', 'ringroad', 'secretariat', 'moniya', 'challenge',
+    'molete', 'agbowo', 'sabo', 'bashorun', 'ife road',
+    'akinyele', 'mokola hill', 'sango roundabout'
+  ];
+  
+  const locationSuffixes = [
+    'road', 'street', 'avenue', 'drive', 'lane', 'close', 'way', 'estate',
+    'area', 'zone', 'district', 'quarters', 'extension', 'phase', 'junction',
+    'bypass', 'expressway', 'highway', 'roundabout', 'market', 'station'
+  ];
+  
+  const isIbadanArea = ibadanAreas.some(area => queryLower.includes(area));
+  const hasLocationSuffix = locationSuffixes.some(suffix => queryLower.includes(suffix));
+  const isShortQuery = queryLower.split(/\s+/).length <= 3 && queryLower.length <= 15;
+  
+  return isIbadanArea || hasLocationSuffix || isShortQuery;
+};
+
+const normalizeLocation = (location) => {
+  if (!location) return '';
+  return location
+    .toLowerCase()
+    .trim()
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
+    .replace(/\s+/g, ' ');
+};
+
+const getPluralCategoryName = (category) => {
+  if (!category) return "Places";
+  
+  const categoryLower = category.toLowerCase();
+  if (categoryLower.includes("hotel")) return "Hotels";
+  if (categoryLower.includes("shortlet")) return "Shortlets";
+  if (categoryLower.includes("restaurant")) return "Restaurants";
+  if (categoryLower.includes("vendor") || categoryLower.includes("services")) return "Vendors";
+  return category + "s";
+};
+
+const getLocationDisplayName = (location) => {
+  if (!location || location === "All Locations" || location === "All")
+    return "All Locations";
+  
+  const locationMap = {
+    'akobo': 'Akobo',
+    'ringroad': 'Ringroad',
+    'bodija': 'Bodija',
+    'dugbe': 'Dugbe',
+    'mokola': 'Mokola',
+    'sango': 'Sango',
+    'ui': 'UI',
+    'poly': 'Poly',
+    'agodi': 'Agodi',
+    'jericho': 'Jericho',
+    'gbagi': 'Gbagi',
+    'apata': 'Apata',
+    'secretariat': 'Secretariat',
+    'moniya': 'Moniya',
+    'challenge': 'Challenge',
+    'molete': 'Molete',
+    'agbowo': 'Agbowo',
+    'sabo': 'Sabo',
+    'bashorun': 'Bashorun'
+  };
+  
+  const locLower = location.toLowerCase();
+  if (locationMap[locLower]) {
+    return locationMap[locLower];
+  }
+  
+  return location
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+  } catch (error) {
+    return "";
+  }
+};
+
+const formatShortDate = (date) => {
+  if (!date) return '';
+  try {
+    const d = new Date(date);
+    const day = d.getDate();
+    const month = d.toLocaleDateString('en-US', { month: 'short' }).toLowerCase();
+    return `${day} ${month}`;
+  } catch (error) {
+    return '';
+  }
+};
+
+const formatDateForLargeScreen = (date) => {
+  if (!date) return '';
+  try {
+    const d = new Date(date);
+    return d.toLocaleDateString('en-US', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      weekday: 'long'
+    });
+  } catch (error) {
+    return '';
+  }
+};
+
 const getCategoryDisplayName = (category) => {
   if (!category || category === "All Categories" || category === "All")
     return "All Categories";
-
-  const parts = category.split(".");
-  if (parts.length > 1) {
-    const afterDot = parts.slice(1).join(".").trim();
-    return afterDot
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  }
 
   return category
     .split(" ")
@@ -183,885 +504,382 @@ const getCategoryDisplayName = (category) => {
     .join(" ");
 };
 
-// Helper function to get location display name
-const getLocationDisplayName = (location) => {
-  if (!location || location === "All Locations" || location === "All")
-    return "All Locations";
-
-  const parts = location.split(".");
-  if (parts.length > 1) {
-    const afterDot = parts.slice(1).join(".").trim();
-    return afterDot
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  }
-
-  return location
-    .split(" ")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
-
-// Helper function to get location breakdown
-const getLocationBreakdown = (listings) => {
-  const locationCounts = {};
-  listings.forEach((item) => {
-    const location = getLocationDisplayName(item.area || "Unknown");
-    locationCounts[location] = (locationCounts[location] || 0) + 1;
-  });
-
-  return Object.entries(locationCounts)
-    .map(([location, count]) => ({ location, count }))
-    .sort((a, b) => b.count - a.count);
-};
-
-// Helper function to get category breakdown for a specific location
-const getCategoryBreakdownForLocation = (listings, targetLocation) => {
-  const filteredListings = listings.filter((item) => {
-    const itemLocation = getLocationDisplayName(item.area || "Unknown");
-    return itemLocation.toLowerCase() === targetLocation.toLowerCase();
-  });
-
-  const categoryCounts = {};
-  filteredListings.forEach((item) => {
-    const category = getCategoryDisplayName(item.category || "other.other");
-    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-  });
-
-  return Object.entries(categoryCounts)
-    .map(([category, count]) => ({ category, count }))
-    .sort((a, b) => b.count - a.count);
-};
-
-// Helper function to get category icon
-const getCategoryIcon = (category) => {
-  const cat = category.toLowerCase();
-  if (cat.includes("hotel") || cat.includes("accommodation")) return faBuilding;
-  if (cat.includes("shortlet") || cat.includes("apartment")) return faHome;
-  if (cat.includes("weekend") || cat.includes("event")) return faCalendarWeek;
-  if (cat.includes("restaurant") || cat.includes("food")) return faUtensils;
-  if (cat.includes("tourist") || cat.includes("attraction")) return faLandmark;
-  if (cat.includes("services")) return faTools;
-  return faFilter;
+/* ================== FALLBACK IMAGES ================== */
+const FALLBACK_IMAGES = {
+  hotel: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
+  restaurant: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80",
+  shortlet: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80",
+  tourist: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=80",
+  cafe: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&q=80",
+  bar: "https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=600&q=80",
+  services: "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=600&q=80",
+  event: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
+  hall: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
+  weekend: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
+  default: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
 };
 
 const getCardImages = (item) => {
-  const raw = item["image url"] || "";
-  const urls = raw
-    .split(",")
-    .map((u) => u.trim())
-    .filter((u) => u && u.startsWith("http"));
-
-  if (urls.length > 0) return urls;
-
+  if (item.images && item.images.length > 0 && item.images[0].url) {
+    return [item.images[0].url];
+  }
+  
   const cat = (item.category || "").toLowerCase();
   if (cat.includes("hotel")) return [FALLBACK_IMAGES.hotel];
   if (cat.includes("restaurant")) return [FALLBACK_IMAGES.restaurant];
   if (cat.includes("shortlet")) return [FALLBACK_IMAGES.shortlet];
   if (cat.includes("tourist")) return [FALLBACK_IMAGES.tourist];
   if (cat.includes("cafe")) return [FALLBACK_IMAGES.cafe];
-  if (cat.includes("bar") || cat.includes("lounge"))
-    return [FALLBACK_IMAGES.bar];
-  if (cat.includes("services")) return [FALLBACK_IMAGES.services];
+  if (cat.includes("bar") || cat.includes("lounge")) return [FALLBACK_IMAGES.bar];
+  if (cat.includes("services") || cat.includes("vendor")) return [FALLBACK_IMAGES.services];
   if (cat.includes("event")) return [FALLBACK_IMAGES.event];
-  if (cat.includes("hall") || cat.includes("weekend"))
-    return [FALLBACK_IMAGES.hall];
+  if (cat.includes("hall") || cat.includes("weekend")) return [FALLBACK_IMAGES.hall];
   return [FALLBACK_IMAGES.default];
 };
 
-// Custom hook for tracking favorite status
-const useIsFavorite = (itemId) => {
-  const [isFavorite, setIsFavorite] = useState(false);
+/* ================== UNIVERSAL HELPER FUNCTIONS ================== */
 
-  const checkFavoriteStatus = useCallback(() => {
-    try {
-      const saved = JSON.parse(
-        localStorage.getItem("userSavedListings") || "[]"
-      );
-      const isAlreadySaved = saved.some((savedItem) => savedItem.id === itemId);
-      setIsFavorite(isAlreadySaved);
-    } catch (error) {
-      console.error("Error checking favorite status:", error);
-      setIsFavorite(false);
+// Universal price getter - works for all structures
+const getPriceFromItem = (item) => {
+  try {
+    if (item.price !== undefined && item.price !== null) {
+      return item.price;
     }
-  }, [itemId]);
-
-  useEffect(() => {
-    // Initial check
-    checkFavoriteStatus();
-
-    // Create a custom event listener
-    const handleSavedListingsChange = () => {
-      checkFavoriteStatus();
-    };
-
-    // Listen for storage events
-    const handleStorageChange = (e) => {
-      if (e.key === "userSavedListings") {
-        checkFavoriteStatus();
+    
+    if (item.details?.priceRangePerMeal) {
+      const { priceFrom, priceTo } = item.details.priceRangePerMeal;
+      
+      if (priceFrom !== undefined && priceTo !== undefined) {
+        return Math.round((priceFrom + priceTo) / 2);
+      } else if (priceFrom !== undefined) {
+        return priceFrom;
+      } else if (priceTo !== undefined) {
+        return priceTo;
       }
-    };
-
-    // Add event listeners
-    window.addEventListener("savedListingsUpdated", handleSavedListingsChange);
-    window.addEventListener("storage", handleStorageChange);
-
-    // Poll for changes (fallback)
-    const pollInterval = setInterval(checkFavoriteStatus, 1000);
-
-    return () => {
-      window.removeEventListener(
-        "savedListingsUpdated",
-        handleSavedListingsChange
-      );
-      window.removeEventListener("storage", handleStorageChange);
-      clearInterval(pollInterval);
-    };
-  }, [itemId, checkFavoriteStatus]);
-
-  return isFavorite;
+    }
+    
+    if (item.details?.roomTypes?.[0]?.pricePerNight !== undefined) {
+      return item.details.roomTypes[0].pricePerNight;
+    }
+    
+    if (item.details?.pricePerNight !== undefined) {
+      return item.details.pricePerNight;
+    }
+    
+    if (item.category?.toLowerCase() === 'event' && item.details?.priceRange) {
+      const { priceFrom, priceTo } = item.details.priceRange;
+      
+      if (priceFrom !== undefined && priceTo !== undefined) {
+        return Math.round((priceFrom + priceTo) / 2);
+      } else if (priceFrom !== undefined) {
+        return priceFrom;
+      } else if (priceTo !== undefined) {
+        return priceTo;
+      }
+    }
+    
+    if (item.category?.toLowerCase() === 'services' && item.details?.pricingRange) {
+      const { priceFrom, priceTo } = item.details.pricingRange;
+      
+      if (priceFrom !== undefined && priceTo !== undefined) {
+        return Math.round((priceFrom + priceTo) / 2);
+      } else if (priceFrom !== undefined) {
+        return priceFrom;
+      } else if (priceTo !== undefined) {
+        return priceTo;
+      }
+    }
+    
+    return 0;
+  } catch (error) {
+    return 0;
+  }
 };
 
-// ================== SEARCH SUGGESTIONS HELPER FUNCTIONS ==================
-const generateSearchSuggestions = (query, listings) => {
-  if (!query.trim() || !listings.length) return [];
-
-  const queryLower = query.toLowerCase().trim();
-  const suggestions = [];
-
-  // Get unique categories and locations
-  const uniqueCategories = [
-    ...new Set(
-      listings
-        .map((item) => item.category)
-        .filter((cat) => cat && cat.trim() !== "")
-        .map((cat) => cat.trim())
-    ),
-  ];
-
-  const uniqueLocations = [
-    ...new Set(
-      listings
-        .map((item) => item.area)
-        .filter((loc) => loc && loc.trim() !== "")
-        .map((loc) => loc.trim())
-    ),
-  ];
-
-  // ===== CATEGORY SUGGESTIONS =====
-  const categoryMatches = uniqueCategories
-    .filter((category) => {
-      const displayName = getCategoryDisplayName(category).toLowerCase();
-      return displayName.includes(queryLower);
-    })
-    .map((category) => {
-      const categoryListings = listings.filter(
-        (item) =>
-          item.category &&
-          item.category.toLowerCase() === category.toLowerCase()
-      );
-
-      const locationBreakdown = getLocationBreakdown(categoryListings);
-      const totalPlaces = categoryListings.length;
-
-      // Get top 3 locations for this category
-      const topLocations = locationBreakdown.slice(0, 3);
-
-      return {
-        type: "category",
-        title: getCategoryDisplayName(category),
-        count: totalPlaces,
-        description: `${totalPlaces} ${
-          totalPlaces === 1 ? "place" : "places"
-        } found`,
-        breakdownText:
-          topLocations.length > 0
-            ? `Top locations: ${topLocations
-                .map((loc) => `${loc.location} (${loc.count})`)
-                .join(", ")}`
-            : `Available in multiple areas`,
-        breakdown: topLocations,
-        action: () => {
-          const params = new URLSearchParams();
-          params.append("category", category);
-          return `/search-results?${params.toString()}`;
-        },
-      };
-    })
-    .sort((a, b) => b.count - a.count);
-
-  // ===== LOCATION SUGGESTIONS =====
-  const locationMatches = uniqueLocations
-    .filter((location) => {
-      const displayName = getLocationDisplayName(location).toLowerCase();
-      return displayName.includes(queryLower);
-    })
-    .map((location) => {
-      const locationListings = listings.filter(
-        (item) =>
-          item.area && item.area.toLowerCase() === location.toLowerCase()
-      );
-
-      const categoryBreakdown = getCategoryBreakdownForLocation(
-        locationListings,
-        location
-      );
-      const totalPlaces = locationListings.length;
-
-      // Get top 4 categories for this location
-      const topCategories = categoryBreakdown.slice(0, 4);
-
-      return {
-        type: "location",
-        title: getLocationDisplayName(location),
-        count: totalPlaces,
-        description: `${totalPlaces} ${
-          totalPlaces === 1 ? "place" : "places"
-        } found`,
-        breakdownText: `Places include: ${topCategories
-          .map((cat) => `${cat.category} (${cat.count})`)
-          .join(", ")}${
-          categoryBreakdown.length > 4
-            ? `, +${categoryBreakdown.length - 4} more`
-            : ""
-        }`,
-        breakdown: topCategories,
-        action: () => {
-          const params = new URLSearchParams();
-          params.append("location", location);
-          return `/search-results?${params.toString()}`;
-        },
-      };
-    })
-    .sort((a, b) => b.count - a.count);
-
-  // Combine and sort by relevance
-  return [...categoryMatches, ...locationMatches]
-    .sort((a, b) => {
-      // Exact matches first
-      const aExact = a.title.toLowerCase() === queryLower;
-      const bExact = b.title.toLowerCase() === queryLower;
-      if (aExact && !bExact) return -1;
-      if (!aExact && bExact) return 1;
-
-      // Starts with query
-      const aStartsWith = a.title.toLowerCase().startsWith(queryLower);
-      const bStartsWith = b.title.toLowerCase().startsWith(queryLower);
-      if (aStartsWith && !bStartsWith) return -1;
-      if (!aStartsWith && bStartsWith) return 1;
-
-      // Then by count
-      return b.count - a.count;
-    })
-    .slice(0, 8); // Show more results
+// Universal location getter
+const getLocationFromItem = (item) => {
+  try {
+    if (item.location?.area) {
+      return item.location.area;
+    }
+    
+    if (item.area) {
+      return item.area;
+    }
+    
+    if (item.location?.address) {
+      return item.location.address;
+    }
+    
+    if (item.address) {
+      return item.address;
+    }
+    
+    return "Ibadan";
+  } catch (error) {
+    return "Ibadan";
+  }
 };
 
-// ================== DESKTOP SEARCH SUGGESTIONS COMPONENT ==================
-const DesktopSearchSuggestions = ({
-  searchQuery,
-  listings,
-  onSuggestionClick,
-  onClose,
-  isVisible,
-  searchBarPosition,
-}) => {
-  const suggestionsRef = useRef(null);
+// Universal business name getter
+const getBusinessName = (item) => {
+  try {
+    if (item.name) {
+      return item.name;
+    }
+    
+    if (item.title) {
+      return item.title;
+    }
+    
+    if (item.vendorId?.vendor?.businessName) {
+      return item.vendorId.vendor.businessName;
+    }
+    
+    return "Business";
+  } catch (error) {
+    return "Business";
+  }
+};
 
-  // Generate suggestions with breakdowns
-  const suggestions = useMemo(() => {
-    return generateSearchSuggestions(searchQuery, listings);
-  }, [searchQuery, listings]);
+/* ================== SIMPLE CALENDAR FOR EDITING DATES ================== */
+const SimpleCalendar = ({ onSelect, onClose, selectedDate: propSelectedDate, isCheckOut = false }) => {
+  const modalRef = useRef(null);
+  const [currentDate, setCurrentDate] = useState(propSelectedDate || new Date());
+  const [selectedDate, setSelectedDate] = useState(propSelectedDate || new Date());
 
-  // Handle click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        suggestionsRef.current &&
-        !suggestionsRef.current.contains(event.target)
-      ) {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
         onClose();
       }
     };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
 
-    if (isVisible) {
-      document.addEventListener("mousedown", handleClickOutside);
+  const getDaysInMonth = (year, month) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const getMonthName = (date) => {
+    return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  };
+
+  const handleDateClick = (day) => {
+    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    setSelectedDate(newDate);
+    onSelect(newDate);
+    onClose();
+  };
+
+  const nextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  const prevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+
+  const renderCalendar = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const daysInMonth = getDaysInMonth(year, month);
+    const firstDay = new Date(year, month, 1).getDay();
+    const days = [];
+    for (let i = 0; i < firstDay; i++) {
+      days.push(<div key={`empty-${i}`} className="h-8 w-8"></div>);
     }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isVisible, onClose]);
-
-  if (!isVisible || !searchQuery.trim() || suggestions.length === 0)
-    return null;
-
-  // Get the search container width from the search bar position
-  const containerWidth = searchBarPosition?.width || 0;
-
-  return createPortal(
-    <>
-      {/* Semi-transparent backdrop - allows page content to be visible */}
-      <div
-        className="fixed inset-0 bg-black/5 z-[9980] animate-fadeIn"
-        onClick={onClose}
-      />
-
-      <div
-        ref={suggestionsRef}
-        className="absolute bg-white rounded-xl shadow-xl border border-gray-200 z-[9981] animate-scaleIn overflow-hidden"
-        style={{
-          left: `${searchBarPosition?.left || 0}px`,
-          top: `${(searchBarPosition?.bottom || 0) + 8}px`,
-          width: `${containerWidth}px`,
-          maxHeight: "70vh",
-        }}
-      >
-        {/* Suggestions Header */}
-        <div className="p-3 border-b border-gray-100 bg-gray-50/80 backdrop-blur-sm">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <FontAwesomeIcon
-                icon={faSearch}
-                className="w-4 h-4 text-gray-500"
-              />
-              <span className="text-sm font-medium text-gray-700">
-                Results for "{searchQuery}"
-              </span>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-200 transition-colors"
-              aria-label="Close suggestions"
-            >
-              <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Suggestions List - Scrollable with max height */}
-        <div
-          className="overflow-y-auto"
-          style={{ maxHeight: "calc(70vh - 48px)" }}
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      const isToday = date.toDateString() === new Date().toDateString();
+      const isSelected = date.toDateString() === selectedDate.toDateString();
+      days.push(
+        <button
+          key={day}
+          onClick={() => handleDateClick(day)}
+          className={`h-8 w-8 rounded-full flex items-center justify-center text-sm cursor-pointer
+            ${isToday ? "border border-blue-500" : ""}
+            ${isSelected ? "bg-blue-500 text-white" : "hover:bg-gray-100"}
+          `}
         >
-          <div className="p-4">
-            {suggestions.map((suggestion, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  onSuggestionClick(suggestion.action());
-                  onClose();
-                }}
-                className="w-full text-left p-4 bg-white hover:bg-blue-50 rounded-lg border border-gray-100 transition-all duration-200 hover:shadow-sm mb-2 last:mb-0 group"
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      suggestion.type === "category"
-                        ? "bg-blue-100 text-blue-600"
-                        : "bg-green-100 text-green-600"
-                    }`}
-                  >
-                    <FontAwesomeIcon
-                      icon={
-                        suggestion.type === "category"
-                          ? faFilter
-                          : faMapMarkerAlt
-                      }
-                      className="w-5 h-5"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-1">
-                      <h4 className="font-semibold text-gray-900 text-sm truncate">
-                        {suggestion.title}
-                      </h4>
-                      <span
-                        className={`text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap ml-2 ${
-                          suggestion.type === "category"
-                            ? "bg-blue-50 text-blue-700"
-                            : "bg-green-50 text-green-700"
-                        }`}
-                      >
-                        {suggestion.count}{" "}
-                        {suggestion.count === 1 ? "place" : "places"}
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                      {suggestion.description}
-                    </p>
-
-                    {/* Dynamic Breakdown */}
-                    <div className="mt-2">
-                      <p className="text-xs text-gray-500 mb-1">
-                        {suggestion.breakdownText}
-                      </p>
-
-                      {/* Breakdown Tags */}
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {suggestion.breakdown.slice(0, 3).map((item, idx) => (
-                          <div
-                            key={idx}
-                            className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs ${
-                              suggestion.type === "category"
-                                ? "bg-blue-50 text-blue-700"
-                                : "bg-green-50 text-green-700"
-                            }`}
-                          >
-                            {suggestion.type === "location" && (
-                              <FontAwesomeIcon
-                                icon={getCategoryIcon(item.category)}
-                                className="w-3 h-3"
-                              />
-                            )}
-                            <span className="font-medium">
-                              {item.category || item.location} ({item.count})
-                            </span>
-                          </div>
-                        ))}
-                        {suggestion.breakdown.length > 3 && (
-                          <span className="text-xs text-gray-500 px-2 py-1">
-                            +{suggestion.breakdown.length - 3} more
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <FontAwesomeIcon
-                      icon={faChevronRight}
-                      className="w-3 h-3 text-blue-600"
-                    />
-                  </div>
-                </div>
-              </button>
-            ))}
-
-            {/* Show All Results Button */}
-            <button
-              onClick={() => {
-                const params = new URLSearchParams();
-                params.append("q", searchQuery.trim());
-                onSuggestionClick(`/search-results?${params.toString()}`);
-                onClose();
-              }}
-              className="w-full mt-4 p-4 bg-gradient-to-r from-blue-500 to-teal-400 hover:from-blue-600 hover:to-teal-500 text-white font-semibold rounded-lg shadow-sm hover:shadow transition-all duration-200 group"
-            >
-              <div className="flex items-center justify-between">
-                <div className="text-left">
-                  <p className="text-sm font-bold">Show all results</p>
-                  <p className="text-xs opacity-90 mt-1">
-                    Search across all categories and locations
-                  </p>
-                </div>
-                <div className="transform group-hover:translate-x-1 transition-transform">
-                  <FontAwesomeIcon icon={faChevronRight} className="w-4 h-4" />
-                </div>
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
-    </>,
-    document.body
-  );
-};
-
-// ================== MOBILE SEARCH MODAL ==================
-const MobileSearchModal = ({
-  searchQuery,
-  listings,
-  onSuggestionClick,
-  onClose,
-  onTyping,
-  isVisible,
-}) => {
-  const [inputValue, setInputValue] = useState(searchQuery);
-  const modalRef = useRef(null);
-  const inputRef = useRef(null);
-  const [isMobile, setIsMobile] = useState(false);
-  const [isExiting, setIsExiting] = useState(false);
-
-  // Check if mobile
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-  // Generate suggestions with breakdowns
-  const suggestions = useMemo(() => {
-    return generateSearchSuggestions(inputValue, listings);
-  }, [inputValue, listings]);
-
-  // Handle input change
-  const handleInputChange = (e) => {
-    const value = e.target.value;
-    setInputValue(value);
-    onTyping(value);
-  };
-
-  // Handle clear input
-  const handleClearInput = () => {
-    setInputValue("");
-    onTyping("");
-    inputRef.current?.focus();
-  };
-
-  // Handle suggestion click
-  const handleSuggestionClick = (action) => {
-    onSuggestionClick(action);
-    handleClose();
-  };
-
-  // Handle key press
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && inputValue.trim()) {
-      const params = new URLSearchParams();
-      params.append("q", inputValue.trim());
-      onSuggestionClick(`/search-results?${params.toString()}`);
-      handleClose();
+          {day}
+        </button>
+      );
     }
+    return days;
   };
 
-  // Handle close with animation
-  const handleClose = () => {
-    setIsExiting(true);
-    setTimeout(() => {
-      onClose();
-      setIsExiting(false);
-    }, 200);
-  };
-
-  // Focus input when modal opens
-  useEffect(() => {
-    if (isVisible && inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
-    }
-  }, [isVisible]);
-
-  // Prevent body scroll when modal is open
-  useEffect(() => {
-    if (isVisible) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isVisible]);
-
-  // Sync inputValue with searchQuery prop
-  useEffect(() => {
-    setInputValue(searchQuery);
-  }, [searchQuery]);
-
-  // Don't render if not visible
-  if (!isVisible && !isExiting) return null;
-
-  return createPortal(
+  return (
     <>
-      {/* Backdrop with fade animation */}
-      <div
-        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-[9990] ${
-          isExiting ? "animate-fadeOutSharp" : "animate-fadeInSharp"
-        }`}
-        onClick={handleClose}
-        style={{
-          opacity: isExiting ? 0 : 1,
-          transition: "opacity 0.2s ease-out",
-        }}
-      />
-
-      {/* Modal Content with fade animation */}
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[10000]" onClick={onClose} />
       <div
         ref={modalRef}
-        className={`fixed inset-0 bg-white z-[9991] ${
-          isExiting ? "animate-fadeOutSharp" : "animate-fadeInSharp"
-        } flex flex-col`}
-        style={{
-          opacity: isExiting ? 0 : 1,
-          transform: isExiting ? "translateY(-10px)" : "translateY(0)",
-          transition: "opacity 0.2s ease-out, transform 0.2s ease-out",
-        }}
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl z-[10001] w-80 p-4"
       >
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleClose}
-              className="text-gray-600 hover:text-gray-900 p-2 rounded-full hover:bg-gray-100"
-            >
-              <FontAwesomeIcon icon={faChevronLeft} className="w-5 h-5" />
-            </button>
-            <div className="flex-1 relative flex justify-center">
-              <div
-                className="w-full"
-                style={{ width: isMobile ? "100%" : "30%", maxWidth: "600px" }}
-              >
-                <div className="relative">
-                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                    <FontAwesomeIcon icon={faSearch} className="w-4 h-4" />
-                  </div>
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    className="w-full pl-10 pr-10 py-3 bg-gray-100 rounded-full border-0 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-900"
-                    value={inputValue}
-                    onChange={handleInputChange}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Search by area, category, or name..."
-                    autoFocus
-                  />
-                  {inputValue && (
-                    <button
-                      onClick={handleClearInput}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="flex justify-between items-center mb-4">
+          <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded cursor-pointer">
+            ←
+          </button>
+          <h3 className="font-semibold text-gray-800">{getMonthName(currentDate)}</h3>
+          <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded cursor-pointer">
+            →
+          </button>
         </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto">
-          {inputValue.trim() ? (
-            <>
-              {/* Suggestions Section */}
-              {suggestions.length > 0 ? (
-                <div className="p-4">
-                  <div className="mb-4">
-                    <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
-                      Top Suggestions ({suggestions.length})
-                    </h3>
-
-                    {/* Suggestions List */}
-                    <div className="space-y-3">
-                      {suggestions.map((suggestion, index) => (
-                        <button
-                          key={index}
-                          onClick={() =>
-                            handleSuggestionClick(suggestion.action())
-                          }
-                          className="w-full text-left p-4 bg-white hover:bg-blue-50 rounded-xl border border-gray-100 transition-all duration-200 hover:shadow-md"
-                        >
-                          <div className="flex items-start gap-3 mb-3">
-                            <div
-                              className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                                suggestion.type === "category"
-                                  ? "bg-blue-100 text-blue-600"
-                                  : "bg-green-100 text-green-600"
-                              }`}
-                            >
-                              <FontAwesomeIcon
-                                icon={
-                                  suggestion.type === "category"
-                                    ? faFilter
-                                    : faMapMarkerAlt
-                                }
-                                className="w-5 h-5"
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-start justify-between mb-1">
-                                <h4 className="font-semibold text-gray-900 text-lg">
-                                  {suggestion.title}
-                                </h4>
-                                <span
-                                  className={`text-sm font-semibold px-3 py-1 rounded-full ${
-                                    suggestion.type === "category"
-                                      ? "bg-blue-100 text-blue-700"
-                                      : "bg-green-100 text-green-700"
-                                  }`}
-                                >
-                                  {suggestion.count}{" "}
-                                  {suggestion.count === 1 ? "place" : "places"}
-                                </span>
-                              </div>
-                              <p className="text-sm text-gray-600 mb-2">
-                                {suggestion.description}
-                              </p>
-
-                              {/* Dynamic Breakdown */}
-                              <div className="mt-3 pt-3 border-t border-gray-100">
-                                <p className="text-xs text-gray-500 mb-2">
-                                  {suggestion.breakdownText}
-                                </p>
-
-                                {/* Breakdown Tags */}
-                                <div className="flex flex-wrap gap-1.5 mt-2">
-                                  {suggestion.breakdown.map((item, idx) => (
-                                    <div
-                                      key={idx}
-                                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${
-                                        suggestion.type === "category"
-                                          ? "bg-blue-50 text-blue-700"
-                                          : "bg-green-50 text-green-700"
-                                      }`}
-                                    >
-                                      {suggestion.type === "location" && (
-                                        <FontAwesomeIcon
-                                          icon={getCategoryIcon(item.category)}
-                                          className="w-3 h-3"
-                                        />
-                                      )}
-                                      <span className="text-xs font-medium">
-                                        {item.category || item.location} (
-                                        {item.count})
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* View All Button */}
-                          <div className="flex items-center justify-end mt-2">
-                            <span className="text-sm text-blue-600 font-medium">
-                              View all {suggestion.count}{" "}
-                              {suggestion.count === 1 ? "place" : "places"}
-                            </span>
-                            <FontAwesomeIcon
-                              icon={faChevronRight}
-                              className="ml-1 text-blue-600 w-3 h-3"
-                            />
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Show All Results Button */}
-                  <button
-                    onClick={() => {
-                      const params = new URLSearchParams();
-                      params.append("q", inputValue.trim());
-                      onSuggestionClick(`/search-results?${params.toString()}`);
-                      handleClose();
-                    }}
-                    className="w-full p-4 bg-gradient-to-r from-blue-500 to-teal-400 hover:from-blue-600 hover:to-teal-500 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="text-left">
-                        <p className="font-bold text-lg">
-                          Show all results for "{inputValue}"
-                        </p>
-                        <p className="text-sm opacity-90 mt-1">
-                          Search across all categories and locations
-                        </p>
-                      </div>
-                      <FontAwesomeIcon
-                        icon={faChevronRight}
-                        className="w-5 h-5"
-                      />
-                    </div>
-                  </button>
-                </div>
-              ) : (
-                /* No Results Message */
-                <div className="flex flex-col items-center justify-center h-full py-16 px-4">
-                  <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                    <FontAwesomeIcon
-                      icon={faSearch}
-                      className="w-10 h-10 text-gray-400"
-                    />
-                  </div>
-                  <p className="text-xl font-semibold text-gray-800 mb-3">
-                    No matches found for "{inputValue}"
-                  </p>
-                  <p className="text-sm text-gray-600 text-center max-w-xs mb-8">
-                    Try searching with different keywords or browse categories
-                  </p>
-                  <button
-                    onClick={() => {
-                      const params = new URLSearchParams();
-                      params.append("q", inputValue.trim());
-                      onSuggestionClick(`/search-results?${params.toString()}`);
-                      handleClose();
-                    }}
-                    className="px-6 py-3 bg-blue-500 text-white font-medium rounded-full hover:bg-blue-600 transition-colors"
-                  >
-                    Search anyway
-                  </button>
-                </div>
-              )}
-            </>
-          ) : (
-            /* Empty State */
-            <div className="flex flex-col items-center justify-center h-full py-16 px-4">
-              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                <FontAwesomeIcon
-                  icon={faSearch}
-                  className="w-10 h-10 text-gray-400"
-                />
-              </div>
-              <p className="text-xl font-semibold text-gray-800 mb-3">
-                Start typing to search
-              </p>
-              <p className="text-sm text-gray-600 text-center max-w-xs">
-                Search for categories, locations, or places in Ibadan
-              </p>
-
-              {/* Popular Search Tips */}
-              <div className="mt-8 w-full max-w-md px-4">
-                <p className="text-sm font-medium text-gray-500 mb-3">
-                  Try searching for:
-                </p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {[
-                    "Hotels",
-                    "Restaurants",
-                    "Ibadan",
-                    "Shortlets",
-                    "Tourism",
-                  ].map((term) => (
-                    <button
-                      key={term}
-                      onClick={() => {
-                        setInputValue(term);
-                        onTyping(term);
-                      }}
-                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-sm transition-colors"
-                    >
-                      {term}
-                    </button>
-                  ))}
-                </div>
-              </div>
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+            <div key={day} className="text-center text-xs text-gray-500 font-medium">
+              {day}
             </div>
-          )}
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">{renderCalendar()}</div>
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <button
+            onClick={() => {
+              const today = new Date();
+              setSelectedDate(today);
+              onSelect(today);
+              onClose();
+            }}
+            className="w-full py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 cursor-pointer"
+          >
+            Select Today
+          </button>
         </div>
       </div>
-    </>,
-    document.body
+    </>
   );
 };
 
-// ================== SEARCH RESULT BUSINESS CARD ==================
+/* ================== GUEST SELECTOR FOR EDITING ================== */
+const GuestSelector = ({ guests, onChange, onClose, category = 'hotel' }) => {
+  const modalRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
+
+  const handleGuestChange = (type, value) => {
+    const newGuests = { ...guests };
+    newGuests[type] = Math.max(0, newGuests[type] + value);
+    onChange(newGuests);
+  };
+
+  const totalGuests = guests.adults + guests.children;
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[10000]" onClick={onClose} />
+      <div
+        ref={modalRef}
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl z-[10001] w-80 p-6"
+      >
+        <h3 className="font-semibold text-gray-800 mb-6 text-center">
+          {category.includes('restaurant') ? 'Number of People' : 'Guests & Rooms'}
+        </h3>
+        
+        {!category.includes('restaurant') && (
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <div className="font-medium text-gray-800">Rooms</div>
+              <div className="text-sm text-gray-500">Number of rooms</div>
+            </div>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => handleGuestChange("rooms", -1)}
+                disabled={guests.rooms <= 1}
+                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 cursor-pointer"
+              >
+                <FontAwesomeIcon icon={faChevronLeft} size="sm" />
+              </button>
+              <span className="w-8 text-center font-medium">{guests.rooms}</span>
+              <button
+                onClick={() => handleGuestChange("rooms", 1)}
+                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 cursor-pointer"
+              >
+                <FontAwesomeIcon icon={faChevronRight} size="sm" />
+              </button>
+            </div>
+          </div>
+        )}
+        
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <div className="font-medium text-gray-800">Adults</div>
+            <div className="text-sm text-gray-500">Age 18+</div>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => handleGuestChange("adults", -1)}
+              disabled={guests.adults <= 1}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 cursor-pointer"
+            >
+              <FontAwesomeIcon icon={faChevronLeft} size="sm" />
+            </button>
+            <span className="w-8 text-center font-medium">{guests.adults}</span>
+            <button
+              onClick={() => handleGuestChange("adults", 1)}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 cursor-pointer"
+            >
+              <FontAwesomeIcon icon={faChevronRight} size="sm" />
+            </button>
+          </div>
+        </div>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <div className="font-medium text-gray-800">Children</div>
+            <div className="text-sm text-gray-500">Age 0-17</div>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => handleGuestChange("children", -1)}
+              disabled={guests.children <= 0}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 cursor-pointer"
+            >
+              <FontAwesomeIcon icon={faChevronLeft} size="sm" />
+            </button>
+            <span className="w-8 text-center font-medium">{guests.children}</span>
+            <button
+              onClick={() => handleGuestChange("children", 1)}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 cursor-pointer"
+            >
+              <FontAwesomeIcon icon={faChevronRight} size="sm" />
+            </button>
+          </div>
+        </div>
+        
+        <div className="pt-4 border-t border-gray-200">
+          <div className="text-center mb-4">
+            <div className="text-sm text-gray-600">Total {category.includes('restaurant') ? 'People' : 'Guests'}</div>
+            <div className="text-xl font-bold text-blue-600">{totalGuests}</div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-full py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium cursor-pointer"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+/* ================== UPDATED BUSINESS CARD ================== */
 const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   const images = getCardImages(item);
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [imageHeight, setImageHeight] = useState(170);
-  const isFavorite = useIsFavorite(item.id);
+  const [imageHeight] = useState(isMobile ? 180 : 200);
   const cardRef = useRef(null);
-
-  // Set consistent height based on device
-  useEffect(() => {
-    setImageHeight(isMobile ? 150 : 170);
-  }, [isMobile]);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const formatPrice = (n) => {
     if (!n) return "–";
@@ -1073,296 +891,128 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   };
 
   const getPriceText = () => {
-    const priceFrom = item.price_from || item.price || "0";
-    const formattedPrice = formatPrice(priceFrom);
+    const cat = (category || "").toLowerCase();
+    
+    if (cat.includes('restaurant') && item.details?.priceRangePerMeal) {
+      const { priceFrom, priceTo } = item.details.priceRangePerMeal;
+      
+      if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+        return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
+      } else if (priceFrom !== undefined) {
+        return `₦${formatPrice(priceFrom)}`;
+      }
+    }
+    
+    if (cat.includes('event') && item.details?.priceRange) {
+      const { priceFrom, priceTo } = item.details.priceRange;
+      
+      if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+        return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
+      } else if (priceFrom !== undefined) {
+        return `₦${formatPrice(priceFrom)}`;
+      }
+    }
+    
+    if ((cat.includes('services') || cat.includes('vendor')) && item.details?.pricingRange) {
+      const { priceFrom, priceTo } = item.details.pricingRange;
+      
+      if (priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom) {
+        return `₦${formatPrice(priceFrom)} - ₦${formatPrice(priceTo)}`;
+      } else if (priceFrom !== undefined) {
+        return `₦${formatPrice(priceFrom)}`;
+      }
+    }
+    
+    const price = getPriceFromItem(item) || 0;
+    const formattedPrice = formatPrice(price);
     return `₦${formattedPrice}`;
   };
 
-  const getPerText = () => {
-    const nightlyCategories = [
-      "hotel",
-      "hostel",
-      "shortlet",
-      "apartment",
-      "cabin",
-      "condo",
-      "resort",
-      "inn",
-      "motel",
-    ];
+  const getPriceUnit = () => {
+    const cat = (category || "").toLowerCase();
+    if (cat.includes('hotel') || cat.includes('shortlet')) return 'per night';
+    if (cat.includes('restaurant')) return 'per meal';
+    if (cat.includes('event')) return 'per event';
+    if (cat.includes('services') || cat.includes('vendor')) return 'per service';
+    return '';
+  };
 
-    if (nightlyCategories.some((cat) => category.toLowerCase().includes(cat))) {
-      return "for 2 nights";
-    }
-
-    if (
-      category.toLowerCase().includes("restaurant") ||
-      category.toLowerCase().includes("food") ||
-      category.toLowerCase().includes("cafe")
-    ) {
-      return "per meal";
-    }
-
-    return "per guest";
+  const getTag = () => {
+    const cat = (category || "").toLowerCase();
+    if (cat.includes("hotel")) return "Hotel";
+    if (cat.includes("shortlet")) return "Shortlet";
+    if (cat.includes("restaurant")) return "Restaurant";
+    if (cat.includes("services") || cat.includes("vendor")) return "Service";
+    if (cat.includes("event")) return "Event";
+    return cat.charAt(0).toUpperCase() + cat.slice(1);
   };
 
   const priceText = getPriceText();
-  const perText = getPerText();
-  const locationText = item.area || item.location || "Ibadan";
+  const priceUnit = getPriceUnit();
+  const locationText = getLocationFromItem(item) || "Ibadan";
   const rating = item.rating || "4.9";
-  const businessName = item.name || "Business Name";
-  // FIX: Get subcategory (word after the dot)
-  const subcategory = getSubcategory(category);
+  const businessName = getBusinessName(item) || "Business Name";
+  const tag = getTag();
 
   const handleCardClick = () => {
-    if (item.id) {
-      navigate(`/vendor-detail/${item.id}`);
-    } else {
-      navigate(`/category/${category}`);
+    if (item._id || item.id) {
+      navigate(`/vendor-detail/${item._id || item.id}`);
     }
   };
 
-  // Toast Notification Function
-  const showToast = useCallback(
-    (message, type = "success") => {
-      const existingToast = document.getElementById("toast-notification");
-      if (existingToast) {
-        existingToast.remove();
-      }
-
-      const toast = document.createElement("div");
-      toast.id = "toast-notification";
-      toast.className = `fixed z-[9999] px-4 py-3 rounded-lg shadow-lg border ${
-        type === "success"
-          ? "bg-green-50 border-green-200 text-green-800"
-          : "bg-blue-50 border-blue-200 text-blue-800"
-      }`;
-
-      toast.style.top = isMobile ? "15px" : "15px";
-      toast.style.right = "15px";
-      toast.style.maxWidth = "320px";
-      toast.style.animation = "slideInRight 0.3s ease-out forwards";
-
-      toast.innerHTML = `
-      <div class="flex items-start gap-3">
-        <div class="${
-          type === "success" ? "text-green-600" : "text-blue-600"
-        } mt-0.5">
-          ${
-            type === "success"
-              ? '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>'
-              : '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>'
-          }
-        </div>
-        <div class="flex-1">
-          <p class="font-medium">${message}</p>
-          <p class="text-sm opacity-80 mt-1">${businessName}</p>
-        </div>
-        <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70 transition-opacity">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-          </svg>
-        </button>
-      </div>
-    `;
-
-      document.body.appendChild(toast);
-
-      setTimeout(() => {
-        if (toast.parentElement) {
-          toast.style.animation = "slideOutRight 0.3s ease-in forwards";
-          setTimeout(() => {
-            if (toast.parentElement) {
-              toast.remove();
-            }
-          }, 300);
-        }
-      }, 3000);
-    },
-    [isMobile, businessName]
-  );
-
-  // Handle favorite click
-  const handleFavoriteClick = useCallback(
-    async (e) => {
-      e.stopPropagation();
-
-      if (isProcessing) return;
-      setIsProcessing(true);
-
-      try {
-        const isLoggedIn = localStorage.getItem("ajani_dummy_login") === "true";
-
-        if (!isLoggedIn) {
-          showToast("Please login to save listings", "info");
-
-          localStorage.setItem(
-            "redirectAfterLogin",
-            window.location.pathname + window.location.search
-          );
-
-          const itemToSaveAfterLogin = {
-            id: item.id,
-            name: businessName,
-            price: priceText,
-            perText: perText,
-            rating: parseFloat(rating),
-            tag: "Guest Favorite",
-            image: images[0] || FALLBACK_IMAGES.default,
-            category: subcategory || capitalizeFirst(category) || "Business",
-            location: locationText,
-            originalData: {
-              price_from: item.price_from,
-              area: item.area,
-              rating: item.rating,
-              description: item.description,
-              amenities: item.amenities,
-              contact: item.contact,
-            },
-          };
-
-          localStorage.setItem(
-            "pendingSaveItem",
-            JSON.stringify(itemToSaveAfterLogin)
-          );
-
-          setTimeout(() => {
-            navigate("/login");
-            setIsProcessing(false);
-          }, 800);
-
-          return;
-        }
-
-        const saved = JSON.parse(
-          localStorage.getItem("userSavedListings") || "[]"
-        );
-
-        const isAlreadySaved = saved.some(
-          (savedItem) => savedItem.id === item.id
-        );
-
-        if (isAlreadySaved) {
-          const updated = saved.filter((savedItem) => savedItem.id !== item.id);
-          localStorage.setItem("userSavedListings", JSON.stringify(updated));
-
-          showToast("Removed from saved listings", "info");
-
-          window.dispatchEvent(
-            new CustomEvent("savedListingsUpdated", {
-              detail: { action: "removed", itemId: item.id },
-            })
-          );
-        } else {
-          const listingToSave = {
-            id: item.id || `listing_${Date.now()}`,
-            name: businessName,
-            price: priceText,
-            perText: perText,
-            rating: parseFloat(rating),
-            tag: "Guest Favorite",
-            image: images[0] || FALLBACK_IMAGES.default,
-            category: subcategory || capitalizeFirst(category) || "Business",
-            location: locationText,
-            savedDate: new Date().toISOString().split("T")[0],
-            originalData: {
-              price_from: item.price_from,
-              area: item.area,
-              rating: item.rating,
-              description: item.description,
-              amenities: item.amenities,
-              contact: item.contact,
-            },
-          };
-
-          const updated = [...saved, listingToSave];
-          localStorage.setItem("userSavedListings", JSON.stringify(updated));
-
-          showToast("Added to saved listings!", "success");
-
-          window.dispatchEvent(
-            new CustomEvent("savedListingsUpdated", {
-              detail: { action: "added", item: listingToSave },
-            })
-          );
-        }
-      } catch (error) {
-        console.error("Error saving/removing favorite:", error);
-        showToast("Something went wrong. Please try again.", "info");
-      } finally {
-        setIsProcessing(false);
-      }
-    },
-    [
-      isProcessing,
-      item,
-      businessName,
-      priceText,
-      perText,
-      rating,
-      images,
-      category,
-      subcategory,
-      locationText,
-      showToast,
-      navigate,
-    ]
-  );
-
-  // Check for pending saves after login
-  useEffect(() => {
-    const pendingSaveItem = JSON.parse(
-      localStorage.getItem("pendingSaveItem") || "null"
-    );
-
-    if (pendingSaveItem && pendingSaveItem.id === item.id) {
-      localStorage.removeItem("pendingSaveItem");
-
-      const saved = JSON.parse(
-        localStorage.getItem("userSavedListings") || "[]"
-      );
-
-      const isAlreadySaved = saved.some(
-        (savedItem) => savedItem.id === item.id
-      );
-
-      if (!isAlreadySaved) {
-        const updated = [...saved, pendingSaveItem];
-        localStorage.setItem("userSavedListings", JSON.stringify(updated));
-
-        showToast("Added to saved listings!", "success");
-
-        window.dispatchEvent(
-          new CustomEvent("savedListingsUpdated", {
-            detail: { action: "added", item: pendingSaveItem },
-          })
-        );
-      }
+  const handleFavoriteClick = (e) => {
+    e.stopPropagation();
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    
+    if (!isLoggedIn) {
+      toast.info('Please login to add to favorites', {
+        position: "top-center",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return;
     }
-  }, [item.id, showToast]);
+    
+    setIsFavorite(!isFavorite);
+    toast.success(isFavorite ? 'Removed from favorites' : 'Added to favorites', {
+      position: "top-center",
+      autoClose: 2000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
+  };
 
   return (
     <div
       ref={cardRef}
       className={`
         bg-white rounded-xl overflow-hidden flex-shrink-0 
-        font-manrope relative group flex flex-col h-full
-        ${isMobile ? "w-[165px]" : "w-full"} 
+        font-manrope relative group flex flex-col
+        ${isMobile ? "w-[180px]" : "w-[240px]"}
         transition-all duration-200 cursor-pointer 
         hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
       `}
       onClick={handleCardClick}
       style={{
-        height: isMobile ? "280px" : "320px",
+        height: isMobile ? "310px" : "350px",
+        minHeight: isMobile ? "310px" : "350px",
+        maxHeight: isMobile ? "310px" : "350px",
+        minWidth: isMobile ? "180px" : "240px",
+        maxWidth: isMobile ? "180px" : "240px",
       }}
     >
-      {/* Image */}
       <div
         className="relative overflow-hidden rounded-xl flex-shrink-0"
         style={{
           height: `${imageHeight}px`,
           minHeight: `${imageHeight}px`,
           maxHeight: `${imageHeight}px`,
+          width: "100%",
         }}
       >
         <img
@@ -1373,6 +1023,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
             height: "100%",
             width: "100%",
             objectFit: "cover",
+            objectPosition: "center",
           }}
           onError={(e) => {
             e.currentTarget.src = FALLBACK_IMAGES.default;
@@ -1380,26 +1031,19 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
           }}
           loading="lazy"
         />
-
-        {/* Guest favorite badge */}
         <div className="absolute top-2 left-2 bg-white px-1.5 py-1 rounded-md shadow-sm flex items-center gap-1">
           <span className="text-[9px] font-semibold text-gray-900">
             Guest favorite
           </span>
         </div>
-
-        {/* Heart icon */}
         <button
           onClick={handleFavoriteClick}
-          disabled={isProcessing}
-          className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 ${
+          className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer ${
             isFavorite
               ? "bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
               : "bg-white/90 hover:bg-white backdrop-blur-sm"
-          } ${isProcessing ? "opacity-70 cursor-not-allowed" : ""}`}
+          }`}
           title={isFavorite ? "Remove from saved" : "Add to saved"}
-          aria-label={isFavorite ? "Remove from saved" : "Save this listing"}
-          aria-pressed={isFavorite}
         >
           {isProcessing ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -1420,53 +1064,45 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
           )}
         </button>
       </div>
-
-      {/* Text Content */}
-      <div className={`flex-1 ${isMobile ? "p-1.5" : "p-2.5"} flex flex-col`}>
-        <h3 className="font-semibold text-gray-900 leading-tight line-clamp-2 text-xs md:text-sm mb-1 flex-shrink-0">
+      <div 
+        className={`flex-1 ${isMobile ? "p-2.5" : "p-2.5"} flex flex-col`}
+        style={{
+          minHeight: isMobile ? "130px" : "150px",
+        }}
+      >
+        <h3 className="font-semibold text-gray-900 leading-tight line-clamp-2 text-sm mb-1 flex-shrink-0">
           {businessName}
         </h3>
-
         <div className="flex-1 flex flex-col justify-between">
           <div>
-            <p className="text-gray-600 text-[9px] md:text-xs line-clamp-1 mb-2">
+            <p className="text-gray-600 text-xs line-clamp-1 mb-2">
               {locationText}
             </p>
-
-            {/* Combined Price, Per Text, and Ratings on same line */}
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1 flex-wrap">
-                {/* Price and Per Text */}
-                <div className="flex items-baseline gap-1">
-                  <span className="text-xs md:text-xs font-manrope text-gray-900">
-                    {priceText}
+              <div className="flex flex-col">
+                <span className="text-[12px] font-manrope text-gray-900">
+                  {priceText}
+                </span>
+                {priceUnit && (
+                  <span className="text-[10px] text-gray-600 mt-0.5">
+                    {priceUnit}
                   </span>
-                  <span className="text-[9px] md:text-xs text-gray-600">
-                    {perText}
-                  </span>
-                </div>
+                )}
               </div>
-
-              {/* Ratings on the right */}
               <div className="flex items-center gap-1">
-                <div className="flex items-center gap-1 text-gray-800 text-[9px] md:text-xs">
+                <div className="flex items-center gap-1 text-gray-800 text-xs">
                   <FontAwesomeIcon icon={faStar} className="text-black" />
                   <span className="font-semibold text-black">{rating}</span>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Bottom row: Category tag and Saved indicator */}
           <div className="flex items-center justify-between mt-auto pt-2">
-            {/* Category tag - FIX: Show subcategory */}
             <div>
               <span className="inline-block text-[10px] text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
-                {subcategory || capitalizeFirst(category)}
+                {tag}
               </span>
             </div>
-
-            {/* Saved indicator badge */}
             {isFavorite && !isProcessing && (
               <span className="inline-flex items-center gap-1 text-[10px] text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
                 <svg
@@ -1486,110 +1122,209 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
           </div>
         </div>
       </div>
-
-      {/* Hover overlay effect */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none"></div>
     </div>
   );
 };
 
-// ================== CATEGORY BREAKDOWN BADGES COMPONENT ==================
-const CategoryBreakdownBadges = ({ categories }) => {
-  if (!categories || categories.length === 0) return null;
+const CategoryButtons = ({ selectedCategories, onCategoryClick, isSwitchingCategory = false }) => {
+  const buttonConfigs = [
+    { 
+      key: "hotel", 
+      label: "Hotel", 
+      displayName: "Hotels",
+      icon: faBuilding 
+    },
+    { 
+      key: "restaurant", 
+      label: "Restaurant", 
+      displayName: "Restaurants",
+      icon: faUtensils 
+    },
+    { 
+      key: "shortlet", 
+      label: "Shortlet", 
+      displayName: "Shortlets",
+      icon: faHome 
+    },
+    { 
+      key: "vendor", 
+      label: "Vendor", 
+      displayName: "Services",
+      icon: FaUserCircle
+    }
+  ];
 
-  const topCategories = categories.slice(0, 3);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
 
   return (
-    <div className="mt-3">
-      <p className="text-xs text-gray-500 mb-2 font-medium">Places include:</p>
-      <div className="flex flex-wrap gap-2">
-        {topCategories.map(({ category, count }, index) => (
-          <div
-            key={index}
-            className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-50 rounded-lg border border-gray-200"
-          >
-            <FontAwesomeIcon
-              icon={getCategoryIcon(category)}
-              className="text-xs text-gray-600"
-            />
-            <span className="text-xs font-medium text-gray-700">
-              {getSubcategory(category)}
-            </span>
-            <span className="text-xs font-bold text-blue-600">({count})</span>
+    <div className="mt-4 md:mt-6 mb-4 md:mb-6 relative">
+      {isSwitchingCategory && (
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-xs z-10 rounded-xl flex items-center justify-center">
+          <div className="flex flex-col items-center">
+            <div className="w-8 h-8 border-3 border-[#06EAFC] border-t-transparent rounded-full animate-spin mb-2"></div>
+            <span className="text-xs text-gray-600">Switching...</span>
           </div>
-        ))}
+        </div>
+      )}
+      
+      <div className="relative">
+        {/* MOBILE BUTTONS - PERFECTLY FITTED, NO EXCESS PADDING */}
+        <div className="md:hidden overflow-x-auto scrollbar-hide pb-2 px-4">
+          <div className="flex space-x-2 min-w-max">
+            {buttonConfigs.map((button) => {
+              const isSelected = selectedCategories.some(
+                cat => cat.toLowerCase() === button.key.toLowerCase()
+              );
+              
+              return (
+                <button
+                  key={button.key}
+                  onClick={() => onCategoryClick(button.key)}
+                  disabled={isSwitchingCategory}
+                  className={`
+                    flex items-center justify-center gap-1.5 rounded-full
+                    whitespace-nowrap transition-all duration-200 font-medium
+                    ${isSelected 
+                      ? 'bg-[#06f49f] text-white shadow-sm'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                    }
+                    ${isSwitchingCategory ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}
+                    text-xs font-manrope
+                  `}
+                  style={{ 
+                    minWidth: 'auto',
+                    padding: '8px 14px', // Symmetrical: 14px both sides (fitted)
+                    marginRight: '6px'
+                  }}
+                >
+                  {button.icon === FaUserCircle ? (
+                    <button.icon className={`${isSelected ? 'text-white' : 'text-gray-500'} text-xs`} />
+                  ) : (
+                    <FontAwesomeIcon 
+                      icon={button.icon} 
+                      className={`${isSelected ? 'text-white' : 'text-gray-500'} text-xs`}
+                    />
+                  )}
+                  <span className="font-medium">{button.displayName}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* DESKTOP BUTTONS - Keep original styling */}
+        <div className="hidden md:block">
+          <div className="flex gap-2 justify-center">
+            {buttonConfigs.map((button) => {
+              const isSelected = selectedCategories.some(
+                cat => cat.toLowerCase() === button.key.toLowerCase()
+              );
+              return (
+                <button
+                  key={button.key}
+                  onClick={() => onCategoryClick(button.key)}
+                  disabled={isSwitchingCategory}
+                  className={`
+                    flex items-center justify-center gap-2 px-3 py-2.5 rounded-[15px]
+                    transition-all duration-200 font-medium
+                    ${isSelected 
+                      ? 'bg-[#06f49f] text-white shadow-sm'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+                    }
+                    ${isSwitchingCategory ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}
+                    text-base px-4 py-3
+                  `}
+                >
+                  {button.icon === FaUserCircle ? (
+                    <button.icon className={`${isSelected ? 'text-white' : 'text-gray-500'} text-base`} />
+                  ) : (
+                    <FontAwesomeIcon 
+                      icon={button.icon} 
+                      className={`${isSelected ? 'text-white' : 'text-gray-500'} text-base`}
+                    />
+                  )}
+                  <span className="text-base">
+                    {button.displayName}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
-// ================== ENHANCED FILTER SIDEBAR ==================
+/* ================== UPDATED FILTER SIDEBAR - SYNC WITH URL ================== */
 const FilterSidebar = ({
   onFilterChange,
   allLocations,
-  allCategories,
   currentFilters,
   onClose,
   isMobileModal = false,
   isDesktopModal = false,
-  currentSearchQuery = "",
-  onDynamicFilterApply,
   isInitialized,
   isMobile,
+  onClearSearchQuery,
+  onClearLocationFilters,
+  category,
+  searchQuery,
+  checkInDate,
+  checkOutDate,
+  guests,
+  navigate,
 }) => {
   const [localFilters, setLocalFilters] = useState(
     currentFilters || {
       locations: [],
-      categories: [],
       priceRange: { min: "", max: "" },
       ratings: [],
       sortBy: "relevance",
-      amenities: [],
     }
   );
 
   const [expandedSections, setExpandedSections] = useState({
     location: true,
-    category: false,
     price: true,
     rating: true,
-    amenities: false,
     sort: true,
   });
 
   const [locationSearch, setLocationSearch] = useState("");
-  const [categorySearch, setCategorySearch] = useState("");
-  const [showCategorySection, setShowCategorySection] = useState(false);
+  const locationSearchRef = useRef(null);
 
-  const uniqueLocationDisplayNames = React.useMemo(() => {
+  const allIbadanLocations = React.useMemo(() => {
     const locations = [
-      ...new Set(allLocations.map((loc) => getLocationDisplayName(loc))),
+      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly',  'Agodi',
+      'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
+      'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
+      'Akinyele',  'Mokola Hill', 'Sango Roundabout',
+      'Iwo Road', 'Gate', 'New Garage', 'Old Ife Road',
+      ...(allLocations || []).map(loc => getLocationDisplayName(loc))
     ];
-    return locations.sort();
+    
+    return [...new Set(locations)].sort();
   }, [allLocations]);
 
-  const uniqueCategoryDisplayNames = React.useMemo(() => {
-    const categories = [
-      ...new Set(allCategories.map((cat) => getCategoryDisplayName(cat))),
-    ];
-    return categories.sort();
-  }, [allCategories]);
-
   const filteredLocationDisplayNames = React.useMemo(() => {
-    if (!locationSearch.trim()) return uniqueLocationDisplayNames;
+    if (!locationSearch.trim()) return allIbadanLocations;
     const searchTerm = locationSearch.toLowerCase().trim();
-    return uniqueLocationDisplayNames.filter((location) =>
+    return allIbadanLocations.filter((location) =>
       location.toLowerCase().includes(searchTerm)
     );
-  }, [uniqueLocationDisplayNames, locationSearch]);
-
-  const filteredCategoryDisplayNames = React.useMemo(() => {
-    if (!categorySearch.trim()) return uniqueCategoryDisplayNames;
-    const searchTerm = categorySearch.toLowerCase().trim();
-    return uniqueCategoryDisplayNames.filter((category) =>
-      category.toLowerCase().includes(searchTerm)
-    );
-  }, [uniqueCategoryDisplayNames, categorySearch]);
+  }, [allIbadanLocations, locationSearch]);
 
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
@@ -1598,54 +1333,117 @@ const FilterSidebar = ({
     }));
   };
 
-  // Show category section when location is selected
-  useEffect(() => {
-    if (localFilters.locations.length > 0) {
-      setShowCategorySection(true);
-      if (!expandedSections.category) {
-        setExpandedSections((prev) => ({ ...prev, category: true }));
-      }
-    }
-  }, [localFilters.locations.length, expandedSections.category]);
-
-  // Sync local filters when currentFilters prop changes
   useEffect(() => {
     if (isInitialized && currentFilters) {
       setLocalFilters(currentFilters);
-      if (currentFilters.locations.length > 0) {
-        setShowCategorySection(true);
-      }
     }
   }, [currentFilters, isInitialized]);
 
-  // Updated filter handlers with immediate application for desktop non-modal
-  const handleLocationChange = (location) => {
-    const updatedFilters = {
-      ...localFilters,
-      locations: localFilters.locations.includes(location)
-        ? localFilters.locations.filter((l) => l !== location)
-        : [...localFilters.locations, location],
-    };
-    setLocalFilters(updatedFilters);
+  const updateUrlWithFilters = (filters) => {
+    if (!navigate || !category) return;
+    
+    const params = new URLSearchParams();
+    
+    params.set("cat", category);
+    
+    if (checkInDate) params.set("checkInDate", checkInDate.toISOString());
+    if (checkOutDate) params.set("checkOutDate", checkOutDate.toISOString());
+    
+    if (guests) params.set("guests", JSON.stringify(guests));
+    
+    if (searchQuery && searchQuery.trim()) {
+      params.set("q", searchQuery.trim());
+    }
+    
+    if (filters.locations && filters.locations.length > 0) {
+      params.set("location", filters.locations[0]);
+      params.delete("q");
+    }
+    
+    if (filters.priceRange?.min) {
+      params.set("minPrice", filters.priceRange.min);
+    }
+    if (filters.priceRange?.max) {
+      params.set("maxPrice", filters.priceRange.max);
+    }
+    
+    if (filters.ratings && filters.ratings.length > 0) {
+      params.set("minRating", Math.min(...filters.ratings));
+    }
+    
+    if (filters.sortBy && filters.sortBy !== 'relevance') {
+      params.set("sort", filters.sortBy);
+    }
+    
+    const categorySlug = getCategorySlug(category);
+    let locationSlug = null;
+    
+    if (filters.locations && filters.locations.length > 0) {
+      locationSlug = createSlug(filters.locations[0]);
+    }
+    else if (searchQuery && looksLikeLocation(searchQuery)) {
+      locationSlug = createSlug(searchQuery);
+    }
+    
+    let seoPath = '';
+    if (categorySlug && locationSlug) {
+      seoPath = `/${categorySlug}-in-${locationSlug}`;
+    } else if (categorySlug) {
+      seoPath = `/${categorySlug}`;
+    } else if (locationSlug) {
+      seoPath = `/places-in-${locationSlug}`;
+    } else {
+      seoPath = '/search';
+    }
+    
+    const finalUrl = params.toString() 
+      ? `${seoPath}?${params.toString()}`
+      : seoPath;
+    
+    navigate(finalUrl);
+  };
 
-    // For desktop non-modal, apply immediately
-    if (!isMobileModal && !isDesktopModal && !isMobile) {
+  const handleLocationSearch = (value) => {
+    setLocationSearch(value);
+    
+    if (value.trim() && localFilters.locations.length > 0) {
+      const updatedFilters = {
+        ...localFilters,
+        locations: [],
+      };
+      setLocalFilters(updatedFilters);
       onFilterChange(updatedFilters);
+      updateUrlWithFilters(updatedFilters);
+    }
+    
+    if (onClearSearchQuery && value.trim()) {
+      onClearSearchQuery();
+    }
+    
+    if (onClearLocationFilters && value.trim()) {
+      onClearLocationFilters();
     }
   };
 
-  const handleCategoryChange = (category) => {
+  const handleLocationChange = (location) => {
+    if (onClearSearchQuery) {
+      onClearSearchQuery();
+    }
+    
+    if (onClearLocationFilters) {
+      onClearLocationFilters();
+    }
+    
     const updatedFilters = {
       ...localFilters,
-      categories: localFilters.categories.includes(category)
-        ? localFilters.categories.filter((c) => c !== category)
-        : [...localFilters.categories, category],
+      locations: [location],
     };
     setLocalFilters(updatedFilters);
-
-    // For desktop non-modal, apply immediately
-    if (!isMobileModal && !isDesktopModal && !isMobile) {
-      onFilterChange(updatedFilters);
+    onFilterChange(updatedFilters);
+    updateUrlWithFilters(updatedFilters);
+    
+    if (isMobileModal || isDesktopModal) {
+      onClose();
     }
   };
 
@@ -1657,11 +1455,8 @@ const FilterSidebar = ({
         : [...localFilters.ratings, stars],
     };
     setLocalFilters(updatedFilters);
-
-    // For desktop non-modal, apply immediately
-    if (!isMobileModal && !isDesktopModal && !isMobile) {
-      onFilterChange(updatedFilters);
-    }
+    onFilterChange(updatedFilters);
+    updateUrlWithFilters(updatedFilters);
   };
 
   const handlePriceChange = (field, value) => {
@@ -1673,90 +1468,59 @@ const FilterSidebar = ({
       },
     };
     setLocalFilters(updatedFilters);
-
-    // For desktop non-modal, apply immediately
-    if (!isMobileModal && !isDesktopModal && !isMobile) {
+    
+    const timeoutId = setTimeout(() => {
       onFilterChange(updatedFilters);
-    }
+      updateUrlWithFilters(updatedFilters);
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  };
+
+  const handleSortChange = (sortBy) => {
+    const updatedFilters = {
+      ...localFilters,
+      sortBy,
+    };
+    setLocalFilters(updatedFilters);
+    onFilterChange(updatedFilters);
+    updateUrlWithFilters(updatedFilters);
   };
 
   const handleSelectAllLocations = () => {
+    if (onClearSearchQuery) {
+      onClearSearchQuery();
+    }
+    
+    if (onClearLocationFilters) {
+      onClearLocationFilters();
+    }
+    
     const updatedFilters = {
       ...localFilters,
       locations:
-        localFilters.locations.length === uniqueLocationDisplayNames.length
+        localFilters.locations.length === allIbadanLocations.length
           ? []
-          : [...uniqueLocationDisplayNames],
+          : [...allIbadanLocations],
     };
     setLocalFilters(updatedFilters);
-
-    // For desktop non-modal, apply immediately
-    if (!isMobileModal && !isDesktopModal && !isMobile) {
-      onFilterChange(updatedFilters);
-    }
+    onFilterChange(updatedFilters);
+    updateUrlWithFilters(updatedFilters);
   };
 
-  const handleSelectAllCategories = () => {
-    const updatedFilters = {
-      ...localFilters,
-      categories:
-        localFilters.categories.length === uniqueCategoryDisplayNames.length
-          ? []
-          : [...uniqueCategoryDisplayNames],
-    };
-    setLocalFilters(updatedFilters);
-
-    // For desktop non-modal, apply immediately
-    if (!isMobileModal && !isDesktopModal && !isMobile) {
-      onFilterChange(updatedFilters);
-    }
-  };
-
-  // Apply filters when user clicks Apply button (for modals only)
   const handleApplyFilters = () => {
-    // Apply the local filters to the main component
+    if (onClearSearchQuery) {
+      onClearSearchQuery();
+    }
+    
     onFilterChange(localFilters);
+    updateUrlWithFilters(localFilters);
+    onClose();
+  };
 
-    if (onDynamicFilterApply) {
-      const hasCategoryFilters = localFilters.categories.length > 0;
-      const hasLocationFilters = localFilters.locations.length > 0;
-
-      let categoryParams = [];
-      if (hasCategoryFilters) {
-        localFilters.categories.forEach((catDisplayName) => {
-          const selectedCategory = allCategories.find(
-            (cat) => getCategoryDisplayName(cat) === catDisplayName
-          );
-          if (selectedCategory) {
-            categoryParams.push(selectedCategory);
-          }
-        });
-      }
-
-      let locationParams = [];
-      if (hasLocationFilters) {
-        localFilters.locations.forEach((locDisplayName) => {
-          const selectedLocation = allLocations.find(
-            (loc) => getLocationDisplayName(loc) === locDisplayName
-          );
-          if (selectedLocation) {
-            locationParams.push(selectedLocation);
-          }
-        });
-      }
-
-      onDynamicFilterApply({
-        filters: localFilters,
-        categories: categoryParams,
-        locations: locationParams,
-        keepSearchQuery: currentSearchQuery,
-      });
-    }
-
-    // Close the modal if it's open
-    if (onClose) {
-      onClose();
-    }
+  const handleCancelFilters = () => {
+    setLocalFilters(currentFilters);
+    onClose();
   };
 
   const sidebarContent = (
@@ -1779,7 +1543,7 @@ const FilterSidebar = ({
           </div>
           <button
             onClick={onClose}
-            className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl"
+            className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl cursor-pointer"
             aria-label="Close filters"
           >
             ×
@@ -1787,11 +1551,10 @@ const FilterSidebar = ({
         </div>
       )}
 
-      {/* LOCATION SECTION WITH SEARCH */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("location")}
-          className="w-full flex justify-between items-center mb-3"
+          className="w-full flex justify-between items-center mb-3 cursor-pointer"
         >
           <div className="flex items-center gap-2">
             <FontAwesomeIcon icon={faMapMarkerAlt} className="text-blue-500" />
@@ -1817,16 +1580,17 @@ const FilterSidebar = ({
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"
                 />
                 <input
+                  ref={locationSearchRef}
                   type="text"
-                  placeholder="Search locations..."
+                  placeholder="Search all Ibadan locations..."
                   value={locationSearch}
-                  onChange={(e) => setLocationSearch(e.target.value)}
-                  className="w-full pl-10 pr-8 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  onChange={(e) => handleLocationSearch(e.target.value)}
+                  className="w-full pl-10 pr-8 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-text"
                 />
                 {locationSearch && (
                   <button
                     onClick={() => setLocationSearch("")}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                   >
                     <FontAwesomeIcon icon={faTimes} className="text-sm" />
                   </button>
@@ -1835,10 +1599,9 @@ const FilterSidebar = ({
               <div className="flex justify-between mb-2">
                 <button
                   onClick={handleSelectAllLocations}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
                 >
-                  {localFilters.locations.length ===
-                  uniqueLocationDisplayNames.length
+                  {localFilters.locations.length === allIbadanLocations.length
                     ? "Clear All Locations"
                     : "Select All Locations"}
                 </button>
@@ -1850,50 +1613,56 @@ const FilterSidebar = ({
             <div className="max-h-52 overflow-y-auto pr-1">
               {filteredLocationDisplayNames.length === 0 ? (
                 <div className="text-center py-4 text-gray-500 text-sm">
-                  No locations found matching "{locationSearch}"
+                  {locationSearch ? `No locations found matching "${locationSearch}"` : "No locations available"}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-2">
-                  {filteredLocationDisplayNames.map((location, index) => (
-                    <label
-                      key={index}
-                      className="flex items-center space-x-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={localFilters.locations.includes(location)}
-                        onChange={() => handleLocationChange(location)}
-                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
-                      />
-                      <span
-                        className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
-                          localFilters.locations.includes(location)
-                            ? "text-blue-700 font-medium"
-                            : "text-gray-700"
+                  {filteredLocationDisplayNames.map((location, index) => {
+                    const isSelected = localFilters.locations.includes(location);
+                    return (
+                      <label
+                        key={index}
+                        className={`flex items-center space-x-2 cursor-pointer group p-2 rounded-lg transition-colors ${
+                          isSelected 
+                            ? 'bg-blue-50 border border-blue-200' 
+                            : 'hover:bg-gray-50'
                         }`}
-                        style={{
-                          flex: 1,
-                        }}
+                        onClick={() => handleLocationChange(location)}
                       >
-                        {location}
-                      </span>
-                      {localFilters.locations.includes(location) && (
-                        <FontAwesomeIcon
-                          icon={faCheck}
-                          className="text-sm text-blue-600"
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleLocationChange(location)}
+                          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors cursor-pointer flex-shrink-0"
                         />
-                      )}
-                    </label>
-                  ))}
+                        <span
+                          className={`text-sm transition-colors truncate flex-1 ${
+                            isSelected
+                              ? "text-blue-700 font-medium"
+                              : "text-gray-700 group-hover:text-[#06EAFC]"
+                          }`}
+                        >
+                          {location}
+                        </span>
+                        {isSelected && (
+                          <FontAwesomeIcon
+                            icon={faCheck}
+                            className="text-sm text-blue-600 ml-2 flex-shrink-0"
+                          />
+                        )}
+                      </label>
+                    );
+                  })}
                 </div>
               )}
             </div>
-            {localFilters.locations.length > 0 && (
-              <div className="mt-3 p-2 bg-blue-50 rounded-lg">
-                <p className="text-xs text-blue-800">
-                  Selected: {localFilters.locations.slice(0, 3).join(", ")}
-                  {localFilters.locations.length > 3 &&
-                    ` +${localFilters.locations.length - 3} more`}
+            {currentFilters.locations.length > 0 && (
+              <div className="mt-3 p-2 bg-blue-50 rounded-lg border border-blue-100">
+                <p className="text-xs text-blue-800 font-medium mb-1">
+                  Currently selected location:
+                </p>
+                <p className="text-sm text-blue-700">
+                  {currentFilters.locations[0]}
                 </p>
               </div>
             )}
@@ -1901,132 +1670,13 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* CATEGORY SECTION WITH SEARCH - Show after location selection */}
-      {(showCategorySection || localFilters.categories.length > 0) && (
-        <div className="border-b pb-4">
-          <button
-            onClick={() => toggleSection("category")}
-            className="w-full flex justify-between items-center mb-3"
-          >
-            <div className="flex items-center gap-2">
-              <FontAwesomeIcon icon={faFilter} className="text-green-500" />
-              <h4 className="font-semibold text-gray-900 text-base">
-                Category
-              </h4>
-              {localFilters.categories.length > 0 && (
-                <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full">
-                  {localFilters.categories.length}
-                </span>
-              )}
-            </div>
-            <FontAwesomeIcon
-              icon={expandedSections.category ? faChevronUp : faChevronDown}
-              className="text-gray-400"
-            />
-          </button>
-
-          {expandedSections.category && (
-            <>
-              <div className="mb-3">
-                <div className="relative mb-3">
-                  <FontAwesomeIcon
-                    icon={faSearch}
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search categories..."
-                    value={categorySearch}
-                    onChange={(e) => setCategorySearch(e.target.value)}
-                    className="w-full pl-10 pr-8 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                  />
-                  {categorySearch && (
-                    <button
-                      onClick={() => setCategorySearch("")}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      <FontAwesomeIcon icon={faTimes} className="text-sm" />
-                    </button>
-                  )}
-                </div>
-                <div className="flex justify-between mb-2">
-                  <button
-                    onClick={handleSelectAllCategories}
-                    className="text-sm text-green-600 hover:text-green-700 font-medium"
-                  >
-                    {localFilters.categories.length ===
-                    uniqueCategoryDisplayNames.length
-                      ? "Clear All Categories"
-                      : "Select All Categories"}
-                  </button>
-                  <span className="text-xs text-gray-500">
-                    {filteredCategoryDisplayNames.length} categories
-                  </span>
-                </div>
-              </div>
-              <div className="max-h-52 overflow-y-auto pr-1">
-                {filteredCategoryDisplayNames.length === 0 ? (
-                  <div className="text-center py-4 text-gray-500 text-sm">
-                    No categories found matching "{categorySearch}"
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-2">
-                    {filteredCategoryDisplayNames.map((category, index) => (
-                      <label
-                        key={index}
-                        className="flex items-center space-x-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={localFilters.categories.includes(category)}
-                          onChange={() => handleCategoryChange(category)}
-                          className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 transition-colors"
-                        />
-                        <span
-                          className={`text-sm group-hover:text-[#06EAFC] transition-colors truncate ${
-                            localFilters.categories.includes(category)
-                              ? "text-green-700 font-medium"
-                              : "text-gray-700"
-                          }`}
-                          style={{
-                            flex: 1,
-                          }}
-                        >
-                          {category}
-                        </span>
-                        {localFilters.categories.includes(category) && (
-                          <FontAwesomeIcon
-                            icon={faCheck}
-                            className="text-sm text-green-600"
-                          />
-                        )}
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {localFilters.categories.length > 0 && (
-                <div className="mt-3 p-2 bg-green-50 rounded-lg">
-                  <p className="text-xs text-green-800">
-                    Selected: {localFilters.categories.slice(0, 3).join(", ")}
-                    {localFilters.categories.length > 3 &&
-                      ` +${localFilters.categories.length - 3} more`}
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* PRICE RANGE SECTION */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("price")}
-          className="w-full flex justify-between items-center mb-3"
+          className="w-full flex justify-between items-center mb-3 cursor-pointer"
         >
           <div className="flex items-center gap-2">
-            <FontAwesomeIcon icon={faDollarSign} className="text-yellow-500" />
+            <span className="text-yellow-500 font-bold">#</span>
             <h4 className="font-semibold text-gray-900 text-base">
               Price Range
             </h4>
@@ -2050,7 +1700,7 @@ const FilterSidebar = ({
                   Min Price
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-bold">
                     #
                   </span>
                   <input
@@ -2058,7 +1708,7 @@ const FilterSidebar = ({
                     placeholder="2,500"
                     value={localFilters.priceRange.min}
                     onChange={(e) => handlePriceChange("min", e.target.value)}
-                    className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-text"
                   />
                 </div>
               </div>
@@ -2068,7 +1718,7 @@ const FilterSidebar = ({
                   Max Price
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-bold">
                     #
                   </span>
                   <input
@@ -2076,7 +1726,7 @@ const FilterSidebar = ({
                     placeholder="50,000"
                     value={localFilters.priceRange.max}
                     onChange={(e) => handlePriceChange("max", e.target.value)}
-                    className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-text"
                   />
                 </div>
               </div>
@@ -2090,13 +1740,10 @@ const FilterSidebar = ({
                       priceRange: { min: "", max: "" },
                     };
                     setLocalFilters(updatedFilters);
-
-                    // For desktop non-modal, apply immediately
-                    if (!isMobileModal && !isDesktopModal && !isMobile) {
-                      onFilterChange(updatedFilters);
-                    }
+                    onFilterChange(updatedFilters);
+                    updateUrlWithFilters(updatedFilters);
                   }}
-                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   Clear Price Range
                 </button>
@@ -2106,11 +1753,10 @@ const FilterSidebar = ({
         )}
       </div>
 
-      {/* RATING SECTION */}
       <div className="border-b pb-4">
         <button
           onClick={() => toggleSection("rating")}
-          className="w-full flex justify-between items-center mb-3"
+          className="w-full flex justify-between items-center mb-3 cursor-pointer"
         >
           <div className="flex items-center gap-2">
             <FontAwesomeIcon icon={faStar} className="text-yellow-500" />
@@ -2140,7 +1786,7 @@ const FilterSidebar = ({
                   type="checkbox"
                   checked={localFilters.ratings.includes(stars)}
                   onChange={() => handleRatingChange(stars)}
-                  className="w-4 h-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500 transition-colors"
+                  className="w-4 h-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500 transition-colors cursor-pointer"
                 />
                 <div className="flex items-center space-x-2">
                   <div className="flex">
@@ -2175,13 +1821,10 @@ const FilterSidebar = ({
                       ratings: [],
                     };
                     setLocalFilters(updatedFilters);
-
-                    // For desktop non-modal, apply immediately
-                    if (!isMobileModal && !isDesktopModal && !isMobile) {
-                      onFilterChange(updatedFilters);
-                    }
+                    onFilterChange(updatedFilters);
+                    updateUrlWithFilters(updatedFilters);
                   }}
-                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   Clear Ratings
                 </button>
@@ -2190,10 +1833,73 @@ const FilterSidebar = ({
           </div>
         )}
       </div>
+
+      <div className="border-b pb-4">
+        <button
+          onClick={() => toggleSection("sort")}
+          className="w-full flex justify-between items-center mb-3 cursor-pointer"
+        >
+          <div className="flex items-center gap-2">
+            <FontAwesomeIcon icon={faFilter} className="text-gray-500" />
+            <h4 className="font-semibold text-gray-900 text-base">
+              Sort By
+            </h4>
+          </div>
+          <FontAwesomeIcon
+            icon={expandedSections.sort ? faChevronUp : faChevronDown}
+            className="text-gray-400"
+          />
+        </button>
+
+        {expandedSections.sort && (
+          <div className="space-y-2">
+            {[
+              { value: 'relevance', label: 'Relevance' },
+              { value: 'price_low', label: 'Price: Low to High' },
+              { value: 'price_high', label: 'Price: High to Low' },
+              { value: 'rating', label: 'Highest Rated' },
+              { value: 'name', label: 'Name: A to Z' },
+            ].map((option) => (
+              <label
+                key={option.value}
+                className="flex items-center space-x-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <input
+                  type="radio"
+                  name="sort"
+                  value={option.value}
+                  checked={localFilters.sortBy === option.value}
+                  onChange={() => handleSortChange(option.value)}
+                  className="w-4 h-4 rounded-full border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors cursor-pointer"
+                />
+                <span
+                  className={`text-sm group-hover:text-[#06EAFC] transition-colors ${
+                    localFilters.sortBy === option.value
+                      ? "text-blue-700 font-medium"
+                      : "text-gray-700"
+                  }`}
+                >
+                  {option.label}
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {(isMobileModal || isDesktopModal) && (
+        <div className="flex gap-2 pt-4">
+          <button
+            onClick={handleApplyFilters}
+            className="flex-1 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+          >
+            Apply Filters
+          </button>
+        </div>
+      )}
     </div>
   );
 
-  // Mobile Modal - Fullscreen
   if (isMobileModal) {
     return createPortal(
       <motion.div
@@ -2217,7 +1923,6 @@ const FilterSidebar = ({
           className="h-full overflow-y-auto w-full"
           style={{ paddingLeft: "0", paddingRight: "0" }}
         >
-          {/* Main content with minimal padding */}
           <div
             className="pt-5"
             style={{
@@ -2227,26 +1932,22 @@ const FilterSidebar = ({
             }}
           >
             {sidebarContent}
-          </div>
-
-          {/* Mobile Action Buttons */}
-          <div
-            className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]"
-            style={{
-              paddingLeft: "0.75rem",
-              paddingRight: "0.75rem",
-            }}
-          >
-            <button
-              onClick={handleApplyFilters}
-              className="w-full px-4 py-3.5 text-base font-bold bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2 shadow-lg"
-              style={{
-                fontSize: "16px",
-              }}
-            >
-              <FontAwesomeIcon icon={faCheck} className="text-base" />
-              Apply Filter
-            </button>
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCancelFilters}
+                  className="flex-1 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleApplyFilters}
+                  className="flex-1 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </motion.div>,
@@ -2254,7 +1955,6 @@ const FilterSidebar = ({
     );
   }
 
-  // Desktop Modal - Fullscreen
   if (isDesktopModal) {
     return createPortal(
       <motion.div
@@ -2287,7 +1987,7 @@ const FilterSidebar = ({
                 </div>
                 <button
                   onClick={onClose}
-                  className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl"
+                  className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors text-xl cursor-pointer"
                   aria-label="Close filters"
                 >
                   ×
@@ -2297,15 +1997,12 @@ const FilterSidebar = ({
           </div>
           <div className="container mx-auto px-4 py-6 max-w-4xl">
             {sidebarContent}
-
-            {/* Modal Action Buttons */}
-            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg mt-8">
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 mt-6">
               <button
-                onClick={handleApplyFilters}
-                className="w-full px-4 py-3 text-sm font-medium bg-[#06EAFC] text-white rounded-xl hover:bg-[#05d9eb] transition-all duration-200 flex items-center justify-center gap-2"
+                onClick={onClose}
+                className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
               >
-                <FontAwesomeIcon icon={faCheck} />
-                Apply Filter
+                Apply Filters
               </button>
             </div>
           </div>
@@ -2315,239 +2012,1145 @@ const FilterSidebar = ({
     );
   }
 
-  // Regular sidebar (not modal) - NO APPLY BUTTON for desktop
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit">
-      {sidebarContent}
-      {/* NO Apply button for desktop - filters apply immediately */}
-    </div>
-  );
-};
-
-// ---------------- CategorySection Component ----------------
-const CategorySection = ({ title, items, sectionId, isMobile, category }) => {
-  const navigate = useNavigate();
-  const [showLeftArrow, setShowLeftArrow] = useState(false);
-  const [showRightArrow, setShowRightArrow] = useState(true);
-  const containerRef = useRef(null);
-
-  if (items.length === 0) return null;
-
-  const getCategoryFromTitle = (title) => {
-    const words = title.toLowerCase().split(" ");
-    if (words.includes("hotel")) return "hotel";
-    if (words.includes("shortlet")) return "shortlet";
-    if (words.includes("restaurant")) return "restaurant";
-    if (words.includes("tourist")) return "tourist-center";
-    return words[1] || "all";
-  };
-
-  const categorySlug = getCategoryFromTitle(title);
-  // FIX: Get subcategory for section title
-  const subcategoryTitle = getSubcategory(title) || title;
-
-  // Check scroll position to update arrow states
-  const checkScrollPosition = () => {
-    if (!containerRef.current) return;
-
-    const container = containerRef.current;
-    const { scrollLeft, scrollWidth, clientWidth } = container;
-
-    setShowLeftArrow(scrollLeft > 0);
-    const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 10;
-    setShowRightArrow(!isAtEnd);
-  };
-
-  // Initialize and add scroll listener
-  useEffect(() => {
-    const container = containerRef.current;
-    if (container) {
-      checkScrollPosition();
-      container.addEventListener("scroll", checkScrollPosition);
-      window.addEventListener("resize", checkScrollPosition);
-
-      return () => {
-        container.removeEventListener("scroll", checkScrollPosition);
-        window.removeEventListener("resize", checkScrollPosition);
-      };
-    }
-  }, [items.length, isMobile]);
-
-  const scrollSection = (direction) => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const cardWidth = isMobile ? 165 + 4 : 210 + 8;
-    const cardsToScroll = isMobile ? 3 : 3;
-    const scrollAmount = cardWidth * cardsToScroll;
-
-    const newPosition =
-      direction === "next"
-        ? container.scrollLeft + scrollAmount
-        : container.scrollLeft - scrollAmount;
-
-    container.scrollTo({
-      left: newPosition,
-      behavior: "smooth",
-    });
-
-    setTimeout(checkScrollPosition, 300);
-  };
-
-  const handleCategoryClick = () => {
-    navigate(`/category/${categorySlug}`);
-  };
-
-  return (
-    <section className="mb-4">
-      <div className="flex justify-between items-center mb-2">
-        <div>
-          <button
-            onClick={handleCategoryClick}
-            className={`
-              text-[#00065A] hover:text-[#06EAFC] transition-colors text-left
-              ${isMobile ? "text-sm" : "text-[19px]"} 
-              font-bold cursor-pointer flex items-center gap-1
-            `}
-          >
-            {subcategoryTitle}
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </button>
-        </div>
-        <div className="flex gap-1">
-          {/* Left arrow */}
-          <button
-            onClick={() => scrollSection("prev")}
-            className={`w-6 h-6 rounded-full flex items-center justify-center transition-all shadow-sm ${
-              showLeftArrow
-                ? "bg-[#D9D9D9] hover:bg-gray-300 cursor-pointer"
-                : "bg-gray-100 cursor-not-allowed"
-            }`}
-            disabled={!showLeftArrow}
-          >
-            <FaLessThan
-              className={`text-[10px] ${
-                showLeftArrow ? "text-gray-600" : "text-gray-400"
-              }`}
-            />
-          </button>
-
-          {/* Right arrow */}
-          <button
-            onClick={() => scrollSection("next")}
-            className={`w-6 h-6 rounded-full flex items-center justify-center transition-all shadow-sm ${
-              showRightArrow
-                ? "bg-[#D9D9D9] hover:bg-gray-300 cursor-pointer"
-                : "bg-gray-100 cursor-not-allowed"
-            }`}
-            disabled={!showRightArrow}
-          >
-            <FaGreaterThan
-              className={`text-[10px] ${
-                showRightArrow ? "text-gray-600" : "text-gray-400"
-              }`}
-            />
-          </button>
-        </div>
-      </div>
-
-      <div className="relative">
-        <div
-          ref={containerRef}
-          id={sectionId}
-          className={`flex overflow-x-auto scrollbar-hide scroll-smooth ${
-            isMobile ? "gap-1 pl-0" : "gap-2"
-          }`}
-          style={{
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
-            paddingRight: "8px",
-          }}
-        >
-          {items.map((item, index) => (
-            <SearchResultBusinessCard
-              key={item.id || index}
-              item={item}
-              category={category || sectionId.replace("-section", "")}
-              isMobile={isMobile}
-            />
-          ))}
-          {/* Spacer for last card visibility */}
-          <div className="flex-shrink-0" style={{ width: "8px" }}></div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-// ================== FILTER PILL ==================
-const FilterPill = ({ type, label, value, onRemove }) => {
-  const getPillColor = (type) => {
-    switch (type) {
-      case "location":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "category":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "price":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "rating":
-        return "bg-purple-100 text-purple-800 border-purple-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
-
-  const getIcon = (type) => {
-    switch (type) {
-      case "location":
-        return faMapMarkerAlt;
-      case "category":
-        return faFilter;
-      case "price":
-        return faDollarSign;
-      case "rating":
-        return faStar;
-      default:
-        return faFilter;
-    }
-  };
-
-  return (
-    <div
-      className={`inline-flex items-center gap-2 px-3 py-2 rounded-full border ${getPillColor(
-        type
-      )} text-sm`}
+    <div 
+      className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-fit"
+      style={{
+        minWidth: '250px',
+        maxWidth: '280px',
+        width: 'calc(25% - 20%)',
+        flexShrink: 0,
+        position: 'sticky',
+        top: '100px',
+        height: 'fit-content'
+      }}
     >
-      <FontAwesomeIcon icon={getIcon(type)} className="text-xs" />
-      <span>
-        {label}: {value}
-      </span>
-      <button
-        onClick={onRemove}
-        className="ml-1 hover:opacity-70 transition-opacity"
-        aria-label={`Remove ${label} filter`}
-      >
-        ×
-      </button>
+      {sidebarContent}
     </div>
   );
 };
 
-// ================== MAIN SEARCHRESULTS COMPONENT ==================
+/* ================== DESKTOP SEARCH SUGGESTIONS ================== */
+const DesktopSearchSuggestions = ({
+  searchQuery,
+  allLocations = [],
+  onSuggestionClick,
+  onClose,
+  isVisible,
+  searchBarPosition,
+  activeCategory,
+  checkInDate,
+  checkOutDate,
+  guests,
+  onLocationSelected,
+}) => {
+  const suggestionsRef = useRef(null);
+  
+  const generateSuggestions = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    
+    const queryLower = searchQuery.toLowerCase().trim();
+    const suggestions = [];
+    
+    const allIbadanLocations = [
+      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly', 'Agodi',
+      'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
+      'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
+      'Akinyele',  'Mokola Hill', 'Sango Roundabout',
+      'Iwo Road', 'Gate', 'Molete', 'Challenge', 'New Garage', 'Old Ife Road',
+      ...allLocations.map(loc => getLocationDisplayName(loc))
+    ];
+    
+    const uniqueLocations = [...new Set(allIbadanLocations)].sort();
+    
+    const locationMatches = uniqueLocations
+      .filter((location) => {
+        const displayName = location.toLowerCase();
+        return displayName.includes(queryLower) || 
+               normalizeLocation(location).includes(normalizeLocation(queryLower));
+      })
+      .map((location) => {
+        let categoryPlural = activeCategory;
+        if (activeCategory === "Hotel") categoryPlural = "Hotels";
+        else if (activeCategory === "Restaurant") categoryPlural = "Restaurants";
+        else if (activeCategory === "Shortlet") categoryPlural = "Shortlets";
+        else if (activeCategory === "Vendor") categoryPlural = "Vendors";
+        else categoryPlural = activeCategory + "s";
+
+        return {
+          type: "location",
+          title: location,
+          location: location,
+          description: `${categoryPlural} in ${location}, Ibadan`,
+          action: (pasteToSearch = false) => {
+            if (pasteToSearch) {
+              return location;
+            }
+            
+            const categorySlug = getCategorySlug(activeCategory);
+            const locationSlug = createSlug(location);
+            
+            if (categorySlug && locationSlug) {
+              const seoPath = `/${categorySlug}-in-${locationSlug}`;
+              const queryParams = new URLSearchParams();
+              
+              if (checkInDate) queryParams.append("checkInDate", checkInDate.toISOString());
+              if (checkOutDate) queryParams.append("checkOutDate", checkOutDate.toISOString());
+              if (guests) queryParams.append("guests", JSON.stringify(guests));
+              queryParams.append("q", location);
+              queryParams.append("cat", activeCategory);
+              
+              return queryParams.toString() 
+                ? `${seoPath}?${queryParams.toString()}`
+                : seoPath;
+            }
+            return '/';
+          },
+        };
+      });
+
+    if (locationMatches.length === 0 && searchQuery.trim()) {
+      suggestions.push({
+        type: "search",
+        title: `Search for "${searchQuery}"`,
+        description: `Find ${activeCategory.toLowerCase()}s matching "${searchQuery}" in Ibadan`,
+        action: (pasteToSearch = false) => {
+          if (pasteToSearch) {
+            return searchQuery;
+          }
+          
+          const categorySlug = getCategorySlug(activeCategory);
+          const queryParams = new URLSearchParams();
+          
+          if (checkInDate) queryParams.append("checkInDate", checkInDate.toISOString());
+          if (checkOutDate) queryParams.append("checkOutDate", checkOutDate.toISOString());
+          if (guests) queryParams.append("guests", JSON.stringify(guests));
+          queryParams.append("q", searchQuery);
+          queryParams.append("cat", activeCategory);
+          
+          if (categorySlug) {
+            const seoPath = `/${categorySlug}`;
+            return queryParams.toString() 
+              ? `${seoPath}?${queryParams.toString()}`
+              : seoPath;
+          }
+          return `/search?${queryParams.toString()}`;
+        },
+      });
+    }
+
+    return locationMatches
+      .sort((a, b) => {
+        const aExact = a.title.toLowerCase() === queryLower;
+        const bExact = b.title.toLowerCase() === queryLower;
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+        
+        const aStartsWith = a.title.toLowerCase().startsWith(queryLower);
+        const bStartsWith = b.title.toLowerCase().startsWith(queryLower);
+        if (aStartsWith && !bStartsWith) return -1;
+        if (!aStartsWith && bStartsWith) return 1;
+        
+        return 0;
+      })
+      .slice(0, 10);
+  }, [searchQuery, activeCategory, checkInDate, checkOutDate, guests, allLocations]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+    if (isVisible) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isVisible, onClose]);
+
+  if (!isVisible || !searchQuery.trim()) return null;
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-transparent z-[9980]" onClick={onClose} />
+      <div
+        ref={suggestionsRef}
+        className="absolute bg-white rounded-xl shadow-2xl border border-gray-200 z-[9981] overflow-hidden"
+        style={{
+          left: `${searchBarPosition?.left || 0}px`,
+          top: `${(searchBarPosition?.top || 0) + (searchBarPosition?.height || 0) + 10}px`,
+          width: `${searchBarPosition?.width || 0}px`,
+          maxHeight: "70vh",
+          boxShadow: "0 10px 40px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)",
+        }}
+      >
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <FontAwesomeIcon icon={faSearch} className="text-gray-500 text-sm" />
+              <span className="text-sm font-medium text-gray-700">Search locations in Ibadan</span>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded cursor-pointer"
+              aria-label="Close suggestions"
+            >
+              <FontAwesomeIcon icon={faTimes} className="text-sm" />
+            </button>
+          </div>
+        </div>
+        <div className="overflow-y-auto" style={{ maxHeight: "calc(70vh - 56px)" }}>
+          <div className="p-2">
+            {generateSuggestions.length === 0 ? (
+              <div className="p-4 text-center text-gray-500">
+                <FontAwesomeIcon icon={faSearch} className="text-2xl mb-2 opacity-50" />
+                <p className="text-sm">No matching locations found</p>
+                <p className="text-xs mt-1">Try a different search term</p>
+              </div>
+            ) : (
+              <>
+                <div className="px-3 py-2">
+                  <p className="text-xs text-gray-500 mb-2">
+                    Showing {generateSuggestions.length} location{generateSuggestions.length !== 1 ? 's' : ''} in Ibadan
+                  </p>
+                </div>
+                {generateSuggestions.map((suggestion, index) => (
+                  <div key={index} className="mb-1 last:mb-0 border-b border-gray-100 last:border-0">
+                    <div className="flex items-start p-3 bg-white hover:bg-gray-50 rounded-lg transition-all duration-200 group">
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100 flex-shrink-0 group-hover:bg-blue-50 transition-colors">
+                        <FontAwesomeIcon 
+                          icon={suggestion.type === "search" ? faSearch : faMapMarkerAlt} 
+                          className="text-gray-700 text-sm group-hover:text-blue-600"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0 ml-3">
+                        <div className="flex items-start justify-between mb-1">
+                          <h4 className="font-medium text-gray-900 text-sm truncate">{suggestion.title}</h4>
+                          <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                            {suggestion.type === "search" ? "Search" : "Location"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-600 mb-2 line-clamp-2">{suggestion.description}</p>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => {
+                              if (onLocationSelected) {
+                                onLocationSelected(suggestion.action(true));
+                              }
+                              onClose();
+                            }}
+                            className="px-3 py-1.5 text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer"
+                          >
+                            Paste to Search
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div className="px-3 py-4 mt-2 border-t border-gray-200">
+                  <p className="text-xs text-gray-500 text-center">
+                    Click "Paste to Search" to insert the exact location text into the search box
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+/* ================== MOBILE SEARCH MODAL ================== */
+const MobileSearchModalResults = ({
+  searchQuery,
+  allLocations = [],
+  onSuggestionClick,
+  onClose,
+  onTyping,
+  isVisible,
+  activeCategory,
+  checkInDate,
+  checkOutDate,
+  guests,
+  onLocationSelected,
+}) => {
+  const [inputValue, setInputValue] = useState(searchQuery);
+  const modalRef = useRef(null);
+  const inputRef = useRef(null);
+  
+  const allIbadanLocations = useMemo(() => {
+    const allLocationsList = [
+      'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI',  'Agodi',
+      'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
+      'Molete', 'Agbowo', 'Sabo', 'Bashorun',  'Ife Road',
+      'Akinyele', 'Mokola Hill', 'Sango Roundabout',
+      'Iwo Road', 'Gate', 'New Garage', 'Old Ife Road',
+      ...allLocations.map(loc => getLocationDisplayName(loc))
+    ];
+    
+    return [...new Set(allLocationsList)].sort();
+  }, [allLocations]);
+
+  const suggestions = useMemo(() => {
+    if (!inputValue.trim()) return [];
+    
+    const queryLower = inputValue.toLowerCase().trim();
+    
+    const locationMatches = allIbadanLocations
+      .filter((location) => {
+        const displayName = location.toLowerCase();
+        return displayName.includes(queryLower);
+      })
+      .map((location) => ({
+        type: "location",
+        title: location,
+        location: location,
+        description: `${activeCategory}s in ${location}, Ibadan`,
+        action: (pasteToSearch = false) => {
+          if (pasteToSearch) {
+            return location;
+          }
+          
+          const categorySlug = getCategorySlug(activeCategory);
+          const locationSlug = createSlug(location);
+          
+          if (categorySlug && locationSlug) {
+            const seoPath = `/${categorySlug}-in-${locationSlug}`;
+            const queryParams = new URLSearchParams();
+            
+            if (checkInDate) queryParams.append("checkInDate", checkInDate.toISOString());
+            if (checkOutDate) queryParams.append("checkOutDate", checkOutDate.toISOString());
+            if (guests) queryParams.append("guests", JSON.stringify(guests));
+            queryParams.append("q", location);
+            queryParams.append("cat", activeCategory);
+            
+            return queryParams.toString() 
+              ? `${seoPath}?${queryParams.toString()}`
+              : seoPath;
+          }
+          return '/';
+        },
+      }));
+
+    if (locationMatches.length === 0 && inputValue.trim()) {
+      return [{
+        type: "search",
+        title: `Search for "${inputValue}"`,
+        description: `Find ${activeCategory.toLowerCase()}s matching "${inputValue}"`,
+        action: (pasteToSearch = false) => {
+          if (pasteToSearch) {
+            return inputValue;
+          }
+          
+          const categorySlug = getCategorySlug(activeCategory);
+          const queryParams = new URLSearchParams();
+          
+          if (checkInDate) queryParams.append("checkInDate", checkInDate.toISOString());
+          if (checkOutDate) queryParams.append("checkOutDate", checkOutDate.toISOString());
+          if (guests) queryParams.append("guests", JSON.stringify(guests));
+          queryParams.append("q", inputValue);
+          queryParams.append("cat", activeCategory);
+          
+          if (categorySlug) {
+            const seoPath = `/${categorySlug}`;
+            return queryParams.toString() 
+              ? `${seoPath}?${queryParams.toString()}`
+              : seoPath;
+          }
+          return `/search?${queryParams.toString()}`;
+        },
+      }];
+    }
+
+    return locationMatches.slice(0, 8);
+  }, [inputValue, activeCategory, checkInDate, checkOutDate, guests, allIbadanLocations]);
+
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setInputValue(value);
+    onTyping(value);
+  };
+
+  const handleClearInput = () => {
+    setInputValue("");
+    onTyping("");
+    inputRef.current?.focus();
+  };
+
+  const handleSuggestionClick = (suggestion, pasteToSearch = false) => {
+    if (pasteToSearch) {
+      if (onLocationSelected) {
+        onLocationSelected(suggestion.action(true));
+      }
+      onClose();
+    } else {
+      const url = suggestion.action(false);
+      onSuggestionClick(url);
+      onClose();
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && inputValue.trim()) {
+      const categorySlug = getCategorySlug(activeCategory);
+      const queryParams = new URLSearchParams();
+      
+      if (checkInDate) queryParams.append("checkInDate", checkInDate.toISOString());
+      if (checkOutDate) queryParams.append("checkOutDate", checkOutDate.toISOString());
+      if (guests) queryParams.append("guests", JSON.stringify(guests));
+      queryParams.append("q", inputValue);
+      queryParams.append("cat", activeCategory);
+      
+      const seoPath = categorySlug ? `/${categorySlug}` : '/search';
+      const finalUrl = queryParams.toString() 
+        ? `${seoPath}?${queryParams.toString()}`
+        : seoPath;
+      
+      onSuggestionClick(finalUrl);
+      onClose();
+    }
+  };
+
+  useEffect(() => {
+    if (isVisible && inputRef.current) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [isVisible]);
+
+  useEffect(() => {
+    if (isVisible) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
+    return () => (document.body.style.overflow = "");
+  }, [isVisible]);
+
+  useEffect(() => {
+    setInputValue(searchQuery);
+  }, [searchQuery]);
+
+  if (!isVisible) return null;
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[99990]" onClick={onClose} />
+      <div
+        ref={modalRef}
+        className="fixed inset-0 bg-white z-[99991] flex flex-col"
+        style={{ boxShadow: "0 -25px 50px -12px rgba(0, 0, 0, 0.1)" }}
+      >
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClose}
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 cursor-pointer"
+            >
+              <FontAwesomeIcon icon={faChevronLeft} size="lg" />
+            </button>
+            <div className="flex-1 relative">
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                <FontAwesomeIcon icon={faSearch} size="sm" />
+              </div>
+              <input
+                ref={inputRef}
+                type="text"
+                className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none text-gray-900 placeholder:text-gray-500 cursor-text"
+                value={inputValue}
+                onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
+                placeholder={`Search ${activeCategory.toLowerCase()} locations...`}
+                autoFocus
+              />
+              {inputValue && (
+                <button
+                  onClick={handleClearInput}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  <FontAwesomeIcon icon={faTimes} size="sm" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {inputValue.trim() ? (
+            suggestions.length > 0 ? (
+              <div className="p-5">
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+                    Locations in Ibadan ({suggestions.length})
+                  </h3>
+                </div>
+                <div className="space-y-3">
+                  {suggestions.map((suggestion, index) => (
+                    <div key={index} className="w-full bg-white rounded-xl border border-gray-200 p-4">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-gray-100">
+                          {suggestion.type === "search" ? (
+                            <FontAwesomeIcon 
+                              icon={faSearch} 
+                              className="text-gray-700 text-lg"
+                            />
+                          ) : (
+                            <FontAwesomeIcon 
+                              icon={faMapMarkerAlt} 
+                              className="text-gray-700 text-lg"
+                            />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <h4 className="font-medium text-gray-900 text-base">{suggestion.title}</h4>
+                              <p className="text-sm text-gray-600 mt-1">{suggestion.description}</p>
+                            </div>
+                            <span className={`text-xs font-medium px-2 py-1 rounded ${
+                              suggestion.type === "search" 
+                                ? "text-purple-600 bg-purple-50" 
+                                : "text-blue-600 bg-blue-50"
+                            }`}>
+                              {suggestion.type === "search" ? "Search" : "Location"}
+                            </span>
+                          </div>
+                          <div className="flex gap-2 mt-3">
+                            <button
+                              onClick={() => handleSuggestionClick(suggestion, true)}
+                              className="px-3 py-2 text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer flex-1"
+                            >
+                              Paste to Search
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => {
+                    const categorySlug = getCategorySlug(activeCategory);
+                    const queryParams = new URLSearchParams();
+                    
+                    if (checkInDate) queryParams.append("checkInDate", checkInDate.toISOString());
+                    if (checkOutDate) queryParams.append("checkOutDate", checkOutDate.toISOString());
+                    if (guests) queryParams.append("guests", JSON.stringify(guests));
+                    queryParams.append("q", inputValue);
+                    queryParams.append("cat", activeCategory);
+                    
+                    const seoPath = categorySlug ? `/${categorySlug}` : '/search';
+                    const finalUrl = queryParams.toString() 
+                      ? `${seoPath}?${queryParams.toString()}`
+                      : seoPath;
+                    
+                    onSuggestionClick(finalUrl);
+                    onClose();
+                  }}
+                  className="w-full mt-6 p-4 bg-gray-900 hover:bg-black text-white font-medium rounded-xl cursor-pointer transition-all duration-200"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-left">
+                      <p className="text-base font-medium">Search anyway</p>
+                      <p className="text-sm text-gray-300 mt-1">Find {activeCategory}s matching "{inputValue}"</p>
+                    </div>
+                    <FontAwesomeIcon icon={faChevronRight} size="sm" />
+                  </div>
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full py-16 px-4">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                  <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-2xl" />
+                </div>
+                <h3 className="text-xl font-medium text-gray-900 mb-3">No matching locations</h3>
+                <p className="text-gray-600 text-center max-w-sm mb-8">
+                  Try a different location name or search term
+                </p>
+                <button
+                  onClick={() => {
+                    const categorySlug = getCategorySlug(activeCategory);
+                    const queryParams = new URLSearchParams();
+                    
+                    if (checkInDate) queryParams.append("checkInDate", checkInDate.toISOString());
+                    if (checkOutDate) queryParams.append("checkOutDate", checkOutDate.toISOString());
+                    if (guests) queryParams.append("guests", JSON.stringify(guests));
+                    queryParams.append("q", inputValue);
+                    queryParams.append("cat", activeCategory);
+                    
+                    const seoPath = categorySlug ? `/${categorySlug}` : '/search';
+                    const finalUrl = queryParams.toString() 
+                      ? `${seoPath}?${queryParams.toString()}`
+                      : seoPath;
+                    
+                    onSuggestionClick(finalUrl);
+                    onClose();
+                  }}
+                  className="px-6 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-black cursor-pointer transition-all duration-200"
+                >
+                  Search anyway for "{inputValue}"
+                </button>
+              </div>
+            )
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full py-16 px-4">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                <FontAwesomeIcon icon={faMapMarkerAlt} className="text-gray-400 text-2xl" />
+              </div>
+              <h3 className="text-xl font-medium text-gray-900 mb-3">Search Ibadan locations</h3>
+              <p className="text-gray-600 text-center max-w-sm mb-10">
+                Find {activeCategory.toLowerCase()}s in any area of Ibadan
+              </p>
+              <div className="w-full max-w-md px-4">
+                <p className="text-sm font-medium text-gray-500 mb-4 text-center">Popular locations in Ibadan</p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {["Akobo", "Bodija", "Sango", "UI", "Mokola", "Dugbe", "Ringroad", "Challenge", "Iwo Road", "Agodi"].map((term) => (
+                    <button
+                      key={term}
+                      onClick={() => {
+                        if (onLocationSelected) {
+                          onLocationSelected(term);
+                          onClose();
+                        }
+                      }}
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg cursor-pointer transition-all duration-200"
+                    >
+                      {term}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-6 text-center">
+                  <p className="text-xs text-gray-500">
+                    Type to search for more locations in Ibadan
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+};
+
+/* ================== AGODA-STYLE SEARCH MODAL - FULL SCREEN ================== */
+const AgodaStyleSearchModal = ({ 
+  isVisible, 
+  onClose, 
+  searchQuery, 
+  onSearchChange,
+  checkInDate,
+  checkOutDate,
+  guests,
+  onDateChange,
+  onGuestsChange,
+  category
+}) => {
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
+  const [localCheckIn, setLocalCheckIn] = useState(checkInDate);
+  const [localCheckOut, setLocalCheckOut] = useState(checkOutDate);
+  const [localGuests, setLocalGuests] = useState(guests);
+  const modalRef = useRef(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [locationSearch, setLocationSearch] = useState("");
+  const [allIbadanLocations] = useState([
+    'Akobo', 'Bodija', 'Dugbe', 'Mokola', 'Sango', 'UI', 'Poly', 'Agodi',
+    'Jericho', 'Gbagi', 'Apata', 'Ringroad', 'Secretariat', 'Moniya', 'Challenge',
+    'Molete', 'Agbowo', 'Sabo', 'Bashorun', 'Ife Road',
+    'Akinyele', 'Mokola Hill', 'Sango Roundabout',
+    'Iwo Road', 'Gate', 'New Garage', 'Old Ife Road'
+  ]);
+
+  const [editingDate, setEditingDate] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const handleLocationSearch = (value) => {
+    setLocationSearch(value);
+    if (value.trim()) {
+      const filtered = allIbadanLocations.filter(loc => 
+        loc.toLowerCase().includes(value.toLowerCase())
+      );
+      setSuggestions(filtered.slice(0, 5));
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleLocationSelect = (location) => {
+    setLocationSearch(location);
+    setLocalSearchQuery(location);
+    setShowSuggestions(false);
+  };
+
+  const handleGuestChange = (type, delta) => {
+    setLocalGuests(prev => {
+      const minValue = type === "rooms" ? 1 : 0;
+      const newValue = Math.max(minValue, prev[type] + delta);
+      return { ...prev, [type]: newValue };
+    });
+  };
+
+  const handleSave = () => {
+    onSearchChange(localSearchQuery);
+    onDateChange({ checkIn: localCheckIn, checkOut: localCheckOut });
+    onGuestsChange(localGuests);
+    onClose();
+  };
+
+  const handleDateSelect = (date) => {
+    if (editingDate === 'checkin') {
+      setLocalCheckIn(date);
+    } else if (editingDate === 'checkout') {
+      setLocalCheckOut(date);
+    }
+    setShowDatePicker(false);
+    setEditingDate(null);
+  };
+
+  const handleDateClick = (type) => {
+    setEditingDate(type);
+    setShowDatePicker(true);
+  };
+
+  const totalGuests = localGuests.adults + localGuests.children;
+
+  useEffect(() => {
+    if (isVisible) {
+      document.body.style.overflow = "hidden";
+      setLocalSearchQuery(searchQuery);
+      setLocalCheckIn(checkInDate);
+      setLocalCheckOut(checkOutDate);
+      setLocalGuests(guests);
+      setLocationSearch("");
+      setShowSuggestions(false);
+      setEditingDate(null);
+      setShowDatePicker(false);
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isVisible, searchQuery, checkInDate, checkOutDate, guests]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+        if (showDatePicker) {
+          setShowDatePicker(false);
+          setEditingDate(null);
+        }
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showDatePicker]);
+
+  if (!isVisible) return null;
+
+  const formatDateDisplay = (date) => {
+    const day = date.getDate();
+    const daySuffix = day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th';
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
+    const month = date.toLocaleDateString('en-US', { month: 'short' });
+    
+    return {
+      day: `${day}${daySuffix}`,
+      weekday,
+      month
+    };
+  };
+
+  const checkInDisplay = formatDateDisplay(localCheckIn);
+  const checkOutDisplay = formatDateDisplay(localCheckOut);
+
+  const DatePickerComponent = ({ onSelect, selectedDate, onClose }) => {
+    const [currentMonth, setCurrentMonth] = useState(selectedDate || new Date());
+    const [selectedDay, setSelectedDay] = useState(selectedDate ? selectedDate.getDate() : new Date().getDate());
+
+    const getDaysInMonth = (date) => {
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      return new Date(year, month + 1, 0).getDate();
+    };
+
+    const getFirstDayOfMonth = (date) => {
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      return new Date(year, month, 1).getDay();
+    };
+
+    const nextMonth = () => {
+      setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+    };
+
+    const prevMonth = () => {
+      setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+    };
+
+    const handleDayClick = (day) => {
+      const selectedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+      setSelectedDay(day);
+      onSelect(selectedDate);
+    };
+
+    const daysInMonth = getDaysInMonth(currentMonth);
+    const firstDay = getFirstDayOfMonth(currentMonth);
+    const days = [];
+
+    for (let i = 0; i < firstDay; i++) {
+      days.push(<div key={`empty-${i}`} className="h-8 w-8"></div>);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const isSelected = day === selectedDay;
+      days.push(
+        <button
+          key={day}
+          onClick={() => handleDayClick(day)}
+          className={`h-8 w-8 rounded-full flex items-center justify-center text-sm cursor-pointer
+            ${isSelected ? "bg-blue-500 text-white" : "hover:bg-gray-100"}
+          `}
+        >
+          {day}
+        </button>
+      );
+    }
+
+    return (
+      <div className="fixed inset-0 bg-white z-[10000] flex flex-col">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between">
+          <button
+            onClick={onClose}
+            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600"
+          >
+            <FontAwesomeIcon icon={faChevronLeft} />
+          </button>
+          <h3 className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>
+            {editingDate === 'checkin' ? 'Select Check-in Date' : 'Select Check-out Date'}
+          </h3>
+          <div className="w-10"></div>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-4">
+              <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded cursor-pointer">
+                <FontAwesomeIcon icon={faChevronLeft} />
+              </button>
+              <h3 className="font-semibold text-gray-900" style={{ fontSize: '12.5px' }}>
+                {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </h3>
+              <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded cursor-pointer">
+                <FontAwesomeIcon icon={faChevronRight} />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-7 gap-1 mb-2">
+              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
+                <div key={day} className="text-center text-xs text-gray-500 font-medium">
+                  {day}
+                </div>
+              ))}
+            </div>
+            
+            <div className="grid grid-cols-7 gap-1">
+              {days}
+            </div>
+          </div>
+          
+          <div className="mt-6">
+            <button
+              onClick={() => {
+                const today = new Date();
+                onSelect(today);
+              }}
+              className="w-full py-3 bg-blue-50 text-blue-600 font-medium rounded-lg hover:bg-blue-100 cursor-pointer"
+              style={{ fontSize: '12.5px' }}
+            >
+              Select Today
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 bg-white z-[99991] flex flex-col overflow-hidden">
+      <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between z-10 flex-shrink-0">
+        <button
+          onClick={onClose}
+          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600"
+        >
+          <FontAwesomeIcon icon={faChevronLeft} size="lg" />
+        </button>
+        <h2 className="text-xl font-bold text-gray-900" style={{ fontSize: '12.5px' }}>Edit Search</h2>
+        <div className="w-10"></div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto overscroll-contain">
+        <div className="p-6">
+          <div className="space-y-8">
+            <div>
+              <label className="block font-semibold text-gray-900 mb-4" style={{ fontSize: '12.5px' }}>
+                Where are you going?
+              </label>
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                  <FontAwesomeIcon icon={faMapMarkerAlt} className="text-gray-400" style={{ fontSize: '12.5px' }} />
+                </div>
+                <input
+                  type="text"
+                  value={locationSearch}
+                  onChange={(e) => handleLocationSearch(e.target.value)}
+                  placeholder={`Search ${category.toLowerCase()}s in Ibadan...`}
+                  className="w-full pl-12 pr-12 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  style={{ fontSize: '12.5px' }}
+                  autoFocus
+                />
+                {locationSearch && (
+                  <button
+                    onClick={() => {
+                      setLocationSearch("");
+                      setShowSuggestions(false);
+                    }}
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <FontAwesomeIcon icon={faTimes} style={{ fontSize: '12.5px' }} />
+                  </button>
+                )}
+                
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
+                    {suggestions.map((location, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleLocationSelect(location)}
+                        className="w-full text-left px-6 py-4 hover:bg-gray-50 flex items-center gap-4 border-b border-gray-100 last:border-0"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                          <FontAwesomeIcon icon={faMapMarkerAlt} className="text-blue-500" style={{ fontSize: '12.5px' }} />
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900" style={{ fontSize: '12.5px' }}>{location}</div>
+                          <div className="text-gray-500" style={{ fontSize: '12.5px' }}>{category}s in {location}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-4" style={{ fontSize: '12.5px' }}>Select Dates</h3>
+              
+              <div className="flex justify-between items-start">
+                <div 
+                  onClick={() => handleDateClick('checkin')}
+                  className="flex flex-col items-start p-0 hover:opacity-80 active:opacity-60 cursor-pointer"
+                >
+                  <div className="text-xs text-gray-600 mb-1" style={{ fontSize: '12.5px' }}>Check-in</div>
+                  <div className="flex flex-col">
+                    <span className="text-3xl font-bold text-gray-900">{checkInDisplay.day}</span>
+                    <div className="mt-1">
+                      <span className="text-gray-900 font-medium block" style={{ fontSize: '12.5px' }}>{checkInDisplay.weekday}</span>
+                      <span className="text-gray-600 block" style={{ fontSize: '12.5px' }}>{checkInDisplay.month}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="pt-8">
+                  <div className="text-gray-400" style={{ fontSize: '12.5px' }}>→</div>
+                </div>
+                
+                <div 
+                  onClick={() => handleDateClick('checkout')}
+                  className="flex flex-col items-start p-0 hover:opacity-80 active:opacity-60 cursor-pointer"
+                >
+                  <div className="text-xs text-gray-600 mb-1" style={{ fontSize: '12.5px' }}>Check-out</div>
+                  <div className="flex flex-col">
+                    <span className="text-3xl font-bold text-gray-900">{checkOutDisplay.day}</span>
+                    <div className="mt-1">
+                      <span className="text-gray-900 font-medium block" style={{ fontSize: '12.5px' }}>{checkOutDisplay.weekday}</span>
+                      <span className="text-gray-600 block" style={{ fontSize: '12.5px' }}>{checkOutDisplay.month}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-4" style={{ fontSize: '12.5px' }}>
+                {category.includes('restaurant') ? 'Number of People' : 'Guests & Rooms'}
+              </h3>
+              
+              {category.includes('restaurant') ? (
+                <div>
+                  <div className="flex justify-between items-center p-5 border border-gray-300 rounded-2xl bg-white">
+                    <div>
+                      <div className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>Number of People</div>
+                      <div className="text-gray-500 mt-1" style={{ fontSize: '12.5px' }}>How many people are coming?</div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <button
+                        onClick={() => handleGuestChange("adults", -1)}
+                        disabled={localGuests.adults <= 1}
+                        className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:scale-95"
+                      >
+                        <FontAwesomeIcon icon={faChevronLeft} style={{ fontSize: '12.5px' }} />
+                      </button>
+                      <div className="text-center min-w-[60px]">
+                        <div className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>{totalGuests}</div>
+                        <div className="text-gray-500" style={{ fontSize: '12.5px' }}>people</div>
+                      </div>
+                      <button
+                        onClick={() => handleGuestChange("adults", 1)}
+                        className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center hover:bg-gray-50 active:scale-95"
+                      >
+                        <FontAwesomeIcon icon={faChevronRight} style={{ fontSize: '12.5px' }} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center p-5 border border-gray-300 rounded-2xl bg-white">
+                    <div>
+                      <div className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>Rooms</div>
+                      <div className="text-gray-500 mt-1" style={{ fontSize: '12.5px' }}>Number of rooms</div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <button
+                        onClick={() => handleGuestChange("rooms", -1)}
+                        disabled={localGuests.rooms <= 1}
+                        className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:scale-95"
+                      >
+                        <FontAwesomeIcon icon={faChevronLeft} style={{ fontSize: '12.5px' }} />
+                      </button>
+                      <div className="text-center min-w-[60px]">
+                        <div className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>{localGuests.rooms}</div>
+                        <div className="text-gray-500" style={{ fontSize: '12.5px' }}>rooms</div>
+                      </div>
+                      <button
+                        onClick={() => handleGuestChange("rooms", 1)}
+                        className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center hover:bg-gray-50 active:scale-95"
+                      >
+                        <FontAwesomeIcon icon={faChevronRight} style={{ fontSize: '12.5px' }} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center p-5 border border-gray-300 rounded-2xl bg-white">
+                    <div>
+                      <div className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>Adults</div>
+                      <div className="text-gray-500 mt-1" style={{ fontSize: '12.5px' }}>Age 18+</div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <button
+                        onClick={() => handleGuestChange("adults", -1)}
+                        disabled={localGuests.adults <= 1}
+                        className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:scale-95"
+                      >
+                        <FontAwesomeIcon icon={faChevronLeft} style={{ fontSize: '12.5px' }} />
+                      </button>
+                      <div className="text-center min-w-[60px]">
+                        <div className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>{localGuests.adults}</div>
+                        <div className="text-gray-500" style={{ fontSize: '12.5px' }}>adults</div>
+                      </div>
+                      <button
+                        onClick={() => handleGuestChange("adults", 1)}
+                        className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center hover:bg-gray-50 active:scale-95"
+                      >
+                        <FontAwesomeIcon icon={faChevronRight} style={{ fontSize: '12.5px' }} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center p-5 border border-gray-300 rounded-2xl bg-white">
+                    <div>
+                      <div className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>Children</div>
+                      <div className="text-gray-500 mt-1" style={{ fontSize: '12.5px' }}>Age 0-17</div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <button
+                        onClick={() => handleGuestChange("children", -1)}
+                        disabled={localGuests.children <= 0}
+                        className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:scale-95"
+                      >
+                        <FontAwesomeIcon icon={faChevronLeft} style={{ fontSize: '12.5px' }} />
+                      </button>
+                      <div className="text-center min-w-[60px]">
+                        <div className="font-bold text-gray-900" style={{ fontSize: '12.5px' }}>{localGuests.children}</div>
+                        <div className="text-gray-500" style={{ fontSize: '12.5px' }}>children</div>
+                      </div>
+                      <button
+                        onClick={() => handleGuestChange("children", 1)}
+                        className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center hover:bg-gray-50 active:scale-95"
+                      >
+                        <FontAwesomeIcon icon={faChevronRight} style={{ fontSize: '12.5px' }} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 flex-shrink-0">
+        <button
+          onClick={handleSave}
+          className="w-full py-4 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-bold rounded-xl hover:from-[#00c97b] hover:to-teal-600 transition-all duration-300 active:scale-[0.98] shadow-lg"
+          style={{ fontSize: '12.5px' }}
+        >
+          Apply Search
+        </button>
+      </div>
+
+      {showDatePicker && editingDate && (
+        <DatePickerComponent
+          onSelect={handleDateSelect}
+          selectedDate={editingDate === 'checkin' ? localCheckIn : localCheckOut}
+          onClose={() => {
+            setShowDatePicker(false);
+            setEditingDate(null);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+/* ================== BACK BUTTON ================== */
+const BackButton = ({ className = "", onClick }) => {
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    if (onClick) {
+      onClick();
+    } else {
+      if (window.history.length > 1) {
+        navigate(-1);
+      } else {
+        navigate("/");
+      }
+    }
+  };
+
+  return (
+    <button
+      onClick={handleBack}
+      className={`flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors active:scale-95 cursor-pointer ${className}`}
+      aria-label="Go back"
+    >
+      <FontAwesomeIcon icon={faArrowLeft} className="text-gray-700 text-lg" />
+    </button>
+  );
+};
+
+/* ================== MAIN SEARCH RESULTS COMPONENT ================== */
 const SearchResults = () => {
-  // ✅ Always scroll to top on page entry
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, []);
@@ -2555,8 +3158,22 @@ const SearchResults = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const params = useParams();
 
-  const searchQuery = searchParams.get("q") || "";
+  const urlSlug = params['*'] || '';
+  const { category: urlCategorySlug, location: urlLocationSlug } = parseSeoSlug(urlSlug);
+  
+  const urlCategory = urlCategorySlug ? mapCategorySlugToDisplay(urlCategorySlug) : null;
+  const urlLocation = urlLocationSlug ? urlLocationSlug.charAt(0).toUpperCase() + urlLocationSlug.slice(1) : null;
+  
+  const searchQuery = searchParams.get("q") || urlLocation || "";
+  const checkInDateParam = searchParams.get("checkInDate");
+  const checkOutDateParam = searchParams.get("checkOutDate");
+  const guestsParam = searchParams.get("guests");
+  const originalCategory = searchParams.get("cat");
+  
+  const finalCategory = originalCategory || urlCategory || "All Categories";
+  
   const [activeFilters, setActiveFilters] = useState({
     locations: [],
     categories: [],
@@ -2570,146 +3187,57 @@ const SearchResults = () => {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [showDesktopFilters, setShowDesktopFilters] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [filteredListings, setFilteredListings] = useState([]);
-  const [groupedListings, setGroupedListings] = useState({});
-  const [allLocations, setAllLocations] = useState([]);
-  const [allCategories, setAllCategories] = useState([]);
-  const [filteredCount, setFilteredCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
+  const [selectedCategoryButtons, setSelectedCategoryButtons] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchBarPosition, setSearchBarPosition] = useState({
     left: 0,
-    bottom: 0,
+    top: 0,
     width: 0,
+    height: 0,
   });
+  
+  const [isSwitchingCategory, setIsSwitchingCategory] = useState(false);
+  const [previousCategory, setPreviousCategory] = useState('');
+  const [newCategory, setNewCategory] = useState('');
+  
+  const [editingCheckIn, setEditingCheckIn] = useState(false);
+  const [editingCheckOut, setEditingCheckOut] = useState(false);
+  const [editingGuests, setEditingGuests] = useState(false);
+  const [showEditCalendar, setShowEditCalendar] = useState(false);
+  const [showEditGuestSelector, setShowEditGuestSelector] = useState(false);
+  
+  const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
+  const [showAgodaModal, setShowAgodaModal] = useState(false);
+  
+  const [isUsingInitialState, setIsUsingInitialState] = useState({
+    location: true,
+    category: true,
+    search: true
+  });
+  
   const searchContainerRef = useRef(null);
   const filterButtonRef = useRef(null);
   const resultsRef = useRef(null);
-  const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
+  const searchInputRef = useRef(null);
+  const searchDebounceRef = useRef(null);
 
-  const SHEET_ID = "1ZUU4Cw29jhmSnTh1yJ_ZoQB7TN1zr2_7bcMEHP8O1_Y";
-  const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
+  const [shouldFetchData, setShouldFetchData] = useState(true);
 
-  const {
-    data: listings = [],
-    loading,
-    error,
-  } = useGoogleSheet(SHEET_ID, API_KEY);
+  const checkInDate = checkInDateParam ? new Date(checkInDateParam) : new Date();
+  const checkOutDate = checkOutDateParam ? new Date(checkOutDateParam) : new Date(new Date().setDate(new Date().getDate() + 1));
+  const guests = guestsParam ? JSON.parse(guestsParam) : { adults: 2, children: 0, rooms: 1 };
 
-  // CRITICAL FIX: Scroll to top on component mount and when search params change
-  useEffect(() => {
-    const scrollToTop = () => {
-      // For mobile: scroll to very top
-      // For desktop: scroll to header
-      if (isMobile) {
-        window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
-      } else {
-        const header = document.querySelector("header");
-        if (header) {
-          header.scrollIntoView({ behavior: "smooth" });
-        } else {
-          window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
-        }
-      }
-    };
-
-    const timer = setTimeout(scrollToTop, 100);
-    return () => clearTimeout(timer);
-  }, [location.pathname, location.search, isMobile]);
-
-  // Track search bar position for suggestions
-  useEffect(() => {
-    if (!searchContainerRef.current || isMobile) return;
-
-    const container = searchContainerRef.current;
-
-    const updateSearchBarPosition = () => {
-      const rect = container.getBoundingClientRect();
-      const scrollY = window.scrollY;
-      const scrollX = window.scrollX;
-
-      setSearchBarPosition({
-        left: rect.left + scrollX,
-        bottom: rect.bottom + scrollY,
-        width: rect.width,
-      });
-    };
-
-    // Initial update
-    updateSearchBarPosition();
-
-    // Update on scroll and resize
-    const handleScroll = () => {
-      updateSearchBarPosition();
-    };
-
-    const handleResize = () => {
-      updateSearchBarPosition();
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", handleResize);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleResize);
-    };
-  }, [isMobile, showSuggestions]);
-
-  // Handle mobile filter apply with auto-scroll
-  const handleMobileFilterApply = useCallback(() => {
-    if (showMobileFilters) {
-      setShowMobileFilters(false);
-
-      setTimeout(() => {
-        const searchSection = document.getElementById("search-section");
-        if (searchSection) {
-          searchSection.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
-        }
-      }, 300);
-    }
-  }, [showMobileFilters]);
-
-  // FIXED: Extract ALL locations and categories from entire dataset
-  useEffect(() => {
-    if (listings.length > 0) {
-      // Extract unique locations from ALL listings, not just filtered
-      const allLocationsFromData = [
-        ...new Set(listings.map((item) => item.area).filter(Boolean)),
-      ];
-
-      // Extract unique categories from ALL listings, not just filtered
-      const allCategoriesFromData = [
-        ...new Set(listings.map((item) => item.category).filter(Boolean)),
-      ];
-
-      setAllLocations(allLocationsFromData);
-      setAllCategories(allCategoriesFromData);
-    }
-  }, [listings]);
+  const { listings, loading, error, apiResponse, filteredCounts, allLocations } = useBackendListings(
+    localSearchQuery, 
+    activeFilters,
+    finalCategory,
+    null,
+    shouldFetchData
+  );
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-  useEffect(() => {
-    setLocalSearchQuery(searchQuery);
-  }, [searchQuery]);
-
-  // Initialize filters from URL parameters
-  useEffect(() => {
-    if (!listings.length) return;
-
     const initialFilters = {
       locations: [],
       categories: [],
@@ -2719,301 +3247,308 @@ const SearchResults = () => {
       amenities: [],
     };
 
-    // Collect all location parameters
-    const locationParams = [];
-    for (const [key, value] of searchParams.entries()) {
-      if (key.startsWith("location")) {
-        const displayName = getLocationDisplayName(value);
-        if (displayName !== "All Locations" && displayName !== "All") {
-          locationParams.push(displayName);
-        }
+    if (finalCategory && finalCategory !== "All Categories") {
+      const displayName = getCategoryDisplayName(finalCategory);
+      if (displayName !== "All Categories" && displayName !== "All") {
+        initialFilters.categories = [displayName];
+        
+        const buttonKey = getCategoryButtonKey(finalCategory.toLowerCase());
+        setSelectedCategoryButtons([buttonKey]);
       }
     }
 
-    // Collect all category parameters
-    const categoryParams = [];
-    for (const [key, value] of searchParams.entries()) {
-      if (key.startsWith("category")) {
-        const displayName = getCategoryDisplayName(value);
-        if (displayName !== "All Categories" && displayName !== "All") {
-          categoryParams.push(displayName);
-        }
+    const urlLocationParam = searchParams.get("location");
+    if (urlLocationParam) {
+      const displayName = getLocationDisplayName(urlLocationParam);
+      if (displayName !== "All Locations" && displayName !== "All") {
+        initialFilters.locations = [displayName];
+      }
+    }
+    else if (urlLocation && (!localSearchQuery || localSearchQuery.trim() === '')) {
+      const displayName = getLocationDisplayName(urlLocation);
+      if (displayName !== "All Locations" && displayName !== "All") {
+        initialFilters.locations = [displayName];
       }
     }
 
-    // Set locations from URL params
-    if (locationParams.length > 0) {
-      initialFilters.locations = [...new Set(locationParams)];
+    const minPrice = searchParams.get("minPrice");
+    const maxPrice = searchParams.get("maxPrice");
+    if (minPrice) {
+      initialFilters.priceRange.min = minPrice;
+    }
+    if (maxPrice) {
+      initialFilters.priceRange.max = maxPrice;
     }
 
-    // Set categories from URL params
-    if (categoryParams.length > 0) {
-      initialFilters.categories = [...new Set(categoryParams)];
+    const minRating = searchParams.get("minRating");
+    if (minRating) {
+      initialFilters.ratings = [parseInt(minRating)];
+    }
+
+    const sortParam = searchParams.get("sort");
+    if (sortParam && ["relevance", "price_low", "price_high", "rating", "name"].includes(sortParam)) {
+      initialFilters.sortBy = sortParam;
     }
 
     setActiveFilters(initialFilters);
     setFiltersInitialized(true);
-  }, [listings.length, searchParams.toString()]);
-
-  // Filter logic
-  const applyFilters = (listingsToFilter, filters) => {
-    let filtered = [...listingsToFilter];
-
-    // Apply search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter((item) => {
-        const matchesName = item.name?.toLowerCase().includes(query);
-        const matchesCategory = item.category?.toLowerCase().includes(query);
-        const matchesLocation = item.area?.toLowerCase().includes(query);
-        const matchesDescription = item.description
-          ?.toLowerCase()
-          .includes(query);
-
-        return (
-          matchesName ||
-          matchesCategory ||
-          matchesLocation ||
-          matchesDescription
-        );
-      });
-    }
-
-    // Get all location parameters from URL
-    const locationParams = [];
-    for (const [key, value] of searchParams.entries()) {
-      if (key.startsWith("location")) {
-        const displayName = getLocationDisplayName(value);
-        if (displayName !== "All Locations" && displayName !== "All") {
-          locationParams.push(displayName);
-        }
-      }
-    }
-
-    // Get all category parameters from URL
-    const categoryParams = [];
-    for (const [key, value] of searchParams.entries()) {
-      if (key.startsWith("category")) {
-        const displayName = getCategoryDisplayName(value);
-        if (displayName !== "All Categories" && displayName !== "All") {
-          categoryParams.push(displayName);
-        }
-      }
-    }
-
-    // Apply locations from URL
-    if (locationParams.length > 0) {
-      filtered = filtered.filter((item) => {
-        const itemLocation = getLocationDisplayName(item.area || "");
-        return locationParams.some(
-          (loc) => itemLocation.toLowerCase() === loc.toLowerCase()
-        );
-      });
-    }
-
-    // Apply categories from URL
-    if (categoryParams.length > 0) {
-      filtered = filtered.filter((item) => {
-        const itemCategory = getCategoryDisplayName(item.category || "");
-        return categoryParams.some(
-          (cat) => itemCategory.toLowerCase() === cat.toLowerCase()
-        );
-      });
-    }
-
-    // Apply filter panel locations
-    if (filters.locations.length > 0) {
-      filtered = filtered.filter((item) => {
-        const itemLocation = getLocationDisplayName(item.area || "");
-        return filters.locations.some(
-          (selectedLocation) =>
-            itemLocation.toLowerCase() === selectedLocation.toLowerCase()
-        );
-      });
-    }
-
-    // Apply filter panel categories
-    if (filters.categories.length > 0) {
-      filtered = filtered.filter((item) => {
-        const itemCategory = getCategoryDisplayName(item.category || "");
-        return filters.categories.some(
-          (selectedCategory) =>
-            itemCategory.toLowerCase() === selectedCategory.toLowerCase()
-        );
-      });
-    }
-
-    // Apply price range
-    if (filters.priceRange.min || filters.priceRange.max) {
-      const min = Number(filters.priceRange.min) || 0;
-      const max = Number(filters.priceRange.max) || Infinity;
-      filtered = filtered.filter((item) => {
-        const price = Number(item.price_from) || 0;
-        return price >= min && price <= max;
-      });
-    }
-
-    // Apply ratings
-    if (filters.ratings.length > 0) {
-      filtered = filtered.filter((item) => {
-        const rating = Number(item.rating) || 0;
-        return filters.ratings.some((stars) => rating >= stars);
-      });
-    }
-
-    // Apply sorting
-    if (filters.sortBy && filters.sortBy !== "relevance") {
-      filtered = [...filtered].sort((a, b) => {
-        switch (filters.sortBy) {
-          case "price_low":
-            return (Number(a.price_from) || 0) - (Number(b.price_from) || 0);
-          case "price_high":
-            return (Number(b.price_from) || 0) - (Number(a.price_from) || 0);
-          case "rating":
-            return (Number(b.rating) || 0) - (Number(a.rating) || 0);
-          case "name":
-            return (a.name || "").localeCompare(b.name || "");
-          default:
-            return 0;
-        }
-      });
-    }
-
-    setFilteredListings(filtered);
-    setFilteredCount(filtered.length);
-    setCurrentPage(1);
-
-    // Group by category for browsing view
-    const grouped = {};
-    filtered.forEach((item) => {
-      const cat = getCategoryDisplayName(item.category || "Other");
-      if (!grouped[cat]) {
-        grouped[cat] = [];
-      }
-      grouped[cat].push(item);
+    
+    setIsUsingInitialState({
+      location: !!urlLocation || !!urlLocationParam,
+      category: !!finalCategory && finalCategory !== "All Categories",
+      search: !!localSearchQuery
     });
-    setGroupedListings(grouped);
+  }, [finalCategory, urlLocation, localSearchQuery, searchParams]);
+
+  const getCategoryButtonKey = (categoryName) => {
+    const catLower = categoryName.toLowerCase();
+    if (catLower.includes("services") || catLower.includes("vendor")) return "vendor";
+    if (catLower.includes("shortlet")) return "shortlet";
+    if (catLower.includes("hotel")) return "hotel";
+    if (catLower.includes("restaurant")) return "restaurant";
+    return "hotel";
   };
 
-  // Apply filters whenever any dependency changes
-  useEffect(() => {
-    if (!listings.length || !filtersInitialized) {
-      setFilteredListings([]);
-      setFilteredCount(0);
-      setGroupedListings({});
-      return;
+  const handleLocationSelected = (locationText) => {
+    setLocalSearchQuery(locationText);
+    
+    if (activeFilters.locations.length > 0) {
+      const updatedFilters = {
+        ...activeFilters,
+        locations: [],
+      };
+      setActiveFilters(updatedFilters);
     }
+    
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  };
 
-    applyFilters(listings, activeFilters);
-  }, [
-    listings,
-    searchQuery,
-    searchParams.toString(),
-    activeFilters,
-    filtersInitialized,
-  ]);
-
-  // Handle search change - show suggestions
-  const handleSearchChange = (value) => {
-    setLocalSearchQuery(value);
-    if (!isMobile && value.trim().length > 0) {
-      setShowSuggestions(true);
+  const handleFilterChange = (newFilters) => {
+    if (newFilters.locations.length > 0 && localSearchQuery) {
+      setLocalSearchQuery("");
+      
+      setIsUsingInitialState(prev => ({
+        ...prev,
+        search: false
+      }));
+    }
+    
+    if (newFilters.locations.length === 0 && activeFilters.locations.length > 0) {
+      setIsUsingInitialState(prev => ({
+        ...prev,
+        location: false
+      }));
+    }
+    
+    setActiveFilters(newFilters);
+    
+    const params = new URLSearchParams();
+    
+    params.set("cat", finalCategory);
+    
+    params.set("checkInDate", checkInDate.toISOString());
+    params.set("checkOutDate", checkOutDate.toISOString());
+    
+    if (guests) {
+      params.set("guests", JSON.stringify(guests));
+    }
+    
+    if (newFilters.locations.length === 0 && localSearchQuery) {
+      params.set("q", localSearchQuery);
+    }
+    
+    if (newFilters.locations.length > 0) {
+      params.set("location", newFilters.locations[0]);
+      params.delete("q");
+    }
+    
+    if (newFilters.priceRange?.min) {
+      params.set("minPrice", newFilters.priceRange.min);
+    }
+    if (newFilters.priceRange?.max) {
+      params.set("maxPrice", newFilters.priceRange.max);
+    }
+    
+    if (newFilters.ratings && newFilters.ratings.length > 0) {
+      params.set("minRating", Math.min(...newFilters.ratings));
+    }
+    
+    if (newFilters.sortBy && newFilters.sortBy !== 'relevance') {
+      params.set("sort", newFilters.sortBy);
+    }
+    
+    const categorySlug = getCategorySlug(finalCategory);
+    let locationSlug = null;
+    
+    if (newFilters.locations && newFilters.locations.length > 0) {
+      locationSlug = createSlug(newFilters.locations[0]);
+    }
+    else if (localSearchQuery && looksLikeLocation(localSearchQuery)) {
+      locationSlug = createSlug(localSearchQuery);
+    }
+    
+    let seoPath = '';
+    if (categorySlug && locationSlug) {
+      seoPath = `/${categorySlug}-in-${locationSlug}`;
+    } else if (categorySlug) {
+      seoPath = `/${categorySlug}`;
+    } else if (locationSlug) {
+      seoPath = `/places-in-${locationSlug}`;
     } else {
-      setShowSuggestions(false);
+      seoPath = '/search';
     }
+    
+    const finalUrl = params.toString() 
+      ? `${seoPath}?${params.toString()}`
+      : seoPath;
+    
+    navigate(finalUrl);
   };
 
-  // Handle search focus - show suggestions or open mobile modal
-  const handleSearchFocus = () => {
-    if (isMobile) {
-      // On mobile, open the fullscreen modal
-      setShowMobileSearchModal(true);
-    } else if (localSearchQuery.trim().length > 0) {
-      // On desktop, show suggestions if there's text
-      setShowSuggestions(true);
-    }
-  };
-
-  // Handle clear search
-  const handleClearSearch = () => {
-    setLocalSearchQuery("");
-    setShowSuggestions(false);
-    setShowMobileSearchModal(false);
-    const params = new URLSearchParams();
-    // Preserve filter parameters when clearing search
-    for (const [key, value] of searchParams.entries()) {
-      if (key.startsWith("location") || key.startsWith("category")) {
-        params.set(key, value);
-      }
-    }
-    setSearchParams(params);
-    setTimeout(() => {
-      const searchInput = document.querySelector('input[role="searchbox"]');
-      if (searchInput) {
-        searchInput.focus();
-      }
-    }, 50);
-  };
-
-  // Handle dynamic filter application
-  const handleDynamicFilterApply = ({
-    filters,
-    categories = [],
-    locations = [],
-    keepSearchQuery,
-  }) => {
-    const params = new URLSearchParams();
-
-    // Always keep the search query if present
-    if (keepSearchQuery && searchQuery) {
-      params.set("q", searchQuery);
-    }
-
-    // Clear previous category parameters
-    for (const [key] of params.entries()) {
-      if (key.startsWith("category")) {
-        params.delete(key);
-      }
-    }
-
-    // Add categories to params
-    categories.forEach((category, index) => {
-      if (index === 0) {
-        params.set("category", category);
+  const handleSearchSubmit = (searchValue = null) => {
+    const queryToUse = searchValue || localSearchQuery.trim();
+    
+    setShouldFetchData(true);
+    
+    if (queryToUse || finalCategory) {
+      const resetFilters = {
+        ...activeFilters,
+        locations: [],
+        categories: activeFilters.categories.length > 0 ? activeFilters.categories : [finalCategory],
+      };
+      setActiveFilters(resetFilters);
+      
+      setIsUsingInitialState(prev => ({
+        ...prev,
+        location: false,
+        search: true
+      }));
+      
+      const categorySlug = getCategorySlug(finalCategory);
+      const locationSlug = queryToUse ? createSlug(queryToUse.trim()) : null;
+      
+      let seoPath = '';
+      
+      if (categorySlug && locationSlug) {
+        seoPath = `/${categorySlug}-in-${locationSlug}`;
+      } else if (categorySlug) {
+        seoPath = `/${categorySlug}`;
+      } else if (locationSlug) {
+        seoPath = `/places-in-${locationSlug}`;
       } else {
-        params.set(`category${index + 1}`, category);
+        seoPath = '/search';
       }
-    });
-
-    // Clear previous location parameters
-    for (const [key] of params.entries()) {
-      if (key.startsWith("location")) {
-        params.delete(key);
+      
+      const queryParams = new URLSearchParams();
+      
+      queryParams.append("checkInDate", checkInDate.toISOString());
+      queryParams.append("checkOutDate", checkOutDate.toISOString());
+      
+      if (guests) {
+        queryParams.append("guests", JSON.stringify(guests));
       }
-    }
-
-    // Add locations to params
-    locations.forEach((location, index) => {
-      if (index === 0) {
-        params.set("location", location);
-      } else {
-        params.set(`location${index + 1}`, location);
+      
+      if (queryToUse) {
+        queryParams.append("q", queryToUse.trim());
       }
-    });
-
-    // Update URL
-    setSearchParams(params);
-    setActiveFilters(filters);
-  };
-
-  const handleSearchSubmit = (e) => {
-    e?.preventDefault();
-    if (localSearchQuery.trim()) {
-      const params = new URLSearchParams();
-      params.set("q", localSearchQuery.trim());
-      setSearchParams(params);
+      
+      queryParams.append("cat", finalCategory);
+      
+      queryParams.delete("location");
+      queryParams.delete("location.area");
+      
+      const finalUrl = queryParams.toString() 
+        ? `${seoPath}?${queryParams.toString()}`
+        : seoPath;
+      
+      navigate(finalUrl);
       setShowSuggestions(false);
       setShowMobileSearchModal(false);
+    }
+  };
+
+  const handleCategoryButtonClick = (categoryKey) => {
+    setIsSwitchingCategory(true);
+    const currentCategory = activeFilters.categories[0] || 
+                           (selectedCategoryButtons[0] ? 
+                            getCategoryDisplayName(selectedCategoryButtons[0]) : 
+                            'All Categories');
+    setPreviousCategory(currentCategory);
+    
+    const categoryMap = {
+      'hotel': 'Hotels',
+      'restaurant': 'Restaurants',
+      'shortlet': 'Shortlets',
+      'vendor': 'Vendors'
+    };
+    setNewCategory(categoryMap[categoryKey] || categoryKey);
+    
+    const categoryActualMap = {
+      'hotel': 'hotel',
+      'restaurant': 'restaurant',
+      'shortlet': 'shortlet',
+      'vendor': 'services'
+    };
+    
+    const actualCategory = categoryActualMap[categoryKey] || categoryKey;
+    const newSelectedCategories = [categoryKey];
+    setSelectedCategoryButtons(newSelectedCategories);
+    
+    const queryParams = new URLSearchParams();
+    
+    queryParams.append("checkInDate", checkInDate.toISOString());
+    queryParams.append("checkOutDate", checkOutDate.toISOString());
+    
+    if (guests) {
+      queryParams.append("guests", JSON.stringify(guests));
+    }
+    
+    queryParams.append("cat", actualCategory);
+    
+    const categorySlug = getCategorySlug(actualCategory);
+    const locationSlug = localSearchQuery ? createSlug(localSearchQuery) : null;
+    
+    let seoPath = '';
+    if (categorySlug && locationSlug) {
+      seoPath = `/${categorySlug}-in-${locationSlug}`;
+    } else if (categorySlug) {
+      seoPath = `/${categorySlug}`;
+    } else {
+      seoPath = '/search';
+    }
+    
+    const finalUrl = queryParams.toString() 
+      ? `${seoPath}?${queryParams.toString()}`
+      : seoPath;
+    
+    navigate(finalUrl);
+    
+    const displayName = getCategoryDisplayName(actualCategory);
+    const updatedFilters = {
+      ...activeFilters,
+      categories: [displayName],
+      locations: [],
+    };
+    setActiveFilters(updatedFilters);
+    
+    setIsUsingInitialState({
+      location: false,
+      category: true,
+      search: false
+    });
+    
+    setTimeout(() => {
+      setIsSwitchingCategory(false);
+    }, 1500);
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      if (!showSuggestions || listings.length === 0) {
+        handleSearchSubmit();
+      }
     }
   };
 
@@ -3025,265 +3560,450 @@ const SearchResults = () => {
     setShowDesktopFilters(!showDesktopFilters);
   };
 
-  // Filter change handler - applies immediately for desktop
-  const handleFilterChange = (newFilters) => {
-    setActiveFilters(newFilters);
-
-    // For desktop, apply filters immediately by updating URL
-    if (!isMobile) {
-      const params = new URLSearchParams();
-      if (searchQuery) {
-        params.set("q", searchQuery);
-      }
-
-      // Clear previous parameters
-      for (const [key] of searchParams.entries()) {
-        if (key.startsWith("category") || key.startsWith("location")) {
-          params.delete(key);
-        }
-      }
-
-      // Add new category filters
-      newFilters.categories.forEach((categoryDisplayName, index) => {
-        const selectedCategory = allCategories.find(
-          (cat) => getCategoryDisplayName(cat) === categoryDisplayName
-        );
-        if (selectedCategory) {
-          if (index === 0) {
-            params.set("category", selectedCategory);
-          } else {
-            params.set(`category${index + 1}`, selectedCategory);
-          }
-        }
-      });
-
-      // Add new location filters
-      newFilters.locations.forEach((locationDisplayName, index) => {
-        const selectedLocation = allLocations.find(
-          (loc) => getLocationDisplayName(loc) === locationDisplayName
-        );
-        if (selectedLocation) {
-          if (index === 0) {
-            params.set("location", selectedLocation);
-          } else {
-            params.set(`location${index + 1}`, selectedLocation);
-          }
-        }
-      });
-
-      setSearchParams(params);
+  const handleSearchChange = (value) => {
+    setLocalSearchQuery(value);
+    
+    setShouldFetchData(false);
+    
+    if (value.trim() && activeFilters.locations.length > 0) {
+      const updatedFilters = {
+        ...activeFilters,
+        locations: [],
+      };
+      setActiveFilters(updatedFilters);
+      
+      setIsUsingInitialState(prev => ({
+        ...prev,
+        location: false
+      }));
+    }
+    
+    if (!isMobile && value.trim().length > 0) {
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+    
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
     }
   };
 
-  // Handle suggestion click
-  const handleSuggestionClick = useCallback(
-    (url) => {
-      navigate(url);
-      setShowSuggestions(false);
-      setShowMobileSearchModal(false);
-    },
-    [navigate]
-  );
+  const handleSearchFocus = () => {
+    if (activeFilters.locations.length > 0) {
+      const updatedFilters = {
+        ...activeFilters,
+        locations: [],
+      };
+      setActiveFilters(updatedFilters);
+      
+      setIsUsingInitialState(prev => ({
+        ...prev,
+        location: false
+      }));
+    }
+    
+    if (!isMobile && localSearchQuery.trim().length > 0) {
+      setShowSuggestions(true);
+    }
+  };
 
-  const clearAllFilters = () => {
-    const resetFilters = {
+  const handleClearSearch = () => {
+    setLocalSearchQuery("");
+    setShowSuggestions(false);
+    
+    setShouldFetchData(true);
+    
+    const updatedFilters = {
       locations: [],
-      categories: [],
+      categories: activeFilters.categories.length > 0 ? activeFilters.categories : [finalCategory],
       priceRange: { min: "", max: "" },
       ratings: [],
       sortBy: "relevance",
       amenities: [],
     };
-    setActiveFilters(resetFilters);
-
-    const params = new URLSearchParams();
-    if (searchQuery) {
-      params.set("q", searchQuery);
+    setActiveFilters(updatedFilters);
+    
+    setIsUsingInitialState({
+      location: false,
+      category: true,
+      search: false
+    });
+    
+    const categorySlug = getCategorySlug(finalCategory);
+    const queryParams = new URLSearchParams();
+    
+    queryParams.append("checkInDate", checkInDate.toISOString());
+    queryParams.append("checkOutDate", checkOutDate.toISOString());
+    
+    if (guests) {
+      queryParams.append("guests", JSON.stringify(guests));
     }
-    setSearchParams(params);
+    
+    queryParams.append("cat", finalCategory);
+    
+    const seoPath = categorySlug ? `/${categorySlug}` : '/search';
+    const finalUrl = queryParams.toString() 
+      ? `${seoPath}?${queryParams.toString()}`
+      : seoPath;
+    
+    navigate(finalUrl);
   };
 
+  const handleClearLocationFilters = () => {
+    if (activeFilters.locations.length > 0) {
+      const updatedFilters = {
+        ...activeFilters,
+        locations: [],
+      };
+      setActiveFilters(updatedFilters);
+      
+      setIsUsingInitialState(prev => ({
+        ...prev,
+        location: false
+      }));
+    }
+  };
+
+  const handleSuggestionClick = useCallback(
+    (url) => {
+      setShouldFetchData(true);
+      navigate(url);
+      setShowSuggestions(false);
+    },
+    [navigate]
+  );
+
   const getPageTitle = () => {
-    // Get all location parameters
-    const locationParams = [];
-    for (const [key, value] of searchParams.entries()) {
-      if (key.startsWith("location")) {
-        const displayName = getLocationDisplayName(value);
-        if (displayName !== "All Locations" && displayName !== "All") {
-          locationParams.push(displayName);
-        }
-      }
+    if (activeFilters.locations.length > 0 && finalCategory && finalCategory !== "All Categories") {
+      return `${finalCategory}s in ${activeFilters.locations[0]}`;
+    } else if (localSearchQuery && finalCategory && finalCategory !== "All Categories") {
+      return `${finalCategory}s in ${localSearchQuery}`;
+    } else if (activeFilters.locations.length > 0) {
+      return `Places in ${activeFilters.locations[0]}`;
+    } else if (localSearchQuery) {
+      return `Search Results for "${localSearchQuery}"`;
+    } else if (finalCategory && finalCategory !== "All Categories") {
+      return `${finalCategory}s in Ibadan`;
     }
-
-    // Get all category parameters
-    const categoryParams = [];
-    for (const [key, value] of searchParams.entries()) {
-      if (key.startsWith("category")) {
-        const displayName = getCategoryDisplayName(value);
-        if (displayName !== "All Categories" && displayName !== "All") {
-          categoryParams.push(displayName);
-        }
-      }
-    }
-
-    if (searchQuery) {
-      if (locationParams.length > 0 || categoryParams.length > 0) {
-        let parts = [];
-        if (categoryParams.length > 0) parts.push(categoryParams.join(", "));
-        if (locationParams.length > 0) parts.push(locationParams.join(", "));
-
-        return `Search Results for "${searchQuery}" in ${parts.join(" • ")}`;
-      }
-      return `Search Results for "${searchQuery}"`;
-    } else if (categoryParams.length > 0) {
-      const categoriesText = categoryParams.join(", ");
-      if (locationParams.length > 0) {
-        return `${categoriesText} in ${locationParams.join(", ")}`;
-      }
-      return `${categoriesText} in Ibadan`;
-    } else if (locationParams.length > 0) {
-      return `Places in ${locationParams.join(", ")}`;
-    } else if (
-      activeFilters.locations.length > 0 ||
-      activeFilters.categories.length > 0
-    ) {
-      const parts = [];
-      if (activeFilters.categories.length > 0)
-        parts.push(activeFilters.categories.join(", "));
-      if (activeFilters.locations.length > 0)
-        parts.push(activeFilters.locations.join(", "));
-      return `Places in ${parts.join(" • ")}`;
-    } else {
-      return "All Places in Ibadan";
-    }
+    return "All Places in Ibadan";
   };
 
   const getPageDescription = () => {
-    // Get all location parameters
-    const locationParams = [];
-    for (const [key, value] of searchParams.entries()) {
-      if (key.startsWith("location")) {
-        const displayName = getLocationDisplayName(value);
-        if (displayName !== "All Locations" && displayName !== "All") {
-          locationParams.push(displayName);
-        }
-      }
+    if (activeFilters.locations.length > 0 && finalCategory && finalCategory !== "All Categories") {
+      return `Browse the best ${finalCategory.toLowerCase()} places in ${activeFilters.locations[0]}, Ibadan.`;
+    } else if (localSearchQuery && finalCategory && finalCategory !== "All Categories") {
+      return `Browse the best ${finalCategory.toLowerCase()} places in ${localSearchQuery}, Ibadan.`;
+    } else if (activeFilters.locations.length > 0) {
+      return `Discover amazing places in ${activeFilters.locations[0]}, Ibadan.`;
+    } else if (finalCategory && finalCategory !== "All Categories") {
+      return `Browse the best ${finalCategory.toLowerCase()} places in Ibadan.`;
+    } else if (localSearchQuery) {
+      return `Find the best places in Ibadan matching "${localSearchQuery}".`;
     }
-
-    // Get all category parameters
-    const categoryParams = [];
-    for (const [key, value] of searchParams.entries()) {
-      if (key.startsWith("category")) {
-        const displayName = getCategoryDisplayName(value);
-        if (displayName !== "All Categories" && displayName !== "All") {
-          categoryParams.push(displayName);
-        }
-      }
-    }
-
-    if (searchQuery) {
-      if (locationParams.length > 0 || categoryParams.length > 0) {
-        let parts = [];
-        if (categoryParams.length > 0) parts.push(categoryParams.join(", "));
-        if (locationParams.length > 0) parts.push(locationParams.join(", "));
-
-        return `Find the best places in ${parts.join(
-          " • "
-        )} matching "${searchQuery}". Search results include hotels, restaurants, shortlets, tourist attractions, and more.`;
-      }
-      return `Find the best places in Ibadan matching "${searchQuery}". Search results include hotels, restaurants, shortlets, tourist attractions, and more.`;
-    } else if (categoryParams.length > 0) {
-      const categoriesText = categoryParams.join(", ");
-      if (locationParams.length > 0) {
-        return `Browse the best ${categoriesText.toLowerCase()} places in ${locationParams.join(
-          ", "
-        )}, Ibadan. Find top-rated venues, compare prices, and book your next experience.`;
-      }
-      return `Browse the best ${categoriesText.toLowerCase()} places in Ibadan. Find top-rated venues, compare prices, and book your next experience.`;
-    } else if (locationParams.length > 0) {
-      return `Discover amazing places in ${locationParams.join(
-        ", "
-      )}, Ibadan. Find restaurants, hotels, attractions, and more in these areas.`;
-    } else if (
-      activeFilters.locations.length > 0 ||
-      activeFilters.categories.length > 0
-    ) {
-      const parts = [];
-      if (activeFilters.categories.length > 0)
-        parts.push(activeFilters.categories.join(", "));
-      if (activeFilters.locations.length > 0)
-        parts.push(activeFilters.locations.join(", "));
-      return `Discover amazing places in ${parts.join(
-        " • "
-      )}, Ibadan. Find restaurants, hotels, attractions, and more in these areas.`;
-    } else {
-      return "Browse all places in Ibadan. Find hotels, restaurants, shortlets, tourist attractions, cafes, bars, services, events, and halls.";
-    }
+    return "Browse all places in Ibadan.";
   };
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  
+  const getSearchPlaceholder = () => {
+    if (finalCategory.includes('Vendor')) return "What service do you need?";
+    if (finalCategory.includes('Restaurant')) return "Search by restaurant name, cuisine, or area...";
+    if (finalCategory.includes('Shortlet')) return "Search by shortlet name, area, or location...";
+    if (finalCategory.includes('Hotel')) return "Search by hotel name, area, or location...";
+    return "Search...";
   };
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        showDesktopFilters &&
-        filterButtonRef.current &&
-        !filterButtonRef.current.contains(event.target) &&
-        !event.target.closest(".filter-modal-content")
-      ) {
-        setShowDesktopFilters(false);
-      }
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
     };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
-    document.addEventListener("mousedown", handleClickOutside);
+  useEffect(() => {
+    if (!searchContainerRef.current || isMobile) return;
+    const container = searchContainerRef.current;
+    const updateSearchBarPosition = () => {
+      const rect = container.getBoundingClientRect();
+      const scrollY = window.scrollY;
+      const scrollX = window.scrollX;
+      setSearchBarPosition({
+        left: rect.left + scrollX,
+        top: rect.top + scrollY,
+        width: rect.width,
+        height: rect.height,
+      });
+    };
+    updateSearchBarPosition();
+    const handleScroll = () => {
+      updateSearchBarPosition();
+    };
+    const handleResize = () => {
+      updateSearchBarPosition();
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleResize);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleResize);
     };
-  }, [showDesktopFilters]);
+  }, [isMobile, showSuggestions]);
 
-  const ITEMS_PER_PAGE = 20;
-  const totalPages = Math.ceil(filteredCount / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const currentListings = filteredListings.slice(
-    startIndex,
-    startIndex + ITEMS_PER_PAGE
-  );
-
-  // CRITICAL FIX: Loading state for mobile (hide header)
-  if (loading && isMobile) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        {/* Only show three dots animation */}
-        <div className="flex flex-col items-center">
-          <div className="flex space-x-1 mb-4">
-            <div className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce"></div>
+  const renderCategorySpecificFields = () => {
+    const activeCategory = finalCategory.toLowerCase();
+    const totalGuests = guests ? (guests.adults + guests.children) : 0;
+    
+    if (activeCategory.includes('hotel') || activeCategory.includes('shortlet')) {
+      return (
+        <>
+          <div className="flex items-center gap-2">
             <div
-              className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce"
-              style={{ animationDelay: "0.1s" }}
-            ></div>
+              onClick={() => setShowAgodaModal(true)}
+              className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+            >
+              <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+              <div>
+                <div className="text-xs text-gray-600 mb-1">Check-in</div>
+                <div className="font-medium text-gray-900 text-sm">
+                  {checkInDate ? formatShortDate(checkInDate) : "Select date"}
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-gray-400">→</div>
+            
             <div
-              className="w-3 h-3 bg-[#06EAFC] rounded-full animate-bounce"
-              style={{ animationDelay: "0.2s" }}
-            ></div>
+              onClick={() => setShowAgodaModal(true)}
+              className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+            >
+              <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+              <div>
+                <div className="text-xs text-gray-600 mb-1">Check-out</div>
+                <div className="font-medium text-gray-900 text-sm">
+                  {checkOutDate ? formatShortDate(checkOutDate) : "Select date"}
+                </div>
+              </div>
+            </div>
           </div>
-          <p className="text-sm text-gray-600">Loading results...</p>
+          
+          <div
+            onClick={() => setShowAgodaModal(true)}
+            className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+          >
+            <FontAwesomeIcon icon={faUser} className="text-gray-400" />
+            <div>
+              <div className="text-xs text-gray-600 mb-1">Guests & Rooms</div>
+              <div className="font-medium text-gray-900 text-sm">
+                {guests ? `${totalGuests} guest${totalGuests !== 1 ? 's' : ''} • ${guests.rooms} room${guests.rooms !== 1 ? 's' : ''}` : "Select"}
+              </div>
+            </div>
+          </div>
+        </>
+      );
+    }
+    
+    else if (activeCategory.includes('restaurant')) {
+      return (
+        <>
+          <div
+            onClick={() => setShowAgodaModal(true)}
+            className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+          >
+            <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+            <div>
+              <div className="text-xs text-gray-600 mb-1">When are you visiting?</div>
+              <div className="font-medium text-gray-900 text-sm">
+                {checkInDate ? formatShortDate(checkInDate) : "Select date"}
+              </div>
+            </div>
+          </div>
+          
+          <div
+            onClick={() => setShowAgodaModal(true)}
+            className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+          >
+            <FontAwesomeIcon icon={faUser} className="text-gray-400" />
+            <div>
+              <div className="text-xs text-gray-600 mb-1">Number of People</div>
+              <div className="font-medium text-gray-900 text-sm">
+                {guests ? `${totalGuests} ${totalGuests === 1 ? 'person' : 'people'}` : "Select"}
+              </div>
+            </div>
+          </div>
+        </>
+      );
+    }
+    
+    else if (activeCategory.includes('vendor') || activeCategory.includes('services')) {
+      return (
+        <div
+          onClick={() => setShowAgodaModal(true)}
+          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+        >
+          <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+          <div>
+            <div className="text-xs text-gray-600 mb-1">Preferred service date</div>
+            <div className="font-medium text-gray-900 text-sm">
+              {checkInDate ? formatShortDate(checkInDate) : "Select date"}
+            </div>
+          </div>
         </div>
-      </div>
+      );
+    }
+    
+    return (
+      <>
+        <div
+          onClick={() => setShowAgodaModal(true)}
+          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+        >
+          <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+          <div>
+            <div className="text-xs text-gray-600 mb-1">Check-in</div>
+            <div className="font-medium text-gray-900 text-sm">
+              {checkInDate ? formatShortDate(checkInDate) : "Select date"}
+            </div>
+          </div>
+        </div>
+        
+        <div
+          onClick={() => setShowAgodaModal(true)}
+          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+        >
+          <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+          <div>
+            <div className="text-xs text-gray-600 mb-1">Check-out</div>
+            <div className="font-medium text-gray-900 text-sm">
+              {checkOutDate ? formatShortDate(checkOutDate) : "Select date"}
+            </div>
+          </div>
+        </div>
+        
+        <div
+          onClick={() => setShowAgodaModal(true)}
+          className="px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer min-w-[140px] flex items-center gap-3"
+        >
+          <FontAwesomeIcon icon={faUser} className="text-gray-400" />
+          <div>
+            <div className="text-xs text-gray-600 mb-1">Guests & Rooms</div>
+            <div className="font-medium text-gray-900 text-sm">
+              {guests ? `${totalGuests} guest${totalGuests !== 1 ? 's' : ''} • ${guests.rooms} room${guests.rooms !== 1 ? 's' : ''}` : "Select"}
+            </div>
+          </div>
+        </div>
+      </>
     );
+  };
+
+  const getSearchButtonText = () => {
+    const activeCategory = finalCategory.toLowerCase();
+    if (activeCategory.includes('restaurant')) return "Find Restaurant";
+    if (activeCategory.includes('shortlet')) return "Find Shortlet";
+    if (activeCategory.includes('vendor') || activeCategory.includes('services')) return "Find Vendor";
+    return "Find Hotel";
+  };
+
+  const handleDateSelect = (date) => {
+    const params = new URLSearchParams(window.location.search);
+    
+    if (editingCheckIn) {
+      params.set("checkInDate", date.toISOString());
+    } else if (editingCheckOut) {
+      params.set("checkOutDate", date.toISOString());
+    }
+    
+    setSearchParams(params);
+    setEditingCheckIn(false);
+    setEditingCheckOut(false);
+    setShowEditCalendar(false);
+  };
+
+  const handleGuestsUpdate = (newGuests) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("guests", JSON.stringify(newGuests));
+    setSearchParams(params);
+    setEditingGuests(false);
+    setShowEditGuestSelector(false);
+  };
+
+  const handleAgodaModalSave = ({ checkIn, checkOut, guests: newGuests }) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("checkInDate", checkIn.toISOString());
+    params.set("checkOutDate", checkOut.toISOString());
+    params.set("guests", JSON.stringify(newGuests));
+    setSearchParams(params);
+    setShowAgodaModal(false);
+  };
+
+  if (loading && shouldFetchData && !isSwitchingCategory) {
+    return <UnifiedLoadingScreen isMobile={isMobile} category={finalCategory} />;
   }
 
   if (error) {
+    const isNetworkError = error?.includes?.('timeout') || 
+                           error?.includes?.('Network Error') || 
+                           error?.includes?.('Failed to load');
+    const errorMessage = isNetworkError 
+      ? "Unable to load the search results. The request took too long to complete."
+      : "The search results could not be loaded. Please try again.";
+
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="hidden md:block">
-          <Header />
-        </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 pt-32">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-            <p className="text-red-700 font-medium text-sm">{error}</p>
+      <div className="min-h-screen">
+        <Header />
+        <div className="flex flex-col mt-16 items-center justify-center min-h-[60vh] px-4">
+          <div className="mb-6 p-4 rounded-full bg-red-50 border border-red-100">
+            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+              <svg 
+                className="w-8 h-8 text-red-500" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z" 
+                />
+              </svg>
+            </div>
+          </div>
+          
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 font-manrope">
+            {isNetworkError ? "Resource Loading Error" : "Search Results Error"}
+          </h1>
+          
+          <p className="text-gray-600 text-center mb-6 max-w-md font-manrope">
+            {errorMessage}
+            {isNetworkError && (
+              <span className="block text-xs text-gray-500 mt-2">
+                timeout of 5000ms exceeded
+              </span>
+            )}
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-[#06EAFC] text-white rounded-lg hover:bg-[#05d9eb] transition-colors cursor-pointer font-medium flex items-center gap-2"
+            >
+              <svg 
+                className="w-4 h-4" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
+                />
+              </svg>
+              Refresh Page
+            </button>
           </div>
         </div>
         <Footer />
@@ -3291,38 +4011,44 @@ const SearchResults = () => {
     );
   }
 
+  const ITEMS_PER_PAGE = 20;
+  const totalPages = Math.ceil((apiResponse?.results || 0) / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const currentListings = listings.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50 font-manrope">
+    <div className="min-h-screen  font-manrope w-full overflow-x-hidden">
       <Meta
         title={`${getPageTitle()} | Ajani Directory`}
         description={getPageDescription()}
-        url={`https://ajani.ai/search-results?${searchParams.toString()}`}
+        url={`https://ajani.ai${location.pathname}${location.search}`}
         image="https://ajani.ai/images/search-og.jpg"
       />
 
-      {/* Hide Header on mobile only */}
-      <div className="hidden md:block">
-        <Header />
-      </div>
+      <ToastContainer />
+      
+      {isSwitchingCategory && (
+        <CategorySwitchLoader 
+          isMobile={isMobile}
+          previousCategory={previousCategory}
+          newCategory={newCategory}
+        />
+      )}
+
+      <Header />
 
       <main
-        className="pb-8 md:mt-14"
+        className="pb-8 w-full mx-auto max-w-[100vw] pt-15 px-2 md:px-4"
         style={{
-          paddingLeft: isMobile ? "0.75rem" : "1rem",
-          paddingRight: isMobile ? "0.75rem" : "1rem",
+          paddingLeft: isMobile ? "0.5rem" : "1rem",
+          paddingRight: isMobile ? "0.5rem" : "1rem",
         }}
       >
-        {/* Fixed Search Bar Container with Back Button */}
         <div
-          className="z-30 py-4 md:py-6 relative"
-          style={{
-            zIndex: 50,
-            width: "100%",
-            marginLeft: "0",
-            marginRight: "0",
-            paddingLeft: "0",
-            paddingRight: "0",
-          }}
+          className="z-30 py-4 md:py-6 relative w-full"
           id="search-section"
         >
           <div
@@ -3332,67 +4058,97 @@ const SearchResults = () => {
             }}
           >
             <div className="flex items-center gap-3">
-              {/* Back Button - Show only on mobile */}
               <BackButton className="md:hidden" />
-
               <div className="flex-1">
-                <div className="flex justify-center">
+                <div className="flex justify-center w-full">
                   <div
-                    className="w-full relative"
+                    className="w-full relative max-w-[100vw]"
                     ref={searchContainerRef}
-                    style={{
-                      width: "100%",
-                    }}
                   >
-                    <form onSubmit={handleSearchSubmit}>
-                      <div className="flex items-center justify-center">
-                        <div
-                          className="flex items-center bg-gray-200 rounded-full shadow-sm relative z-40"
-                          style={{
-                            width: isMobile ? "100%" : "27%",
-                          }}
-                        >
-                          <div className="pl-3 sm:pl-4 text-gray-500">
-                            <FontAwesomeIcon
-                              icon={faSearch}
-                              className="h-4 w-4"
-                            />
+                    <form onSubmit={(e) => { e.preventDefault(); handleSearchSubmit(); }}>
+                      <div className="flex items-center justify-center w-full">
+                        {!isMobile ? (
+                          <div className="hidden lg:block w-full max-w-6xl mx-auto">
+                            <div className="relative w-full">
+                              <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4">
+                                <div className="flex items-center gap-4">
+                                  <div className="flex-1">
+                                    <div className="relative">
+                                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                        <FontAwesomeIcon icon={faSearch} />
+                                      </div>
+                                      <input
+                                        ref={searchInputRef}
+                                        type="text"
+                                        value={localSearchQuery}
+                                        onChange={(e) => {
+                                          const value = e.target.value;
+                                          handleSearchChange(value);
+                                          if (searchDebounceRef.current) {
+                                            clearTimeout(searchDebounceRef.current);
+                                          }
+                                          if (!isMobile && value.trim().length > 0) {
+                                            setShowSuggestions(true);
+                                          } else {
+                                            setShowSuggestions(false);
+                                          }
+                                        }}
+                                        onFocus={handleSearchFocus}
+                                        onKeyPress={handleKeyPress}
+                                        placeholder={getSearchPlaceholder()}
+                                        className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 cursor-text"
+                                      />
+                                      {(localSearchQuery || isUsingInitialState.search) && (
+                                        <button
+                                          onClick={() => {
+                                            handleClearSearch();
+                                            setIsUsingInitialState(prev => ({
+                                              ...prev,
+                                              search: false
+                                            }));
+                                          }}
+                                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                                          title="Clear search and start fresh"
+                                        >
+                                          <FontAwesomeIcon icon={faTimesCircle} />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  {renderCategorySpecificFields()}
+                                  
+                                  <button
+                                    onClick={handleSearchSubmit}
+                                    type="button"
+                                    className="px-6 py-3 bg-gradient-to-r from-[#00E38C] to-teal-500 text-white font-semibold rounded-lg hover:from-[#00c97b] hover:to-teal-600 transition-all duration-300 cursor-pointer"
+                                  >
+                                    <FontAwesomeIcon icon={faSearch} className="mr-2" />
+                                    {getSearchButtonText()}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <input
-                            type="text"
-                            placeholder="Search by area, category, or name..."
-                            value={localSearchQuery}
-                            onChange={(e) => handleSearchChange(e.target.value)}
-                            onFocus={handleSearchFocus}
-                            className="flex-1 bg-transparent py-2.5 px-3 text-sm text-gray-800 outline-none placeholder:text-gray-600 font-manrope"
-                            autoFocus={false}
-                            aria-label="Search input"
-                            role="searchbox"
-                          />
-                          {localSearchQuery && (
-                            <button
-                              type="button"
-                              onClick={handleClearSearch}
-                              className="p-1 mr-2 text-gray-500 hover:text-gray-700 transition-colors"
-                              aria-label="Clear search"
-                            >
-                              <FontAwesomeIcon
-                                icon={faTimes}
-                                className="h-4 w-4"
-                              />
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="ml-2">
-                          <button
-                            type="submit"
-                            className="bg-[#06EAFC] hover:bg-[#0be4f3] font-semibold rounded-full py-2.5 px-4 sm:px-6 text-sm transition-colors duration-200 whitespace-nowrap font-manrope"
-                            aria-label="Perform search"
+                        ) : (
+                          <div 
+                            onClick={() => setShowAgodaModal(true)}
+                            className="bg-gray-200 rounded-[15px]  px-3 py-2.5 text-xs flex items-center gap-2 cursor-pointer w-full ml-0"
                           >
-                            Search
-                          </button>
-                        </div>
+                            <FontAwesomeIcon icon={faSearch} className="text-gray-700 text-[15px] flex-shrink-0" />
+                            <div className="flex flex-col text-left truncate w-full">
+                              <span className="text-gray-900 font-medium text-[13px] truncate">
+                                {getLocationDisplayName(activeFilters.locations[0] || localSearchQuery) || "Where to?"}
+                              </span>
+                              <span className="text-gray-600 text-[12px] truncate">
+                                {checkInDate && checkOutDate ? 
+                                  `${formatShortDate(checkInDate)} - ${formatShortDate(checkOutDate)}${guests ? ` • ${guests.adults + guests.children} guest${(guests.adults + guests.children) !== 1 ? 's' : ''}` : ''}` : 
+                                  "Select dates"
+                                }
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </form>
                   </div>
@@ -3400,252 +4156,298 @@ const SearchResults = () => {
               </div>
             </div>
           </div>
+
+          <div className="mt-4 md:mt-6">
+            <CategoryButtons
+              selectedCategories={selectedCategoryButtons}
+              onCategoryClick={handleCategoryButtonClick}
+              isSwitchingCategory={isSwitchingCategory}
+            />
+          </div>
         </div>
 
-        {/* Desktop Search Suggestions */}
         {!isMobile && (
           <DesktopSearchSuggestions
             searchQuery={localSearchQuery}
-            listings={listings}
+            allLocations={allLocations}
             onSuggestionClick={handleSuggestionClick}
+            onLocationSelected={handleLocationSelected}
             onClose={() => setShowSuggestions(false)}
             isVisible={showSuggestions && !loading}
             searchBarPosition={searchBarPosition}
+            activeCategory={finalCategory}
+            checkInDate={checkInDate}
+            checkOutDate={checkOutDate}
+            guests={guests}
           />
         )}
 
-        {/* Mobile Search Modal */}
-        {isMobile && (
-          <MobileSearchModal
-            searchQuery={localSearchQuery}
-            listings={listings}
-            onSuggestionClick={handleSuggestionClick}
-            onClose={() => setShowMobileSearchModal(false)}
-            onTyping={handleSearchChange}
-            isVisible={showMobileSearchModal}
-          />
-        )}
-
-        {/* Desktop Filter Modal */}
         {!isMobile && showDesktopFilters && (
           <FilterSidebar
             onFilterChange={handleFilterChange}
-            onDynamicFilterApply={handleDynamicFilterApply}
             allLocations={allLocations}
-            allCategories={allCategories}
             currentFilters={activeFilters}
-            currentSearchQuery={searchQuery}
             onClose={() => setShowDesktopFilters(false)}
             isDesktopModal={true}
             isInitialized={filtersInitialized}
             isMobile={isMobile}
+            onClearSearchQuery={() => setLocalSearchQuery("")}
+            onClearLocationFilters={handleClearLocationFilters}
+            category={finalCategory}
+            searchQuery={localSearchQuery}
+            checkInDate={checkInDate}
+            checkOutDate={checkOutDate}
+            guests={guests}
+            navigate={navigate}
           />
         )}
 
-        {/* Mobile Filter Modal */}
         {isMobile && showMobileFilters && (
           <FilterSidebar
             onFilterChange={handleFilterChange}
-            onDynamicFilterApply={(data) => {
-              handleDynamicFilterApply(data);
-              handleMobileFilterApply();
-            }}
             allLocations={allLocations}
-            allCategories={allCategories}
             currentFilters={activeFilters}
-            currentSearchQuery={searchQuery}
-            onClose={handleMobileFilterApply}
+            onClose={() => setShowMobileFilters(false)}
             isMobileModal={true}
             isInitialized={filtersInitialized}
             isMobile={isMobile}
+            onClearSearchQuery={() => setLocalSearchQuery("")}
+            onClearLocationFilters={handleClearLocationFilters}
+            category={finalCategory}
+            searchQuery={localSearchQuery}
+            checkInDate={checkInDate}
+            checkOutDate={checkOutDate}
+            guests={guests}
+            navigate={navigate}
           />
         )}
 
-        {/* Main Content Layout */}
-        <div
-          className="flex flex-col lg:flex-row gap-6"
-          style={{
-            width: "100%",
-            marginLeft: "0",
-            marginRight: "0",
-            paddingLeft: "0",
-            paddingRight: "0",
+        <AgodaStyleSearchModal
+          isVisible={showAgodaModal}
+          onClose={() => setShowAgodaModal(false)}
+          searchQuery={localSearchQuery}
+          onSearchChange={handleSearchChange}
+          checkInDate={checkInDate}
+          checkOutDate={checkOutDate}
+          guests={guests}
+          onDateChange={({ checkIn, checkOut }) => {
+            const params = new URLSearchParams(window.location.search);
+            params.set("checkInDate", checkIn.toISOString());
+            params.set("checkOutDate", checkOut.toISOString());
+            setSearchParams(params);
           }}
+          onGuestsChange={(newGuests) => {
+            const params = new URLSearchParams(window.location.search);
+            params.set("guests", JSON.stringify(newGuests));
+            setSearchParams(params);
+          }}
+          category={finalCategory}
+        />
+
+        {showEditCalendar && (
+          <SimpleCalendar
+            onSelect={handleDateSelect}
+            onClose={() => {
+              setShowEditCalendar(false);
+              setEditingCheckIn(false);
+              setEditingCheckOut(false);
+            }}
+            selectedDate={editingCheckIn ? checkInDate : checkOutDate}
+            isCheckOut={editingCheckOut}
+          />
+        )}
+        
+        {showEditGuestSelector && editingGuests && (
+          <GuestSelector
+            guests={guests}
+            onChange={handleGuestsUpdate}
+            onClose={() => {
+              setShowEditGuestSelector(false);
+              setEditingGuests(false);
+            }}
+            category={finalCategory.toLowerCase()}
+          />
+        )}
+
+        {isMobile && showMobileSearchModal && (
+          <MobileSearchModalResults
+            searchQuery={localSearchQuery}
+            allLocations={allLocations}
+            onSuggestionClick={handleSuggestionClick}
+            onLocationSelected={handleLocationSelected}
+            onClose={() => setShowMobileSearchModal(false)}
+            onTyping={handleSearchChange}
+            isVisible={showMobileSearchModal}
+            activeCategory={finalCategory}
+            checkInDate={checkInDate}
+            checkOutDate={checkOutDate}
+            guests={guests}
+          />
+        )}
+
+        <div
+          className="flex flex-col lg:flex-row gap-6 w-full"
         >
-          {/* Desktop Filter Sidebar */}
           {!isMobile && filtersInitialized && (
-            <div className="lg:w-1/4">
+            <div 
+              className="lg:w-1/4"
+              style={{
+                minWidth: '250px',
+                maxWidth: '280px',
+                width: isMobile ? '100%' : 'calc(25% - 20%)',
+                flexShrink: 0,
+                position: 'sticky',
+                top: '100px',
+                height: 'fit-content'
+              }}
+            >
               <FilterSidebar
                 onFilterChange={handleFilterChange}
-                onDynamicFilterApply={handleDynamicFilterApply}
                 allLocations={allLocations}
-                allCategories={allCategories}
                 currentFilters={activeFilters}
-                currentSearchQuery={searchQuery}
                 isInitialized={filtersInitialized}
                 isMobile={isMobile}
+                onClearSearchQuery={() => setLocalSearchQuery("")}
+                onClearLocationFilters={handleClearLocationFilters}
+                category={finalCategory}
+                searchQuery={localSearchQuery}
+                checkInDate={checkInDate}
+                checkOutDate={checkOutDate}
+                guests={guests}
+                navigate={navigate}
               />
             </div>
           )}
 
-          {/* Results Content */}
           <div
-            className="lg:w-3/4"
+            className="lg:w-3/4 w-full"
             ref={resultsRef}
             style={{
-              width: "100%",
-              paddingLeft: isMobile ? "0" : "0",
-              paddingRight: isMobile ? "0" : "0",
+              width: '100%',
+              maxWidth: '1200px',
+              margin: '0 auto'
             }}
           >
-            {/* Page Header with Filter Button and Sort Dropdown on LG */}
-            <div
-              className="mb-6"
-              style={{ paddingLeft: "0", paddingRight: "0" }}
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex-1 flex items-center gap-3">
-                  {/* Mobile filter button */}
+            <div className="mb-6 w-full">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+                <div className="flex-1 flex items-center gap-3 w-full">
                   {isMobile && filtersInitialized && (
-                    <button
-                      onClick={toggleMobileFilters}
-                      className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm"
-                      aria-label="Open filters"
-                      ref={filterButtonRef}
-                    >
-                      <div className="relative">
-                        <PiSliders className="text-gray-600 text-lg" />
-                        {Object.keys(activeFilters).some((key) => {
-                          if (key === "priceRange") {
-                            return (
-                              activeFilters.priceRange.min ||
-                              activeFilters.priceRange.max
-                            );
-                          }
-                          return Array.isArray(activeFilters[key])
-                            ? activeFilters[key].length > 0
-                            : activeFilters[key] !== "relevance";
-                        }) && (
-                          <span className="absolute -top-1 -right-1 bg-[#06EAFC] text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
-                            {Object.values(activeFilters).reduce((acc, val) => {
-                              if (Array.isArray(val)) return acc + val.length;
-                              if (typeof val === "object" && val !== null) {
-                                return acc + (val.min || val.max ? 1 : 0);
-                              }
-                              return acc + (val && val !== "relevance" ? 1 : 0);
-                            }, 0)}
-                          </span>
-                        )}
+                    <div className="flex items-center justify-between w-full">
+                      <div className="text-left">
+                        <h1 className="text-[16px] lg:text-xl font-bold text-[#00065A] mb-1">
+                          {getPageTitle()}
+                        </h1>
+                       
                       </div>
-                    </button>
-                  )}
-
-                  {/* Title and Count */}
-                  <div className="flex-1">
-                    <h1 className="text-xl font-bold text-[#00065A] mb-1">
-                      {getPageTitle()}
-                    </h1>
-                    <p className="text-sm text-gray-600">
-                      {filteredCount} {filteredCount === 1 ? "place" : "places"}{" "}
-                      found
-                    </p>
-                  </div>
-                </div>
-
-                {/* Sort By Dropdown - Only on mobile and LG screens */}
-                {(isMobile || window.innerWidth >= 1024) &&
-                  filtersInitialized && (
-                    <div className="flex items-center gap-2">
-                      {/* LG Screen: Sort dropdown at far right edge, no background */}
-                      {!isMobile && (
-                        <div className="relative">
-                          <select
-                            value={activeFilters.sortBy}
-                            onChange={(e) => {
-                              const updatedFilters = {
-                                ...activeFilters,
-                                sortBy: e.target.value,
-                              };
-                              handleFilterChange(updatedFilters);
-                            }}
-                            className="appearance-none px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-0 cursor-pointer pr-8 bg-transparent border-0"
-                            style={{
-                              background: "transparent",
-                              border: "none",
-                              boxShadow: "none",
-                            }}
+                      <div className="flex items-center gap-2">
+                        <div className="flex flex-col">
+                          <button
+                            onClick={toggleMobileFilters}
+                            className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white shadow-sm cursor-pointer ml-2"
+                            aria-label="Open filters"
+                            ref={filterButtonRef}
                           >
-                            <option value="relevance">
-                              Sort by: Relevance
-                            </option>
-                            <option value="price_low">
-                              Price: Low to High
-                            </option>
-                            <option value="price_high">
-                              Price: High to Low
-                            </option>
-                            <option value="rating">Highest Rated</option>
-                            <option value="name">Name: A to Z</option>
-                          </select>
-                          <div className="absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                            <FontAwesomeIcon
-                              icon={faChevronDown}
-                              className="text-gray-500 text-xs"
-                            />
+                            <div className="relative">
+                              <PiSliders className="text-gray-600 text-lg" />
+                              {Object.keys(activeFilters).some((key) => {
+                                if (key === "priceRange") {
+                                  return (
+                                    activeFilters.priceRange.min ||
+                                    activeFilters.priceRange.max
+                                  );
+                                }
+                                return Array.isArray(activeFilters[key])
+                                  ? activeFilters[key].length > 0
+                                  : activeFilters[key] !== "relevance";
+                              }) && (
+                                <span className="absolute -top-1 -right-1 bg-[#06EAFC] text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                                  {Object.values(activeFilters).reduce((acc, val) => {
+                                    if (Array.isArray(val)) return acc + val.length;
+                                    if (typeof val === "object" && val !== null) {
+                                      return acc + (val.min || val.max ? 1 : 0);
+                                    }
+                                    return acc + (val && val !== "relevance" ? 1 : 0);
+                                  }, 0)}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                          <div className="relative">
+                            <select
+                              value={activeFilters.sortBy}
+                              onChange={(e) => {
+                                const updatedFilters = {
+                                  ...activeFilters,
+                                  sortBy: e.target.value,
+                                };
+                                handleFilterChange(updatedFilters);
+                              }}
+                              className="appearance-none px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-12"
+                            >
+                              <option value="relevance">Sort by: Relevance</option>
+                              <option value="price_low">Price: Low to High</option>
+                              <option value="price_high">Price: High to Low</option>
+                              <option value="rating">Highest Rated</option>
+                              <option value="name">Name: A to Z</option>
+                            </select>
+                            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                              <FontAwesomeIcon icon={faChevronDown} className="text-gray-500 text-xs" />
+                            </div>
                           </div>
                         </div>
-                      )}
-
-                      {/* Mobile: Regular dropdown */}
-                      {isMobile && filtersInitialized && (
-                        <div className="relative">
-                          <select
-                            value={activeFilters.sortBy}
-                            onChange={(e) => {
-                              const updatedFilters = {
-                                ...activeFilters,
-                                sortBy: e.target.value,
-                              };
-                              handleFilterChange(updatedFilters);
-                            }}
-                            className="appearance-none px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#06EAFC] focus:border-[#06EAFC] transition-colors cursor-pointer pr-8"
-                          >
-                            <option value="relevance">
-                              Sort by: Relevance
-                            </option>
-                            <option value="price_low">
-                              Price: Low to High
-                            </option>
-                            <option value="price_high">
-                              Price: High to Low
-                            </option>
-                            <option value="rating">Highest Rated</option>
-                            <option value="name">Name: A to Z</option>
-                          </select>
-                          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                            <FontAwesomeIcon
-                              icon={faChevronDown}
-                              className="text-gray-500 text-xs"
-                            />
-                          </div>
-                        </div>
-                      )}
+                      </div>
                     </div>
                   )}
+                  {!isMobile && (
+                    <div className="flex-1 flex items-center gap-3">
+                      <div className="flex-1">
+                        <h1 className="text-xl font-bold text-[#00065A] mb-1">
+                          {getPageTitle()}
+                        </h1>
+                       
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {!isMobile && filtersInitialized && (
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <select
+                        value={activeFilters.sortBy}
+                        onChange={(e) => {
+                          const updatedFilters = {
+                            ...activeFilters,
+                            sortBy: e.target.value,
+                          };
+                          handleFilterChange(updatedFilters);
+                        }}
+                        className="appearance-none px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-0 cursor-pointer pr-8 bg-transparent border-0"
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          boxShadow: "none",
+                        }}
+                      >
+                        <option value="relevance">Sort by: Relevance</option>
+                        <option value="price_low">Price: Low to High</option>
+                        <option value="price_high">Price: High to Low</option>
+                        <option value="rating">Highest Rated</option>
+                        <option value="name">Name: A to Z</option>
+                      </select>
+                      <div className="absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                        <FontAwesomeIcon icon={faChevronDown} className="text-gray-500 text-xs" />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Results Display */}
             <div
-              className="space-y-6"
-              style={{
-                width: "100%",
-                paddingLeft: "0",
-                paddingRight: "0",
-              }}
+              className="space-y-6 w-full"
             >
-              {filteredCount === 0 && filtersInitialized && (
-                <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+              {listings.length === 0 ? (
+                <div className="text-center py-12 bg-white rounded-xl border border-gray-200 w-full">
                   <FontAwesomeIcon
                     icon={faSearch}
                     className="text-4xl text-gray-300 mb-4 block"
@@ -3653,166 +4455,123 @@ const SearchResults = () => {
                   <h3 className="text-xl text-gray-800 mb-2">
                     No matching results found
                   </h3>
-                  <p className="text-gray-600 mb-4 max-w-md mx-auto">
-                    {searchQuery
-                      ? `No places found for "${searchQuery}" with the selected filters.`
-                      : "No places match your current filters."}
-                  </p>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    <button
-                      onClick={clearAllFilters}
-                      className="bg-[#06EAFC] text-white px-6 py-2 rounded-lg hover:bg-[#05d9eb] transition-colors"
-                    >
-                      Clear All Filters
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (isMobile) {
-                          setShowMobileFilters(true);
-                        } else {
-                          setShowDesktopFilters(true);
-                        }
-                      }}
-                      className="bg-white border border-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      Adjust Filters
-                    </button>
-                  </div>
                   <p className="text-sm text-gray-500 mt-4">
-                    Tip: Try selecting fewer filters or different combinations
+                    Try adjusting your search or filters
                   </p>
+                  <div className="mt-4 text-sm text-gray-600">
+                    <p>Searching for: {finalCategory !== "All Categories" ? finalCategory : "All categories"}</p>
+                    <p>Location: {activeFilters.locations[0] || localSearchQuery || "All locations"}</p>
+                  </div>
                 </div>
-              )}
-
-              {filteredCount > 0 && filtersInitialized && (
+              ) : (
                 <>
-                  {searchQuery ||
-                  (() => {
-                    // Check if there are any location or category parameters
-                    for (const [key] of searchParams.entries()) {
-                      if (
-                        key.startsWith("location") ||
-                        key.startsWith("category")
-                      )
-                        return true;
-                    }
-                    return false;
-                  })() ? (
-                    <>
-                      {isMobile ? (
+                  {isMobile ? (
+                    <div
+                      className="space-y-4 w-full"
+                    >
+                      {Array.from({
+                        length: Math.ceil(currentListings.length / 5),
+                      }).map((_, rowIndex) => (
                         <div
-                          className="space-y-4"
-                          style={{ paddingLeft: "0", paddingRight: "0" }}
-                        >
-                          {Array.from({
-                            length: Math.ceil(currentListings.length / 5),
-                          }).map((_, rowIndex) => (
-                            <div
-                              key={rowIndex}
-                              className="flex overflow-x-auto scrollbar-hide gap-2 pb-4"
-                              style={{
-                                width: "100%",
-                                paddingLeft: "0",
-                                paddingRight: "8px",
-                              }}
-                            >
-                              {currentListings
-                                .slice(rowIndex * 5, (rowIndex + 1) * 5)
-                                .map((listing, index) => (
-                                  <SearchResultBusinessCard
-                                    key={listing.id || `${rowIndex}-${index}`}
-                                    item={listing}
-                                    category={listing.category || "general"}
-                                    isMobile={isMobile}
-                                  />
-                                ))}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div
-                          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                          key={rowIndex}
+                          className="flex overflow-x-auto scrollbar-hide pb-4 w-full"
                           style={{
-                            width: "100%",
+                            paddingLeft: "0",
+                            paddingRight: "0",
+                            marginRight: "0",
+                            gap: "4px"
                           }}
                         >
-                          {currentListings.map((listing, index) => (
-                            <SearchResultBusinessCard
-                              key={listing.id || index}
-                              item={listing}
-                              category={listing.category || "general"}
-                              isMobile={isMobile}
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      {totalPages > 1 && (
-                        <div className="flex justify-center items-center space-x-2 mt-8">
-                          <button
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={currentPage === 1}
-                            className={`px-4 py-2 rounded-lg border ${
-                              currentPage === 1
-                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                : "bg-white text-gray-700 hover:bg-gray-50"
-                            }`}
-                          >
-                            Previous
-                          </button>
-
-                          <div className="flex space-x-1">
-                            {Array.from(
-                              { length: Math.min(totalPages, 5) },
-                              (_, i) => i + 1
-                            ).map((page) => (
-                              <button
-                                key={page}
-                                onClick={() => handlePageChange(page)}
-                                className={`w-10 h-10 rounded-lg border ${
-                                  currentPage === page
-                                    ? "bg-[#06EAFC] text-white border-[#06EAFC]"
-                                    : "bg-white text-gray-700 hover:bg-gray-50"
-                                }`}
+                          {currentListings
+                            .slice(rowIndex * 5, (rowIndex + 1) * 5)
+                            .map((listing, index) => (
+                              <div
+                                key={listing._id || `${rowIndex}-${index}`}
+                                className="flex-shrink-0"
                               >
-                                {page}
-                              </button>
+                                <SearchResultBusinessCard
+                                  item={listing}
+                                  category={listing.category || "general"}
+                                  isMobile={isMobile}
+                                />
+                              </div>
                             ))}
-                          </div>
+                          <div className="flex-shrink-0 w-2"></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div 
+                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-2 w-full"
+                      style={{
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))'
+                      }}
+                    >
+                      {currentListings.map((listing, index) => (
+                        <div
+                          key={listing._id || index}
+                          style={{
+                            width: '240px',
+                            height: '350px',
+                            minWidth: '240px',
+                            maxWidth: '240px',
+                            minHeight: '350px',
+                            maxHeight: '350px'
+                          }}
+                        >
+                          <SearchResultBusinessCard
+                            item={listing}
+                            category={listing.category || "general"}
+                            isMobile={isMobile}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
+                  {totalPages > 1 && listings.length > ITEMS_PER_PAGE && (
+                    <div className="flex justify-center items-center space-x-2 mt-8 w-full">
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className={`px-4 py-2 rounded-lg border ${
+                          currentPage === 1
+                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
+                        }`}
+                      >
+                        Previous
+                      </button>
+                      <div className="flex space-x-1">
+                        {Array.from(
+                          { length: Math.min(totalPages, 5) },
+                          (_, i) => i + 1
+                        ).map((page) => (
                           <button
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                            className={`px-4 py-2 rounded-lg border ${
-                              currentPage === totalPages
-                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                : "bg-white text-gray-700 hover:bg-gray-50"
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`w-10 h-10 rounded-lg border ${
+                              currentPage === page
+                                ? "bg-[#06EAFC] text-white border-[#06EAFC]"
+                                : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
                             }`}
                           >
-                            Next
+                            {page}
                           </button>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    /* Group by category for browsing */
-                    Object.entries(groupedListings).map(([catName, items]) => {
-                      const categorySlug = catName
-                        .toLowerCase()
-                        .replace(/\s+/g, "-");
-                      const sectionId = `${categorySlug}-section`;
-
-                      return (
-                        <CategorySection
-                          key={catName}
-                          title={catName}
-                          items={items}
-                          sectionId={sectionId}
-                          isMobile={isMobile}
-                          category={catName}
-                        />
-                      );
-                    })
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className={`px-4 py-2 rounded-lg border ${
+                          currentPage === totalPages
+                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
+                        }`}
+                      >
+                        Next
+                      </button>
+                    </div>
                   )}
                 </>
               )}
@@ -3820,38 +4579,153 @@ const SearchResults = () => {
           </div>
         </div>
       </main>
-
       <Footer />
 
-      {/* Custom styles */}
       <style jsx global>{`
-        /* Ensure scroll to top works properly */
-        html {
-          scroll-behavior: smooth;
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
-
-        /* Fix for image width stability */
-        img {
-          max-width: 100%;
-          height: auto;
-          display: block;
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
-
+        
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.9); }
+        }
+        
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+        
+        .animate-pulse {
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+        
         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
+        
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }
+        
+        .backdrop-blur-xs {
+          backdrop-filter: blur(2px);
+        }
+        
         .line-clamp-2 {
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
         }
+        
+        .line-clamp-1 {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
 
-        /* Animation for search suggestions */
+        .search-result-card img {
+          width: 100% !important;
+          height: 200px !important;
+          min-height: 200px !important;
+          max-height: 200px !important;
+          object-fit: cover !important;
+          object-position: center !important;
+          display: block !important;
+        }
+        
+        @media (max-width: 768px) {
+          .search-result-card img {
+            height: 180px !important;
+            min-height: 180px !important;
+            max-height: 180px !important;
+          }
+        }
+        
+        .search-result-card {
+          contain: layout style paint;
+        }
+        
+        .search-result-card > div:first-child {
+          width: 100% !important;
+          height: 200px !important;
+          min-height: 200px !important;
+          max-height: 200px !important;
+        }
+        
+        @media (max-width: 768px) {
+          .search-result-card > div:first-child {
+            height: 180px !important;
+            min-height: 180px !important;
+            max-height: 180px !important;
+          }
+        }
+
+        @media (max-width: 768px) {
+          main, 
+          .pl-3.pr-0,
+          [class*="px-"] {
+            padding-right: 0 !important;
+            padding-left: 4px !important;
+          }
+          
+          .w-full {
+            padding-right: 0 !important;
+            margin-right: 0 !important;
+          }
+          
+          .overflow-x-auto {
+            padding-right: 0 !important;
+            padding-left: 0 !important;
+          }
+          
+          .scrollbar-hide {
+            -webkit-overflow-scrolling: touch !important;
+            scroll-snap-type: x mandatory;
+          }
+          
+          .md\\:hidden .overflow-x-auto {
+            -webkit-overflow-scrolling: touch !important;
+          }
+          
+          .min-w-max {
+            padding-right: 8px;
+          }
+        }
+
+        @media screen and (min-width: 768px) {
+          main, 
+          .px-4, 
+          .px-6, 
+          .px-8 {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+          }
+          
+          .lg\\:w-1\\/4 {
+            width: 20% !important;
+          }
+          
+          .lg\\:w-3\\/4 {
+            width: 80% !important;
+          }
+        }
+
+        @media screen and (min-width: 1024px) {
+          main {
+            max-width: 1400px !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+          }
+        }
+
         @keyframes slideInRight {
           from {
             transform: translateX(100%);
@@ -3885,15 +4759,6 @@ const SearchResults = () => {
           }
         }
 
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
         @keyframes scaleIn {
           from {
             opacity: 0;
@@ -3905,87 +4770,21 @@ const SearchResults = () => {
           }
         }
 
-        /* NEW: Sharp fade animations */
-        @keyframes fadeInSharp {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes fadeOutSharp {
-          from {
-            opacity: 1;
-            transform: translateY(0);
-          }
-          to {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-        }
-
         .animate-slideInUp {
           animation: slideInUp 0.3s ease-out;
-        }
-
-        .animate-fadeIn {
-          animation: fadeIn 0.2s ease-out;
         }
 
         .animate-scaleIn {
           animation: scaleIn 0.2s ease-out;
         }
-
-        .animate-fadeInSharp {
-          animation: fadeInSharp 0.2s ease-out forwards;
+        
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
         }
-
-        .animate-fadeOutSharp {
-          animation: fadeOutSharp 0.2s ease-in forwards;
-        }
-
-        /* Additional styles for mobile */
-        @media (max-width: 767px) {
-          .sticky {
-            position: sticky;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 50;
-            background: #f9fafb;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          }
-
-          /* Reduced padding for mobile */
-          main {
-            padding-left: 0.75rem !important;
-            padding-right: 0.75rem !important;
-          }
-        }
-
-        /* LG screen sort dropdown styling */
-        @media (min-width: 1024px) {
-          select.bg-transparent {
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-          }
-
-          select.bg-transparent:hover {
-            color: #00065a;
-          }
-        }
-
-        /* LG screen padding */
-        @media (min-width: 768px) {
-          main {
-            padding-left: 1rem !important;
-            paddingright: 1rem !important;
-          }
+        
+        .animate-bounce {
+          animation: bounce 0.6s ease-in-out infinite;
         }
       `}</style>
     </div>
