@@ -1040,7 +1040,12 @@ const Header = () => {
                           <motion.button
                             key={item.id}
                             variants={itemVariants}
-                            onClick={() => handleMobileNavigate(item.action)}
+                            onClick={() => {
+                              // FIXED: Call the action function directly
+                              item.action(); // This will navigate to the correct route
+                              setIsMenuOpen(false);
+                              setIsMobileCategoriesOpen(false);
+                            }}
                             className="w-full flex items-center gap-3 p-3 text-gray-700 hover:bg-gray-50 hover:text-gray-900 rounded-lg transition-all duration-200 cursor-pointer"
                           >
                             <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
