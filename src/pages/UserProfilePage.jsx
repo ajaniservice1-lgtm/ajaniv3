@@ -100,25 +100,26 @@ const UserProfilePage = () => {
     setLoading(false);
   }, [navigate]);
 
-  const handleLogout = () => {
-    // Clear login state
-    localStorage.removeItem("ajani_dummy_login");
-    localStorage.removeItem("ajani_dummy_email");
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("user_email");
-    localStorage.removeItem("auth-storage");
-
-    // Optional: Keep userProfile and saved listings for next login
-    // If you want to clear everything, uncomment below:
-    // localStorage.removeItem("userProfile");
-    // localStorage.removeItem("userSavedListings");
-    // localStorage.removeItem("userBookings");
-
-    // Dispatch storage event to update header
-    window.dispatchEvent(new Event("storage"));
-    navigate("/login");
-    window.location.reload();
-  };
+// In your logout function (in LoginPage, Profile pages, etc.):
+const handleLogout = () => {
+  // Mark as manual logout
+  localStorage.setItem("logout_manual", "true");
+  
+  // Clear auth data
+  localStorage.removeItem("auth_token");
+  localStorage.removeItem("user_email");
+  localStorage.removeItem("userProfile");
+  localStorage.removeItem("auth-storage");
+  localStorage.removeItem("ajani_dummy_login");
+  
+  // Dispatch events
+  window.dispatchEvent(new Event("storage"));
+  window.dispatchEvent(new Event("logout"));
+  
+  // Navigate to home
+  navigate("/");
+  window.location.reload();
+};
 
   const handleEditProfile = () => {
     // Navigate to profile edit page or show edit modal

@@ -955,19 +955,6 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                 </div>
               )}
 
-              {userInfo.isVendor && (
-                <div className="mb-4 sm:mb-6 bg-purple-50 border border-purple-200 rounded-lg p-3 sm:p-4 flex items-center gap-3">
-                  <Building className="w-5 h-5 text-purple-600" />
-                  <div className="flex-1">
-                    <p className="font-medium text-purple-800 text-sm">
-                      Vendor Personal Booking Confirmed
-                    </p>
-                    <p className="text-xs text-purple-700">
-                      This booking has been saved to your vendor personal bookings. You can view it in your vendor profile under "My Personal Bookings".
-                    </p>
-                  </div>
-                </div>
-              )}
 
               <div className="text-center mb-4 sm:mb-8">
                 <div className={`w-16 h-16 sm:w-20 sm:h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4`}>
@@ -1561,7 +1548,7 @@ This confirmation was generated on: ${new Date().toLocaleString()}
                 {userInfo.isVendor ? (
                   <button
                     onClick={() => navigate("/vendor/profile", { state: { activeTab: "personal-bookings" } })}
-                    className="flex items-center justify-center gap-2 px-4 py-3 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-all font-medium text-sm"
+                    className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-900 rounded-lg hover:bg-purple-50 transition-all font-medium text-sm"
                   >
                     <Building className="w-4 h-4" />
                     Go to Vendor Personal Bookings

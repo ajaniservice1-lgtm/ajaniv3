@@ -5,14 +5,20 @@ import TrackingWrapper from "./components/TrackingWrapper";
 import LocalBusinessSchema from "./components/LocalBusinessSchema";
 import MainLayout from "./components/MainLayout";
 
+// Import storage patch
+import { initUserStorage, patchLocalStorage } from "./utils/storagePatch";
+
+// Import Global Logout Toast
+import GlobalLogoutToast from "./components/GlobalLogoutToast";
+
 /* =======================
    CREATE QUERY CLIENT
 ======================= */
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      cacheTime: 10 * 60 * 1000, // 10 minutes
+      staleTime: 5 * 60 * 1000,
+      cacheTime: 10 * 60 * 1000,
       refetchOnWindowFocus: false,
       retry: 1,
       refetchOnMount: true,
@@ -113,6 +119,197 @@ const LoadingDots = () => (
 );
 
 /* =======================
+   LOGOUT DETECTION SYSTEM
+======================= */
+const initLogoutDetection = () => {
+  const checkAuthStatus = () => {
+    const token = localStorage.getItem("auth_token");
+    const userProfile = localStorage.getItem("userProfile");
+    const userEmail = localStorage.getItem("user_email");
+    
+    return !!(token && userEmail) || !!userProfile;
+  };
+
+  let lastAuthStatus = checkAuthStatus();
+  let activityTimer = null;
+
+  const resetActivityTimer = () => {
+    if (activityTimer) clearTimeout(activityTimer);
+    
+    activityTimer = setTimeout(() => {
+      if (lastAuthStatus) {
+        window.dispatchEvent(new CustomEvent("system-logout", {
+          detail: {
+            reason: "session expired",
+            message: "Your session has expired due to inactivity. Please login again.",
+            timestamp: new Date().toISOString()
+          }
+        }));
+        
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user_email");
+        localStorage.removeItem("userProfile");
+        
+        window.dispatchEvent(new Event("storage"));
+        window.dispatchEvent(new Event("logout"));
+      }
+    }, 30 * 60 * 1000);
+  };
+
+  const handleUserActivity = () => {
+    if (lastAuthStatus) {
+      resetActivityTimer();
+    }
+  };
+
+  const monitorAuthChanges = () => {
+    const currentAuthStatus = checkAuthStatus();
+    
+    if (lastAuthStatus && !currentAuthStatus) {
+      setTimeout(() => {
+        const wasManual = localStorage.getItem("logout_manual") === "true";
+        
+        if (wasManual) {
+          window.dispatchEvent(new Event("manual-logout"));
+          localStorage.removeItem("logout_manual");
+        } else {
+          window.dispatchEvent(new CustomEvent("system-logout", {
+            detail: {
+              reason: "token_expired",
+              message: "Your session has ended. Please login again.",
+              timestamp: new Date().toISOString()
+            }
+          }));
+        }
+      }, 100);
+    }
+    
+    lastAuthStatus = currentAuthStatus;
+    
+    if (currentAuthStatus) {
+      resetActivityTimer();
+    } else {
+      if (activityTimer) clearTimeout(activityTimer);
+    }
+  };
+
+  const storageChangeCheck = setInterval(monitorAuthChanges, 1000);
+  
+  const handleStorageChange = (e) => {
+    if (e.key === "auth_token" || e.key === "userProfile" || e.key === "user_email") {
+      monitorAuthChanges();
+    }
+  };
+
+  window.addEventListener("storage", handleStorageChange);
+  
+  ["mousedown", "keydown", "scroll", "touchstart", "click"].forEach(event => {
+    window.addEventListener(event, handleUserActivity, { passive: true });
+  });
+
+  monitorAuthChanges();
+  resetActivityTimer();
+
+  return () => {
+    clearInterval(storageChangeCheck);
+    if (activityTimer) clearTimeout(activityTimer);
+    window.removeEventListener("storage", handleStorageChange);
+    ["mousedown", "keydown", "scroll", "touchstart", "click"].forEach(event => {
+      window.removeEventListener(event, handleUserActivity);
+    });
+  };
+};
+
+/* =======================
+   API ERROR DETECTION
+======================= */
+const initApiErrorDetection = () => {
+  const originalFetch = window.fetch;
+  
+  window.fetch = async function(...args) {
+    try {
+      const response = await originalFetch.apply(this, args);
+      
+      if (response.status === 401) {
+        const url = args[0]?.url || args[0] || '';
+        
+        if (!url.includes('/login') && !url.includes('/register') && !url.includes('/verify')) {
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent("auth-error", {
+              detail: {
+                type: "api_unauthorized",
+                message: "Your session has expired. Please login again.",
+                url: url,
+                timestamp: new Date().toISOString()
+              }
+            }));
+          }, 500);
+        }
+      }
+      
+      if (response.status === 403) {
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent("auth-error", {
+            detail: {
+              type: "api_forbidden",
+              message: "Access denied. Your session may have expired.",
+              timestamp: new Date().toISOString()
+            }
+          }));
+        }, 500);
+      }
+      
+      return response;
+    } catch (error) {
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        window.dispatchEvent(new CustomEvent("auth-error", {
+          detail: {
+            type: "network_error",
+            message: "Network error. Please check your connection.",
+            timestamp: new Date().toISOString()
+          }
+        }));
+      }
+      
+      throw error;
+    }
+  };
+  
+  const OriginalXMLHttpRequest = window.XMLHttpRequest;
+  
+  if (OriginalXMLHttpRequest) {
+    window.XMLHttpRequest = class extends OriginalXMLHttpRequest {
+      open(method, url, async, user, password) {
+        this._url = url;
+        super.open(method, url, async, user, password);
+      }
+      
+      set onreadystatechange(handler) {
+        super.onreadystatechange = (event) => {
+          if (this.readyState === 4) {
+            if (this.status === 401 || this.status === 403) {
+              if (!this._url?.includes('/login') && !this._url?.includes('/register')) {
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent("auth-error", {
+                    detail: {
+                      type: this.status === 401 ? "xhr_unauthorized" : "xhr_forbidden",
+                      message: "Session expired. Please login again.",
+                      timestamp: new Date().toISOString()
+                    }
+                  }));
+                }, 500);
+              }
+            }
+          }
+          
+          if (handler) handler(event);
+        };
+      }
+    };
+  }
+};
+
+/* =======================
    AUTH UTILITIES
 ======================= */
 const checkAuthStatus = () => {
@@ -128,7 +325,7 @@ const checkAuthStatus = () => {
     try {
       const parsed = JSON.parse(userProfile);
       return !!parsed.email;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -141,7 +338,7 @@ const isUserVerified = () => {
   try {
     const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
     return profile?.isVerified || false;
-  } catch (error) {
+  } catch {
     return false;
   }
 };
@@ -185,7 +382,7 @@ const BuyerRoute = ({ children }) => {
     if (!isBuyer) {
       return <Navigate to="/vendor/profile" replace />;
     }
-  } catch (error) {
+  } catch {
     return <Navigate to="/" replace />;
   }
 
@@ -211,7 +408,7 @@ const VendorRoute = ({ children }) => {
     if (profile.role !== "vendor") {
       return <Navigate to="/buyer/profile" replace />;
     }
-  } catch (error) {
+  } catch {
     return <Navigate to="/" replace />;
   }
 
@@ -250,6 +447,19 @@ const OTPRoute = ({ children }) => {
 ======================= */
 function App() {
   useEffect(() => {
+    // 1. Initialize user storage system
+    patchLocalStorage();
+    initUserStorage();
+    
+    // 2. Initialize logout detection system
+    const cleanupLogoutDetection = initLogoutDetection();
+    
+    // 3. Initialize API error detection in production
+    if (process.env.NODE_ENV === 'production') {
+      initApiErrorDetection();
+    }
+    
+    // 4. Initialize auth
     const initializeAuth = () => {
       const token = localStorage.getItem("auth_token");
       const userProfile = localStorage.getItem("userProfile");
@@ -262,28 +472,61 @@ function App() {
             window.dispatchEvent(new Event("authChange"));
             window.dispatchEvent(
               new CustomEvent("loginSuccess", {
-                detail: { email: profile.email },
+                detail: { 
+                  email: profile.email,
+                  name: profile.firstName,
+                  role: profile.role,
+                  timestamp: new Date().toISOString()
+                }
               })
             );
           }, 100);
-        } catch (error) {
+        } catch {
           // Silent error handling
         }
       }
     };
 
     initializeAuth();
+    
+    // 5. Listen for beforeunload
+    const handleBeforeUnload = () => {};
+    
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    
+    // 6. Global error handler
+    const handleGlobalError = (event) => {
+      if (event.error && event.error.message && event.error.message.includes("auth")) {
+        window.dispatchEvent(new CustomEvent("auth-error", {
+          detail: {
+            type: "global_error",
+            message: "An authentication error occurred. Please try logging in again.",
+            error: event.error.message,
+            timestamp: new Date().toISOString()
+          }
+        }));
+      }
+    };
+    
+    window.addEventListener("error", handleGlobalError);
+    
+    return () => {
+      cleanupLogoutDetection();
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("error", handleGlobalError);
+    };
   }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
       <LocalBusinessSchema />
       
+      <GlobalLogoutToast />
+      
       <BrowserRouter>
         <TrackingWrapper>
           <Suspense fallback={<LoadingDots />}>
             <Routes>
-              {/* PUBLIC ROUTES */}
               <Route path="/" element={<MainLayout><HomePage /></MainLayout>} />
               <Route path="/about" element={<MainLayout><AboutAjani /></MainLayout>} />
               <Route path="/help-center" element={<MainLayout><HelpCenterPage /></MainLayout>} />
@@ -292,7 +535,6 @@ function App() {
               <Route path="/contact" element={<MainLayout><ContactPage /></MainLayout>} />
               <Route path="/contact-us" element={<MainLayout><ContactPage /></MainLayout>} />
               
-              {/* DIRECT CATEGORY PAGES - UPDATED WITH EVENT AND SERVICE */}
               <Route path="/hotel" element={<MainLayout><CategoryResults /></MainLayout>} />
               <Route path="/restaurant" element={<MainLayout><CategoryResults /></MainLayout>} />
               <Route path="/shortlet" element={<MainLayout><CategoryResults /></MainLayout>} />
@@ -300,36 +542,27 @@ function App() {
               <Route path="/service" element={<MainLayout><CategoryResults /></MainLayout>} />
               <Route path="/services" element={<MainLayout><CategoryResults /></MainLayout>} />
               
-              {/* Vendor page already exists */}
               <Route path="/vendor" element={<MainLayout><VendorsPage /></MainLayout>} />
 
-              {/* DYNAMIC ROUTES - IMPORTANT: Keep existing routes for backward compatibility */}
-              
-              {/* 1. Category route for /category/:category URLs */}
               <Route 
                 path="/category/:category" 
                 element={<MainLayout><CategoryResults /></MainLayout>} 
               />
               
-              {/* 2. VENDOR DETAIL */}
               <Route path="/vendor-detail/:id" element={<MainLayout><VendorDetail /></MainLayout>} />
               
-              {/* 3. TRADITIONAL SEARCH RESULTS */}
               <Route path="/search-results" element={<MainLayout><SearchResults /></MainLayout>} />
 
-              {/* 4. SEO-FRIENDLY SEARCH URLS - Must come LAST */}
               <Route 
                 path="/:seoSlug" 
                 element={<MainLayout><SearchResults /></MainLayout>} 
               />
 
-              {/* BOOKING ROUTES - AUTH REMOVED */}
               <Route 
                 path="/booking" 
                 element={<MainLayout><BookingRouter /></MainLayout>}
               />
               
-              {/* Individual booking routes for direct access if needed */}
               <Route 
                 path="/booking/hotel" 
                 element={<MainLayout><HotelBooking /></MainLayout>}
@@ -366,7 +599,6 @@ function App() {
                 element={<MainLayout><BookingFailed /></MainLayout>}
               />
 
-              {/* BOOKING MANAGEMENT ROUTES */}
               <Route 
                 path="/my-bookings" 
                 element={
@@ -384,7 +616,6 @@ function App() {
                 }
               />
 
-              {/* AUTH ROUTES */}
               <Route
                 path="/login"
                 element={
@@ -410,7 +641,6 @@ function App() {
                 }
               />
 
-              {/* OTP VERIFICATION */}
               <Route
                 path="/verify-otp"
                 element={
@@ -420,7 +650,6 @@ function App() {
                 }
               />
 
-              {/* USER REGISTRATION */}
               <Route
                 path="/register/user"
                 element={
@@ -430,7 +659,6 @@ function App() {
                 }
               />
 
-              {/* VENDOR REGISTRATION */}
               <Route
                 path="/register/vendor"
                 element={
@@ -440,7 +668,6 @@ function App() {
                 }
               />
 
-              {/* PROFILE ROUTES */}
               <Route
                 path="/buyer/profile"
                 element={
@@ -458,7 +685,6 @@ function App() {
                 }
               />
 
-              {/* VENDOR ROUTES */}
               <Route
                 path="/vendor/dashboard"
                 element={
@@ -476,7 +702,6 @@ function App() {
                 }
               />
 
-              {/* PROTECTED ROUTES */}
               <Route
                 path="/saved"
                 element={
@@ -510,13 +735,11 @@ function App() {
                 }
               />
 
-              {/* ADMIN ROUTES */}
               <Route
                 path="/admincpanel"
                 element={<Overview />}
               />
 
-              {/* 404 ROUTE */}
               <Route
                 path="*"
                 element={

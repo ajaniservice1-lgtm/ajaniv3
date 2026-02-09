@@ -614,18 +614,26 @@ const BuyerProfilePage = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("user_email");
-    localStorage.removeItem("userProfile");
-    localStorage.removeItem("auth-storage");
-    localStorage.removeItem("ajani_dummy_login");
-    
-    window.dispatchEvent(new Event("storage"));
-    navigate("/");
-    window.location.reload();
-  };
-
+// In your logout function (in LoginPage, Profile pages, etc.):
+const handleLogout = () => {
+  // Mark as manual logout
+  localStorage.setItem("logout_manual", "true");
+  
+  // Clear auth data
+  localStorage.removeItem("auth_token");
+  localStorage.removeItem("user_email");
+  localStorage.removeItem("userProfile");
+  localStorage.removeItem("auth-storage");
+  localStorage.removeItem("ajani_dummy_login");
+  
+  // Dispatch events
+  window.dispatchEvent(new Event("storage"));
+  window.dispatchEvent(new Event("logout"));
+  
+  // Navigate to home
+  navigate("/");
+  window.location.reload();
+};
   const handleLogoClick = () => {
     navigate("/");
   };
@@ -1439,7 +1447,7 @@ const BuyerProfilePage = () => {
                   {/* Stats Summary */}
                   {savedListings.length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl p-4 text-white">
+                      <div className="bg-[#6cff] rounded-xl p-4 text-white">
                         <div className="text-2xl font-bold">{savedListings.length}</div>
                         <p className="text-sm opacity-90">Total Saved</p>
                       </div>
