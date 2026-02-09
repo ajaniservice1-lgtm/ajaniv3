@@ -826,7 +826,7 @@ const HallSelection = ({ vendorData, category = "event", onHallSelect, onHallBoo
 
                         <button
                           onClick={() => handleBookNow(hall, option)}
-                          className="w-full bg-[#06f49f] text-white px-4 py-1.5 rounded-full text-xs font-semibold hover:opacity-90 transition-opacity"
+                          className="w-full bg-[#06f49f] text-white px-4 py-1.5 md:py-3 rounded-full text-xs font-semibold hover:opacity-90 transition-opacity"
                         >
                           SELECT HALL
                         </button>

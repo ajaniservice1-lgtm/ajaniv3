@@ -421,7 +421,7 @@ const Header = () => {
                     </svg>
                   </button>
 
-                  {/* Profile dropdown - UPDATED: With green dot for online status */}
+                  {/* Profile dropdown - MODERNIZED */}
                   <div
                     className="relative cursor-pointer"
                     ref={profileDropdownRef}
@@ -462,58 +462,224 @@ const Header = () => {
                     </button>
 
                     {isProfileDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-[1002] border border-gray-200 cursor-default transition-all duration-300 animate-in fade-in-50 slide-in-from-top-1">
-                        {/* User info with online status */}
-                        <div className="px-4 py-3 border-b border-gray-100 cursor-default">
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium text-gray-900 cursor-default">
-                              {userProfile?.firstName
-                                ? `${userProfile.firstName} ${userProfile.lastName}`
-                                : userEmail}
-                            </p>
-                          
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1 cursor-default">
-                            {userEmail}
-                          </p>
-                          <div className="flex items-center gap-1 mt-1">
-                            <div className={`w-2 h-2 rounded-full ${userProfile?.isVerified ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-                            <span className={`text-xs ${userProfile?.isVerified ? 'text-green-600' : 'text-yellow-600'}`}>
-                              {getVerificationStatusText()}
-                            </span>
+                      <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl py-3 z-[1002] border border-gray-200 cursor-default transition-all duration-300 animate-in fade-in-50 slide-in-from-top-1">
+                        {/* User info section - MODERNIZED */}
+                        <div className="px-4 py-4 border-b border-gray-100 cursor-default bg-gradient-to-r from-gray-50 to-white rounded-t-xl">
+                          <div className="flex items-start gap-3">
+                            <div className="relative">
+                              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-base shadow-sm border-2 border-white">
+                                {getUserInitials()}
+                              </div>
+                              <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white z-10 animate-pulse"></div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm font-semibold text-gray-900 cursor-default truncate">
+                                  {userProfile?.firstName && userProfile?.lastName
+                                    ? `${userProfile.firstName} ${userProfile.lastName}`
+                                    : userEmail?.split('@')[0]}
+                                </p>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${userProfile?.isVerified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                  {getVerificationStatusText()}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1 truncate cursor-default">
+                                {userEmail}
+                              </p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <div className="flex items-center gap-1">
+                                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                  <span className="text-xs text-gray-600 cursor-default">Online</span>
+                                </div>
+                                <span className="text-xs text-gray-400">•</span>
+                                <span className="text-xs text-gray-500 cursor-default">
+                                  {userProfile?.role === "vendor" ? "Vendor" : "Buyer"}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         </div>
 
-                        {/* Rest of dropdown remains same... */}
-                        <button
-                          onClick={handleProfileNavigation}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
-                        >
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            width="16" 
-                            height="16" 
-                            viewBox="0 0 24 24" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            strokeWidth="1.5" 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round"
+                        {/* Navigation Section */}
+                        <div className="py-2">
+                          <div className="px-2">
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider px-2 py-1.5 cursor-default">Account</p>
+                          </div>
+                          
+                          <button
+                            onClick={handleProfileNavigation}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item rounded-lg mx-2"
                           >
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                            <circle cx="12" cy="7" r="4"/>
-                          </svg>
-                          <span className="cursor-pointer">My Profile</span>
-                        </button>
+                            <div className="w-8 h-8 flex items-center justify-center bg-blue-50 rounded-lg group-hover/item:bg-blue-100 transition-colors">
+                              <svg 
+                                xmlns="http://www.w3.org/2000/svg" 
+                                width="16" 
+                                height="16" 
+                                viewBox="0 0 24 24" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                strokeWidth="1.5" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round"
+                              >
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                              </svg>
+                            </div>
+                            <div className="flex-1 text-left">
+                              <span className="font-medium">My Profile</span>
+                              <p className="text-xs text-gray-500">View and edit your profile</p>
+                            </div>
+                          </button>
 
-                        {/* Dashboard link for vendors ONLY */}
-                        {userProfile?.role === "vendor" && (
+                          {/* Dashboard link for vendors ONLY */}
+                          {userProfile?.role === "vendor" && (
+                            <button
+                              onClick={() => {
+                                navigate("/vendor/dashboard");
+                                setIsProfileDropdownOpen(false);
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item rounded-lg mx-2"
+                            >
+                              <div className="w-8 h-8 flex items-center justify-center bg-purple-50 rounded-lg group-hover/item:bg-purple-100 transition-colors">
+                                <svg 
+                                  xmlns="http://www.w3.org/2000/svg" 
+                                  width="16" 
+                                  height="16" 
+                                  viewBox="0 0 24 24" 
+                                  fill="none" 
+                                  stroke="currentColor" 
+                                  strokeWidth="1.5" 
+                                  strokeLinecap="round" 
+                                  strokeLinejoin="round"
+                                >
+                                  <rect x="3" y="3" width="7" height="7"/>
+                                  <rect x="14" y="3" width="7" height="7"/>
+                                  <rect x="3" y="14" width="7" height="7"/>
+                                  <rect x="14" y="14" width="7" height="7"/>
+                                </svg>
+                              </div>
+                              <div className="flex-1 text-left">
+                                <span className="font-medium">Vendor Dashboard</span>
+                                <p className="text-xs text-gray-500">Manage your business</p>
+                              </div>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Categories Section */}
+                        <div className="py-2 border-t border-gray-100">
+                          <div className="px-2">
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider px-2 py-1.5 cursor-default">Categories</p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1 px-2">
+                            {categoriesItems.slice(0, 4).map((item) => (
+                              <button
+                                key={item.id}
+                                onClick={() => {
+                                  item.action();
+                                  setIsProfileDropdownOpen(false);
+                                }}
+                                className="flex flex-col items-center p-3 text-xs text-gray-700 hover:bg-gray-100 hover:text-blue-700 rounded-lg transition-all duration-200 cursor-pointer group/category"
+                              >
+                                <div className="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full group-hover/category:bg-blue-50 mb-1.5">
+                                  <span className="font-medium text-gray-600 group-hover/category:text-blue-600">{item.label.charAt(0)}</span>
+                                </div>
+                                <span className="font-medium truncate w-full text-center">{item.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Quick Actions Section */}
+                        <div className="py-2 border-t border-gray-100">
                           <button
                             onClick={() => {
-                              navigate("/vendor/dashboard");
+                              navigate("/saved");
                               setIsProfileDropdownOpen(false);
                             }}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item rounded-lg mx-2"
+                          >
+                            <div className="w-8 h-8 flex items-center justify-center bg-red-50 rounded-lg group-hover/item:bg-red-100 transition-colors relative">
+                              <svg 
+                                xmlns="http://www.w3.org/2000/svg" 
+                                width="16" 
+                                height="16" 
+                                viewBox="0 0 24 24" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                strokeWidth="1.5" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round"
+                              >
+                                <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
+                              </svg>
+                              {savedCount > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium text-[10px] border border-white">
+                                  {savedCount > 9 ? "9+" : savedCount}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex-1 text-left">
+                              <span className="font-medium">Saved Listings</span>
+                              <p className="text-xs text-gray-500">Your favorite places</p>
+                            </div>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              navigate("/chat");
+                              setIsProfileDropdownOpen(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item rounded-lg mx-2"
+                          >
+                            <div className="w-8 h-8 flex items-center justify-center bg-green-50 rounded-lg group-hover/item:bg-green-100 transition-colors">
+                              <LucideIcons.MessageSquareText size={16} strokeWidth={1.5} />
+                            </div>
+                            <div className="flex-1 text-left">
+                              <span className="font-medium">Chat Assistant</span>
+                              <p className="text-xs text-gray-500">Get help instantly</p>
+                            </div>
+                          </button>
+
+                          {/* List Your Business for vendors */}
+                          {userProfile?.role === "vendor" && (
+                            <button
+                              onClick={() => {
+                                navigate("/add-business");
+                                setIsProfileDropdownOpen(false);
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item rounded-lg mx-2"
+                            >
+                              <div className="w-8 h-8 flex items-center justify-center bg-amber-50 rounded-lg group-hover/item:bg-amber-100 transition-colors">
+                                <svg 
+                                  xmlns="http://www.w3.org/2000/svg" 
+                                  width="16" 
+                                  height="16" 
+                                  viewBox="0 0 24 24" 
+                                  fill="none" 
+                                  stroke="currentColor" 
+                                  strokeWidth="1.5" 
+                                  strokeLinecap="round" 
+                                  strokeLinejoin="round"
+                                >
+                                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                                </svg>
+                              </div>
+                              <div className="flex-1 text-left">
+                                <span className="font-medium">List Your Business</span>
+                                <p className="text-xs text-gray-500">Add new listing</p>
+                              </div>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Sign out section */}
+                        <div className="pt-2 border-t border-gray-100 px-2">
+                          <button
+                            onClick={handleSignOut}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all duration-200 cursor-pointer group/item rounded-lg"
                           >
                             <svg 
                               xmlns="http://www.w3.org/2000/svg" 
@@ -526,129 +692,14 @@ const Header = () => {
                               strokeLinecap="round" 
                               strokeLinejoin="round"
                             >
-                              <rect x="3" y="3" width="7" height="7"/>
-                              <rect x="14" y="3" width="7" height="7"/>
-                              <rect x="3" y="14" width="7" height="7"/>
-                              <rect x="14" y="14" width="7" height="7"/>
+                              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                              <polyline points="16 17 21 12 16 7"/>
+                              <line x1="21" y1="12" x2="9" y2="12"/>
                             </svg>
-                            <span className="cursor-pointer">Vendor Dashboard</span>
+                            <span className="font-medium">Sign Out</span>
                           </button>
-                        )}
-
-                        {/* List Your Business link - ONLY for vendors in dropdown */}
-                        {userProfile?.role === "vendor" && (
-                          <button
-                            onClick={() => {
-                              navigate("/add-business");
-                              setIsProfileDropdownOpen(false);
-                            }}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
-                          >
-                            <svg 
-                              xmlns="http://www.w3.org/2000/svg" 
-                              width="16" 
-                              height="16" 
-                              viewBox="0 0 24 24" 
-                              fill="none" 
-                              stroke="currentColor" 
-                              strokeWidth="1.5" 
-                              strokeLinecap="round" 
-                              strokeLinejoin="round"
-                            >
-                              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                            </svg>
-                            <span className="cursor-pointer">List Your Business</span>
-                          </button>
-                        )}
-
-                        {/* Saved listings link */}
-                        <button
-                          onClick={() => {
-                            navigate("/saved");
-                            setIsProfileDropdownOpen(false);
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
-                        >
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            width="16" 
-                            height="16" 
-                            viewBox="0 0 24 24" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            strokeWidth="1.5" 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round"
-                          >
-                            <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
-                          </svg>
-                          <span className="cursor-pointer">
-                            Saved Listings {savedCount > 0 && `(${savedCount})`}
-                          </span>
-                        </button>
-
-                        {/* Chat link */}
-                        <button
-                          onClick={() => {
-                            navigate("/chat");
-                            setIsProfileDropdownOpen(false);
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
-                        >
-                          <LucideIcons.MessageSquareText size={16} strokeWidth={1.5} />
-                          <span className="cursor-pointer">Chat Assistant</span>
-                        </button>
-
-                        {/* Notifications link */}
-                        <button
-                          onClick={() => {
-                            navigate("/notifications");
-                            setIsProfileDropdownOpen(false);
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item"
-                        >
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            width="16" 
-                            height="16" 
-                            viewBox="0 0 24 24" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            strokeWidth="1.5" 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round"
-                          >
-                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                          </svg>
-                          <span className="cursor-pointer">Notifications</span>
-                        </button>
-
-                        <div className="h-px bg-gray-200 my-1"></div>
-
-                        {/* Sign out */}
-                        <button
-                          onClick={handleSignOut}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all duration-200 cursor-pointer group/item"
-                        >
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            width="16" 
-                            height="16" 
-                            viewBox="0 0 24 24" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            strokeWidth="1.5" 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round"
-                          >
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                            <polyline points="16 17 21 12 16 7"/>
-                            <line x1="21" y1="12" x2="9" y2="12"/>
-                          </svg>
-                          <span className="cursor-pointer">Sign Out</span>
-                        </button>
+                          <p className="text-xs text-gray-400 text-center mt-2 cursor-default">© {new Date().getFullYear()} Ajani</p>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -719,7 +770,7 @@ const Header = () => {
         </div>
       </header>
 
-      {/* MOBILE MENU - UPDATED with proper categories dropdown */}
+      {/* MOBILE MENU - MODERNIZED */}
       <div
         className={`fixed inset-0 z-[100000] md:hidden ${
           isMenuOpen ? "" : "pointer-events-none"
@@ -773,243 +824,279 @@ const Header = () => {
             </button>
           </div>
 
-          {/* Mobile Navigation Content */}
+          {/* Mobile Navigation Content - MODERNIZED */}
           <nav className="flex-1 p-4 space-y-1 overflow-y-auto bg-white" ref={mobileCategoriesRef}>
-            {/* Categories dropdown for mobile - FIXED: Proper toggle */}
+            {/* User info for logged in users - MODERN */}
+            {isLoggedIn && (
+              <div className="mb-4 p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-200">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-lg shadow-sm border-3 border-white">
+                      {getUserInitials()}
+                    </div>
+                    <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white z-10 animate-pulse"></div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="text-base font-semibold text-gray-900 truncate">
+                        {userProfile?.firstName && userProfile?.lastName
+                          ? `${userProfile.firstName} ${userProfile.lastName}`
+                          : userEmail?.split('@')[0]}
+                      </p>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${userProfile?.isVerified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                        {getVerificationStatusText()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-0.5 truncate">
+                      {userEmail}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span className="text-xs text-gray-600">Online</span>
+                      </div>
+                      <span className="text-xs text-gray-400">•</span>
+                      <span className="text-xs text-gray-600">
+                        {userProfile?.role === "vendor" ? "Vendor Account" : "Buyer Account"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Categories Section */}
             <div className="mb-4">
-              <button
-                onClick={toggleMobileCategories}
-                className="w-full text-left py-3 px-4 text-gray-900 bg-gray-50 hover:bg-blue-50 rounded-lg transition-all duration-300 font-medium text-sm cursor-pointer flex items-center justify-between group"
-              >
-                <span className="flex items-center gap-2">
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    width="16" 
-                    height="16" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                  >
-                    <rect x="3" y="3" width="7" height="7"/>
-                    <rect x="14" y="3" width="7" height="7"/>
-                    <rect x="3" y="14" width="7" height="7"/>
-                    <rect x="14" y="14" width="7" height="7"/>
-                  </svg>
-                  Categories
-                </span>
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  width="16" 
-                  height="16" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                  className={`transition-transform duration-200 ${isMobileCategoriesOpen ? 'rotate-180' : ''}`}
-                >
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </button>
-              
-              {/* Categories dropdown content - FIXED: Proper toggle */}
-              <div className={`mt-1 space-y-1 overflow-hidden transition-all duration-300 ${isMobileCategoriesOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-                {categoriesItems.map((item, index) => (
+              <div className="flex items-center justify-between mb-2 px-2">
+                <p className="text-sm font-semibold text-gray-900">Categories</p>
+                <span className="text-xs text-gray-500">{categoriesItems.length} options</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {categoriesItems.map((item) => (
                   <button
                     key={item.id}
-                    className="w-full text-left py-2.5 px-8 text-gray-700 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-300 text-sm cursor-pointer flex items-center gap-2 group/item"
-                    onClick={() => {
-                      item.action();
-                      setIsMenuOpen(false);
-                      setIsMobileCategoriesOpen(false);
-                    }}
+                    onClick={() => handleMobileNavigate(item.action)}
+                    className="flex flex-col items-center p-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-all duration-200 cursor-pointer group/category border border-gray-100"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 group-hover/item:bg-blue-600 transition-colors"></span>
-                    {item.label}
+                    <div className="w-12 h-12 flex items-center justify-center bg-gray-50 rounded-full group-hover/category:bg-blue-100 mb-2 transition-colors">
+                      <span className="font-semibold text-gray-700 group-hover/category:text-blue-700">
+                        {item.label.charAt(0)}
+                      </span>
+                    </div>
+                    <span className="font-medium">{item.label}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Additional items for logged-in users */}
-            {isLoggedIn &&
-              loggedInNavItems.map((item, index) => (
-                <button
-                  key={`logged-in-${index}`}
-                  onClick={() => {
-                    item.onClick();
-                    setIsMenuOpen(false);
-                  }}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal text-sm cursor-pointer flex items-center gap-2 group"
-                >
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    width="16" 
-                    height="16" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="1.5" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                    className="group-hover:scale-110 transition-transform"
+            {/* Quick Actions Section */}
+            <div className="space-y-2 mb-4">
+              <p className="text-sm font-semibold text-gray-900 px-2 mb-2">Quick Actions</p>
+              
+              {isLoggedIn ? (
+                <>
+                  <button
+                    onClick={handleMobileProfileNavigation}
+                    className="w-full flex items-center gap-3 p-3 text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 cursor-pointer group/item"
                   >
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
-                  <span>{item.label}</span>
-                </button>
-              ))}
-
-            {/* Divider */}
-            {isLoggedIn && (
-              <div className="h-px bg-gray-200 my-3"></div>
-            )}
-
-            {/* Authentication buttons */}
-            {isLoggedIn ? (
-              <>
-                {/* Mobile user info with green dot */}
-                <div className="px-4 py-3 bg-gray-50 rounded-lg mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      {/* STANDARD APPLE-STYLE AVATAR for mobile with green dot */}
-                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-sm border-2 border-white">
-                        {getUserInitials()}
-                      </div>
-                      {/* Green dot for online status */}
-                      <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white z-10 animate-pulse"></div>
+                    <div className="w-10 h-10 flex items-center justify-center bg-blue-50 rounded-lg group-hover/item:bg-blue-100 transition-colors">
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        width="18" 
+                        height="18" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="1.5" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                      >
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                      </svg>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-gray-900">
-                          {userProfile?.firstName
-                            ? `${userProfile.firstName} ${userProfile.lastName}`
-                            : userEmail}
-                        </p>
-                       
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {userEmail}
-                      </p>
-                      <div className="flex items-center gap-1 mt-1">
-                        <div className={`w-2 h-2 rounded-full ${userProfile?.isVerified ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-                        <span className={`text-xs ${userProfile?.isVerified ? 'text-green-600' : 'text-yellow-600'}`}>
-                          {getVerificationStatusText()}
+                    <div className="flex-1 text-left">
+                      <span className="font-medium block">My Profile</span>
+                      <span className="text-xs text-gray-500">Edit profile & settings</span>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => handleMobileNavigate("/saved")}
+                    className="w-full flex items-center gap-3 p-3 text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 cursor-pointer group/item"
+                  >
+                    <div className="w-10 h-10 flex items-center justify-center bg-red-50 rounded-lg group-hover/item:bg-red-100 transition-colors relative">
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        width="18" 
+                        height="18" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="1.5" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                      >
+                        <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
+                      </svg>
+                      {savedCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium border border-white">
+                          {savedCount > 9 ? "9+" : savedCount}
                         </span>
-                      </div>
+                      )}
                     </div>
-                  </div>
-                </div>
-
-                {/* Mobile navigation for logged-in users */}
-                <button
-                  onClick={handleMobileProfileNavigation}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal text-sm cursor-pointer flex items-center gap-2 group"
-                >
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    width="16" 
-                    height="16" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="1.5" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                  >
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
-                  </svg>
-                  <span>My Profile</span>
-                </button>
-
-                {/* Vendor Dashboard for vendors only in mobile */}
-                {userProfile?.role === "vendor" && (
-                  <button
-                    onClick={() => handleMobileNavigate("/vendor/dashboard")}
-                    className="block w-full text-left py-3 px-4 text-gray-900 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal text-sm cursor-pointer flex items-center gap-2 group"
-                  >
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      width="16" 
-                      height="16" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="1.5" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                    >
-                      <rect x="3" y="3" width="7" height="7"/>
-                      <rect x="14" y="3" width="7" height="7"/>
-                      <rect x="3" y="14" width="7" height="7"/>
-                      <rect x="14" y="14" width="7" height="7"/>
-                    </svg>
-                    <span>Vendor Dashboard</span>
+                    <div className="flex-1 text-left">
+                      <span className="font-medium block">Saved Listings</span>
+                      <span className="text-xs text-gray-500">Your favorite places</span>
+                    </div>
                   </button>
-                )}
 
-                {/* List Your Business for vendors only in mobile */}
-                {userProfile?.role === "vendor" && (
                   <button
-                    onClick={() => handleMobileNavigate("/add-business")}
-                    className="block w-full text-left py-3 px-4 text-gray-900 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal text-sm cursor-pointer flex items-center gap-2 group"
+                    onClick={() => handleMobileNavigate("/chat")}
+                    className="w-full flex items-center gap-3 p-3 text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 cursor-pointer group/item"
                   >
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      width="16" 
-                      height="16" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="1.5" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                    >
-                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                    </svg>
-                    <span>List Your Business</span>
+                    <div className="w-10 h-10 flex items-center justify-center bg-green-50 rounded-lg group-hover/item:bg-green-100 transition-colors">
+                      <LucideIcons.MessageSquareText size={18} strokeWidth={1.5} />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <span className="font-medium block">Chat Assistant</span>
+                      <span className="text-xs text-gray-500">Get instant help</span>
+                    </div>
                   </button>
-                )}
 
-                <button
-                  onClick={() => handleMobileNavigate("/saved")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal text-sm cursor-pointer flex items-center gap-2 group"
-                >
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    width="16" 
-                    height="16" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="1.5" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
+                  {/* Vendor specific options */}
+                  {userProfile?.role === "vendor" && (
+                    <>
+                      <button
+                        onClick={() => handleMobileNavigate("/vendor/dashboard")}
+                        className="w-full flex items-center gap-3 p-3 text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 cursor-pointer group/item"
+                      >
+                        <div className="w-10 h-10 flex items-center justify-center bg-purple-50 rounded-lg group-hover/item:bg-purple-100 transition-colors">
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            width="18" 
+                            height="18" 
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            strokeWidth="1.5" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round"
+                          >
+                            <rect x="3" y="3" width="7" height="7"/>
+                            <rect x="14" y="3" width="7" height="7"/>
+                            <rect x="3" y="14" width="7" height="7"/>
+                            <rect x="14" y="14" width="7" height="7"/>
+                          </svg>
+                        </div>
+                        <div className="flex-1 text-left">
+                          <span className="font-medium block">Vendor Dashboard</span>
+                          <span className="text-xs text-gray-500">Manage your business</span>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => handleMobileNavigate("/add-business")}
+                        className="w-full flex items-center gap-3 p-3 text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 cursor-pointer group/item"
+                      >
+                        <div className="w-10 h-10 flex items-center justify-center bg-amber-50 rounded-lg group-hover/item:bg-amber-100 transition-colors">
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            width="18" 
+                            height="18" 
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            strokeWidth="1.5" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round"
+                          >
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                          </svg>
+                        </div>
+                        <div className="flex-1 text-left">
+                          <span className="font-medium block">List Your Business</span>
+                          <span className="text-xs text-gray-500">Add new listing</span>
+                        </div>
+                      </button>
+                    </>
+                  )}
+                </>
+              ) : (
+                /* Authentication options for non-logged in */
+                <>
+                  <button
+                    onClick={() => handleMobileNavigate("/login")}
+                    className="w-full flex items-center gap-3 p-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-all duration-200 cursor-pointer group/item"
                   >
-                    <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
-                  </svg>
-                  <span>
-                    Saved Listings {savedCount > 0 && `(${savedCount})`}
-                  </span>
-                </button>
+                    <div className="w-10 h-10 flex items-center justify-center bg-blue-50 rounded-lg group-hover/item:bg-blue-100 transition-colors">
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        width="18" 
+                        height="18" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="1.5" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                      >
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                        <polyline points="10 17 15 12 10 7"/>
+                        <line x1="15" y1="12" x2="3" y2="12"/>
+                      </svg>
+                    </div>
+                    <div className="flex-1 text-left">
+                      <span className="font-medium block">Log In</span>
+                      <span className="text-xs text-gray-500">Access your account</span>
+                    </div>
+                  </button>
 
-                {/* Sign Out button */}
+                  <button
+                    onClick={() => handleMobileNavigate("/register")}
+                    className="w-full flex items-center gap-3 p-3 text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-lg transition-all duration-200 cursor-pointer group/item"
+                  >
+                    <div className="w-10 h-10 flex items-center justify-center bg-green-50 rounded-lg group-hover/item:bg-green-100 transition-colors">
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        width="18" 
+                        height="18" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="1.5" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                      >
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M19 8v6"/>
+                        <path d="M22 11h-6"/>
+                      </svg>
+                    </div>
+                    <div className="flex-1 text-left">
+                      <span className="font-medium block">Get Started</span>
+                      <span className="text-xs text-gray-500">Create new account</span>
+                    </div>
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Sign Out Button for logged in users */}
+            {isLoggedIn && (
+              <div className="pt-4 border-t border-gray-200 mt-4">
                 <button
                   onClick={() => {
                     handleSignOut();
                   }}
-                  className="block w-full text-left py-3 px-4 text-gray-700 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-300 font-normal text-sm cursor-pointer flex items-center gap-2 group mt-4"
+                  className="w-full flex items-center justify-center gap-2 p-3 text-gray-700 hover:bg-red-50 hover:text-red-700 rounded-lg transition-all duration-200 cursor-pointer group/item"
                 >
                   <svg 
                     xmlns="http://www.w3.org/2000/svg" 
-                    width="16" 
-                    height="16" 
+                    width="18" 
+                    height="18" 
                     viewBox="0 0 24 24" 
                     fill="none" 
                     stroke="currentColor" 
@@ -1021,58 +1108,12 @@ const Header = () => {
                     <polyline points="16 17 21 12 16 7"/>
                     <line x1="21" y1="12" x2="9" y2="12"/>
                   </svg>
-                  <span>Sign Out</span>
+                  <span className="font-medium">Sign Out</span>
                 </button>
-              </>
-            ) : (
-              <>
-                <div className="h-px bg-gray-200 my-3"></div>
-
-                <button
-                  onClick={() => handleMobileNavigate("/login")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal text-sm cursor-pointer flex items-center gap-2 group"
-                >
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    width="16" 
-                    height="16" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="1.5" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                  >
-                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                    <polyline points="10 17 15 12 10 7"/>
-                    <line x1="15" y1="12" x2="3" y2="12"/>
-                  </svg>
-                  <span>Log In</span>
-                </button>
-
-                <button
-                  onClick={() => handleMobileNavigate("/register")}
-                  className="block w-full text-left py-3 px-4 text-gray-900 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-300 font-normal text-sm cursor-pointer flex items-center gap-2 group"
-                >
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    width="16" 
-                    height="16" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="1.5" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                  >
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M19 8v6"/>
-                    <path d="M22 11h-6"/>
-                  </svg>
-                  <span>Get Started</span>
-                </button>
-              </>
+                <p className="text-xs text-gray-400 text-center mt-3">
+                  © {new Date().getFullYear()} Ajani. All rights reserved.
+                </p>
+              </div>
             )}
           </nav>
         </div>
