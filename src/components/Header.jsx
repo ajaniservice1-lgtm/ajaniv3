@@ -413,13 +413,13 @@ const Header = () => {
             </div>
 
             {/* Right: Auth/Profile Section */}
-            <div className="flex items-center gap-2 h-full flex-shrink-0">
+            <div className="flex items-center gap-3 h-full flex-shrink-0">
               {isLoggedIn ? (
                 <>
-                  {/* Saved Listings button - HIDDEN ON MOBILE */}
+                  {/* Saved Listings button - VISIBLE ON BOTH MOBILE AND DESKTOP */}
                   <button
                     onClick={() => navigate("/saved")}
-                    className="hidden lg:block relative hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/30 rounded-lg backdrop-blur-sm group"
+                    className="relative hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/30 rounded-lg backdrop-blur-sm group"
                     title="Saved Listings"
                   >
                     <svg
@@ -443,10 +443,10 @@ const Header = () => {
                     )}
                   </button>
 
-                  {/* Chat button - HIDDEN ON MOBILE */}
+                  {/* Chat button - VISIBLE ON BOTH MOBILE AND DESKTOP */}
                   <button
                     onClick={() => navigate("/chat")}
-                    className="hidden lg:block hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/30 rounded-lg backdrop-blur-sm group"
+                    className="hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/30 rounded-lg backdrop-blur-sm group"
                     title="Chat"
                   >
                     <LucideIcons.MessageSquareText
@@ -456,10 +456,10 @@ const Header = () => {
                     />
                   </button>
 
-                  {/* Notifications button - HIDDEN ON MOBILE */}
+                  {/* Notifications button - VISIBLE ON BOTH MOBILE AND DESKTOP */}
                   <button
                     onClick={() => navigate("/notifications")}
-                    className="hidden lg:block hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/30 rounded-lg backdrop-blur-sm group"
+                    className="hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/30 rounded-lg backdrop-blur-sm group"
                     title="Notifications"
                   >
                     <svg
@@ -788,10 +788,10 @@ const Header = () => {
                             e.target.onerror = null;
                             e.target.style.display = "none";
                             e.target.parentElement.innerHTML = `
-            <div class="w-9 h-9 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-sm group-hover:ring-2 group-hover:ring-gray-300 transition-all border-2 border-white">
-              ${getUserInitials()}
-            </div>
-          `;
+                              <div class="w-9 h-9 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-sm group-hover:ring-2 group-hover:ring-gray-300 transition-all border-2 border-white">
+                                ${getUserInitials()}
+                              </div>
+                            `;
                           }}
                         />
                       ) : (

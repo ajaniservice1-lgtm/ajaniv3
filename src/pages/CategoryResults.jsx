@@ -684,12 +684,7 @@ const SearchResultBusinessCard = ({ item, category, isMobile }) => {
   const [imageHeight] = useState(isMobile ? 180 : 200);
   const isFavorite = useIsFavorite(item._id || item.id);
   const cardRef = useRef(null);
-<<<<<<< HEAD
 
-  // Use auth status hook
-=======
-  
->>>>>>> 638d2347893b7cd9b0306e9d7ce56e6b7e3b08ee
   const isAuthenticated = useAuthStatus();
   const isPending = item.status === 'pending';
 
