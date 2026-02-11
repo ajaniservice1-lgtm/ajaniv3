@@ -131,6 +131,8 @@ const Header = () => {
     localStorage.removeItem("userProfile");
     localStorage.removeItem("auth-storage");
     localStorage.removeItem("redirectAfterLogin");
+    localStorage.removeItem("userSavedListings");
+    localStorage.removeItem("savedListings");
 
     sessionStorage.removeItem("auth_token");
     sessionStorage.removeItem("user_email");
@@ -289,12 +291,31 @@ const Header = () => {
     setIsProfileDropdownOpen(false);
   };
 
+  // Handle saved listings navigation based on user role
+  const handleSavedNavigation = () => {
+    if (userProfile?.role === "vendor") {
+      navigate("/vendor/profile?saved=true");
+    } else {
+      navigate("/buyer/profile?saved=true");
+    }
+    setIsProfileDropdownOpen(false);
+  };
+
   // Handle mobile profile navigation
   const handleMobileProfileNavigation = () => {
     if (userProfile?.role === "vendor") {
       handleMobileNavigate("/vendor/profile");
     } else {
       handleMobileNavigate("/buyer/profile");
+    }
+  };
+
+  // Handle mobile saved navigation
+  const handleMobileSavedNavigation = () => {
+    if (userProfile?.role === "vendor") {
+      handleMobileNavigate("/vendor/profile?saved=true");
+    } else {
+      handleMobileNavigate("/buyer/profile?saved=true");
     }
   };
 
@@ -416,9 +437,15 @@ const Header = () => {
             <div className="flex items-center gap-3 h-full flex-shrink-0">
               {isLoggedIn ? (
                 <>
-                  {/* Saved Listings button - VISIBLE ON BOTH MOBILE AND DESKTOP */}
+                  {/* Saved Listings button - FIXED: Navigates to role-specific profile with saved tab */}
                   <button
-                    onClick={() => navigate("/saved")}
+                    onClick={() => {
+                      if (userProfile?.role === "vendor") {
+                        navigate("/vendor/profile?saved=true");
+                      } else {
+                        navigate("/buyer/profile?saved=true");
+                      }
+                    }}
                     className="relative hover:text-[#00d1ff] transition-colors p-1.5 cursor-pointer hover:bg-white/30 rounded-lg backdrop-blur-sm group"
                     title="Saved Listings"
                   >
@@ -632,11 +659,9 @@ const Header = () => {
 
                           {/* Quick Actions Section - ALL BLACK ICONS */}
                           <div className="py-2 border-t border-gray-100">
+                            {/* Saved Listings - FIXED: Navigates to role-specific profile with saved tab */}
                             <button
-                              onClick={() => {
-                                navigate("/saved");
-                                setIsProfileDropdownOpen(false);
-                              }}
+                              onClick={handleSavedNavigation}
                               className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer group/item rounded-lg mx-2"
                             >
                               <div className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg group-hover/item:bg-gray-200 transition-colors relative">
@@ -1160,9 +1185,9 @@ const Header = () => {
                     </button>
                   )}
 
-                  {/* Then the rest */}
+                  {/* Saved Listings - FIXED: Navigates to role-specific profile with saved tab */}
                   <button
-                    onClick={() => handleMobileNavigate("/saved")}
+                    onClick={handleMobileSavedNavigation}
                     className="w-full flex items-center gap-3 p-3 text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 cursor-pointer group/item"
                   >
                     <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center group-hover/item:bg-gray-200 transition-colors relative">
