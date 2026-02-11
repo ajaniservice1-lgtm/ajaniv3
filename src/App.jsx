@@ -10,6 +10,9 @@ import { initUserStorage, patchLocalStorage } from "./utils/storagePatch";
 
 // Import Global Logout Toast
 import GlobalLogoutToast from "./components/GlobalLogoutToast";
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminLayout from "./pages/admin/AdminLayout";
+import DashboardOverView from "./pages/admin/DashboardOverView";
 
 /* =======================
    CREATE QUERY CLIENT
@@ -54,12 +57,16 @@ const VendorProfilePage = lazy(() => import("./pages/VendorProfilePage"));
 ======================= */
 const BookingRouter = lazy(() => import("./pages/Booking/BookingRouter"));
 const HotelBooking = lazy(() => import("./pages/Booking/HotelBooking"));
-const RestaurantBooking = lazy(() => import("./pages/Booking/RestaurantBooking"));
+const RestaurantBooking = lazy(
+  () => import("./pages/Booking/RestaurantBooking"),
+);
 const ShortletBooking = lazy(() => import("./pages/Booking/ShortletBooking"));
-const EventBooking = lazy(() => import("./pages/Booking/EventBooking")); 
-const ServiceBooking = lazy(() => import("./pages/Booking/ServiceBooking")); 
+const EventBooking = lazy(() => import("./pages/Booking/EventBooking"));
+const ServiceBooking = lazy(() => import("./pages/Booking/ServiceBooking"));
 const PaymentPage = lazy(() => import("./pages/Booking/PaymentPage"));
-const BookingConfirmation = lazy(() => import("./pages/Booking/BookingConfirmation"));
+const BookingConfirmation = lazy(
+  () => import("./pages/Booking/BookingConfirmation"),
+);
 const BookingFailed = lazy(() => import("./pages/Booking/BookingFailed"));
 
 /* =======================
@@ -73,20 +80,28 @@ const BookingDetailsPage = lazy(() => import("./pages/BookingDetailsPage"));
 ======================= */
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const ResetPasswordPage = lazy(() => import("./pages/auth/ResetPasswordPage"));
-const RegisterChoicePage = lazy(() => import("./pages/auth/RegisterChoicePage"));
+const RegisterChoicePage = lazy(
+  () => import("./pages/auth/RegisterChoicePage"),
+);
 const VerifyOTPPage = lazy(() => import("./pages/auth/VerifyOTPPage"));
 
 /* =======================
    USER REGISTRATION FLOW
 ======================= */
-const UserRegistration = lazy(() => import("./pages/auth/registration/UserRegistration"));
+const UserRegistration = lazy(
+  () => import("./pages/auth/registration/UserRegistration"),
+);
 
 /* =======================
    VENDOR PAGES
 ======================= */
-const VendorRegistration = lazy(() => import("./pages/auth/registration/VendorRegistration"));
+const VendorRegistration = lazy(
+  () => import("./pages/auth/registration/VendorRegistration"),
+);
 const VendorDashboard = lazy(() => import("./pages/VendorDashboard"));
-const VendorCompleteProfile = lazy(() => import("./pages/auth/registration/VendorCompleteProfile"));
+const VendorCompleteProfile = lazy(
+  () => import("./pages/auth/registration/VendorCompleteProfile"),
+);
 
 /* =======================
    PROTECTED PAGES
@@ -98,6 +113,17 @@ const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
    ADMIN PAGES
 ======================= */
 const Overview = lazy(() => import("./pages/admin/Overview"));
+const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
+const VendorControl = lazy(() => import("./pages/admin/VendorControl"));
+const ListingsControl = lazy(() => import("./pages/admin/ListingsControl"));
+const BookingControl = lazy(() => import("./pages/admin/BookingControl"));
+const MessagesControl = lazy(() => import("./pages/admin/MessagesControl"));
+const ReviewsControl = lazy(() => import("./pages/admin/ReviewsControl"));
+const AIControl = lazy(() => import("./pages/admin/AIControl"));
+const SystemControl = lazy(() => import("./pages/admin/SystemControl"));
+const SecurityControl = lazy(() => import("./pages/admin/SecurityControl"));
+const AutomationControl = lazy(() => import("./pages/admin/AutomationControl"));
+const DataControl = lazy(() => import("./pages/admin/DataControl"));
 
 /* =======================
    LOADING UI
@@ -126,7 +152,7 @@ const initLogoutDetection = () => {
     const token = localStorage.getItem("auth_token");
     const userProfile = localStorage.getItem("userProfile");
     const userEmail = localStorage.getItem("user_email");
-    
+
     return !!(token && userEmail) || !!userProfile;
   };
 
@@ -135,25 +161,31 @@ const initLogoutDetection = () => {
 
   const resetActivityTimer = () => {
     if (activityTimer) clearTimeout(activityTimer);
-    
-    activityTimer = setTimeout(() => {
-      if (lastAuthStatus) {
-        window.dispatchEvent(new CustomEvent("system-logout", {
-          detail: {
-            reason: "session expired",
-            message: "Your session has expired due to inactivity. Please login again.",
-            timestamp: new Date().toISOString()
-          }
-        }));
-        
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("user_email");
-        localStorage.removeItem("userProfile");
-        
-        window.dispatchEvent(new Event("storage"));
-        window.dispatchEvent(new Event("logout"));
-      }
-    }, 30 * 60 * 1000);
+
+    activityTimer = setTimeout(
+      () => {
+        if (lastAuthStatus) {
+          window.dispatchEvent(
+            new CustomEvent("system-logout", {
+              detail: {
+                reason: "session expired",
+                message:
+                  "Your session has expired due to inactivity. Please login again.",
+                timestamp: new Date().toISOString(),
+              },
+            }),
+          );
+
+          localStorage.removeItem("auth_token");
+          localStorage.removeItem("user_email");
+          localStorage.removeItem("userProfile");
+
+          window.dispatchEvent(new Event("storage"));
+          window.dispatchEvent(new Event("logout"));
+        }
+      },
+      30 * 60 * 1000,
+    );
   };
 
   const handleUserActivity = () => {
@@ -164,28 +196,30 @@ const initLogoutDetection = () => {
 
   const monitorAuthChanges = () => {
     const currentAuthStatus = checkAuthStatus();
-    
+
     if (lastAuthStatus && !currentAuthStatus) {
       setTimeout(() => {
         const wasManual = localStorage.getItem("logout_manual") === "true";
-        
+
         if (wasManual) {
           window.dispatchEvent(new Event("manual-logout"));
           localStorage.removeItem("logout_manual");
         } else {
-          window.dispatchEvent(new CustomEvent("system-logout", {
-            detail: {
-              reason: "token_expired",
-              message: "Your session has ended. Please login again.",
-              timestamp: new Date().toISOString()
-            }
-          }));
+          window.dispatchEvent(
+            new CustomEvent("system-logout", {
+              detail: {
+                reason: "token_expired",
+                message: "Your session has ended. Please login again.",
+                timestamp: new Date().toISOString(),
+              },
+            }),
+          );
         }
       }, 100);
     }
-    
+
     lastAuthStatus = currentAuthStatus;
-    
+
     if (currentAuthStatus) {
       resetActivityTimer();
     } else {
@@ -194,16 +228,20 @@ const initLogoutDetection = () => {
   };
 
   const storageChangeCheck = setInterval(monitorAuthChanges, 1000);
-  
+
   const handleStorageChange = (e) => {
-    if (e.key === "auth_token" || e.key === "userProfile" || e.key === "user_email") {
+    if (
+      e.key === "auth_token" ||
+      e.key === "userProfile" ||
+      e.key === "user_email"
+    ) {
       monitorAuthChanges();
     }
   };
 
   window.addEventListener("storage", handleStorageChange);
-  
-  ["mousedown", "keydown", "scroll", "touchstart", "click"].forEach(event => {
+
+  ["mousedown", "keydown", "scroll", "touchstart", "click"].forEach((event) => {
     window.addEventListener(event, handleUserActivity, { passive: true });
   });
 
@@ -214,9 +252,11 @@ const initLogoutDetection = () => {
     clearInterval(storageChangeCheck);
     if (activityTimer) clearTimeout(activityTimer);
     window.removeEventListener("storage", handleStorageChange);
-    ["mousedown", "keydown", "scroll", "touchstart", "click"].forEach(event => {
-      window.removeEventListener(event, handleUserActivity);
-    });
+    ["mousedown", "keydown", "scroll", "touchstart", "click"].forEach(
+      (event) => {
+        window.removeEventListener(event, handleUserActivity);
+      },
+    );
   };
 };
 
@@ -225,83 +265,104 @@ const initLogoutDetection = () => {
 ======================= */
 const initApiErrorDetection = () => {
   const originalFetch = window.fetch;
-  
-  window.fetch = async function(...args) {
+
+  window.fetch = async function (...args) {
     try {
       const response = await originalFetch.apply(this, args);
-      
+
       if (response.status === 401) {
-        const url = args[0]?.url || args[0] || '';
-        
-        if (!url.includes('/login') && !url.includes('/register') && !url.includes('/verify')) {
+        const url = args[0]?.url || args[0] || "";
+
+        if (
+          !url.includes("/login") &&
+          !url.includes("/register") &&
+          !url.includes("/verify")
+        ) {
           setTimeout(() => {
-            window.dispatchEvent(new CustomEvent("auth-error", {
-              detail: {
-                type: "api_unauthorized",
-                message: "Your session has expired. Please login again.",
-                url: url,
-                timestamp: new Date().toISOString()
-              }
-            }));
+            window.dispatchEvent(
+              new CustomEvent("auth-error", {
+                detail: {
+                  type: "api_unauthorized",
+                  message: "Your session has expired. Please login again.",
+                  url: url,
+                  timestamp: new Date().toISOString(),
+                },
+              }),
+            );
           }, 500);
         }
       }
-      
+
       if (response.status === 403) {
         setTimeout(() => {
-          window.dispatchEvent(new CustomEvent("auth-error", {
-            detail: {
-              type: "api_forbidden",
-              message: "Access denied. Your session may have expired.",
-              timestamp: new Date().toISOString()
-            }
-          }));
+          window.dispatchEvent(
+            new CustomEvent("auth-error", {
+              detail: {
+                type: "api_forbidden",
+                message: "Access denied. Your session may have expired.",
+                timestamp: new Date().toISOString(),
+              },
+            }),
+          );
         }, 500);
       }
-      
+
       return response;
     } catch (error) {
-      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-        window.dispatchEvent(new CustomEvent("auth-error", {
-          detail: {
-            type: "network_error",
-            message: "Network error. Please check your connection.",
-            timestamp: new Date().toISOString()
-          }
-        }));
+      if (
+        error.name === "TypeError" &&
+        error.message.includes("Failed to fetch")
+      ) {
+        window.dispatchEvent(
+          new CustomEvent("auth-error", {
+            detail: {
+              type: "network_error",
+              message: "Network error. Please check your connection.",
+              timestamp: new Date().toISOString(),
+            },
+          }),
+        );
       }
-      
+
       throw error;
     }
   };
-  
+
   const OriginalXMLHttpRequest = window.XMLHttpRequest;
-  
+
   if (OriginalXMLHttpRequest) {
     window.XMLHttpRequest = class extends OriginalXMLHttpRequest {
       open(method, url, async, user, password) {
         this._url = url;
         super.open(method, url, async, user, password);
       }
-      
+
       set onreadystatechange(handler) {
         super.onreadystatechange = (event) => {
           if (this.readyState === 4) {
             if (this.status === 401 || this.status === 403) {
-              if (!this._url?.includes('/login') && !this._url?.includes('/register')) {
+              if (
+                !this._url?.includes("/login") &&
+                !this._url?.includes("/register")
+              ) {
                 setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent("auth-error", {
-                    detail: {
-                      type: this.status === 401 ? "xhr_unauthorized" : "xhr_forbidden",
-                      message: "Session expired. Please login again.",
-                      timestamp: new Date().toISOString()
-                    }
-                  }));
+                  window.dispatchEvent(
+                    new CustomEvent("auth-error", {
+                      detail: {
+                        type:
+                          this.status === 401
+                            ? "xhr_unauthorized"
+                            : "xhr_forbidden",
+                        message: "Session expired. Please login again.",
+                        timestamp: new Date().toISOString(),
+                      },
+                    }),
+                  );
                 }, 500);
               }
             }
           }
-          
+
           if (handler) handler(event);
         };
       }
@@ -316,11 +377,11 @@ const checkAuthStatus = () => {
   const token = localStorage.getItem("auth_token");
   const userProfile = localStorage.getItem("userProfile");
   const userEmail = localStorage.getItem("user_email");
-  
+
   if (token && userEmail) {
     return true;
   }
-  
+
   if (userProfile) {
     try {
       const parsed = JSON.parse(userProfile);
@@ -329,7 +390,7 @@ const checkAuthStatus = () => {
       return false;
     }
   }
-  
+
   const hasAnyAuthData = token || userEmail || userProfile;
   return hasAnyAuthData;
 };
@@ -351,7 +412,10 @@ const ProtectedRoute = ({ children, requireVerification = true }) => {
   const isVerified = isUserVerified();
 
   if (!isAuthenticated) {
-    localStorage.setItem("redirectAfterLogin", window.location.pathname + window.location.search);
+    localStorage.setItem(
+      "redirectAfterLogin",
+      window.location.pathname + window.location.search,
+    );
     return <Navigate to="/login" replace />;
   }
 
@@ -367,7 +431,10 @@ const BuyerRoute = ({ children }) => {
   const isVerified = isUserVerified();
 
   if (!isAuthenticated) {
-    localStorage.setItem("redirectAfterLogin", window.location.pathname + window.location.search);
+    localStorage.setItem(
+      "redirectAfterLogin",
+      window.location.pathname + window.location.search,
+    );
     return <Navigate to="/login" replace />;
   }
 
@@ -377,8 +444,9 @@ const BuyerRoute = ({ children }) => {
 
   try {
     const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
-    const isBuyer = !profile.role || profile.role === "user" || profile.role === "buyer";
-    
+    const isBuyer =
+      !profile.role || profile.role === "user" || profile.role === "buyer";
+
     if (!isBuyer) {
       return <Navigate to="/vendor/profile" replace />;
     }
@@ -394,7 +462,10 @@ const VendorRoute = ({ children }) => {
   const isVerified = isUserVerified();
 
   if (!isAuthenticated) {
-    localStorage.setItem("redirectAfterLogin", window.location.pathname + window.location.search);
+    localStorage.setItem(
+      "redirectAfterLogin",
+      window.location.pathname + window.location.search,
+    );
     return <Navigate to="/login" replace />;
   }
 
@@ -404,7 +475,7 @@ const VendorRoute = ({ children }) => {
 
   try {
     const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
-    
+
     if (profile.role !== "vendor") {
       return <Navigate to="/buyer/profile" replace />;
     }
@@ -450,15 +521,15 @@ function App() {
     // 1. Initialize user storage system
     patchLocalStorage();
     initUserStorage();
-    
+
     // 2. Initialize logout detection system
     const cleanupLogoutDetection = initLogoutDetection();
-    
+
     // 3. Initialize API error detection in production
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === "production") {
       initApiErrorDetection();
     }
-    
+
     // 4. Initialize auth
     const initializeAuth = () => {
       const token = localStorage.getItem("auth_token");
@@ -472,13 +543,13 @@ function App() {
             window.dispatchEvent(new Event("authChange"));
             window.dispatchEvent(
               new CustomEvent("loginSuccess", {
-                detail: { 
+                detail: {
                   email: profile.email,
                   name: profile.firstName,
                   role: profile.role,
-                  timestamp: new Date().toISOString()
-                }
-              })
+                  timestamp: new Date().toISOString(),
+                },
+              }),
             );
           }, 100);
         } catch {
@@ -488,28 +559,35 @@ function App() {
     };
 
     initializeAuth();
-    
+
     // 5. Listen for beforeunload
     const handleBeforeUnload = () => {};
-    
+
     window.addEventListener("beforeunload", handleBeforeUnload);
-    
+
     // 6. Global error handler
     const handleGlobalError = (event) => {
-      if (event.error && event.error.message && event.error.message.includes("auth")) {
-        window.dispatchEvent(new CustomEvent("auth-error", {
-          detail: {
-            type: "global_error",
-            message: "An authentication error occurred. Please try logging in again.",
-            error: event.error.message,
-            timestamp: new Date().toISOString()
-          }
-        }));
+      if (
+        event.error &&
+        event.error.message &&
+        event.error.message.includes("auth")
+      ) {
+        window.dispatchEvent(
+          new CustomEvent("auth-error", {
+            detail: {
+              type: "global_error",
+              message:
+                "An authentication error occurred. Please try logging in again.",
+              error: event.error.message,
+              timestamp: new Date().toISOString(),
+            },
+          }),
+        );
       }
     };
-    
+
     window.addEventListener("error", handleGlobalError);
-    
+
     return () => {
       cleanupLogoutDetection();
       window.removeEventListener("beforeunload", handleBeforeUnload);
@@ -520,98 +598,258 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <LocalBusinessSchema />
-      
+
       <GlobalLogoutToast />
-      
+
       <BrowserRouter>
         <TrackingWrapper>
           <Suspense fallback={<LoadingDots />}>
             <Routes>
-              <Route path="/" element={<MainLayout><HomePage /></MainLayout>} />
-              <Route path="/about" element={<MainLayout><AboutAjani /></MainLayout>} />
-              <Route path="/help-center" element={<MainLayout><HelpCenterPage /></MainLayout>} />
-              <Route path="/privacy" element={<MainLayout><PrivacyPage /></MainLayout>} />
-              <Route path="/terms-service" element={<MainLayout><TermsPage /></MainLayout>} />
-              <Route path="/contact" element={<MainLayout><ContactPage /></MainLayout>} />
-              <Route path="/contact-us" element={<MainLayout><ContactPage /></MainLayout>} />
-              
-              <Route path="/hotel" element={<MainLayout><CategoryResults /></MainLayout>} />
-              <Route path="/restaurant" element={<MainLayout><CategoryResults /></MainLayout>} />
-              <Route path="/shortlet" element={<MainLayout><CategoryResults /></MainLayout>} />
-              <Route path="/event" element={<MainLayout><CategoryResults /></MainLayout>} />
-              <Route path="/service" element={<MainLayout><CategoryResults /></MainLayout>} />
-              <Route path="/services" element={<MainLayout><CategoryResults /></MainLayout>} />
-              
-              <Route path="/vendor" element={<MainLayout><VendorsPage /></MainLayout>} />
-
-              <Route 
-                path="/category/:category" 
-                element={<MainLayout><CategoryResults /></MainLayout>} 
+              <Route
+                path="/"
+                element={
+                  <MainLayout>
+                    <HomePage />
+                  </MainLayout>
+                }
               />
-              
-              <Route path="/vendor-detail/:id" element={<MainLayout><VendorDetail /></MainLayout>} />
-              
-              <Route path="/search-results" element={<MainLayout><SearchResults /></MainLayout>} />
-
-              <Route 
-                path="/:seoSlug" 
-                element={<MainLayout><SearchResults /></MainLayout>} 
+              <Route
+                path="/about"
+                element={
+                  <MainLayout>
+                    <AboutAjani />
+                  </MainLayout>
+                }
               />
-
-              <Route 
-                path="/booking" 
-                element={<MainLayout><BookingRouter /></MainLayout>}
+              <Route
+                path="/help-center"
+                element={
+                  <MainLayout>
+                    <HelpCenterPage />
+                  </MainLayout>
+                }
               />
-              
-              <Route 
-                path="/booking/hotel" 
-                element={<MainLayout><HotelBooking /></MainLayout>}
+              <Route
+                path="/privacy"
+                element={
+                  <MainLayout>
+                    <PrivacyPage />
+                  </MainLayout>
+                }
               />
-              <Route 
-                path="/booking/restaurant" 
-                element={<MainLayout><RestaurantBooking /></MainLayout>}
+              <Route
+                path="/terms-service"
+                element={
+                  <MainLayout>
+                    <TermsPage />
+                  </MainLayout>
+                }
               />
-              <Route 
-                path="/booking/shortlet" 
-                element={<MainLayout><ShortletBooking /></MainLayout>}
+              <Route
+                path="/contact"
+                element={
+                  <MainLayout>
+                    <ContactPage />
+                  </MainLayout>
+                }
               />
-              <Route 
-                path="/booking/event" 
-                element={<MainLayout><EventBooking /></MainLayout>}
-              />
-              <Route 
-                path="/booking/service" 
-                element={<MainLayout><ServiceBooking /></MainLayout>}
-              />
-              
-              <Route 
-                path="/booking/payment" 
-                element={<MainLayout><PaymentPage /></MainLayout>}
-              />
-              
-              <Route 
-                path="/booking-confirmation/:type?" 
-                element={<MainLayout><BookingConfirmation /></MainLayout>}
-              />
-              
-              <Route 
-                path="/booking-failed" 
-                element={<MainLayout><BookingFailed /></MainLayout>}
+              <Route
+                path="/contact-us"
+                element={
+                  <MainLayout>
+                    <ContactPage />
+                  </MainLayout>
+                }
               />
 
-              <Route 
-                path="/my-bookings" 
+              <Route
+                path="/hotel"
+                element={
+                  <MainLayout>
+                    <CategoryResults />
+                  </MainLayout>
+                }
+              />
+              <Route
+                path="/restaurant"
+                element={
+                  <MainLayout>
+                    <CategoryResults />
+                  </MainLayout>
+                }
+              />
+              <Route
+                path="/shortlet"
+                element={
+                  <MainLayout>
+                    <CategoryResults />
+                  </MainLayout>
+                }
+              />
+              <Route
+                path="/event"
+                element={
+                  <MainLayout>
+                    <CategoryResults />
+                  </MainLayout>
+                }
+              />
+              <Route
+                path="/service"
+                element={
+                  <MainLayout>
+                    <CategoryResults />
+                  </MainLayout>
+                }
+              />
+              <Route
+                path="/services"
+                element={
+                  <MainLayout>
+                    <CategoryResults />
+                  </MainLayout>
+                }
+              />
+
+              <Route
+                path="/vendor"
+                element={
+                  <MainLayout>
+                    <VendorsPage />
+                  </MainLayout>
+                }
+              />
+
+              <Route
+                path="/category/:category"
+                element={
+                  <MainLayout>
+                    <CategoryResults />
+                  </MainLayout>
+                }
+              />
+
+              <Route
+                path="/vendor-detail/:id"
+                element={
+                  <MainLayout>
+                    <VendorDetail />
+                  </MainLayout>
+                }
+              />
+
+              <Route
+                path="/search-results"
+                element={
+                  <MainLayout>
+                    <SearchResults />
+                  </MainLayout>
+                }
+              />
+
+              <Route
+                path="/:seoSlug"
+                element={
+                  <MainLayout>
+                    <SearchResults />
+                  </MainLayout>
+                }
+              />
+
+              <Route
+                path="/booking"
+                element={
+                  <MainLayout>
+                    <BookingRouter />
+                  </MainLayout>
+                }
+              />
+
+              <Route
+                path="/booking/hotel"
+                element={
+                  <MainLayout>
+                    <HotelBooking />
+                  </MainLayout>
+                }
+              />
+              <Route
+                path="/booking/restaurant"
+                element={
+                  <MainLayout>
+                    <RestaurantBooking />
+                  </MainLayout>
+                }
+              />
+              <Route
+                path="/booking/shortlet"
+                element={
+                  <MainLayout>
+                    <ShortletBooking />
+                  </MainLayout>
+                }
+              />
+              <Route
+                path="/booking/event"
+                element={
+                  <MainLayout>
+                    <EventBooking />
+                  </MainLayout>
+                }
+              />
+              <Route
+                path="/booking/service"
+                element={
+                  <MainLayout>
+                    <ServiceBooking />
+                  </MainLayout>
+                }
+              />
+
+              <Route
+                path="/booking/payment"
+                element={
+                  <MainLayout>
+                    <PaymentPage />
+                  </MainLayout>
+                }
+              />
+
+              <Route
+                path="/booking-confirmation/:type?"
+                element={
+                  <MainLayout>
+                    <BookingConfirmation />
+                  </MainLayout>
+                }
+              />
+
+              <Route
+                path="/booking-failed"
+                element={
+                  <MainLayout>
+                    <BookingFailed />
+                  </MainLayout>
+                }
+              />
+
+              <Route
+                path="/my-bookings"
                 element={
                   <ProtectedRoute>
-                    <MainLayout><BookingsPage /></MainLayout>
+                    <MainLayout>
+                      <BookingsPage />
+                    </MainLayout>
                   </ProtectedRoute>
                 }
               />
-              <Route 
-                path="/booking-details/:reference" 
+              <Route
+                path="/booking-details/:reference"
                 element={
                   <ProtectedRoute>
-                    <MainLayout><BookingDetailsPage /></MainLayout>
+                    <MainLayout>
+                      <BookingDetailsPage />
+                    </MainLayout>
                   </ProtectedRoute>
                 }
               />
@@ -620,7 +858,9 @@ function App() {
                 path="/login"
                 element={
                   <PublicRoute>
-                    <MainLayout><LoginPage /></MainLayout>
+                    <MainLayout>
+                      <LoginPage />
+                    </MainLayout>
                   </PublicRoute>
                 }
               />
@@ -628,7 +868,9 @@ function App() {
                 path="/reset-password"
                 element={
                   <PublicRoute>
-                    <MainLayout><ResetPasswordPage /></MainLayout>
+                    <MainLayout>
+                      <ResetPasswordPage />
+                    </MainLayout>
                   </PublicRoute>
                 }
               />
@@ -636,7 +878,9 @@ function App() {
                 path="/register"
                 element={
                   <PublicRoute>
-                    <MainLayout><RegisterChoicePage /></MainLayout>
+                    <MainLayout>
+                      <RegisterChoicePage />
+                    </MainLayout>
                   </PublicRoute>
                 }
               />
@@ -645,7 +889,9 @@ function App() {
                 path="/verify-otp"
                 element={
                   <OTPRoute>
-                    <MainLayout><VerifyOTPPage /></MainLayout>
+                    <MainLayout>
+                      <VerifyOTPPage />
+                    </MainLayout>
                   </OTPRoute>
                 }
               />
@@ -654,7 +900,9 @@ function App() {
                 path="/register/user"
                 element={
                   <PublicRoute>
-                    <MainLayout><UserRegistration /></MainLayout>
+                    <MainLayout>
+                      <UserRegistration />
+                    </MainLayout>
                   </PublicRoute>
                 }
               />
@@ -663,7 +911,9 @@ function App() {
                 path="/register/vendor"
                 element={
                   <PublicRoute>
-                    <MainLayout><VendorRegistration /></MainLayout>
+                    <MainLayout>
+                      <VendorRegistration />
+                    </MainLayout>
                   </PublicRoute>
                 }
               />
@@ -672,7 +922,9 @@ function App() {
                 path="/buyer/profile"
                 element={
                   <BuyerRoute>
-                    <MainLayout><BuyerProfilePage /></MainLayout>
+                    <MainLayout>
+                      <BuyerProfilePage />
+                    </MainLayout>
                   </BuyerRoute>
                 }
               />
@@ -680,7 +932,9 @@ function App() {
                 path="/vendor/profile"
                 element={
                   <VendorRoute>
-                    <MainLayout><VendorProfilePage /></MainLayout>
+                    <MainLayout>
+                      <VendorProfilePage />
+                    </MainLayout>
                   </VendorRoute>
                 }
               />
@@ -697,7 +951,9 @@ function App() {
                 path="/vendor/complete-profile"
                 element={
                   <VendorRoute>
-                    <MainLayout><VendorCompleteProfile /></MainLayout>
+                    <MainLayout>
+                      <VendorCompleteProfile />
+                    </MainLayout>
                   </VendorRoute>
                 }
               />
@@ -706,7 +962,9 @@ function App() {
                 path="/saved"
                 element={
                   <ProtectedRoute>
-                    <MainLayout><SavedListingsPage /></MainLayout>
+                    <MainLayout>
+                      <SavedListingsPage />
+                    </MainLayout>
                   </ProtectedRoute>
                 }
               />
@@ -714,7 +972,9 @@ function App() {
                 path="/notifications"
                 element={
                   <ProtectedRoute>
-                    <MainLayout><NotificationsPage /></MainLayout>
+                    <MainLayout>
+                      <NotificationsPage />
+                    </MainLayout>
                   </ProtectedRoute>
                 }
               />
@@ -722,7 +982,9 @@ function App() {
                 path="/chat"
                 element={
                   <ProtectedRoute>
-                    <MainLayout><ChatPage /></MainLayout>
+                    <MainLayout>
+                      <ChatPage />
+                    </MainLayout>
                   </ProtectedRoute>
                 }
               />
@@ -730,15 +992,28 @@ function App() {
                 path="/add-business"
                 element={
                   <ProtectedRoute>
-                    <MainLayout><AddBusinessPage /></MainLayout>
+                    <MainLayout>
+                      <AddBusinessPage />
+                    </MainLayout>
                   </ProtectedRoute>
                 }
               />
 
-              <Route
-                path="/admincpanel"
-                element={<Overview />}
-              />
+              <Route path="/admincpanel" element={<AdminLayout />}>
+                <Route index element={<DashboardOverView />} />
+                <Route path="users" element={<UserManagement />} />
+                <Route path="vendors" element={<VendorControl />} />
+                <Route path="listings" element={<ListingsControl />} />
+                <Route path="bookings" element={<BookingControl />} />
+                <Route path="messages" element={<MessagesControl />} />
+                <Route path="reviews" element={<ReviewsControl />} />
+                <Route path="ai-control" element={<AIControl />} />
+                <Route path="system-control" element={<SystemControl />} />
+                <Route path="security" element={<SecurityControl />} />
+                <Route path="automation" element={<AutomationControl />} />
+                <Route path="data-control" element={<DataControl />} />
+              </Route>
+              <Route path="/admincpanel/login" element={<AdminLogin />} />
 
               <Route
                 path="*"

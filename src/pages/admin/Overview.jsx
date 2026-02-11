@@ -362,9 +362,7 @@ Response Format: Keep responses under 3 sentences when possible.`,
     setSidebarCollapsed(!sidebarCollapsed);
   };
 
-  const toggleMobileMenu = () => {
-    setShowMobileMenu(!showMobileMenu);
-  };
+
 
   const executeImpersonation = () => {
     const userId = document.getElementById("userIdInput")?.value;

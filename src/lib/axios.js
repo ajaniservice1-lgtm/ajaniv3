@@ -6,7 +6,7 @@ const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
   timeout: 30000,
 });
@@ -18,9 +18,10 @@ const TOKEN_KEY = "auth-storage";
 export const tokenStorage = {
   get: () => {
     if (typeof window === "undefined") return null;
-    const storage = localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
+    const storage =
+      localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
     if (!storage) return null;
-    
+
     try {
       const parsed = JSON.parse(storage);
       return parsed?.state?.token || null;
@@ -28,15 +29,16 @@ export const tokenStorage = {
       return null;
     }
   },
-  set: (token, persist = true) => {
+  set: (token, user = null, persist = true) => {
     if (typeof window === "undefined") return null;
-    
+
     const storageData = persist ? localStorage : sessionStorage;
     const currentData = storageData.getItem(TOKEN_KEY);
-    
+
     try {
       let data = currentData ? JSON.parse(currentData) : { state: {} };
       data.state.token = token;
+      if (user) data.state.user = user;
       storageData.setItem(TOKEN_KEY, JSON.stringify(data));
       return data;
     } catch {
@@ -77,16 +79,16 @@ axiosInstance.interceptors.request.use(
       }
     }
 
-    if (config.headers?.['Cache-Control']) {
-      delete config.headers['Cache-Control'];
+    if (config.headers?.["Cache-Control"]) {
+      delete config.headers["Cache-Control"];
     }
-    if (config.headers?.['cache-control']) {
-      delete config.headers['cache-control'];
+    if (config.headers?.["cache-control"]) {
+      delete config.headers["cache-control"];
     }
 
     return config;
   },
-  (err) => Promise.reject(err)
+  (err) => Promise.reject(err),
 );
 
 axiosInstance.interceptors.response.use(
@@ -102,12 +104,14 @@ axiosInstance.interceptors.response.use(
       window.location.href = "/login";
     }
 
-    if (err.code === 'ERR_NETWORK' || err.message?.includes('CORS')) {
-      console.warn('CORS or network error detected. Check backend CORS configuration.');
+    if (err.code === "ERR_NETWORK" || err.message?.includes("CORS")) {
+      console.warn(
+        "CORS or network error detected. Check backend CORS configuration.",
+      );
     }
 
     return Promise.reject(err);
-  }
+  },
 );
 
 export const apiRequest = async (method, url, data, config) => {
@@ -121,13 +125,15 @@ export const apiRequest = async (method, url, data, config) => {
     return response.data;
   } catch (error) {
     if (error.response?.status === 403) {
-      console.error('Forbidden: You do not have permission to access this resource.');
+      console.error(
+        "Forbidden: You do not have permission to access this resource.",
+      );
     } else if (error.response?.status === 404) {
-      console.error('Not Found: The requested resource does not exist.');
+      console.error("Not Found: The requested resource does not exist.");
     } else if (error.response?.status === 429) {
-      console.error('Too Many Requests: Please slow down.');
+      console.error("Too Many Requests: Please slow down.");
     }
-    
+
     throw error;
   }
 };
