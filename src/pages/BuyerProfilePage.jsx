@@ -974,7 +974,7 @@ const handleLogout = () => {
                       </span>
                     )}
                     {tab.id === "saved" && savedListingsCount > 0 && (
-                      <span className="ml-auto bg-purple-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      <span className="ml-auto bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                         {savedListingsCount}
                       </span>
                     )}
